@@ -37,7 +37,7 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
     @Override
     public void initialize(ConfigurableComponent component) {
         Processor processor = (Processor) component;
-        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             processor.initialize(new MockProcessorInitializationContext());
         }
     }
@@ -45,7 +45,7 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
     @Override
     public void teardown(ConfigurableComponent component) {
         Processor processor = (Processor) component;
-        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
 
             final ComponentLog logger = new MockComponentLogger();
             final MockProcessContext context = new MockProcessContext();

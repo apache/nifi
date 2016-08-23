@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class NarCloseable implements Closeable {
+
     private static final Logger logger = LoggerFactory.getLogger(NarCloseable.class);
 
     public static NarCloseable withNarLoader() {
@@ -34,8 +35,25 @@ public class NarCloseable implements Closeable {
     }
 
     /**
-     * Creates a Closeable object that can be used to to switch to current class loader to the framework class loader
-     * and will automatically set the ClassLoader back to the previous class loader when closed
+     * Sets the current thread context class loader to the specific appropriate
+     * Nar class loader for the given configurable component. Restores to the
+     * previous classloader once complete. If the given class is not assignable
+     * from ConfigurableComponent then the NarThreadContextClassLoader is used.
+     *
+     * @param componentClass componentClass
+     * @return NarCloseable with current thread context classloader jailed to
+     * the nar of the component
+     */
+    public static NarCloseable withComponentNarLoader(final Class componentClass) {
+        final ClassLoader current = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(componentClass.getClassLoader());
+        return new NarCloseable(current);
+    }
+
+    /**
+     * Creates a Closeable object that can be used to to switch to current class
+     * loader to the framework class loader and will automatically set the
+     * ClassLoader back to the previous class loader when closed
      *
      * @return a NarCloseable
      */

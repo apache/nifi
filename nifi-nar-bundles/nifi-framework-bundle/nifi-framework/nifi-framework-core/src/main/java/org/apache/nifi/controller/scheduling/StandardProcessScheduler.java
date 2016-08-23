@@ -209,7 +209,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 return;
                             }
 
-                            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                            try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass())) {
                                 ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                             }
 
@@ -262,7 +262,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     scheduleState.setScheduled(false);
 
                     try {
-                        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass())) {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                         }
                     } catch (final Exception e) {
@@ -436,7 +436,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
             final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
-            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(connectable.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }
         }

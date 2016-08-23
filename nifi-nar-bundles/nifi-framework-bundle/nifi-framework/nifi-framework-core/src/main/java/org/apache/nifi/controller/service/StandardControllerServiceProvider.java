@@ -165,7 +165,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
                     if (disabled && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
-                        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                             throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
                                     + " because the Controller Service is disabled");
                         } catch (final Throwable e) {
@@ -173,7 +173,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         }
                     }
 
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                         return method.invoke(originalService, args);
                     } catch (final InvocationTargetException e) {
                         // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want
@@ -201,7 +201,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             serviceNode.setName(rawClass.getSimpleName());
 
             if (firstTimeAdded) {
-                try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
                 } catch (final Exception e) {
                     throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);

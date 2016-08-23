@@ -163,12 +163,17 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-nar</artifactId>
+            <artifactId>nifi-kafka-0-8-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-pubsub-nar</artifactId>
+            <artifactId>nifi-kafka-0-9-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-0-10-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
