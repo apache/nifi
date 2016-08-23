@@ -59,10 +59,6 @@ The following binary components are provided under the Apache Software License v
 
          Tatu Saloranta (http://wiki.fasterxml.com/TatuSaloranta)
 
-  (ASLv2) Google Guava
-    The following NOTICE information applies:
-	Copyright 2011 Guava International Limited
-
   (ASLv2) Dropwizard Metrics
     The following NOTICE information applies:
 	Copyright (c) 2010-2013 Coda Hale, Yammer.com

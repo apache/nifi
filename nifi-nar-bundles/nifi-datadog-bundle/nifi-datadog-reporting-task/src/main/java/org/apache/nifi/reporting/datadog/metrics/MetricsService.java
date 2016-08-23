@@ -108,7 +108,7 @@ public class MetricsService {
         return metrics;
     }
 
-    public List<String> getAllTagsList () {
+    public List<String> getAllTagsList() {
         List<String> tagsList = new ArrayList<>();
         tagsList.add("env");
         tagsList.add("dataflow_id");

@@ -34,7 +34,6 @@ import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -43,26 +42,29 @@ import org.coursera.metrics.datadog.DynamicTagsCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 
 
 @Tags({"reporting", "datadog", "metrics"})
-@CapabilityDescription("Publishes metrics from NiFi to datadog")
+@CapabilityDescription("Publishes metrics from NiFi to datadog. For accurate and informative reporting, components should have unique names.")
 public class DataDogReportingTask extends AbstractReportingTask {
 
-    static final AllowableValue DATADOG_AGENT = new AllowableValue("DataDog Agent", "DataDog Agent",
-            "Metrics will be sent via locally installed DataDog agent. " +
-                    "DataDog agent needs to be installed manually before using this option");
+    static final AllowableValue DATADOG_AGENT = new AllowableValue("Datadog Agent", "Datadog Agent",
+            "Metrics will be sent via locally installed Datadog agent. " +
+                    "Datadog agent needs to be installed manually before using this option");
 
     static final AllowableValue DATADOG_HTTP = new AllowableValue("Datadog HTTP", "Datadog HTTP",
             "Metrics will be sent via HTTP transport with no need of Agent installed. " +
-                    "DataDog API key needs to be set");
+                    "Datadog API key needs to be set");
 
     static final PropertyDescriptor DATADOG_TRANSPORT = new PropertyDescriptor.Builder()
-            .name("DataDog transport")
-            .description("Transport through which metrics will be sent to DataDog")
+            .name("Datadog transport")
+            .description("Transport through which metrics will be sent to Datadog")
             .required(true)
             .allowableValues(DATADOG_AGENT, DATADOG_HTTP)
             .defaultValue(DATADOG_HTTP.getValue())
@@ -70,7 +72,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
     static final PropertyDescriptor API_KEY = new PropertyDescriptor.Builder()
             .name("API key")
-            .description("DataDog API key. If specified value is 'agent', local DataDog agent will be used.")
+            .description("Datadog API key. If specified value is 'agent', local Datadog agent will be used.")
             .expressionLanguageSupported(false)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -148,8 +150,8 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
     protected void updateMetrics(Map<String, Double> metrics, Optional<String> processorName, Map<String, String> tags) {
         for (Map.Entry<String, Double> entry : metrics.entrySet()) {
-            logger.info(entry.getKey() + ": " + entry.getValue());
             final String metricName = buildMetricName(processorName, entry.getKey());
+            logger.debug(metricName + ": " + entry.getValue());
             //if metric is not registered yet - register it
             if (!metricsMap.containsKey(metricName)) {
                 metricsMap.put(metricName, new AtomicDouble(entry.getValue()));
@@ -160,7 +162,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         }
     }
 
-    private void updateAllMetricGroups (ProcessGroupStatus processGroupStatus) {
+    private void updateAllMetricGroups(ProcessGroupStatus processGroupStatus) {
         final List<ProcessorStatus> processorStatuses = new ArrayList<>();
         populateProcessorStatuses(processGroupStatus, processorStatuses);
         for (final ProcessorStatus processorStatus : processorStatuses) {
@@ -191,7 +193,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             portTags.putAll(metricsService.getPortStatusTags(portStatus));
             updateMetrics(metricsService.getPortStatusMetrics(portStatus), Optional.<String>absent(), portTags);
         }
-        
+
         updateMetrics(metricsService.getJVMMetrics(virtualMachineMetrics),
                 Optional.<String>absent(), defaultTags);
         updateMetrics(metricsService.getDataFlowMetrics(processGroupStatus), Optional.<String>absent(), defaultTags);
