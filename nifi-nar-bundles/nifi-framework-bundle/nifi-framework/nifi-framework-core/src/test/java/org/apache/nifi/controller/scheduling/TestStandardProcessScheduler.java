@@ -68,6 +68,7 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -347,6 +348,7 @@ public class TestStandardProcessScheduler {
      * IN any even the resulting state of the service is DISABLED
      */
     @Test
+    @Ignore
     public void validateEnabledDisableMultiThread() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
