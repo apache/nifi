@@ -27,6 +27,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.StatusLine;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthState;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
@@ -138,6 +139,8 @@ public class SiteToSiteRestApiClient implements Closeable {
     private String baseUrl;
     protected final SSLContext sslContext;
     protected final HttpProxy proxy;
+    private final AtomicBoolean proxyAuthRequiresResend = new AtomicBoolean(false);
+
     private RequestConfig requestConfig;
     private CredentialsProvider credentialsProvider;
     private CloseableHttpClient httpClient;
@@ -300,8 +303,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     public ControllerDTO getController() throws IOException {
         try {
-            final HttpGet get = createGet("/site-to-site");
-            get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
+            final HttpGet get = createGetControllerRequest();
             return execute(get, ControllerEntity.class).getController();
 
         } catch (final HttpGetFailedException e) {
@@ -314,6 +316,12 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
+    private HttpGet createGetControllerRequest() {
+        final HttpGet get = createGet("/site-to-site");
+        get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
+        return get;
+    }
+
     public Collection<PeerDTO> getPeers() throws IOException {
         final HttpGet get = createGet("/site-to-site/peers");
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
@@ -321,15 +329,10 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     public String initiateTransaction(final TransferDirection direction, final String portId) throws IOException {
-        if (TransferDirection.RECEIVE.equals(direction)) {
-            return initiateTransaction("output-ports", portId);
-        } else {
-            return initiateTransaction("input-ports", portId);
-        }
-    }
 
-    private String initiateTransaction(final String portType, final String portId) throws IOException {
+        final String portType = TransferDirection.RECEIVE.equals(direction) ? "output-ports" : "input-ports";
         logger.debug("initiateTransaction handshaking portType={}, portId={}", portType, portId);
+
         final HttpPost post = createPost("/data-transfer/" + portType + "/" + portId + "/transactions");
 
         post.setHeader("Accept", "application/json");
@@ -337,43 +340,223 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         setHandshakeProperties(post);
 
-        try (CloseableHttpResponse response = getHttpClient().execute(post)) {
-            final int responseCode = response.getStatusLine().getStatusCode();
-            logger.debug("initiateTransaction responseCode={}", responseCode);
-
-            String transactionUrl;
-            switch (responseCode) {
-                case RESPONSE_CODE_CREATED:
-                    EntityUtils.consume(response.getEntity());
-
-                    transactionUrl = readTransactionUrl(response);
-                    if (isEmpty(transactionUrl)) {
-                        throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
-                    }
-                    final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
-                    if (transportProtocolVersionHeader == null) {
-                        throw new ProtocolException("Server didn't return confirmed protocol version");
-                    }
-                    final Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
-                    logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
-                    transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
-
-                    final Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
-                    if (serverTransactionTtlHeader == null) {
-                        throw new ProtocolException("Server didn't return " + HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
-                    }
-                    serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
-                    break;
-
-                default:
-                    try (InputStream content = response.getEntity().getContent()) {
-                        throw handleErrResponse(responseCode, content);
-                    }
-            }
-            logger.debug("initiateTransaction handshaking finished, transactionUrl={}", transactionUrl);
-            return transactionUrl;
+        final HttpResponse response;
+        if (TransferDirection.RECEIVE.equals(direction)) {
+            response = initiateTransactionForReceive(post);
+        } else {
+            response = initiateTransactionForSend(post);
         }
 
+        final int responseCode = response.getStatusLine().getStatusCode();
+        logger.debug("initiateTransaction responseCode={}", responseCode);
+
+        String transactionUrl;
+        switch (responseCode) {
+            case RESPONSE_CODE_CREATED:
+                EntityUtils.consume(response.getEntity());
+
+                transactionUrl = readTransactionUrl(response);
+                if (isEmpty(transactionUrl)) {
+                    throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
+                }
+                final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
+                if (transportProtocolVersionHeader == null) {
+                    throw new ProtocolException("Server didn't return confirmed protocol version");
+                }
+                final Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
+                logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
+                transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
+
+                final Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
+                if (serverTransactionTtlHeader == null) {
+                    throw new ProtocolException("Server didn't return " + HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
+                }
+                serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
+                break;
+
+            default:
+                try (InputStream content = response.getEntity().getContent()) {
+                    throw handleErrResponse(responseCode, content);
+                }
+        }
+        logger.debug("initiateTransaction handshaking finished, transactionUrl={}", transactionUrl);
+        return transactionUrl;
+
+    }
+
+    /**
+     * Initiate a transaction for receiving data.
+     * @param post a POST request to establish transaction
+     * @return POST request response
+     * @throws IOException thrown if the post request failed
+     */
+    private HttpResponse initiateTransactionForReceive(final HttpPost post) throws IOException {
+        return getHttpClient().execute(post);
+    }
+
+    /**
+     * <p>
+     * Initiate a transaction for sending data.
+     * </p>
+     *
+     * <p>
+     * If a proxy server requires auth, the proxy server returns 407 response with available auth schema such as basic or digest.
+     * Then client has to resend the same request with its credential added.
+     * This mechanism is problematic for sending data from NiFi.
+     * </p>
+     *
+     * <p>
+     * In order to resend a POST request with auth param,
+     * NiFi has to either read flow-file contents to send again, or keep the POST body somewhere.
+     * If we store that in memory, it would causes OOM, or storing it on disk slows down performance.
+     * Rolling back processing session would be overkill.
+     * Reading flow-file contents only when it's ready to send in a streaming way is ideal.
+     * </p>
+     *
+     * <p>
+     * Additionally, the way proxy authentication is done is vary among Proxy server software.
+     * Some requires 407 and resend cycle for every requests, while others keep a connection between a client and
+     * the proxy server, then consecutive requests skip auth steps.
+     * The problem is, that how should we behave is only told after sending a request to the proxy.
+     * </p>
+     *
+     * In order to handle above concerns correctly and efficiently, this method do the followings:
+     *
+     * <ol>
+     * <li>Send a GET request to controller resource, to initiate an HttpAsyncClient. The instance will be used for further requests.
+     *      This is not required by the Site-to-Site protocol, but it can setup proxy auth state safely.</li>
+     * <li>Send a POST request to initiate a transaction. While doing so, it captures how a proxy server works.
+     * If 407 and resend cycle occurs here, it implies that we need to do the same thing again when we actually send the data.
+     * Because if the proxy keeps using the same connection and doesn't require an auth step, it doesn't do so here.</li>
+     * <li>Then this method stores whether the final POST request should wait for the auth step.
+     * So that {@link #openConnectionForSend} can determine when to produce contents.</li>
+     * </ol>
+     *
+     * <p>
+     * The above special sequence is only executed when a proxy instance is set, and its username is set.
+     * </p>
+     *
+     * @param post a POST request to establish transaction
+     * @return POST request response
+     * @throws IOException thrown if the post request failed
+     */
+    private HttpResponse initiateTransactionForSend(final HttpPost post) throws IOException {
+        if (shouldCheckProxyAuth()) {
+            final CloseableHttpAsyncClient asyncClient = getHttpAsyncClient();
+            final HttpGet get = createGetControllerRequest();
+            final Future<HttpResponse> getResult = asyncClient.execute(get, null);
+            try {
+                final HttpResponse getResponse = getResult.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
+                logger.debug("Proxy auth check has done. getResponse={}", getResponse.getStatusLine());
+            } catch (final ExecutionException e) {
+                logger.debug("Something has happened at get controller requesting thread for proxy auth check. {}", e.getMessage());
+                throw toIOException(e);
+            } catch (TimeoutException | InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+
+        final HttpAsyncRequestProducer asyncRequestProducer = new HttpAsyncRequestProducer() {
+            private boolean requestHasBeenReset = false;
+
+            @Override
+            public HttpHost getTarget() {
+                return URIUtils.extractHost(post.getURI());
+            }
+
+            @Override
+            public HttpRequest generateRequest() throws IOException, HttpException {
+                final BasicHttpEntity entity = new BasicHttpEntity();
+                post.setEntity(entity);
+                return post;
+            }
+
+            @Override
+            public void produceContent(ContentEncoder encoder, IOControl ioctrl) throws IOException {
+                encoder.complete();
+                if (shouldCheckProxyAuth() && requestHasBeenReset) {
+                    logger.debug("Produced content again, assuming the proxy server requires authentication.");
+                    proxyAuthRequiresResend.set(true);
+                }
+            }
+
+            @Override
+            public void requestCompleted(HttpContext context) {
+                debugProxyAuthState(context);
+            }
+
+            @Override
+            public void failed(Exception ex) {
+                logger.error("Create transaction for {} has failed", post.getURI(), ex);
+            }
+
+            @Override
+            public boolean isRepeatable() {
+                return true;
+            }
+
+            @Override
+            public void resetRequest() throws IOException {
+                requestHasBeenReset = true;
+            }
+
+            @Override
+            public void close() throws IOException {
+            }
+        };
+
+        final Future<HttpResponse> responseFuture = getHttpAsyncClient().execute(asyncRequestProducer, new BasicAsyncResponseConsumer(), null);
+        final HttpResponse response;
+        try {
+            response = responseFuture.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
+
+        } catch (final ExecutionException e) {
+            logger.debug("Something has happened at initiate transaction requesting thread. {}", e.getMessage());
+            throw toIOException(e);
+        } catch (TimeoutException | InterruptedException e) {
+            throw new IOException(e);
+        }
+        return response;
+    }
+
+    /**
+     * Print AuthState in HttpContext for debugging purpose.
+     * <p>
+     * If the proxy server requires 407 and resend cycle, this method logs as followings, for Basic Auth:
+     * <ul><li>state:UNCHALLENGED;</li>
+     * <li>state:CHALLENGED;auth scheme:basic;credentials present</li></ul>
+     * </p>
+     * <p>
+     * For Digest Auth:
+     * <ul><li>state:UNCHALLENGED;</li>
+     * <li>state:CHALLENGED;auth scheme:digest;credentials present</li></ul>
+     * </p>
+     * <p>
+     * But if the proxy uses the same connection, it doesn't return 407, in such case
+     * this method is called only once with:
+     * <ul><li>state:UNCHALLENGED</li></ul>
+     * </p>
+     */
+    private void debugProxyAuthState(HttpContext context) {
+        final AuthState proxyAuthState;
+        if (shouldCheckProxyAuth()
+                && logger.isDebugEnabled()
+                && (proxyAuthState = (AuthState)context.getAttribute("http.auth.proxy-scope")) != null){
+            logger.debug("authProxyScope={}", proxyAuthState);
+        }
+    }
+
+    private IOException toIOException(ExecutionException e) {
+        final Throwable cause = e.getCause();
+        if (cause instanceof IOException) {
+            return (IOException) cause;
+        } else {
+            return new IOException(cause);
+        }
+    }
+
+    private boolean shouldCheckProxyAuth() {
+        return proxy != null && !isEmpty(proxy.getUsername());
     }
 
     public boolean openConnectionForReceive(final String transactionUrl, final Peer peer) throws IOException {
@@ -464,8 +647,12 @@ public class SiteToSiteRestApiClient implements Closeable {
         final HttpAsyncRequestProducer asyncRequestProducer = new HttpAsyncRequestProducer() {
 
             private final ByteBuffer buffer = ByteBuffer.allocate(DATA_PACKET_CHANNEL_READ_BUFFER_SIZE);
+
             private int totalRead = 0;
             private int totalProduced = 0;
+
+            private boolean requestHasBeenReset = false;
+
 
             @Override
             public HttpHost getTarget() {
@@ -490,8 +677,21 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             private final AtomicBoolean bufferHasRemainingData = new AtomicBoolean(false);
 
+            /**
+             * If the proxy server requires authentication, the same POST request has to be sent again.
+             * The first request will result 407, then the next one will be sent with auth headers and actual data.
+             * This method produces a content only when it's need to be sent, to avoid producing the flow-file contents twice.
+             * Whether we need to wait auth is determined heuristically by the previous POST request which creates transaction.
+             * See {@link SiteToSiteRestApiClient#initiateTransactionForSend(HttpPost)} for further detail.
+             */
             @Override
             public void produceContent(final ContentEncoder encoder, final IOControl ioControl) throws IOException {
+
+                if (shouldCheckProxyAuth() && proxyAuthRequiresResend.get() && !requestHasBeenReset) {
+                    logger.debug("Need authentication with proxy server. Postpone producing content.");
+                    encoder.complete();
+                    return;
+                }
 
                 if (bufferHasRemainingData.get()) {
                     // If there's remaining buffer last time, send it first.
@@ -546,6 +746,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public void requestCompleted(final HttpContext context) {
                 logger.debug("Sending data to {} completed.", flowFilesPath);
+                debugProxyAuthState(context);
             }
 
             @Override
@@ -562,6 +763,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public void resetRequest() throws IOException {
                 logger.debug("Sending data request to {} has been reset...", flowFilesPath);
+                requestHasBeenReset = true;
             }
 
             @Override
@@ -617,13 +819,8 @@ public class SiteToSiteRestApiClient implements Closeable {
         try {
             response = postResult.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (final ExecutionException e) {
-            logger.debug("Something has happened at sending thread. {}", e.getMessage());
-            final Throwable cause = e.getCause();
-            if (cause instanceof IOException) {
-                throw (IOException) cause;
-            } else {
-                throw new IOException(cause);
-            }
+            logger.debug("Something has happened at sending data thread. {}", e.getMessage());
+            throw toIOException(e);
         } catch (TimeoutException | InterruptedException e) {
             throw new IOException(e);
         }
@@ -765,7 +962,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    private String readTransactionUrl(final CloseableHttpResponse response) {
+    private String readTransactionUrl(final HttpResponse response) {
         final Header locationUriIntentHeader = response.getFirstHeader(LOCATION_URI_INTENT_NAME);
         logger.debug("locationUriIntentHeader={}", locationUriIntentHeader);
 

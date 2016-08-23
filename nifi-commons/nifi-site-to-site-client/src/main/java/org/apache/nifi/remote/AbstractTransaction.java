@@ -296,7 +296,7 @@ public abstract class AbstractTransaction implements Transaction {
                         transactionResponse = readTransactionResponse();
                     } catch (final IOException e) {
                         throw new IOException(this + " Failed to receive a response from " + peer + " when expecting a TransactionFinished Indicator. "
-                                + "It is unknown whether or not the peer successfully received/processed the data.", e);
+                                + "It is unknown whether or not the peer successfully received/processed the data. " + e, e);
                     }
 
                     logger.debug("{} Received {} from {}", this, transactionResponse, peer);
