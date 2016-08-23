@@ -195,9 +195,9 @@ public class TestHBase_1_1_2_ClientService {
         final String columnQualifier = "qualifier1";
         final String content = "content1";
 
-        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8), columnQualifier.getBytes(StandardCharsets.UTF_8),
                 content.getBytes(StandardCharsets.UTF_8)));
-        final PutFlowFile putFlowFile = new PutFlowFile(tableName, row, columns, null);
+        final PutFlowFile putFlowFile = new PutFlowFile(tableName, row.getBytes(StandardCharsets.UTF_8), columns, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -234,13 +234,15 @@ public class TestHBase_1_1_2_ClientService {
         final String content1 = "content1";
         final String content2 = "content2";
 
-        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8),
                 content1.getBytes(StandardCharsets.UTF_8)));
-        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row, columns1, null);
+        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row.getBytes(StandardCharsets.UTF_8), columns1, null);
 
-        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8),
                 content2.getBytes(StandardCharsets.UTF_8)));
-        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row, columns2, null);
+        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row.getBytes(StandardCharsets.UTF_8), columns2, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -282,13 +284,15 @@ public class TestHBase_1_1_2_ClientService {
         final String content1 = "content1";
         final String content2 = "content2";
 
-        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+        final Collection<PutColumn> columns1 = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8),
                 content1.getBytes(StandardCharsets.UTF_8)));
-        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row1, columns1, null);
+        final PutFlowFile putFlowFile1 = new PutFlowFile(tableName, row1.getBytes(StandardCharsets.UTF_8), columns1, null);
 
-        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily, columnQualifier,
+        final Collection<PutColumn> columns2 = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                columnQualifier.getBytes(StandardCharsets.UTF_8),
                 content2.getBytes(StandardCharsets.UTF_8)));
-        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row2, columns2, null);
+        final PutFlowFile putFlowFile2 = new PutFlowFile(tableName, row2.getBytes(StandardCharsets.UTF_8), columns2, null);
 
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 

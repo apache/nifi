@@ -253,6 +253,52 @@ public class TestPutHBaseCell {
         assertEquals(2, runner.getProvenanceEvents().size());
     }
 
+    @Test
+    public void testSingleFlowFileWithBinaryRowKey() throws IOException, InitializationException {
+        final String tableName = "nifi";
+        final String row = "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x01\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x01\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00" +
+                "\\x01\\x00\\x00\\x01\\x00\\x00\\x00\\x00\\x01\\x01\\x01\\x00\\x01\\x00\\x01\\x01\\x01\\x00\\x00\\x00" +
+                "\\x00\\x00\\x00\\x01\\x01\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x01\\x00\\x01\\x00\\x01\\x00" +
+                "\\x00\\x01\\x01\\x01\\x01\\x00\\x00\\x01\\x01\\x01\\x00\\x01\\x00\\x00";
+
+        final String columnFamily = "family1";
+        final String columnQualifier = "qualifier1";
+
+        final TestRunner runner = TestRunners.newTestRunner(PutHBaseCell.class);
+        runner.setProperty(PutHBaseCell.TABLE_NAME, tableName);
+        runner.setProperty(PutHBaseCell.ROW_ID, row);
+        runner.setProperty(PutHBaseCell.ROW_ID_ENCODING_STRATEGY,PutHBaseCell.ROW_ID_ENCODING_BINARY.getValue());
+        runner.setProperty(PutHBaseCell.COLUMN_FAMILY, columnFamily);
+        runner.setProperty(PutHBaseCell.COLUMN_QUALIFIER, columnQualifier);
+        runner.setProperty(PutHBaseCell.BATCH_SIZE, "1");
+
+        final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
+
+        final byte[] expectedRowKey = hBaseClient.toBytesBinary(row);
+
+        final String content = "some content";
+        runner.enqueue(content.getBytes("UTF-8"));
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutHBaseCell.REL_SUCCESS);
+
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(PutHBaseCell.REL_SUCCESS).get(0);
+        outFile.assertContentEquals(content);
+
+        assertNotNull(hBaseClient.getFlowFilePuts());
+        assertEquals(1, hBaseClient.getFlowFilePuts().size());
+
+        List<PutFlowFile> puts = hBaseClient.getFlowFilePuts().get(tableName);
+        assertEquals(1, puts.size());
+        verifyPut(expectedRowKey, columnFamily.getBytes(StandardCharsets.UTF_8), columnQualifier.getBytes(StandardCharsets.UTF_8), content, puts.get(0));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
+    }
     private Map<String, String> getAtrributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
         final Map<String,String> attributes1 = new HashMap<>();
         attributes1.put("hbase.tableName", tableName);
@@ -280,14 +326,18 @@ public class TestPutHBaseCell {
     }
 
     private void verifyPut(String row, String columnFamily, String columnQualifier, String content, PutFlowFile put) {
-        assertEquals(row, put.getRow());
+        verifyPut(row.getBytes(StandardCharsets.UTF_8),columnFamily.getBytes(StandardCharsets.UTF_8),
+                                columnQualifier.getBytes(StandardCharsets.UTF_8),content,put);
+    }
+    private void verifyPut(byte[] row, byte[] columnFamily, byte[] columnQualifier, String content, PutFlowFile put) {
+        assertEquals(new String(row, StandardCharsets.UTF_8), new String(put.getRow(), StandardCharsets.UTF_8));
 
         assertNotNull(put.getColumns());
         assertEquals(1, put.getColumns().size());
 
         final PutColumn column = put.getColumns().iterator().next();
-        assertEquals(columnFamily, column.getColumnFamily());
-        assertEquals(columnQualifier, column.getColumnQualifier());
+        assertEquals(new String(columnFamily, StandardCharsets.UTF_8), new String(column.getColumnFamily(), StandardCharsets.UTF_8));
+        assertEquals(new String(columnQualifier, StandardCharsets.UTF_8), new String(column.getColumnQualifier(), StandardCharsets.UTF_8));
         assertEquals(content, new String(column.getBuffer(), StandardCharsets.UTF_8));
     }
 
