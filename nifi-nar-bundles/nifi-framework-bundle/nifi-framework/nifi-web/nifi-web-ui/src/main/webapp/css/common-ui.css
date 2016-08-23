@@ -523,6 +523,14 @@ div.context-menu-item.hover {
     left: 2px;
 }
 
+div.context-menu-item.hover > div.context-menu-item-img.fa.fa-play {
+    color:#5cb85c;
+}
+
+div.context-menu-item.hover > div.context-menu-item-img.fa.fa-stop {
+    color:#5cb85c;
+}
+
 .context-menu-item-img.icon {
     position: relative;
     top: 1px;
