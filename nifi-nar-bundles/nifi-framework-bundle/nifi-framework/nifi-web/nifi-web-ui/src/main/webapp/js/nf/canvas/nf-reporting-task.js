@@ -565,6 +565,14 @@ nf.ReportingTask = (function () {
                     .propertytable('setGroupId', reportingTask.parentGroupId)
                     .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
+                // hide add property '+' if necessary
+                if (reportingTask.hasDynamicProperty) {
+                    $(".add-property").show();
+                }
+                else {
+                    $(".add-property").hide();
+                }
+
                 // show the details
                 $('#reporting-task-configuration').modal('show');
 

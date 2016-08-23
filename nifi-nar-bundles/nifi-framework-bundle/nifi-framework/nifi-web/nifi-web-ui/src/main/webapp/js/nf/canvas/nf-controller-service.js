@@ -1873,6 +1873,14 @@ nf.ControllerService = (function () {
                     .propertytable('setGroupId', controllerService.parentGroupId)
                     .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
+                // hide add property '+' if necessary
+                if (controllerService.hasDynamicProperty) {
+                    $(".add-property").show();
+                }
+                else {
+                    $(".add-property").hide();
+                }
+
                 // show the details
                 controllerServiceDialog.modal('show');
 

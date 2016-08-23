@@ -38,6 +38,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsEventDriven;
     private Boolean supportsBatching;
     private Boolean persistsState;
+    private Boolean hasDynamicProperty;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
@@ -151,6 +152,15 @@ public class ProcessorDTO extends ComponentDTO {
         this.inputRequirement = inputRequirement;
     }
 
+    @ApiModelProperty(
+            value = "Whether the processor supports dynamic properties."
+    )
+    public Boolean getHasDynamicProperty() {
+        return hasDynamicProperty;
+    }
+    public void setHasDynamicProperty(Boolean dynamic) {
+        this.hasDynamicProperty = dynamic;
+    }
     /**
      * @return whether this processor supports event driven scheduling
      */

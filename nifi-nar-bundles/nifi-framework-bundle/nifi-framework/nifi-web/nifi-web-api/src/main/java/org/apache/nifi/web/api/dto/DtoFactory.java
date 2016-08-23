@@ -31,6 +31,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -1209,6 +1210,7 @@ public final class DtoFactory {
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
+        dto.setHasDynamicProperty(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(DynamicProperty.class));
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1278,6 +1280,7 @@ public final class DtoFactory {
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
+        dto.setHasDynamicProperty(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(DynamicProperty.class));
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -2027,6 +2030,7 @@ public final class DtoFactory {
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
+        dto.setHasDynamicProperty(node.getProcessor().getClass().isAnnotationPresent(DynamicProperty.class));
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
 
         dto.setType(node.getCanonicalClassName());
@@ -2572,6 +2576,7 @@ public final class DtoFactory {
         copy.setState(original.getState());
         copy.setType(original.getType());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setHasDynamicProperty(original.getHasDynamicProperty());
         return copy;
     }
 
@@ -2631,6 +2636,7 @@ public final class DtoFactory {
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setValidationErrors(copy(original.getValidationErrors()));
+        copy.setHasDynamicProperty(original.getHasDynamicProperty());
 
         return copy;
     }
