@@ -82,6 +82,16 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         Cipher.getMaxAllowedKeyLength("AES") > 128
     }
 
+    private static void printProperties(NiFiProperties properties) {
+        if (!(properties instanceof ProtectedNiFiProperties)) {
+properties = new ProtectedNiFiProperties(properties)
+        }
+
+        (properties as ProtectedNiFiProperties).getPropertyKeysIncludingProtectionSchemes().sort().each { String key ->
+            logger.info("${key}\t\t${properties.getProperty(key)}")
+        }
+    }
+
     @Test
     void testShouldPrintHelpMessage() {
         // Arrange
@@ -829,6 +839,45 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldEncryptNiFiPropertiesWithEmptyProtectionScheme() {
+        // Arrange
+        String originalNiFiPropertiesPath = "src/test/resources/nifi_with_sensitive_properties_unprotected_and_empty_protection_schemes.properties"
+
+        File originalFile = new File(originalNiFiPropertiesPath)
+        List<String> originalLines = originalFile.readLines()
+        logger.info("Read ${originalLines.size()} lines from ${originalNiFiPropertiesPath}")
+        logger.info("\n" + originalLines[0..3].join("\n") + "...")
+
+        NiFiProperties plainProperties = NiFiPropertiesLoader.withKey(KEY_HEX).load(originalNiFiPropertiesPath)
+        logger.info("Loaded NiFiProperties from ${originalNiFiPropertiesPath}")
+
+        ProtectedNiFiProperties protectedWrapper = new ProtectedNiFiProperties(plainProperties)
+        logger.info("Loaded ${plainProperties.size()} properties")
+        logger.info("There are ${protectedWrapper.getSensitivePropertyKeys().size()} sensitive properties")
+
+        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+        int protectedPropertyCount = protectedWrapper.protectedPropertyKeys.size()
+        logger.info("Counted ${protectedPropertyCount} protected keys")
+        assert protectedPropertyCount < protectedWrapper.getSensitivePropertyKeys().size()
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool(keyHex: KEY_HEX)
+
+        // Act
+        NiFiProperties encryptedProperties = tool.encryptSensitiveProperties(plainProperties)
+
+        // Assert
+        ProtectedNiFiProperties encryptedWrapper = new ProtectedNiFiProperties(encryptedProperties)
+        encryptedWrapper.getProtectedPropertyKeys().every { String key, String protectionScheme ->
+            logger.info("${key} is protected by ${protectionScheme}")
+            assert protectionScheme == spp.identifierKey
+        }
+
+        printProperties(encryptedWrapper)
+
+        assert encryptedWrapper.getProtectedPropertyKeys().size() == encryptedWrapper.getSensitivePropertyKeys().findAll { encryptedWrapper.getProperty(it) }.size()
+    }
+
+    @Test
     void testShouldSerializeNiFiProperties() {
         // Arrange
         Properties rawProperties = [key: "value", key2: "value2"] as Properties
@@ -979,6 +1028,43 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldWriteNiFiPropertiesInSameLocation() {
+        // Arrange
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File workingFile = new File("tmp_nifi.properties")
+        workingFile.delete()
+        Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
+
+        final List<String> originalLines = inputPropertiesFile.readLines()
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
+        tool.parse(args)
+        NiFiProperties niFiProperties = tool.loadNiFiProperties()
+        tool.@niFiProperties = niFiProperties
+        logger.info("Loaded ${niFiProperties.size()} properties from ${workingFile.path}")
+
+        // Act
+        tool.writeNiFiProperties()
+        logger.info("Wrote to ${workingFile.path}")
+
+        // Assert
+        final List<String> updatedLines = workingFile.readLines()
+        niFiProperties.getPropertyKeys().every { String key ->
+            assert updatedLines.contains("${key}=${niFiProperties.getProperty(key)}".toString())
+        }
+
+        assert originalLines == updatedLines
+
+        logger.info("Updated nifi.properties:")
+        logger.info("\n" * 2 + updatedLines.join("\n"))
+
+        assert TestAppender.events.collect { it.message }.contains("The source nifi.properties and destination nifi.properties are identical [${workingFile.path}] so the original will be overwritten".toString())
+
+        workingFile.deleteOnExit()
+    }
+
+    @Test
     void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileExists() {
         // Arrange
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
@@ -1014,9 +1100,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExist() {
         // Arrange
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File tmpDir = new File("tmp/")
+        File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        File workingFile = new File("tmp/tmp_nifi.properties")
+        File workingFile = new File("target/tmp/tmp_nifi.properties")
         workingFile.delete()
 
         // Read-only set of permissions
@@ -1050,12 +1136,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Arrange
         exit.expectSystemExitWithStatus(0)
 
-        File tmpDir = new File("tmp/")
+        File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
         Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
 
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
-        File bootstrapFile = new File("tmp/tmp_bootstrap.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
         Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
@@ -1069,7 +1155,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File outputPropertiesFile = new File("tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
         outputPropertiesFile.delete()
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
@@ -1129,12 +1215,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Arrange
         exit.expectSystemExitWithStatus(0)
 
-        File tmpDir = new File("tmp/")
+        File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
         Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
 
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
-        File bootstrapFile = new File("tmp/tmp_bootstrap.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
         bootstrapFile.delete()
 
         Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
@@ -1151,7 +1237,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File outputPropertiesFile = new File("tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
         outputPropertiesFile.delete()
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)

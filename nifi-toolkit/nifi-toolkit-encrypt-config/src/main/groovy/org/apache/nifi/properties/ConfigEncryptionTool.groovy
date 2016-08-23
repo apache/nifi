@@ -134,7 +134,7 @@ class ConfigEncryptionTool {
 
             bootstrapConfPath = commandLine.getOptionValue(BOOTSTRAP_CONF_ARG, determineDefaultBootstrapConfPath())
             niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG, determineDefaultNiFiPropertiesPath())
-            outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, determineDefaultNiFiPropertiesPath())
+            outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
 
             if (niFiPropertiesPath == outputNiFiPropertiesPath) {
                 // TODO: Add confirmation pause and provide -y flag to offer no-interaction mode?
@@ -276,10 +276,12 @@ class ConfigEncryptionTool {
         }
 
         // Holder for encrypted properties and protection schemes
-        Properties encryptedProperties = new Properties();
+        Properties encryptedProperties = new Properties()
 
         AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(keyHex)
         protectedWrapper.addSensitivePropertyProvider(spp)
+
+        List<String> keysToSkip = []
 
         // Iterate over each -- encrypt and add .protected if populated
         sensitivePropertyKeys.each { String key ->
@@ -296,12 +298,14 @@ class ConfigEncryptionTool {
                 String protectionKey = protectedWrapper.getProtectionKey(key)
                 encryptedProperties.setProperty(protectionKey, spp.getIdentifierKey())
                 logger.info("Updated protection key ${protectionKey}")
+
+                keysToSkip << key << protectionKey
             }
         }
 
         // Combine the original raw NiFiProperties and the newly-encrypted properties
         // Memory-wasteful but NiFiProperties are immutable -- no setter available (unless we monkey-patch...)
-        Set<String> nonSensitiveKeys = plainProperties.getPropertyKeys() - sensitivePropertyKeys
+        Set<String> nonSensitiveKeys = plainProperties.getPropertyKeys() - keysToSkip
         nonSensitiveKeys.each { String key ->
             encryptedProperties.setProperty(key, plainProperties.getProperty(key))
         }
