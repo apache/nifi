@@ -463,13 +463,13 @@
                 nfDialog.glasspane = glasspane = 'transparent';
             }
 
-            //create glass pane overlay
-            var modalGlassMarkup = '<div data-nf-dialog-parent="' +
-                dialog.attr('id') + '" class="modal-glass" style="background-color: ' + glasspane + ';"></div>';
-
-            var modalGlass = $(modalGlassMarkup);
-
-            modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
+            if (!$('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").is(':visible')) {
+                //create glass pane overlay
+                $('<div></div>').attr('data-nf-dialog-parent', dialog.attr('id')).addClass("modal-glass").css({
+                    "background-color": glasspane,
+                    "z-index": zIndex - 1
+                }).appendTo($('body'));
+            }
 
             //persist data attribute
             dialog.data('nfDialog', nfDialog);
