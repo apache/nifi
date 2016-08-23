@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +23,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
@@ -33,18 +33,20 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.jayway.jsonpath.DocumentContext;
@@ -61,6 +63,16 @@ import com.jayway.jsonpath.PathNotFoundException;
         + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split,' "
         + "with the original file transferred to the 'original' relationship. If the specified JsonPath is not found or "
         + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "fragment.identifier",
+                description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+        @WritesAttribute(attribute = "fragment.index",
+                description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+        @WritesAttribute(attribute = "fragment.count",
+                description = "The number of split FlowFiles generated from the parent FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+})
+
 public class SplitJson extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()
@@ -184,20 +196,29 @@ public class SplitJson extends AbstractJsonPathProcessor {
         }
 
         List resultList = (List) jsonPathResult;
+        AtomicInteger jsonLineCount = new AtomicInteger(0);
 
-        for (final Object resultSegment : resultList) {
+        final String fragmentIdentifier = UUID.randomUUID().toString();
+        for (int i = 0; i < resultList.size(); i++) {
+            Object resultSegment = resultList.get(i);
             FlowFile split = processSession.create(original);
-            split = processSession.write(split, new OutputStreamCallback() {
-                @Override
-                public void process(OutputStream out) throws IOException {
-                    String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
-                    out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
-                }
-            });
+            split = processSession.write(split, (out) -> {
+                        String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
+                        out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
+                    }
+            );
+            split = processSession.putAttribute(split, "fragment.identifier", fragmentIdentifier);
+            split = processSession.putAttribute(split, "fragment.index", Integer.toString(i));
+            split = processSession.putAttribute(split, "segment.original.filename", split.getAttribute(CoreAttributes.FILENAME.key()));
             segments.add(split);
+            jsonLineCount.incrementAndGet();
         }
 
-        processSession.transfer(segments, REL_SPLIT);
+        segments.forEach((segment) -> {
+            segment = processSession.putAttribute(segment, "fragment.count", Integer.toString(jsonLineCount.get()));
+            processSession.transfer(segment, REL_SPLIT);
+        });
+
         processSession.transfer(original, REL_ORIGINAL);
         logger.info("Split {} into {} FlowFiles", new Object[]{original, segments.size()});
     }

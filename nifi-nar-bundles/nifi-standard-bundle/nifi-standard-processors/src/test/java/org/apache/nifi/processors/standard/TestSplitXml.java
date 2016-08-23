@@ -19,11 +19,14 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -57,13 +60,23 @@ public class TestSplitXml {
     @Test
     public void testDepthOf1() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
-        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"), new HashMap<String, String>() {
+            {
+                put(CoreAttributes.FILENAME.key(), "test.xml");
+            }
+        });
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitXml.REL_SPLIT, 6);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT));
+        Arrays.asList(0, 1, 2, 3, 4, 5).forEach((index) -> {
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT).get(index);
+            flowFile.assertAttributeEquals("fragment.index", Integer.toString(index));
+            flowFile.assertAttributeEquals("fragment.count", "6");
+            flowFile.assertAttributeEquals("segment.original.filename", "test.xml");
+        });
     }
 
     @Test
@@ -82,7 +95,7 @@ public class TestSplitXml {
     @Test
     public void testDepthOf3() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
-        runner.setProperty(SplitXml.SPLIT_DEPTH, "2");
+        runner.setProperty(SplitXml.SPLIT_DEPTH, "3");
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
@@ -98,7 +111,7 @@ public class TestSplitXml {
         // declarations are handled correctly.
         factory = SAXParserFactory.newInstance();
         factory.setNamespaceAware(true);
-        saxParser = factory.newSAXParser( );
+        saxParser = factory.newSAXParser();
 
         final TestRunner runner = TestRunners.newTestRunner(new SplitXml());
         runner.setProperty(SplitXml.SPLIT_DEPTH, "3");
