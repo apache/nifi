@@ -84,7 +84,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     private static void printProperties(NiFiProperties properties) {
         if (!(properties instanceof ProtectedNiFiProperties)) {
-properties = new ProtectedNiFiProperties(properties)
+            properties = new ProtectedNiFiProperties(properties)
         }
 
         (properties as ProtectedNiFiProperties).getPropertyKeysIncludingProtectionSchemes().sort().each { String key ->
@@ -383,7 +383,9 @@ properties = new ProtectedNiFiProperties(properties)
         assert tool.keyHex == KEY_HEX
 
         assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect { it.message }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
+        assert TestAppender.events.collect {
+            it.message
+        }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
 
     @Test
@@ -404,7 +406,9 @@ properties = new ProtectedNiFiProperties(properties)
         assert !tool.keyHex
 
         assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect { it.message }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
+        assert TestAppender.events.collect {
+            it.message
+        }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
 
     @Test
@@ -874,7 +878,9 @@ properties = new ProtectedNiFiProperties(properties)
 
         printProperties(encryptedWrapper)
 
-        assert encryptedWrapper.getProtectedPropertyKeys().size() == encryptedWrapper.getSensitivePropertyKeys().findAll { encryptedWrapper.getProperty(it) }.size()
+        assert encryptedWrapper.getProtectedPropertyKeys().size() == encryptedWrapper.getSensitivePropertyKeys().findAll {
+            encryptedWrapper.getProperty(it)
+        }.size()
     }
 
     @Test
@@ -937,6 +943,52 @@ properties = new ProtectedNiFiProperties(properties)
 
         // Added n new lines for the encrypted properties
         assert lines.size() == originalLines.size() + protectedPropertyCount
+
+        protectedProperties.getPropertyKeys().every { String key ->
+            assert lines.contains("${key}=${protectedProperties.getProperty(key)}".toString())
+        }
+
+        logger.info("Updated nifi.properties:")
+        logger.info("\n" * 2 + lines.join("\n"))
+    }
+
+    @Test
+    void testShouldSerializeNiFiPropertiesAndPreserveFormatWithExistingProtectionSchemes() {
+        // Arrange
+        String originalNiFiPropertiesPath = "src/test/resources/nifi_with_few_sensitive_properties_protected_aes.properties"
+
+        File originalFile = new File(originalNiFiPropertiesPath)
+        List<String> originalLines = originalFile.readLines()
+        logger.info("Read ${originalLines.size()} lines from ${originalNiFiPropertiesPath}")
+        logger.info("\n" + originalLines[0..3].join("\n") + "...")
+
+        ProtectedNiFiProperties protectedProperties = NiFiPropertiesLoader.withKey(KEY_HEX).readProtectedPropertiesFromDisk(new File(originalNiFiPropertiesPath))
+        logger.info("Loaded NiFiProperties from ${originalNiFiPropertiesPath}")
+
+        logger.info("Loaded ${protectedProperties.getPropertyKeys().size()} properties")
+        logger.info("There are ${protectedProperties.getSensitivePropertyKeys().size()} sensitive properties")
+        logger.info("There are ${protectedProperties.getProtectedPropertyKeys().size()} protected properties")
+        int originalProtectedPropertyCount = protectedProperties.getProtectedPropertyKeys().size()
+
+        protectedProperties.addSensitivePropertyProvider(new AESSensitivePropertyProvider(KEY_HEX))
+        NiFiProperties encryptedProperties = protectedProperties.protectPlainProperties()
+        int protectedPropertyCount = ProtectedNiFiProperties.countProtectedProperties(encryptedProperties)
+        logger.info("Counted ${protectedPropertyCount} protected keys")
+
+        int protectedCountChange = protectedPropertyCount - originalProtectedPropertyCount
+        logger.info("Expected line count change: ${protectedCountChange}")
+
+        // Act
+        List<String> lines = ConfigEncryptionTool.serializeNiFiPropertiesAndPreserveFormat(protectedProperties, originalFile)
+        logger.info("Serialized NiFiProperties to ${lines.size()} lines")
+        lines.eachWithIndex { String entry, int i ->
+            logger.debug("${(i + 1).toString().padLeft(3)}: ${entry}")
+        }
+
+        // Assert
+
+        // Added n new lines for the encrypted properties
+        assert lines.size() == originalLines.size() + protectedCountChange
 
         protectedProperties.getPropertyKeys().every { String key ->
             assert lines.contains("${key}=${protectedProperties.getProperty(key)}".toString())
@@ -1059,7 +1111,9 @@ properties = new ProtectedNiFiProperties(properties)
         logger.info("Updated nifi.properties:")
         logger.info("\n" * 2 + updatedLines.join("\n"))
 
-        assert TestAppender.events.collect { it.message }.contains("The source nifi.properties and destination nifi.properties are identical [${workingFile.path}] so the original will be overwritten".toString())
+        assert TestAppender.events.collect {
+            it.message
+        }.contains("The source nifi.properties and destination nifi.properties are identical [${workingFile.path}] so the original will be overwritten".toString())
 
         workingFile.deleteOnExit()
     }
@@ -1286,6 +1340,99 @@ properties = new ProtectedNiFiProperties(properties)
         // Act
         ConfigEncryptionTool.main(args)
         logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationMultipleTimes() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_HEX = ConfigEncryptionTool.deriveKeyFromPassword(PASSWORD)
+        logger.info("Derived key from password [${PASSWORD}]: ${EXPECTED_KEY_HEX}")
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        outputPropertiesFile.delete()
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-b", bootstrapFile.path, "-o", outputPropertiesFile.path, "-p", PASSWORD, "-v"]
+
+        def msg = shouldFail {
+            logger.info("Invoked #main first time with ${args.join(" ")}")
+            ConfigEncryptionTool.main(args)
+        }
+        logger.expected(msg)
+
+        // Act
+        args = ["-n", outputPropertiesFile.path, "-b", bootstrapFile.path, "-p", PASSWORD, "-v"]
+
+        // Add a new property to be encrypted
+        outputPropertiesFile.text = outputPropertiesFile.text.replace("nifi.sensitive.props.additional.keys=", "nifi.sensitive.props.additional.keys=nifi.ui.banner.text")
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                assert updatedProperties.size() >= inputProperties.size()
+                originalSensitiveValues.every { String key, String originalValue ->
+                    assert updatedProperties.getProperty(key) != originalValue
+                }
+
+                // Check that the new NiFiProperties instance matches the output file (values still encrypted)
+                updatedProperties.getPropertyKeys().every { String key ->
+                    assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputPropertiesFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        });
+
+        logger.info("Invoked #main second time with ${args.join(" ")}")
+        ConfigEncryptionTool.main(args)
 
         // Assert
 

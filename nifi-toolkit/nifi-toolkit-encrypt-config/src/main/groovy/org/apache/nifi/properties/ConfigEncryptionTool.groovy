@@ -52,8 +52,10 @@ class ConfigEncryptionTool {
     private NiFiProperties niFiProperties
 
     private boolean usingPassword = true
+    private boolean isVerbose = false
 
     private static final String HELP_ARG = "help"
+    private static final String VERBOSE_ARG = "verbose"
     private static final String BOOTSTRAP_CONF_ARG = "bootstrapConf"
     private static final String NIFI_PROPERTIES_ARG = "niFiProperties"
     private static final String OUTPUT_NIFI_PROPERTIES_ARG = "outputNiFiProperties"
@@ -100,6 +102,7 @@ class ConfigEncryptionTool {
         this.header = buildHeader(description)
         this.options = new Options()
         options.addOption("h", HELP_ARG, false, "Prints this usage message")
+        options.addOption("v", VERBOSE_ARG, false, "Sets verbose mode (default false)")
         options.addOption("n", NIFI_PROPERTIES_ARG, true, "The nifi.properties file containing unprotected config values (will be overwritten)")
         options.addOption("b", BOOTSTRAP_CONF_ARG, true, "The bootstrap.conf file to persist master key")
         options.addOption("o", OUTPUT_NIFI_PROPERTIES_ARG, true, "The destination nifi.properties file containing protected config values (will not modify input nifi.properties)")
@@ -132,6 +135,8 @@ class ConfigEncryptionTool {
                 printUsageAndThrow(null, ExitCode.HELP)
             }
 
+            isVerbose = commandLine.hasOption(VERBOSE_ARG)
+
             bootstrapConfPath = commandLine.getOptionValue(BOOTSTRAP_CONF_ARG, determineDefaultBootstrapConfPath())
             niFiPropertiesPath = commandLine.getOptionValue(NIFI_PROPERTIES_ARG, determineDefaultNiFiPropertiesPath())
             outputNiFiPropertiesPath = commandLine.getOptionValue(OUTPUT_NIFI_PROPERTIES_ARG, niFiPropertiesPath)
@@ -161,6 +166,9 @@ class ConfigEncryptionTool {
                 }
             }
         } catch (ParseException e) {
+            if (isVerbose) {
+                logger.error("Encountered an error", e)
+            }
             printUsageAndThrow("Error parsing command line. (" + e.getMessage() + ")", ExitCode.ERROR_PARSING_COMMAND_LINE)
         }
         return commandLine
@@ -237,10 +245,13 @@ class ConfigEncryptionTool {
 
             NiFiProperties properties
             try {
-                properties = new NiFiPropertiesLoader().load(niFiPropertiesFile)
+                properties = NiFiPropertiesLoader.withKey(keyHex).load(niFiPropertiesFile)
                 logger.info("Loaded NiFiProperties instance with ${properties.size()} properties")
                 return properties
             } catch (RuntimeException e) {
+                if (isVerbose) {
+                    logger.error("Encountered an error", e)
+                }
                 throw new IOException("Cannot load NiFiProperties from [${niFiPropertiesPath}]", e)
             } finally {
                 // Can't set a system property to null
@@ -423,7 +434,11 @@ class ConfigEncryptionTool {
             // Get the index of the following line (or cap at max)
             int p = l + 1 > lines.size() ? lines.size() : l + 1
             String protectionLine = "${protectedNiFiProperties.getProtectionKey(key)}=${protectionScheme}"
-            lines.add(p, protectionLine)
+            if (p < lines.size() && lines.get(p).startsWith("${protectedNiFiProperties.getProtectionKey(key)}=")) {
+                lines.set(p, protectionLine)
+            } else {
+                lines.add(p, protectionLine)
+            }
         }
 
         lines
@@ -512,6 +527,9 @@ class ConfigEncryptionTool {
                     // Validate the length and format
                     tool.keyHex = parseKey(tool.keyHex)
                 } catch (KeyException e) {
+                    if (tool.isVerbose) {
+                        logger.error("Encountered an error", e)
+                    }
                     tool.printUsageAndThrow(e.getMessage(), ExitCode.INVALID_ARGS)
                 }
 
@@ -523,6 +541,9 @@ class ConfigEncryptionTool {
                 }
                 throw e
             } catch (Exception e) {
+                if (tool.isVerbose) {
+                    logger.error("Encountered an error", e)
+                }
                 tool.printUsageAndThrow(e.message, ExitCode.ERROR_PARSING_COMMAND_LINE)
             }
 
@@ -533,6 +554,9 @@ class ConfigEncryptionTool {
                     tool.writeNiFiProperties()
                 }
             } catch (Exception e) {
+                if (tool.isVerbose) {
+                    logger.error("Encountered an error", e)
+                }
                 tool.printUsageAndThrow("Encountered an error writing the master key to the bootstrap.conf file and the encrypted properties to nifi.properties", ExitCode.ERROR_GENERATING_CONFIG)
             }
         } catch (CommandLineParseException e) {

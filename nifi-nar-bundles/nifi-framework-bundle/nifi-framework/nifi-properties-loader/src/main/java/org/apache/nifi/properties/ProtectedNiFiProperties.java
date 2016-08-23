@@ -59,7 +59,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
     public ProtectedNiFiProperties(NiFiProperties props) {
         this.niFiProperties = props;
         // this.properties = props instanceof StandardNiFiProperties ? (StandardNiFiProperties) props : new StandardNiFiProperties(props);
-        logger.info("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getPropertyKeysIncludingProtectionSchemes().size(), getProtectedPropertyKeys().size());
+        logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getPropertyKeysIncludingProtectionSchemes().size(), getProtectedPropertyKeys().size());
     }
 
     public ProtectedNiFiProperties(Properties rawProps) {
