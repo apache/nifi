@@ -242,12 +242,6 @@ class ConfigEncryptionTool {
     private NiFiProperties loadNiFiProperties() throws IOException {
         File niFiPropertiesFile
         if (niFiPropertiesPath && (niFiPropertiesFile = new File(niFiPropertiesPath)).exists()) {
-            String oldNiFiPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
-            logger.debug("Saving existing NiFiProperties file path ${oldNiFiPropertiesPath}")
-
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, niFiPropertiesFile.absolutePath)
-            logger.debug("Temporarily set NiFiProperties file path to ${niFiPropertiesFile.absolutePath}")
-
             NiFiProperties properties
             try {
                 properties = NiFiPropertiesLoader.withKey(keyHex).load(niFiPropertiesFile)
@@ -258,14 +252,6 @@ class ConfigEncryptionTool {
                     logger.error("Encountered an error", e)
                 }
                 throw new IOException("Cannot load NiFiProperties from [${niFiPropertiesPath}]", e)
-            } finally {
-                // Can't set a system property to null
-                if (oldNiFiPropertiesPath) {
-                    System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, oldNiFiPropertiesPath)
-                } else {
-                    System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH)
-                }
-                logger.debug("Restored system variable ${NiFiProperties.PROPERTIES_FILE_PATH} to ${oldNiFiPropertiesPath}")
             }
         } else {
             printUsageAndThrow("Cannot load NiFiProperties from [${niFiPropertiesPath}]", ExitCode.ERROR_READING_NIFI_PROPERTIES)

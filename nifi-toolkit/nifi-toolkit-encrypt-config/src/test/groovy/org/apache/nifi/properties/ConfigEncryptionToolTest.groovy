@@ -19,6 +19,7 @@ package org.apache.nifi.properties
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.AppenderBase
 import org.apache.commons.codec.binary.Hex
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -26,8 +27,10 @@ import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.crypto.generators.SCrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.contrib.java.lang.system.Assertion
@@ -89,6 +92,38 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         (properties as ProtectedNiFiProperties).getPropertyKeysIncludingProtectionSchemes().sort().each { String key ->
             logger.info("${key}\t\t${properties.getProperty(key)}")
+        }
+    }
+
+    /**
+     * OS-agnostic method for setting file permissions. On POSIX-compliant systems, accurately sets the provided permissions. On Windows, sets the corresponding permissions for the file owner only.
+     *
+     * @param file the file to modify
+     * @param permissions the desired permissions
+     */
+    private static void setFilePermissions(File file, List<PosixFilePermission> permissions = []) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            file?.setReadable(permissions.contains(PosixFilePermission.OWNER_READ))
+            file?.setWritable(permissions.contains(PosixFilePermission.OWNER_WRITE))
+            file?.setExecutable(permissions.contains(PosixFilePermission.OWNER_EXECUTE))
+        } else {
+            Files.setPosixFilePermissions(file?.toPath(), permissions as Set)
+        }
+    }
+
+    /**
+     * OS-agnostic method for getting file permissions. On POSIX-compliant systems, accurately gets the existing permissions. On Windows, gets the corresponding permissions for the file owner only.
+     *
+     * @param file the file to check
+     * @return a Set of (String, PosixFilePermissions) containing the permissions
+     */
+    private static Set getFilePermissions(File file) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+           return [file.canRead() ? "OWNER_READ" : "",
+            file.canWrite() ? "OWNER_WRITE" : "",
+            file.canExecute() ? "OWNER_EXECUTE" : ""].findAll { it } as Set
+        } else {
+            return Files.getPosixFilePermissions(file?.toPath())
         }
     }
 
@@ -603,14 +638,47 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testLoadNiFiPropertiesShouldHandleReadFailure() {
         // Arrange
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File workingFile = new File("tmp_nifi.properties")
         workingFile.delete()
 
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
         // Empty set of permissions
-        Files.setPosixFilePermissions(workingFile.toPath(), [] as Set)
-        logger.info("Set POSIX permissions to ${Files.getPosixFilePermissions(workingFile.toPath())}")
+        setFilePermissions(workingFile, [])
+        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
+        tool.parse(args)
+
+        // Act
+        def msg = shouldFail(IOException) {
+            tool.loadNiFiProperties()
+            logger.info("Read nifi.properties")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg == "Cannot load NiFiProperties from [${workingFile.path}]".toString()
+
+        workingFile.deleteOnExit()
+    }
+
+    @Ignore("Setting the Windows file permissions fails in the test harness, so the test does not throw the expected exception")
+    @Test
+    void testLoadNiFiPropertiesShouldHandleReadFailureOnWindows() {
+        // Arrange
+        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File workingFile = new File("tmp_nifi.properties")
+        workingFile.delete()
+
+        Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
+        // Empty set of permissions
+        workingFile.setReadable(false)
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
@@ -793,8 +861,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
         // Empty set of permissions
-        Files.setPosixFilePermissions(workingFile.toPath(), [] as Set)
-        logger.info("Set POSIX permissions to ${Files.getPosixFilePermissions(workingFile.toPath())}")
+        setFilePermissions(workingFile, [])
+        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
@@ -822,8 +890,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
         // Read-only set of permissions
-        Files.setPosixFilePermissions(workingFile.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ] as Set)
-        logger.info("Set POSIX permissions to ${Files.getPosixFilePermissions(workingFile.toPath())}")
+        setFilePermissions(workingFile, [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ])
+        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
@@ -886,6 +954,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldSerializeNiFiProperties() {
         // Arrange
+        Assume.assumeTrue("Test only runs on *nix because Windows line endings are different", !SystemUtils.IS_OS_WINDOWS)
+
         Properties rawProperties = [key: "value", key2: "value2"] as Properties
         NiFiProperties properties = new StandardNiFiProperties(rawProperties)
         logger.info("Loaded ${properties.size()} properties")
@@ -899,7 +969,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // The serialization could have occurred > 1 second ago, causing a rolling date/time mismatch, so use regex
         // Format -- #Fri Aug 19 16:51:16 PDT 2016
-        String datePattern = /#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3} \d{4}/
+        // Alternate format -- #Fri Aug 19 16:51:16 GMT-05:00 2016
+        // \u0024 == '$' to avoid escaping
+        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}([\-+]\d{2}:\d{2})? \d{4}\u0024/
 
         // One extra line for the date
         assert lines.size() == properties.size() + 1
@@ -1127,8 +1199,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
         // Read-only set of permissions
-        Files.setPosixFilePermissions(workingFile.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ] as Set)
-        logger.info("Set POSIX permissions to ${Files.getPosixFilePermissions(workingFile.toPath())}")
+        setFilePermissions(workingFile, [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ])
+        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
@@ -1153,6 +1225,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExist() {
         // Arrange
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
@@ -1160,8 +1234,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         workingFile.delete()
 
         // Read-only set of permissions
-        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ] as Set)
-        logger.info("Set POSIX permissions on parent directory to ${Files.getPosixFilePermissions(tmpDir.toPath())}")
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ])
+        logger.info("Set POSIX permissions to ${getFilePermissions(tmpDir)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
@@ -1181,7 +1255,44 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
 
         workingFile.deleteOnExit()
-        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE] as Set)
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE])
+        tmpDir.deleteOnExit()
+    }
+
+    @Ignore("Setting the Windows file permissions fails in the test harness, so the test does not throw the expected exception")
+    @Test
+    void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExistOnWindows() {
+        // Arrange
+        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        File workingFile = new File("target/tmp/tmp_nifi.properties")
+        workingFile.delete()
+
+        // Read-only set of permissions
+        tmpDir.setWritable(false)
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
+        tool.parse(args)
+        NiFiProperties niFiProperties = tool.loadNiFiProperties()
+        tool.@niFiProperties = niFiProperties
+        logger.info("Loaded ${niFiProperties.size()} properties from ${inputPropertiesFile.path}")
+
+        // Act
+        def msg = shouldFail(IOException) {
+            tool.writeNiFiProperties()
+            logger.info("Wrote to ${workingFile.path}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
+
+        workingFile.deleteOnExit()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE])
         tmpDir.deleteOnExit()
     }
 
@@ -1192,7 +1303,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
@@ -1271,7 +1382,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
@@ -1353,7 +1464,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        Files.setPosixFilePermissions(tmpDir.toPath(), [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE] as Set)
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
 
         File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
         File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
