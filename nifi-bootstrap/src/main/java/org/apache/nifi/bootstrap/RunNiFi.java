@@ -1021,7 +1021,7 @@ public class RunNiFi {
         cmd.add("-Dapp=NiFi");
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
         cmd.add("org.apache.nifi.NiFi");
-        if (props.containsKey(NIFI_BOOTSTRAP_SENSITIVE_KEY) && props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY) != null) {
+        if (props.containsKey(NIFI_BOOTSTRAP_SENSITIVE_KEY) && !StringUtils.isBlank(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY))) {
             cmd.add("-k " + props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
         }
 
