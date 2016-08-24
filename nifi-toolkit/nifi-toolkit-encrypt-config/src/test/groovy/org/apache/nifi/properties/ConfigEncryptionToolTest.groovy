@@ -27,6 +27,7 @@ import org.apache.nifi.util.console.TextDevices
 import org.bouncycastle.crypto.generators.SCrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
@@ -119,7 +120,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         if (SystemUtils.IS_OS_WINDOWS) {
            return [file.canRead() ? "OWNER_READ" : "",
             file.canWrite() ? "OWNER_WRITE" : "",
-            file.canExecute() ? "OWNER_EXECUTE" : ""] as Set
+            file.canExecute() ? "OWNER_EXECUTE" : ""].findAll { it } as Set
         } else {
             return Files.getPosixFilePermissions(file?.toPath())
         }
@@ -636,6 +637,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testLoadNiFiPropertiesShouldHandleReadFailure() {
         // Arrange
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File workingFile = new File("tmp_nifi.properties")
         workingFile.delete()
@@ -644,6 +647,36 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Empty set of permissions
         setFilePermissions(workingFile, [])
         logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
+        tool.parse(args)
+
+        // Act
+        def msg = shouldFail(IOException) {
+            tool.loadNiFiProperties()
+            logger.info("Read nifi.properties")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg == "Cannot load NiFiProperties from [${workingFile.path}]".toString()
+
+        workingFile.deleteOnExit()
+    }
+
+    @Test
+    void testLoadNiFiPropertiesShouldHandleReadFailureOnWindows() {
+        // Arrange
+        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File workingFile = new File("tmp_nifi.properties")
+        workingFile.delete()
+
+        Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
+        // Empty set of permissions
+        workingFile.setReadable(false)
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
@@ -932,9 +965,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // The serialization could have occurred > 1 second ago, causing a rolling date/time mismatch, so use regex
         // Format -- #Fri Aug 19 16:51:16 PDT 2016
-        // Alternate format -- #Fri Aug 19 16:51:16 GMT-0500 2016
+        // Alternate format -- #Fri Aug 19 16:51:16 GMT-05:00 2016
         // \u0024 == '$' to avoid escaping
-        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}(\-\d{4})? \d{4}\u0024/
+        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}(\-\d{2}:\d{2})? \d{4}\u0024/
 
         // One extra line for the date
         assert lines.size() == properties.size() + 1
@@ -1188,6 +1221,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExist() {
         // Arrange
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
@@ -1197,6 +1232,42 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Read-only set of permissions
         setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ])
         logger.info("Set POSIX permissions to ${getFilePermissions(tmpDir)}")
+
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
+        tool.parse(args)
+        NiFiProperties niFiProperties = tool.loadNiFiProperties()
+        tool.@niFiProperties = niFiProperties
+        logger.info("Loaded ${niFiProperties.size()} properties from ${inputPropertiesFile.path}")
+
+        // Act
+        def msg = shouldFail(IOException) {
+            tool.writeNiFiProperties()
+            logger.info("Wrote to ${workingFile.path}")
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
+
+        workingFile.deleteOnExit()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE])
+        tmpDir.deleteOnExit()
+    }
+
+    @Test
+    void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExistOnWindows() {
+        // Arrange
+        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
+
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        File workingFile = new File("target/tmp/tmp_nifi.properties")
+        workingFile.delete()
+
+        // Read-only set of permissions
+        tmpDir.setWritable(false)
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
