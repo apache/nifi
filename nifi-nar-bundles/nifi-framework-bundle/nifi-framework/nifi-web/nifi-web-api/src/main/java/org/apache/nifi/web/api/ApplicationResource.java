@@ -487,7 +487,7 @@ public abstract class ApplicationResource {
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Revision revision, final AuthorizeAccess authorizer,
-                                     final Runnable verifier, final BiFunction<Revision, T, Response> action) {
+                                                        final Runnable verifier, final BiFunction<Revision, T, Response> action) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -536,7 +536,7 @@ public abstract class ApplicationResource {
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Set<Revision> revisions, final AuthorizeAccess authorizer,
-                                     final Runnable verifier, final BiFunction<Set<Revision>, T, Response> action) {
+                                                        final Runnable verifier, final BiFunction<Set<Revision>, T, Response> action) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -577,10 +577,10 @@ public abstract class ApplicationResource {
     /**
      * Executes an action through the service facade.
      *
-     * @param serviceFacade  service facade
-     * @param authorizer     authorizer
-     * @param verifier       verifier
-     * @param action         the action to execute
+     * @param serviceFacade service facade
+     * @param authorizer    authorizer
+     * @param verifier      verifier
+     * @param action        the action to execute
      * @return the response
      */
     protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final AuthorizeAccess authorizer,
@@ -916,7 +916,7 @@ public abstract class ApplicationResource {
         if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
             return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
         } else {
-        	return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse();
+            return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse();
         }
     }
 

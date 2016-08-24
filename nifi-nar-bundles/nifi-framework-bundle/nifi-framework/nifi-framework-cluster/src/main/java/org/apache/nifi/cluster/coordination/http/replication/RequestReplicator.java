@@ -78,13 +78,12 @@ public interface RequestReplicator {
      * will contain the results that are immediately available, as well as an identifier for obtaining an updated result
      * later. NOTE: This method will ALWAYS indicate that the request has been replicated.
      *
-     * @param method the HTTP method (e.g., POST, PUT)
-     * @param uri the base request URI (up to, but not including, the query string)
-     * @param entity an entity
+     * @param method  the HTTP method (e.g., POST, PUT)
+     * @param uri     the base request URI (up to, but not including, the query string)
+     * @param entity  an entity
      * @param headers any HTTP headers
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
-     *
-     * @throws ConnectingNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the CONNECTING state
+     * @throws ConnectingNodeMutableRequestException   if the request attempts to modify the flow and there is a node that is in the CONNECTING state
      * @throws DisconnectedNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the DISCONNECTED state
      */
     AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers);
@@ -92,20 +91,19 @@ public interface RequestReplicator {
     /**
      * Requests are sent to each node in the given set of Node Identifiers. The returned AsyncClusterResponse object will contain
      * the results that are immediately available, as well as an identifier for obtaining an updated result later.
-     *
+     * <p>
      * HTTP DELETE, GET, HEAD, and OPTIONS methods will throw an IllegalArgumentException if used.
      *
-     * @param nodeIds the node identifiers
-     * @param method the HTTP method (e.g., POST, PUT)
-     * @param uri the base request URI (up to, but not including, the query string)
-     * @param entity an entity
-     * @param headers any HTTP headers
-     * @param indicateReplicated if <code>true</code>, will add a header indicating to the receiving nodes that the request
-     *            has already been replicated, so the receiving node will not replicate the request itself.
+     * @param nodeIds             the node identifiers
+     * @param method              the HTTP method (e.g., POST, PUT)
+     * @param uri                 the base request URI (up to, but not including, the query string)
+     * @param entity              an entity
+     * @param headers             any HTTP headers
+     * @param indicateReplicated  if <code>true</code>, will add a header indicating to the receiving nodes that the request
+     *                            has already been replicated, so the receiving node will not replicate the request itself.
      * @param performVerification if <code>true</code>, and the request is mutable, will verify that all nodes are connected before
-     *            making the request and that all nodes are able to perform the request before acutally attempting to perform the task.
-     *            If false, will perform no such verification
-     *
+     *                            making the request and that all nodes are able to perform the request before acutally attempting to perform the task.
+     *                            If false, will perform no such verification
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      */
     AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated, boolean performVerification);
@@ -115,11 +113,10 @@ public interface RequestReplicator {
      * Forwards a request to the Cluster Coordinator so that it is able to replicate the request to all nodes in the cluster.
      *
      * @param coordinatorNodeId the node identifier of the Cluster Coordinator
-     * @param method the HTTP method (e.g., POST, PUT)
-     * @param uri the base request URI (up to, but not including, the query string)
-     * @param entity an entity
-     * @param headers any HTTP headers
-     *
+     * @param method            the HTTP method (e.g., POST, PUT)
+     * @param uri               the base request URI (up to, but not including, the query string)
+     * @param entity            an entity
+     * @param headers           any HTTP headers
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      */
     AsyncClusterResponse forwardToCoordinator(NodeIdentifier coordinatorNodeId, String method, URI uri, Object entity, Map<String, String> headers);
@@ -135,7 +132,7 @@ public interface RequestReplicator {
      *
      * @param requestIdentifier the identifier of the request to obtain a response for
      * @return an AsyncClusterResponse that provides the most up-to-date status of the request with the given identifier, or <code>null</code> if
-     *         no request exists with the given identifier
+     * no request exists with the given identifier
      */
     AsyncClusterResponse getClusterResponse(String requestIdentifier);
 }
