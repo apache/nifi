@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.web.ResourceNotFoundException;
 
 import java.util.Map;
 import java.util.Objects;
@@ -57,8 +58,12 @@ public final class AuthorizeControllerServiceReference {
                     if (!Objects.equals(currentValue, proposedValue)) {
                         // ensure access to the old service
                         if (currentValue != null) {
-                            final Authorizable currentServiceAuthorizable = lookup.getControllerService(currentValue).getAuthorizable();
-                            currentServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                            try {
+                                final Authorizable currentServiceAuthorizable = lookup.getControllerService(currentValue).getAuthorizable();
+                                currentServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                            } catch (ResourceNotFoundException e) {
+                                // ignore if the resource is not found, if currentValue was previously deleted, it should not stop assignment of proposedValue
+                            }
                         }
 
                         // ensure access to the new service
