@@ -58,14 +58,14 @@ nf.ControllerService = (function () {
      * that needs to be saved.
      */
     var isSaveRequired = function () {
-        var details = $('#controller-service-configuration').data('controllerServiceDetails');
+        var entity = $('#controller-service-configuration').data('controllerServiceDetails');
 
         // determine if any controller service settings have changed
 
-        if ($('#controller-service-name').val() !== details['name']) {
+        if ($('#controller-service-name').val() !== entity.component['name']) {
             return true;
         }
-        if ($('#controller-service-comments').val() !== details['comments']) {
+        if ($('#controller-service-comments').val() !== entity.component['comments']) {
             return true;
         }
 
