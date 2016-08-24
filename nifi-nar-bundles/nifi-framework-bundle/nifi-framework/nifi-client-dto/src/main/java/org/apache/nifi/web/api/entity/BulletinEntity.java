@@ -18,7 +18,9 @@ package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ReadablePermission;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**
@@ -84,6 +86,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
     /**
      * @return When this bulletin was generated.
      */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getTimestamp() {
         return timestamp;
     }
