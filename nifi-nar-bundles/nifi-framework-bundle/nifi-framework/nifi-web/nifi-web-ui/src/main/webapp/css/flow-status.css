@@ -106,7 +106,7 @@
 }
 
 #bulletin-button.has-bulletins {
-    background-color: #ba554a; /*warm-color*/
+    background-color: #f0ad4e; /*warm-color*/
 }
 
 #bulletin-button i.fa {
@@ -124,7 +124,7 @@
 }
 
 #connected-nodes-count.connection-warning {
-    color: #BA554A;
+    color: #f0ad4e;
 }
 
 /* search field */
