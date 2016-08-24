@@ -1075,7 +1075,7 @@ NOTE: While fixed salts are counter to best practices, a static salt is necessar
 Secure Prompt
 ~~~~~~~~~~~~~
 
-For users who prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
+If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
 
 [[clustering]]
 Clustering Configuration
