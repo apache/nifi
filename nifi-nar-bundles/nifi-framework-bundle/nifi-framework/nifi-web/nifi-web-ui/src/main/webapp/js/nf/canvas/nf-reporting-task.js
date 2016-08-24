@@ -65,25 +65,25 @@ nf.ReportingTask = (function () {
      * that needs to be saved.
      */
     var isSaveRequired = function () {
-        var details = $('#reporting-task-configuration').data('reportingTaskDetails');
+        var entity = $('#reporting-task-configuration').data('reportingTaskDetails');
 
         // determine if any reporting task settings have changed
 
-        if ($('#reporting-task-name').val() !== details.name) {
+        if ($('#reporting-task-name').val() !== entity.component['name']) {
             return true;
         }
-        if ($('#reporting-task-comments').val() !== details['comments']) {
+        if ($('#reporting-task-comments').val() !== entity.component['comments']) {
             return true;
         }
-        if ($('#reporting-task-enabled').hasClass('checkbox-checked') && details['state'] === 'DISABLED') {
+        if ($('#reporting-task-enabled').hasClass('checkbox-checked') && entity.component['state'] === 'DISABLED') {
             return true;
-        } else if ($('#reporting-task-enabled').hasClass('checkbox-unchecked') && (details['state'] === 'RUNNING' || details['state'] === 'STOPPED')) {
+        } else if ($('#reporting-task-enabled').hasClass('checkbox-unchecked') && (entity.component['state'] === 'RUNNING' || entity.component['state'] === 'STOPPED')) {
             return true;
         }
 
         // consider the scheduling strategy
         var schedulingStrategy = $('#reporting-task-scheduling-strategy-combo').combo('getSelectedOption').value;
-        if (schedulingStrategy !== (details['schedulingStrategy'] + '')) {
+        if (schedulingStrategy !== (entity.component['schedulingStrategy'] + '')) {
             return true;
         }
 
@@ -96,7 +96,7 @@ nf.ReportingTask = (function () {
         }
 
         // check the scheduling period
-        if (nf.Common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (details['schedulingPeriod'] + '')) {
+        if (nf.Common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (entity.component['schedulingPeriod'] + '')) {
             return true;
         }
 
