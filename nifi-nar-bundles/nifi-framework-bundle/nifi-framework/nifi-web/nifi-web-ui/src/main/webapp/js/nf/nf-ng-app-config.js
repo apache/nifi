@@ -66,7 +66,7 @@ nf.ng.AppConfig = function ($mdThemingProvider, $compileProvider) {
         '200': 'f0ad4e',
         '300': 'f0ad4e',
         '400': 'f0ad4e',
-        '500': 'f0ad4e', /* warn-color */
+        '500': '2B5C76', /* warn-color */
         '600': 'f0ad4e',
         '700': 'f0ad4e',
         '800': 'f0ad4e',

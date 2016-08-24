@@ -266,10 +266,10 @@ nf.SummaryTable = (function () {
             var classes = nf.Common.escapeHtml(value.toLowerCase());
             switch(nf.Common.escapeHtml(value.toLowerCase())) {
                 case 'running':
-                    classes += ' fa fa-play running';
+                    classes = ' fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop stopped';
+                    classes = ' fa fa-stop stopped';
                     break;
                 case 'enabled':
                     classes += ' fa fa-flash';
@@ -277,7 +277,7 @@ nf.SummaryTable = (function () {
                 case 'disabled':
                     classes += ' icon icon-enable-false';
                 case 'invalid':
-                    classes += ' fa fa-warning invalid';
+                    classes = ' fa fa-warning invalid';
                     break;
                 default:
                     classes += '';
