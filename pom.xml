@@ -1357,6 +1357,7 @@ language governing permissions and limitations under the License. -->
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -1378,6 +1379,7 @@ language governing permissions and limitations under the License. -->
             <artifactId>groovy-all</artifactId>
         </dependency>
     </dependencies>
+
     <build>
         <pluginManagement>
             <plugins>
