@@ -249,15 +249,29 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             lock.lock();
             try {
                 logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
-                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification);
             } finally {
                 lock.unlock();
             }
         } else {
-            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification);
         }
     }
 
+    @Override
+    public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
+        // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
+        // it knows that we are acting as a proxy on behalf of the current user.
+    	final Map<String, String> updatedHeaders = new HashMap<>(headers);
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user != null && !user.isAnonymous()) {
+            final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
+            updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
+        }
+    	
+        return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false);
+    }
+    
     /**
      * Replicates the request to all nodes in the given set of node identifiers
      *
@@ -268,11 +282,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param headers the HTTP Headers
      * @param performVerification whether or not to verify that all nodes in the cluster are connected and that all nodes can perform request. Ignored if request is not mutable.
      * @param response the response to update with the results
+     * @param executionPhase <code>true</code> if this is the execution phase, <code>false</code> otherwise
      *
      * @return an AsyncClusterResponse that can be used to obtain the result
      */
     private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean performVerification,
-            StandardAsyncClusterResponse response) {
+            StandardAsyncClusterResponse response, boolean executionPhase) {
 
         // state validation
         Objects.requireNonNull(nodeIds);
@@ -356,7 +371,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         };
 
         // instruct the node to actually perform the underlying action
-        if (mutableRequest && !performVerification) {
+        if (mutableRequest && executionPhase) {
             updatedHeaders.put(REQUEST_EXECUTION_HTTP_HEADER, "true");
         }
 
@@ -405,7 +420,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                         // to all nodes and we are finished.
                         if (dissentingCount == 0) {
                             logger.debug("Received verification from all {} nodes that mutable request {} {} can be made", numNodes, method, uri.getPath());
-                            replicate(nodeIds, method, uri, entity, headers, false, clusterResponse);
+                            replicate(nodeIds, method, uri, entity, headers, false, clusterResponse, true);
                             return;
                         }
 
@@ -501,9 +516,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
     // Visible for testing - overriding this method makes it easy to verify behavior without actually making any web requests
-    protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+    protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId, 
+    		final Map<String, String> headers) {
         final ClientResponse clientResponse;
         final long startNanos = System.nanoTime();
+        logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", method, uri, requestId, headers);
 
         switch (method.toUpperCase()) {
             case HttpMethod.DELETE:
@@ -704,7 +721,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 final String requestId = headers.get("x-nifi-request-id");
 
                 logger.debug("Replicating request {} {} to {}", method, uri.getPath(), nodeId);
-                nodeResponse = replicateRequest(resourceBuilder, nodeId, method, uri, requestId);
+                nodeResponse = replicateRequest(resourceBuilder, nodeId, method, uri, requestId, headers);
             } catch (final Exception e) {
                 nodeResponse = new NodeResponse(nodeId, method, uri, e);
                 logger.warn("Failed to replicate request {} {} to {} due to {}", method, uri.getPath(), nodeId, e);
