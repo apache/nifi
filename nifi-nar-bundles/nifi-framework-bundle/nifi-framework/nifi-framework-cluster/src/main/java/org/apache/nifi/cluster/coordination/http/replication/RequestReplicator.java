@@ -38,10 +38,14 @@ public interface RequestReplicator {
     public static final int NODE_CONTINUE_STATUS_CODE = 150;
 
     /**
-     * Indicates that the request is intended to cancel a lock that was previously obtained without performing the action
+     * Indicates that the request is intended to cancel a transaction that was previously created without performing the action
      */
-    public static final String LOCK_CANCELATION_HEADER = "X-Cancel-Lock";
-    public static final String LOCK_VERSION_ID_HEADER = "X-Lock-Version-Id";
+    public static final String REQUEST_TRANSACTION_CANCELATION_HTTP_HEADER = "X-Cancel-Transaction";
+
+    /**
+     * Indicates that this is the second phase of the two phase commit and the execution of the action should proceed.
+     */
+    public static final String REQUEST_EXECUTION_HTTP_HEADER = "X-Execution-Continue";
 
     /**
      * When we replicate a request across the cluster, we replicate it only from the cluster coordinator.
