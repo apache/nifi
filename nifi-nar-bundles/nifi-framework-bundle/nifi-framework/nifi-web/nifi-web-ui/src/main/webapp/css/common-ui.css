@@ -524,8 +524,20 @@ div.context-menu-item.hover > div.context-menu-item-img.fa.fa-play {
     color:#5cb85c;
 }
 
+.running {
+    color:#5cb85c;
+}
+
 div.context-menu-item.hover > div.context-menu-item-img.fa.fa-stop {
     color:#d9534f;
+}
+
+.stopped {
+    color:#d9534f;
+}
+
+.invalid {
+    color:#f0ad4e;
 }
 
 .context-menu-item-img.icon {
