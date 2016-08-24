@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 public class NiFiPropertiesLoader {
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
 
-    // private static final String DEFAULT_FILE_PATH = getDefaultFilePath();
     private static final String RELATIVE_PATH = "conf/nifi.properties";
 
     private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key=";
@@ -63,6 +62,13 @@ public class NiFiPropertiesLoader {
         return loader;
     }
 
+    /**
+     * Sets the hexadecimal key used to unprotect properties encrypted with
+     * {@link AESSensitivePropertyProvider}. If the key has already been set,
+     * calling this method will throw a {@link RuntimeException}.
+     *
+     * @param keyHex the key in hexadecimal format
+     */
     public void setKeyHex(String keyHex) {
         if (this.keyHex == null || this.keyHex.trim().isEmpty()) {
             this.keyHex = keyHex;
@@ -71,6 +77,15 @@ public class NiFiPropertiesLoader {
         }
     }
 
+    /**
+     * Returns a {@link NiFiProperties} instance with any encrypted properties
+     * decrypted using the key from the {@code conf/bootstrap.conf} file. This
+     * method is exposed to allow Spring factory-method loading at application
+     * startup.
+     *
+     * @return the populated and decrypted NiFiProperties instance
+     * @throws IOException if there is a problem reading from the bootstrap.conf or nifi.properties files
+     */
     public static NiFiProperties loadDefaultWithKeyFromBootstrap() throws IOException {
         try {
             String keyHex = extractKeyFromBootstrapFile();
@@ -147,6 +162,14 @@ public class NiFiPropertiesLoader {
         return sensitivePropertyProviderFactory.getProvider();
     }
 
+    /**
+     * Returns a {@link ProtectedNiFiProperties} instance loaded from the serialized
+     * form in the file. Responsible for actually reading from disk and deserializing
+     * the properties. Returns a protected instance to allow for decryption operations.
+     *
+     * @param file the file containing serialized properties
+     * @return the ProtectedNiFiProperties instance
+     */
     ProtectedNiFiProperties readProtectedPropertiesFromDisk(File file) {
         if (file == null || !file.exists() || !file.canRead()) {
             String path = (file == null ? "missing file" : file.getAbsolutePath());
@@ -181,10 +204,14 @@ public class NiFiPropertiesLoader {
         }
     }
 
-    NiFiProperties loadRaw(File file) {
-        return readProtectedPropertiesFromDisk(file);
-    }
-
+    /**
+     * Returns an instance of {@link NiFiProperties} loaded from the provided
+     * {@link File}. If any properties are protected, will attempt to use the
+     * appropriate {@link SensitivePropertyProvider} to unprotect them transparently.
+     *
+     * @param file the File containing the serialized properties
+     * @return the NiFiProperties instance
+     */
     public NiFiProperties load(File file) {
         ProtectedNiFiProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
         if (protectedNiFiProperties.hasProtectedKeys()) {
@@ -195,6 +222,15 @@ public class NiFiPropertiesLoader {
         return protectedNiFiProperties.getUnprotectedProperties();
     }
 
+    /**
+     * Returns an instance of {@link NiFiProperties}. If the path is empty, this
+     * will load the default properties file as specified by
+     * {@code NiFiProperties.PROPERTY_FILE_PATH}.
+     *
+     * @param path the path of the serialized properties file
+     * @return the NiFiProperties instance
+     * @see NiFiPropertiesLoader#load(File)
+     */
     public NiFiProperties load(String path) {
         if (path != null && !path.trim().isEmpty()) {
             return load(new File(path));
@@ -203,6 +239,11 @@ public class NiFiPropertiesLoader {
         }
     }
 
+    /**
+     * Returns the loaded {@link NiFiProperties} instance. If none is currently loaded, attempts to load the default instance.
+     *
+     * @return the current NiFiProperties instance
+     */
     public NiFiProperties get() {
         if (instance == null) {
             instance = loadDefault();

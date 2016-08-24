@@ -56,12 +56,21 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         this(new StandardNiFiProperties());
     }
 
+    /**
+     * Creates an instance containing the provided {@link NiFiProperties}.
+     *
+     * @param props the NiFiProperties to contain
+     */
     public ProtectedNiFiProperties(NiFiProperties props) {
         this.niFiProperties = props;
-        // this.properties = props instanceof StandardNiFiProperties ? (StandardNiFiProperties) props : new StandardNiFiProperties(props);
         logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getPropertyKeysIncludingProtectionSchemes().size(), getProtectedPropertyKeys().size());
     }
 
+    /**
+     * Creates an instance containing the provided raw {@link Properties}.
+     *
+     * @param rawProps the Properties to contain
+     */
     public ProtectedNiFiProperties(Properties rawProps) {
         this(new StandardNiFiProperties(rawProps));
     }
@@ -89,6 +98,14 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         return filteredKeys;
     }
 
+    /**
+     * Returns the internal representation of the {@link NiFiProperties} -- protected
+     * or not as determined by the current state. No guarantee is made to the
+     * protection state of these properties. If the internal reference is null, a new
+     * {@link StandardNiFiProperties} instance is created.
+     *
+     * @return the internal properties
+     */
     NiFiProperties getInternalNiFiProperties() {
         if (this.niFiProperties == null) {
             this.niFiProperties = new StandardNiFiProperties();
@@ -115,6 +132,11 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         return getPropertyKeys().size();
     }
 
+    /**
+     * Returns the complete set of property keys, including any protection keys (i.e. 'x.y.z.protected').
+     *
+     * @return the set of property keys
+     */
     Set<String> getPropertyKeysIncludingProtectionSchemes() {
         return getInternalNiFiProperties().getPropertyKeys();
     }
@@ -334,6 +356,11 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
         }
     }
 
+    /**
+     * Registers a new {@link SensitivePropertyProvider}. This method will throw a {@link UnsupportedOperationException} if a provider is already registered for the protection scheme.
+     *
+     * @param sensitivePropertyProvider the provider
+     */
     void addSensitivePropertyProvider(SensitivePropertyProvider sensitivePropertyProvider) {
         if (sensitivePropertyProvider == null) {
             throw new IllegalArgumentException("Cannot add null SensitivePropertyProvider");

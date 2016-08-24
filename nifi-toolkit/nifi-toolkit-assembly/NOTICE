@@ -90,5 +90,15 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Jetty
     The following NOTICE information applies:
-       Jetty Web Container
-       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+      Jetty Web Container
+      Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:jar:2.4.5 - http://www.groovy-lang.org)
+    The following NOTICE information applies:
+      Groovy Language
+        Copyright 2003-2015 The respective authors and developers
+        Developers and Contributors are listed in the project POM file
+        and Gradle build
+
+        This product includes software developed by
+        The Groovy community (http://groovy.codehaus.org/).

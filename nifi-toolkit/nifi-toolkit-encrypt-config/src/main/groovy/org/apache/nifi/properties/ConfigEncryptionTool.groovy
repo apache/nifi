@@ -111,6 +111,11 @@ class ConfigEncryptionTool {
         options.addOption("r", USE_KEY_ARG, false, "If provided, the secure console will prompt for the raw key value in hexadecimal form")
     }
 
+    /**
+     * Prints the usage message and available arguments for this tool (along with a specific error message if provided).
+     *
+     * @param errorMessage the optional error message
+     */
     public void printUsage(String errorMessage) {
         if (errorMessage) {
             System.out.println(errorMessage)
@@ -508,6 +513,11 @@ class ConfigEncryptionTool {
         "NIFI_SCRYPT_SALT".getBytes(StandardCharsets.UTF_8)
     }
 
+    /**
+     * Runs main tool logic (parsing arguments, reading files, protecting properties, and writing key and properties out to destination files).
+     *
+     * @param args the command-line arguments
+     */
     public static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider())
 
