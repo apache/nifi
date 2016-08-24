@@ -591,14 +591,22 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
             // the coordinator.
             LOG.info("Checking if there is already a Cluster Coordinator Elected...");
-            final boolean coordinatorLeaderElectionStarted = leaderElectionManager.isLeaderElected(ClusterRoles.CLUSTER_COORDINATOR);
-            if (coordinatorLeaderElectionStarted) {
-                LOG.info("The Election for Cluster Coordinator has already begun. Will not register to be elected for this role until after connecting "
-                    + "to the cluster and inheriting the cluster's flow.");
-                registerForClusterCoordinator(false);
-            } else {
+            final String clusterCoordinatorAddress = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
+            if (StringUtils.isEmpty(clusterCoordinatorAddress)) {
                 LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
                 registerForClusterCoordinator(true);
+            } else {
+                // At this point, we have determined that there is a Cluster Coordinator elected. It is important to note, though,
+                // that if we are running an embedded ZooKeeper, and we have just restarted the cluster (at least the nodes that run the
+                // embedded ZooKeeper), that we could possibly determine that the Cluster Coordinator is at an address that is not really
+                // valid. This is because the latest stable ZooKeeper does not support "Container ZNodes" and as a result the ZNodes that
+                // are created are persistent, not ephemeral. Upon restart, we can get this persisted value, even though the node that belongs
+                // to that address has not started. ZooKeeper/Curator will recognize this after a while and delete the ZNode. As a result,
+                // we may later determine that there is in fact no Cluster Coordinator. If this happens, we will automatically register for
+                // Cluster Coordinator through the StandardFlowService.
+                LOG.info("The Election for Cluster Coordinator has already begun (Leader is {}). Will not register to be elected for this role until after connecting "
+                    + "to the cluster and inheriting the cluster's flow.", clusterCoordinatorAddress);
+                registerForClusterCoordinator(false);
             }
 
             leaderElectionManager.start();
@@ -3318,7 +3326,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return configuredForClustering;
     }
 
-    private void registerForClusterCoordinator(final boolean participate) {
+    void registerForClusterCoordinator(final boolean participate) {
         final String participantId = participate ? heartbeatMonitor.getHeartbeatAddress() : null;
 
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
@@ -3343,7 +3351,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }, participantId);
     }
 
-    private void registerForPrimaryNode() {
+    void registerForPrimaryNode() {
         final String participantId = heartbeatMonitor.getHeartbeatAddress();
 
         leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {

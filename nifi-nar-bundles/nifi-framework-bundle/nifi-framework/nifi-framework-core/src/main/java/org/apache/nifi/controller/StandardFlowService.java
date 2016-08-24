@@ -54,6 +54,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -787,6 +788,17 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         // we received a successful connection response from manager
                         break;
                     }
+                } catch (final NoClusterCoordinatorException ncce) {
+                    logger.warn("There is currently no Cluster Coordinator. This often happens upon restart of NiFi when running an embedded ZooKeeper. Will register this node "
+                        + "to become the active Cluster Coordinator and will attempt to connect to cluster again");
+                    controller.registerForClusterCoordinator(true);
+
+                    try {
+                        Thread.sleep(1000L);
+                    } catch (final InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 } catch (final Exception pe) {
                     // could not create a socket and communicate with manager
                     logger.warn("Failed to connect to cluster due to: " + pe);
@@ -798,6 +810,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         try {
                             Thread.sleep(response == null ? 5000 : response.getTryLaterSeconds());
                         } catch (final InterruptedException ie) {
+                            Thread.currentThread().interrupt();
                             break;
                         }
                     } else {

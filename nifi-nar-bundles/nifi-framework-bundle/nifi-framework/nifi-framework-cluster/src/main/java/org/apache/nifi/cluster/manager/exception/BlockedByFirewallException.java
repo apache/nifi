@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.manager.exception;
 
+import org.apache.nifi.cluster.exception.ClusterException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**

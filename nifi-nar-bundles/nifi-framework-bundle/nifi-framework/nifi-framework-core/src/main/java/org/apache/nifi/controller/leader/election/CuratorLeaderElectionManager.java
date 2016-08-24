@@ -64,16 +64,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         stopped = false;
 
-        final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
-        curatorClient = CuratorFrameworkFactory.builder()
-                .connectString(zkConfig.getConnectString())
-                .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
-                .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
-                .retryPolicy(retryPolicy)
-                .defaultData(new byte[0])
-                .build();
-
-        curatorClient.start();
+        curatorClient = createClient();
 
         // Call #register for each already-registered role. This will
         // cause us to start listening for leader elections for that
@@ -119,9 +110,9 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         registeredRoles.put(roleName, new RegisteredRole(participantId, listener));
 
-        if (!isStopped()) {
-            final boolean isParticipant = participantId != null && !participantId.trim().isEmpty();
+        final boolean isParticipant = participantId != null && !participantId.trim().isEmpty();
 
+        if (!isStopped()) {
             final ElectionListener electionListener = new ElectionListener(roleName, listener);
             final LeaderSelector leaderSelector = new LeaderSelector(curatorClient, leaderPath, leaderElectionMonitorEngine, electionListener);
             if (isParticipant) {
@@ -135,7 +126,11 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             leaderRoles.put(roleName, leaderRole);
         }
 
-        logger.info("{} Registered new Leader Selector for role {}", this, roleName);
+        if (isParticipant) {
+            logger.info("{} Registered new Leader Selector for role {}; this node is an active participant in the election.", this, roleName);
+        } else {
+            logger.info("{} Registered new Leader Selector for role {}; this node is a silent observer in the election.", this, roleName);
+        }
     }
 
     @Override
@@ -157,9 +152,15 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     public synchronized void stop() {
         stopped = true;
 
-        for (final LeaderRole role : leaderRoles.values()) {
+        for (final Map.Entry<String, LeaderRole> entry : leaderRoles.entrySet()) {
+            final LeaderRole role = entry.getValue();
             final LeaderSelector selector = role.getLeaderSelector();
-            selector.close();
+
+            try {
+                selector.close();
+            } catch (final Exception e) {
+                logger.warn("Failed to close Leader Selector for {}", entry.getKey(), e);
+            }
         }
 
         leaderRoles.clear();
@@ -288,7 +289,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     private CuratorFramework createClient() {
         // Create a new client because we don't want to try indefinitely for this to occur.
-        final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
+        final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
 
         final CuratorFramework client = CuratorFrameworkFactory.builder()
             .connectString(zkConfig.getConnectString())
