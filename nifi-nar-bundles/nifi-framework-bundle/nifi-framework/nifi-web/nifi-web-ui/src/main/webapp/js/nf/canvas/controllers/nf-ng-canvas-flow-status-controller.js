@@ -360,14 +360,14 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                     var connectedNodes = clusterSummary.connectedNodes.split(' / ');
                     if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
                         this.clusterConnectionWarning = true;
-                        color = '#BA554A';
+                        color = '#f0ad4e';
                     }
                 }
                 this.connectedNodesCount =
                     nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? clusterSummary.connectedNodes : '-';
             } else {
                 this.connectedNodesCount = 'Disconnected';
-                color = '#BA554A';
+                color = '#f0ad4e';
             }
 
             // update the color
@@ -382,7 +382,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
         update: function (status) {
             var controllerInvalidCountColor =
                 (nf.Common.isDefinedAndNotNull(status.invalidCount) && (status.invalidCount > 0)) ?
-                    '#BA554A' : '#728E9B';
+                    '#f0ad4e' : '#728E9B';
             $('#controller-invalid-count').parent().css('color', controllerInvalidCountColor);
 
             // update the report values
