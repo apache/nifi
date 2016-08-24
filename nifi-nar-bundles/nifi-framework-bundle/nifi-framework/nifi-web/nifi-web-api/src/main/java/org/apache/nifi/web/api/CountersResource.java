@@ -40,6 +40,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 
@@ -233,27 +234,28 @@ public class CountersResource extends ApplicationResource {
             return replicate(HttpMethod.PUT);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                authorizeCounters(RequestAction.WRITE);
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
+        final ComponentEntity requestComponentEntity = new ComponentEntity();
+        requestComponentEntity.setId(id);
 
-        // reset the specified counter
-        final CounterDTO counter = serviceFacade.updateCounter(id);
+        return withWriteLock(
+                serviceFacade,
+                requestComponentEntity,
+                lookup -> {
+                    authorizeCounters(RequestAction.WRITE);
+                },
+                null,
+                (componentEntity) -> {
+                    // reset the specified counter
+                    final CounterDTO counter = serviceFacade.updateCounter(requestComponentEntity.getId());
 
-        // create the response entity
-        final CounterEntity entity = new CounterEntity();
-        entity.setCounter(counter);
+                    // create the response entity
+                    final CounterEntity entity = new CounterEntity();
+                    entity.setCounter(counter);
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     // setters

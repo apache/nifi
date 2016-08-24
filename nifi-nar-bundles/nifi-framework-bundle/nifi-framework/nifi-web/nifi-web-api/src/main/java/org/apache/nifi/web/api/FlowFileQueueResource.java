@@ -37,7 +37,9 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -321,35 +323,35 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
-                dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-            });
-        }
-        if (validationPhase) {
-            serviceFacade.verifyListQueue(id);
-            return generateContinueResponse().build();
-        }
+        final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
+        requestConnectionEntity.setId(id);
 
-        // ensure the id is the same across the cluster
-        final String listingRequestId = generateUuid();
+        return withWriteLock(
+                serviceFacade,
+                requestConnectionEntity,
+                lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyListQueue(id),
+                (connectionEntity) -> {
+                    // ensure the id is the same across the cluster
+                    final String listingRequestId = generateUuid();
 
-        // submit the listing request
-        final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(id, listingRequestId);
-        populateRemainingFlowFileListingContent(id, listingRequest);
+                    // submit the listing request
+                    final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(connectionEntity.getId(), listingRequestId);
+                    populateRemainingFlowFileListingContent(connectionEntity.getId(), listingRequest);
 
-        // create the response entity
-        final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setListingRequest(listingRequest);
+                    // create the response entity
+                    final ListingRequestEntity entity = new ListingRequestEntity();
+                    entity.setListingRequest(listingRequest);
 
-        // generate the URI where the response will be
-        final URI location = URI.create(listingRequest.getUri());
-        return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                    // generate the URI where the response will be
+                    final URI location = URI.create(listingRequest.getUri());
+                    return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                }
+        );
     }
 
     /**
@@ -458,34 +460,50 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
-                dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-            });
+        return withWriteLock(
+                serviceFacade,
+                new ListingEntity(connectionId, listingRequestId),
+                lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (listingEntity) -> {
+                    // delete the listing request
+                    final ListingRequestDTO listingRequest = serviceFacade.deleteFlowFileListingRequest(listingEntity.getConnectionId(), listingEntity.getListingRequestId());
+
+                    // prune the results as they were already received when the listing completed
+                    listingRequest.setFlowFileSummaries(null);
+
+                    // populate remaining content
+                    populateRemainingFlowFileListingContent(listingEntity.getConnectionId(), listingRequest);
+
+                    // create the response entity
+                    final ListingRequestEntity entity = new ListingRequestEntity();
+                    entity.setListingRequest(listingRequest);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private static class ListingEntity extends Entity {
+        final String connectionId;
+        final String listingRequestId;
+
+        public ListingEntity(String connectionId, String listingRequestId) {
+            this.connectionId = connectionId;
+            this.listingRequestId = listingRequestId;
         }
-        if (validationPhase) {
-            return generateContinueResponse().build();
+
+        public String getConnectionId() {
+            return connectionId;
         }
 
-        // delete the listing request
-        final ListingRequestDTO listingRequest = serviceFacade.deleteFlowFileListingRequest(connectionId, listingRequestId);
-
-        // prune the results as they were already received when the listing completed
-        listingRequest.setFlowFileSummaries(null);
-
-        // populate remaining content
-        populateRemainingFlowFileListingContent(connectionId, listingRequest);
-
-        // create the response entity
-        final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setListingRequest(listingRequest);
-
-        return generateOkResponse(entity).build();
+        public String getListingRequestId() {
+            return listingRequestId;
+        }
     }
 
     /**
@@ -528,34 +546,35 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
-                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
+        final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
+        requestConnectionEntity.setId(id);
 
-        // ensure the id is the same across the cluster
-        final String dropRequestId = generateUuid();
+        return withWriteLock(
+                serviceFacade,
+                requestConnectionEntity,
+                lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (connectionEntity) -> {
+                    // ensure the id is the same across the cluster
+                    final String dropRequestId = generateUuid();
 
-        // submit the drop request
-        final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(id, dropRequestId);
-        dropRequest.setUri(generateResourceUri("flowfile-queues", id, "drop-requests", dropRequest.getId()));
+                    // submit the drop request
+                    final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(connectionEntity.getId(), dropRequestId);
+                    dropRequest.setUri(generateResourceUri("flowfile-queues", connectionEntity.getId(), "drop-requests", dropRequest.getId()));
 
-        // create the response entity
-        final DropRequestEntity entity = new DropRequestEntity();
-        entity.setDropRequest(dropRequest);
+                    // create the response entity
+                    final DropRequestEntity entity = new DropRequestEntity();
+                    entity.setDropRequest(dropRequest);
 
-        // generate the URI where the response will be
-        final URI location = URI.create(dropRequest.getUri());
-        return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                    // generate the URI where the response will be
+                    final URI location = URI.create(dropRequest.getUri());
+                    return Response.status(Status.ACCEPTED).location(location).entity(entity).build();
+                }
+        );
     }
 
     /**
@@ -664,29 +683,45 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
-                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
+        return withWriteLock(
+                serviceFacade,
+                new DropEntity(connectionId, dropRequestId),
+                lookup -> {
+                    final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (dropEntity) -> {
+                    // delete the drop request
+                    final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(dropEntity.getConnectionId(), dropEntity.getDropRequestId());
+                    dropRequest.setUri(generateResourceUri("flowfile-queues", dropEntity.getConnectionId(), "drop-requests", dropEntity.getDropRequestId()));
+
+                    // create the response entity
+                    final DropRequestEntity entity = new DropRequestEntity();
+                    entity.setDropRequest(dropRequest);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private static class DropEntity extends Entity {
+        final String connectionId;
+        final String dropRequestId;
+
+        public DropEntity(String connectionId, String dropRequestId) {
+            this.connectionId = connectionId;
+            this.dropRequestId = dropRequestId;
         }
-        if (validationPhase) {
-            return generateContinueResponse().build();
+
+        public String getConnectionId() {
+            return connectionId;
         }
 
-        // delete the drop request
-        final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(connectionId, dropRequestId);
-        dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
-
-        // create the response entity
-        final DropRequestEntity entity = new DropRequestEntity();
-        entity.setDropRequest(dropRequest);
-
-        return generateOkResponse(entity).build();
+        public String getDropRequestId() {
+            return dropRequestId;
+        }
     }
 
     // setters

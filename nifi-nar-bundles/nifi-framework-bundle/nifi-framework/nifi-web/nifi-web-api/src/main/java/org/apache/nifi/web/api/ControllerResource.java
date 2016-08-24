@@ -47,6 +47,7 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -67,6 +68,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -159,7 +161,7 @@ public class ControllerResource extends ApplicationResource {
      * Update the configuration for this NiFi.
      *
      * @param httpServletRequest request
-     * @param configEntity       A controllerConfigurationEntity.
+     * @param requestConfigEntity       A controllerConfigurationEntity.
      * @return A controllerConfigurationEntity.
      */
     @PUT
@@ -186,29 +188,30 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The controller configuration.",
                     required = true
-            ) final ControllerConfigurationEntity configEntity) {
+            ) final ControllerConfigurationEntity requestConfigEntity) {
 
-        if (configEntity == null || configEntity.getComponent() == null) {
+        if (requestConfigEntity == null || requestConfigEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller configuration must be specified");
         }
 
-        if (configEntity.getRevision() == null) {
+        if (requestConfigEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, configEntity);
+            return replicate(HttpMethod.PUT, requestConfigEntity);
         }
 
-        final Revision revision = getRevision(configEntity.getRevision(), FlowController.class.getSimpleName());
+        final Revision requestRevision = getRevision(requestConfigEntity.getRevision(), FlowController.class.getSimpleName());
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestConfigEntity,
+                requestRevision,
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
                 },
                 null,
-                () -> {
+                (revision, configEntity) -> {
                     final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getComponent());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
@@ -223,7 +226,7 @@ public class ControllerResource extends ApplicationResource {
      * Creates a new Reporting Task.
      *
      * @param httpServletRequest  request
-     * @param reportingTaskEntity A reportingTaskEntity.
+     * @param requestReportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
     @POST
@@ -251,17 +254,17 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The reporting task configuration details.",
                     required = true
-            ) final ReportingTaskEntity reportingTaskEntity) {
+            ) final ReportingTaskEntity requestReportingTaskEntity) {
 
-        if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
+        if (requestReportingTaskEntity == null || requestReportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
 
-        if (reportingTaskEntity.getRevision() == null || (reportingTaskEntity.getRevision().getVersion() == null || reportingTaskEntity.getRevision().getVersion() != 0)) {
+        if (requestReportingTaskEntity.getRevision() == null || (requestReportingTaskEntity.getRevision().getVersion() == null || requestReportingTaskEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Reporting task.");
         }
 
-        final ReportingTaskDTO requestReportingTask = reportingTaskEntity.getComponent();
+        final ReportingTaskDTO requestReportingTask = requestReportingTaskEntity.getComponent();
         if (requestReportingTask.getId() != null) {
             throw new IllegalArgumentException("Reporting task ID cannot be specified.");
         }
@@ -271,36 +274,36 @@ public class ControllerResource extends ApplicationResource {
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, reportingTaskEntity);
+            return replicate(HttpMethod.POST, requestReportingTaskEntity);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                authorizeController(RequestAction.WRITE);
+        return withWriteLock(
+                serviceFacade,
+                requestReportingTaskEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
 
-                if (requestReportingTask.getProperties() != null) {
-                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
+                    if (requestReportingTask.getProperties() != null) {
+                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
+                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
+                    }
+                },
+                null,
+                (reportingTaskEntity) -> {
+                    final ReportingTaskDTO reportingTask = reportingTaskEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    reportingTask.setId(generateUuid());
+
+                    // create the reporting task and generate the json
+                    final Revision revision = getRevision(reportingTaskEntity, reportingTask.getId());
+                    final ReportingTaskEntity entity = serviceFacade.createReportingTask(revision, reportingTask);
+                    reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
+
+                    // build the response
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
                 }
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
-
-        // set the processor id as appropriate
-        requestReportingTask.setId(generateUuid());
-
-        // create the reporting task and generate the json
-        final Revision revision = getRevision(reportingTaskEntity, requestReportingTask.getId());
-        final ReportingTaskEntity entity = serviceFacade.createReportingTask(revision, requestReportingTask);
-        reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+        );
     }
 
     // -------------------
@@ -311,7 +314,7 @@ public class ControllerResource extends ApplicationResource {
      * Creates a new Controller Service.
      *
      * @param httpServletRequest      request
-     * @param controllerServiceEntity A controllerServiceEntity.
+     * @param requestControllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
     @POST
@@ -339,17 +342,17 @@ public class ControllerResource extends ApplicationResource {
             @ApiParam(
                     value = "The controller service configuration details.",
                     required = true
-            ) final ControllerServiceEntity controllerServiceEntity) {
+            ) final ControllerServiceEntity requestControllerServiceEntity) {
 
-        if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
+        if (requestControllerServiceEntity == null || requestControllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
-        if (controllerServiceEntity.getRevision() == null || (controllerServiceEntity.getRevision().getVersion() == null || controllerServiceEntity.getRevision().getVersion() != 0)) {
+        if (requestControllerServiceEntity.getRevision() == null || (requestControllerServiceEntity.getRevision().getVersion() == null || requestControllerServiceEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Controller service.");
         }
 
-        final ControllerServiceDTO requestControllerService = controllerServiceEntity.getComponent();
+        final ControllerServiceDTO requestControllerService = requestControllerServiceEntity.getComponent();
         if (requestControllerService.getId() != null) {
             throw new IllegalArgumentException("Controller service ID cannot be specified.");
         }
@@ -363,36 +366,36 @@ public class ControllerResource extends ApplicationResource {
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, controllerServiceEntity);
+            return replicate(HttpMethod.POST, requestControllerServiceEntity);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                authorizeController(RequestAction.WRITE);
+        return withWriteLock(
+                serviceFacade,
+                requestControllerServiceEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
 
-                if (requestControllerService.getProperties() != null) {
-                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                    if (requestControllerService.getProperties() != null) {
+                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
+                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                    }
+                },
+                null,
+                (controllerServiceEntity) -> {
+                    final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    controllerService.setId(generateUuid());
+
+                    // create the controller service and generate the json
+                    final Revision revision = getRevision(controllerServiceEntity, controllerService.getId());
+                    final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, null, controllerService);
+                    controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
+
+                    // build the response
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
                 }
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
-
-        // set the processor id as appropriate
-        requestControllerService.setId(generateUuid());
-
-        // create the controller service and generate the json
-        final Revision revision = getRevision(controllerServiceEntity, requestControllerService.getId());
-        final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, null, requestControllerService);
-        controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+        );
     }
 
     // -------
@@ -666,26 +669,33 @@ public class ControllerResource extends ApplicationResource {
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                authorizeController(RequestAction.WRITE);
-            });
+        return withWriteLock(
+                serviceFacade,
+                new EndDateEntity(endDate.getDateTime()),
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                (endDateEtity) -> {
+                    // purge the actions
+                    serviceFacade.deleteActions(endDateEtity.getEndDate());
+
+                    // generate the response
+                    return generateOkResponse(new HistoryEntity()).build();
+                }
+        );
+    }
+
+    private class EndDateEntity extends Entity {
+        final Date endDate;
+
+        public EndDateEntity(Date endDate) {
+            this.endDate = endDate;
         }
-        if (validationPhase) {
-            return generateContinueResponse().build();
+
+        public Date getEndDate() {
+            return endDate;
         }
-
-        // purge the actions
-        serviceFacade.deleteActions(endDate.getDateTime());
-
-        // create the response entity
-        final HistoryEntity entity = new HistoryEntity();
-
-        // generate the response
-        return generateOkResponse(entity).build();
     }
 
     // setters

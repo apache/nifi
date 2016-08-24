@@ -148,7 +148,7 @@ public class ConnectionResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id                 The id of the connection.
-     * @param connectionEntity   A connectionEntity.
+     * @param requestConnectionEntity   A connectionEntity.
      * @return A connectionEntity.
      * @throws InterruptedException if interrupted
      */
@@ -185,36 +185,37 @@ public class ConnectionResource extends ApplicationResource {
             @ApiParam(
                     value = "The connection configuration details.",
                     required = true
-            ) final ConnectionEntity connectionEntity) throws InterruptedException {
+            ) final ConnectionEntity requestConnectionEntity) throws InterruptedException {
 
-        if (connectionEntity == null || connectionEntity.getComponent() == null) {
+        if (requestConnectionEntity == null || requestConnectionEntity.getComponent() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
         }
 
-        if (connectionEntity.getRevision() == null) {
+        if (requestConnectionEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final ConnectionDTO connection = connectionEntity.getComponent();
-        if (!id.equals(connection.getId())) {
+        final ConnectionDTO requestConnection = requestConnectionEntity.getComponent();
+        if (!id.equals(requestConnection.getId())) {
             throw new IllegalArgumentException(String.format("The connection id "
                     + "(%s) in the request body does not equal the connection id of the "
-                    + "requested resource (%s).", connection.getId(), id));
+                    + "requested resource (%s).", requestConnection.getId(), id));
         }
 
-        if (connection.getDestination() != null && connection.getDestination().getId() == null) {
+        if (requestConnection.getDestination() != null && requestConnection.getDestination().getId() == null) {
             throw new IllegalArgumentException("When specifying a destination component, the destination id is required.");
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, connectionEntity);
+            return replicate(HttpMethod.PUT, requestConnectionEntity);
         }
 
-        final Revision revision = getRevision(connectionEntity, id);
+        final Revision requestRevision = getRevision(requestConnectionEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestConnectionEntity,
+                requestRevision,
                 lookup -> {
                     // verifies write access to this connection (this checks the current source and destination)
                     ConnectionAuthorizable connAuth = lookup.getConnection(id);
@@ -222,17 +223,19 @@ public class ConnectionResource extends ApplicationResource {
 
                     // if a destination has been specified and is different
                     final Connectable currentDestination = connAuth.getDestination();
-                    if (connection.getDestination() != null && currentDestination.getIdentifier().equals(connection.getDestination().getId())) {
+                    if (requestConnection.getDestination() != null && currentDestination.getIdentifier().equals(requestConnection.getDestination().getId())) {
                         // verify access of the new destination (current destination was already authorized as part of the connection check)
-                        final Authorizable newDestinationAuthorizable = lookup.getConnectable(connection.getDestination().getId());
+                        final Authorizable newDestinationAuthorizable = lookup.getConnectable(requestConnection.getDestination().getId());
                         newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                         // verify access of the parent group (this is the same check that is performed when creating the connection)
                         connAuth.getParentGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
                 },
-                () -> serviceFacade.verifyUpdateConnection(connection),
-                () -> {
+                () -> serviceFacade.verifyUpdateConnection(requestConnection),
+                (revision, connectionEntity) -> {
+                    final ConnectionDTO connection = connectionEntity.getComponent();
+
                     final ConnectionEntity entity = serviceFacade.updateConnection(revision, connection);
                     populateRemainingConnectionEntityContent(entity);
 
@@ -296,21 +299,25 @@ public class ConnectionResource extends ApplicationResource {
 
         // determine the specified version
         final Long clientVersion = version == null ? null : version.getLong();
-        final Revision revision = new Revision(clientVersion, clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(clientVersion, clientId.getClientId(), id);
+
+        final ConnectionEntity requestConnectionEntity = new ConnectionEntity();
+        requestConnectionEntity.setId(id);
 
         // get the current user
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestConnectionEntity,
+                requestRevision,
                 lookup -> {
                     // verifies write access to the source and destination
                     final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteConnection(id),
-                () -> {
+                (revision, connectionEntity) -> {
                     // delete the connection
-                    final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
+                    final ConnectionEntity entity = serviceFacade.deleteConnection(revision, connectionEntity.getId());
 
                     // generate the response
                     return clusterContext(generateOkResponse(entity)).build();

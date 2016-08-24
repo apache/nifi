@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.sun.jersey.api.core.HttpContext;
 import com.sun.jersey.api.representation.Form;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
@@ -49,7 +51,10 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.util.CacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,8 +80,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -114,6 +121,8 @@ public abstract class ApplicationResource {
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
 
+    private static final int MAX_CACHE_SOFT_LIMIT = 500;
+    private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -348,8 +357,8 @@ public abstract class ApplicationResource {
      * @return <code>true</code> if the request represents a two-phase commit style request
      */
     protected boolean isTwoPhaseRequest(final HttpServletRequest httpServletRequest) {
-        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
-        return headerValue != null;
+        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        return transactionId != null && isConnectedToCluster();
     }
 
     /**
@@ -366,6 +375,14 @@ public abstract class ApplicationResource {
         return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
     }
 
+    protected boolean isExecutionPhase(final HttpServletRequest httpServletRequest) {
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_EXECUTION_HTTP_HEADER) != null;
+    }
+
+    protected boolean isCancellationPhase(final HttpServletRequest httpServletRequest) {
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_CANCELATION_HTTP_HEADER) != null;
+    }
+
     /**
      * Checks whether or not the request should be replicated to the cluster
      *
@@ -377,6 +394,7 @@ public abstract class ApplicationResource {
             return false;
         }
 
+        // If not connected to the cluster, we do not replicate
         if (!isConnectedToCluster()) {
             return false;
         }
@@ -468,12 +486,43 @@ public abstract class ApplicationResource {
      * @param action        executor
      * @return the response
      */
-    protected Response withWriteLock(final NiFiServiceFacade serviceFacade, final Revision revision, final AuthorizeAccess authorizer,
-                                     final Runnable verifier, final Supplier<Response> action) {
+    protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Revision revision, final AuthorizeAccess authorizer,
+                                     final Runnable verifier, final BiFunction<Revision, T, Response> action) {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        return withWriteLock(serviceFacade, authorizer, verifier, action,
-                () -> serviceFacade.verifyRevision(revision, user));
+
+        if (isTwoPhaseRequest(httpServletRequest)) {
+            if (isValidationPhase(httpServletRequest)) {
+                // authorize access
+                serviceFacade.authorizeAccess(authorizer);
+                serviceFacade.verifyRevision(revision, user);
+
+                // verify if necessary
+                if (verifier != null) {
+                    verifier.run();
+                }
+
+                // store the request
+                phaseOneStoreTransaction(entity, revision, null);
+
+                return generateContinueResponse().build();
+            } else if (isExecutionPhase(httpServletRequest)) {
+                // get the original request and run the action
+                final Request<T> phaseOneRequest = phaseTwoVerifyTransaction();
+                return action.apply(phaseOneRequest.getRevision(), phaseOneRequest.getRequest());
+            } else if (isCancellationPhase(httpServletRequest)) {
+                cancelTransaction();
+                return generateOkResponse().build();
+            } else {
+                throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+            }
+        } else {
+            // authorize access and run the action
+            serviceFacade.authorizeAccess(authorizer);
+            serviceFacade.verifyRevision(revision, user);
+
+            return action.apply(revision, entity);
+        }
     }
 
     /**
@@ -486,43 +535,197 @@ public abstract class ApplicationResource {
      * @param action        executor
      * @return the response
      */
-    protected Response withWriteLock(final NiFiServiceFacade serviceFacade, final Set<Revision> revisions, final AuthorizeAccess authorizer,
-                                     final Runnable verifier, final Supplier<Response> action) {
+    protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final Set<Revision> revisions, final AuthorizeAccess authorizer,
+                                     final Runnable verifier, final BiFunction<Set<Revision>, T, Response> action) {
+
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        return withWriteLock(serviceFacade, authorizer, verifier, action,
-                () -> serviceFacade.verifyRevisions(revisions, user));
+
+        if (isTwoPhaseRequest(httpServletRequest)) {
+            if (isValidationPhase(httpServletRequest)) {
+                // authorize access
+                serviceFacade.authorizeAccess(authorizer);
+                serviceFacade.verifyRevisions(revisions, user);
+
+                // verify if necessary
+                if (verifier != null) {
+                    verifier.run();
+                }
+
+                // store the request
+                phaseOneStoreTransaction(entity, null, revisions);
+
+                return generateContinueResponse().build();
+            } else if (isExecutionPhase(httpServletRequest)) {
+                // get the original request and run the action
+                final Request<T> phaseOneRequest = phaseTwoVerifyTransaction();
+                return action.apply(phaseOneRequest.getRevisions(), phaseOneRequest.getRequest());
+            } else if (isCancellationPhase(httpServletRequest)) {
+                cancelTransaction();
+                return generateOkResponse().build();
+            } else {
+                throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+            }
+        } else {
+            // authorize access and run the action
+            serviceFacade.authorizeAccess(authorizer);
+            serviceFacade.verifyRevisions(revisions, user);
+
+            return action.apply(revisions, entity);
+        }
     }
 
-
     /**
-     * Executes an action through the service facade using the specified revision.
+     * Executes an action through the service facade.
      *
      * @param serviceFacade  service facade
      * @param authorizer     authorizer
      * @param verifier       verifier
      * @param action         the action to execute
-     * @param verifyRevision a callback that will claim the necessary revisions for the operation
      * @return the response
      */
-    private Response withWriteLock(
-            final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
-            final Runnable verifyRevision) {
+    protected <T extends Entity> Response withWriteLock(final NiFiServiceFacade serviceFacade, final T entity, final AuthorizeAccess authorizer,
+                                                        final Runnable verifier, final Function<T, Response> action) {
 
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+        if (isTwoPhaseRequest(httpServletRequest)) {
+            if (isValidationPhase(httpServletRequest)) {
+                // authorize access
+                serviceFacade.authorizeAccess(authorizer);
+
+                // verify if necessary
+                if (verifier != null) {
+                    verifier.run();
+                }
+
+                // store the request
+                phaseOneStoreTransaction(entity, null, null);
+
+                return generateContinueResponse().build();
+            } else if (isExecutionPhase(httpServletRequest)) {
+                // get the original request and run the action
+                final Request<T> phaseOneRequest = phaseTwoVerifyTransaction();
+                return action.apply(phaseOneRequest.getRequest());
+            } else if (isCancellationPhase(httpServletRequest)) {
+                cancelTransaction();
+                return generateOkResponse().build();
+            } else {
+                throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+            }
+        } else {
             // authorize access
             serviceFacade.authorizeAccess(authorizer);
-            verifyRevision.run();
+
+            // run the action
+            return action.apply(entity);
+        }
+    }
+
+    private <T extends Entity> void phaseOneStoreTransaction(final T requestEntity, final Revision revision, final Set<Revision> revisions) {
+        if (twoPhaseCommitCache.size() > MAX_CACHE_SOFT_LIMIT) {
+            throw new IllegalStateException("The maximum number of requests are in progress.");
         }
 
-        if (validationPhase) {
-            if (verifier != null) {
-                verifier.run();
+        // get the transaction id
+        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        if (StringUtils.isBlank(transactionId)) {
+            throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
+        }
+
+        synchronized (twoPhaseCommitCache) {
+            final CacheKey key = new CacheKey(transactionId);
+            if (twoPhaseCommitCache.getIfPresent(key) != null) {
+                throw new IllegalStateException("Transaction " + transactionId + " is already in progress.");
             }
-            return generateContinueResponse().build();
+
+            // store the entry for the second phase
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+            final Request<T> request = new Request<>(ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user), getAbsolutePath().toString(), revision, revisions, requestEntity);
+            twoPhaseCommitCache.put(key, request);
+        }
+    }
+
+    private <T extends Entity> Request<T> phaseTwoVerifyTransaction() {
+        // get the transaction id
+        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        if (StringUtils.isBlank(transactionId)) {
+            throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
         }
 
-        return action.get();
+        // get the entry for the second phase
+        final Request<T> request;
+        synchronized (twoPhaseCommitCache) {
+            final CacheKey key = new CacheKey(transactionId);
+            request = (Request<T>) twoPhaseCommitCache.getIfPresent(key);
+            if (request == null) {
+                throw new IllegalArgumentException("The request from phase one is missing.");
+            }
+
+            twoPhaseCommitCache.invalidate(key);
+        }
+        final String phaseOneChain = request.getUserChain();
+
+        // build the chain for the current request
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String phaseTwoChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
+
+        if (phaseOneChain == null || !phaseOneChain.equals(phaseTwoChain)) {
+            throw new IllegalArgumentException("The same user must issue the request for phase one and two.");
+        }
+
+        final String phaseOneUri = request.getUri();
+        if (phaseOneUri == null || !phaseOneUri.equals(getAbsolutePath().toString())) {
+            throw new IllegalArgumentException("The URI must be the same for phase one and two.");
+        }
+
+        return request;
+    }
+
+    private void cancelTransaction() {
+        // get the transaction id
+        final String transactionId = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+        if (StringUtils.isBlank(transactionId)) {
+            throw new IllegalArgumentException("Two phase commit Transaction Id missing.");
+        }
+
+        synchronized (twoPhaseCommitCache) {
+            final CacheKey key = new CacheKey(transactionId);
+            twoPhaseCommitCache.invalidate(key);
+        }
+    }
+
+    private final class Request<T extends Entity> {
+        final String userChain;
+        final String uri;
+        final Revision revision;
+        final Set<Revision> revisions;
+        final T request;
+
+        public Request(String userChain, String uri, Revision revision, Set<Revision> revisions, T request) {
+            this.userChain = userChain;
+            this.uri = uri;
+            this.revision = revision;
+            this.revisions = revisions;
+            this.request = request;
+        }
+
+        public String getUserChain() {
+            return userChain;
+        }
+
+        public String getUri() {
+            return uri;
+        }
+
+        public Revision getRevision() {
+            return revision;
+        }
+
+        public Set<Revision> getRevisions() {
+            return revisions;
+        }
+
+        public T getRequest() {
+            return request;
+        }
     }
 
     /**
@@ -713,7 +916,7 @@ public abstract class ApplicationResource {
         if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
             return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
         } else {
-            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false, true).awaitMergedResponse();
+        	return requestReplicator.forwardToCoordinator(getClusterCoordinatorNode(), method, path, entity, headers).awaitMergedResponse();
         }
     }
 

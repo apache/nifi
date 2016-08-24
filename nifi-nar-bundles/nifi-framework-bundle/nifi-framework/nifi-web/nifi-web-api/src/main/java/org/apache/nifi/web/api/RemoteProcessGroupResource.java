@@ -192,18 +192,22 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final RemoteProcessGroupEntity requestRemoteProcessGroupEntity = new RemoteProcessGroupEntity();
+        requestRemoteProcessGroupEntity.setId(id);
+
         // handle expects request (usually from the cluster manager)
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestRemoteProcessGroupEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
                     remoteProcessGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteRemoteProcessGroup(id),
-                () -> {
-                    final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(revision, id);
+                (revision, remoteProcessGroupEntity) -> {
+                    final RemoteProcessGroupEntity entity = serviceFacade.deleteRemoteProcessGroup(revision, remoteProcessGroupEntity.getId());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );
@@ -215,7 +219,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      * @param httpServletRequest           request
      * @param id                           The id of the remote process group to update.
      * @param portId                       The id of the input port to update.
-     * @param remoteProcessGroupPortEntity The remoteProcessGroupPortEntity
+     * @param requestRemoteProcessGroupPortEntity The remoteProcessGroupPortEntity
      * @return A remoteProcessGroupPortEntity
      */
     @PUT
@@ -241,20 +245,31 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     )
     public Response updateRemoteProcessGroupInputPort(
             @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The remote process group id.",
+                    required = true
+            )
             @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The remote process group port id.",
+                    required = true
+            )
             @PathParam("port-id") final String portId,
-            final RemoteProcessGroupPortEntity remoteProcessGroupPortEntity) {
+            @ApiParam(
+                    value = "The remote process group port.",
+                    required = true
+            ) final RemoteProcessGroupPortEntity requestRemoteProcessGroupPortEntity) {
 
-        if (remoteProcessGroupPortEntity == null || remoteProcessGroupPortEntity.getRemoteProcessGroupPort() == null) {
+        if (requestRemoteProcessGroupPortEntity == null || requestRemoteProcessGroupPortEntity.getRemoteProcessGroupPort() == null) {
             throw new IllegalArgumentException("Remote process group port details must be specified.");
         }
 
-        if (remoteProcessGroupPortEntity.getRevision() == null) {
+        if (requestRemoteProcessGroupPortEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final RemoteProcessGroupPortDTO requestRemoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
+        final RemoteProcessGroupPortDTO requestRemoteProcessGroupPort = requestRemoteProcessGroupPortEntity.getRemoteProcessGroupPort();
         if (!portId.equals(requestRemoteProcessGroupPort.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group port id (%s) in the request body does not equal the "
                     + "remote process group port id of the requested resource (%s).", requestRemoteProcessGroupPort.getId(), portId));
@@ -267,21 +282,24 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, remoteProcessGroupPortEntity);
+            return replicate(HttpMethod.PUT, requestRemoteProcessGroupPortEntity);
         }
 
-        final Revision revision = getRevision(remoteProcessGroupPortEntity, id);
+        final Revision requestRevision = getRevision(requestRemoteProcessGroupPortEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestRemoteProcessGroupPortEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroupInputPort = lookup.getRemoteProcessGroupInputPort(id, portId);
                     remoteProcessGroupInputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroupInputPort(id, requestRemoteProcessGroupPort),
-                () -> {
+                (revision, remoteProcessGroupPortEntity) -> {
+                    final RemoteProcessGroupPortDTO remoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
+
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, id, requestRemoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, remoteProcessGroupPort.getId(), remoteProcessGroupPort);
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
@@ -302,7 +320,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      * @param httpServletRequest           request
      * @param id                           The id of the remote process group to update.
      * @param portId                       The id of the output port to update.
-     * @param remoteProcessGroupPortEntity The remoteProcessGroupPortEntity
+     * @param requestRemoteProcessGroupPortEntity The remoteProcessGroupPortEntity
      * @return A remoteProcessGroupPortEntity
      */
     @PUT
@@ -328,20 +346,31 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     )
     public Response updateRemoteProcessGroupOutputPort(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The remote process group id.",
+                    required = true
+            )
             @PathParam("id") String id,
+            @ApiParam(
+                    value = "The remote process group port id.",
+                    required = true
+            )
             @PathParam("port-id") String portId,
-            RemoteProcessGroupPortEntity remoteProcessGroupPortEntity) {
+            @ApiParam(
+                    value = "The remote process group port.",
+                    required = true
+            ) RemoteProcessGroupPortEntity requestRemoteProcessGroupPortEntity) {
 
-        if (remoteProcessGroupPortEntity == null || remoteProcessGroupPortEntity.getRemoteProcessGroupPort() == null) {
+        if (requestRemoteProcessGroupPortEntity == null || requestRemoteProcessGroupPortEntity.getRemoteProcessGroupPort() == null) {
             throw new IllegalArgumentException("Remote process group port details must be specified.");
         }
 
-        if (remoteProcessGroupPortEntity.getRevision() == null) {
+        if (requestRemoteProcessGroupPortEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final RemoteProcessGroupPortDTO requestRemoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
+        final RemoteProcessGroupPortDTO requestRemoteProcessGroupPort = requestRemoteProcessGroupPortEntity.getRemoteProcessGroupPort();
         if (!portId.equals(requestRemoteProcessGroupPort.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group port id (%s) in the request body does not equal the "
                     + "remote process group port id of the requested resource (%s).", requestRemoteProcessGroupPort.getId(), portId));
@@ -354,22 +383,25 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, remoteProcessGroupPortEntity);
+            return replicate(HttpMethod.PUT, requestRemoteProcessGroupPortEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(remoteProcessGroupPortEntity, id);
+        final Revision requestRevision = getRevision(requestRemoteProcessGroupPortEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestRemoteProcessGroupPortEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroupOutputPort = lookup.getRemoteProcessGroupOutputPort(id, portId);
                     remoteProcessGroupOutputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroupOutputPort(id, requestRemoteProcessGroupPort),
-                () -> {
+                (revision, remoteProcessGroupPortEntity) -> {
+                    final RemoteProcessGroupPortDTO remoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
+
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, id, requestRemoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, remoteProcessGroupPort.getId(), remoteProcessGroupPort);
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
@@ -389,7 +421,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      *
      * @param httpServletRequest       request
      * @param id                       The id of the remote process group to update.
-     * @param remoteProcessGroupEntity A remoteProcessGroupEntity.
+     * @param requestRemoteProcessGroupEntity A remoteProcessGroupEntity.
      * @return A remoteProcessGroupEntity.
      */
     @PUT
@@ -414,59 +446,69 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     )
     public Response updateRemoteProcessGroup(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The remote process group id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            RemoteProcessGroupEntity remoteProcessGroupEntity) {
+            @ApiParam(
+                    value = "The remote process group.",
+                    required = true
+            ) final RemoteProcessGroupEntity requestRemoteProcessGroupEntity) {
 
-        if (remoteProcessGroupEntity == null || remoteProcessGroupEntity.getComponent() == null) {
+        if (requestRemoteProcessGroupEntity == null || requestRemoteProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Remote process group details must be specified.");
         }
 
-        if (remoteProcessGroupEntity.getRevision() == null) {
+        if (requestRemoteProcessGroupEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final RemoteProcessGroupDTO requestRemoteProcessGroup = remoteProcessGroupEntity.getComponent();
+        final RemoteProcessGroupDTO requestRemoteProcessGroup = requestRemoteProcessGroupEntity.getComponent();
         if (!id.equals(requestRemoteProcessGroup.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
                     + "remote process group id of the requested resource (%s).", requestRemoteProcessGroup.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, remoteProcessGroupEntity);
+            return replicate(HttpMethod.PUT, requestRemoteProcessGroupEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(remoteProcessGroupEntity, id);
+        final Revision requestRevision = getRevision(requestRemoteProcessGroupEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestRemoteProcessGroupEntity,
+                requestRevision,
                 lookup -> {
                     Authorizable authorizable = lookup.getRemoteProcessGroup(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateRemoteProcessGroup(requestRemoteProcessGroup),
-                () -> {
+                (revision, remoteProcessGroupEntity) -> {
+                    final RemoteProcessGroupDTO remoteProcessGroup = remoteProcessGroupEntity.getComponent();
+
                     // if the target uri is set we have to verify it here - we don't support updating the target uri on
                     // an existing remote process group, however if the remote process group is being created with an id
                     // as is the case in clustered mode we need to verify the remote process group. treat this request as
                     // though its a new remote process group.
-                    if (requestRemoteProcessGroup.getTargetUri() != null) {
+                    if (remoteProcessGroup.getTargetUri() != null) {
                         // parse the uri
                         final URI uri;
                         try {
-                            uri = URI.create(requestRemoteProcessGroup.getTargetUri());
+                            uri = URI.create(remoteProcessGroup.getTargetUri());
                         } catch (final IllegalArgumentException e) {
-                            throw new IllegalArgumentException("The specified remote process group URL is malformed: " + requestRemoteProcessGroup.getTargetUri());
+                            throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroup.getTargetUri());
                         }
 
                         // validate each part of the uri
                         if (uri.getScheme() == null || uri.getHost() == null) {
-                            throw new IllegalArgumentException("The specified remote process group URL is malformed: " + requestRemoteProcessGroup.getTargetUri());
+                            throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroup.getTargetUri());
                         }
 
                         if (!(uri.getScheme().equalsIgnoreCase("http") || uri.getScheme().equalsIgnoreCase("https"))) {
-                            throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + requestRemoteProcessGroup.getTargetUri());
+                            throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + remoteProcessGroup.getTargetUri());
                         }
 
                         // normalize the uri to the other controller
@@ -476,11 +518,11 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                         }
 
                         // update with the normalized uri
-                        requestRemoteProcessGroup.setTargetUri(controllerUri);
+                        remoteProcessGroup.setTargetUri(controllerUri);
                     }
 
                     // update the specified remote process group
-                    final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, requestRemoteProcessGroup);
+                    final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, remoteProcessGroup);
                     populateRemainingRemoteProcessGroupEntityContent(entity);
 
                     return clusterContext(generateOkResponse(entity)).build();

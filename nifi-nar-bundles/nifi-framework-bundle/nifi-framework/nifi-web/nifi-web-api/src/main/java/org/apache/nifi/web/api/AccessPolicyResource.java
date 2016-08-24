@@ -170,7 +170,7 @@ public class AccessPolicyResource extends ApplicationResource {
      * Creates a new access policy.
      *
      * @param httpServletRequest request
-     * @param accessPolicyEntity An accessPolicyEntity.
+     * @param requestAccessPolicyEntity An accessPolicyEntity.
      * @return An accessPolicyEntity.
      */
     @POST
@@ -197,22 +197,22 @@ public class AccessPolicyResource extends ApplicationResource {
             @ApiParam(
                     value = "The access policy configuration details.",
                     required = true
-            ) final AccessPolicyEntity accessPolicyEntity) {
+            ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
         if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
             throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
         }
 
-        if (accessPolicyEntity == null || accessPolicyEntity.getComponent() == null) {
+        if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
             throw new IllegalArgumentException("Access policy details must be specified.");
         }
 
-        if (accessPolicyEntity.getRevision() == null || (accessPolicyEntity.getRevision().getVersion() == null || accessPolicyEntity.getRevision().getVersion() != 0)) {
+        if (requestAccessPolicyEntity.getRevision() == null || (requestAccessPolicyEntity.getRevision().getVersion() == null || requestAccessPolicyEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Policy.");
         }
 
-        final AccessPolicyDTO requestAccessPolicy = accessPolicyEntity.getComponent();
+        final AccessPolicyDTO requestAccessPolicy = requestAccessPolicyEntity.getComponent();
         if (requestAccessPolicy.getId() != null) {
             throw new IllegalArgumentException("Access policy ID cannot be specified.");
         }
@@ -225,35 +225,36 @@ public class AccessPolicyResource extends ApplicationResource {
         RequestAction.valueOfValue(requestAccessPolicy.getAction());
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, accessPolicyEntity);
+            return replicate(HttpMethod.POST, requestAccessPolicyEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable accessPolicies = lookup.getAccessPolicyByResource(requestAccessPolicy.getResource());
-                accessPolicies.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
+        return withWriteLock(
+                serviceFacade,
+                requestAccessPolicyEntity,
+                lookup -> {
+                    final Authorizable accessPolicies = lookup.getAccessPolicyByResource(requestAccessPolicy.getResource());
+                    accessPolicies.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                accessPolicyEntity -> {
+                    final AccessPolicyDTO accessPolicy = accessPolicyEntity.getComponent();
 
-        // set the access policy id as appropriate
-        requestAccessPolicy.setId(generateUuid());
+                    // set the access policy id as appropriate
+                    accessPolicy.setId(generateUuid());
 
-        // get revision from the config
-        final RevisionDTO revisionDTO = accessPolicyEntity.getRevision();
-        Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), accessPolicyEntity.getComponent().getId());
+                    // get revision from the config
+                    final RevisionDTO revisionDTO = accessPolicyEntity.getRevision();
+                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), accessPolicyEntity.getComponent().getId());
 
-        // create the access policy and generate the json
-        final AccessPolicyEntity entity = serviceFacade.createAccessPolicy(revision, accessPolicyEntity.getComponent());
-        populateRemainingAccessPolicyEntityContent(entity);
+                    // create the access policy and generate the json
+                    final AccessPolicyEntity entity = serviceFacade.createAccessPolicy(revision, accessPolicyEntity.getComponent());
+                    populateRemainingAccessPolicyEntityContent(entity);
 
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                    // build the response
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                }
+        );
     }
 
     /**
@@ -316,7 +317,7 @@ public class AccessPolicyResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id                 The id of the access policy to update.
-     * @param accessPolicyEntity An accessPolicyEntity.
+     * @param requestAccessPolicyEntity An accessPolicyEntity.
      * @return An accessPolicyEntity.
      */
     @PUT
@@ -349,43 +350,46 @@ public class AccessPolicyResource extends ApplicationResource {
             @ApiParam(
                     value = "The access policy configuration details.",
                     required = true
-            ) final AccessPolicyEntity accessPolicyEntity) {
+            ) final AccessPolicyEntity requestAccessPolicyEntity) {
 
         // ensure we're running with a configurable authorizer
         if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
             throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
         }
 
-        if (accessPolicyEntity == null || accessPolicyEntity.getComponent() == null) {
+        if (requestAccessPolicyEntity == null || requestAccessPolicyEntity.getComponent() == null) {
             throw new IllegalArgumentException("Access policy details must be specified.");
         }
 
-        if (accessPolicyEntity.getRevision() == null) {
+        if (requestAccessPolicyEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final AccessPolicyDTO accessPolicyDTO = accessPolicyEntity.getComponent();
-        if (!id.equals(accessPolicyDTO.getId())) {
+        final AccessPolicyDTO requestAccessPolicyDTO = requestAccessPolicyEntity.getComponent();
+        if (!id.equals(requestAccessPolicyDTO.getId())) {
             throw new IllegalArgumentException(String.format("The access policy id (%s) in the request body does not equal the "
-                    + "access policy id of the requested resource (%s).", accessPolicyDTO.getId(), id));
+                    + "access policy id of the requested resource (%s).", requestAccessPolicyDTO.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, accessPolicyEntity);
+            return replicate(HttpMethod.PUT, requestAccessPolicyEntity);
         }
 
         // Extract the revision
-        final Revision revision = getRevision(accessPolicyEntity, id);
+        final Revision requestRevision = getRevision(requestAccessPolicyEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestAccessPolicyEntity,
+                requestRevision,
                 lookup -> {
                     Authorizable authorizable = lookup.getAccessPolicyById(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
-                () -> {
+                (revision, accessPolicyEntity) -> {
+                    final AccessPolicyDTO accessPolicyDTO = accessPolicyEntity.getComponent();
+
                     // update the access policy
                     final AccessPolicyEntity entity = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
                     populateRemainingAccessPolicyEntityContent(entity);
@@ -454,20 +458,23 @@ public class AccessPolicyResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final AccessPolicyEntity requestAccessPolicyEntity = new AccessPolicyEntity();
+        requestAccessPolicyEntity.setId(id);
+
         // handle expects request (usually from the cluster manager)
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestAccessPolicyEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable accessPolicy = lookup.getAccessPolicyById(id);
                     accessPolicy.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
-                () -> {
-                },
-                () -> {
+                null,
+                (revision, accessPolicyEntity) -> {
                     // delete the specified access policy
-                    final AccessPolicyEntity entity = serviceFacade.deleteAccessPolicy(revision, id);
+                    final AccessPolicyEntity entity = serviceFacade.deleteAccessPolicy(revision, accessPolicyEntity.getId());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );
