@@ -627,7 +627,7 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
         out.assertAttributeNotExists("sql.args.3.value");
 
-        out.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.ID = source_t.ID WHEN MATCHED THEN UPDATE SET NAME = source_t.NAME,CODE = source_t.CODE WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+        out.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.ID = source_t.ID \nWHEN MATCHED THEN \nUPDATE SET NAME = source_t.NAME,CODE = source_t.CODE \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
     }
 
     @Test
@@ -655,7 +655,7 @@ public class TestConvertJSONToSQL {
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
 
-        out.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.ID = source_t.ID WHEN MATCHED THEN UPDATE SET NAME = source_t.NAME,CODE = source_t.CODE WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+        out.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.ID = source_t.ID \nWHEN MATCHED THEN \nUPDATE SET NAME = source_t.NAME,CODE = source_t.CODE \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
         out.assertAttributeEquals("sql.args.1.value", "1");
         out.assertAttributeEquals("sql.args.2.type", String.valueOf(java.sql.Types.VARCHAR));
@@ -696,7 +696,7 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
         out.assertAttributeEquals("sql.args.3.value", "48");
 
-        out.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.CODE = source_t.CODE WHEN MATCHED THEN UPDATE SET ID = source_t.ID,NAME = source_t.NAME WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+        out.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.CODE = source_t.CODE \nWHEN MATCHED THEN \nUPDATE SET ID = source_t.ID,NAME = source_t.NAME \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
     }
 
     @Test
@@ -731,7 +731,7 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
         out.assertAttributeEquals("sql.args.3.value", "48");
 
-        out.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.NAME = source_t.NAME,target_t.CODE = source_t.CODE WHEN MATCHED THEN UPDATE SET ID = source_t.ID WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+        out.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.NAME = source_t.NAME and target_t.CODE = source_t.CODE \nWHEN MATCHED THEN \nUPDATE SET ID = source_t.ID \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
     }
 
     @Test
@@ -842,7 +842,7 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
         out.assertAttributeEquals("sql.args.3.value", "48");
 
-        out.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.NAME = source_t.NAME,target_t.CODE = source_t.CODE WHEN MATCHED THEN UPDATE SET ID = source_t.ID WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+        out.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.NAME = source_t.NAME and target_t.CODE = source_t.CODE \nWHEN MATCHED THEN \nUPDATE SET ID = source_t.ID \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
 
     } // End testMergeWithMissingColumnWarning()
 
@@ -908,7 +908,7 @@ public class TestConvertJSONToSQL {
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 5);
         final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL);
         for (final MockFlowFile mff : mffs) {
-            mff.assertContentEquals("MERGE PERSONS target_t USING VALUES (?,?,?) AS source_t (ID,NAME,CODE) ON target_t.ID = source_t.ID WHEN MATCHED THEN UPDATE SET NAME = source_t.NAME,CODE = source_t.CODE WHEN NOT MATCHED THEN INSERT (ID,NAME,CODE) VALUES (source_t.ID,source_t.NAME,source_t.CODE) ;");
+            mff.assertContentEquals("MERGE PERSONS target_t \nUSING VALUES (?,?,?) \nAS source_t (ID,NAME,CODE) \nON target_t.ID = source_t.ID \nWHEN MATCHED THEN \nUPDATE SET NAME = source_t.NAME,CODE = source_t.CODE \nWHEN NOT MATCHED THEN \nINSERT (ID,NAME,CODE) \nVALUES (source_t.ID,source_t.NAME,source_t.CODE) \n;");
 
             for (int i=1; i <= 3; i++) {
                 mff.assertAttributeExists("sql.args." + i + ".type");

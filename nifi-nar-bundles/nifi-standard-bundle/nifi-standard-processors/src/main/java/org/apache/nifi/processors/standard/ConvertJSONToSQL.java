@@ -669,7 +669,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             // Check if this column is an Update Key. If so,
             // Use it to build the Match Clause
             if (normalizedUpdateNames.contains(normalizedColName)) {
-                matchClauseBuilder.append(String.format("%s.%s = %s.%s,", target_table,normalizedColName,source_table,normalizedColName));
+                matchClauseBuilder.append(String.format("%s.%s = %s.%s and ", target_table,normalizedColName,source_table,normalizedColName));
             }
             else
             {
@@ -696,20 +696,20 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // Trim trailing , characters
         final String valueList = valueListBuilder.toString().substring(0, valueListBuilder.length() -1);
         final String columnList = columnListBuilder.toString().substring(0, columnListBuilder.length() -1);
-        final String matchClause = matchClauseBuilder.toString().substring(0, matchClauseBuilder.length() -1);
+        final String matchClause = matchClauseBuilder.toString().substring(0, matchClauseBuilder.length() -5);
         final String setList = setListBuilder.toString().substring(0, setListBuilder.length() -1);
         final String namedValueList = namedValueListBuilder.toString().substring(0, namedValueListBuilder.length() -1);
 
         // Build the SQL statement from the pieces we gathered
-        return String.format("MERGE %s target_t "     +
-                             "USING VALUES (%s) "     +
-                             "AS source_t (%s) "      +
-                             "ON %s "                 +
-                             "WHEN MATCHED THEN "     +
-                             "UPDATE SET %s "         +
-                             "WHEN NOT MATCHED THEN " +
-                             "INSERT (%s) "           +
-                             "VALUES (%s) "           +
+        return String.format("MERGE %s target_t \n"     +
+                             "USING VALUES (%s) \n"     +
+                             "AS source_t (%s) \n"      +
+                             "ON %s \n"                 +
+                             "WHEN MATCHED THEN \n"     +
+                             "UPDATE SET %s \n"         +
+                             "WHEN NOT MATCHED THEN \n" +
+                             "INSERT (%s) \n"           +
+                             "VALUES (%s) \n"           +
                              ";", // --MERGE requires a trailing semi-colon
                 tableName, valueList, columnList, matchClause,
                 setList, columnList, namedValueList);
