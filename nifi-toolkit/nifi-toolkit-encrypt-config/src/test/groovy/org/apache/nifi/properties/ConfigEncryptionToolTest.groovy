@@ -967,7 +967,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Format -- #Fri Aug 19 16:51:16 PDT 2016
         // Alternate format -- #Fri Aug 19 16:51:16 GMT-05:00 2016
         // \u0024 == '$' to avoid escaping
-        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}(\-\d{2}:\d{2})? \d{4}\u0024/
+        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}([\-+]\d{2}:\d{2})? \d{4}\u0024/
 
         // One extra line for the date
         assert lines.size() == properties.size() + 1
