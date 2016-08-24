@@ -29,11 +29,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.reducing;
 import static java.util.stream.Collectors.toMap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 
 public class TestPeerSelector {
 
@@ -121,5 +129,92 @@ public class TestPeerSelector {
 
         logger.info("selectedCounts={}", selectedCounts);
         assertTrue("HasLots should get little", selectedCounts.get("HasLots") < selectedCounts.get("HasLittle"));
+    }
+
+    private static class UnitTestSystemTime extends PeerSelector.SystemTime {
+        private long offset = 0;
+
+        @Override
+        long currentTimeMillis() {
+            return super.currentTimeMillis() + offset;
+        }
+    }
+
+    /**
+     * This test simulates a failure scenario of a remote NiFi cluster. It confirms that:
+     * <ol>
+     *     <li>PeerSelector uses the bootstrap node to fetch remote peer statuses at the initial attempt</li>
+     *     <li>PeerSelector uses one of query-able nodes lastly fetched successfully</li>
+     *     <li>PeerSelector can refresh remote peer statuses even if the bootstrap node is down</li>
+     *     <li>PeerSelector returns null as next peer when there's no peer available</li>
+     *     <li>PeerSelector always tries to fetch peer statuses at least from the bootstrap node, so that it can
+     *     recover when the node gets back online</li>
+     * </ol>
+     */
+    @Test
+    public void testFetchRemotePeerStatuses() throws IOException {
+
+        final Set<PeerStatus> peerStatuses = new HashSet<>();
+        final PeerDescription bootstrapNode = new PeerDescription("Node1", 1111, true);
+        final PeerDescription node2 = new PeerDescription("Node2", 2222, true);
+        final PeerStatus bootstrapNodeStatus = new PeerStatus(bootstrapNode, 10, true);
+        final PeerStatus node2Status = new PeerStatus(node2, 10, true);
+        peerStatuses.add(bootstrapNodeStatus);
+        peerStatuses.add(node2Status);
+
+        final PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
+        final PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
+        final UnitTestSystemTime systemTime = new UnitTestSystemTime();
+        peerSelector.setSystemTime(systemTime);
+
+        doReturn(bootstrapNode).when(peerStatusProvider).getBootstrapPeerDescription();
+        doAnswer(invocation -> {
+            final PeerDescription peerFetchStatusesFrom = invocation.getArgumentAt(0, PeerDescription.class);
+            if (peerStatuses.stream().filter(ps -> ps.getPeerDescription().equals(peerFetchStatusesFrom)).collect(Collectors.toSet()).size() > 0) {
+                // If the remote peer is running, then return available peer statuses.
+                return peerStatuses;
+            }
+            throw new IOException("Connection refused. " + peerFetchStatusesFrom + " is not running.");
+        }).when(peerStatusProvider).fetchRemotePeerStatuses(any(PeerDescription.class));
+
+        // 1st attempt. It uses the bootstrap node.
+        peerSelector.refreshPeers();
+        PeerStatus peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
+
+        // Proceed time so that peer selector refresh statuses.
+        peerStatuses.remove(bootstrapNodeStatus);
+        systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
+
+        // 2nd attempt.
+        peerSelector.refreshPeers();
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
+
+        // Proceed time so that peer selector refresh statuses.
+        systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
+
+        // 3rd attempt.
+        peerSelector.refreshPeers();
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNotNull(peerStatus);
+        assertEquals("Node2 should be returned since node 2 is the only available node.", node2, peerStatus.getPeerDescription());
+
+        // Remove node2 to simulate that it goes down. There's no available node at this point.
+        peerStatuses.remove(node2Status);
+        systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
+
+        peerSelector.refreshPeers();
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertNull("PeerSelector should return null as next peer status, since there's no available peer", peerStatus);
+
+        // Add node1 back. PeerSelector should be able to fetch peer statuses because it always tries to fetch at least from the bootstrap node.
+        peerStatuses.add(bootstrapNodeStatus);
+        systemTime.offset += TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES) + 1;
+
+        peerSelector.refreshPeers();
+        peerStatus = peerSelector.getNextPeerStatus(TransferDirection.RECEIVE);
+        assertEquals("Node1 should be returned since node 1 is the only available node.", bootstrapNode, peerStatus.getPeerDescription());
     }
 }

@@ -84,12 +84,11 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     }
 
     @Override
-    public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+    public PeerDescription getBootstrapPeerDescription() throws IOException {
         if (siteInfoProvider.getSiteToSiteHttpPort() == null) {
             throw new IOException("Remote instance of NiFi is not configured to allow HTTP site-to-site communications");
         }
 
-        final String scheme = siteInfoProvider.isSecure() ? "https" : "http";
         final URI clusterUrl;
         try {
             clusterUrl = new URI(config.getUrl());
@@ -97,8 +96,15 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             throw new IllegalArgumentException("Specified clusterUrl was: " + config.getUrl(), e);
         }
 
+        return new PeerDescription(clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort(), siteInfoProvider.isSecure());
+    }
+
+    @Override
+    public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription) throws IOException {
+        // Each node should has the same URL structure and network reach-ability with the proxy configuration.
         try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy())) {
-            final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort());
+            final String scheme = peerDescription.isSecure() ? "https" : "http";
+            final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
 
             final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
             apiClient.setConnectTimeoutMillis(timeoutMillis);

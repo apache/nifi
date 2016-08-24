@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.remote.util.EventReportUtil.error;
 import static org.apache.nifi.remote.util.EventReportUtil.warn;
@@ -61,6 +62,7 @@ public class PeerSelector {
 
     private final ReentrantLock peerRefreshLock = new ReentrantLock();
     private volatile List<PeerStatus> peerStatuses;
+    private volatile Set<PeerStatus> lastFetchedQueryablePeers;
     private volatile long peerRefreshTime = 0L;
     private final AtomicLong peerIndex = new AtomicLong(0L);
     private volatile PeerStatusCache peerStatusCache;
@@ -70,6 +72,22 @@ public class PeerSelector {
 
     private final PeerStatusProvider peerStatusProvider;
     private final ConcurrentMap<PeerDescription, Long> peerTimeoutExpirations = new ConcurrentHashMap<>();
+
+    static class SystemTime {
+        long currentTimeMillis() {
+            return System.currentTimeMillis();
+        }
+    }
+    private SystemTime systemTime = new SystemTime();
+
+    /**
+     * Replace the SystemTime instance.
+     * This method is purely used by unit testing, to emulate peer refresh period.
+     */
+    void setSystemTime(final SystemTime systemTime) {
+        logger.info("Replacing systemTime instance to {}.", systemTime);
+        this.systemTime = systemTime;
+    }
 
     public PeerSelector(final PeerStatusProvider peerStatusProvider, final File persistenceFile) {
         this.peerStatusProvider = peerStatusProvider;
@@ -213,13 +231,13 @@ public class PeerSelector {
             expiration = Long.valueOf(0L);
         }
 
-        final long newExpiration = Math.max(expiration, System.currentTimeMillis() + penalizationMillis);
+        final long newExpiration = Math.max(expiration, systemTime.currentTimeMillis() + penalizationMillis);
         peerTimeoutExpirations.put(peerDescription, Long.valueOf(newExpiration));
     }
 
     public boolean isPenalized(final PeerStatus peerStatus) {
         final Long expirationEnd = peerTimeoutExpirations.get(peerStatus.getPeerDescription());
-        return (expirationEnd != null && expirationEnd > System.currentTimeMillis());
+        return (expirationEnd != null && expirationEnd > systemTime.currentTimeMillis());
     }
 
     public void clear() {
@@ -227,7 +245,7 @@ public class PeerSelector {
     }
 
     private boolean isPeerRefreshNeeded(final List<PeerStatus> peerList) {
-        return (peerList == null || peerList.isEmpty() || System.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD);
+        return (peerList == null || peerList.isEmpty() || systemTime.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD);
     }
 
     /**
@@ -258,7 +276,7 @@ public class PeerSelector {
                     }
 
                     this.peerStatuses = peerList;
-                    peerRefreshTime = System.currentTimeMillis();
+                    peerRefreshTime = systemTime.currentTimeMillis();
                 }
             } finally {
                 peerRefreshLock.unlock();
@@ -305,7 +323,7 @@ public class PeerSelector {
             return null;
         }
 
-        if (cache.getTimestamp() + PEER_CACHE_MILLIS < System.currentTimeMillis()) {
+        if (cache.getTimestamp() + PEER_CACHE_MILLIS < systemTime.currentTimeMillis()) {
             final Set<PeerStatus> equalizedSet = new HashSet<>(cache.getStatuses().size());
             for (final PeerStatus status : cache.getStatuses()) {
                 final PeerStatus equalizedStatus = new PeerStatus(status.getPeerDescription(), 1, status.isQueryForPeers());
@@ -320,12 +338,12 @@ public class PeerSelector {
 
     public void refreshPeers() {
         final PeerStatusCache existingCache = peerStatusCache;
-        if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > System.currentTimeMillis())) {
+        if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > systemTime.currentTimeMillis())) {
             return;
         }
 
         try {
-            final Set<PeerStatus> statuses = peerStatusProvider.fetchRemotePeerStatuses();
+            final Set<PeerStatus> statuses = fetchRemotePeerStatuses();
             persistPeerStatuses(statuses);
             peerStatusCache = new PeerStatusCache(statuses);
             logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
@@ -340,4 +358,43 @@ public class PeerSelector {
     public void setEventReporter(EventReporter eventReporter) {
         this.eventReporter = eventReporter;
     }
+
+    private Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+        final Set<PeerDescription> peersToRequestClusterInfoFrom = new HashSet<>();
+
+        // Look at all of the peers that we fetched last time.
+        final Set<PeerStatus> lastFetched = lastFetchedQueryablePeers;
+        if (lastFetched != null && !lastFetched.isEmpty()) {
+            lastFetched.stream().map(peer -> peer.getPeerDescription())
+                    .forEach(desc -> peersToRequestClusterInfoFrom.add(desc));
+        }
+
+        // Always add the configured node info to the list of peers to communicate with
+        peersToRequestClusterInfoFrom.add(peerStatusProvider.getBootstrapPeerDescription());
+
+        logger.debug("Fetching remote peer statuses from: {}", peersToRequestClusterInfoFrom);
+        Exception lastFailure = null;
+        for (final PeerDescription peerDescription : peersToRequestClusterInfoFrom) {
+            try {
+                final Set<PeerStatus> statuses = peerStatusProvider.fetchRemotePeerStatuses(peerDescription);
+                lastFetchedQueryablePeers = statuses.stream()
+                        .filter(p -> p.isQueryForPeers())
+                        .collect(Collectors.toSet());
+
+                return statuses;
+            } catch (final Exception e) {
+                logger.warn("Could not communicate with {}:{} to determine which nodes exist in the remote NiFi cluster, due to {}",
+                        peerDescription.getHostname(), peerDescription.getPort(), e.toString());
+                lastFailure = e;
+            }
+        }
+
+        final IOException ioe = new IOException("Unable to communicate with remote NiFi cluster in order to determine which nodes exist in the remote cluster");
+        if (lastFailure != null) {
+            ioe.addSuppressed(lastFailure);
+        }
+
+        throw ioe;
+    }
+
 }
