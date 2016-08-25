@@ -262,16 +262,16 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     public AsyncClusterResponse forwardToCoordinator(final NodeIdentifier coordinatorNodeId, final String method, final URI uri, final Object entity, final Map<String, String> headers) {
         // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
         // it knows that we are acting as a proxy on behalf of the current user.
-    	final Map<String, String> updatedHeaders = new HashMap<>(headers);
+        final Map<String, String> updatedHeaders = new HashMap<>(headers);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user != null && !user.isAnonymous()) {
             final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
             updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
         }
-    	
+
         return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false);
     }
-    
+
     /**
      * Replicates the request to all nodes in the given set of node identifiers
      *
@@ -516,8 +516,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
     // Visible for testing - overriding this method makes it easy to verify behavior without actually making any web requests
-    protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId, 
-    		final Map<String, String> headers) {
+    protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder,
+                                            final NodeIdentifier nodeId, final String method,
+                                            final URI uri, final String requestId,
+                                            final Map<String, String> headers) {
         final ClientResponse clientResponse;
         final long startNanos = System.nanoTime();
         logger.debug("Replicating request to {} {}, request ID = {}, headers = {}", method, uri, requestId, headers);

@@ -110,10 +110,10 @@ public interface RequestReplicator {
      */
     AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated, boolean performVerification);
 
-    
+
     /**
      * Forwards a request to the Cluster Coordinator so that it is able to replicate the request to all nodes in the cluster.
-     * 
+     *
      * @param coordinatorNodeId the node identifier of the Cluster Coordinator
      * @param method the HTTP method (e.g., POST, PUT)
      * @param uri the base request URI (up to, but not including, the query string)
@@ -123,7 +123,7 @@ public interface RequestReplicator {
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      */
     AsyncClusterResponse forwardToCoordinator(NodeIdentifier coordinatorNodeId, String method, URI uri, Object entity, Map<String, String> headers);
-    
+
     /**
      * <p>
      * Returns an AsyncClusterResponse that provides the most up-to-date status of the request with the given identifier.
