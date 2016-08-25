@@ -669,9 +669,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             // Use it to build the Match Clause
             if (normalizedUpdateNames.contains(normalizedColName)) {
                 matchClauseBuilder.append(String.format("%s.%s = %s.%s and ", target_table,normalizedColName,source_table,normalizedColName));
-            }
-            else
-            {
+            } else {
                 setListBuilder.append(String.format("%s = %s.%s,",normalizedColName, source_table,normalizedColName));
             }
 
@@ -700,8 +698,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final String namedValueList = trimTrailingDelimiter(namedValueListBuilder.toString(),",");
 
         // We need all of these lists to be non-empty to proceed
-        if (valueList.isEmpty() || columnList.isEmpty() || matchClause.isEmpty() || setList.isEmpty() || namedValueList.isEmpty())
-        {
+        if (valueList.isEmpty() || columnList.isEmpty() || matchClause.isEmpty() || setList.isEmpty() || namedValueList.isEmpty()) {
             throw new ProcessException("Unable to generate MERGE statement.  There were no columns in the target table that matched fields in the JSON message.");
         }
 
@@ -723,9 +720,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     // Helper utility to trim trailing delimiter if present
     private static String trimTrailingDelimiter(final String value, final String delimiter) {
         int delimiterIndex = value.length() - delimiter.length();
-        if (value.isEmpty() ||
-            value.length() < delimiter.length() ||
-            ! delimiter.equals(value.substring(delimiterIndex))) {
+        if (value.isEmpty()
+            || value.length() < delimiter.length()
+            || ! delimiter.equals(value.substring(delimiterIndex))) {
             return value;
         } else {
             return value.substring(0,delimiterIndex);
