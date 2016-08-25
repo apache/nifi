@@ -105,7 +105,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     @Override
     public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription) throws IOException {
         // Each node should has the same URL structure and network reach-ability with the proxy configuration.
-        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy())) {
+        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter())) {
             final String scheme = peerDescription.isSecure() ? "https" : "http";
             final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
 
@@ -148,7 +148,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 }
             }
 
-            final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy());
+            final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter());
 
             apiClient.setBaseUrl(peer.getUrl());
             apiClient.setConnectTimeoutMillis(timeoutMillis);
@@ -192,7 +192,12 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 }
             };
 
-            transaction.initialize(apiClient, transactionUrl);
+            try {
+                transaction.initialize(apiClient, transactionUrl);
+            } catch (final Exception e) {
+                transaction.error();
+                throw e;
+            }
 
             activeTransactions.add(transaction);
             return transaction;

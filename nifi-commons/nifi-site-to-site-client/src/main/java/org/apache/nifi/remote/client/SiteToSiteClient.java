@@ -157,7 +157,7 @@ public interface SiteToSiteClient extends Closeable {
         private String truststoreFilename;
         private String truststorePass;
         private KeystoreType truststoreType;
-        private EventReporter eventReporter;
+        private EventReporter eventReporter = EventReporter.NO_OP;
         private File peerPersistenceFile;
         private boolean useCompression;
         private String portName;

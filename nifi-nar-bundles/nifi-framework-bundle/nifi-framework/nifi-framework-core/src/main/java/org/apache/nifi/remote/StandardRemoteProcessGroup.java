@@ -835,8 +835,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             // perform the request
             final ControllerDTO dto;
-            try (
-                    final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
+            try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 dto = apiClient.getController();
             } catch (IOException e) {
                 writeLock.lock();
@@ -928,7 +927,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     private SiteToSiteRestApiClient getSiteToSiteRestApiClient() {
-        SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword));
+        SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), getEventReporter());
         apiClient.setBaseUrl(getApiUri());
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));

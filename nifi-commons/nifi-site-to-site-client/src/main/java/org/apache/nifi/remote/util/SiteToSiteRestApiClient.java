@@ -55,6 +55,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
@@ -68,6 +69,7 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -128,6 +130,9 @@ import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTE
 
 public class SiteToSiteRestApiClient implements Closeable {
 
+    private static final String EVENT_CATEGORY = "Site-to-Site";
+    private static final int DATA_PACKET_CHANNEL_READ_BUFFER_SIZE = 16384;
+
     private static final int RESPONSE_CODE_OK = 200;
     private static final int RESPONSE_CODE_CREATED = 201;
     private static final int RESPONSE_CODE_ACCEPTED = 202;
@@ -140,6 +145,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     protected final SSLContext sslContext;
     protected final HttpProxy proxy;
     private final AtomicBoolean proxyAuthRequiresResend = new AtomicBoolean(false);
+    private final EventReporter eventReporter;
 
     private RequestConfig requestConfig;
     private CredentialsProvider credentialsProvider;
@@ -156,16 +162,21 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private String trustedPeerDn;
     private final ScheduledExecutorService ttlExtendTaskExecutor;
-    private ScheduledFuture<?> ttlExtendingThread;
+    private ScheduledFuture<?> ttlExtendingFuture;
     private SiteToSiteRestApiClient extendingApiClient;
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
     private static final Pattern HTTP_ABS_URL = Pattern.compile("^https?://.+$");
 
-    public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy) {
+    private Future<HttpResponse> postResult;
+    private CountDownLatch transferDataLatch = new CountDownLatch(1);
+
+
+    public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final EventReporter eventReporter) {
         this.sslContext = sslContext;
         this.proxy = proxy;
+        this.eventReporter = eventReporter;
 
         ttlExtendTaskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
@@ -295,6 +306,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 } catch (final CertificateException e) {
                     final String msg = "Could not extract subject DN from SSL session peer certificate";
                     logger.warn(msg);
+                    eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, msg);
                     throw new SSLPeerUnverifiedException(msg);
                 }
             }
@@ -379,6 +391,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                     throw handleErrResponse(responseCode, content);
                 }
         }
+
         logger.debug("initiateTransaction handshaking finished, transactionUrl={}", transactionUrl);
         return transactionUrl;
 
@@ -487,7 +500,9 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             @Override
             public void failed(Exception ex) {
-                logger.error("Create transaction for {} has failed", post.getURI(), ex);
+                final String msg = String.format("Failed to create transactino for %s", post.getURI());
+                logger.error(msg, ex);
+                eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, msg);
             }
 
             @Override
@@ -620,9 +635,6 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    private final int DATA_PACKET_CHANNEL_READ_BUFFER_SIZE = 16384;
-    private Future<HttpResponse> postResult;
-    private CountDownLatch transferDataLatch = new CountDownLatch(1);
 
     public void openConnectionForSend(final String transactionUrl, final Peer peer) throws IOException {
 
@@ -717,6 +729,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                     final long totalWritten = commSession.getOutput().getBytesWritten();
                     logger.debug("sending data to {} has reached to its end. produced {} bytes by reading {} bytes from channel. {} bytes written in this transaction.",
                             flowFilesPath, totalProduced, totalRead, totalWritten);
+
                     if (totalRead != totalWritten || totalProduced != totalWritten) {
                         final String msg = "Sending data to %s has reached to its end, but produced : read : wrote byte sizes (%d : %d : %d) were not equal. Something went wrong.";
                         throw new RuntimeException(String.format(msg, flowFilesPath, totalProduced, totalRead, totalWritten));
@@ -751,7 +764,9 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             @Override
             public void failed(final Exception ex) {
-                logger.error("Sending data to {} has failed", flowFilesPath, ex);
+                final String msg = String.format("Failed to send data to %s due to %s", flowFilesPath, ex.toString());
+                logger.error(msg, ex);
+                eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, msg);
             }
 
             @Override
@@ -842,21 +857,25 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     private void startExtendingTtl(final String transactionUrl, final Closeable stream, final CloseableHttpResponse response) {
-        if (ttlExtendingThread != null) {
+        if (ttlExtendingFuture != null) {
             // Already started.
             return;
         }
+
         logger.debug("Starting extending TTL thread...");
-        extendingApiClient = new SiteToSiteRestApiClient(sslContext, proxy);
+
+        extendingApiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
         extendingApiClient.transportProtocolVersionNegotiator = this.transportProtocolVersionNegotiator;
         extendingApiClient.connectTimeoutMillis = this.connectTimeoutMillis;
         extendingApiClient.readTimeoutMillis = this.readTimeoutMillis;
         final int extendFrequency = serverTransactionTtl / 2;
-        ttlExtendingThread = ttlExtendTaskExecutor.scheduleWithFixedDelay(() -> {
+
+        ttlExtendingFuture = ttlExtendTaskExecutor.scheduleWithFixedDelay(() -> {
             try {
                 extendingApiClient.extendTransaction(transactionUrl);
             } catch (final Exception e) {
                 logger.warn("Failed to extend transaction ttl", e);
+
                 try {
                     // Without disconnecting, Site-to-Site client keep reading data packet,
                     // while server has already rollback.
@@ -874,7 +893,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 closeable.close();
             }
         } catch (final IOException e) {
-            logger.warn("Got an exception during closing {}: {}", closeable, e.getMessage());
+            logger.warn("Got an exception when closing {}: {}", closeable, e.getMessage());
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
             }
@@ -912,9 +931,9 @@ public class SiteToSiteRestApiClient implements Closeable {
             ttlExtendTaskExecutor.shutdown();
         }
 
-        if (ttlExtendingThread != null && !ttlExtendingThread.isCancelled()) {
+        if (ttlExtendingFuture != null && !ttlExtendingFuture.isCancelled()) {
             logger.debug("Cancelling extending ttl...");
-            ttlExtendingThread.cancel(true);
+            ttlExtendingFuture.cancel(true);
         }
 
         closeSilently(extendingApiClient);
@@ -1099,6 +1118,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
         try {
             return mapper.readValue(responseMessage, entityClass);
         } catch (JsonParseException e) {
