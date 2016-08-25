@@ -536,11 +536,11 @@ div.context-menu-item.hover > div.context-menu-item-img.fa.fa-stop {
 }
 
 .stopped {
-    color:#d9534f;
+    color:#d9534f !important;
 }
 
 .invalid {
-    color:#f0ad4e;
+    color:#f0ad4e !important;
 }
 
 .context-menu-item-img.icon {
