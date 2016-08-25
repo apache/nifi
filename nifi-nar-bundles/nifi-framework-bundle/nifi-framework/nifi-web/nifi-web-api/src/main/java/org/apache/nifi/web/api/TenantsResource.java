@@ -167,21 +167,21 @@ public class TenantsResource extends ApplicationResource {
             return replicate(HttpMethod.POST, requestUserEntity);
         }
 
-        // get revision from the config
-        final RevisionDTO revisionDTO = requestUserEntity.getRevision();
-        Revision requestRevision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), requestUserEntity.getComponent().getId());
         return withWriteLock(
                 serviceFacade,
                 requestUserEntity,
-                requestRevision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
                     tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
-                (revision, userEntity) -> {
+                userEntity -> {
                     // set the user id as appropriate
                     userEntity.getComponent().setId(generateUuid());
+
+                    // get revision from the config
+                    final RevisionDTO revisionDTO = userEntity.getRevision();
+                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userEntity.getComponent().getId());
 
                     // create the user and generate the json
                     final UserEntity entity = serviceFacade.createUser(revision, userEntity.getComponent());
@@ -552,21 +552,21 @@ public class TenantsResource extends ApplicationResource {
             return replicate(HttpMethod.POST, requestUserGroupEntity);
         }
 
-        // get revision from the config
-        final RevisionDTO revisionDTO = requestUserGroupEntity.getRevision();
-        Revision requestRevision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), requestUserGroupEntity.getComponent().getId());
         return withWriteLock(
                 serviceFacade,
                 requestUserGroupEntity,
-                requestRevision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
                     tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
-                (revision, userGroupEntity) -> {
+                userGroupEntity -> {
                     // set the user group id as appropriate
                     userGroupEntity.getComponent().setId(generateUuid());
+
+                    // get revision from the config
+                    final RevisionDTO revisionDTO = userGroupEntity.getRevision();
+                    Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userGroupEntity.getComponent().getId());
 
                     // create the user group and generate the json
                     final UserGroupEntity entity = serviceFacade.createUserGroup(revision, userGroupEntity.getComponent());
