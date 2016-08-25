@@ -241,15 +241,22 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     final AtomicLong nrOfRows = new AtomicLong(0L);
 
                     FlowFile fileToProcess = session.create();
-                    fileToProcess = session.write(fileToProcess, out -> {
-                        // Max values will be updated in the state property map by the callback
-                        final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
-                        try {
-                            nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile));
-                        } catch (SQLException e) {
-                            throw new ProcessException("Error during database query or conversion of records to Avro.", e);
-                        }
-                    });
+
+                    try {
+                        fileToProcess = session.write(fileToProcess, out -> {
+                            // Max values will be updated in the state property map by the callback
+                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
+                            try {
+                                nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile));
+                            } catch (SQLException | RuntimeException e) {
+                                throw new ProcessException("Error during database query or conversion of records to Avro.", e);
+                            }
+                        });
+                    } catch (ProcessException e) {
+                        // Add flowfile to results before rethrowing so it will be removed from session in outer catch
+                        resultSetFlowFiles.add(fileToProcess);
+                        throw e;
+                    }
 
                     if (nrOfRows.get() > 0) {
                         // set attribute how many rows were selected
@@ -269,7 +276,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                                 new Object[]{fileToProcess, nrOfRows.get()});
 
                         session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-
                         resultSetFlowFiles.add(fileToProcess);
                     } else {
                         // If there were no rows returned, don't send the flowfile
@@ -395,7 +401,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             } catch (ParseException | SQLException e) {
                 throw new IOException(e);
             }
-
         }
     }
 }

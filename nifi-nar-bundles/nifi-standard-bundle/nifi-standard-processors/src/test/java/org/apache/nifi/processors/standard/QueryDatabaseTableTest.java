@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
@@ -70,6 +71,7 @@ public class QueryDatabaseTableTest {
     private TestRunner runner;
     private final static String DB_LOCATION = "target/db_qdt";
     private DatabaseAdapter dbAdapter;
+    private HashMap<String, DatabaseAdapter> origDbAdapters;
 
 
     @BeforeClass
@@ -106,8 +108,9 @@ public class QueryDatabaseTableTest {
     public void setup() throws InitializationException, IOException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
+        origDbAdapters = new HashMap<>(QueryDatabaseTable.dbAdapters);
         dbAdapter = new GenericDatabaseAdapter();
-
+        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), dbAdapter);
         processor = new MockQueryDatabaseTable();
         runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
@@ -120,6 +123,8 @@ public class QueryDatabaseTableTest {
     @After
     public void teardown() {
         runner = null;
+        QueryDatabaseTable.dbAdapters.clear();
+        QueryDatabaseTable.dbAdapters.putAll(origDbAdapters);
     }
 
     @Test
@@ -363,6 +368,37 @@ public class QueryDatabaseTableTest {
 
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).assertAttributeEquals(QueryDatabaseTable.RESULT_ROW_COUNT, "2");
+    }
+
+    @Test
+    public void testWithRuntimeException() throws SQLException {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+
+        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_NULL_INT");
+
+        QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), new GenericDatabaseAdapter() {
+            @Override
+            public String getName() {
+                throw new DataFileWriter.AppendWriteException(null);
+            }
+        });
+        runner.run();
+
+        assertTrue(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).isEmpty());
     }
 
     @Test
