@@ -333,27 +333,28 @@ public class ReportingTaskResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        final boolean isValidationPhase = isValidationPhase(httpServletRequest);
-        if (isValidationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processor = lookup.getReportingTask(id).getAuthorizable();
-                processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-        }
-        if (isValidationPhase) {
-            serviceFacade.verifyCanClearReportingTaskState(id);
-            return generateContinueResponse().build();
-        }
+        final ReportingTaskEntity requestReportTaskEntity = new ReportingTaskEntity();
+        requestReportTaskEntity.setId(id);
 
-        // get the component state
-        serviceFacade.clearReportingTaskState(id);
+        return withWriteLock(
+                serviceFacade,
+                requestReportTaskEntity,
+                lookup -> {
+                    final Authorizable processor = lookup.getReportingTask(id).getAuthorizable();
+                    processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearReportingTaskState(id),
+                (reportingTaskEntity) -> {
+                    // get the component state
+                    serviceFacade.clearReportingTaskState(reportingTaskEntity.getId());
 
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
@@ -361,7 +362,7 @@ public class ReportingTaskResource extends ApplicationResource {
      *
      * @param httpServletRequest  request
      * @param id                  The id of the reporting task to update.
-     * @param reportingTaskEntity A reportingTaskEntity.
+     * @param requestReportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
     @PUT
@@ -395,32 +396,33 @@ public class ReportingTaskResource extends ApplicationResource {
             @ApiParam(
                     value = "The reporting task configuration details.",
                     required = true
-            ) final ReportingTaskEntity reportingTaskEntity) {
+            ) final ReportingTaskEntity requestReportingTaskEntity) {
 
-        if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
+        if (requestReportingTaskEntity == null || requestReportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
 
-        if (reportingTaskEntity.getRevision() == null) {
+        if (requestReportingTaskEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final ReportingTaskDTO requestReportingTaskDTO = reportingTaskEntity.getComponent();
+        final ReportingTaskDTO requestReportingTaskDTO = requestReportingTaskEntity.getComponent();
         if (!id.equals(requestReportingTaskDTO.getId())) {
             throw new IllegalArgumentException(String.format("The reporting task id (%s) in the request body does not equal the "
                     + "reporting task id of the requested resource (%s).", requestReportingTaskDTO.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, reportingTaskEntity);
+            return replicate(HttpMethod.PUT, requestReportingTaskEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(reportingTaskEntity, id);
+        final Revision requestRevision = getRevision(requestReportingTaskEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestReportingTaskEntity,
+                requestRevision,
                 lookup -> {
                     // authorize reporting task
                     final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTask(id);
@@ -430,9 +432,11 @@ public class ReportingTaskResource extends ApplicationResource {
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTaskDTO.getProperties(), authorizable, authorizer, lookup);
                 },
                 () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
-                () -> {
+                (revision, reportingTaskEntity) -> {
+                    final ReportingTaskDTO reportingTaskDTO = reportingTaskEntity.getComponent();
+
                     // update the reporting task
-                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
+                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDTO);
                     populateRemainingReportingTaskEntityContent(entity);
 
                     return clusterContext(generateOkResponse(entity)).build();
@@ -494,19 +498,23 @@ public class ReportingTaskResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final ReportingTaskEntity requestReportingTaskEntity = new ReportingTaskEntity();
+        requestReportingTaskEntity.setId(id);
+
         // handle expects request (usually from the cluster manager)
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestReportingTaskEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable reportingTask = lookup.getReportingTask(id).getAuthorizable();
                     reportingTask.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteReportingTask(id),
-                () -> {
+                (revision, reportingTaskEntity) -> {
                     // delete the specified reporting task
-                    final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
+                    final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, reportingTaskEntity.getId());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );

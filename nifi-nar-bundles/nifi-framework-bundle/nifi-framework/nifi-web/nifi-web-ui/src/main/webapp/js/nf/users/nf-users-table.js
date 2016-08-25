@@ -31,7 +31,7 @@ nf.UsersTable = (function () {
 
     var initUserDeleteDialog = function () {
         $('#user-delete-dialog').modal({
-            headerText: 'Delete User',
+            headerText: 'Delete Account',
             buttons: [{
                 buttonText: 'Delete',
                 color: {

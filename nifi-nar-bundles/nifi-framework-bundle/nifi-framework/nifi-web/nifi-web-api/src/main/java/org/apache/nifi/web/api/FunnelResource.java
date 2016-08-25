@@ -142,7 +142,7 @@ public class FunnelResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id                 The id of the funnel to update.
-     * @param funnelEntity       A funnelEntity.
+     * @param requestFunnelEntity       A funnelEntity.
      * @return A funnelEntity.
      */
     @PUT
@@ -175,40 +175,41 @@ public class FunnelResource extends ApplicationResource {
             @ApiParam(
                     value = "The funnel configuration details.",
                     required = true
-            ) final FunnelEntity funnelEntity) {
+            ) final FunnelEntity requestFunnelEntity) {
 
-        if (funnelEntity == null || funnelEntity.getComponent() == null) {
+        if (requestFunnelEntity == null || requestFunnelEntity.getComponent() == null) {
             throw new IllegalArgumentException("Funnel details must be specified.");
         }
 
-        if (funnelEntity.getRevision() == null) {
+        if (requestFunnelEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final FunnelDTO requestFunnelDTO = funnelEntity.getComponent();
+        final FunnelDTO requestFunnelDTO = requestFunnelEntity.getComponent();
         if (!id.equals(requestFunnelDTO.getId())) {
             throw new IllegalArgumentException(String.format("The funnel id (%s) in the request body does not equal the "
                     + "funnel id of the requested resource (%s).", requestFunnelDTO.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, funnelEntity);
+            return replicate(HttpMethod.PUT, requestFunnelEntity);
         }
 
         // Extract the revision
-        final Revision revision = getRevision(funnelEntity, id);
+        final Revision requestRevision = getRevision(requestFunnelEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestFunnelEntity,
+                requestRevision,
                 lookup -> {
                     Authorizable authorizable = lookup.getFunnel(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
-                () -> {
+                (revision, funnelEntity) -> {
                     // update the funnel
-                    final FunnelEntity entity = serviceFacade.updateFunnel(revision, requestFunnelDTO);
+                    final FunnelEntity entity = serviceFacade.updateFunnel(revision, funnelEntity.getComponent());
                     populateRemainingFunnelEntityContent(entity);
 
                     return clusterContext(generateOkResponse(entity)).build();
@@ -270,19 +271,23 @@ public class FunnelResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final FunnelEntity requestFunnelEntity = new FunnelEntity();
+        requestFunnelEntity.setId(id);
+
         // handle expects request (usually from the cluster manager)
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestFunnelEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable funnel = lookup.getFunnel(id);
                     funnel.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteFunnel(id),
-                () -> {
+                (revision, funnelEntity) -> {
                     // delete the specified funnel
-                    final FunnelEntity entity = serviceFacade.deleteFunnel(revision, id);
+                    final FunnelEntity entity = serviceFacade.deleteFunnel(revision, funnelEntity.getId());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );

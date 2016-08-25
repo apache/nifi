@@ -354,27 +354,28 @@ public class ProcessorResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        final boolean isValidationPhase = isValidationPhase(httpServletRequest);
-        if (isValidationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
-                processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-        }
-        if (isValidationPhase) {
-            serviceFacade.verifyCanClearProcessorState(id);
-            return generateContinueResponse().build();
-        }
+        final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
+        requestProcessorEntity.setId(id);
 
-        // get the component state
-        serviceFacade.clearProcessorState(id);
+        return withWriteLock(
+                serviceFacade,
+                requestProcessorEntity,
+                lookup -> {
+                    final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
+                    processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearProcessorState(id),
+                (processorEntity) -> {
+                    // get the component state
+                    serviceFacade.clearProcessorState(processorEntity.getId());
 
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
@@ -382,7 +383,7 @@ public class ProcessorResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id                 The id of the processor to update.
-     * @param processorEntity    A processorEntity.
+     * @param requestProcessorEntity    A processorEntity.
      * @return A processorEntity.
      * @throws InterruptedException if interrupted
      */
@@ -417,32 +418,33 @@ public class ProcessorResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity processorEntity) throws InterruptedException {
+            ) final ProcessorEntity requestProcessorEntity) throws InterruptedException {
 
-        if (processorEntity == null || processorEntity.getComponent() == null) {
+        if (requestProcessorEntity == null || requestProcessorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
         }
 
-        if (processorEntity.getRevision() == null) {
+        if (requestProcessorEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the same id is being used
-        final ProcessorDTO requestProcessorDTO = processorEntity.getComponent();
+        final ProcessorDTO requestProcessorDTO = requestProcessorEntity.getComponent();
         if (!id.equals(requestProcessorDTO.getId())) {
             throw new IllegalArgumentException(String.format("The processor id (%s) in the request body does "
                     + "not equal the processor id of the requested resource (%s).", requestProcessorDTO.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, processorEntity);
+            return replicate(HttpMethod.PUT, requestProcessorEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(processorEntity, id);
+        final Revision requestRevision = getRevision(requestProcessorEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestProcessorEntity,
+                requestRevision,
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -455,9 +457,11 @@ public class ProcessorResource extends ApplicationResource {
                     }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
-                () -> {
+                (revision, processorEntity) -> {
+                    final ProcessorDTO processorDTO = processorEntity.getComponent();
+
                     // update the processor
-                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision, processorDTO);
                     populateRemainingProcessorEntityContent(entity);
 
                     return clusterContext(generateOkResponse(entity)).build();
@@ -517,18 +521,22 @@ public class ProcessorResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final ProcessorEntity requestProcessorEntity = new ProcessorEntity();
+        requestProcessorEntity.setId(id);
+
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestProcessorEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
                     processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteProcessor(id),
-                () -> {
+                (revision, processorEntity) -> {
                     // delete the processor
-                    final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
+                    final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, processorEntity.getId());
 
                     // generate the response
                     return clusterContext(generateOkResponse(entity)).build();

@@ -3029,7 +3029,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
         }
 
-        return dtoFactory.createPropertyDescriptorDto(descriptor, "root");
+        return dtoFactory.createPropertyDescriptorDto(descriptor, null);
     }
 
     @Override

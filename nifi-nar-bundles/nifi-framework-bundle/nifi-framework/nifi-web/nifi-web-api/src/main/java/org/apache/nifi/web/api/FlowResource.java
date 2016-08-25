@@ -527,7 +527,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param httpServletRequest       request
      * @param id                       The id of the process group.
-     * @param scheduleComponentsEntity A scheduleComponentsEntity.
+     * @param requestScheduleComponentsEntity A scheduleComponentsEntity.
      * @return A processGroupEntity.
      */
     @PUT
@@ -559,20 +559,23 @@ public class FlowResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") String id,
-            ScheduleComponentsEntity scheduleComponentsEntity) {
+            @ApiParam(
+                    value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.",
+                    required = true
+            ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
 
         // ensure the same id is being used
-        if (!id.equals(scheduleComponentsEntity.getId())) {
+        if (!id.equals(requestScheduleComponentsEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
-                    + "not equal the process group id of the requested resource (%s).", scheduleComponentsEntity.getId(), id));
+                    + "not equal the process group id of the requested resource (%s).", requestScheduleComponentsEntity.getId(), id));
         }
 
         final ScheduledState state;
-        if (scheduleComponentsEntity.getState() == null) {
+        if (requestScheduleComponentsEntity.getState() == null) {
             throw new IllegalArgumentException("The scheduled state must be specified.");
         } else {
             try {
-                state = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+                state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
             }
@@ -584,7 +587,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // if the components are not specified, gather all components and their current revision
-        if (scheduleComponentsEntity.getComponents() == null) {
+        if (requestScheduleComponentsEntity.getComponents() == null) {
             // get the current revisions for the components being updated
             final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
                 final Set<String> componentIds = new HashSet<>();
@@ -626,34 +629,42 @@ public class FlowResource extends ApplicationResource {
             });
 
             // set the components and their current revision
-            scheduleComponentsEntity.setComponents(componentsToSchedule);
+            requestScheduleComponentsEntity.setComponents(componentsToSchedule);
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, scheduleComponentsEntity);
+            return replicate(HttpMethod.PUT, requestScheduleComponentsEntity);
         }
 
-        final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
-        final Map<String, Revision> componentRevisions = componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
-        final Set<Revision> revisions = new HashSet<>(componentRevisions.values());
+        final Map<String, RevisionDTO> requestComponentsToSchedule = requestScheduleComponentsEntity.getComponents();
+        final Map<String, Revision> requestComponentRevisions =
+                requestComponentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> requestRevisions = new HashSet<>(requestComponentRevisions.values());
 
         return withWriteLock(
                 serviceFacade,
-                revisions,
+                requestScheduleComponentsEntity,
+                requestRevisions,
                 lookup -> {
                     // ensure access to the flow
                     authorizeFlow();
 
                     // ensure access to every component being scheduled
-                    componentsToSchedule.keySet().forEach(componentId -> {
+                    requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable connectable = lookup.getConnectable(componentId);
                         connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyScheduleComponents(id, state, componentRevisions.keySet()),
-                () -> {
+                () -> serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet()),
+                (revisions, scheduleComponentsEntity) -> {
+                    final ScheduledState scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+
+                    final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
+                    final Map<String, Revision> componentRevisions =
+                            componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+
                     // update the process group
-                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, state, componentRevisions);
+                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );

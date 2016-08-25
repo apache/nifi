@@ -16,6 +16,6 @@
 <div id="user-delete-dialog" class="hidden">
     <div class="dialog-content">
         <input type="hidden" id="user-id-delete-dialog"/>
-        Are you sure you want to delete the user account for '<span id="user-identity-delete-dialog"></span>'?
+        Are you sure you want to delete the account for '<span id="user-identity-delete-dialog"></span>'?
     </div>
 </div>

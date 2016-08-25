@@ -189,24 +189,27 @@ public class TemplateResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable template = lookup.getTemplate(id);
-                template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            });
-            return generateContinueResponse().build();
-        }
+        final TemplateEntity requestTemplateEntity = new TemplateEntity();
+        requestTemplateEntity.setId(id);
 
-        // delete the specified template
-        serviceFacade.deleteTemplate(id);
+        return withWriteLock(
+                serviceFacade,
+                requestTemplateEntity,
+                lookup -> {
+                    final Authorizable template = lookup.getTemplate(id);
+                    template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                (templateEntity) -> {
+                    // delete the specified template
+                    serviceFacade.deleteTemplate(templateEntity.getId());
 
-        // build the response entity
-        final TemplateEntity entity = new TemplateEntity();
+                    // build the response entity
+                    final TemplateEntity entity = new TemplateEntity();
 
-        return clusterContext(generateOkResponse(entity)).build();
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     // setters
