@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.nifi.logging.ComponentLog;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,6 +43,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -199,6 +201,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     /**
      * Performs common setup operations when the processor is scheduled to run. This method assumes the member
      * variables associated with properties have been filled.
+     *
      * @param numberOfScriptEngines number of engines to setup
      */
     public void setup(int numberOfScriptEngines) {
@@ -253,7 +256,9 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
 
             // Need the right classloader when the engine is created. This ensures the NAR's execution class loader
             // (plus the module path) becomes the parent for the script engine
-            ClassLoader scriptEngineModuleClassLoader = createScriptEngineModuleClassLoader(additionalClasspathURLs);
+            ClassLoader scriptEngineModuleClassLoader = additionalClasspathURLs != null
+                    ? new URLClassLoader(additionalClasspathURLs, originalContextClassLoader)
+                    : originalContextClassLoader;
             if (scriptEngineModuleClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(scriptEngineModuleClassLoader);
             }
@@ -264,7 +269,9 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
                     if (configurator != null) {
                         configurator.init(scriptEngine, modules);
                     }
-                    engineQ.offer(scriptEngine);
+                    if (!engineQ.offer(scriptEngine)) {
+                        log.error("Error adding script engine {}", new Object[]{scriptEngine.getFactory().getEngineName()});
+                    }
 
                 } catch (ScriptException se) {
                     log.error("Error initializing script engine configurator {}", new Object[]{scriptEngineName});
@@ -294,25 +301,6 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
             return null;
         }
         return factory.getScriptEngine();
-    }
-
-    /**
-     * Creates a classloader to be used by the selected script engine and the provided script file. This
-     * classloader has this class's classloader as a parent (versus the current thread's context
-     * classloader) and also adds the specified module URLs to the classpath. This enables scripts
-     * to use other scripts, modules, etc. without having to build them into the scripting NAR.
-     * If the parameter is null or empty, this class's classloader is returned
-     *
-     * @param modules An array of URLs to add to the class loader
-     * @return ClassLoader for script engine
-     */
-    protected ClassLoader createScriptEngineModuleClassLoader(URL[] modules) {
-        ClassLoader thisClassLoader = this.getClass().getClassLoader();
-        if (modules == null) {
-            return thisClassLoader;
-        }
-
-        return new URLClassLoader(modules, thisClassLoader);
     }
 
     @OnStopped
