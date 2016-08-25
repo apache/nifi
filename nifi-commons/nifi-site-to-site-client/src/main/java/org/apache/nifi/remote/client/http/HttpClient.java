@@ -42,6 +42,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +57,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     private final ScheduledExecutorService taskExecutor;
     private final PeerSelector peerSelector;
+    private final Set<HttpClientTransaction> activeTransactions = Collections.synchronizedSet(new HashSet<>());
 
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
@@ -177,15 +180,26 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             // We found a valid peer to communicate with.
             final Integer transactionProtocolVersion = apiClient.getTransactionProtocolVersion();
             final HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
-                    config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
+                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter()) {
+
+                @Override
+                protected void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        activeTransactions.remove(this);
+                    }
+                }
+            };
+
             transaction.initialize(apiClient, transactionUrl);
 
+            activeTransactions.add(transaction);
             return transaction;
         }
 
         logger.info("Couldn't find a valid peer to communicate with.");
         return null;
-
     }
 
     private String resolveNodeApiUrl(final PeerDescription description) {
@@ -201,5 +215,9 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public void close() throws IOException {
         taskExecutor.shutdown();
         peerSelector.clear();
+
+        for (final HttpClientTransaction transaction : activeTransactions) {
+            transaction.getCommunicant().getCommunicationsSession().interrupt();
+        }
     }
 }

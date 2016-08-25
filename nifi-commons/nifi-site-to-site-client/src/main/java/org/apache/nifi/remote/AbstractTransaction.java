@@ -99,7 +99,7 @@ public abstract class AbstractTransaction implements Transaction {
     }
 
     @Override
-    public Communicant getCommunicant() {
+    public Peer getCommunicant() {
         return peer;
     }
 
