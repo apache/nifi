@@ -388,7 +388,7 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
 
                         // record the id of the last bulletin in this request
                         if (i + 1 === bulletinEntities.length) {
-                            lastBulletin = bulletin.id;
+                            lastBulletin = bulletinEntity.id;
                         }
                     });
 
