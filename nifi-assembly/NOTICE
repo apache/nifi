@@ -88,7 +88,7 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache HttpClient
       Copyright 1999-2015 The Apache Software Foundation
-      
+
       Apache HttpCore
       Copyright 2005-2015 The Apache Software Foundation
 
@@ -107,6 +107,96 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Commons Logging
       Copyright 2003-2014 The Apache Software Foundation
+
+    (ASLv2) Apache Commons VFS
+      The following NOTICE information applies:
+        Apache Commons VFS
+        Copyright 2002-2010 The Apache Software Foundation
+
+    (ASLv2) Apache Commons CSV
+      The following NOTICE information applies:
+        Apache Commons CSV
+        Copyright 2005-2016 The Apache Software Foundation
+
+    (ASLv2) Apache JAMES Mime4j
+      The following NOTICE information applies:
+       Apache JAMES Mime4j
+       Copyright 2004-2010 The Apache Software Foundation
+
+       This product test suite includes data (mimetools-testmsgs folder) developed
+       by Eryq and ZeeGee Software Inc as part of the "MIME-tools" Perl5 toolkit
+       and licensed under the Artistic License
+
+    (ASLv2) Apache PDFBox
+      The following NOTICE information applies:
+       Apache PDFBox
+       Copyright 2014 The Apache Software Foundation
+
+       Based on source code originally developed in the PDFBox, JempBox and
+       FontBox projects.
+       Copyright (c) 2002-2007, www.pdfbox.org
+       Copyright (c) 2006-2007, www.jempbox.org
+
+       Based on source code originally developed in the PaDaF project.
+       Copyright (c) 2010 Atos Worldline SAS
+
+    (ASLv2) Apache XMLBeans
+      The following NOTICE information applies:
+        Portions of this software were originally based on the following:
+        - software copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+        Aside from contributions to the Apache XMLBeans project, this
+        software also includes:
+
+        - one or more source files from the Apache Xerces-J and Apache Axis
+        products, Copyright (c) 1999-2003 Apache Software Foundation
+
+        - W3C XML Schema documents Copyright 2001-2003 (c) World Wide Web
+        Consortium (Massachusetts Institute of Technology, European Research
+        Consortium for Informatics and Mathematics, Keio University)
+
+        - resolver.jar from Apache Xml Commons project,
+        Copyright (c) 2001-2003 Apache Software Foundation
+
+        - Piccolo XML Parser for Java from http://piccolo.sourceforge.net/,
+        Copyright 2002 Yuval Oren under the terms of the Apache Software License 2.0
+
+        - JSR-173 Streaming API for XML from http://sourceforge.net/projects/xmlpullparser/,
+        Copyright 2005 BEA under the terms of the Apache Software License 2.0
+
+    (ASLv2) Vorbis Java
+      The following NOTICE information applies:
+        Ogg and Vorbis Tools for Java
+        Copyright 2012 Nick Burch
+
+        The Apache Tika Plugin includes developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+    (ASLv2) Quartz
+      The following NOTICE information applies:
+        Copyright Declaration:
+        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
+
+        Trademark and Patent declaration
+        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
+        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
+
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+
+        Third Party declaration
+        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
+        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
+        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
+        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+
+        Confidentiality Disclaimer:
+        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
+        Contact GitHub API Training Shop Blog About
+
+    (ASLv2) JCommander
+      The following NOTICE information applies:
+        JCommander Copyright Notices
+        Copyright 2010 Cedric Beust cedric@beust.com
 
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
@@ -989,6 +1079,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
+    (CDDL 1.0) JHighlight (org.codelibs:jhighlight:1.0.2 - https://github.com/codelibs/jhighlight)
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0
@@ -1004,7 +1095,8 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.aspectj.org)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.3 - http://logback.qos.ch/)
@@ -1035,6 +1127,7 @@ The following binary components are provided under the Mozilla Public License v1
 
     (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://hl7api.sourceforge.net/)
     (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://hl7api.sourceforge.net/)
+    (MPL 1.1) Java port of universalchardet (com.googlecode.juniversalchardet:juniversalchardet:1.0.3 - https://code.google.com/archive/p/juniversalchardet/)
 
 ******************
 Python Software Foundation License v2
