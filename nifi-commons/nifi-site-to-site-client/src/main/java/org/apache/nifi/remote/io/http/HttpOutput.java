@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.io.http;
 
+import org.apache.nifi.remote.io.InterruptableOutputStream;
 import org.apache.nifi.remote.protocol.CommunicationsOutput;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 
@@ -25,6 +26,7 @@ import java.io.OutputStream;
 public class HttpOutput implements CommunicationsOutput {
 
     private ByteCountingOutputStream countingOut;
+    private InterruptableOutputStream interruptableOut;
 
     @Override
     public OutputStream getOutputStream() throws IOException {
@@ -40,6 +42,13 @@ public class HttpOutput implements CommunicationsOutput {
     }
 
     public void setOutputStream(OutputStream outputStream) {
-        this.countingOut = new ByteCountingOutputStream(outputStream);
+        interruptableOut = new InterruptableOutputStream(outputStream);
+        this.countingOut = new ByteCountingOutputStream(interruptableOut);
+    }
+
+    public void interrupt() {
+        if (interruptableOut != null) {
+            interruptableOut.interrupt();
+        }
     }
 }
