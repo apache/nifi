@@ -678,13 +678,13 @@ nf.RemoteProcessGroup = (function () {
         // received count value
         updated.select('text.remote-process-group-received tspan.count')
             .text(function (d) {
-                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.sent, ' ');
+                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.received, ' ');
             });
 
         // received size value
         updated.select('text.remote-process-group-received tspan.size')
             .text(function (d) {
-                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.sent, ' ');
+                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.received, ' ');
             });
 
         // --------------------
