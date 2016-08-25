@@ -589,13 +589,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         //  This is the SQL Format we are building
         ///////////////////////////////////////////
         //    MERGE <TableName> target_t
-        //    USING (
-        //            VALUES (<ValueList>)
-        //    ) AS source_t (<ColumnList>)
+        //    USING VALUES (<ValueList>)
+        //    AS source_t (<ColumnList>)
         //    ON <MatchClause>
         //    WHEN MATCHED THEN
         //    UPDATE SET <SetList>
-        //            WHEN NOT MATCHED THEN
+        //    WHEN NOT MATCHED THEN
         //    INSERT (<ColumnList>)
         //    VALUES (<NamedValueList>)
         //    ; --A MERGE statement must be terminated by a semi-colon (;).
@@ -693,12 +692,18 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
         }
 
-        // Trim trailing , characters
-        final String valueList = valueListBuilder.toString().substring(0, valueListBuilder.length() -1);
-        final String columnList = columnListBuilder.toString().substring(0, columnListBuilder.length() -1);
-        final String matchClause = matchClauseBuilder.toString().substring(0, matchClauseBuilder.length() -5);
-        final String setList = setListBuilder.toString().substring(0, setListBuilder.length() -1);
-        final String namedValueList = namedValueListBuilder.toString().substring(0, namedValueListBuilder.length() -1);
+        // Trim trailing delimiters
+        final String valueList = trimTrailingDelimiter(valueListBuilder.toString(), ",");
+        final String columnList = trimTrailingDelimiter(columnListBuilder.toString(), ",");
+        final String matchClause = trimTrailingDelimiter(matchClauseBuilder.toString(), " and ");
+        final String setList = trimTrailingDelimiter(setListBuilder.toString(), ",");
+        final String namedValueList = trimTrailingDelimiter(namedValueListBuilder.toString(),",");
+
+        // We need all of these lists to be non-empty to proceed
+        if (valueList.isEmpty() || columnList.isEmpty() || matchClause.isEmpty() || setList.isEmpty() || namedValueList.isEmpty())
+        {
+            throw new ProcessException("Unable to generate MERGE statement.  There were no columns in the target table that matched fields in the JSON message.");
+        }
 
         // Build the SQL statement from the pieces we gathered
         return String.format("MERGE %s target_t \n"     +
@@ -715,6 +720,17 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 setList, columnList, namedValueList);
     }
 
+    // Helper utility to trim trailing delimiter if present
+    private static String trimTrailingDelimiter(final String value, final String delimiter) {
+        int delimiterIndex = value.length() - delimiter.length();
+        if (value.isEmpty() ||
+            value.length() < delimiter.length() ||
+            ! delimiter.equals(value.substring(delimiterIndex))) {
+            return value;
+        } else {
+            return value.substring(0,delimiterIndex);
+        }
+    }
 
     private static String normalizeColumnName(final String colName, final boolean translateColumnNames) {
         return translateColumnNames ? colName.toUpperCase().replace("_", "") : colName;
