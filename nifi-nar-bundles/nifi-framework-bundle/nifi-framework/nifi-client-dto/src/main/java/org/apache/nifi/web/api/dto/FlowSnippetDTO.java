@@ -214,7 +214,7 @@ public class FlowSnippetDTO {
                     Map<String, PropertyDescriptorDTO> map = csDTO.getDescriptors();
                     Map<String, String> props = csDTO.getProperties();
                     for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
-                        if (entry.getValue().getIdentifiesControllerService() != null) {
+                        if (entry.getValue().getIdentifiesControllerService() != null && props.get(entry.getKey()) != null) {
                             String key = entry.getKey();
                             String value = props.get(key);
                             id = UUID.fromString(value);
