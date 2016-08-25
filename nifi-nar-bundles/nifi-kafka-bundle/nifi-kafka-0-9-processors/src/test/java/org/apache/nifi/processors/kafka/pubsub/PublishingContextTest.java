@@ -87,20 +87,5 @@ public class PublishingContextTest {
         } catch (IllegalArgumentException e) {
             // success
         }
-
-        publishingContext.setMaxRequestSize(1024);
-        try {
-            publishingContext.setMaxRequestSize(1024);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
-
-        try {
-            publishingContext.setMaxRequestSize(-10);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
     }
 }

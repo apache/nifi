@@ -31,14 +31,7 @@ class PublishingContext {
 
     private final int lastAckedMessageIndex;
 
-    /*
-     * We're using the default value from Kafka. We are using it to control the
-     * message size before it goes to to Kafka thus limiting possibility of a
-     * late failures in Kafka client.
-     */
-    private int maxRequestSize = 1048576; // kafka default
-
-    private boolean maxRequestSizeSet;
+    private final int maxRequestSize;
 
     private byte[] keyBytes;
 
@@ -49,10 +42,15 @@ class PublishingContext {
     }
 
     PublishingContext(InputStream contentStream, String topic, int lastAckedMessageIndex) {
+        this(contentStream, topic, lastAckedMessageIndex, 1048576);
+    }
+
+    PublishingContext(InputStream contentStream, String topic, int lastAckedMessageIndex, int maxRequestSize) {
         this.validateInput(contentStream, topic, lastAckedMessageIndex);
         this.contentStream = contentStream;
         this.topic = topic;
         this.lastAckedMessageIndex = lastAckedMessageIndex;
+        this.maxRequestSize = maxRequestSize;
     }
 
     @Override
@@ -103,19 +101,6 @@ class PublishingContext {
             }
         } else {
             throw new IllegalArgumentException("'delimiterBytes' can only be set once per instance");
-        }
-    }
-
-    void setMaxRequestSize(int maxRequestSize) {
-        if (!this.maxRequestSizeSet) {
-            if (maxRequestSize > 0) {
-                this.maxRequestSize = maxRequestSize;
-                this.maxRequestSizeSet = true;
-            } else {
-                throw new IllegalArgumentException("'maxRequestSize' must be > 0");
-            }
-        } else {
-            throw new IllegalArgumentException("'maxRequestSize' can only be set once per instance");
         }
     }
 

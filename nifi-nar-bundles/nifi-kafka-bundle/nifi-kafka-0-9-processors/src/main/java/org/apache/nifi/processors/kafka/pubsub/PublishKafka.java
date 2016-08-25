@@ -47,6 +47,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -133,6 +134,15 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
             .defaultValue("30 sec")
             .build();
 
+    static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
+            .name("max.request.size")
+            .displayName("Max Request Size")
+            .description("The maximum size of a request in bytes. Corresponds to Kafka's 'max.request.size' property and defaults to 1 MB (1048576).")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("1 MB")
+            .build();
+
     static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
             .name("kafka-key")
             .displayName("Kafka Key")
@@ -207,6 +217,7 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
         _descriptors.add(DELIVERY_GUARANTEE);
         _descriptors.add(KEY);
         _descriptors.add(MESSAGE_DEMARCATOR);
+        _descriptors.add(MAX_REQUEST_SIZE);
         _descriptors.add(META_WAIT_TIME);
         _descriptors.add(PARTITION_CLASS);
         _descriptors.add(COMPRESSION_CODEC);
@@ -377,6 +388,7 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
         KafkaProcessorUtils.buildCommonKafkaProperties(context, ProducerConfig.class, kafkaProps);
         kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        kafkaProps.put("max.request.size", String.valueOf(context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue()));
         this.brokers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final Properties props = new Properties();
         props.putAll(kafkaProps);
@@ -461,7 +473,8 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
                     .evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8) : null;
         }
 
-        PublishingContext publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex,
+                context.getProperty(MAX_REQUEST_SIZE).asDataSize(DataUnit.B).intValue());
         publishingContext.setKeyBytes(keyBytes);
         publishingContext.setDelimiterBytes(delimiterBytes);
         return publishingContext;
