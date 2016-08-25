@@ -1395,7 +1395,7 @@ information can be found here:
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
 
-This product bundles 'jBCrypt' which is available under a BSD license.
+This product bundles 'jBCrypt' which is available under an MIT license.
 For details see https://github.com/svenkubiak/jBCrypt/blob/0.4.1/LICENSE
 
     Copyright (c) 2006 Damien Miller <djm@mindrot.org>
