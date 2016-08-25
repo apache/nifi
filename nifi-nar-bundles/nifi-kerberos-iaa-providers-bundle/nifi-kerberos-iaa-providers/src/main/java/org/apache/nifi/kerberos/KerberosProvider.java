@@ -33,7 +33,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.kerberos.authentication.KerberosAuthenticationProvider;
-import org.springframework.security.kerberos.authentication.sun.GlobalSunJaasKerberosConfig;
 import org.springframework.security.kerberos.authentication.sun.SunJaasKerberosClient;
 
 import java.util.concurrent.TimeUnit;
@@ -65,17 +64,6 @@ public class KerberosProvider implements LoginIdentityProvider {
             expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
         } catch (final IllegalArgumentException iae) {
             throw new ProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
-        }
-
-        try {
-            final String krb5ConfigFile = configurationContext.getProperty("Kerberos Config File");
-            if (StringUtils.isNotEmpty(krb5ConfigFile)) {
-                final GlobalSunJaasKerberosConfig krb5Config = new GlobalSunJaasKerberosConfig();
-                krb5Config.setKrbConfLocation(krb5ConfigFile);
-                krb5Config.afterPropertiesSet();
-            }
-        } catch (final Exception e) {
-            throw new ProviderCreationException(e.getMessage(), e);
         }
 
         provider = new KerberosAuthenticationProvider();

@@ -58,6 +58,16 @@ public class NiFi {
 
     public NiFi(final NiFiProperties properties)
             throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
+        // There can only be one krb5.conf for the overall Java process so set this globally during
+        // start up so that processors and our Kerberos authentication code don't have to set this
+        final File kerberosConfigFile = properties.getKerberosConfigurationFile();
+        if (kerberosConfigFile != null) {
+            final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
+            logger.info("Setting java.security.krb5.conf to {}", new Object[] {kerberosConfigFilePath});
+            System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
+        }
+
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(final Thread t, final Throwable e) {
