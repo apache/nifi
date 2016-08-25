@@ -29,7 +29,18 @@
       <dependency>
            <groupId>org.apache.ignite</groupId>
            <artifactId>ignite-core</artifactId>
+          <exclusions>
+              <exclusion>
+                  <groupId>javax.cache</groupId>
+                  <artifactId>cache-api</artifactId>
+              </exclusion>
+          </exclusions>
        </dependency>
+        <dependency>
+           <groupId>org.apache.geronimo.specs</groupId>
+           <artifactId>geronimo-jcache_1.0_spec</artifactId>
+           <version>1.0-alpha-1</version>
+        </dependency>
        <dependency>
            <groupId>org.apache.ignite</groupId>
            <artifactId>ignite-log4j2</artifactId>
