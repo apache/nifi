@@ -113,7 +113,7 @@ public class DBCPServiceTest {
         // set MariaDB database connection url
         runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:mariadb://localhost:3306/" + "testdb");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.mariadb.jdbc.Driver");
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_JAR_URL, "file:///var/tmp/mariadb-java-client-1.1.7.jar");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_LOCATION, "file:///var/tmp/mariadb-java-client-1.1.7.jar");
 
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
