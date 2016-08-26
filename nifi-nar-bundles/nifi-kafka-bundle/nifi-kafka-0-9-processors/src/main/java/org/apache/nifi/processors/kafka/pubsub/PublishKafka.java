@@ -104,6 +104,10 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
             "DefaultPartitioner", "Messages will be assigned to random partitions.");
 
+    static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
+    static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
+        "The key is interpreted as arbitrary binary data that is encoded using hexadecimal characters with uppercase letters.");
+
     static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name")
@@ -146,13 +150,21 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
             .name("kafka-key")
             .displayName("Kafka Key")
-            .description("The Key to use for the Message.  It will be serialized as UTF-8 bytes. "
-                    + "If not specified then the flow file attribute kafka.key.hex is used if present "
-                    + "and we're not demarcating. In that case the hex string is coverted to its byte"
-                    + "form and written as a byte[] key.")
+            .description("The Key to use for the Message. "
+                    + "If not specified, the flow file attribute 'kafka.key' is used as the message key, if it is present "
+                    + "and we're not demarcating.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
+            .build();
+
+    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
+            .name("key-attribute-encoding")
+            .displayName("Key Attribute Encoding")
+            .description("FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+            .required(true)
+            .defaultValue(UTF8_ENCODING.getValue())
+            .allowableValues(UTF8_ENCODING, HEX_ENCODING)
             .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -216,6 +228,7 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
         _descriptors.add(TOPIC);
         _descriptors.add(DELIVERY_GUARANTEE);
         _descriptors.add(KEY);
+        _descriptors.add(KEY_ATTRIBUTE_ENCODING);
         _descriptors.add(MESSAGE_DEMARCATOR);
         _descriptors.add(MAX_REQUEST_SIZE);
         _descriptors.add(META_WAIT_TIME);
@@ -449,26 +462,18 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
      * regardless if it has #FAILED* attributes set.
      */
     private PublishingContext buildPublishingContext(FlowFile flowFile, ProcessContext context, InputStream contentStream) {
-        String topicName;
-        byte[] keyBytes;
-        byte[] delimiterBytes = null;
+        final byte[] keyBytes = getMessageKey(flowFile, context);
+
+        final String topicName;
+        final byte[] delimiterBytes;
         int lastAckedMessageIndex = -1;
         if (this.isFailedFlowFile(flowFile)) {
             lastAckedMessageIndex = Integer.valueOf(flowFile.getAttribute(FAILED_LAST_ACK_IDX));
             topicName = flowFile.getAttribute(FAILED_TOPIC_ATTR);
-            keyBytes = flowFile.getAttribute(FAILED_KEY_ATTR) != null
-                    ? flowFile.getAttribute(FAILED_KEY_ATTR).getBytes(StandardCharsets.UTF_8) : null;
             delimiterBytes = flowFile.getAttribute(FAILED_DELIMITER_ATTR) != null
                     ? flowFile.getAttribute(FAILED_DELIMITER_ATTR).getBytes(StandardCharsets.UTF_8) : null;
-
         } else {
             topicName = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-            String _key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
-            keyBytes = _key == null ? null : _key.getBytes(StandardCharsets.UTF_8);
-            String keyHex = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_KEY_HEX);
-            if (_key == null && keyHex != null && KafkaProcessorUtils.HEX_KEY_PATTERN.matcher(keyHex).matches()) {
-                keyBytes = DatatypeConverter.parseHexBinary(keyHex);
-            }
             delimiterBytes = context.getProperty(MESSAGE_DEMARCATOR).isSet() ? context.getProperty(MESSAGE_DEMARCATOR)
                     .evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8) : null;
         }
@@ -478,6 +483,26 @@ public class PublishKafka extends AbstractSessionFactoryProcessor {
         publishingContext.setKeyBytes(keyBytes);
         publishingContext.setDelimiterBytes(delimiterBytes);
         return publishingContext;
+    }
+
+    private byte[] getMessageKey(final FlowFile flowFile, final ProcessContext context) {
+        final String uninterpretedKey;
+        if (context.getProperty(KEY).isSet()) {
+            uninterpretedKey = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
+        } else {
+            uninterpretedKey = flowFile.getAttribute(KafkaProcessorUtils.KAFKA_KEY);
+        }
+
+        if (uninterpretedKey == null) {
+            return null;
+        }
+
+        final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
+        if (UTF8_ENCODING.getValue().equals(keyEncoding)) {
+            return uninterpretedKey.getBytes(StandardCharsets.UTF_8);
+        }
+
+        return DatatypeConverter.parseHexBinary(uninterpretedKey);
     }
 
     /**

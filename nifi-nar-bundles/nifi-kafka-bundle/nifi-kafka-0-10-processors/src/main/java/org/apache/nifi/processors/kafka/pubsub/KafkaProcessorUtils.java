@@ -57,7 +57,7 @@ final class KafkaProcessorUtils {
 
     static final Pattern HEX_KEY_PATTERN = Pattern.compile("(?:[0123456789abcdefABCDEF]{2})+");
 
-    static final String KAFKA_KEY_HEX = "kafka.key.hex";
+    static final String KAFKA_KEY = "kafka.key";
     static final String KAFKA_TOPIC = "kafka.topic";
     static final String KAFKA_PARTITION = "kafka.partition";
     static final String KAFKA_OFFSET = "kafka.offset";

@@ -62,7 +62,8 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.SECURI
 @Tags({"Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.9.x"})
 @WritesAttributes({
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_COUNT, description = "The number of messages written if more than one"),
-    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_KEY_HEX, description = "The hex encoded key of message if present and if single message"),
+    @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_KEY, description = "The key of message if present and if single message. "
+        + "How the key is encoded depends on the value of the 'Key Attribute Encoding' property."),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_OFFSET, description = "The offset of the message in the partition of the topic."),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_PARTITION, description = "The partition of the topic the message or message bundle is from"),
     @WritesAttribute(attribute = KafkaProcessorUtils.KAFKA_TOPIC, description = "The topic the message or message bundle is from")
@@ -81,6 +82,10 @@ public class ConsumeKafka extends AbstractProcessor {
     static final AllowableValue OFFSET_LATEST = new AllowableValue("latest", "latest", "Automatically reset the offset to the latest offset");
 
     static final AllowableValue OFFSET_NONE = new AllowableValue("none", "none", "Throw exception to the consumer if no previous offset is found for the consumer's group");
+
+    static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
+    static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
+        "The key is interpreted as arbitrary binary data and is encoded using hexadecimal characters with uppercase letters");
 
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
@@ -108,6 +113,15 @@ public class ConsumeKafka extends AbstractProcessor {
             .required(true)
             .allowableValues(OFFSET_EARLIEST, OFFSET_LATEST, OFFSET_NONE)
             .defaultValue(OFFSET_LATEST.getValue())
+            .build();
+
+    static final PropertyDescriptor KEY_ATTRIBUTE_ENCODING = new PropertyDescriptor.Builder()
+            .name("key-attribute-encoding")
+            .displayName("Key Attribute Encoding")
+            .description("FlowFiles that are emitted have an attribute named '" + KafkaProcessorUtils.KAFKA_KEY + "'. This property dictates how the value of the attribute should be encoded.")
+            .required(true)
+            .defaultValue(UTF8_ENCODING.getValue())
+            .allowableValues(UTF8_ENCODING, HEX_ENCODING)
             .build();
 
     static final PropertyDescriptor MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
@@ -148,6 +162,7 @@ public class ConsumeKafka extends AbstractProcessor {
         descriptors.add(TOPICS);
         descriptors.add(GROUP_ID);
         descriptors.add(AUTO_OFFSET_RESET);
+        descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(MESSAGE_DEMARCATOR);
         descriptors.add(MAX_POLL_RECORDS);
         DESCRIPTORS = Collections.unmodifiableList(descriptors);
@@ -290,10 +305,24 @@ public class ConsumeKafka extends AbstractProcessor {
         }
     }
 
+    private String encodeKafkaKey(final byte[] key, final String encoding) {
+        if (key == null) {
+            return null;
+        }
+
+        if (HEX_ENCODING.getValue().equals(encoding)) {
+            return DatatypeConverter.printHexBinary(key);
+        } else if (UTF8_ENCODING.getValue().equals(encoding)) {
+            return new String(key, StandardCharsets.UTF_8);
+        } else {
+            return null;    // won't happen because it is guaranteed by the Allowable Values
+        }
+    }
+
     private void writeData(final ProcessContext context, final ProcessSession session, final List<ConsumerRecord<byte[], byte[]>> records, final long startTimeNanos) {
         final ConsumerRecord<byte[], byte[]> firstRecord = records.get(0);
         final String offset = String.valueOf(firstRecord.offset());
-        final String keyHex = (firstRecord.key() != null) ? DatatypeConverter.printHexBinary(firstRecord.key()) : null;
+        final String keyValue = encodeKafkaKey(firstRecord.key(), context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue());
         final String topic = firstRecord.topic();
         final String partition = String.valueOf(firstRecord.partition());
         FlowFile flowFile = session.create();
@@ -309,8 +338,8 @@ public class ConsumeKafka extends AbstractProcessor {
         });
         final Map<String, String> kafkaAttrs = new HashMap<>();
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_OFFSET, offset);
-        if (keyHex != null && records.size() == 1) {
-            kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY_HEX, keyHex);
+        if (keyValue != null && records.size() == 1) {
+            kafkaAttrs.put(KafkaProcessorUtils.KAFKA_KEY, keyValue);
         }
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_PARTITION, partition);
         kafkaAttrs.put(KafkaProcessorUtils.KAFKA_TOPIC, topic);
