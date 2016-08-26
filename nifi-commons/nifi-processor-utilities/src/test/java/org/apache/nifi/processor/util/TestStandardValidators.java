@@ -100,4 +100,122 @@ public class TestStandardValidators {
         vr = val.validate("DataSizeBounds", "water", validationContext);
         assertFalse(vr.isValid());
     }
+
+    @Test
+    public void testListValidator() {
+        Validator val = StandardValidators.createListValidator(true, false, StandardValidators.NON_EMPTY_VALIDATOR);
+        ValidationResult vr;
+
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+
+        vr = val.validate("List", null, validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "", validationContext);
+        assertFalse(vr.isValid());
+
+        // Whitespace will be trimmed
+        vr = val.validate("List", " ", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "1", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("List", "1,2,3", validationContext);
+        assertTrue(vr.isValid());
+
+        // The parser will not bother with whitespace after the last comma
+        vr = val.validate("List", "a,", validationContext);
+        assertTrue(vr.isValid());
+
+        // However it will bother if there is an empty element in the list (two commas in a row, e.g.)
+        vr = val.validate("List", "a,,c", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "a,  ,c, ", validationContext);
+        assertFalse(vr.isValid());
+
+        // Try without trim and use a non-blank validator instead of a non-empty one
+        val = StandardValidators.createListValidator(false, true, StandardValidators.NON_BLANK_VALIDATOR);
+
+        vr = val.validate("List", null, validationContext);
+        assertFalse(vr.isValid());
+
+        // Validator will ignore empty entries
+        vr = val.validate("List", "", validationContext);
+        assertTrue(vr.isValid());
+
+        // Whitespace will not be trimmed, but it is still invalid because a non-blank validator is used
+        vr = val.validate("List", " ", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "a,,c", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("List", "a,  ,c, ", validationContext);
+        assertFalse(vr.isValid());
+
+        // Try without trim and use a non-empty validator
+        val = StandardValidators.createListValidator(false, false, StandardValidators.NON_EMPTY_VALIDATOR);
+
+        vr = val.validate("List", null, validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "", validationContext);
+        assertFalse(vr.isValid());
+
+        // Whitespace will not be trimmed
+        vr = val.validate("List", " ", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("List", "a,  ,c, ", validationContext);
+        assertTrue(vr.isValid());
+
+        // Try with trim and use a boolean validator
+        val = StandardValidators.createListValidator(true, true, StandardValidators.BOOLEAN_VALIDATOR);
+        vr = val.validate("List", "notbool", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "    notbool \n   ", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("List", "true", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("List", "    true   \n   ", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("List", " , false,  true,\n", validationContext);
+        assertTrue(vr.isValid());
+    }
+
+    @Test
+    public void testCreateURLorFileValidator() {
+        Validator val = StandardValidators.createURLorFileValidator();
+        ValidationResult vr;
+
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+
+        vr = val.validate("URLorFile", null, validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("URLorFile", "", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("URLorFile", "http://nifi.apache.org", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("URLorFile", "http//nifi.apache.org", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("URLorFile", "nifi.apache.org", validationContext);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("URLorFile", "src/test/resources/this_file_exists.txt", validationContext);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("URLorFile", "src/test/resources/this_file_does_not_exist.txt", validationContext);
+        assertFalse(vr.isValid());
+
+    }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processor.util;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -146,7 +148,7 @@ public class StandardValidators {
             return new ValidationResult.Builder().subject(subject).input(value)
                     .valid(value != null && !value.trim().isEmpty())
                     .explanation(subject
-                    + " must contain at least one character that is not white space").build();
+                            + " must contain at least one character that is not white space").build();
         }
     };
 
@@ -379,6 +381,68 @@ public class StandardValidators {
         };
     }
 
+    public static Validator createURLorFileValidator() {
+        return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
+            try {
+                PropertyValue propertyValue = context.newPropertyValue(input);
+                String evaluatedInput = (propertyValue == null) ? input : propertyValue.evaluateAttributeExpressions().getValue();
+
+                boolean validUrl = true;
+
+                // First check to see if it is a valid URL
+                try {
+                    new URL(evaluatedInput);
+                } catch (MalformedURLException mue) {
+                    validUrl = false;
+                }
+
+                boolean validFile = true;
+                if (!validUrl) {
+                    // Check to see if it is a file and it exists
+                    final File file = new File(evaluatedInput);
+                    validFile = file.exists();
+                }
+
+                final boolean valid = validUrl || validFile;
+                final String reason = valid ? "Valid URL or file" : "Not a valid URL or file";
+                return new ValidationResult.Builder().subject(subject).input(input).explanation(reason).valid(valid).build();
+
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL or file").valid(false).build();
+            }
+        };
+    }
+
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries, Validator validator) {
+        return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+            try {
+                if (input == null) {
+                    return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
+                }
+                final String[] list = input.split(",");
+                for (String item : list) {
+                    String itemToValidate = trimEntries ? item.trim() : item;
+                    if(!StringUtils.isEmpty(itemToValidate) || !excludeEmptyEntries) {
+                        ValidationResult result = validator.validate(subject, itemToValidate, context);
+                        if (!result.isValid()) {
+                            return result;
+                        }
+                    }
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid List").valid(true).build();
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid list").valid(false).build();
+            }
+        };
+    }
+
     public static Validator createTimePeriodValidator(final long minTime, final TimeUnit minTimeUnit, final long maxTime, final TimeUnit maxTimeUnit) {
         return new TimePeriodValidator(minTime, minTimeUnit, maxTime, maxTimeUnit);
     }
@@ -443,10 +507,10 @@ public class StandardValidators {
      * Language will not support FlowFile Attributes but only System/JVM
      * Properties
      *
-     * @param minCapturingGroups minimum capturing groups allowed
-     * @param maxCapturingGroups maximum capturing groups allowed
+     * @param minCapturingGroups                 minimum capturing groups allowed
+     * @param maxCapturingGroups                 maximum capturing groups allowed
      * @param supportAttributeExpressionLanguage whether or not to support
-     * expression language
+     *                                           expression language
      * @return validator
      */
     public static Validator createRegexValidator(final int minCapturingGroups, final int maxCapturingGroups, final boolean supportAttributeExpressionLanguage) {
@@ -643,17 +707,17 @@ public class StandardValidators {
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             if (value.length() < minimum || value.length() > maximum) {
                 return new ValidationResult.Builder()
-                  .subject(subject)
-                  .valid(false)
-                  .input(value)
-                  .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
-                  .build();
+                        .subject(subject)
+                        .valid(false)
+                        .input(value)
+                        .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
+                        .build();
             } else {
                 return new ValidationResult.Builder()
-                  .valid(true)
-                  .input(value)
-                  .subject(subject)
-                  .build();
+                        .valid(true)
+                        .input(value)
+                        .subject(subject)
+                        .build();
             }
         }
     }

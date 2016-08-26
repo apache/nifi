@@ -27,10 +27,9 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -67,12 +66,13 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .expressionLanguageSupported(true)
         .build();
 
-    public static final PropertyDescriptor DB_DRIVER_JAR_URL = new PropertyDescriptor.Builder()
-        .name("Database Driver Jar Url")
-        .description("Optional database driver jar file path url. For example 'file:///var/tmp/mariadb-java-client-1.1.7.jar'")
+    public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
+        .name("database-driver-locations")
+        .displayName("Database Driver Location(s)")
+        .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
         .defaultValue(null)
         .required(false)
-        .addValidator(StandardValidators.URL_VALIDATOR)
+        .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
         .expressionLanguageSupported(true)
         .build();
 
@@ -120,7 +120,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(DATABASE_URL);
         props.add(DB_DRIVERNAME);
-        props.add(DB_DRIVER_JAR_URL);
+        props.add(DB_DRIVER_LOCATION);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
@@ -163,7 +163,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         dataSource.setDriverClassName(drv);
 
         // Optional driver URL, when exist, this URL will be used to locate driver jar file location
-        final String urlString = context.getProperty(DB_DRIVER_JAR_URL).evaluateAttributeExpressions().getValue();
+        final String urlString = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
         dataSource.setDriverClassLoader(getDriverClassLoader(urlString, drv));
 
         final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
@@ -182,22 +182,26 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      * @throws InitializationException
      *             if there is a problem obtaining the ClassLoader
      */
-    protected ClassLoader getDriverClassLoader(String urlString, String drvName) throws InitializationException {
-        if (urlString != null && urlString.length() > 0) {
+    protected ClassLoader getDriverClassLoader(String locationString, String drvName) throws InitializationException {
+        if (locationString != null && locationString.length() > 0) {
             try {
-                final URL[] urls = new URL[] { new URL(urlString) };
-                final URLClassLoader ucl = new URLClassLoader(urls);
+                // Split and trim the entries
+                final ClassLoader classLoader = ClassLoaderUtils.getCustomClassLoader(
+                        locationString,
+                        this.getClass().getClassLoader(),
+                        (dir, name) -> name != null && name.endsWith(".jar")
+                );
 
                 // Workaround which allows to use URLClassLoader for JDBC driver loading.
                 // (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.)
-                final Class<?> clazz = Class.forName(drvName, true, ucl);
+                final Class<?> clazz = Class.forName(drvName, true, classLoader);
                 if (clazz == null) {
                     throw new InitializationException("Can't load Database Driver " + drvName);
                 }
                 final Driver driver = (Driver) clazz.newInstance();
                 DriverManager.registerDriver(new DriverShim(driver));
 
-                return ucl;
+                return classLoader;
             } catch (final MalformedURLException e) {
                 throw new InitializationException("Invalid Database Driver Jar Url", e);
             } catch (final Exception e) {
