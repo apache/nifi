@@ -46,7 +46,6 @@
         <script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
         <script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
         <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
-        <script type="text/javascript" src="assets/angular-sanitize/angular-sanitize.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.bulletin.board.script.tags}
