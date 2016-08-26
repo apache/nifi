@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,24 +31,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
-
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ConsumeKafkaTest {
 
@@ -301,6 +302,7 @@ public class ConsumeKafkaTest {
 
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private ConsumerRecords<byte[], byte[]> createConsumerRecords(final String topic, final int partition, final long startingOffset, final byte[][] rawRecords) {
         final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> map = new HashMap<>();
         final TopicPartition tPart = new TopicPartition(topic, partition);
@@ -308,6 +310,23 @@ public class ConsumeKafkaTest {
         long offset = startingOffset;
         for (final byte[] rawRecord : rawRecords) {
             final ConsumerRecord<byte[], byte[]> rec = new ConsumerRecord(topic, partition, offset++, UUID.randomUUID().toString().getBytes(), rawRecord);
+            records.add(rec);
+        }
+        map.put(tPart, records);
+        return new ConsumerRecords(map);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private ConsumerRecords<byte[], byte[]> createConsumerRecords(final String topic, final int partition, final long startingOffset, final Map<byte[], byte[]> rawRecords) {
+        final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> map = new HashMap<>();
+        final TopicPartition tPart = new TopicPartition(topic, partition);
+        final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
+        long offset = startingOffset;
+
+        for (final Map.Entry<byte[], byte[]> entry : rawRecords.entrySet()) {
+            final byte[] key = entry.getKey();
+            final byte[] rawRecord = entry.getValue();
+            final ConsumerRecord<byte[], byte[]> rec = new ConsumerRecord(topic, partition, offset++, key, rawRecord);
             records.add(rec);
         }
         map.put(tPart, records);
@@ -492,5 +511,120 @@ public class ConsumeKafkaTest {
         assertTrue(mockPool.wasPoolClosed);
 
         assertNull(null, mockPool.actualCommitOffsets);
+    }
+
+    @Test
+    public void validateUtf8Key() {
+        String groupName = "validateGetAllMessages";
+
+        final Map<byte[], byte[]> rawRecords = new HashMap<>();
+        rawRecords.put("key1".getBytes(), "Hello-1".getBytes());
+        rawRecords.put(new byte[0], "Hello-2".getBytes());
+        rawRecords.put(null, "Hello-3".getBytes());
+
+        final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, rawRecords);
+
+        final List<String> expectedTopics = new ArrayList<>();
+        expectedTopics.add("foo");
+        expectedTopics.add("bar");
+        final MockConsumerPool mockPool = new MockConsumerPool(1, expectedTopics, Collections.emptyMap(), null);
+        mockPool.nextPlannedRecordsQueue.add(firstRecs);
+
+        ConsumeKafka proc = new ConsumeKafka() {
+            @Override
+            protected ConsumerPool createConsumerPool(final int maxLeases, final List<String> topics, final Map<String, String> props, final ComponentLog log) {
+                return mockPool;
+            }
+        };
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
+
+        runner.run(1, false);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.REL_SUCCESS);
+
+        assertEquals(expectedTopics, mockPool.actualTopics);
+
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-1")).count());
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-2")).count());
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-3")).count());
+
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> "key1".equals(key)).count());
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> key == null).count());
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> "".equals(key)).count());
+
+
+        //asert that all consumers were closed as expected
+        //assert that the consumer pool was properly closed
+        assertFalse(mockPool.wasConsumerLeasePoisoned);
+        assertTrue(mockPool.wasConsumerLeaseClosed);
+        assertFalse(mockPool.wasPoolClosed);
+        runner.run(1, true);
+        assertFalse(mockPool.wasConsumerLeasePoisoned);
+        assertTrue(mockPool.wasConsumerLeaseClosed);
+        assertTrue(mockPool.wasPoolClosed);
+    }
+
+    @Test
+    public void validateHexKey() {
+        String groupName = "validateGetAllMessages";
+
+        final Map<byte[], byte[]> rawRecords = new HashMap<>();
+        rawRecords.put("key1".getBytes(), "Hello-1".getBytes());
+        rawRecords.put(new byte[0], "Hello-2".getBytes());
+        rawRecords.put(null, "Hello-3".getBytes());
+
+        final ConsumerRecords<byte[], byte[]> firstRecs = createConsumerRecords("foo", 1, 1L, rawRecords);
+
+        final List<String> expectedTopics = new ArrayList<>();
+        expectedTopics.add("foo");
+        expectedTopics.add("bar");
+        final MockConsumerPool mockPool = new MockConsumerPool(1, expectedTopics, Collections.emptyMap(), null);
+        mockPool.nextPlannedRecordsQueue.add(firstRecs);
+
+        ConsumeKafka proc = new ConsumeKafka() {
+            @Override
+            protected ConsumerPool createConsumerPool(final int maxLeases, final List<String> topics, final Map<String, String> props, final ComponentLog log) {
+                return mockPool;
+            }
+        };
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka.TOPICS, "foo,bar");
+        runner.setProperty(ConsumeKafka.GROUP_ID, groupName);
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
+        runner.setProperty(ConsumeKafka.KEY_ATTRIBUTE_ENCODING, ConsumeKafka.HEX_ENCODING);
+
+        runner.run(1, false);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.REL_SUCCESS);
+
+        assertEquals(expectedTopics, mockPool.actualTopics);
+
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-1")).count());
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-2")).count());
+        assertEquals(1, flowFiles.stream().map(ff -> new String(ff.toByteArray())).filter(content -> content.equals("Hello-3")).count());
+
+        final String expectedHex = (Integer.toHexString('k') + Integer.toHexString('e') + Integer.toHexString('y') + Integer.toHexString('1')).toUpperCase();
+
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> expectedHex.equals(key)).count());
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> key == null).count());
+        assertEquals(1, flowFiles.stream().map(ff -> ff.getAttribute(KafkaProcessorUtils.KAFKA_KEY)).filter(key -> "".equals(key)).count());
+
+
+        //asert that all consumers were closed as expected
+        //assert that the consumer pool was properly closed
+        assertFalse(mockPool.wasConsumerLeasePoisoned);
+        assertTrue(mockPool.wasConsumerLeaseClosed);
+        assertFalse(mockPool.wasPoolClosed);
+        runner.run(1, true);
+        assertFalse(mockPool.wasConsumerLeasePoisoned);
+        assertTrue(mockPool.wasConsumerLeaseClosed);
+        assertTrue(mockPool.wasPoolClosed);
     }
 }

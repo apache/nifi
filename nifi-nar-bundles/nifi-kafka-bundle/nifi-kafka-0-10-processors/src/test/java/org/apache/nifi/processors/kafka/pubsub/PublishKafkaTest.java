@@ -17,6 +17,10 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -325,5 +329,47 @@ public class PublishKafkaTest {
         Producer<byte[], byte[]> producer = putKafka.getProducer();
         verify(producer, times(2)).send(Mockito.any(ProducerRecord.class));
         runner.shutdown();
+    }
+
+    @Test
+    public void validateUtf8Key() {
+        String topicName = "validateUtf8Key";
+        StubPublishKafka putKafka = new StubPublishKafka(100);
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PublishKafka_0_10.TOPIC, topicName);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(PublishKafka_0_10.KEY, "${myKey}");
+
+        final Map<String, String> attributes = Collections.singletonMap("myKey", "key1");
+        runner.enqueue("Hello World".getBytes(StandardCharsets.UTF_8), attributes);
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PublishKafka_0_10.REL_SUCCESS, 1);
+        final Map<Object, Object> msgs = putKafka.getMessagesSent();
+        assertEquals(1, msgs.size());
+        final byte[] msgKey = (byte[]) msgs.keySet().iterator().next();
+        assertTrue(Arrays.equals("key1".getBytes(StandardCharsets.UTF_8), msgKey));
+    }
+
+    @Test
+    public void validateHexKey() {
+        String topicName = "validateUtf8Key";
+        StubPublishKafka putKafka = new StubPublishKafka(100);
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PublishKafka_0_10.TOPIC, topicName);
+        runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(PublishKafka_0_10.KEY_ATTRIBUTE_ENCODING, PublishKafka_0_10.HEX_ENCODING);
+        runner.setProperty(PublishKafka_0_10.KEY, "${myKey}");
+
+        final Map<String, String> attributes = Collections.singletonMap("myKey", "6B657931");
+        runner.enqueue("Hello World".getBytes(StandardCharsets.UTF_8), attributes);
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PublishKafka_0_10.REL_SUCCESS, 1);
+        final Map<Object, Object> msgs = putKafka.getMessagesSent();
+        assertEquals(1, msgs.size());
+        final byte[] msgKey = (byte[]) msgs.keySet().iterator().next();
+
+        assertTrue(Arrays.equals(new byte[] {0x6B, 0x65, 0x79, 0x31}, msgKey));
     }
 }

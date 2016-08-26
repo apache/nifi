@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,6 +54,7 @@ public class StubPublishKafka extends PublishKafka_0_10 {
     private final int ackCheckSize;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Map<Object, Object> msgsSent = new ConcurrentHashMap<>();
 
     StubPublishKafka(int ackCheckSize) {
         this.ackCheckSize = ackCheckSize;
@@ -64,6 +66,10 @@ public class StubPublishKafka extends PublishKafka_0_10 {
 
     public void destroy() {
         this.executor.shutdownNow();
+    }
+
+    public Map<Object, Object> getMessagesSent() {
+        return new HashMap<>(msgsSent);
     }
 
     @SuppressWarnings("unchecked")
@@ -107,7 +113,11 @@ public class StubPublishKafka extends PublishKafka_0_10 {
         when(producer.send(Mockito.any(ProducerRecord.class))).then(new Answer<Future<RecordMetadata>>() {
             @Override
             public Future<RecordMetadata> answer(InvocationOnMock invocation) throws Throwable {
-                ProducerRecord<byte[], byte[]> record = (ProducerRecord<byte[], byte[]>) invocation.getArguments()[0];
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                if (record != null && record.key() != null) {
+                    msgsSent.put(record.key(), record.value());
+                }
+
                 String value = new String(record.value(), StandardCharsets.UTF_8);
                 if ("fail".equals(value) && !StubPublishKafka.this.failed) {
                     StubPublishKafka.this.failed = true;

@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import java.lang.reflect.Field;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.BOOTSTRAP_SERVERS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -38,9 +41,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.BOOTSTRAP_SERVERS;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -53,6 +54,7 @@ public class StubPublishKafka extends PublishKafka {
     private final int ackCheckSize;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Map<Object, Object> msgsSent = new ConcurrentHashMap<>();
 
     StubPublishKafka(int ackCheckSize) {
         this.ackCheckSize = ackCheckSize;
@@ -64,6 +66,10 @@ public class StubPublishKafka extends PublishKafka {
 
     public void destroy() {
         this.executor.shutdownNow();
+    }
+
+    public Map<Object, Object> getMessagesSent() {
+        return new HashMap<>(msgsSent);
     }
 
     @SuppressWarnings("unchecked")
@@ -82,6 +88,7 @@ public class StubPublishKafka extends PublishKafka {
             publisher = (KafkaPublisher) TestUtils.getUnsafe().allocateInstance(KafkaPublisher.class);
             publisher.setAckWaitTime(15000);
             producer = mock(Producer.class);
+
             this.instrumentProducer(producer, false);
             Field kf = KafkaPublisher.class.getDeclaredField("kafkaProducer");
             kf.setAccessible(true);
@@ -107,7 +114,11 @@ public class StubPublishKafka extends PublishKafka {
         when(producer.send(Mockito.any(ProducerRecord.class))).then(new Answer<Future<RecordMetadata>>() {
             @Override
             public Future<RecordMetadata> answer(InvocationOnMock invocation) throws Throwable {
-                ProducerRecord<byte[], byte[]> record = (ProducerRecord<byte[], byte[]>) invocation.getArguments()[0];
+                final ProducerRecord<byte[], byte[]> record = invocation.getArgumentAt(0, ProducerRecord.class);
+                if (record != null && record.key() != null) {
+                    msgsSent.put(record.key(), record.value());
+                }
+
                 String value = new String(record.value(), StandardCharsets.UTF_8);
                 if ("fail".equals(value) && !StubPublishKafka.this.failed) {
                     StubPublishKafka.this.failed = true;
