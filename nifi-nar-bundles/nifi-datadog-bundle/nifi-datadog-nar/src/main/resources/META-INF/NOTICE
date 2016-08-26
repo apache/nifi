@@ -10,7 +10,7 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
-  (ASLv2) Yammer Metrics
+  (ASLv2) Metrics
     The following NOTICE information applies:
       Metrics
       Copyright 2010-2012 Coda Hale and Yammer, Inc.
@@ -23,6 +23,43 @@ The following binary components are provided under the Apache Software License v
           Written by Doug Lea with assistance from members of JCP JSR-166
           Expert Group and released to the public domain, as explained at
           http://creativecommons.org/publicdomain/zero/1.0/
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache HttpComponents Client
+    The following NOTICE information applies:
+      Apache HttpComponents Client
+      Copyright 1999-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2014 The Apache Software Foundation
 
 ************************
 Common Development and Distribution License 1.1

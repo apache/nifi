@@ -999,17 +999,19 @@ The following binary components are provided under the Apache Software License v
         Progress Software Corporation and/or its  subsidiaries or affiliates.
       * This product includes software developed by IBM Corporation and others.
 
-  (ASLv2) Dropwizard Metrics
-      The following NOTICE information applies:
-        Metrics
-        Copyright 2010-2013 Coda Hale and Yammer, Inc.
+  (ASLv2) Metrics
+    The following NOTICE information applies:
+      Metrics
+      Copyright 2010-2012 Coda Hale and Yammer, Inc.
 
-        This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
-        LongAdder), which was released with the following comments:
+      This product includes software developed by Coda Hale and Yammer, Inc.
 
-            Written by Doug Lea with assistance from members of JCP JSR-166
-            Expert Group and released to the public domain, as explained at
-            http://creativecommons.org/publicdomain/zero/1.0/
+      This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
+      with the following comments:
+
+          Written by Doug Lea with assistance from members of JCP JSR-166
+          Expert Group and released to the public domain, as explained at
+          http://creativecommons.org/publicdomain/zero/1.0/
 
 This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
 Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
