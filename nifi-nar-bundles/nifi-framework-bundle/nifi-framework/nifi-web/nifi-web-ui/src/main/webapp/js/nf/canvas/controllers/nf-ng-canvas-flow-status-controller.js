@@ -17,7 +17,7 @@
 
 /* global nf, d3 */
 
-nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
+nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
     'use strict';
 
     var config = {
@@ -364,7 +364,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                     }
                 }
                 this.connectedNodesCount =
-                    nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? $sanitize(clusterSummary.connectedNodes) : '-';
+                    nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? clusterSummary.connectedNodes : '-';
             } else {
                 this.connectedNodesCount = 'Disconnected';
                 color = '#BA554A';
@@ -386,29 +386,29 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
             $('#controller-invalid-count').parent().css('color', controllerInvalidCountColor);
 
             // update the report values
-            this.activeThreadCount = $sanitize(status.activeThreadCount);
-            this.totalQueued = $sanitize(status.queued);
+            this.activeThreadCount = status.activeThreadCount;
+            this.totalQueued = status.queued;
 
             // update the component counts
             this.controllerTransmittingCount =
                 nf.Common.isDefinedAndNotNull(status.activeRemotePortCount) ?
-                    $sanitize(status.activeRemotePortCount) : '-';
+                    status.activeRemotePortCount : '-';
 
             this.controllerNotTransmittingCount =
                 nf.Common.isDefinedAndNotNull(status.inactiveRemotePortCount) ?
-                    $sanitize(status.inactiveRemotePortCount) : '-';
+                    status.inactiveRemotePortCount : '-';
 
             this.controllerRunningCount =
-                nf.Common.isDefinedAndNotNull(status.runningCount) ? $sanitize(status.runningCount) : '-';
+                nf.Common.isDefinedAndNotNull(status.runningCount) ? status.runningCount : '-';
 
             this.controllerStoppedCount =
-                nf.Common.isDefinedAndNotNull(status.stoppedCount) ? $sanitize(status.stoppedCount) : '-';
+                nf.Common.isDefinedAndNotNull(status.stoppedCount) ? status.stoppedCount : '-';
 
             this.controllerInvalidCount =
-                nf.Common.isDefinedAndNotNull(status.invalidCount) ? $sanitize(status.invalidCount) : '-';
+                nf.Common.isDefinedAndNotNull(status.invalidCount) ? status.invalidCount : '-';
 
             this.controllerDisabledCount =
-                nf.Common.isDefinedAndNotNull(status.disabledCount) ? $sanitize(status.disabledCount) : '-';
+                nf.Common.isDefinedAndNotNull(status.disabledCount) ? status.disabledCount : '-';
 
         },
 

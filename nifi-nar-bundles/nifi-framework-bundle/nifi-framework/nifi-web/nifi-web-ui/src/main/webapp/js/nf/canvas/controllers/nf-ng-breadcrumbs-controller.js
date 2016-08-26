@@ -17,7 +17,7 @@
 
 /* global nf, d3 */
 
-nf.ng.BreadcrumbsCtrl = function (serviceProvider, $sanitize) {
+nf.ng.BreadcrumbsCtrl = function (serviceProvider) {
     'use strict';
 
     function BreadcrumbsCtrl() {
