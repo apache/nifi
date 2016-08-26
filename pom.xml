@@ -1301,6 +1301,9 @@ language governing permissions and limitations under the License. -->
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.18</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <java.awt.headless>true</java.awt.headless>
+                        </systemPropertyVariables>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx2G -Djava.net.preferIPv4Stack=true</argLine>
                     </configuration>
