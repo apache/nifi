@@ -151,7 +151,7 @@ public class PublishKafka_0_10 extends AbstractSessionFactoryProcessor {
             .name("kafka-key")
             .displayName("Kafka Key")
             .description("The Key to use for the Message.  It will be serialized as UTF-8 bytes. "
-                    + "If not specified then the flow file attribute kafka.key.hex is used if present "
+                    + "If not specified then the flow file attribute kafka.key is used if present "
                     + "and we're not demarcating. In that case the hex string is coverted to its byte"
                     + "form and written as a byte[] key.")
             .required(false)
