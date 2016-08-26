@@ -34,13 +34,11 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import sun.net.www.protocol.https.HttpsURLConnectionImpl
 
 import javax.crypto.Cipher
 import javax.net.SocketFactory
@@ -50,8 +48,6 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
-import java.nio.charset.StandardCharsets
-import java.security.KeyStore
 import java.security.Security
 
 @RunWith(JUnit4.class)
@@ -71,11 +67,11 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
     private static final String POST_URL = "${HTTPS_URL}/PostHandler.groovy"
 
-    private static String keystorePath = "src/test/resources/localhost-ks.jks"
-    private static String truststorePath = "src/test/resources/localhost-ts.jks"
+    private static final String KEYSTORE_PATH = "src/test/resources/localhost-ks.jks"
+    private static final String TRUSTSTORE_PATH = "src/test/resources/localhost-ts.jks"
 
-    private static String keystorePassword = "localtest"
-    private static String truststorePassword = "localtest"
+    private static final String KEYSTORE_PASSWORD = "localtest"
+    private static final String TRUSTSTORE_PASSWORD = "localtest"
 
     private static Server server
     private static X509TrustManager nullTrustManager
@@ -130,9 +126,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         contextFactory.needClientAuth = false
         contextFactory.wantClientAuth = false
 
-        contextFactory.setKeyStorePath(keystorePath)
+        contextFactory.setKeyStorePath(KEYSTORE_PATH)
         contextFactory.setKeyStoreType(KEYSTORE_TYPE)
-        contextFactory.setKeyStorePassword(keystorePassword)
+        contextFactory.setKeyStorePassword(KEYSTORE_PASSWORD)
 
         contextFactory.setIncludeProtocols(supportedProtocols as String[])
         contextFactory
@@ -167,8 +163,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner = TestRunners.newTestRunner(PostHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -266,11 +262,27 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         assert response == MSG.reverse()
     }
 
+    /**
+     * This test asserts the default TLS version is TLSv1.2, but this only accurate for Java 8 and above. For Java 7, the default is TLSv1.
+     */
     @Test
     public void testDefaultShouldPreferTLSv1_2() {
         // Arrange
         final String MSG = "This is a test message"
         final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
+
+        // Determine expected default TLS version based on Java version
+        logger.info("System Java Version: ${System.getProperty("java.version")}")
+        logger.info("Implementation version: ${Runtime.getPackage().getImplementationVersion()}")
+        logger.info("Specification version: ${Runtime.getPackage().getSpecificationVersion()}")
+        String EXPECTED_TLS_VERSION
+        if ((Runtime.getPackage().getSpecificationVersion() as double) > 1.7) {
+            logger.info("Java 8 or above; default TLS version is TLSv1.2")
+            EXPECTED_TLS_VERSION = TLSv1_2
+        } else {
+            logger.info("Java 7 or below; default TLS version is TLSv1")
+            EXPECTED_TLS_VERSION = TLSv1
+        }
 
         // Configure server with all TLS protocols
         server = createServer()
@@ -293,14 +305,14 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         logger.info("Selected protocol: ${selectedProtocol}")
 
         // Assert
-        assert selectedProtocol == TLSv1_2
+        assert selectedProtocol == EXPECTED_TLS_VERSION
     }
 
     private static void enableContextServiceProtocol(TestRunner runner, String protocol) {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, protocol)
         runner.enableControllerService(sslContextService)
