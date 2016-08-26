@@ -45,10 +45,9 @@ nf.ng.BreadcrumbsCtrl = function (serviceProvider, $sanitize) {
             if (breadcrumbEntity.permissions.canRead) {
                 label = breadcrumbEntity.breadcrumb.name;
             }
-            
-            //explicitly sanitize processGroup.name
+
             this.breadcrumbs.unshift($.extend({
-                'label': $sanitize(label)
+                'label': label
             }, breadcrumbEntity));
 
             if (nf.Common.isDefinedAndNotNull(breadcrumbEntity.parentBreadcrumb)) {
