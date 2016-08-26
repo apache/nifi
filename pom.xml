@@ -1435,6 +1435,9 @@ language governing permissions and limitations under the License. -->
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.18</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <java.awt.headless>true</java.awt.headless>
+                        </systemPropertyVariables>
                         <includes>
                             <include>**/*Test.class</include>
                             <include>**/Test*.class</include>
