@@ -64,6 +64,7 @@ import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
+import org.apache.nifi.provenance.lucene.CachingIndexManager;
 import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.search.Query;
@@ -496,16 +497,16 @@ public class TestPersistentProvenanceRepository {
 
         final CountDownLatch obtainIndexSearcherLatch = new CountDownLatch(2);
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
-            private IndexManager wrappedManager = null;
+            private CachingIndexManager wrappedManager = null;
 
             // Create an IndexManager that adds a delay before returning the Index Searcher.
             @Override
-            protected synchronized IndexManager getIndexManager() {
+            protected synchronized CachingIndexManager getIndexManager() {
                 if (wrappedManager == null) {
                     final IndexManager mgr = super.getIndexManager();
                     final Logger logger = LoggerFactory.getLogger("IndexManager");
 
-                    wrappedManager = new IndexManager() {
+                    wrappedManager = new CachingIndexManager() {
                         final AtomicInteger indexSearcherCount = new AtomicInteger(0);
 
                         @Override
