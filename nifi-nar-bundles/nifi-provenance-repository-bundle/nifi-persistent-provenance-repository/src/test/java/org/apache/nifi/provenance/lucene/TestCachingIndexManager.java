@@ -42,15 +42,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestIndexManager {
+public class TestCachingIndexManager {
 
     private File indexDir;
-    private IndexManager manager;
+    private CachingIndexManager manager;
 
     @Before
     public void setup() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
-        manager = new IndexManager();
+        manager = new CachingIndexManager();
 
         indexDir = new File("target/testIndexManager/" + UUID.randomUUID().toString());
         indexDir.mkdirs();
