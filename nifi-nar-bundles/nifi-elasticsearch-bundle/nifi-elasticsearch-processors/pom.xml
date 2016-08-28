@@ -92,7 +92,7 @@ language governing permissions and limitations under the License. -->
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/DocumentExample.json</exclude>
+                        <exclude>src/test/resources/*.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
