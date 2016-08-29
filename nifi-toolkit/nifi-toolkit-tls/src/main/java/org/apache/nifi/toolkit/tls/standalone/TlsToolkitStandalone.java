@@ -132,7 +132,7 @@ public class TlsToolkitStandalone {
         boolean overwrite = standaloneConfig.isOverwrite();
 
         List<InstanceDefinition> instanceDefinitions = standaloneConfig.getInstanceDefinitions();
-        if (!instanceDefinitions.isEmpty() && logger.isInfoEnabled()) {
+        if (instanceDefinitions.isEmpty() && logger.isInfoEnabled()) {
             logger.info("No " + TlsToolkitStandaloneCommandLine.HOSTNAMES_ARG + " specified, not generating any host certificates or configuration.");
         }
         for (InstanceDefinition instanceDefinition : instanceDefinitions) {
