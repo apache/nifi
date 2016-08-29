@@ -491,6 +491,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 } else {
                     try {
                         loadFromConnectionResponse(response);
+                        dao.save(controller, true);
                     } catch (final Exception e) {
                         logger.error("Failed to load flow from cluster due to: " + e, e);
                         handleConnectionFailure(e);
