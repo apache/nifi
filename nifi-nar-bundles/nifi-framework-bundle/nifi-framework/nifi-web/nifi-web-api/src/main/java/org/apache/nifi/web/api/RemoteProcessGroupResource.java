@@ -299,7 +299,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final RemoteProcessGroupPortDTO remoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
 
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, remoteProcessGroupPort.getId(), remoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupInputPort(revision, id, remoteProcessGroupPort);
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
@@ -401,7 +401,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     final RemoteProcessGroupPortDTO remoteProcessGroupPort = remoteProcessGroupPortEntity.getRemoteProcessGroupPort();
 
                     // update the specified remote process group
-                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, remoteProcessGroupPort.getId(), remoteProcessGroupPort);
+                    final RemoteProcessGroupPortEntity controllerResponse = serviceFacade.updateRemoteProcessGroupOutputPort(revision, id, remoteProcessGroupPort);
 
                     // get the updated revision
                     final RevisionDTO updatedRevision = controllerResponse.getRevision();
