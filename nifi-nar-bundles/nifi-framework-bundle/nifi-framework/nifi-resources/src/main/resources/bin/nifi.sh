@@ -264,12 +264,12 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
+    RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && exec ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
 
     if [ "$1" = "start" ]; then
         (eval $RUN_NIFI_CMD $@ &)
     else
-        (eval $RUN_NIFI_CMD $@)
+        eval $RUN_NIFI_CMD $@
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
