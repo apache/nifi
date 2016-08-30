@@ -226,6 +226,9 @@ public class CountersResource extends ApplicationResource {
     )
     public Response updateCounter(
             @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The id of the counter."
+            )
             @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
@@ -244,7 +247,7 @@ public class CountersResource extends ApplicationResource {
                 null,
                 (componentEntity) -> {
                     // reset the specified counter
-                    final CounterDTO counter = serviceFacade.updateCounter(requestComponentEntity.getId());
+                    final CounterDTO counter = serviceFacade.updateCounter(componentEntity.getId());
 
                     // create the response entity
                     final CounterEntity entity = new CounterEntity();
