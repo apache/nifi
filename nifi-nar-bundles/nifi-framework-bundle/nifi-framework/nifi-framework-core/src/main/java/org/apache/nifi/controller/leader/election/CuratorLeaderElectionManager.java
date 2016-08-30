@@ -137,9 +137,14 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         registeredRoles.remove(roleName);
 
         final LeaderRole leaderRole = leaderRoles.remove(roleName);
+        if (leaderRole == null) {
+            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            return;
+        }
+
         final LeaderSelector leaderSelector = leaderRole.getLeaderSelector();
         if (leaderSelector == null) {
-            logger.warn("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
             return;
         }
 

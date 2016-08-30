@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.spring;
 
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.node.NodeClusterCoordinator;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
@@ -44,8 +45,9 @@ public class NodeClusterCoordinatorFactoryBean implements FactoryBean<NodeCluste
             final ClusterNodeFirewall clusterFirewall = applicationContext.getBean("clusterFirewall", ClusterNodeFirewall.class);
             final RevisionManager revisionManager = applicationContext.getBean("revisionManager", RevisionManager.class);
             final LeaderElectionManager electionManager = applicationContext.getBean("leaderElectionManager", LeaderElectionManager.class);
+            final FlowElection flowElection = applicationContext.getBean("flowElection", FlowElection.class);
 
-            nodeClusterCoordinator = new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, clusterFirewall, revisionManager, properties);
+            nodeClusterCoordinator = new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, clusterFirewall, revisionManager, properties);
         }
 
         return nodeClusterCoordinator;

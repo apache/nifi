@@ -30,7 +30,11 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
+import org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElection;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +45,22 @@ public class Cluster {
     private final Set<Node> nodes = new HashSet<>();
     private final TestingServer zookeeperServer;
 
+    private final long flowElectionTimeoutMillis;
+    private final Integer flowElectionMaxNodes;
+
     public Cluster() throws IOException {
+        this(3, TimeUnit.SECONDS, 3);
+    }
+
+    public Cluster(final long flowElectionTimeout, final TimeUnit flowElectionTimeUnit, final Integer flowElectionMaxNodes) throws IOException {
         try {
             zookeeperServer = new TestingServer();
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
+
+        this.flowElectionTimeoutMillis = flowElectionTimeUnit.toMillis(flowElectionTimeout);
+        this.flowElectionMaxNodes = flowElectionMaxNodes;
     }
 
 
@@ -116,7 +130,11 @@ public class Cluster {
         addProps.put(NiFiProperties.CLUSTER_IS_NODE, "true");
 
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", addProps);
-        final Node node = new Node(nifiProperties);
+
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(StringEncryptor.createEncryptor(nifiProperties));
+        final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
+
+        final Node node = new Node(nifiProperties, flowElection);
         node.start();
         nodes.add(node);
 

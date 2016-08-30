@@ -16,12 +16,39 @@
  */
 package org.apache.nifi.web.api;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -34,8 +61,10 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -58,37 +87,12 @@ import org.apache.nifi.web.security.util.CacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 
 /**
  * Base class for controllers.
@@ -120,6 +124,7 @@ public abstract class ApplicationResource {
     protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
+    private FlowController flowController;
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
     private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
@@ -393,6 +398,8 @@ public abstract class ApplicationResource {
         if (!properties.isNode()) {
             return false;
         }
+
+        ensureFlowInitialized();
 
         // If not connected to the cluster, we do not replicate
         if (!isConnectedToCluster()) {
@@ -753,6 +760,12 @@ public abstract class ApplicationResource {
         return replicate(method, entity, nodeUuid, null);
     }
 
+    private void ensureFlowInitialized() {
+        if (!flowController.isInitialized()) {
+            throw new IllegalClusterStateException("Cluster is still in the process of voting on the appropriate Data Flow.");
+        }
+    }
+
     /**
      * Replicates the request to the given node
      *
@@ -772,6 +785,8 @@ public abstract class ApplicationResource {
         if (nodeId == null) {
             throw new UnknownNodeException("Cannot replicate request " + method + " " + getAbsolutePath() + " to node with ID " + nodeUuid + " because the specified node does not exist.");
         }
+
+        ensureFlowInitialized();
 
         final URI path = getAbsolutePath();
         try {
@@ -812,6 +827,8 @@ public abstract class ApplicationResource {
     }
 
     protected Response replicate(final String method, final NodeIdentifier targetNode, final Object entity) {
+        ensureFlowInitialized();
+
         try {
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
             // to the cluster nodes themselves.
@@ -828,6 +845,8 @@ public abstract class ApplicationResource {
     }
 
     protected Response replicateToCoordinator(final String method, final Object entity) {
+        ensureFlowInitialized();
+
         try {
             final NodeIdentifier coordinatorNode = getClusterCoordinatorNode();
             final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
@@ -906,6 +925,8 @@ public abstract class ApplicationResource {
      * @see #replicate(String, Object, Map)
      */
     protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
+        ensureFlowInitialized();
+
         final URI path = getAbsolutePath();
         final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
 
@@ -935,6 +956,8 @@ public abstract class ApplicationResource {
     }
 
     protected RequestReplicator getRequestReplicator() {
+        ensureFlowInitialized();
+
         return requestReplicator;
     }
 
@@ -948,6 +971,10 @@ public abstract class ApplicationResource {
 
     protected ClusterCoordinator getClusterCoordinator() {
         return clusterCoordinator;
+    }
+
+    public void setFlowController(final FlowController flowController) {
+        this.flowController = flowController;
     }
 
     protected NiFiProperties getProperties() {

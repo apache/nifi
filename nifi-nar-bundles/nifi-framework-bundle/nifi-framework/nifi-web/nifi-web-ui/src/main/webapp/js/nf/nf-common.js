@@ -407,6 +407,8 @@ nf.Common = (function () {
                     $('#message-title').text('Unauthorized');
                 } else if (xhr.status === 403) {
                     $('#message-title').text('Access Denied');
+                } else if (xhr.status === 409) {
+                    $('#message-title').text('Invalid State');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
                 }

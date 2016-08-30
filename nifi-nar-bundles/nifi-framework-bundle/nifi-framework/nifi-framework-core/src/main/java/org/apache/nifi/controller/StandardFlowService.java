@@ -446,7 +446,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
              * and heartbeat until a manager is located.
              */
             final boolean localFlowEmpty = StandardFlowSynchronizer.isEmpty(proposedFlow);
-            final ConnectionResponse response = connect(localFlowEmpty, localFlowEmpty);
+            final ConnectionResponse response = connect(true, localFlowEmpty, proposedFlow);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't
             // obtain the lock before calling connect(), though, or we will end up getting a deadlock
@@ -454,7 +454,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             // flow, as that requires a read lock.
             writeLock.lock();
             try {
-                if (response == null) {
+                if (response == null || response.shouldTryLater()) {
                     logger.info("Flow controller will load local dataflow and suspend connection handshake until a cluster connection response is received.");
 
                     // load local proposed flow
@@ -523,6 +523,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
         clusterCoordinator.disconnectionRequestedByNode(getNodeId(), disconnectionCode, ex.toString());
         controller.setClustered(false, null);
+        clusterCoordinator.setConnected(false);
     }
 
     private FlowResponseMessage handleFlowRequest(final FlowRequestMessage request) throws ProtocolException {
@@ -587,8 +588,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             logger.info("Processing reconnection request from manager.");
 
             // reconnect
-            final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
+            ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
                     request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
+
+            if (connectionResponse.getDataFlow() == null) {
+                logger.info("Received a Reconnection Request that contained no DataFlow. Will attempt to connect to cluster using local flow.");
+                connectionResponse = connect(false, false, createDataFlow());
+            }
 
             loadFromConnectionResponse(connectionResponse);
 
@@ -747,13 +753,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         return templates;
     }
 
-    private ConnectionResponse connect(final boolean retryOnCommsFailure, final boolean retryIndefinitely) throws ConnectionException {
+    private ConnectionResponse connect(final boolean retryOnCommsFailure, final boolean retryIndefinitely, final DataFlow dataFlow) throws ConnectionException {
         readLock.lock();
         try {
             logger.info("Connecting Node: " + nodeId);
 
             // create connection request message
-            final ConnectionRequest request = new ConnectionRequest(nodeId);
+            final ConnectionRequest request = new ConnectionRequest(nodeId, dataFlow);
             final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
             requestMsg.setConnectionRequest(request);
 
@@ -772,19 +778,21 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             for (int i = 0; i < maxAttempts || retryIndefinitely; i++) {
                 try {
                     response = senderListener.requestConnection(requestMsg).getConnectionResponse();
-                    if (response.getRejectionReason() != null) {
-                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
-                        // set response to null and treat a firewall blockage the same as getting no response from manager
-                        response = null;
-                        break;
-                    } else if (response.shouldTryLater()) {
-                        logger.info("Flow controller requested by cluster coordinator to retry connection in " + response.getTryLaterSeconds() + " seconds.");
+
+                    if (response.shouldTryLater()) {
+                        logger.info("Requested by cluster coordinator to retry connection in " + response.getTryLaterSeconds() + " seconds with explanation: " + response.getRejectionReason());
                         try {
                             Thread.sleep(response.getTryLaterSeconds() * 1000);
                         } catch (final InterruptedException ie) {
                             // we were interrupted, so finish quickly
+                            Thread.currentThread().interrupt();
                             break;
                         }
+                    } else if (response.getRejectionReason() != null) {
+                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
+                        // set response to null and treat a firewall blockage the same as getting no response from manager
+                        response = null;
+                        break;
                     } else {
                         // we received a successful connection response from manager
                         break;
@@ -824,7 +832,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 // if response is null, then either we had IO problems or we were blocked by firewall or we couldn't determine manager's address
                 return response;
             } else if (response.shouldTryLater()) {
-                // if response indicates we should try later, then manager was unable to service our request. Just load local flow and move on.
+                // if response indicates we should try later, then coordinator was unable to service our request. Just load local flow and move on.
+                // when the cluster coordinator is able to service requests, this node's heartbeat will trigger the cluster coordinator to reach
+                // out to this node and re-connect to the cluster.
+                logger.info("Received a 'try again' response from Cluster Coordinator when attempting to connect to cluster with explanation '"
+                    + response.getRejectionReason() + "'. However, the maximum number of retries have already completed. Will load local flow and connect to the cluster when able.");
                 return null;
             } else {
                 // cluster manager provided a successful response with a current dataflow
@@ -848,8 +860,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private void loadFromConnectionResponse(final ConnectionResponse response) throws ConnectionException {
         writeLock.lock();
         try {
-            clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
+            if (response.getNodeConnectionStatuses() != null) {
+                clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
                     .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
+            }
 
             // get the dataflow from the response
             final DataFlow dataFlow = response.getDataFlow();

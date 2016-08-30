@@ -16,7 +16,35 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -206,36 +234,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -363,7 +362,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Lock writeLock = rwLock.writeLock();
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowController.class);
-    private static final Logger heartbeatLogger = LoggerFactory.getLogger("org.apache.nifi.cluster.heartbeat");
 
     public static FlowController createStandaloneInstance(
             final FlowFileEventRepository flowFileEventRepo,
@@ -3417,8 +3415,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                     heartbeat();
                 } else {
-                    leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
-                    leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
                     stateManagerProvider.disableClusterProvider();
 
                     setPrimary(false);
@@ -3428,6 +3424,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 for (final RemoteProcessGroup remoteGroup : remoteGroups) {
                     remoteGroup.reinitialize(clustered);
                 }
+            }
+
+            if (!clustered) {
+                leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
+                leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
             }
 
             // update the heartbeat bean
@@ -3870,9 +3871,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     private class HeartbeatSendTask implements Runnable {
-
-        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
-
         @Override
         public void run() {
             try (final NarCloseable narCloseable = NarCloseable.withFrameworkNar()) {
@@ -3882,36 +3880,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                 final HeartbeatMessage message = createHeartbeatMessage();
                 if (message == null) {
-                    heartbeatLogger.debug("No heartbeat to send");
+                    LOG.debug("No heartbeat to send");
                     return;
                 }
 
-                final long sendStart = System.nanoTime();
                 heartbeater.send(message);
-
-                final long sendNanos = System.nanoTime() - sendStart;
-                final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);
-
-                String heartbeatAddress;
-                try {
-                    heartbeatAddress = heartbeater.getHeartbeatAddress();
-                } catch (final IOException ioe) {
-                    heartbeatAddress = "Cluster Coordinator (could not determine socket address)";
-                }
-
-                heartbeatLogger.info("Heartbeat created at {} and sent to {} at {}; send took {} millis",
-                        dateFormatter.format(new Date(message.getHeartbeat().getCreatedTimestamp())),
-                        heartbeatAddress,
-                        dateFormatter.format(new Date()),
-                        sendMillis);
             } catch (final UnknownServiceAddressException usae) {
-                if (heartbeatLogger.isDebugEnabled()) {
-                    heartbeatLogger.debug(usae.getMessage());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex);
-                if (heartbeatLogger.isDebugEnabled()) {
-                    heartbeatLogger.warn("", ex);
+                LOG.warn("Failed to send heartbeat due to: " + ex);
+                if (LOG.isDebugEnabled()) {
+                    LOG.warn("", ex);
                 }
             }
         }
@@ -3950,7 +3931,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 
-            heartbeatLogger.debug("Generated heartbeat");
+            LOG.debug("Generated heartbeat");
 
             return message;
         } catch (final Throwable ex) {

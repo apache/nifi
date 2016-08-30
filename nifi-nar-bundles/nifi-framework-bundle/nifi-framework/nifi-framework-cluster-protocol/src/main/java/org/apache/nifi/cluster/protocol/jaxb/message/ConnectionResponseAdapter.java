@@ -41,7 +41,7 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
     @Override
     public ConnectionResponse unmarshal(final AdaptedConnectionResponse aCr) {
         if (aCr.shouldTryLater()) {
-            return new ConnectionResponse(aCr.getTryLaterSeconds());
+            return new ConnectionResponse(aCr.getTryLaterSeconds(), aCr.getRejectionReason());
         } else if (aCr.getRejectionReason() != null) {
             return ConnectionResponse.createRejectionResponse(aCr.getRejectionReason());
         } else {
