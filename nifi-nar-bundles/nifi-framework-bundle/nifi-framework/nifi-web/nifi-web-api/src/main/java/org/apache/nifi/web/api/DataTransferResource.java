@@ -16,57 +16,17 @@
  */
 package org.apache.nifi.web.api;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
-import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_DURATION;
-import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_SIZE;
-import static org.apache.nifi.remote.protocol.HandshakeProperty.REQUEST_EXPIRATION_MILLIS;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
-
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -89,9 +49,44 @@ import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.http.StandardHttpFlowFileServerProtocol;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
+import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_DURATION;
+import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_SIZE;
+import static org.apache.nifi.remote.protocol.HandshakeProperty.REQUEST_EXPIRATION_MILLIS;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
 
 /**
  * RESTful endpoint for managing a SiteToSite connection.
@@ -113,6 +108,7 @@ public class DataTransferResource extends ApplicationResource {
     private static final String PORT_TYPE_OUTPUT = "output-ports";
 
     private Authorizer authorizer;
+    private NiFiServiceFacade serviceFacade;
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
     private final HttpRemoteSiteListener transactionManager;
@@ -128,36 +124,24 @@ public class DataTransferResource extends ApplicationResource {
      * <p>
      * Note: Protected for testing purposes
      */
-    protected void authorizeDataTransfer(final ResourceType resourceType, final String identifier) {
+    protected void authorizeDataTransfer(final AuthorizableLookup lookup, final ResourceType resourceType, final String identifier) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        // ensure the resource type is correct
         if (!ResourceType.InputPort.equals(resourceType) && !ResourceType.OutputPort.equals(resourceType)) {
             throw new IllegalArgumentException("The resource must be an Input or Output Port.");
         }
 
-        final Map<String, String> userContext;
-        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        // get the authorizable
+        final DataTransferAuthorizable authorizable;
+        if (ResourceType.InputPort.equals(resourceType)) {
+            authorizable = new DataTransferAuthorizable(lookup.getInputPort(identifier));
         } else {
-            userContext = null;
+            authorizable = new DataTransferAuthorizable(lookup.getOutputPort(identifier));
         }
 
-        final Resource resource = ResourceFactory.getComponentResource(resourceType, identifier, identifier);
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getDataTransferResource(resource))
-                .identity(user.getIdentity())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.WRITE)
-                .userContext(userContext)
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        if (!Result.Approved.equals(result.getResult())) {
-            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-            throw new AccessDeniedException(message);
-        }
+        // perform the authorization
+        authorizable.authorize(authorizer, RequestAction.WRITE, user);
     }
 
     @POST
@@ -199,7 +183,9 @@ public class DataTransferResource extends ApplicationResource {
         }
 
         // authorize access
-        authorizeDataTransfer(PORT_TYPE_INPUT.equals(portType) ? ResourceType.InputPort : ResourceType.OutputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, PORT_TYPE_INPUT.equals(portType) ? ResourceType.InputPort : ResourceType.OutputPort, portId);
+        });
 
         final ValidateRequestResult validationResult = validateResult(req, portId);
         if (validationResult.errResponse != null) {
@@ -266,7 +252,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.InputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.InputPort, portId);
+        });
 
         final ValidateRequestResult validationResult = validateResult(req, portId, transactionId);
         if (validationResult.errResponse != null) {
@@ -421,7 +409,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.OutputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.OutputPort, portId);
+        });
 
         final ValidateRequestResult validationResult = validateResult(req, portId, transactionId);
         if (validationResult.errResponse != null) {
@@ -523,7 +513,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.InputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.InputPort, portId);
+        });
 
         final ValidateRequestResult validationResult = validateResult(req, portId, transactionId);
         if (validationResult.errResponse != null) {
@@ -634,7 +626,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.OutputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.OutputPort, portId);
+        });
 
         final ValidateRequestResult validationResult = validateResult(req, portId, transactionId);
         if (validationResult.errResponse != null) {
@@ -713,7 +707,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.InputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.InputPort, portId);
+        });
 
         return extendPortTransactionTTL(PORT_TYPE_INPUT, portId, transactionId, req, res, context, uriInfo, inputStream);
     }
@@ -749,7 +745,9 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
         // authorize access
-        authorizeDataTransfer(ResourceType.OutputPort, portId);
+        serviceFacade.authorizeAccess(lookup -> {
+            authorizeDataTransfer(lookup, ResourceType.OutputPort, portId);
+        });
 
         return extendPortTransactionTTL(PORT_TYPE_OUTPUT, portId, transactionId, req, res, context, uriInfo, inputStream);
     }
@@ -837,4 +835,7 @@ public class DataTransferResource extends ApplicationResource {
         this.authorizer = authorizer;
     }
 
+    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+        this.serviceFacade = serviceFacade;
+    }
 }
