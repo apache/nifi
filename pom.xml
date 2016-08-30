@@ -29,11 +29,11 @@ language governing permissions and limitations under the License. -->
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
-        <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
         <module>nifi-toolkit</module>
+        <module>nifi-assemblies</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
