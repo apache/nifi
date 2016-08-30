@@ -28,9 +28,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.ReportedEvent;
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender;
@@ -74,6 +76,7 @@ public class Node {
 
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
+    private final FlowElection flowElection;
 
     private NodeClusterCoordinator clusterCoordinator;
     private NodeProtocolSender protocolSender;
@@ -88,11 +91,11 @@ public class Node {
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
 
-    public Node(final NiFiProperties properties) {
-        this(createNodeId(), properties);
+    public Node(final NiFiProperties properties, final FlowElection flowElection) {
+        this(createNodeId(), properties, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final FlowElection flowElection) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override
@@ -119,6 +122,7 @@ public class Node {
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
+        this.flowElection = flowElection;
     }
 
 
@@ -132,7 +136,7 @@ public class Node {
         protocolSender = createNodeProtocolSender();
         clusterCoordinator = createClusterCoordinator();
         clusterCoordinator.setLocalNodeIdentifier(nodeId);
-        clusterCoordinator.setConnected(true);
+        //        clusterCoordinator.setConnected(true);
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
@@ -273,7 +277,7 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, null, revisionManager, nodeProperties);
+        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null, revisionManager, nodeProperties);
     }
 
 

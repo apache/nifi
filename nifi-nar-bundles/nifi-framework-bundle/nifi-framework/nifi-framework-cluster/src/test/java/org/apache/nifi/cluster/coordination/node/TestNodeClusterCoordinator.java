@@ -32,9 +32,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
+import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
@@ -77,7 +80,7 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, null, revisionManager, createProperties()) {
+        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
                 nodeStatuses.add(updatedStatus);
@@ -132,16 +135,18 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, null, revisionManager, createProperties()) {
+        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
         };
 
         final NodeIdentifier requestedNodeId = createNodeId(6);
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId);
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
+
+        coordinator.setConnected(true);
 
         final ProtocolMessage protocolResponse = coordinator.handle(requestMsg);
         assertNotNull(protocolResponse);
@@ -170,7 +175,7 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, null, revisionManager, createProperties()) {
+        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
@@ -180,6 +185,7 @@ public class TestNodeClusterCoordinator {
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
+        coordinator.setConnected(true);
 
         final NodeIdentifier nodeId = createNodeId(1);
         coordinator.finishNodeConnection(nodeId);
@@ -400,7 +406,7 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, 11000, false);
         final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "localhost", 10000, 11000, false);
 
-        final ConnectionRequest connectionRequest = new ConnectionRequest(id1);
+        final ConnectionRequest connectionRequest = new ConnectionRequest(id1, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
         crm.setConnectionRequest(connectionRequest);
 
@@ -411,7 +417,7 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier resolvedNodeId = responseMessage.getConnectionResponse().getNodeIdentifier();
         assertEquals(id1, resolvedNodeId);
 
-        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId);
+        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
         crm2.setConnectionRequest(conRequest2);
 
@@ -434,10 +440,45 @@ public class TestNodeClusterCoordinator {
     }
 
     private ProtocolMessage requestConnection(final NodeIdentifier requestedNodeId, final NodeClusterCoordinator coordinator) {
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId);
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
         return coordinator.handle(requestMsg);
     }
 
+
+    private static class FirstVoteWinsFlowElection implements FlowElection {
+        private DataFlow dataFlow;
+        private NodeIdentifier voter;
+
+        @Override
+        public boolean isElectionComplete() {
+            return dataFlow != null;
+        }
+
+        @Override
+        public synchronized DataFlow castVote(DataFlow candidate, NodeIdentifier nodeIdentifier) {
+            if (dataFlow == null) {
+                dataFlow = candidate;
+                voter = nodeIdentifier;
+            }
+
+            return dataFlow;
+        }
+
+        @Override
+        public DataFlow getElectedDataFlow() {
+            return dataFlow;
+        }
+
+        @Override
+        public String getStatusDescription() {
+            return "First Vote Wins";
+        }
+
+        @Override
+        public boolean isVoteCounted(NodeIdentifier nodeIdentifier) {
+            return voter != null && voter.equals(nodeIdentifier);
+        }
+    }
 }

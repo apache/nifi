@@ -75,7 +75,7 @@ import java.util.UUID;
  * and processor properties. Examples of items not involved in the fingerprint are: items in the processor "settings" or "comments" tabs, position information, flow controller settings, and counters.
  *
  */
-public final class FingerprintFactory {
+public class FingerprintFactory {
 
     /*
      * Developer Note: This class should be changed with care and coordinated
@@ -87,33 +87,47 @@ public final class FingerprintFactory {
     public static final String NO_VALUE = "NO_VALUE";
 
     private static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
-    private static final Schema FLOW_CONFIG_SCHEMA;
-    private static final DocumentBuilder FLOW_CONFIG_DOC_BUILDER;
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final StringEncryptor encryptor;
+    private final DocumentBuilder flowConfigDocBuilder;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    static {
+    public FingerprintFactory(final StringEncryptor encryptor) {
+        this.encryptor = encryptor;
+
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        final Schema schema;
         try {
-            FLOW_CONFIG_SCHEMA = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
+            schema = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
         try {
-            documentBuilderFactory.setSchema(FLOW_CONFIG_SCHEMA);
-            FLOW_CONFIG_DOC_BUILDER = documentBuilderFactory.newDocumentBuilder();
+            documentBuilderFactory.setSchema(schema);
+            flowConfigDocBuilder = documentBuilderFactory.newDocumentBuilder();
         } catch (final Exception e) {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor) {
-        this.encryptor = encryptor;
+    /**
+     * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
+     * This method does not accept a FlowController, which means that Processors cannot be created in order to verify default property
+     * values, etc. As a result, if Flow A and Flow B are fingerprinted and Flow B, for instance, contains a property with a default value
+     * that is not present in Flow A, then the two will have different fingerprints.
+     *
+     * @param flowBytes the flow represented as bytes
+     *
+     * @return a generated fingerprint
+     *
+     * @throws FingerprintException if the fingerprint failed to be generated
+     */
+    public synchronized String createFingerprint(final byte[] flowBytes) throws FingerprintException {
+        return createFingerprint(flowBytes, null);
     }
 
     /**
@@ -126,7 +140,7 @@ public final class FingerprintFactory {
      *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
-    public String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
+    public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
         try {
             return createFingerprint(parseFlow(flowBytes), controller);
         } catch (final NoSuchAlgorithmException e) {
@@ -178,7 +192,7 @@ public final class FingerprintFactory {
         }
 
         try {
-            return FLOW_CONFIG_DOC_BUILDER.parse(new ByteArrayInputStream(flow));
+            return flowConfigDocBuilder.parse(new ByteArrayInputStream(flow));
         } catch (final SAXException | IOException ex) {
             throw new FingerprintException(ex);
         }

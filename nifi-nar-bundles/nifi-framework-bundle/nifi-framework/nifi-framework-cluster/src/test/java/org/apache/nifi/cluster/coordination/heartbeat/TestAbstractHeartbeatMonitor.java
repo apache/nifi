@@ -319,6 +319,16 @@ public class TestAbstractHeartbeatMonitor {
         public boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId) {
             return false;
         }
+
+        @Override
+        public boolean isFlowElectionComplete() {
+            return true;
+        }
+
+        @Override
+        public String getFlowElectionStatus() {
+            return null;
+        }
     }
 
 

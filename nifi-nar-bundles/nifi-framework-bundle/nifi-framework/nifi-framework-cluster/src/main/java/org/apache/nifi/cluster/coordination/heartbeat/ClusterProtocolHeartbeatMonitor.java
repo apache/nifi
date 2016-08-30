@@ -153,11 +153,19 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
         // Formulate a List of differences between our view of the cluster topology and the node's view
         // and send that back to the node so that it is in-sync with us
-        final List<NodeConnectionStatus> nodeStatusList = payload.getClusterStatus();
+        List<NodeConnectionStatus> nodeStatusList = payload.getClusterStatus();
+        if (nodeStatusList == null) {
+            nodeStatusList = Collections.emptyList();
+        }
         final List<NodeConnectionStatus> updatedStatuses = getUpdatedStatuses(nodeStatusList);
 
         final HeartbeatResponseMessage responseMessage = new HeartbeatResponseMessage();
         responseMessage.setUpdatedNodeStatuses(updatedStatuses);
+
+        if (!getClusterCoordinator().isFlowElectionComplete()) {
+            responseMessage.setFlowElectionMessage(getClusterCoordinator().getFlowElectionStatus());
+        }
+
         return responseMessage;
     }
 

@@ -17,8 +17,13 @@
 package org.apache.nifi.controller.cluster;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -54,7 +59,7 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
     }
 
     @Override
-    public String getHeartbeatAddress() throws IOException {
+    public String getHeartbeatAddress() {
         final String heartbeatAddress = electionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
         if (heartbeatAddress == null) {
             throw new ProtocolException("Cannot send heartbeat because there is no Cluster Coordinator currently elected");
@@ -65,6 +70,8 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
 
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
+        final long sendStart = System.nanoTime();
+
         final String heartbeatAddress = getHeartbeatAddress();
         final HeartbeatResponseMessage responseMessage = protocolSender.heartbeat(heartbeatMessage, heartbeatAddress);
 
@@ -88,6 +95,21 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
                 }
             }
         }
+
+
+        final long sendNanos = System.nanoTime() - sendStart;
+        final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);
+
+        final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
+        final String flowElectionMessage = responseMessage.getFlowElectionMessage();
+        final String formattedElectionMessage = flowElectionMessage == null ? "" : "; " + flowElectionMessage;
+
+        logger.info("Heartbeat created at {} and sent to {} at {}; send took {} millis{}",
+            dateFormatter.format(new Date(heartbeatMessage.getHeartbeat().getCreatedTimestamp())),
+            heartbeatAddress,
+            dateFormatter.format(new Date()),
+            sendMillis,
+            formattedElectionMessage);
     }
 
     @Override

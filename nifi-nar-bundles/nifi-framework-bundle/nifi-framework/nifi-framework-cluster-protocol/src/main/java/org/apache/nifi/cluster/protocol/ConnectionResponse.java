@@ -49,9 +49,8 @@ public class ConnectionResponse {
 
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
-        } else if (dataFlow == null) {
-            throw new IllegalArgumentException("DataFlow may not be null.");
         }
+
         this.nodeIdentifier = nodeIdentifier;
         this.dataFlow = dataFlow;
         this.tryLaterSeconds = 0;
@@ -61,14 +60,14 @@ public class ConnectionResponse {
         this.componentRevisions = componentRevisions == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(componentRevisions));
     }
 
-    public ConnectionResponse(final int tryLaterSeconds) {
+    public ConnectionResponse(final int tryLaterSeconds, final String explanation) {
         if (tryLaterSeconds <= 0) {
-            throw new IllegalArgumentException("Try-Later seconds may not be nonnegative: " + tryLaterSeconds);
+            throw new IllegalArgumentException("Try-Later seconds must be nonnegative: " + tryLaterSeconds);
         }
         this.dataFlow = null;
         this.nodeIdentifier = null;
         this.tryLaterSeconds = tryLaterSeconds;
-        this.rejectionReason = null;
+        this.rejectionReason = explanation;
         this.instanceId = null;
         this.nodeStatuses = null;
         this.componentRevisions = null;
@@ -119,7 +118,6 @@ public class ConnectionResponse {
     public String getInstanceId() {
         return instanceId;
     }
-
 
     public List<NodeConnectionStatus> getNodeConnectionStatuses() {
         return nodeStatuses;

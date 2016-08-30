@@ -1171,6 +1171,20 @@ There are cases where a DFM may wish to continue making changes to the flow, eve
 In this case, they DFM may elect to remove the node from the cluster entirely through the Cluster Management dialog. Once removed,
 the node cannot be rejoined to the cluster until it has been restarted.
 
+*Flow Election* +
+When a cluster first starts up, NiFi must determine which of the nodes have the
+"correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
+attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
+has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
+Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
+flow will be added to the pool of possibly elected flows with one vote. After
+some amount of time has elapsed (configured by setting the `nifi.cluster.flow.election.max.wait.time` property) or
+some number of Nodes have cast votes (configured by setting the `nifi.cluster.flow.election.max.candidates` property),
+a flow is elected to be the "correct" copy of the flow. All nodes that have incompatible flows are then disconnected
+from the cluster while those with compatible flows inherit the cluster's flow. Election is performed according to
+the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
+allows an administrator to remove a node's `flow.xml.gz` file and restart the node, knowing that the node's flow will
+not be voted to be the "correct" flow unless no other flow is found.
 
 *Basic Cluster Setup* +
 
@@ -1204,8 +1218,13 @@ For each Node, the minimum properties to configure are as follows:
    that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
    the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
    that is specified.
-** nifi.cluster.request.replication.claim.timeout - Specifies how long a component can be 'locked' during a request replication
-   before the lock expires and is automatically unlocked. See <<claim_management>> for more information.
+** nifi.cluster.flow.election.max.wait.time - Specifies the amount of time to wait before electing a Flow as the "correct" Flow.
+   If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates`
+   property, the cluster will not wait this long. The default is 5 minutes. Note that the time starts as soon as the first vote
+   is cast.
+** nifi.cluster.flow.election.max.candidates - Specifies the number of Nodes required in the cluster to cause early election
+   of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach
+   at least this number of nodes in the cluster.
 
 Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
 one of the nodes, and the User Interface should look similar to the following:

@@ -169,6 +169,8 @@ public abstract class NiFiProperties {
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
+    public static final String FLOW_ELECTION_MAX_WAIT_TIME = "nifi.cluster.flow.election.max.wait.time";
+    public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
     // zookeeper properties
     public static final String ZOOKEEPER_CONNECT_STRING = "nifi.zookeeper.connect.string";
@@ -239,6 +241,7 @@ public abstract class NiFiProperties {
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 2;
     public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
+    public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
@@ -309,12 +312,12 @@ public abstract class NiFiProperties {
 
     public Integer getIntegerProperty(final String propertyName, final Integer defaultValue) {
         final String value = getProperty(propertyName);
-        if (value == null) {
+        if (value == null || value.trim().isEmpty()) {
             return defaultValue;
         }
 
         try {
-            return Integer.parseInt(getProperty(propertyName));
+            return Integer.parseInt(value.trim());
         } catch (final Exception e) {
             return defaultValue;
         }
@@ -933,6 +936,14 @@ public abstract class NiFiProperties {
 
     public String getFlowConfigurationArchiveDir() {
         return getProperty(FLOW_CONFIGURATION_ARCHIVE_DIR);
+    }
+
+    public String getFlowElectionMaxWaitTime() {
+        return getProperty(FLOW_ELECTION_MAX_WAIT_TIME, DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME);
+    }
+
+    public Integer getFlowElectionMaxCandidates() {
+        return getIntegerProperty(FLOW_ELECTION_MAX_CANDIDATES, null);
     }
 
     public String getFlowConfigurationArchiveMaxTime() {

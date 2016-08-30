@@ -152,6 +152,8 @@
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
         <nifi.cluster.firewall.file />
+        <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
+        <nifi.cluster.flow.election.max.candidates></nifi.cluster.flow.election.max.candidates>
 
         <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
 

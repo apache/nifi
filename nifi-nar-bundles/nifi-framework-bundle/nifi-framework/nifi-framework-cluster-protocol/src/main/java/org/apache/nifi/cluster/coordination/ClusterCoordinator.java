@@ -226,4 +226,14 @@ public interface ClusterCoordinator {
      * @return <code>true</code> if connected, <code>false</code> otherwise
      */
     boolean isConnected();
+
+    /**
+     * @return <code>true</code> if Flow Election is complete, <code>false</code> otherwise
+     */
+    boolean isFlowElectionComplete();
+
+    /**
+     * @return the current status of Flow Election.
+     */
+    String getFlowElectionStatus();
 }

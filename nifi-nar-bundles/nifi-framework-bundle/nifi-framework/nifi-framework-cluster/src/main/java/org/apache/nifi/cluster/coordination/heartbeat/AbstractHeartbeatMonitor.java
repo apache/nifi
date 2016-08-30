@@ -121,7 +121,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
      * Visible for testing.
      */
     protected synchronized void monitorHeartbeats() {
-        if (!clusterCoordinator.isActiveClusterCoordinator()) {
+        final NodeIdentifier activeCoordinator = clusterCoordinator.getElectedActiveCoordinatorNode();
+        if (activeCoordinator != null && !activeCoordinator.equals(clusterCoordinator.getLocalNodeIdentifier())) {
             // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
             // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
             // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate
