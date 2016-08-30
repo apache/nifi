@@ -173,7 +173,7 @@ public class LabelResource extends ApplicationResource {
             )
             @PathParam("id") final String id,
             @ApiParam(
-                    value = "The label configuraiton details.",
+                    value = "The label configuration details.",
                     required = true
             ) final LabelEntity requestLabelEntity) {
 

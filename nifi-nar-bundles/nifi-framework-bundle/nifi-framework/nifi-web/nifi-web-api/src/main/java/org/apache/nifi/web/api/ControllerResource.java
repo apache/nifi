@@ -677,9 +677,9 @@ public class ControllerResource extends ApplicationResource {
                     authorizeController(RequestAction.WRITE);
                 },
                 null,
-                (endDateEtity) -> {
+                (endDateEntity) -> {
                     // purge the actions
-                    serviceFacade.deleteActions(endDateEtity.getEndDate());
+                    serviceFacade.deleteActions(endDateEntity.getEndDate());
 
                     // generate the response
                     return generateOkResponse(new HistoryEntity()).build();
@@ -700,6 +700,7 @@ public class ControllerResource extends ApplicationResource {
     }
 
     // setters
+
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

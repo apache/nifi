@@ -387,10 +387,10 @@ public class ProcessGroupResource extends ApplicationResource {
                     // delete the process group
                     final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, processGroupEntity.getId());
 
-                        // create the response
-                        return clusterContext(generateOkResponse(entity)).build();
-                    }
-            );
+                    // create the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
@@ -548,7 +548,7 @@ public class ProcessGroupResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param groupId            The group id
-     * @param processorEntity    A processorEntity.
+     * @param requestProcessorEntity    A processorEntity.
      * @return A processorEntity.
      */
     @POST
@@ -582,17 +582,17 @@ public class ProcessGroupResource extends ApplicationResource {
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            ) final ProcessorEntity processorEntity) {
+            ) final ProcessorEntity requestProcessorEntity) {
 
-        if (processorEntity == null || processorEntity.getComponent() == null) {
+        if (requestProcessorEntity == null || requestProcessorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
         }
 
-        if (processorEntity.getRevision() == null || (processorEntity.getRevision().getVersion() == null || processorEntity.getRevision().getVersion() != 0)) {
+        if (requestProcessorEntity.getRevision() == null || (requestProcessorEntity.getRevision().getVersion() == null || requestProcessorEntity.getRevision().getVersion() != 0)) {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
         }
 
-        final ProcessorDTO requestProcessor = processorEntity.getComponent();
+        final ProcessorDTO requestProcessor = requestProcessorEntity.getComponent();
         if (requestProcessor.getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
@@ -608,12 +608,12 @@ public class ProcessGroupResource extends ApplicationResource {
         requestProcessor.setParentGroupId(groupId);
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, processorEntity);
+            return replicate(HttpMethod.POST, requestProcessorEntity);
         }
 
         return withWriteLock(
                 serviceFacade,
-                processorEntity,
+                requestProcessorEntity,
                 lookup -> {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
@@ -625,13 +625,15 @@ public class ProcessGroupResource extends ApplicationResource {
                     }
                 },
                 null,
-                procEntity -> {
+                processorEntity -> {
+                    final ProcessorDTO processor = processorEntity.getComponent();
+
                     // set the processor id as appropriate
-                    requestProcessor.setId(generateUuid());
+                    processor.setId(generateUuid());
 
                     // create the new processor
-                    final Revision revision = getRevision(processorEntity, requestProcessor.getId());
-                    final ProcessorEntity entity = serviceFacade.createProcessor(revision, groupId, requestProcessor);
+                    final Revision revision = getRevision(processorEntity, processor.getId());
+                    final ProcessorEntity entity = serviceFacade.createProcessor(revision, groupId, processor);
                     processorResource.populateRemainingProcessorEntityContent(entity);
 
                     // generate a 201 created response
