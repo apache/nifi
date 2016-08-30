@@ -797,7 +797,8 @@ nf.CanvasUtils = (function () {
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
                         nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.status.aggregateSnapshot.runStatus === 'Stopped');
+                        (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' ||
+                        selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
             });
         },
 
