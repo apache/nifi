@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
@@ -27,6 +28,7 @@ import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -341,10 +343,12 @@ public class TestDataTransferResource {
     }
 
     private DataTransferResource getDataTransferResource() {
+        final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
+
         final HttpFlowFileServerProtocol serverProtocol = mock(HttpFlowFileServerProtocol.class);
         final DataTransferResource resource = new DataTransferResource(NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected void authorizeDataTransfer(ResourceType resourceType, String identifier) {
+            protected void authorizeDataTransfer(AuthorizableLookup lookup, ResourceType resourceType, String identifier) {
             }
 
             @Override
@@ -353,6 +357,7 @@ public class TestDataTransferResource {
             }
         };
         resource.setProperties(NiFiProperties.createBasicNiFiProperties(null, null));
+        resource.setServiceFacade(serviceFacade);
         return resource;
     }
 }
