@@ -358,7 +358,7 @@ public class PublishKafkaTest {
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka_0_10.TOPIC, topicName);
         runner.setProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS, "localhost:1234");
-        runner.setProperty(PublishKafka_0_10.KEY_ATTRIBUTE_ENCODING, PublishKafka_0_10.HEX_ENCODING);
+        runner.setProperty(PublishKafka_0_10.KEY_ATTRIBUTE_ENCODING, KafkaProcessorUtils.HEX_ENCODING);
         runner.setProperty(PublishKafka_0_10.KEY, "${myKey}");
 
         final Map<String, String> attributes = Collections.singletonMap("myKey", "6B657931");
