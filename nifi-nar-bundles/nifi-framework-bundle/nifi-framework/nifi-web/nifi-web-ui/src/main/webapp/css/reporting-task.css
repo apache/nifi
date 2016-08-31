@@ -44,7 +44,6 @@
 /* reporting-task settings */
 
 #reporting-task-name {
-    font-size: 11px !important;
     width: 250px;
     float: left;
 }
@@ -63,7 +62,6 @@ div.reporting-task-enabled-container {
 }
 
 input.reporting-task-scheduling-period {
-    font-size: 11px !important;
     width: 150px;
 }
 

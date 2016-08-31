@@ -1021,10 +1021,15 @@
                             data.updateItem(item.id, $.extend(item, {
                                 value: response.component.id
                             }));
-
+                            
                             // close the dialog
                             newControllerServiceDialog.modal('hide');
                         });
+
+                        // invoke callback if necessary
+                        if (typeof configurationOptions.controllerServiceCreatedDeferred === 'function') {
+                            configurationOptions.controllerServiceCreatedDeferred(response);
+                        }
                     }).fail(nf.Common.handleAjaxError);
                 };
 
