@@ -1582,17 +1582,29 @@ nf.Connection = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (connectionEntity) {
-                // add the connection
-                connectionMap.set(connectionEntity.id, $.extend({
-                    type: 'Connection'
-                }, connectionEntity));
+            var set = function (proposedConnectionEntity) {
+                var currentConnectionEntity = connectionMap.get(proposedConnectionEntity.id);
+
+                // set the connection if appropriate
+                if (nf.Client.isNewerRevision(currentConnectionEntity, proposedConnectionEntity)) {
+                    connectionMap.set(proposedConnectionEntity.id, $.extend({
+                        type: 'Connection'
+                    }, proposedConnectionEntity));
+                }
             };
 
             // determine how to handle the specified connection
             if ($.isArray(connectionEntities)) {
                 $.each(connectionMap.keys(), function (_, key) {
-                    connectionMap.remove(key);
+                    var currentConnectionEntity = connectionMap.get(key);
+                    var isPresent = $.grep(connectionEntities, function (proposedConnectionEntity) {
+                        return proposedConnectionEntity.id === currentConnectionEntity.id;
+                    });
+
+                    // if the current connection is not present, remove it
+                    if (isPresent.length === 0) {
+                        connectionMap.remove(key);
+                    }
                 });
                 $.each(connectionEntities, function (_, connectionEntity) {
                     set(connectionEntity);

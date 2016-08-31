@@ -45,6 +45,25 @@ nf.Client = (function() {
                 'clientId': clientId,
                 'version': d.revision.version
             };
+        },
+
+        /**
+         * Determines whether the proposedData is newer than the currentData.
+         *
+         * @param currentData Maybe be null, if the proposedData is new to this canvas
+         * @param proposedData Maybe not be null
+         * @return {boolean} whether proposedData is newer than currentData
+         */
+        isNewerRevision: function (currentData, proposedData) {
+            if (nf.Common.isDefinedAndNotNull(currentData)) {
+                var currentRevision = currentData.revision;
+                var proposedRevision = proposedData.revision;
+
+                // return whether the proposed revision is newer
+                return proposedRevision.version > currentRevision.version;
+            } else {
+                return true;
+            }
         }
     };
 }());

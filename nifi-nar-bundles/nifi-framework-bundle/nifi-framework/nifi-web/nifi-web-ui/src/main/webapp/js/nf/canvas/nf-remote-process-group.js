@@ -872,18 +872,30 @@ nf.RemoteProcessGroup = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (remoteProcessGroupEntity) {
-                // add the remote process group
-                remoteProcessGroupMap.set(remoteProcessGroupEntity.id, $.extend({
-                    type: 'RemoteProcessGroup',
-                    dimensions: dimensions
-                }, remoteProcessGroupEntity));
+            var set = function (proposedRemoteProcessGroupEntity) {
+                var currentRemoteProcessGroupEntity = remoteProcessGroupMap.get(proposedRemoteProcessGroupEntity.id);
+
+                // set the remote process group if appropriate
+                if (nf.Client.isNewerRevision(currentRemoteProcessGroupEntity, proposedRemoteProcessGroupEntity)) {
+                    remoteProcessGroupMap.set(proposedRemoteProcessGroupEntity.id, $.extend({
+                        type: 'RemoteProcessGroup',
+                        dimensions: dimensions
+                    }, proposedRemoteProcessGroupEntity));
+                }
             };
 
             // determine how to handle the specified remote process groups
             if ($.isArray(remoteProcessGroupEntities)) {
                 $.each(remoteProcessGroupMap.keys(), function (_, key) {
-                    remoteProcessGroupMap.remove(key);
+                    var currentRemoteProcessGroupEntity = remoteProcessGroupMap.get(key);
+                    var isPresent = $.grep(remoteProcessGroupEntities, function (proposedRemoteProcessGroupEntity) {
+                        return proposedRemoteProcessGroupEntity.id === currentRemoteProcessGroupEntity.id;
+                    });
+
+                    // if the current remote process group is not present, remove it
+                    if (isPresent.length === 0) {
+                        remoteProcessGroupMap.remove(key);
+                    }
                 });
                 $.each(remoteProcessGroupEntities, function (_, remoteProcessGroupEntity) {
                     set(remoteProcessGroupEntity);
