@@ -23,7 +23,10 @@ nf.ControllerService = (function () {
         edit: 'edit',
         readOnly: 'read-only',
         serviceOnly: 'SERVICE_ONLY',
-        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS'
+        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS',
+        urls: {
+            api: '../nifi-api'
+        }
     };
 
     /**
@@ -1728,6 +1731,23 @@ nf.ControllerService = (function () {
                     readOnly: false,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    controllerServiceCreatedDeferred: function(response) {
+                        var controllerServicesUri;
+                        var createdControllerServicesTable;
+
+                        // calculate the correct uri
+                        var createdControllerService = response.component;
+                        if (nf.Common.isDefinedAndNotNull(createdControllerService.parentGroupId)) {
+                            createdControllerServicesTable = $('#process-group-controller-services-table');
+                            controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(createdControllerService.parentGroupId) + '/controller-services';
+                        } else {
+                            createdControllerServicesTable = $('#controller-services-table');
+                            controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+                        }
+
+                        // load the controller services accordingly
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, createdControllerServicesTable);
+                    },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     }
