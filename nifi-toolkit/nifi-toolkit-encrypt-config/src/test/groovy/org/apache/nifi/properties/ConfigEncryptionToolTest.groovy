@@ -20,8 +20,6 @@ import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.AppenderBase
 import org.apache.commons.codec.binary.Hex
 import org.apache.commons.lang3.SystemUtils
-import org.apache.commons.lang3.time.DateFormatUtils
-import org.apache.commons.lang3.time.FastDateFormat
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -48,9 +46,6 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
 import java.security.Security
-import java.text.DateFormat
-import java.text.ParseException
-import java.util.concurrent.TimeUnit
 
 @RunWith(JUnit4.class)
 class ConfigEncryptionToolTest extends GroovyTestCase {
@@ -141,24 +136,26 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Regex method
         boolean regexMethod = formattedDate =~ datePattern
-        logger.info("Regex method: ${regexMethod}")
+//        logger.info("Regex method: ${regexMethod}")
 
-        // Current date equality
-        boolean exactMethod = DateFormat.getDateInstance().format(new Date()) == formattedDate
-//        logger.info("Exact equality method: ${exactMethod}")
+        regexMethod
 
-        // Fuzzy match
-        boolean fuzzyMethod = false
-        try {
-            Date reconstitutedDate = DateFormat.getInstance().parse(formattedDate)
-            long diff = reconstitutedDate.getTime() - new Date().getTime()
-            fuzzyMethod = TimeUnit.MILLISECONDS.toSeconds(diff) <= 1
-//            logger.info("Fuzzy match method: ${fuzzyMethod}")
-        } catch (ParseException e) {
-//            logger.expected(e.getMessage())
-        }
-
-        regexMethod || exactMethod || fuzzyMethod
+//        // Current date equality
+//        boolean exactMethod = DateFormat.getDateInstance().format(new Date()) == formattedDate
+////        logger.info("Exact equality method: ${exactMethod}")
+//
+//        // Fuzzy match
+//        boolean fuzzyMethod = false
+//        try {
+//            Date reconstitutedDate = DateFormat.getInstance().parse(formattedDate)
+//            long diff = reconstitutedDate.getTime() - new Date().getTime()
+//            fuzzyMethod = TimeUnit.MILLISECONDS.toSeconds(diff) <= 1
+////            logger.info("Fuzzy match method: ${fuzzyMethod}")
+//        } catch (ParseException e) {
+////            logger.expected(e.getMessage())
+//        }
+//
+//        regexMethod || exactMethod || fuzzyMethod
     }
 
     @Test
@@ -1024,20 +1021,19 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Current time zone: ${currentTimeZone.displayName} (${currentTimeZone.ID})")
 
         def timeZones = TimeZone.availableIDs as List<String>
-        def formats = [DateFormatUtils.ISO_DATE_FORMAT, DateFormatUtils.ISO_DATE_TIME_ZONE_FORMAT, DateFormatUtils.ISO_DATETIME_FORMAT, DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT]
 
         // Act
-        formats.each { FastDateFormat format ->
-            timeZones.each { String tz ->
-                def timeZone = TimeZone.getTimeZone(tz)
-                logger.test("Combination of ${tz} and ${format.pattern}")
-                String formattedDate = DateFormatUtils.format(new Date(), format.pattern, timeZone)
-                logger.info("Formatted date: ${formattedDate}")
+        timeZones.each { String tz ->
+            TimeZone.setDefault(TimeZone.getTimeZone(tz))
+//            logger.test("Time zone: ${tz}")
 
-                // Assert
-                logger.info("Is valid date: ${isValidDate(formattedDate)}")
-//                assert isValidDate(formattedDate)
-            }
+            String formattedDate = ConfigEncryptionTool.serializeNiFiProperties(properties).first()
+            logger.info("First line date: ${formattedDate}")
+
+            // Assert
+            boolean isValid = isValidDate(formattedDate)
+//            logger.info("Is valid date: ${isValid}")
+            assert isValid
         }
 
         // Restore current time zone
