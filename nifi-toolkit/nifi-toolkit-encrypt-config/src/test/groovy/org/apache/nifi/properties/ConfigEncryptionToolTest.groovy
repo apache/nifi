@@ -119,12 +119,22 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
      */
     private static Set getFilePermissions(File file) {
         if (SystemUtils.IS_OS_WINDOWS) {
-           return [file.canRead() ? "OWNER_READ" : "",
-            file.canWrite() ? "OWNER_WRITE" : "",
-            file.canExecute() ? "OWNER_EXECUTE" : ""].findAll { it } as Set
+            return [file.canRead() ? "OWNER_READ" : "",
+                    file.canWrite() ? "OWNER_WRITE" : "",
+                    file.canExecute() ? "OWNER_EXECUTE" : ""].findAll { it } as Set
         } else {
             return Files.getPosixFilePermissions(file?.toPath())
         }
+    }
+
+    private static boolean isValidDate(String formattedDate) {
+        // The serialization could have occurred > 1 second ago, causing a rolling date/time mismatch, so use regex
+        // Format -- #Fri Aug 19 16:51:16 PDT 2016
+        // Alternate format -- #Fri Aug 19 16:51:16 GMT-05:00 2016
+        // \u0024 == '$' to avoid escaping
+        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{2,5}([\-+]\d{2}:\d{2})? \d{4}\u0024/
+
+        formattedDate =~ datePattern
     }
 
     @Test
@@ -967,19 +977,43 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
 
-        // The serialization could have occurred > 1 second ago, causing a rolling date/time mismatch, so use regex
-        // Format -- #Fri Aug 19 16:51:16 PDT 2016
-        // Alternate format -- #Fri Aug 19 16:51:16 GMT-05:00 2016
-        // \u0024 == '$' to avoid escaping
-        String datePattern = /^#\w{3} \w{3} \d{2} \d{2}:\d{2}:\d{2} \w{3}([\-+]\d{2}:\d{2})? \d{4}\u0024/
-
         // One extra line for the date
         assert lines.size() == properties.size() + 1
-        assert lines.first() =~ datePattern
 
         rawProperties.keySet().every { String key ->
             assert lines.contains("${key}=${properties.getProperty(key)}".toString())
         }
+    }
+
+    @Test
+    void testFirstLineOfSerializedPropertiesShouldBeLocalizedDateTime() {
+        // Arrange
+        Assume.assumeTrue("Test only runs on *nix because Windows line endings are different", !SystemUtils.IS_OS_WINDOWS)
+
+        Properties rawProperties = [key: "value", key2: "value2"] as Properties
+        NiFiProperties properties = new StandardNiFiProperties(rawProperties)
+        logger.info("Loaded ${properties.size()} properties")
+
+        def currentTimeZone = TimeZone.default
+        logger.info("Current time zone: ${currentTimeZone.displayName} (${currentTimeZone.ID})")
+
+        // Configure different time zones
+        def timeZones = TimeZone.availableIDs as List<String>
+
+        // Act
+        timeZones.each { String tz ->
+            TimeZone.setDefault(TimeZone.getTimeZone(tz))
+
+            String formattedDate = ConfigEncryptionTool.serializeNiFiProperties(properties).first()
+            logger.info("First line date: ${formattedDate}")
+
+            // Assert
+            assert isValidDate(formattedDate)
+        }
+
+        // Restore current time zone
+        TimeZone.setDefault(currentTimeZone)
+        logger.info("Reset current time zone to ${currentTimeZone.displayName} (${currentTimeZone.ID})")
     }
 
     @Test
