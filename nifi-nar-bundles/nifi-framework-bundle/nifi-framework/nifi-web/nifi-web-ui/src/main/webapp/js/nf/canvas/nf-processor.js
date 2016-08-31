@@ -791,18 +791,30 @@ nf.Processor = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processorEntity) {
-                // add the processor
-                processorMap.set(processorEntity.id, $.extend({
-                    type: 'Processor',
-                    dimensions: dimensions
-                }, processorEntity));
+            var set = function (proposedProcessorEntity) {
+                var currentProcessorEntity = processorMap.get(proposedProcessorEntity.id);
+
+                // set the processor if appropriate
+                if (nf.Client.isNewerRevision(currentProcessorEntity, proposedProcessorEntity)) {
+                    processorMap.set(proposedProcessorEntity.id, $.extend({
+                        type: 'Processor',
+                        dimensions: dimensions
+                    }, proposedProcessorEntity));
+                }
             };
 
             // determine how to handle the specified processor
             if ($.isArray(processorEntities)) {
                 $.each(processorMap.keys(), function (_, key) {
-                    processorMap.remove(key);
+                    var currentProcessorEntity = processorMap.get(key);
+                    var isPresent = $.grep(processorEntities, function (proposedProcessorEntity) {
+                        return proposedProcessorEntity.id === currentProcessorEntity.id;
+                    });
+
+                    // if the current processor is not present, remove it
+                    if (isPresent.length === 0) {
+                        processorMap.remove(key);
+                    }
                 });
                 $.each(processorEntities, function (_, processorEntity) {
                     set(processorEntity);

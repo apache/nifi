@@ -1018,18 +1018,30 @@ nf.ProcessGroup = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processGroupEntity) {
-                // add the process group
-                processGroupMap.set(processGroupEntity.id, $.extend({
-                    type: 'ProcessGroup',
-                    dimensions: dimensions
-                }, processGroupEntity));
+            var set = function (proposedProcessGroupEntity) {
+                var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
+
+                // set the process group if appropriate
+                if (nf.Client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity)) {
+                    processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
+                        type: 'ProcessGroup',
+                        dimensions: dimensions
+                    }, proposedProcessGroupEntity));
+                }
             };
 
             // determine how to handle the specified process groups
             if ($.isArray(processGroupEntities)) {
                 $.each(processGroupMap.keys(), function (_, key) {
-                    processGroupMap.remove(key);
+                    var currentProcessGroupEntity = processGroupMap.get(key);
+                    var isPresent = $.grep(processGroupEntities, function (proposedProcessGroupEntity) {
+                        return proposedProcessGroupEntity.id === currentProcessGroupEntity.id;
+                    });
+
+                    // if the current process group is not present, remove it
+                    if (isPresent.length === 0) {
+                        processGroupMap.remove(key);
+                    }
                 });
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     set(processGroupEntity);

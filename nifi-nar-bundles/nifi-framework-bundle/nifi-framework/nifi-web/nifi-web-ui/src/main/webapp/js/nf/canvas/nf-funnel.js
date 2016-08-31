@@ -218,18 +218,29 @@ nf.Funnel = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (funnelEntity) {
-                // add the funnel
-                funnelMap.set(funnelEntity.id, $.extend({
-                    type: 'Funnel',
-                    dimensions: dimensions
-                }, funnelEntity));
+            var set = function (proposedFunnelEntity) {
+                var currentFunnelEntity = funnelMap.get(proposedFunnelEntity.id);
+
+                // set the funnel if appropriate
+                if (nf.Client.isNewerRevision(currentFunnelEntity, proposedFunnelEntity)) {
+                    funnelMap.set(proposedFunnelEntity.id, $.extend({
+                        type: 'Funnel',
+                        dimensions: dimensions
+                    }, proposedFunnelEntity));
+                }
             };
 
-            // determine how to handle the specified funnel status
             if ($.isArray(funnelEntities)) {
                 $.each(funnelMap.keys(), function (_, key) {
-                    funnelMap.remove(key);
+                    var currentFunnelEntity = funnelMap.get(key);
+                    var isPresent = $.grep(funnelEntities, function (proposedFunnelEntity) {
+                        return proposedFunnelEntity.id === currentFunnelEntity.id;
+                    });
+
+                    // if the current funnel is not present, remove it
+                    if (isPresent.length === 0) {
+                        funnelMap.remove(key);
+                    }
                 });
                 $.each(funnelEntities, function (_, funnelEntity) {
                     set(funnelEntity);

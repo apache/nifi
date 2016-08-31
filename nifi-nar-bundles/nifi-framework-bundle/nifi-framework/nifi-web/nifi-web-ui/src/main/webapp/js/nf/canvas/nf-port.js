@@ -540,21 +540,34 @@ nf.Port = (function () {
                 dimensions = remotePortDimensions;
             }
 
-            var set = function (portEntity) {
-                // add the port
-                portMap.set(portEntity.id, $.extend({
-                    type: 'Port',
-                    dimensions: dimensions,
-                    status: {
-                        activeThreadCount: 0
-                    }
-                }, portEntity));
+            var set = function (proposedPortEntity) {
+                var currentPortEntity = portMap.get(proposedPortEntity.id);
+
+                // set the port if appropriate
+                if (nf.Client.isNewerRevision(currentPortEntity, proposedPortEntity)) {
+                    // add the port
+                    portMap.set(proposedPortEntity.id, $.extend({
+                        type: 'Port',
+                        dimensions: dimensions,
+                        status: {
+                            activeThreadCount: 0
+                        }
+                    }, proposedPortEntity));
+                }
             };
 
             // determine how to handle the specified port status
             if ($.isArray(portEntities)) {
                 $.each(portMap.keys(), function (_, key) {
-                    portMap.remove(key);
+                    var currentPortEntity = portMap.get(key);
+                    var isPresent = $.grep(portEntities, function (proposedPortEntity) {
+                        return proposedPortEntity.id === currentPortEntity.id;
+                    });
+
+                    // if the current port is not present, remove it
+                    if (isPresent.length === 0) {
+                        portMap.remove(key);
+                    }
                 });
                 $.each(portEntities, function (_, portNode) {
                     set(portNode);
