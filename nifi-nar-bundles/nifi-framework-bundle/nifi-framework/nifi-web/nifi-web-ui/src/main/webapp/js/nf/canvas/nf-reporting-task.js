@@ -21,8 +21,14 @@ nf.ReportingTask = (function () {
 
     var config = {
         edit: 'edit',
-        readOnly: 'read-only'
+        readOnly: 'read-only',
+        urls: {
+            api: '../nifi-api'
+        }
     };
+
+    // load the controller services
+    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
     /**
      * Gets the controller services table.
@@ -359,6 +365,9 @@ nf.ReportingTask = (function () {
                 readOnly: false,
                 dialogContainer: '#new-reporting-task-property-container',
                 descriptorDeferred: getReportingTaskPropertyDescriptor,
+                controllerServiceCreatedDeferred: function(response){
+                    return nf.ControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                },
                 goToServiceDeferred: goToServiceFromProperty
             });
         },
@@ -380,6 +389,9 @@ nf.ReportingTask = (function () {
                     readOnly: false,
                     dialogContainer: '#new-reporting-task-property-container',
                     descriptorDeferred: getReportingTaskPropertyDescriptor,
+                    controllerServiceCreatedDeferred: function(response){
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                    },
                     goToServiceDeferred: goToServiceFromProperty
                 });
 

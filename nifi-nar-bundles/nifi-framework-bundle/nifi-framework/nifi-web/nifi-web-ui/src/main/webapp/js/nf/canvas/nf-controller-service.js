@@ -23,8 +23,13 @@ nf.ControllerService = (function () {
         edit: 'edit',
         readOnly: 'read-only',
         serviceOnly: 'SERVICE_ONLY',
-        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS'
+        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS',
+        urls: {
+            api: '../nifi-api'
+        }
     };
+    // load the controller services
+    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
 
     /**
      * Handle any expected controller service configuration errors.
@@ -1728,6 +1733,9 @@ nf.ControllerService = (function () {
                     readOnly: false,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    controllerServiceCreatedDeferred: function(response){
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, serviceTable);
+                    },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     }
