@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 
 @TriggerSerially
@@ -160,7 +161,8 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             maxValueSelectColumns.add("COUNT(*)");
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
-            maxValueColumnNameList.forEach(colName -> {
+            IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+                String colName = maxValueColumnNameList.get(index);
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
                 String maxValue = statePropertyMap.get(colName.toLowerCase());
                 if (!StringUtils.isEmpty(maxValue)) {
@@ -170,7 +172,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                         throw new IllegalArgumentException("No column type found for: " + colName);
                     }
                     // Add a condition for the WHERE clause
-                    maxValueClauses.add(colName + " > " + getLiteralByType(type, maxValue, dbAdapter.getName()));
+                    maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
             });
 
