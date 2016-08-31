@@ -121,7 +121,8 @@ public class QueryDatabaseTableTest {
     }
 
     @After
-    public void teardown() {
+    public void teardown() throws IOException {
+        runner.getStateManager().clear(Scope.CLUSTER);
         runner = null;
         QueryDatabaseTable.dbAdapters.clear();
         QueryDatabaseTable.dbAdapters.putAll(origDbAdapters);
@@ -149,12 +150,12 @@ public class QueryDatabaseTableTest {
         stateManager.setState(maxValues, Scope.CLUSTER);
         processor.putColumnType("date_created", Types.TIMESTAMP);
         query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED > '2016-03-07 12:34:56'", query);
+        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= '2016-03-07 12:34:56'", query);
 
         // Test Oracle strategy
         dbAdapter = new OracleDatabaseAdapter();
         query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER).toMap());
-        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED > to_date('2016-03-07 12:34:56', 'yyyy-mm-dd HH24:MI:SS')", query);
+        assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED >= to_date('2016-03-07 12:34:56', 'yyyy-mm-dd HH24:MI:SS')", query);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -291,6 +292,67 @@ public class QueryDatabaseTableTest {
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
         in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).toByteArray());
         assertEquals(1, getNumberOfRecordsFromStream(in));
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMultiplePartitions() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
+        assertEquals("2",
+                runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTable.RESULT_ROW_COUNT)
+        );
+        runner.clearTransferState();
+
+        // Add a new row in the same bucket
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
+        assertEquals("1",
+                runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTable.RESULT_ROW_COUNT)
+        );
+        runner.clearTransferState();
+
+        // Add a new row in a new bucket
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (3, 1)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
+        assertEquals("1",
+                runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTable.RESULT_ROW_COUNT)
+        );
+        runner.clearTransferState();
+
+        // Add a new row in an old bucket, it should not be transferred
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (4, 0)");
+        runner.run();
+        runner.assertTransferCount(QueryDatabaseTable.REL_SUCCESS, 0);
+
+        // Add a new row in the second bucket, only the new row should be transferred
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (5, 1)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
+        assertEquals("1",
+                runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTable.RESULT_ROW_COUNT)
+        );
         runner.clearTransferState();
     }
 
