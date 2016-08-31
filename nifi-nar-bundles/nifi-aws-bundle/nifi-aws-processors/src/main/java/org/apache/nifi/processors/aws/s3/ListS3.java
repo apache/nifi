@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.text.WordUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -78,23 +77,6 @@ import com.amazonaws.services.s3.model.VersionListing;
         @WritesAttribute(attribute = "s3.version", description = "The version of the object, if applicable")})
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
-    private static enum CommitMode {
-        PER_PAGE,
-        ONCE;
-
-        public String getValue() {
-            return WordUtils.capitalize(name().toLowerCase().replace('_', ' '));
-        }
-
-        public static CommitMode fromValue(String value) {
-            for (CommitMode m : CommitMode.values()) {
-                if (m.getValue().equals(value)) {
-                    return m;
-                }
-            }
-            throw new IllegalArgumentException("Unrecognized CommitMode " + value);
-        }
-    }
 
     public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
             .name("delimiter")
@@ -115,17 +97,6 @@ public class ListS3 extends AbstractS3Processor {
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .build();
 
-    public static final PropertyDescriptor COMMIT_MODE = new PropertyDescriptor.Builder()
-            .name("commit-mode")
-            .displayName("Commit mode")
-            .expressionLanguageSupported(false)
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(CommitMode.ONCE.getValue(), CommitMode.PER_PAGE.getValue())
-            .defaultValue(CommitMode.ONCE.getValue())
-            .description("The commit mode: 'Once' will commit all flow files at the end, and 'Per page' will commit at the end of each page of S3 objects.")
-            .build();
-
     public static final PropertyDescriptor USE_VERSIONS = new PropertyDescriptor.Builder()
             .name("use-versions")
             .displayName("Use Versions")
@@ -140,7 +111,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                     AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE,
-                    PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX, COMMIT_MODE, USE_VERSIONS));
+                    PROXY_HOST, PROXY_HOST_PORT, DELIMITER, PREFIX, USE_VERSIONS));
 
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Collections.singletonList(REL_SUCCESS)));
@@ -217,7 +188,6 @@ public class ListS3 extends AbstractS3Processor {
         String delimiter = context.getProperty(DELIMITER).getValue();
         String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
-        CommitMode commitMode = CommitMode.fromValue(context.getProperty(COMMIT_MODE).getValue());
         boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
         S3BucketLister bucketLister = useVersions
@@ -276,10 +246,8 @@ public class ListS3 extends AbstractS3Processor {
             }
             bucketLister.setNextMarker();
 
-            if (commitMode == CommitMode.PER_PAGE) {
-                commit(context, session, listCount);
-                listCount = 0;
-            }
+            commit(context, session, listCount);
+            listCount = 0;
         } while (bucketLister.isTruncated());
         currentTimestamp = maxTimestamp;
 
