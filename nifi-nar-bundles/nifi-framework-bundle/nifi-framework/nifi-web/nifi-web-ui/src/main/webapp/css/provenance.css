@@ -372,7 +372,6 @@ div.content-detail-value {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconExportLineage.png") no-repeat scroll left center transparent;
     cursor: pointer;
     margin-right: 2px;
 }

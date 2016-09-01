@@ -56,7 +56,7 @@
             <div id="provenance-lineage-loading" class="loading-container"></div>
         </div>
         <div id="provenance-lineage-close-container">
-            <div id="provenance-lineage-downloader" class="hidden" title="Download"></div>
+            <div id="provenance-lineage-downloader" class="fa fa-download" title="Download"></div>
             <div id="provenance-lineage-closer" class="fa fa-long-arrow-left" title="Go back to event list"></div>
         </div>
         <div id="provenance-lineage-context-menu" class="context-menu"></div>
@@ -71,4 +71,5 @@
         </div>
         <div id="provenance-lineage-container"></div>
     </div>
+    <a id="image-download-link" hreflang="image/svg+xml" class="hidden" target="_blank"></a>
 </div>
