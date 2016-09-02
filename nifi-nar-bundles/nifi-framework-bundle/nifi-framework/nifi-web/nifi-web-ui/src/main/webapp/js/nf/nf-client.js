@@ -48,7 +48,7 @@ nf.Client = (function() {
         },
 
         /**
-         * Determines whether the proposedData is newer than the currentData.
+         * Determines whether the proposedData is not older than the currentData.
          *
          * @param currentData Maybe be null, if the proposedData is new to this canvas
          * @param proposedData Maybe not be null
@@ -59,8 +59,8 @@ nf.Client = (function() {
                 var currentRevision = currentData.revision;
                 var proposedRevision = proposedData.revision;
 
-                // return whether the proposed revision is newer
-                return proposedRevision.version > currentRevision.version;
+                // return whether the proposed revision is not less
+                return proposedRevision.version >= currentRevision.version;
             } else {
                 return true;
             }
