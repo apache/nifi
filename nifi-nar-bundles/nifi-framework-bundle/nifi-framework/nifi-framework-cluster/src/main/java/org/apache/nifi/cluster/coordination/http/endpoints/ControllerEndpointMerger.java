@@ -55,17 +55,14 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
             final NodeIdentifier nodeId = entry.getKey();
             final ControllerDTO nodeController = entry.getValue();
 
-            if (nodeController == mergedController) {
-                continue;
-            }
-
+            // gather all input and output ports for merging, including the ports from clientDto
             nodeController.getInputPorts().stream().forEach(inputPort -> inputPortMap.computeIfAbsent(inputPort.getId(), nodeIdToInputPort -> new HashMap<>()).put(nodeId, inputPort));
             nodeController.getOutputPorts().stream().forEach(outputPort -> outputPortMap.computeIfAbsent(outputPort.getId(), nodeIdToOutputPort -> new HashMap<>()).put(nodeId, outputPort));
         }
 
         /*
          * Note on port merging: only merge the ports if they exist in the client response and all node responses.  Due to authorization possibly different per node, only ports that have been
-         * returned from every node need to be merged.  If a node doesn't return a port DTO due to authorizatino issues, the responses for that port ID should be dropped from the client response.
+         * returned from every node need to be merged.  If a node doesn't return a port DTO due to authorization issues, the responses for that port ID should be dropped from the client response.
          */
 
         // merge input ports
