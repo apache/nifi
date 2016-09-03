@@ -52,7 +52,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractS3IT {
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
     protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
-    protected final static String REGION = "us-west-1";
+    protected final static String REGION = System.getProperty("it.aws.region", "us-west-1");
     // Adding REGION to bucket prevents errors of
     //      "A conflicting conditional operation is currently in progress against this resource."
     // when bucket is rapidly added/deleted and consistency propogation causes this error.
@@ -82,7 +82,9 @@ public abstract class AbstractS3IT {
                 fail("Bucket " + BUCKET_NAME + " exists. Choose a different bucket name to continue test");
             }
 
-            CreateBucketRequest request = new CreateBucketRequest(BUCKET_NAME, REGION);
+            CreateBucketRequest request = REGION.contains("east")
+                    ? new CreateBucketRequest(BUCKET_NAME) // See https://github.com/boto/boto3/issues/125
+                    : new CreateBucketRequest(BUCKET_NAME, REGION);
             client.createBucket(request);
 
         } catch (final AmazonS3Exception e) {
