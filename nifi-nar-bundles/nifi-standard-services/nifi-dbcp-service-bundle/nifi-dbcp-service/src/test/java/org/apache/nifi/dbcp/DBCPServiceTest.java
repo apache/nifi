@@ -175,15 +175,14 @@ public class DBCPServiceTest {
     /**
      * Test Drop invalid connections and create new ones.
      * Default behavior, invalid connections in pool.
-     * @throws Exception 
      */
     @Test
     public void testDropInvalidConnectionsH2_Default() throws Exception {
-    	
-    	// start the H2 TCP Server
-    	String[] args = new String[0];
-    	Server server = Server.createTcpServer(args).start();
-    	
+
+        // start the H2 TCP Server
+        String[] args = new String[0];
+        Server server = Server.createTcpServer(args).start();
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
@@ -195,7 +194,7 @@ public class DBCPServiceTest {
         runner.assertValid(service);
         final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-dropcreate");
         Assert.assertNotNull(dbcpService);
-    	
+
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
@@ -206,14 +205,14 @@ public class DBCPServiceTest {
             assertValidConnectionH2(connection, i);
             connection.close();
         }
-        
+
         // restart server, connections in pool should became invalid
-    	server.stop();
-    	server.shutdown();
-    	server.start();
-    	
-    	// Note!! We should get something like:
-    	// org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
+        server.stop();
+        server.shutdown();
+        server.start();
+
+        // Note!! We should get something like:
+        // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
         exception.expect(JdbcSQLException.class);
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
@@ -231,15 +230,14 @@ public class DBCPServiceTest {
     /**
      * Test Drop invalid connections and create new ones.
      * Better behavior, invalid connections are dropped and valid created.
-     * @throws Exception 
      */
     @Test
     public void testDropInvalidConnectionsH2_Better() throws Exception {
-    	
-    	// start the H2 TCP Server
-    	String[] args = new String[0];
-    	Server server = Server.createTcpServer(args).start();
-    	
+
+        // start the H2 TCP Server
+        String[] args = new String[0];
+        Server server = Server.createTcpServer(args).start();
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
@@ -252,7 +250,7 @@ public class DBCPServiceTest {
         runner.assertValid(service);
         final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-dropcreate");
         Assert.assertNotNull(dbcpService);
-    	
+
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
@@ -263,15 +261,15 @@ public class DBCPServiceTest {
             assertValidConnectionH2(connection, i);
             connection.close();
         }
-        
+
         // restart server, connections in pool should became invalid
-    	server.stop();
-    	server.shutdown();
-    	server.start();
-    	
-    	// Note!! We should not get something like:
-    	// org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
-    	// Pool should remove invalid connections and create new valid connections.
+        server.stop();
+        server.shutdown();
+        server.start();
+
+        // Note!! We should not get something like:
+        // org.h2.jdbc.JdbcSQLException: Connection is broken: "session closed" [90067-192]
+        // Pool should remove invalid connections and create new valid connections.
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
             int active = dbcpService.getNumActive();
@@ -284,45 +282,44 @@ public class DBCPServiceTest {
 
         server.shutdown();
     }
-    
+
     private void assertValidConnectionH2(Connection connection, int num) throws SQLException {
-		try (Statement statement = connection.createStatement()) {
-			ResultSet rs = statement.executeQuery("SELECT " + num);
-			assertTrue(rs.next());
-			int value = rs.getInt(1);
-			assertEquals(num, value);
-			assertTrue(connection.isValid(20));
-		}
-	}
-    
+        try (Statement statement = connection.createStatement()) {
+            ResultSet rs = statement.executeQuery("SELECT " + num);
+            assertTrue(rs.next());
+            int value = rs.getInt(1);
+            assertEquals(num, value);
+            assertTrue(connection.isValid(20));
+        }
+    }
+
     /**
      * Note!! Derby keeps something open even after server shutdown.
      * So it's difficult to get invalid connections.
-     * 
+     *
      * Test Drop invalid connections and create new ones.
-     * @throws Exception 
      */
     @Ignore
     @Test
     public void testDropInvalidConnectionsDerby() throws Exception {
-    	
+
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
         if (dbLocation.exists())
-        	throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
+            throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
 
-    	// Start Derby server.
-    	System.setProperty("derby.drda.startNetworkServer", "true");
-    	System.setProperty("derby.system.home", DB_LOCATION);
+        // Start Derby server.
+        System.setProperty("derby.drda.startNetworkServer", "true");
+        System.setProperty("derby.system.home", DB_LOCATION);
         NetworkServerControl serverControl = new NetworkServerControl(InetAddress.getLocalHost(),1527);
         serverControl.start(new PrintWriter(System.out, true));
-    	 
+
         // create sample database
         Class.forName("org.apache.derby.jdbc.ClientDriver");
         Connection conn = DriverManager.getConnection("jdbc:derby://127.0.0.1:1527/sample;create=true");
         conn.close();
-        
+
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
@@ -347,16 +344,16 @@ public class DBCPServiceTest {
             assertValidConnectionDerby(connection, i);
             connection.close();
         }
-       
+
         serverControl.shutdown();
-        dbLocation.delete();        
+        dbLocation.delete();
         if (dbLocation.exists())
-        	throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
+            throw new RuntimeException("Still exists " + dbLocation.getAbsolutePath());
         try {
-			serverControl.ping();
-		} catch (Exception e) {
-		}
-        
+            serverControl.ping();
+        } catch (Exception e) {
+        }
+
         Thread.sleep(2000);
 
         for (int i = 0; i < 10; i++) {
@@ -368,8 +365,7 @@ public class DBCPServiceTest {
             assertValidConnectionDerby(connection, i);
             connection.close();
         }
-       
-        
+
 /*
         exception.expect(ProcessException.class);
         exception.expectMessage("Cannot get a connection, pool error Timeout waiting for idle object");
@@ -377,21 +373,21 @@ public class DBCPServiceTest {
             final Connection connection = dbcpService.getConnection();
             Assert.assertNotNull(connection);
         }
-*/        
+*/
     }
 
 
     private void assertValidConnectionDerby(Connection connection, int num) throws SQLException {
-		try (Statement statement = connection.createStatement()) {
-			ResultSet rs = statement.executeQuery("SELECT " + num + " FROM SYSIBM.SYSDUMMY1");
-			assertTrue(rs.next());
-			int value = rs.getInt(1);
-			assertEquals(num, value);
-			assertTrue(connection.isValid(20));
-		}
-	}
+        try (Statement statement = connection.createStatement()) {
+            ResultSet rs = statement.executeQuery("SELECT " + num + " FROM SYSIBM.SYSDUMMY1");
+            assertTrue(rs.next());
+            int value = rs.getInt(1);
+            assertEquals(num, value);
+            assertTrue(connection.isValid(20));
+        }
+    }
 
-	/**
+    /**
      * Test get database connection using Derby. Get many times, release immediately and getConnection should not fail.
      */
     @Test

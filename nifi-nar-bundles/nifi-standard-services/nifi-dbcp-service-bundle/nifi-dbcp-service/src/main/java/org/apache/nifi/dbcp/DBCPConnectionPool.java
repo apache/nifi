@@ -117,14 +117,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
             .name("Validation query")
             .description("Validation query used to validate connections before returning them."
-            		+ "When connection is invalid, it get's dropped and new valid connection will be returned."
-            		+ "Note!! Using validation might have some performance penalty.")
+                + "When connection is invalid, it get's dropped and new valid connection will be returned."
+                + "Note!! Using validation might have some performance penalty.")
             .defaultValue(null)
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
-    
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -183,10 +183,10 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
-        
+
         if (validationQuery!=null && validationQuery.isEmpty()==false) {
-        	dataSource.setValidationQuery(validationQuery);
-        	dataSource.setTestOnBorrow(true);
+            dataSource.setValidationQuery(validationQuery);
+            dataSource.setTestOnBorrow(true);
         }
 
         dataSource.setUrl(dburl);
@@ -253,18 +253,18 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         }
     }
 
-    
-	@Override
-	public int getNumActive() {
-		return dataSource.getNumActive();
-	}
 
-	@Override
-	public int getNumIdle() {
-		return dataSource.getNumIdle();
-	}
+    @Override
+    public int getNumActive() {
+        return dataSource.getNumActive();
+    }
 
-	@Override
+    @Override
+    public int getNumIdle() {
+       return dataSource.getNumIdle();
+    }
+
+    @Override
     public String toString() {
         return "DBCPConnectionPool[id=" + getIdentifier() + "]";
     }

@@ -33,14 +33,12 @@ public interface DBCPService extends ControllerService {
     public Connection getConnection()  throws ProcessException;
 
     /**
-     * The current number of active connections that have been allocated from this data source. 
-     * @return
+     * The current number of active connections that have been allocated from this data source.
      */
-	public int getNumActive();
+    public int getNumActive();
 
-	/**
-	 * The current number of idle connections that are waiting to be allocated from this data source. 
-	 * @return
-	 */
-	public int getNumIdle();
+    /**
+     * The current number of idle connections that are waiting to be allocated from this data source.
+     */
+    public int getNumIdle();
 }
