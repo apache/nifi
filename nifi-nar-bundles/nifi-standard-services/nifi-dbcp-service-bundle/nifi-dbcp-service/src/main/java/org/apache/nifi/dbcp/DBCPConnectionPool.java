@@ -253,17 +253,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         }
     }
 
-
-    @Override
-    public int getNumActive() {
-        return dataSource.getNumActive();
-    }
-
-    @Override
-    public int getNumIdle() {
-       return dataSource.getNumIdle();
-    }
-
     @Override
     public String toString() {
         return "DBCPConnectionPool[id=" + getIdentifier() + "]";

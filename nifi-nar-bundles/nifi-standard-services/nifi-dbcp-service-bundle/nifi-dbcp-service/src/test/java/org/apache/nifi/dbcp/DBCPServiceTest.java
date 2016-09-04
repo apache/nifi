@@ -198,9 +198,7 @@ public class DBCPServiceTest {
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -216,9 +214,7 @@ public class DBCPServiceTest {
         exception.expect(JdbcSQLException.class);
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -254,9 +250,7 @@ public class DBCPServiceTest {
         // get and verify connections
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -272,9 +266,7 @@ public class DBCPServiceTest {
         // Pool should remove invalid connections and create new valid connections.
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionH2(connection, i);
             connection.close();
@@ -337,9 +329,7 @@ public class DBCPServiceTest {
 
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionDerby(connection, i);
             connection.close();
@@ -358,22 +348,12 @@ public class DBCPServiceTest {
 
         for (int i = 0; i < 10; i++) {
             final Connection connection = dbcpService.getConnection();
-            int active = dbcpService.getNumActive();
-            int idle = dbcpService.getNumIdle();
-            System.out.println("active=" + active + " idle=" + idle + " : " + connection);
+            System.out.println(connection);
             Assert.assertNotNull(connection);
             assertValidConnectionDerby(connection, i);
             connection.close();
         }
 
-/*
-        exception.expect(ProcessException.class);
-        exception.expectMessage("Cannot get a connection, pool error Timeout waiting for idle object");
-        for (int i = 0; i < 10; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
-        }
-*/
     }
 
 
