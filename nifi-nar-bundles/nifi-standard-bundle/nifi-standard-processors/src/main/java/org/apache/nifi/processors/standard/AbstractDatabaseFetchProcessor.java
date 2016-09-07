@@ -131,6 +131,16 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
+            .name("dbf-normalize")
+            .displayName("Normalize Table/Column Names")
+            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
+                    + "will be changed to underscores in order to build a valid Avro record.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     protected List<PropertyDescriptor> propDescriptors;
 
     public static final PropertyDescriptor DB_TYPE;
