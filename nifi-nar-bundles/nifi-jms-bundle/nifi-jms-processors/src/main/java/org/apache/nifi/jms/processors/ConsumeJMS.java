@@ -54,6 +54,8 @@ import org.springframework.jms.core.JmsTemplate;
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
+    public static final String JMS_SOURCE_DESTINATION_NAME = "jms.source.destination";
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are received from the JMS Destination are routed to this relationship")
@@ -118,6 +120,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         for (Entry<String, Object> headersEntry : jmsHeaders.entrySet()) {
             attributes.put(headersEntry.getKey(), String.valueOf(headersEntry.getValue()));
         }
+        attributes.put(JMS_SOURCE_DESTINATION_NAME, this.destinationName);
         flowFile = processSession.putAllAttributes(flowFile, attributes);
         return flowFile;
     }
