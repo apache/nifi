@@ -134,6 +134,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
+        pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -178,6 +179,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
 
         final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
 
@@ -248,7 +250,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                             // Max values will be updated in the state property map by the callback
                             final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
                             try {
-                                nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile));
+                                nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile, convertNamesForAvro));
                             } catch (SQLException | RuntimeException e) {
                                 throw new ProcessException("Error during database query or conversion of records to Avro.", e);
                             }

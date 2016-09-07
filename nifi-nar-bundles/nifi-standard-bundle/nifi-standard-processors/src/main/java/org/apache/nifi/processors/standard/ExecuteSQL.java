@@ -107,6 +107,16 @@ public class ExecuteSQL extends AbstractProcessor {
             .sensitive(false)
             .build();
 
+    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
+            .name("dbf-normalize")
+            .displayName("Normalize Table/Column Names")
+            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
+                    + "will be changed to underscores in order to build a valid Avro record.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
@@ -119,6 +129,7 @@ public class ExecuteSQL extends AbstractProcessor {
         pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
         pds.add(QUERY_TIMEOUT);
+        pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -160,6 +171,7 @@ public class ExecuteSQL extends AbstractProcessor {
         final ComponentLog logger = getLogger();
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final StopWatch stopWatch = new StopWatch(true);
         final String selectQuery;
         if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
@@ -190,7 +202,7 @@ public class ExecuteSQL extends AbstractProcessor {
                     try {
                         logger.debug("Executing query {}", new Object[]{selectQuery});
                         final ResultSet resultSet = st.executeQuery(selectQuery);
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out));
+                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, convertNamesForAvro));
                     } catch (final SQLException e) {
                         throw new ProcessException(e);
                     }

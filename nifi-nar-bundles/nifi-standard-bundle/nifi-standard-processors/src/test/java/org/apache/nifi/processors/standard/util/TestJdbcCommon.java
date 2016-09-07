@@ -153,7 +153,7 @@ public class TestJdbcCommon {
         final ResultSet resultSet = st.executeQuery("select R.*, ROW_NUMBER() OVER () as rownr from restaurants R");
 
         final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        JdbcCommon.convertToAvroStream(resultSet, outStream);
+        JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
         final byte[] serializedBytes = outStream.toByteArray();
         assertNotNull(serializedBytes);
@@ -287,8 +287,8 @@ public class TestJdbcCommon {
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
-        when(metadata.getColumnName(1)).thenReturn("Chairman");
-        when(metadata.getTableName(1)).thenReturn("table");
+        when(metadata.getColumnName(1)).thenReturn("The.Chairman");
+        when(metadata.getTableName(1)).thenReturn("1the::table");
 
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
@@ -306,7 +306,7 @@ public class TestJdbcCommon {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        JdbcCommon.convertToAvroStream(rs, baos);
+        JdbcCommon.convertToAvroStream(rs, baos, true);
 
         final byte[] serializedBytes = baos.toByteArray();
 
@@ -317,7 +317,8 @@ public class TestJdbcCommon {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
-                assertEquals(bigDecimal.toString(), record.get("Chairman").toString());
+                assertEquals("_1the__table", record.getSchema().getName());
+                assertEquals(bigDecimal.toString(), record.get("The_Chairman").toString());
             }
         }
     }

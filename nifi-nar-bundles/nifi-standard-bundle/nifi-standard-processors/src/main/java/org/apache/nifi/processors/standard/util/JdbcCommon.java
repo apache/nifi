@@ -70,22 +70,23 @@ public class JdbcCommon {
 
     private static final int MAX_DIGITS_IN_BIGINT = 19;
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream) throws SQLException, IOException {
-        return convertToAvroStream(rs, outStream, null, null);
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
+        return convertToAvroStream(rs, outStream, null, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, boolean convertNames)
             throws SQLException, IOException {
-        return convertToAvroStream(rs, outStream, recordName, null);
+        return convertToAvroStream(rs, outStream, recordName, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback) throws IOException, SQLException {
-        return convertToAvroStream(rs, outStream, recordName, callback, 0);
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, boolean convertNames)
+            throws IOException, SQLException {
+        return convertToAvroStream(rs, outStream, recordName, callback, 0, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows, boolean convertNames)
             throws SQLException, IOException {
-        final Schema schema = createSchema(rs, recordName);
+        final Schema schema = createSchema(rs, recordName, convertNames);
         final GenericRecord rec = new GenericData.Record(schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -160,7 +161,7 @@ public class JdbcCommon {
                 dataFileWriter.append(rec);
                 nrOfRows += 1;
 
-                if(maxRows > 0 && nrOfRows == maxRows)
+                if (maxRows > 0 && nrOfRows == maxRows)
                     break;
             }
 
@@ -169,7 +170,7 @@ public class JdbcCommon {
     }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
-        return createSchema(rs, null);
+        return createSchema(rs, null, false);
     }
 
     /**
@@ -181,7 +182,7 @@ public class JdbcCommon {
      * @return A Schema object representing the result set converted to an Avro record
      * @throws SQLException if any error occurs during conversion
      */
-    public static Schema createSchema(final ResultSet rs, String recordName) throws SQLException {
+    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(recordName) ? "NiFi_ExecuteSQL_Record" : recordName;
@@ -192,12 +193,17 @@ public class JdbcCommon {
             }
         }
 
+        if (convertNames) {
+            tableName = normalizeNameForAvro(tableName);
+        }
+
         final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 
         /**
          * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
+            String columnName = convertNames ? normalizeNameForAvro(meta.getColumnName(i)) : meta.getColumnName(i);
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:
@@ -205,25 +211,25 @@ public class JdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case BIT:
                 case BOOLEAN:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
                     break;
 
                 case INTEGER:
                     if (meta.isSigned(i)) {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     } else {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
                     }
                     break;
 
                 case SMALLINT:
                 case TINYINT:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     break;
 
                 case BIGINT:
@@ -232,38 +238,38 @@ public class JdbcCommon {
                     // to strings as necessary
                     int precision = meta.getPrecision(i);
                     if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     } else {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
                     }
                     break;
 
                 // java.sql.RowId is interface, is seems to be database
                 // implementation specific, let's convert to String
                 case ROWID:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case FLOAT:
                 case REAL:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
                     break;
 
                 case DOUBLE:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DECIMAL:
                 case NUMERIC:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DATE:
                 case TIME:
                 case TIMESTAMP:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case BINARY:
@@ -272,7 +278,7 @@ public class JdbcCommon {
                 case ARRAY:
                 case BLOB:
                 case CLOB:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
                     break;
 
 
@@ -282,6 +288,14 @@ public class JdbcCommon {
         }
 
         return builder.endRecord();
+    }
+
+    public static String normalizeNameForAvro(String inputName) {
+        String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
+        if (Character.isDigit(normalizedName.charAt(0))) {
+            normalizedName = "_" + normalizedName;
+        }
+        return normalizedName;
     }
 
     /**
