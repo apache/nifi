@@ -54,6 +54,8 @@ public class ConsumeJMSTest {
         assertNotNull(successFF);
         assertEquals("cooQueue", successFF.getAttributes().get(JmsHeaders.DESTINATION));
         successFF.assertContentEquals("Hey dude!".getBytes());
+        String sourceDestination = successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME);
+        assertNotNull(sourceDestination);
 
         ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
     }
