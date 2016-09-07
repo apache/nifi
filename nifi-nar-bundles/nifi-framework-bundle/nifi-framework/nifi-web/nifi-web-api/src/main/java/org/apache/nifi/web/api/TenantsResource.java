@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -79,12 +80,14 @@ public class TenantsResource extends ApplicationResource {
     private final NiFiServiceFacade serviceFacade;
     private final Authorizer authorizer;
 
-    public TenantsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator, ClusterCoordinator clusterCoordinator) {
+    public TenantsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator,
+        ClusterCoordinator clusterCoordinator, FlowController flowController) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
         setProperties(properties);
         setRequestReplicator(requestReplicator);
         setClusterCoordinator(clusterCoordinator);
+        setFlowController(flowController);
     }
 
     /**
