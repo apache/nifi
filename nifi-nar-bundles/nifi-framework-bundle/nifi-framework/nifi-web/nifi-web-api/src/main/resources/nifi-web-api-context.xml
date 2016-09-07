@@ -399,6 +399,7 @@
         <constructor-arg ref="nifiProperties"/>
         <constructor-arg ref="clusterCoordinator"/>
         <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="flowController" />
     </bean>
     <bean id="tenantsResource" class="org.apache.nifi.web.api.TenantsResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
@@ -406,6 +407,7 @@
         <constructor-arg ref="nifiProperties"/>
         <constructor-arg ref="clusterCoordinator"/>
         <constructor-arg ref="requestReplicator" />
+        <constructor-arg ref="flowController" />
     </bean>
 
     <!-- configuration for jaxb serialization -->
