@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MiNiFi Config Version: 1
 Flow Controller:
   name: StressTestFramework
   comment: ''
@@ -56,6 +57,7 @@ Security Properties:
     provider: BC
 Processors:
 - name: GenerateFlowFile
+  id: 16a47794-5391-4ad2-8d7b-be7ef83b8fee
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -70,6 +72,7 @@ Processors:
     File Size: 0 KB
     Unique FlowFiles:
 - name: RouteOnAttribute
+  id: 397a4910-cc01-4c6b-88c9-e99b17b094e8
   class: org.apache.nifi.processors.standard.RouteOnAttribute
   max concurrent tasks: 2
   scheduling strategy: TIMER_DRIVEN
@@ -82,6 +85,7 @@ Processors:
   Properties:
     Routing Strategy:
 - name: UpdateAttribute
+  id: 92557c76-f251-45a4-96a4-79057b24e832
   class: org.apache.nifi.processors.attributes.UpdateAttribute
   max concurrent tasks: 2
   scheduling strategy: TIMER_DRIVEN
@@ -96,17 +100,19 @@ Processors:
     property 2: value 2 ${nextInt()}
 Connections:
 - name: GenerateFlowFile/success/UpdateAttribute
-  source name: GenerateFlowFile
+  id: 0e6873cc-cb9d-4e98-92aa-a3319f4c1b02
+  source id: 16a47794-5391-4ad2-8d7b-be7ef83b8fee
   source relationship name: success
-  destination name: UpdateAttribute
+  destination id: 92557c76-f251-45a4-96a4-79057b24e832
   max work queue size: 200
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: UpdateAttribute/success/RouteOnAttribute
-  source name: UpdateAttribute
+  id: 4c53556e-eb46-458c-9e98-8329a8cf70fd
+  source id: 92557c76-f251-45a4-96a4-79057b24e832
   source relationship name: success
-  destination name: RouteOnAttribute
+  destination id: 397a4910-cc01-4c6b-88c9-e99b17b094e8
   max work queue size: 2000
   max work queue data size: 0 MB
   flowfile expiration: 0 sec

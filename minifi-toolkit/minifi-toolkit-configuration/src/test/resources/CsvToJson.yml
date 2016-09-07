@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MiNiFi Config Version: 1
 Flow Controller:
   name: CsvToJsonWorking
   comment: ''
@@ -56,6 +57,7 @@ Security Properties:
     provider: BC
 Processors:
 - name: ExtractText
+  id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6
   class: org.apache.nifi.processors.standard.ExtractText
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -81,6 +83,7 @@ Processors:
     Permit Whitespace and Comments in Pattern: 'false'
     csv: (.+),(.+),(.+),(.+)
 - name: GenerateFlowFile
+  id: ffb6d4e9-9d6c-4fbe-ab8a-52bad90ce2e5
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -95,6 +98,7 @@ Processors:
     File Size: 1 b
     Unique FlowFiles: 'false'
 - name: ReplaceText
+  id: cdcc2028-238b-42b7-bf95-dd4f301b91fc
   class: org.apache.nifi.processors.standard.ReplaceText
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -112,6 +116,7 @@ Processors:
     Replacement Strategy:
     Replacement Value: a,b,c,d
 - name: ReplaceText2
+  id: 8db2ebc8-12c8-4396-89b6-479d907fbc6b
   class: org.apache.nifi.processors.standard.ReplaceText
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -131,6 +136,7 @@ Processors:
       \                            \"field3\" : \"${csv.3}\", \"field4\" : \"${csv.4}\"\
       \ }\n                        "
 - name: UpdateAttribute
+  id: 1d00089c-78cd-467f-9aa6-31e3bdf90cb0
   class: org.apache.nifi.processors.attributes.UpdateAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -144,33 +150,37 @@ Processors:
     Delete Attributes Expression:
 Connections:
 - name: ExtractText/matched/ReplaceText2
-  source name: ExtractText
+  id: 56ef3e2e-ee35-4598-9fbe-ae86050960b0
+  source id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6
   source relationship name: matched
-  destination name: ReplaceText2
+  destination id: 8db2ebc8-12c8-4396-89b6-479d907fbc6b
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: GenerateFlowFile/success/ReplaceText
-  source name: GenerateFlowFile
+  id: 0cc34e0a-0ae9-44ba-838f-792ed393a301
+  source id: ffb6d4e9-9d6c-4fbe-ab8a-52bad90ce2e5
   source relationship name: success
-  destination name: ReplaceText
+  destination id: cdcc2028-238b-42b7-bf95-dd4f301b91fc
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: ReplaceText/success/ExtractText
-  source name: ReplaceText
+  id: e32e19cb-6c4c-4c6c-a8db-408447ba2ca2
+  source id: cdcc2028-238b-42b7-bf95-dd4f301b91fc
   source relationship name: success
-  destination name: ExtractText
+  destination id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: ReplaceText2/success/UpdateAttribute
-  source name: ReplaceText2
+  id: b061c170-19da-4e84-9709-327303fef579
+  source id: 8db2ebc8-12c8-4396-89b6-479d907fbc6b
   source relationship name: success
-  destination name: UpdateAttribute
+  destination id: 1d00089c-78cd-467f-9aa6-31e3bdf90cb0
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec

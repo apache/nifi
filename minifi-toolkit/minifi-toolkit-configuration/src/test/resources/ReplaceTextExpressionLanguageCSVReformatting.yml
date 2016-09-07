@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MiNiFi Config Version: 1
 Flow Controller:
   name: ReplaceTextExpressionLanguageCSVReformatting
   comment: ''
@@ -56,6 +57,7 @@ Security Properties:
     provider: BC
 Processors:
 - name: Generate Empty File
+  id: e626f756-f018-4670-8802-c8f8e459e15d
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -70,6 +72,7 @@ Processors:
     File Size: 0b
     Unique FlowFiles:
 - name: No-Op Termination
+  id: bfa4fb38-096b-455d-a10f-2a1ed044bd49
   class: org.apache.nifi.processors.attributes.UpdateAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -82,6 +85,7 @@ Processors:
   Properties:
     Delete Attributes Expression:
 - name: Reformat Date Column
+  id: a25f67cb-029c-466f-b040-9339ba64a4b5
   class: org.apache.nifi.processors.standard.ReplaceText
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -99,6 +103,7 @@ Processors:
     Replacement Strategy:
     Replacement Value: $1,$2,${ '$3':toDate('ddMMMyyyy'):format('yyyy/MM/dd') }
 - name: Set CSV Content
+  id: 7ba79381-4317-4c99-bcc0-256ee7ad44e9
   class: org.apache.nifi.processors.standard.ReplaceText
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -120,25 +125,28 @@ Processors:
       2009,8-8-2008,10aug2008
 Connections:
 - name: Generate Empty File/success/Set CSV Content
-  source name: Generate Empty File
+  id: ca71a875-0ff5-41ef-bbe0-da5de0ca1e08
+  source id: e626f756-f018-4670-8802-c8f8e459e15d
   source relationship name: success
-  destination name: Set CSV Content
+  destination id: 7ba79381-4317-4c99-bcc0-256ee7ad44e9
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Reformat Date Column/success/No-Op Termination
-  source name: Reformat Date Column
+  id: 7fe8e5c6-6d9b-4b8f-af89-5d543bcc0199
+  source id: a25f67cb-029c-466f-b040-9339ba64a4b5
   source relationship name: success
-  destination name: No-Op Termination
+  destination id: bfa4fb38-096b-455d-a10f-2a1ed044bd49
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Set CSV Content/success/Reformat Date Column
-  source name: Set CSV Content
+  id: 1b327d4e-918f-43bc-97cf-043efed7ffbc
+  source id: 7ba79381-4317-4c99-bcc0-256ee7ad44e9
   source relationship name: success
-  destination name: Reformat Date Column
+  destination id: a25f67cb-029c-466f-b040-9339ba64a4b5
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec

@@ -40,10 +40,10 @@ public abstract class BaseSchemaTester<Schema extends BaseSchema, DTO> {
         Schema dtoSchema = dtoSchemaFunction.apply(dto);
         Schema mapSchema = mapSchemaFunction.apply(map);
         assertSchemaEquals(dtoSchema, mapSchema);
-        assertEquals(dtoSchema.validationIssues, mapSchema.validationIssues);
+        assertEquals(dtoSchema.getValidationIssues(), mapSchema.getValidationIssues());
         assertSchemaEquals(dtoSchema, mapSchemaFunction.apply(dtoSchema.toMap()));
         assertSchemaEquals(mapSchema, mapSchemaFunction.apply(mapSchema.toMap()));
-        assertEquals(validationErrors, dtoSchema.validationIssues.size());
+        assertEquals(validationErrors, dtoSchema.getValidationIssues().size());
     }
 
     public abstract void assertSchemaEquals(Schema one, Schema two);

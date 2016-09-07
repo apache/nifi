@@ -50,10 +50,8 @@ public class RemoteProcessingGroupSchema extends BaseSchema {
     public RemoteProcessingGroupSchema(Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESSING_GROUPS_KEY);
         url = getRequiredKeyAsType(map, URL_KEY, String.class, REMOTE_PROCESSING_GROUPS_KEY);
-        inputPorts = getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, REMOTE_PROCESSING_GROUPS_KEY);
+        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, REMOTE_PROCESSING_GROUPS_KEY), "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
         if (inputPorts != null) {
-            transformListToType(inputPorts, "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
-
             for (RemoteInputPortSchema remoteInputPortSchema: inputPorts) {
                 addIssuesIfNotNull(remoteInputPortSchema);
             }

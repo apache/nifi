@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.commons.schema;
 
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.Collections;
@@ -26,16 +26,12 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROCESSORS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
-/**
- *
- */
-public class ProcessorSchema extends BaseSchema {
+public class ProcessorSchema extends BaseSchemaWithIdAndName {
     public static final String CLASS_KEY = "class";
     public static final String PENALIZATION_PERIOD_KEY = "penalization period";
     public static final String RUN_DURATION_NANOS_KEY = "run duration nanos";
@@ -49,7 +45,6 @@ public class ProcessorSchema extends BaseSchema {
     public static final Map<String, Object> DEFAULT_PROPERTIES = Collections.emptyMap();
     public static final String IT_IS_NOT_A_VALID_SCHEDULING_STRATEGY = "it is not a valid scheduling strategy";
 
-    private String name;
     private String processorClass;
     private String schedulingStrategy;
     private String schedulingPeriod;
@@ -61,7 +56,7 @@ public class ProcessorSchema extends BaseSchema {
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
 
     public ProcessorSchema(Map map) {
-        name = getRequiredKeyAsType(map, NAME_KEY, String.class, PROCESSORS_KEY);
+        super(map, PROCESSORS_KEY);
         processorClass = getRequiredKeyAsType(map, CLASS_KEY, String.class, PROCESSORS_KEY);
         schedulingStrategy = getRequiredKeyAsType(map, SCHEDULING_STRATEGY_KEY, String.class, PROCESSORS_KEY);
         if (schedulingStrategy != null && !isSchedulingStrategy(schedulingStrategy)) {
@@ -88,8 +83,7 @@ public class ProcessorSchema extends BaseSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
-        result.put(NAME_KEY, name);
+        Map<String, Object> result = super.toMap();
         result.put(CLASS_KEY, processorClass);
         result.put(MAX_CONCURRENT_TASKS_KEY, maxConcurrentTasks);
         result.put(SCHEDULING_STRATEGY_KEY, schedulingStrategy);
@@ -100,14 +94,6 @@ public class ProcessorSchema extends BaseSchema {
         result.put(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, autoTerminatedRelationshipsList);
         result.put(PROCESSOR_PROPS_KEY, new TreeMap<>(properties));
         return result;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getProcessorClass() {

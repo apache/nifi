@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
@@ -40,6 +41,7 @@ public class ProcessorSchemaFunction implements Function<ProcessorDTO, Processor
 
         Map<String, Object> map = new HashMap<>();
         map.put(NAME_KEY, processorDTO.getName());
+        map.put(ID_KEY, processorDTO.getId());
         map.put(ProcessorSchema.CLASS_KEY, processorDTO.getType());
         map.put(SCHEDULING_STRATEGY_KEY, processorDTOConfig.getSchedulingStrategy());
         map.put(SCHEDULING_PERIOD_KEY, processorDTOConfig.getSchedulingPeriod());

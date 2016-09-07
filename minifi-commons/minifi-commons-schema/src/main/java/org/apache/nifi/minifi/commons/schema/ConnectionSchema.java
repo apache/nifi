@@ -17,32 +17,35 @@
 
 package org.apache.nifi.minifi.commons.schema;
 
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
-/**
- *
- */
-public class ConnectionSchema extends BaseSchema {
-    public static final String SOURCE_NAME_KEY = "source name";
+public class ConnectionSchema extends BaseSchemaWithIdAndName {
+    public static final String SOURCE_ID_KEY = "source id";
     public static final String SOURCE_RELATIONSHIP_NAME_KEY = "source relationship name";
-    public static final String DESTINATION_NAME_KEY = "destination name";
+    public static final String DESTINATION_ID_KEY = "destination id";
     public static final String MAX_WORK_QUEUE_SIZE_KEY = "max work queue size";
     public static final String MAX_WORK_QUEUE_DATA_SIZE_KEY = "max work queue data size";
     public static final String FLOWFILE_EXPIRATION__KEY = "flowfile expiration";
     public static final String QUEUE_PRIORITIZER_CLASS_KEY = "queue prioritizer class";
+    public static final String SOURCE_NAME_KEY = "source name";
+    public static final String DESTINATION_NAME_KEY = "destination name";
 
     public static final long DEFAULT_MAX_WORK_QUEUE_SIZE = 0;
     public static final String DEFAULT_MAX_QUEUE_DATA_SIZE = "0 MB";
     public static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
 
-    private String name;
-    private String sourceName;
+    private String sourceId;
     private String sourceRelationshipName;
+    private String destinationId;
+
+    private String sourceName;
     private String destinationName;
 
     private Number maxWorkQueueSize = DEFAULT_MAX_WORK_QUEUE_SIZE;
@@ -51,10 +54,18 @@ public class ConnectionSchema extends BaseSchema {
     private String queuePrioritizerClass;
 
     public ConnectionSchema(Map map) {
-        name = getRequiredKeyAsType(map, NAME_KEY, String.class, CONNECTIONS_KEY);
-        sourceName = getRequiredKeyAsType(map, SOURCE_NAME_KEY, String.class, CONNECTIONS_KEY);
+        super(map, CONNECTIONS_KEY);
+
+        sourceId = getOptionalKeyAsType(map, SOURCE_ID_KEY, String.class, CONNECTIONS_KEY, "");
+        if (StringUtil.isNullOrEmpty(sourceId)) {
+            sourceName = getRequiredKeyAsType(map, SOURCE_NAME_KEY, String.class, CONNECTIONS_KEY);
+        }
         sourceRelationshipName = getRequiredKeyAsType(map, SOURCE_RELATIONSHIP_NAME_KEY, String.class, CONNECTIONS_KEY);
-        destinationName = getRequiredKeyAsType(map, DESTINATION_NAME_KEY, String.class, CONNECTIONS_KEY);
+
+        destinationId = getOptionalKeyAsType(map, DESTINATION_ID_KEY, String.class, CONNECTIONS_KEY, "");
+        if (StringUtil.isNullOrEmpty(getDestinationId())) {
+            destinationName = getRequiredKeyAsType(map, DESTINATION_NAME_KEY, String.class, CONNECTIONS_KEY);
+        }
 
         maxWorkQueueSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_SIZE_KEY, Number.class, CONNECTIONS_KEY, DEFAULT_MAX_WORK_QUEUE_SIZE);
         maxWorkQueueDataSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_DATA_SIZE_KEY, String.class, CONNECTIONS_KEY, DEFAULT_MAX_QUEUE_DATA_SIZE);
@@ -64,11 +75,10 @@ public class ConnectionSchema extends BaseSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
-        result.put(NAME_KEY, name);
-        result.put(SOURCE_NAME_KEY, sourceName);
+        Map<String, Object> result = super.toMap();
+        result.put(SOURCE_ID_KEY, sourceId);
         result.put(SOURCE_RELATIONSHIP_NAME_KEY, sourceRelationshipName);
-        result.put(DESTINATION_NAME_KEY, destinationName);
+        result.put(DESTINATION_ID_KEY, destinationId);
 
         result.put(MAX_WORK_QUEUE_SIZE_KEY, maxWorkQueueSize);
         result.put(MAX_WORK_QUEUE_DATA_SIZE_KEY, maxWorkQueueDataSize);
@@ -77,20 +87,24 @@ public class ConnectionSchema extends BaseSchema {
         return result;
     }
 
-    public String getName() {
-        return name;
+    public String getSourceId() {
+        return sourceId;
     }
 
-    public String getSourceName() {
-        return sourceName;
+    public void setSourceId(String sourceId) {
+        this.sourceId = sourceId;
+    }
+
+    public String getDestinationId() {
+        return destinationId;
+    }
+
+    public void setDestinationId(String destinationId) {
+        this.destinationId = destinationId;
     }
 
     public String getSourceRelationshipName() {
         return sourceRelationshipName;
-    }
-
-    public String getDestinationName() {
-        return destinationName;
     }
 
     public Number getMaxWorkQueueSize() {
@@ -107,5 +121,25 @@ public class ConnectionSchema extends BaseSchema {
 
     public String getQueuePrioritizerClass() {
         return queuePrioritizerClass;
+    }
+
+    public String getSourceName() {
+        return sourceName;
+    }
+
+    public String getDestinationName() {
+        return destinationName;
+    }
+
+    @Override
+    public List<String> getValidationIssues() {
+        List<String> validationIssues = super.getValidationIssues();
+        if (StringUtil.isNullOrEmpty(getSourceId())) {
+            validationIssues.add(getIssueText(SOURCE_ID_KEY, CONNECTIONS_KEY, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
+        }
+        if (StringUtil.isNullOrEmpty(getDestinationId())) {
+            validationIssues.add(getIssueText(DESTINATION_ID_KEY, CONNECTIONS_KEY, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
+        }
+        return Collections.unmodifiableList(validationIssues);
     }
 }

@@ -24,9 +24,23 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class SchemaLoader {
+    private static final Map<String, Function<Map, ConfigSchema>> configSchemaFactories = initConfigSchemaFactories();
+
+    private static Map<String, Function<Map, ConfigSchema>> initConfigSchemaFactories() {
+        Map<String, Function<Map, ConfigSchema>> result = new HashMap<>();
+        result.put(String.valueOf((Object)null), ConfigSchema::new);
+        result.put("", ConfigSchema::new);
+        result.put(Integer.toString(ConfigSchema.CONFIG_VERSION), ConfigSchema::new);
+        return result;
+    }
+
+
     public static Map<String, Object> loadYamlAsMap(InputStream sourceStream) throws IOException, SchemaLoaderException {
         try {
             Yaml yaml = new Yaml();
@@ -40,7 +54,7 @@ public class SchemaLoader {
             } else {
                 throw new SchemaLoaderException("Provided YAML configuration is not a Map");
             }
-        } catch (YAMLException e ) {
+        } catch (YAMLException e) {
             throw new IOException(e);
         } finally {
             sourceStream.close();
@@ -48,6 +62,16 @@ public class SchemaLoader {
     }
 
     public static ConfigSchema loadConfigSchemaFromYaml(InputStream sourceStream) throws IOException, SchemaLoaderException {
-        return new ConfigSchema(loadYamlAsMap(sourceStream));
+        return loadConfigSchemaFromYaml(loadYamlAsMap(sourceStream));
+    }
+
+    public static ConfigSchema loadConfigSchemaFromYaml(Map<String, Object> yamlAsMap) throws SchemaLoaderException {
+        String version = String.valueOf(yamlAsMap.get(ConfigSchema.VERSION));
+        Function<Map, ConfigSchema> schemaFactory = configSchemaFactories.get(version);
+        if (schemaFactory == null) {
+            throw new SchemaLoaderException("YAML configuration version " + version + " not supported.  Supported versions: "
+                    + configSchemaFactories.keySet().stream().sorted().collect(Collectors.joining(", ")));
+        }
+        return schemaFactory.apply(yamlAsMap);
     }
 }

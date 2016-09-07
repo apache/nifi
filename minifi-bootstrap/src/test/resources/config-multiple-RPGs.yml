@@ -75,7 +75,7 @@ Processors:
 
 Connections:
     - name: TailToS2S
-      source name: TailFile
+      source name: TailAppLog
       source relationship name: success
       destination name: dgs809qe-9qw7-q985-jl1u-y789ohi87g78
       max work queue size: 0
@@ -83,7 +83,7 @@ Connections:
       flowfile expiration: 60 sec
       queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
     - name: TailToS2S-2
-      source name: TailFile
+      source name: TailAppLog
       source relationship name: success
       destination name: 8644cbcc-a45c-40e0-964d-5e536e2ada61
       max work queue size: 0

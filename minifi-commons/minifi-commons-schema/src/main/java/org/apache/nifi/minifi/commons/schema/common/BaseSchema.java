@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.commons.schema.common;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -42,20 +43,20 @@ public abstract class BaseSchema {
     }
 
     /******* Validation Issue helper methods *******/
-    public List<String> validationIssues = new LinkedList<>();
+    private List<String> validationIssues = new LinkedList<>();
 
     public boolean isValid() {
-        return validationIssues.isEmpty();
+        return getValidationIssues().isEmpty();
     }
 
     public List<String> getValidationIssues() {
-        return validationIssues;
+        return new ArrayList<>(validationIssues);
     }
 
     public String getValidationIssuesAsString() {
         StringBuilder stringBuilder = new StringBuilder();
         boolean first = true;
-        for (String validationIssue : validationIssues) {
+        for (String validationIssue : getValidationIssues()) {
             if (!first) {
                 stringBuilder.append(", ");
             }
@@ -79,8 +80,16 @@ public abstract class BaseSchema {
         return result;
     }
 
+    public void addValidationIssue(String issue) {
+        validationIssues.add(issue);
+    }
+
     public void addValidationIssue(String keyName, String wrapperName, String reason) {
-        validationIssues.add("'" + keyName + "' in section '" + wrapperName + "' because " + reason);
+        addValidationIssue(getIssueText(keyName, wrapperName, reason));
+    }
+
+    public static String getIssueText(String keyName, String wrapperName, String reason) {
+        return "'" + keyName + "' in section '" + wrapperName + "' because " + reason;
     }
 
     public void addIssuesIfNotNull(BaseSchema baseSchema) {
@@ -127,13 +136,18 @@ public abstract class BaseSchema {
         return interpretValueAsType(obj, key, targetClass, wrapperName, required, instantiateIfNull);
     }
 
-    public <T> void transformListToType(List<T> list, String simpleListType, Class<T> targetClass, String wrapperName){
+    public <InputT, OutputT> List<OutputT> convertListToType(List<InputT> list, String simpleListType, Class<? extends OutputT> targetClass, String wrapperName){
+        if (list == null) {
+            return null;
+        }
+        List<OutputT> result = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); i++) {
-            T obj = interpretValueAsType(list.get(i), simpleListType + " number " + i, targetClass, wrapperName, false, false);
-            if (obj != null) {
-                list.set(i, obj);
+            OutputT val = interpretValueAsType(list.get(i), simpleListType + " number " + i, targetClass, wrapperName, false, false);
+            if (val != null) {
+                result.add(val);
             }
         }
+        return result;
     }
 
     private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {

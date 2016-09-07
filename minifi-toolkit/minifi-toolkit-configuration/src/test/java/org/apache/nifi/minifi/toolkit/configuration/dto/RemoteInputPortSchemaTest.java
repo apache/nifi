@@ -67,7 +67,7 @@ public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemoteInputPortS
     public void testNoName() {
         dto.setName(null);
         map.remove(CommonPropertyKeys.NAME_KEY);
-        assertDtoAndMapConstructorAreSame(1);
+        assertDtoAndMapConstructorAreSame(0);
     }
 
     @Test

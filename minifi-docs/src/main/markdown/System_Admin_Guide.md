@@ -174,10 +174,11 @@ for example "10 sec" or "10 MB", not simply "10".
 
 The first section of config.yml is for naming and commenting on the file.
 
- Property | Description
- -------- | ---
-name      | The name of the file.
-comment   | A comment describing the usage of this config file.
+ Property             | Description
+--------------------- | -----------
+MiNiFi Config Version | The version of the configuration file.  The default value if this property is missing or empty is 1 which is the only version (and correct value) currently.
+name                  | The name of the file.
+comment               | A comment describing the usage of this config file.
 
 ## Core Properties
 
@@ -289,6 +290,7 @@ The current implementation of MiNiFi supports multiple processors. the "Processo
 *Property*                          | *Description*
 ----------------------------------- | -------------
 name                                | The name of what this processor will do. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+id                                  | The id of this processor.  This can be omitted but in processors without this field, there should not be any duplicate names and connections will need to specify source and destination name instead of id.  If set it should be a filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 class                               | The fully qualified java class name of the processor to run. For example for the standard TailFile processor it would be: org.apache.nifi.processors.standard.TailFile
 max concurrent tasks                | The maximum number of tasks that the processor will use.
 scheduling strategy                 | The strategy for executing the processor. Valid options are `CRON_DRIVEN` or `TIMER_DRIVEN`
@@ -315,6 +317,7 @@ There can be multiple connections in this version of MiNiFi. The "Connections" s
 *Property*               | *Description*
 --------------------     | -------------
 name                     | The name of what this connection will do. This is used for the id of the connection so it must be unique.
+id                       | The id of this connection.  This needs to be left empty or set to a filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 source name              | The name of what of the processor that is the source for this connection.
 source relationship name | The name of the processors relationship to route to this connection
 destination name         | The name of the component to receive this connection.

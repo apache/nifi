@@ -29,19 +29,21 @@ import java.util.Set;
 import java.util.function.Function;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
 public class ConnectionSchemaFunction implements Function<ConnectionDTO, ConnectionSchema> {
     @Override
     public ConnectionSchema apply(ConnectionDTO connectionDTO) {
         Map<String, Object> map = new HashMap<>();
+        map.put(ID_KEY, connectionDTO.getId());
         map.put(NAME_KEY, connectionDTO.getName());
-        map.put(ConnectionSchema.SOURCE_NAME_KEY, connectionDTO.getSource().getName());
+        map.put(ConnectionSchema.SOURCE_ID_KEY, connectionDTO.getSource().getId());
         Set<String> selectedRelationships = BaseSchema.nullToEmpty(connectionDTO.getSelectedRelationships());
         if (selectedRelationships.size() > 0) {
             map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, selectedRelationships.iterator().next());
         }
-        map.put(ConnectionSchema.DESTINATION_NAME_KEY, connectionDTO.getDestination().getName());
+        map.put(ConnectionSchema.DESTINATION_ID_KEY, connectionDTO.getDestination().getId());
 
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, connectionDTO.getBackPressureObjectThreshold());
         map.put(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY, connectionDTO.getBackPressureDataSizeThreshold());
@@ -52,7 +54,7 @@ public class ConnectionSchemaFunction implements Function<ConnectionDTO, Connect
         }
         ConnectionSchema connectionSchema = new ConnectionSchema(map);
         if (ConnectableType.FUNNEL.name().equals(connectionDTO.getSource().getType())) {
-            connectionSchema.validationIssues.add("Connection " + connectionDTO.getName() + " has type " + ConnectableType.FUNNEL.name() + " which is not supported by MiNiFi");
+            connectionSchema.addValidationIssue("Connection " + connectionDTO.getName() + " has type " + ConnectableType.FUNNEL.name() + " which is not supported by MiNiFi");
         }
         if (selectedRelationships.size() > 1) {
             connectionSchema.addValidationIssue(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, CONNECTIONS_KEY, " has more than one selected relationship");

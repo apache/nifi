@@ -33,17 +33,18 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 
 public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, ProcessorDTO> {
-    private String testName = "testName";
-    private String testProcessorClass = "testProcessorClass";
-    private String testSchedulingStrategy = SchedulingStrategy.PRIMARY_NODE_ONLY.name();
-    private String testSchedulingPeriod = "10 s";
-    private int testMaxConcurrentTasks = 101;
-    private String testYieldDuration = "5 s";
-    private long testRunDurationNanos = 1111000L;
-    private String testRelationship = "testRelationship";
-    private String testKey = "testKey";
-    private String testValue = "testValue";
-    private String testPenalizationPeriod = "55 s";
+    private final String testName = "testName";
+    private final String testId = "testId";
+    private final String testProcessorClass = "testProcessorClass";
+    private final String testSchedulingStrategy = SchedulingStrategy.PRIMARY_NODE_ONLY.name();
+    private final String testSchedulingPeriod = "10 s";
+    private final int testMaxConcurrentTasks = 101;
+    private final String testYieldDuration = "5 s";
+    private final long testRunDurationNanos = 1111000L;
+    private final String testRelationship = "testRelationship";
+    private final String testKey = "testKey";
+    private final String testValue = "testValue";
+    private final String testPenalizationPeriod = "55 s";
     private ProcessorConfigDTO config;
 
     public ProcessorSchemaTest() {
@@ -61,6 +62,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         dto = new ProcessorDTO();
         dto.setConfig(config);
         dto.setName(testName);
+        dto.setId(testId);
         dto.setType(testProcessorClass);
         config.setSchedulingStrategy(testSchedulingStrategy);
         config.setSchedulingPeriod(testSchedulingPeriod);
@@ -75,6 +77,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
 
         map = new HashMap<>();
         map.put(CommonPropertyKeys.NAME_KEY, testName);
+        map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(ProcessorSchema.CLASS_KEY, testProcessorClass);
         map.put(CommonPropertyKeys.SCHEDULING_STRATEGY_KEY, testSchedulingStrategy);
         map.put(CommonPropertyKeys.SCHEDULING_PERIOD_KEY, testSchedulingPeriod);
@@ -90,6 +93,13 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
     public void testNoName() {
         dto.setName(null);
         map.remove(CommonPropertyKeys.NAME_KEY);
+        assertDtoAndMapConstructorAreSame(0);
+    }
+
+    @Test
+    public void testNoId() {
+        dto.setId(null);
+        map.remove(CommonPropertyKeys.ID_KEY);
         assertDtoAndMapConstructorAreSame(1);
     }
 

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MiNiFi Config Version: 1
 Flow Controller:
   name: InvokeHttpMiNiFiTemplateTest2
   comment: ''
@@ -56,6 +57,7 @@ Security Properties:
     provider: BC
 Processors:
 - name: LogAttribute
+  id: 0a73c5e4-7216-4cdf-9008-ace353478d55
   class: org.apache.nifi.processors.standard.LogAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -72,6 +74,7 @@ Processors:
     Log Payload: 'false'
     Log prefix:
 - name: LogAttribute2
+  id: 0bda7282-7a4f-4d39-83e5-ea86aa63f1dc
   class: org.apache.nifi.processors.standard.LogAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -88,6 +91,7 @@ Processors:
     Log Payload: 'false'
     Log prefix:
 - name: Route On Status Code
+  id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   class: org.apache.nifi.processors.standard.RouteOnAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -100,6 +104,7 @@ Processors:
     '200': ${invokehttp.status.code:equals(200)}
     Routing Strategy: Route to Property name
 - name: Search Google
+  id: 66649998-3b08-4b41-9f07-a51d999743f6
   class: org.apache.nifi.processors.standard.InvokeHTTP
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -134,6 +139,7 @@ Processors:
     invokehttp-proxy-user:
     send-message-body: 'true'
 - name: Source
+  id: fcb378d7-6438-41d3-8485-7da85e870ca4
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -148,6 +154,7 @@ Processors:
     File Size: 10 b
     Unique FlowFiles: 'false'
 - name: q=nifi
+  id: 6638cd15-0aaf-4bba-a18a-722cf85038b6
   class: org.apache.nifi.processors.attributes.UpdateAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -161,89 +168,100 @@ Processors:
     q: nifi
 Connections:
 - name: Route On Status Code/200/LogAttribute
-  source name: Route On Status Code
+  id: 3039718a-bb40-4811-9b74-ecbe926daae8
+  source id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   source relationship name: '200'
-  destination name: LogAttribute
+  destination id: 0a73c5e4-7216-4cdf-9008-ace353478d55
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Route On Status Code/200/b23a4621-cf19-42e6-967c-ffd3716e6a24
-  source name: Route On Status Code
+  id: 4a7bdaf1-eba0-4317-92f2-93cef6240c28
+  source id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   source relationship name: '200'
-  destination name: b23a4621-cf19-42e6-967c-ffd3716e6a24
+  destination id: b23a4621-cf19-42e6-967c-ffd3716e6a24
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Route On Status Code/unmatched/LogAttribute2
-  source name: Route On Status Code
+  id: 9f948a25-afb4-4598-9a01-cfb7e3aa5920
+  source id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   source relationship name: unmatched
-  destination name: LogAttribute2
+  destination id: 0bda7282-7a4f-4d39-83e5-ea86aa63f1dc
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Route On Status Code/unmatched/b23a4621-cf19-42e6-967c-ffd3716e6a24
-  source name: Route On Status Code
+  id: 7299c143-46f6-4a94-aa24-ec47db16f73e
+  source id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   source relationship name: unmatched
-  destination name: b23a4621-cf19-42e6-967c-ffd3716e6a24
+  destination id: b23a4621-cf19-42e6-967c-ffd3716e6a24
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Search Google/Failure/Route On Status Code
-  source name: Search Google
+  id: 451b153a-8a4e-4bed-99ab-5159e499bcf1
+  source id: 66649998-3b08-4b41-9f07-a51d999743f6
   source relationship name: Failure
-  destination name: Route On Status Code
+  destination id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Search Google/No Retry/Route On Status Code
-  source name: Search Google
+  id: ddbc1711-8cda-4418-b6ee-895763ef1a97
+  source id: 66649998-3b08-4b41-9f07-a51d999743f6
   source relationship name: No Retry
-  destination name: Route On Status Code
+  destination id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Search Google/Original/Route On Status Code
-  source name: Search Google
+  id: b97044aa-3401-49df-86ab-bc440cd8f6c8
+  source id: 66649998-3b08-4b41-9f07-a51d999743f6
   source relationship name: Original
-  destination name: Route On Status Code
+  destination id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Search Google/Response/Route On Status Code
-  source name: Search Google
+  id: c6a06d31-51fb-488f-bcde-495102f8c93f
+  source id: 66649998-3b08-4b41-9f07-a51d999743f6
   source relationship name: Response
-  destination name: Route On Status Code
+  destination id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Search Google/Retry/Route On Status Code
-  source name: Search Google
+  id: 3172a4b6-c35b-4d2f-a7c1-68eb16cc1b37
+  source id: 66649998-3b08-4b41-9f07-a51d999743f6
   source relationship name: Retry
-  destination name: Route On Status Code
+  destination id: dcff217a-a25c-424f-b9f1-d82c55bfa61b
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: Source/success/q=nifi
-  source name: Source
+  id: 2ef71cd8-eb24-4653-8526-34ab84e79328
+  source id: fcb378d7-6438-41d3-8485-7da85e870ca4
   source relationship name: success
-  destination name: q=nifi
+  destination id: 6638cd15-0aaf-4bba-a18a-722cf85038b6
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 - name: q=nifi/success/Search Google
-  source name: q=nifi
+  id: ee5ee5bf-a552-43cf-9514-c14d40350bff
+  source id: 6638cd15-0aaf-4bba-a18a-722cf85038b6
   source relationship name: success
-  destination name: Search Google
+  destination id: 66649998-3b08-4b41-9f07-a51d999743f6
   max work queue size: 0
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
@@ -255,8 +273,8 @@ Remote Processing Groups:
   timeout: 30 sec
   yield period: 10 sec
   Input Ports:
-  - id: b23a4621-cf19-42e6-967c-ffd3716e6a24
-    name: response
+  - name: response
+    id: b23a4621-cf19-42e6-967c-ffd3716e6a24
     comment: ''
     max concurrent tasks: 1
     use compression: false

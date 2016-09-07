@@ -17,35 +17,29 @@
 
 package org.apache.nifi.minifi.commons.schema;
 
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
 
 /**
  *
  */
-public class RemoteInputPortSchema extends BaseSchema {
+public class RemoteInputPortSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_COMMENT = "";
     public static final int DEFAULT_MAX_CONCURRENT_TASKS = 1;
     public static final boolean DEFAULT_USE_COMPRESSION = true;
-
-    private String id;
-    private String name;
 
     private String comment = DEFAULT_COMMENT;
     private Number maxConcurrentTasks = DEFAULT_MAX_CONCURRENT_TASKS;
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
 
     public RemoteInputPortSchema(Map map) {
-        id = getRequiredKeyAsType(map, ID_KEY, String.class, INPUT_PORTS_KEY);
-        name = getRequiredKeyAsType(map, NAME_KEY, String.class, INPUT_PORTS_KEY);
+        super(map, INPUT_PORTS_KEY);
 
         comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, INPUT_PORTS_KEY, DEFAULT_COMMENT);
         maxConcurrentTasks = getOptionalKeyAsType(map, MAX_CONCURRENT_TASKS_KEY, Number.class, INPUT_PORTS_KEY, DEFAULT_MAX_CONCURRENT_TASKS);
@@ -54,21 +48,11 @@ public class RemoteInputPortSchema extends BaseSchema {
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> result = mapSupplier.get();
-        result.put(ID_KEY, id);
-        result.put(NAME_KEY, name);
+        Map<String, Object> result = super.toMap();
         result.put(COMMENT_KEY, comment);
         result.put(MAX_CONCURRENT_TASKS_KEY, maxConcurrentTasks);
         result.put(USE_COMPRESSION_KEY, useCompression);
         return result;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public String getComment() {

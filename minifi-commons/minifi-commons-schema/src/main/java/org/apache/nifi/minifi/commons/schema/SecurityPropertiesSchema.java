@@ -100,14 +100,14 @@ public class SecurityPropertiesSchema extends BaseSchema {
                     break;
             }
             if (StringUtil.isNullOrEmpty(keystore)) {
-                validationIssues.add("When the '" + SSL_PROTOCOL_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_KEY + "' must also be set");
+                addValidationIssue("When the '" + SSL_PROTOCOL_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_KEY + "' must also be set");
             } else if (StringUtil.isNullOrEmpty(keystoreType) || StringUtil.isNullOrEmpty(keystorePassword) || StringUtil.isNullOrEmpty(keyPassword)) {
-                validationIssues.add("When the '" + KEYSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_TYPE_KEY + "', '" + KEYSTORE_PASSWORD_KEY +
+                addValidationIssue("When the '" + KEYSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_TYPE_KEY + "', '" + KEYSTORE_PASSWORD_KEY +
                         "' and '" + KEY_PASSWORD_KEY + "' all must also be set");
             }
 
             if (!StringUtil.isNullOrEmpty(truststore) && (StringUtil.isNullOrEmpty(truststoreType) || StringUtil.isNullOrEmpty(truststorePassword))) {
-                validationIssues.add("When the '" + TRUSTSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + TRUSTSTORE_TYPE_KEY + "' and '" +
+                addValidationIssue("When the '" + TRUSTSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + TRUSTSTORE_TYPE_KEY + "' and '" +
                         TRUSTSTORE_PASSWORD_KEY + "' must also be set");
             }
         }
