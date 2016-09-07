@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>GetJMX</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This processor connects to an RMI Listener and queries it for its list of MBeans.
+    <code>service:jmx:rmi:///jndi/rmi://hostname:port//jmxrmi</code>
+    Each MBean content will be packed into a JSON format and will be emitted as a Flowfile.
+</p>
+<p>
+    The default behavior is to send every MBean content as a Flowfile which may be more
+    data then is necessary.  The processor has the ability to use whitelist and blacklist
+    values control what content becomes a Flowfile.
+    If the values of these properties are empty then it implies whitelist everything and
+    blacklist nothing.  To control the content you will need to provide the MBean Domain
+    Name and optionally the MBean Type Name.  Multiple MBean Domain names can be provide
+    by separating them with commas.  Within the domain MBean Type names are defined by
+    using a colon and separating multiple types with spaces.
+    <code>java.lang:MemoryPool MemoryManager,application.logger</code>
+    The values can also handle regular expressions.
+</p>
+<h2>Properties</h2>
+<ul>
+    <li><b>Hostname</b> - [REQUIRED] the name of the host where the JMX agent is running.</li>
+    <li><b>Port</b> - [REQUIRED] the port where the JMX agent is listening.</li>
+    <li><b>DomainWhiteList</b> - [OPTIONAL] include MBeans of the specified domains and types.</li>
+    <li><b>DomainBlackList</b> - [OPTIONAL] exclude MBeans of the specified domains and types.</li>
+    <li><b>Polling Interval</b> - [REQUIRED] how often the processor should poll the RMI listener.</li>
+    <li><b>Batch Size</b> - [REQUIRED] how many Flowfiles should run in a batch.</li>
+</ul>
+
+</body>
+</html>
