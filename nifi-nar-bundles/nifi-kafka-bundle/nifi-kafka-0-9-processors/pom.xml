@@ -41,12 +41,12 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>0.9.0.1</version>
+            <version>${kafka9.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.10</artifactId>
-            <version>0.9.0.1</version>
+            <version>${kafka9.version}</version>
             <scope>test</scope>
             <exclusions>
                 <!-- Transitive dependencies excluded because they are located

@@ -100,6 +100,9 @@ language governing permissions and limitations under the License. -->
         <hadoop.http.client.version>4.2.5</hadoop.http.client.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <ranger.version>0.6.0</ranger.version>
+        <hive.version>1.2.1</hive.version>
+        <hbase.version>1.1.2</hbase.version>
+        <storm.version>1.0.1</storm.version>
     </properties>
 
 

@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.apache.storm</groupId>
             <artifactId>storm-core</artifactId>
-            <version>1.0.1</version>
+            <version>${storm.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

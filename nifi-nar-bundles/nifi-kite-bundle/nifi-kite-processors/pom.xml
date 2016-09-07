@@ -26,7 +26,6 @@
 
     <properties>
         <kite.version>1.0.0</kite.version>
-        <hive.version>1.2.0</hive.version>
         <findbugs-annotations.version>1.3.9-1</findbugs-annotations.version>
     </properties>
 
