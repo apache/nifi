@@ -231,7 +231,6 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
-        <property name="authorizer" ref="authorizer"/>
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="flowController" ref="flowController" />
     </bean>

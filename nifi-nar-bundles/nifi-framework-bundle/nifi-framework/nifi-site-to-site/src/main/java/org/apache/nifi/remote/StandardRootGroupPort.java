@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
@@ -345,10 +346,6 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     @Override
     public PortAuthorizationResult checkUserAuthorization(final String dn) {
-        if (!secure) {
-            return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
-        }
-
         if (dn == null) {
             final String message = String.format("%s authorization failed for user %s because the DN is unknown", this, dn);
             logger.warn(message);
@@ -356,12 +353,28 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
+        return checkUserAuthorization(new StandardNiFiUser(dn));
+    }
+
+    @Override
+    public PortAuthorizationResult checkUserAuthorization(NiFiUser user) {
+        if (!secure) {
+            return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
+        }
+
+        if (user == null) {
+            final String message = String.format("%s authorization failed because the user is unknown", this, user);
+            logger.warn(message);
+            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
+            return new StandardPortAuthorizationResult(false, "User is not known");
+        }
+
         // perform the authorization
         final Authorizable dataTransferAuthorizable = new DataTransferAuthorizable(this);
-        final AuthorizationResult result = dataTransferAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, new StandardNiFiUser(dn));
+        final AuthorizationResult result = dataTransferAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user);
 
         if (!Result.Approved.equals(result.getResult())) {
-            final String message = String.format("%s authorization failed for user %s because %s", this, dn, result.getExplanation());
+            final String message = String.format("%s authorization failed for user %s because %s", this, user.getIdentity(), result.getExplanation());
             logger.warn(message);
             eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
             return new StandardPortAuthorizationResult(false, message);

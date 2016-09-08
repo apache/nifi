@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
@@ -41,10 +42,23 @@ public interface RootGroupPort extends Port {
      * and returns a {@link PortAuthorizationResult} indicating why the user is
      * unauthorized if this assumption fails
      *
+     * {@link #checkUserAuthorization(NiFiUser)} should be used if applicable
+     * because NiFiUser has additional context such as chained user.
+     *
      * @param dn dn of user
      * @return result
      */
     PortAuthorizationResult checkUserAuthorization(String dn);
+
+    /**
+     * Verifies that the specified user is authorized to interact with this port
+     * and returns a {@link PortAuthorizationResult} indicating why the user is
+     * unauthorized if this assumption fails
+     *
+     * @param user to authorize
+     * @return result
+     */
+    PortAuthorizationResult checkUserAuthorization(NiFiUser user);
 
     /**
      * Receives data from the given stream
