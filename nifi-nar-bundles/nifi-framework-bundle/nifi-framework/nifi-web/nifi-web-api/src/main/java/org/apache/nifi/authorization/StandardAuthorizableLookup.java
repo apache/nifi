@@ -24,9 +24,11 @@ import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -35,6 +37,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
@@ -161,6 +165,62 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create processor to verify if it references any Controller Services.");
         }
+    }
+
+    @Override
+    public RootGroupPortAuthorizable getRootGroupInputPort(String id) {
+        final Port inputPort = inputPortDAO.getPort(id);
+
+        if (!(inputPort instanceof RootGroupPort)) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an input port in the root group.", id));
+        }
+
+        final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(inputPort);
+        return new RootGroupPortAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return baseAuthorizable;
+            }
+
+            @Override
+            public AuthorizationResult checkAuthorization(NiFiUser user) {
+                // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
+                final PortAuthorizationResult authorizationResult = ((RootGroupPort) inputPort).checkUserAuthorization(user);
+                if (authorizationResult.isAuthorized()) {
+                    return AuthorizationResult.approved();
+                } else {
+                    return AuthorizationResult.denied(authorizationResult.getExplanation());
+                }
+            }
+        };
+    }
+
+    @Override
+    public RootGroupPortAuthorizable getRootGroupOutputPort(String id) {
+        final Port outputPort = outputPortDAO.getPort(id);
+
+        if (!(outputPort instanceof RootGroupPort)) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an output port in the root group.", id));
+        }
+
+        final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(outputPort);
+        return new RootGroupPortAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return baseAuthorizable;
+            }
+
+            @Override
+            public AuthorizationResult checkAuthorization(NiFiUser user) {
+                // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
+                final PortAuthorizationResult authorizationResult = ((RootGroupPort) outputPort).checkUserAuthorization(user);
+                if (authorizationResult.isAuthorized()) {
+                    return AuthorizationResult.approved();
+                } else {
+                    return AuthorizationResult.denied(authorizationResult.getExplanation());
+                }
+            }
+        };
     }
 
     @Override

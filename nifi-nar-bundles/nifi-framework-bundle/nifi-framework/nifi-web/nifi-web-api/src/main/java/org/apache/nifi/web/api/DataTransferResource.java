@@ -23,10 +23,11 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.RootGroupPortAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -107,7 +108,6 @@ public class DataTransferResource extends ApplicationResource {
     private static final String PORT_TYPE_INPUT = "input-ports";
     private static final String PORT_TYPE_OUTPUT = "output-ports";
 
-    private Authorizer authorizer;
     private NiFiServiceFacade serviceFacade;
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
@@ -133,15 +133,18 @@ public class DataTransferResource extends ApplicationResource {
         }
 
         // get the authorizable
-        final DataTransferAuthorizable authorizable;
+        final RootGroupPortAuthorizable authorizable;
         if (ResourceType.InputPort.equals(resourceType)) {
-            authorizable = new DataTransferAuthorizable(lookup.getInputPort(identifier));
+            authorizable = lookup.getRootGroupInputPort(identifier);
         } else {
-            authorizable = new DataTransferAuthorizable(lookup.getOutputPort(identifier));
+            authorizable = lookup.getRootGroupOutputPort(identifier);
         }
 
         // perform the authorization
-        authorizable.authorize(authorizer, RequestAction.WRITE, user);
+        final AuthorizationResult authorizationResult = authorizable.checkAuthorization(user);
+        if (!Result.Approved.equals(authorizationResult.getResult())) {
+            throw new AccessDeniedException(authorizationResult.getExplanation());
+        }
     }
 
     @POST
@@ -830,10 +833,6 @@ public class DataTransferResource extends ApplicationResource {
 
 
     // setters
-
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
-    }
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

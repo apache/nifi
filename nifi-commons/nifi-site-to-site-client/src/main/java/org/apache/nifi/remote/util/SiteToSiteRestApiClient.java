@@ -59,6 +59,7 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
+import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -137,6 +138,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private static final int RESPONSE_CODE_CREATED = 201;
     private static final int RESPONSE_CODE_ACCEPTED = 202;
     private static final int RESPONSE_CODE_BAD_REQUEST = 400;
+    private static final int RESPONSE_CODE_FORBIDDEN = 403;
     private static final int RESPONSE_CODE_NOT_FOUND = 404;
 
     private static final Logger logger = LoggerFactory.getLogger(SiteToSiteRestApiClient.class);
@@ -500,7 +502,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             @Override
             public void failed(Exception ex) {
-                final String msg = String.format("Failed to create transactino for %s", post.getURI());
+                final String msg = String.format("Failed to create transaction for %s", post.getURI());
                 logger.error(msg, ex);
                 eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, msg);
             }
@@ -953,7 +955,12 @@ public class SiteToSiteRestApiClient implements Closeable {
             case PORT_NOT_IN_VALID_STATE:
                 return new PortNotRunningException(errEntity.getMessage());
             default:
-                return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
+                switch (responseCode) {
+                    case RESPONSE_CODE_FORBIDDEN :
+                        return new HandshakeException(errEntity.getMessage());
+                    default:
+                        return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
+                }
         }
     }
 

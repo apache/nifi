@@ -61,6 +61,22 @@ public interface AuthorizableLookup {
     Authorizable getCounters();
 
     /**
+     * Get the authorizable RootGroup InputPort.
+     *
+     * @param id input port id
+     * @return authorizable
+     */
+    RootGroupPortAuthorizable getRootGroupInputPort(String id);
+
+    /**
+     * Get the authorizable RootGroup OutputPort.
+     *
+     * @param id output port id
+     * @return authorizable
+     */
+    RootGroupPortAuthorizable getRootGroupOutputPort(String id);
+
+    /**
      * Get the authorizable InputPort.
      *
      * @param id input port id
