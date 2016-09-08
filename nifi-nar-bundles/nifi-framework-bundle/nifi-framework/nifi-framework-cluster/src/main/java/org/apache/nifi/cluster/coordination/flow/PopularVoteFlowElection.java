@@ -23,10 +23,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -156,12 +158,24 @@ public class PopularVoteFlowElection implements FlowElection {
             return null;
         }
 
+        final List<FlowCandidate> nonEmptyCandidates = candidateByFingerprint.values().stream()
+            .filter(candidate -> !candidate.isFlowEmpty())
+            .collect(Collectors.toList());
+
+        if (nonEmptyCandidates.isEmpty()) {
+            // All flow candidates are empty flows. Just use one of them.
+            final FlowCandidate electedCandidate = candidateByFingerprint.values().iterator().next();
+            this.electedDataFlow = electedCandidate.getDataFlow();
+            return electedCandidate;
+        }
+
         final FlowCandidate elected;
-        if (candidateByFingerprint.size() == 1) {
-            elected = candidateByFingerprint.values().iterator().next();
+        if (nonEmptyCandidates.size() == 1) {
+            // Only one flow is non-empty. Use that one.
+            elected = nonEmptyCandidates.iterator().next();
         } else {
-            elected = candidateByFingerprint.values().stream()
-                .filter(candidate -> !candidate.isFlowEmpty())  // We have more than 1 fingerprint. Do not consider empty flows.
+            // Choose the non-empty flow that got the most votes.
+            elected = nonEmptyCandidates.stream()
                 .max((candidate1, candidate2) -> Integer.compare(candidate1.getVotes(), candidate2.getVotes()))
                 .get();
         }
