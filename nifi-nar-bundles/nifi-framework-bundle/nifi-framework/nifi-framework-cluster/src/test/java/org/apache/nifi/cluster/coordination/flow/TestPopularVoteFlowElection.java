@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,8 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestPopularVoteFlowElection {
 
@@ -60,6 +63,43 @@ public class TestPopularVoteFlowElection {
         assertNotNull(electedDataFlow);
 
         assertEquals(new String(flow), new String(electedDataFlow.getFlow()));
+    }
+
+    @Test
+    public void testDifferentEmptyFlows() throws IOException {
+        final FingerprintFactory fingerprintFactory = Mockito.mock(FingerprintFactory.class);
+        Mockito.when(fingerprintFactory.createFingerprint(Mockito.any(byte[].class))).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(final InvocationOnMock invocation) throws Throwable {
+                final byte[] flow = invocation.getArgumentAt(0, byte[].class);
+                final String xml = new String(flow);
+
+                // Return the ID of the root group as the fingerprint.
+                final String fingerprint = xml.replaceAll("(?s:(.*<id>)(.*?)(</id>.*))", "$2");
+                return fingerprint;
+            }
+        });
+
+        final PopularVoteFlowElection election = new PopularVoteFlowElection(1, TimeUnit.MINUTES, 3, fingerprintFactory);
+        final byte[] flow1 = Files.readAllBytes(Paths.get("src/test/resources/conf/empty-flow.xml"));
+        final byte[] flow2 = Files.readAllBytes(Paths.get("src/test/resources/conf/different-empty-flow.xml"));
+
+        assertFalse(election.isElectionComplete());
+        assertNull(election.getElectedDataFlow());
+        assertNull(election.castVote(createDataFlow(flow1), createNodeId(1)));
+
+        assertFalse(election.isElectionComplete());
+        assertNull(election.getElectedDataFlow());
+        assertNull(election.castVote(createDataFlow(flow1), createNodeId(2)));
+
+        assertFalse(election.isElectionComplete());
+        assertNull(election.getElectedDataFlow());
+
+        final DataFlow electedDataFlow = election.castVote(createDataFlow(flow2), createNodeId(3));
+        assertNotNull(electedDataFlow);
+
+        final String electedFlowXml = new String(electedDataFlow.getFlow());
+        assertTrue(new String(flow1).equals(electedFlowXml) || new String(flow2).equals(electedFlowXml));
     }
 
 
