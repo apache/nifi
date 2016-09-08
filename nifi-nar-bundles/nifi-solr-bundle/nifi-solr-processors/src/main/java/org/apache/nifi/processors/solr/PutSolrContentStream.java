@@ -88,6 +88,7 @@ public class PutSolrContentStream extends SolrProcessor {
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .expressionLanguageSupported(true)
+            .defaultValue("5000")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -123,6 +124,8 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
+        descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
         descriptors.add(SOLR_MAX_CONNECTIONS);
