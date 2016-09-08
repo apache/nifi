@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -65,7 +66,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateNoDelimiter() {
+    public void validateNoDelimiter() throws IOException {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000);
@@ -76,7 +77,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateNoDelimiterSmallInitialBuffer() {
+    public void validateNoDelimiterSmallInitialBuffer() throws IOException {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000, 1);
@@ -84,7 +85,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateSingleByteDelimiter() {
+    public void validateSingleByteDelimiter() throws IOException {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
@@ -95,7 +96,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateDelimiterAtTheBeginning() {
+    public void validateDelimiterAtTheBeginning() throws IOException {
         String data = ",Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
@@ -106,7 +107,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateEmptyDelimiterSegments() {
+    public void validateEmptyDelimiterSegments() throws IOException {
         String data = ",,,,,Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000);
@@ -117,7 +118,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateSingleByteDelimiterSmallInitialBuffer() {
+    public void validateSingleByteDelimiterSmallInitialBuffer() throws IOException {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, ",".getBytes(StandardCharsets.UTF_8), 1000, 2);
@@ -128,7 +129,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithMultiByteDelimiter() {
+    public void validateWithMultiByteDelimiter() throws IOException {
         String data = "foodaabardaabazzz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000);
@@ -139,7 +140,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithMultiByteDelimiterAtTheBeginning() {
+    public void validateWithMultiByteDelimiterAtTheBeginning() throws IOException {
         String data = "daafoodaabardaabazzz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000);
@@ -150,7 +151,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithMultiByteDelimiterSmallInitialBuffer() {
+    public void validateWithMultiByteDelimiterSmallInitialBuffer() throws IOException {
         String data = "foodaabarffdaabazz";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, "daa".getBytes(StandardCharsets.UTF_8), 1000, 1);
@@ -161,7 +162,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithMultiByteCharsNoDelimiter() {
+    public void validateWithMultiByteCharsNoDelimiter() throws IOException {
         String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000);
@@ -172,7 +173,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithMultiByteCharsNoDelimiterSmallInitialBuffer() {
+    public void validateWithMultiByteCharsNoDelimiterSmallInitialBuffer() throws IOException {
         String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         StreamDemarcator scanner = new StreamDemarcator(is, null, 1000, 2);
@@ -183,7 +184,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateWithComplexDelimiter() {
+    public void validateWithComplexDelimiter() throws IOException {
         String data = "THIS IS MY TEXT<MYDELIMITER>THIS IS MY NEW TEXT<MYDELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
         StreamDemarcator scanner = new StreamDemarcator(is, "<MYDELIMITER>".getBytes(StandardCharsets.UTF_8), 1000);
@@ -193,8 +194,8 @@ public class StreamDemarcatorTest {
         assertNull(scanner.nextToken());
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void validateMaxBufferSize() {
+    @Test(expected = IOException.class)
+    public void validateMaxBufferSize() throws IOException {
         String data = "THIS IS MY TEXT<MY DELIMITER>THIS IS MY NEW TEXT<MY DELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
         StreamDemarcator scanner = new StreamDemarcator(is, "<MY DELIMITER>".getBytes(StandardCharsets.UTF_8), 20);
@@ -202,7 +203,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateScannerHandlesNegativeOneByteInputsNoDelimiter() {
+    public void validateScannerHandlesNegativeOneByteInputsNoDelimiter() throws IOException {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
         StreamDemarcator scanner = new StreamDemarcator(is, null, 20);
         byte[] b = scanner.nextToken();
@@ -210,7 +211,7 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void validateScannerHandlesNegativeOneByteInputs() {
+    public void validateScannerHandlesNegativeOneByteInputs() throws IOException {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
         StreamDemarcator scanner = new StreamDemarcator(is, "water".getBytes(StandardCharsets.UTF_8), 20, 1024);
         byte[] b = scanner.nextToken();
@@ -218,10 +219,59 @@ public class StreamDemarcatorTest {
     }
 
     @Test
-    public void verifyScannerHandlesNegativeOneByteDelimiter() {
+    public void verifyScannerHandlesNegativeOneByteDelimiter() throws IOException {
         ByteArrayInputStream is = new ByteArrayInputStream(new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
         StreamDemarcator scanner = new StreamDemarcator(is, new byte[] { -1 }, 20, 1024);
         assertArrayEquals(scanner.nextToken(), new byte[] { 0, 0, 0, 0 });
         assertArrayEquals(scanner.nextToken(), new byte[] { 0, 0, 0 });
     }
+
+    @Test
+    public void testWithoutTrailingDelimiter() throws IOException {
+        final byte[] inputData = "Larger Message First\nSmall".getBytes(StandardCharsets.UTF_8);
+        ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+        StreamDemarcator scanner = new StreamDemarcator(is, "\n".getBytes(), 1000);
+
+        final byte[] first = scanner.nextToken();
+        final byte[] second = scanner.nextToken();
+        assertNotNull(first);
+        assertNotNull(second);
+
+        assertEquals("Larger Message First", new String(first, StandardCharsets.UTF_8));
+        assertEquals("Small", new String(second, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    public void testOnBufferSplitNoTrailingDelimiter() throws IOException {
+        final byte[] inputData = "Yes\nNo".getBytes(StandardCharsets.UTF_8);
+        ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+        StreamDemarcator scanner = new StreamDemarcator(is, "\n".getBytes(), 1000, 3);
+
+        final byte[] first = scanner.nextToken();
+        final byte[] second = scanner.nextToken();
+        assertNotNull(first);
+        assertNotNull(second);
+
+        assertArrayEquals(first, new byte[] {'Y', 'e', 's'});
+        assertArrayEquals(second, new byte[] {'N', 'o'});
+    }
+
+    @Test
+    public void testOnBufferSplit() throws IOException {
+        final byte[] inputData = "123\n456\n789".getBytes(StandardCharsets.UTF_8);
+        ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+        StreamDemarcator scanner = new StreamDemarcator(is, "\n".getBytes(), 1000, 3);
+
+        final byte[] first = scanner.nextToken();
+        final byte[] second = scanner.nextToken();
+        final byte[] third = scanner.nextToken();
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNotNull(third);
+
+        assertArrayEquals(first, new byte[] {'1', '2', '3'});
+        assertArrayEquals(second, new byte[] {'4', '5', '6'});
+        assertArrayEquals(third, new byte[] {'7', '8', '9'});
+    }
+
 }
