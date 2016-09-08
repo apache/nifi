@@ -27,8 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import org.apache.kafka.clients.CommonClientConfigs;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
@@ -186,7 +187,7 @@ final class KafkaProcessorUtils {
 
         final Class<?> classType;
 
-        public KafkaConfigValidator(final Class classType) {
+        public KafkaConfigValidator(final Class<?> classType) {
             this.classType = classType;
         }
 
@@ -211,7 +212,8 @@ final class KafkaProcessorUtils {
         return builder.toString();
     }
 
-    static void buildCommonKafkaProperties(final ProcessContext context, final Class kafkaConfigClass, final Map<String, String> mapToPopulate) {
+
+    static void buildCommonKafkaProperties(final ProcessContext context, final Class<?> kafkaConfigClass, final Map<String, Object> mapToPopulate) {
         for (PropertyDescriptor propertyDescriptor : context.getProperties().keySet()) {
             if (propertyDescriptor.equals(SSL_CONTEXT_SERVICE)) {
                 // Translate SSLContext Service configuration into Kafka properties
@@ -230,28 +232,33 @@ final class KafkaProcessorUtils {
                     mapToPopulate.put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, sslContextService.getTrustStoreType());
                 }
             }
-            String pName = propertyDescriptor.getName();
-            String pValue = propertyDescriptor.isExpressionLanguageSupported()
+
+            String propertyName = propertyDescriptor.getName();
+            String propertyValue = propertyDescriptor.isExpressionLanguageSupported()
                     ? context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue()
                     : context.getProperty(propertyDescriptor).getValue();
-            if (pValue != null) {
-                if (pName.endsWith(".ms")) { // kafka standard time notation
-                    pValue = String.valueOf(FormatUtils.getTimeDuration(pValue.trim(), TimeUnit.MILLISECONDS));
+
+            if (propertyValue != null) {
+                // If the property name ends in ".ms" then it is a time period. We want to accept either an integer as number of milliseconds
+                // or the standard NiFi time period such as "5 secs"
+                if (propertyName.endsWith(".ms") && !StringUtils.isNumeric(propertyValue.trim())) { // kafka standard time notation
+                    propertyValue = String.valueOf(FormatUtils.getTimeDuration(propertyValue.trim(), TimeUnit.MILLISECONDS));
                 }
-                if (isStaticStringFieldNamePresent(pName, kafkaConfigClass, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class)) {
-                    mapToPopulate.put(pName, pValue);
+
+                if (isStaticStringFieldNamePresent(propertyName, kafkaConfigClass, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class)) {
+                    mapToPopulate.put(propertyName, propertyValue);
                 }
             }
         }
     }
 
-    private static boolean isStaticStringFieldNamePresent(final String name, final Class... classes) {
+    private static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
         return KafkaProcessorUtils.getPublicStaticStringFieldValues(classes).contains(name);
     }
 
-    private static Set<String> getPublicStaticStringFieldValues(final Class... classes) {
+    private static Set<String> getPublicStaticStringFieldValues(final Class<?>... classes) {
         final Set<String> strings = new HashSet<>();
-        for (final Class classType : classes) {
+        for (final Class<?> classType : classes) {
             for (final Field field : classType.getDeclaredFields()) {
                 if (Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers()) && field.getType().equals(String.class)) {
                     try {

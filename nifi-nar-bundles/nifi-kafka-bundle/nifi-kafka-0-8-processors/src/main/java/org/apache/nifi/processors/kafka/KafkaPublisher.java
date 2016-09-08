@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.kafka;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,8 +112,9 @@ class KafkaPublisher implements Closeable {
      *            instance of {@link PublishingContext} which hold context
      *            information about the message(s) to be sent.
      * @return The index of the last successful offset.
+     * @throws IOException if unable to read from the Input Stream
      */
-    KafkaPublisherResult publish(PublishingContext publishingContext) {
+    KafkaPublisherResult publish(PublishingContext publishingContext) throws IOException {
         StreamDemarcator streamTokenizer = new StreamDemarcator(publishingContext.getContentStream(),
             publishingContext.getDelimiterBytes(), publishingContext.getMaxRequestSize());
 
