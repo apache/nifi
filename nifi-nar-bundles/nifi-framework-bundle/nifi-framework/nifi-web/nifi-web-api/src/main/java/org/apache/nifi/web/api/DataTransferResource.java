@@ -23,16 +23,17 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
@@ -107,7 +108,6 @@ public class DataTransferResource extends ApplicationResource {
     private static final String PORT_TYPE_INPUT = "input-ports";
     private static final String PORT_TYPE_OUTPUT = "output-ports";
 
-    private Authorizer authorizer;
     private NiFiServiceFacade serviceFacade;
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
@@ -133,15 +133,18 @@ public class DataTransferResource extends ApplicationResource {
         }
 
         // get the authorizable
-        final DataTransferAuthorizable authorizable;
+        final Authorizable authorizable;
         if (ResourceType.InputPort.equals(resourceType)) {
-            authorizable = new DataTransferAuthorizable(lookup.getInputPort(identifier));
+            authorizable = lookup.getInputPort(identifier);
         } else {
-            authorizable = new DataTransferAuthorizable(lookup.getOutputPort(identifier));
+            authorizable = lookup.getOutputPort(identifier);
         }
 
         // perform the authorization
-        authorizable.authorize(authorizer, RequestAction.WRITE, user);
+        final PortAuthorizationResult authorizationResult = ((RootGroupPort) authorizable).checkUserAuthorization(user);
+        if (!authorizationResult.isAuthorized()) {
+            throw new AccessDeniedException(authorizationResult.getExplanation());
+        }
     }
 
     @POST
@@ -830,10 +833,6 @@ public class DataTransferResource extends ApplicationResource {
 
 
     // setters
-
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
-    }
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

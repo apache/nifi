@@ -23,6 +23,7 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.KeystoreType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
+import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -178,6 +179,18 @@ public class TestHttpClient {
             setCommonResponseHeaders(resp, reqProtocolVersion);
 
             respondWithJson(resp, entity, HttpServletResponse.SC_CREATED);
+        }
+
+    }
+
+    public static class PortTransactionsAccessDeniedServlet extends HttpServlet {
+
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+            respondWithText(resp, "Unable to perform the desired action" +
+                    " due to insufficient permissions. Contact the system administrator.", 403);
+
         }
 
     }
@@ -432,6 +445,7 @@ public class TestHttpClient {
         servletHandler.addServletWithMapping(SiteInfoServlet.class, "/site-to-site");
         servletHandler.addServletWithMapping(PeersServlet.class, "/site-to-site/peers");
 
+        servletHandler.addServletWithMapping(PortTransactionsAccessDeniedServlet.class, "/data-transfer/input-ports/input-access-denied-id/transactions");
         servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/input-ports/input-running-id/transactions");
         servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id");
         servletHandler.addServletWithMapping(FlowFilesServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id/flow-files");
@@ -569,54 +583,55 @@ public class TestHttpClient {
         inputPorts = new HashSet<>();
 
         final PortDTO runningInputPort = new PortDTO();
-        runningInputPort.setId("running-input-port");
-        inputPorts.add(runningInputPort);
         runningInputPort.setName("input-running");
         runningInputPort.setId("input-running-id");
         runningInputPort.setType("INPUT_PORT");
         runningInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(runningInputPort);
 
         final PortDTO timeoutInputPort = new PortDTO();
-        timeoutInputPort.setId("timeout-input-port");
-        inputPorts.add(timeoutInputPort);
         timeoutInputPort.setName("input-timeout");
         timeoutInputPort.setId("input-timeout-id");
         timeoutInputPort.setType("INPUT_PORT");
         timeoutInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(timeoutInputPort);
 
         final PortDTO timeoutDataExInputPort = new PortDTO();
-        timeoutDataExInputPort.setId("timeout-dataex-input-port");
-        inputPorts.add(timeoutDataExInputPort);
         timeoutDataExInputPort.setName("input-timeout-data-ex");
         timeoutDataExInputPort.setId("input-timeout-data-ex-id");
         timeoutDataExInputPort.setType("INPUT_PORT");
         timeoutDataExInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(timeoutDataExInputPort);
+
+        final PortDTO accessDeniedInputPort = new PortDTO();
+        accessDeniedInputPort.setName("input-access-denied");
+        accessDeniedInputPort.setId("input-access-denied-id");
+        accessDeniedInputPort.setType("INPUT_PORT");
+        accessDeniedInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(accessDeniedInputPort);
 
         outputPorts = new HashSet<>();
 
         final PortDTO runningOutputPort = new PortDTO();
-        runningOutputPort.setId("running-output-port");
-        outputPorts.add(runningOutputPort);
         runningOutputPort.setName("output-running");
         runningOutputPort.setId("output-running-id");
         runningOutputPort.setType("OUTPUT_PORT");
         runningOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(runningOutputPort);
 
         final PortDTO timeoutOutputPort = new PortDTO();
-        timeoutOutputPort.setId("timeout-output-port");
-        outputPorts.add(timeoutOutputPort);
         timeoutOutputPort.setName("output-timeout");
         timeoutOutputPort.setId("output-timeout-id");
         timeoutOutputPort.setType("OUTPUT_PORT");
         timeoutOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(timeoutOutputPort);
 
         final PortDTO timeoutDataExOutputPort = new PortDTO();
-        timeoutDataExOutputPort.setId("timeout-dataex-output-port");
-        outputPorts.add(timeoutDataExOutputPort);
         timeoutDataExOutputPort.setName("output-timeout-data-ex");
         timeoutDataExOutputPort.setId("output-timeout-data-ex-id");
         timeoutDataExOutputPort.setType("OUTPUT_PORT");
         timeoutDataExOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(timeoutDataExOutputPort);
 
 
     }
@@ -783,6 +798,23 @@ public class TestHttpClient {
                         .build()
         ) {
             testSend(client);
+        }
+
+    }
+
+    @Test
+    public void testSendAccessDeniedHTTPS() throws Exception {
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-access-denied")
+                        .build()
+        ) {
+            try {
+                client.createTransaction(TransferDirection.SEND);
+                fail("Handshake exception should be thrown.");
+            } catch (HandshakeException e) {
+            }
         }
 
     }
