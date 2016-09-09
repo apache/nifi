@@ -1566,6 +1566,11 @@ nf.ControllerService = (function () {
         return referencedServices;
     };
 
+    /**
+     * Track the current table
+     */
+    var currentTable;
+
     return {
         /**
          * Initializes the controller service configuration dialog.
@@ -1720,8 +1725,11 @@ nf.ControllerService = (function () {
          * @argument {object} controllerServiceEntity      The controller service
          */
         showConfiguration: function (serviceTable, controllerServiceEntity) {
+            if (nf.Common.isUndefined(currentTable)){
+                currentTable = serviceTable;
+            }
             var controllerServiceDialog = $('#controller-service-configuration');
-            if (controllerServiceDialog.data('mode') !== config.edit) {
+            if (controllerServiceDialog.data('mode') !== config.edit || currentTable !== serviceTable) {
                 // update the visibility
                 $('#controller-service-configuration .controller-service-read-only').hide();
                 $('#controller-service-configuration .controller-service-editable').show();
@@ -1738,15 +1746,13 @@ nf.ControllerService = (function () {
                         // calculate the correct uri
                         var createdControllerService = response.component;
                         if (nf.Common.isDefinedAndNotNull(createdControllerService.parentGroupId)) {
-                            createdControllerServicesTable = $('#process-group-controller-services-table');
                             controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(createdControllerService.parentGroupId) + '/controller-services';
                         } else {
-                            createdControllerServicesTable = $('#controller-services-table');
                             controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
                         }
 
                         // load the controller services accordingly
-                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, createdControllerServicesTable);
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, serviceTable);
                     },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
@@ -1756,6 +1762,9 @@ nf.ControllerService = (function () {
                 // update the mode
                 controllerServiceDialog.data('mode', config.edit);
             }
+
+            //track the current table
+            currentTable = serviceTable;
 
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
