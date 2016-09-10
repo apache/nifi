@@ -100,7 +100,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "INSERT");
-        runner.setProperty(ConvertJSONToSQL.QUOTE_COLUMN_NAMES, "true");
+        runner.setProperty(ConvertJSONToSQL.QUOTED_IDENTIFIERS, "true");
 
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
@@ -240,7 +240,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "INSERT");
-        runner.setProperty(ConvertJSONToSQL.QUOTE_COLUMN_NAMES, "true");
+        runner.setProperty(ConvertJSONToSQL.QUOTED_IDENTIFIERS, "true");
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/persons.json"));
         runner.run();
 
@@ -309,7 +309,7 @@ public class TestConvertJSONToSQL {
         runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
         runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
         runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "UPDATE");
-        runner.setProperty(ConvertJSONToSQL.QUOTE_COLUMN_NAMES, "true");
+        runner.setProperty(ConvertJSONToSQL.QUOTED_IDENTIFIERS, "true");
         runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
         runner.run();
 
@@ -394,6 +394,42 @@ public class TestConvertJSONToSQL {
         out.assertAttributeEquals("sql.args.3.value", "48");
 
         out.assertContentEquals("UPDATE PERSONS SET ID = ?, NAME = ? WHERE CODE = ?");
+    }
+
+    @Test
+    public void testUpdateBasedOnUpdateKeyQuotedIdentifier() throws InitializationException, ProcessException, SQLException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(ConvertJSONToSQL.class);
+        final File tempDir = folder.getRoot();
+        final File dbDir = new File(tempDir, "db");
+        final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(createPersons);
+            }
+        }
+
+        runner.setProperty(ConvertJSONToSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(ConvertJSONToSQL.TABLE_NAME, "PERSONS");
+        runner.setProperty(ConvertJSONToSQL.STATEMENT_TYPE, "UPDATE");
+        runner.setProperty(ConvertJSONToSQL.UPDATE_KEY, "code");
+        runner.setProperty(ConvertJSONToSQL.QUOTED_IDENTIFIERS, "true");
+        runner.enqueue(Paths.get("src/test/resources/TestConvertJSONToSQL/person-1.json"));
+        runner.run();
+
+        runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
+        out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
+        out.assertAttributeEquals("sql.args.1.value", "1");
+        out.assertAttributeEquals("sql.args.2.type", String.valueOf(java.sql.Types.VARCHAR));
+        out.assertAttributeEquals("sql.args.2.value", "Mark");
+        out.assertAttributeEquals("sql.args.3.type", String.valueOf(java.sql.Types.INTEGER));
+        out.assertAttributeEquals("sql.args.3.value", "48");
+
+        out.assertContentEquals("UPDATE PERSONS SET \"ID\" = ?, \"NAME\" = ? WHERE \"CODE\" = ?");
     }
 
     @Test

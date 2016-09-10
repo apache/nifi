@@ -176,9 +176,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    static final PropertyDescriptor QUOTE_COLUMN_NAMES = new PropertyDescriptor.Builder()
-            .name("jts-quote-column-names")
-            .displayName("Quote Column Names")
+    static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
+            .name("jts-quoted-identifiers")
+            .displayName("Quote Identifiers")
             .description("Enabling this option will cause all column names to be quoted, allowing you to "
                     + "use reserved words as column names in your tables.")
             .allowableValues("true", "false")
@@ -220,7 +220,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(UNMATCHED_FIELD_BEHAVIOR);
         properties.add(UNMATCHED_COLUMN_BEHAVIOR);
         properties.add(UPDATE_KEY);
-        properties.add(QUOTE_COLUMN_NAMES);
+        properties.add(QUOTED_IDENTIFIERS);
         return properties;
     }
 
@@ -265,7 +265,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final boolean warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
         //Escape column names?
-        final boolean escapeColumnNames = "true".equalsIgnoreCase(context.getProperty(QUOTE_COLUMN_NAMES).getValue());
+        final boolean escapeColumnNames = "true".equalsIgnoreCase(context.getProperty(QUOTED_IDENTIFIERS).getValue());
 
         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
@@ -343,9 +343,11 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final String fqTableName = tableNameBuilder.toString();
 
                 if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
+                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
                 } else {
-                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
+                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
