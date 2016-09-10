@@ -372,7 +372,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1)
+            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
@@ -416,7 +416,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1)
+        runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
         runner.clearTransferState()
         logger.info("Ran successfully")
     }
