@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -524,6 +523,13 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public QueueSize getQueueSize() {
         return flowFileQueue.size();
+    }
+
+    public void clearQueue() {
+        // TODO: Add #clear to MockFlowFileQueue or just point to new instance?
+        while (!flowFileQueue.isEmpty()) {
+            flowFileQueue.poll();
+        }
     }
 
     @Override
