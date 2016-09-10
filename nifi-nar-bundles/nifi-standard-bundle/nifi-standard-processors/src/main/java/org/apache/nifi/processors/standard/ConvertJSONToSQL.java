@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -175,6 +176,14 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
+    static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
+            .name("jts-quoted-identifiers")
+            .displayName("Quote Identifiers")
+            .description("Enabling this option will cause all column names to be quoted, allowing you to "
+                    + "use reserved words as column names in your tables.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
@@ -211,6 +220,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(UNMATCHED_FIELD_BEHAVIOR);
         properties.add(UNMATCHED_COLUMN_BEHAVIOR);
         properties.add(UPDATE_KEY);
+        properties.add(QUOTED_IDENTIFIERS);
         return properties;
     }
 
@@ -253,6 +263,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // Is the unmatched column behaviour fail or warning?
         final boolean failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
         final boolean warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
+
+        //Escape column names?
+        final boolean escapeColumnNames = context.getProperty(QUOTED_IDENTIFIERS).asBoolean();
 
         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
@@ -330,9 +343,11 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final String fqTableName = tableNameBuilder.toString();
 
                 if (INSERT_TYPE.equals(statementType)) {
-                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
+                    sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
                 } else {
-                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
+                    sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields,
+                            failUnmappedColumns, warningUnmappedColumns, escapeColumnNames);
                 }
             } catch (final ProcessException pe) {
                 getLogger().error("Failed to convert {} to a SQL {} statement due to {}; routing to failure",
@@ -380,8 +395,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     }
 
     private String generateInsert(final JsonNode rootNode, final Map<String, String> attributes, final String tableName,
-        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
-        final boolean warningUnmappedColumns) {
+                                  final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final boolean warningUnmappedColumns, boolean escapeColumnNames) {
 
         final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
         for (final String requiredColName : schema.getRequiredColumnNames()) {
@@ -418,7 +433,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     sqlBuilder.append(", ");
                 }
 
-                sqlBuilder.append(desc.getColumnName());
+                if(!escapeColumnNames){
+                    sqlBuilder.append(desc.getColumnName());
+                } else {
+                    sqlBuilder.append(schema.getQuotedIdentifierString());
+                    sqlBuilder.append(desc.getColumnName());
+                    sqlBuilder.append(schema.getQuotedIdentifierString());
+                }
 
                 final int sqlType = desc.getDataType();
                 attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
@@ -454,8 +475,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     }
 
     private String generateUpdate(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
-        final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
-        final boolean warningUnmappedColumns) {
+                                  final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final boolean warningUnmappedColumns, boolean escapeColumnNames) {
 
         final Set<String> updateKeyNames;
         if (updateKeys == null) {
@@ -522,7 +543,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 sqlBuilder.append(", ");
             }
 
-            sqlBuilder.append(desc.getColumnName()).append(" = ?");
+            if(!escapeColumnNames){
+                sqlBuilder.append(desc.getColumnName());
+            } else {
+                sqlBuilder.append(schema.getQuotedIdentifierString())
+                            .append(desc.getColumnName())
+                            .append(schema.getQuotedIdentifierString());
+            }
+
+            sqlBuilder.append(" = ?");
             final int sqlType = desc.getDataType();
             attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
 
@@ -563,7 +592,14 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             }
             fieldCount++;
 
-            sqlBuilder.append(normalizedColName).append(" = ?");
+            if(!escapeColumnNames){
+                sqlBuilder.append(normalizedColName);
+            } else {
+                sqlBuilder.append(schema.getQuotedIdentifierString())
+                        .append(normalizedColName)
+                        .append(schema.getQuotedIdentifierString());
+            }
+            sqlBuilder.append(" = ?");
             final int sqlType = desc.getDataType();
             attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
 
@@ -586,11 +622,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         private List<String> requiredColumnNames;
         private Set<String> primaryKeyColumnNames;
         private Map<String, ColumnDescription> columns;
+        private String quotedIdentifierString;
 
         private TableSchema(final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                            final Set<String> primaryKeyColumnNames) {
+                            final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
             this.columns = new HashMap<>();
             this.primaryKeyColumnNames = primaryKeyColumnNames;
+            this.quotedIdentifierString = quotedIdentifierString;
 
             this.requiredColumnNames = new ArrayList<>();
             for (final ColumnDescription desc : columnDescriptions) {
@@ -613,10 +651,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             return primaryKeyColumnNames;
         }
 
+        public String getQuotedIdentifierString() {
+            return quotedIdentifierString;
+        }
+
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
                                        final boolean translateColumnNames, final boolean includePrimaryKeys) throws SQLException {
-            try (final ResultSet colrs = conn.getMetaData().getColumns(catalog, schema, tableName, "%")) {
+            final DatabaseMetaData dmd = conn.getMetaData();
 
+            try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
                 final List<ColumnDescription> cols = new ArrayList<>();
                 while (colrs.next()) {
                     final ColumnDescription col = ColumnDescription.from(colrs);
@@ -634,7 +677,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     }
                 }
 
-                return new TableSchema(cols, translateColumnNames, primaryKeyColumns);
+                return new TableSchema(cols, translateColumnNames, primaryKeyColumns, dmd.getIdentifierQuoteString());
             }
         }
     }
