@@ -1744,7 +1744,8 @@ have an `onTrigger` method because Controller Services are not
 scheduled to run periodically, and
 Controller Services do not have Relationships because they are not
 integrated into the flow directly. Rather,
-they are used Processors, Reporting Tasks, and other Controller Services.
+they are used by Processors, Reporting Tasks, and
+other Controller Services.
 
 [[developing-controller-service]]
 === Developing a ControllerService
