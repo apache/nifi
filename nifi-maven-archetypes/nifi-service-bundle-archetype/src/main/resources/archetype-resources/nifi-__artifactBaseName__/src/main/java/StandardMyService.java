@@ -37,7 +37,8 @@ import org.apache.nifi.reporting.InitializationException;
 public class StandardMyService extends AbstractControllerService implements MyService {
 
     public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor
-            .Builder().name("My Property")
+            .Builder().name("MY_PROPERTY")
+            .displayName("My Property")
             .description("Example Property")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
