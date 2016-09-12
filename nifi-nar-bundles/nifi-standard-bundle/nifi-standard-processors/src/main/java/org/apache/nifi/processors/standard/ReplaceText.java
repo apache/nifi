@@ -84,7 +84,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
     private static final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
-    private static final String DEFAULT_REGEX = "(?s:^.*$)";
+    private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
 
     // Prepend and Append will just insert the replacement value at the beginning or end
@@ -213,13 +213,6 @@ public class ReplaceText extends AbstractProcessor {
         final String unsubstitutedRegex = context.getProperty(SEARCH_VALUE).getValue();
         String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).getValue();
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
-
-        if (replacementStrategy.equalsIgnoreCase(regexReplaceValue) && unsubstitutedRegex.equals(DEFAULT_REGEX) && unsubstitutedReplacement.equals(DEFAULT_REPLACEMENT_VALUE)) {
-            // This pattern says replace content with itself. We can highly optimize this process by simply transferring
-            // all FlowFiles to the 'success' relationship
-            session.transfer(flowFiles, REL_SUCCESS);
-            return;
-        }
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
