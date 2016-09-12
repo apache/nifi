@@ -548,13 +548,9 @@ public class StandardFlowFileQueue implements FlowFileQueue {
             return;
         }
 
-        int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
+        migrateSwapToActive();
 
-        //if the Active Queue is empty, and the number of files just added to the swap queue is evenly splitable into swap files
-        // then reduce swap file count by 1, otherwise we won't have any active records.
-        if(activeQueue.size() == 0 && numSwapFiles > 0 && swapQueue.size() % SWAP_RECORD_POLL_SIZE == 0){
-            numSwapFiles -=1;
-        }
+        final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
 
         int originalSwapQueueCount = swapQueue.size();
         long originalSwapQueueBytes = 0L;
