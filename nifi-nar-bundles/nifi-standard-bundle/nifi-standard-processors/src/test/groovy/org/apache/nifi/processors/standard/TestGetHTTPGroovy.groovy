@@ -324,11 +324,14 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         [TLSv1, TLSv1_1, TLSv1_2].each { String tlsVersion ->
             logger.info("Set context service protocol to ${tlsVersion}")
             enableContextServiceProtocol(runner, tlsVersion)
+            runner.assertQueueEmpty()
             runner.enqueue(MSG.getBytes())
+            logger.info("Queue size (before run): ${runner.queueSize}")
             runner.run()
 
             // Assert
-            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1)
+            logger.info("Queue size (after run): ${runner.queueSize}")
+            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
