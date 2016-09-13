@@ -17,9 +17,9 @@
 package org.apache.nifi.attribute.expression.language.evaluation.cast;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
@@ -30,50 +30,51 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 import java.util.Map;
 
-public class NumberCastEvaluator extends NumberEvaluator {
+public class DecimalCastEvaluator extends DecimalEvaluator {
 
     private final Evaluator<?> subjectEvaluator;
 
-    public NumberCastEvaluator(final Evaluator<?> subjectEvaluator) {
+    public DecimalCastEvaluator(final Evaluator<?> subjectEvaluator) {
         if (subjectEvaluator.getResultType() == ResultType.BOOLEAN) {
-            throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + subjectEvaluator.getResultType() + " to " + ResultType.WHOLE_NUMBER);
+            throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + subjectEvaluator.getResultType() + " to " + ResultType.DECIMAL);
         }
         this.subjectEvaluator = subjectEvaluator;
     }
 
     @Override
-    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
+    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
         final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
         if (result.getValue() == null) {
-            return new NumberQueryResult(null);
+            return new DecimalQueryResult(null);
         }
 
         switch (result.getResultType()) {
-            case NUMBER:
-                return (NumberQueryResult) result;
-            case WHOLE_NUMBER:
-                Long longValue = ((WholeNumberQueryResult) result).getValue();
-                return new NumberQueryResult(longValue);
             case DECIMAL:
-                Double doubleValue = ((DecimalQueryResult) result).getValue();
-                return new NumberQueryResult(doubleValue);
+                return (DecimalQueryResult) result;
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
                 NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
                 switch (parseType){
                     case DECIMAL:
-                        return new NumberQueryResult(Double.valueOf(trimmed));
+                        return new DecimalQueryResult(Double.valueOf(trimmed));
                     case WHOLE_NUMBER:
                         final Long resultValue = Long.valueOf(trimmed);
-                        return new NumberQueryResult(Long.valueOf(trimmed));
+                        return new DecimalQueryResult(resultValue.doubleValue());
                     case NOT_NUMBER:
                     default:
-                        return new NumberQueryResult(null);
+                        return new DecimalQueryResult(null);
                 }
             case DATE:
-                return new NumberQueryResult(((DateQueryResult) result).getValue().getTime());
+                Long timestamp = ((DateQueryResult) result).getValue().getTime();
+                return new DecimalQueryResult(timestamp.doubleValue());
+            case WHOLE_NUMBER:
+                final Long resultValue = ((WholeNumberQueryResult) result).getValue();
+                return new DecimalQueryResult(resultValue.doubleValue());
+            case NUMBER:
+                final Number numberValue = ((NumberQueryResult) result).getValue();
+                return new DecimalQueryResult(numberValue.doubleValue());
             default:
-                return new NumberQueryResult(null);
+                return new DecimalQueryResult(null);
         }
     }
 

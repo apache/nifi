@@ -77,6 +77,6 @@ public interface AttributeExpression {
 
     public static enum ResultType {
 
-        STRING, BOOLEAN, NUMBER, DATE;
+        STRING, BOOLEAN, WHOLE_NUMBER, DATE, DECIMAL, NUMBER;
     }
 }

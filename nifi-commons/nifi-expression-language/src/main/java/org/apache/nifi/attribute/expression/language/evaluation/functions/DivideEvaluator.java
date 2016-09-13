@@ -25,27 +25,32 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class DivideEvaluator extends NumberEvaluator {
 
-    private final Evaluator<Long> subject;
-    private final Evaluator<Long> divideValue;
+    private final Evaluator<Number> subject;
+    private final Evaluator<Number> divideValue;
 
-    public DivideEvaluator(final Evaluator<Long> subject, final Evaluator<Long> divideValue) {
+    public DivideEvaluator(final Evaluator<Number> subject, final Evaluator<Number> divideValue) {
         this.subject = subject;
         this.divideValue = divideValue;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final Long subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
+        final Number subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Long divide = divideValue.evaluate(attributes).getValue();
+        final Number divide = divideValue.evaluate(attributes).getValue();
         if (divide == null) {
             return new NumberQueryResult(null);
         }
 
-        final long result = subjectValue / divide;
+        final Number result;
+        if (subjectValue instanceof Double || divide instanceof Double){
+            result = subjectValue.doubleValue() / divide.doubleValue();
+        } else {
+            result = subjectValue.longValue() / divide.longValue();
+        }
         return new NumberQueryResult(result);
     }
 

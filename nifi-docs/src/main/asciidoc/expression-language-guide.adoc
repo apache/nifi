@@ -189,16 +189,20 @@ Language supports four different data types:
 
 - *String*: A String is a sequence of characters that can consist of numbers, letters, white space, and
 	special characters.
-- *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language
-	does not provide support for fractional numbers. When converting to numbers from Date data types, they are represented as
+- *Number*: A Number is an whole number comprised of one or more digits (`0` through `9`). When converting to numbers from Date data types, they are represented as
 	the number of milliseconds since midnight GMT on January 1, 1970.
+- *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
+    is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
+    very precise values, such as currency. For more documentation on the range of values stored in this data type
+    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. Decimals cannot be expressed as un-quoted characters
+    when inputting a literal Decimal to an Expression Language function. They must be input as Strings using quotes, like so: "1.1".
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
 	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
 	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
 	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
-All attributes are considered to be of type String.
+After evaluating expression language functions, all attributes are stored as of type String.
 
 The Expression Language is generally able to automatically coerce a value of one data type to the appropriate
 data type for a function. However, functions do exist to manually coerce a value into a specific data type.
@@ -1496,6 +1500,10 @@ An empty subject value or a subject value with an invalid JSON document results 
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation
 
+For those functions that support Decimal and Number (whole number) types, the return value type depends on the input types. If either the
+subject or argument are a Decimal then the result will be a Decimal. If both values are Numbers then the result will be a Number. This includes
+Divide. This is to preserve backwards compatibility and to not force rounding errors.
+
 
 [.function]
 === plus
@@ -1503,13 +1511,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
 	coerced into a Number, returns `null`.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to add to the Subject#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:plus(1000)}`
 	will return the value `1100`.
@@ -1523,13 +1531,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Subtracts a numeric value from the Subject.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to subtract from the Subject#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:minus(100)}`
 	will return the value `0`.
@@ -1543,13 +1551,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to multiple the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:multiply(1024)}`
 	will return the value `102400`.
@@ -1560,15 +1568,15 @@ An empty subject value or a subject value with an invalid JSON document results 
 [.function]
 === divide
 
-*Description*: [.description]#Divides a numeric value by the Subject and returns the result, rounded down to the nearest integer.#
+*Description*: [.description]#Divides the Subject by a numeric value and returns the result.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
-	- [.argName]#_Operand_# : [.argDesc]#The value to add divide the Subject by#
+	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:divide(12)}`
 	will return the value `8`.
@@ -1582,13 +1590,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Description*: [.description]#Performs a modular division of the Subject by the argument. That is, this function will divide
 	the Subject by the value of the argument and return not the quotient but rather the remainder.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:mod(12)}`
 	will return the value `4`.
@@ -1602,7 +1610,9 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
 	second argument can be used to indicate the minimum number of characters to be used. If the converted value
-	has fewer than this number of characters, the number will be padded with leading zeroes.#
+	has fewer than this number of characters, the number will be padded with leading zeroes.
+
+	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#Number#
 
@@ -1632,7 +1642,7 @@ An empty subject value or a subject value with an invalid JSON document results 
 [.function]
 === random
 
-*Description*: [.description]#Returns a random number ( 0 to 2^63 - 1) using an insecure random number generator.#
+*Description*: [.description]#Returns a random whole number ( 0 to 2^63 - 1) using an insecure random number generator.#
 
 *Subject Type*: [.subjectless]#No subject#
 
@@ -1761,22 +1771,32 @@ manipulate the value.
 
 
 
-
-
 [.function]
 === toNumber
 
 *Description*: [.description]#Coerces the Subject into a Number#
 
-*Subject Type*: [.subject]#String#
+*Subject Type*: [.subject]#String, Decimal, or Date#
 
 *Arguments*: No arguments
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: The Expression `${fileSize:toNumber()}` converts the String attribute value of "fileSize" to a number.
+*Examples*: The Expression `${fileSize:toNumber()}` converts the attribute value of "fileSize" to a number.
 
 
+[.function]
+=== toDecimal
+
+*Description*: [.description]#Coerces the Subject into a Decimal#
+
+*Subject Type*: [.subject]#String, Whole Number or Date#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: The Expression `${fileSize:toDecimal()}` converts the attribute value of "fileSize" to a decimal.
 
 
 

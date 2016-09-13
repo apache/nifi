@@ -18,26 +18,26 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-public abstract class NumberEvaluator implements Evaluator<Number> {
-    private String token;
+public class DecimalQueryResult implements QueryResult<Double> {
+
+    private final Double value;
+
+    public DecimalQueryResult(final Double value) {
+        this.value = value;
+    }
+
+    @Override
+    public Double getValue() {
+        return value;
+    }
 
     @Override
     public ResultType getResultType() {
-        return ResultType.NUMBER;
+        return ResultType.DECIMAL;
     }
 
     @Override
-    public int getEvaluationsRemaining() {
-        return 0;
-    }
-
-    @Override
-    public String getToken() {
-        return token;
-    }
-
-    @Override
-    public void setToken(final String token) {
-        this.token = token;
+    public String toString() {
+        return String.valueOf(getValue());
     }
 }

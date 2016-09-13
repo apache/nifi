@@ -25,27 +25,31 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class GreaterThanOrEqualEvaluator extends BooleanEvaluator {
 
-    private final Evaluator<Long> subject;
-    private final Evaluator<Long> comparison;
+    private final Evaluator<Number> subject;
+    private final Evaluator<Number> comparison;
 
-    public GreaterThanOrEqualEvaluator(final Evaluator<Long> subject, final Evaluator<Long> comparison) {
+    public GreaterThanOrEqualEvaluator(final Evaluator<Number> subject, final Evaluator<Number> comparison) {
         this.subject = subject;
         this.comparison = comparison;
     }
 
     @Override
     public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Long subjectValue = subject.evaluate(attributes).getValue();
+        final Number subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
 
-        final Long comparisonValue = comparison.evaluate(attributes).getValue();
+        final Number comparisonValue = comparison.evaluate(attributes).getValue();
         if (comparisonValue == null) {
             return new BooleanQueryResult(false);
         }
 
-        return new BooleanQueryResult(subjectValue >= comparisonValue);
+        if (subjectValue instanceof Double || comparisonValue instanceof Double){
+            return new BooleanQueryResult(subjectValue.doubleValue() >= comparisonValue.doubleValue());
+        } else {
+            return new BooleanQueryResult(subjectValue.longValue() >= comparisonValue.longValue());
+        }
     }
 
     @Override

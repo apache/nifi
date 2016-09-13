@@ -18,12 +18,12 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-public abstract class NumberEvaluator implements Evaluator<Number> {
+public abstract class DecimalEvaluator implements Evaluator<Double> {
     private String token;
 
     @Override
     public ResultType getResultType() {
-        return ResultType.NUMBER;
+        return ResultType.DECIMAL;
     }
 
     @Override

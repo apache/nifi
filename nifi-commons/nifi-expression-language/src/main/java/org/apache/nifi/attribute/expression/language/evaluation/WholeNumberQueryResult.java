@@ -14,31 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.attribute.expression.language.evaluation.literals;
+package org.apache.nifi.attribute.expression.language.evaluation;
 
-import java.util.Map;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+public class WholeNumberQueryResult implements QueryResult<Long> {
 
-public class NumberLiteralEvaluator extends NumberEvaluator {
+    private final Long value;
 
-    private final long literal;
-
-    public NumberLiteralEvaluator(final String value) {
-        this.literal = Long.parseLong(value);
+    public WholeNumberQueryResult(final Long value) {
+        this.value = value;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        return new NumberQueryResult(literal);
+    public Long getValue() {
+        return value;
     }
 
     @Override
-    public Evaluator<?> getSubjectEvaluator() {
-        return null;
+    public ResultType getResultType() {
+        return ResultType.WHOLE_NUMBER;
     }
 
+    @Override
+    public String toString() {
+        return String.valueOf(getValue());
+    }
 }

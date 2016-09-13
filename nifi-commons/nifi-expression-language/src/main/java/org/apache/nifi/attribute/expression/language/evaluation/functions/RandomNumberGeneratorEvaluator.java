@@ -20,18 +20,18 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 
-public class RandomNumberGeneratorEvaluator extends NumberEvaluator {
+public class RandomNumberGeneratorEvaluator extends WholeNumberEvaluator {
 
     private static final Random RNG = new Random();
 
 
     @Override
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        return new NumberQueryResult(Math.abs(RNG.nextLong()));
+        return new WholeNumberQueryResult(Math.abs(RNG.nextLong()));
     }
 
     @Override

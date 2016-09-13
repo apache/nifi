@@ -25,27 +25,32 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class ModEvaluator extends NumberEvaluator {
 
-    private final Evaluator<Long> subject;
-    private final Evaluator<Long> modValue;
+    private final Evaluator<Number> subject;
+    private final Evaluator<Number> modValue;
 
-    public ModEvaluator(final Evaluator<Long> subject, final Evaluator<Long> modValue) {
+    public ModEvaluator(final Evaluator<Number> subject, final Evaluator<Number> modValue) {
         this.subject = subject;
         this.modValue = modValue;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final Long subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
+        final Number subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Long mod = modValue.evaluate(attributes).getValue();
+        final Number mod = modValue.evaluate(attributes).getValue();
         if (mod == null) {
             return new NumberQueryResult(null);
         }
 
-        final long result = subjectValue % mod;
+        final Number result;
+        if (subjectValue instanceof Double || mod instanceof Double){
+            result = subjectValue.doubleValue() % mod.doubleValue();
+        } else {
+            result = subjectValue.longValue() % mod.longValue();
+        }
         return new NumberQueryResult(result);
     }
 

@@ -77,7 +77,7 @@ COLON	: ':';
 COMMA	: ',';
 DOT		: '.';
 SEMICOLON : ';';
-NUMBER	: ('0'..'9')+;
+WHOLE_NUMBER	: ('0'..'9')+;
 
 TRUE	: 'true';
 FALSE	: 'false';
@@ -112,6 +112,7 @@ IS_NULL	: 'isNull';
 IS_EMPTY : 'isEmpty';
 NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
+TO_DECIMAL : 'toDecimal';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
