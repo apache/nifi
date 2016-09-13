@@ -52,7 +52,7 @@ public class StandardControllerServiceProviderTest {
         systemBundle = SystemBundle.create(nifiProperties);
         ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
 
-        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
+        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths(), nifiProperties.getVariableRegistryCheckSchedule());
     }
 
     @Before

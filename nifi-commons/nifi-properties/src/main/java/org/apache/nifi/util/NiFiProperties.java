@@ -197,6 +197,7 @@ public abstract class NiFiProperties {
 
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
+    public static final String VARIABLE_REGISTRY_CHECK_SCHEDULE = "nifi.variable.registry.check.schedule";
 
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -248,6 +249,9 @@ public abstract class NiFiProperties {
 
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
+
+    // variable registry defaults
+    public static final String DEFAULT_VARIABLE_REGISTRY_CHECK_SCHEDULE = "30 secs";
 
     /**
      * Retrieves the property value for the given property key.
@@ -1028,6 +1032,10 @@ public abstract class NiFiProperties {
             }
         }
         return networkInterfaces;
+    }
+
+    public String getVariableRegistryCheckSchedule() {
+        return getProperty(VARIABLE_REGISTRY_CHECK_SCHEDULE, DEFAULT_VARIABLE_REGISTRY_CHECK_SCHEDULE);
     }
 
     public int size() {

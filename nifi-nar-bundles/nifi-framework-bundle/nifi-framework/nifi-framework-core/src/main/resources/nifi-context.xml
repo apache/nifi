@@ -25,12 +25,13 @@
     <!-- variable registry -->
     <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
         <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
+        <constructor-arg type="java.lang.String" value="#{nifiProperties.getVariableRegistryCheckSchedule()}" />
     </bean>
 
     <!-- flow file event repository -->
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
-    
+
     <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
         <constructor-arg ref="nifiProperties" />
     </bean>
@@ -53,7 +54,7 @@
         <property name="encryptor" ref="stringEncryptor" />
         <property name="authorizer" ref="authorizer" />
     </bean>
-    
+
     <!-- bulletin repository -->
     <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
 

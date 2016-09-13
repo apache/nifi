@@ -159,7 +159,7 @@ public class TestFlowController {
         policies1.add(policy2);
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
-        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
+        variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths(), nifiProperties.getVariableRegistryCheckSchedule());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry);
