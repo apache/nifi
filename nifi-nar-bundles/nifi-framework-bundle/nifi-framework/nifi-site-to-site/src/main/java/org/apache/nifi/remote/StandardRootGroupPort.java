@@ -24,6 +24,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -48,6 +50,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -79,6 +83,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private final ProcessScheduler processScheduler;
     private final boolean secure;
     private final Authorizer authorizer;
+    private final NiFiProperties nifiProperties;
+    private final List<IdentityMapping> identityMappings;
 
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;
@@ -94,13 +100,16 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     public StandardRootGroupPort(final String id, final String name, final ProcessGroup processGroup,
             final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
-            final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure) {
+            final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
+            final NiFiProperties nifiProperties) {
         super(id, name, processGroup, type, scheduler);
 
         this.processScheduler = scheduler;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;
         this.secure = secure;
+        this.nifiProperties = nifiProperties;
+        this.identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
         this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
         setYieldPeriod("100 millis");
@@ -357,7 +366,9 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
-        return checkUserAuthorization(new StandardNiFiUser(dn));
+        final String identity = IdentityMappingUtil.mapIdentity(dn, identityMappings);
+
+        return checkUserAuthorization(new StandardNiFiUser(identity));
     }
 
     @Override
