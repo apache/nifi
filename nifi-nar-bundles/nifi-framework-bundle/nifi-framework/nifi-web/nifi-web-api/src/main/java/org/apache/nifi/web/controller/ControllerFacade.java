@@ -797,6 +797,12 @@ public class ControllerFacade implements Authorizable {
 
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
+        // include the root group
+        final Resource rootResource = root.getResource();
+        resources.add(rootResource);
+        resources.add(ResourceFactory.getDataResource(rootResource));
+        resources.add(ResourceFactory.getPolicyResource(rootResource));
+
         // add each processor
         for (final ProcessorNode processor : root.findAllProcessors()) {
             final Resource processorResource = processor.getResource();
