@@ -450,6 +450,45 @@ public class TestJdbcCommon {
         }
     }
 
+    @Test
+    public void testConvertToAvroStreamForShort() throws SQLException, IOException {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.TINYINT);
+        when(metadata.getColumnName(1)).thenReturn("t_int");
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
+
+        final AtomicInteger counter = new AtomicInteger(1);
+        Mockito.doAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                return counter.getAndDecrement() > 0;
+            }
+        }).when(rs).next();
+
+        final short s = 25;
+        when(rs.getObject(Mockito.anyInt())).thenReturn(s);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        JdbcCommon.convertToAvroStream(rs, baos, false);
+
+        final byte[] serializedBytes = baos.toByteArray();
+
+        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertEquals(Short.toString(s), record.get("t_int").toString());
+            }
+        }
+    }
 
     // many test use Derby as database, so ensure driver is available
     @Test
