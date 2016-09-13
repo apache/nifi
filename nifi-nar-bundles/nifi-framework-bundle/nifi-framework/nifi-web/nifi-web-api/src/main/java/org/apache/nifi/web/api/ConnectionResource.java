@@ -223,7 +223,7 @@ public class ConnectionResource extends ApplicationResource {
 
                     // if a destination has been specified and is different
                     final Connectable currentDestination = connAuth.getDestination();
-                    if (requestConnection.getDestination() != null && currentDestination.getIdentifier().equals(requestConnection.getDestination().getId())) {
+                    if (requestConnection.getDestination() != null && !currentDestination.getIdentifier().equals(requestConnection.getDestination().getId())) {
                         // verify access of the new destination (current destination was already authorized as part of the connection check)
                         final Authorizable newDestinationAuthorizable = lookup.getConnectable(requestConnection.getDestination().getId());
                         newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
