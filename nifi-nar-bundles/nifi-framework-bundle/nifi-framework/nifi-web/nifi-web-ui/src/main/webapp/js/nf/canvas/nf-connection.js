@@ -1386,7 +1386,7 @@ nf.Connection = (function () {
                                 nf.CanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
                                 nf.CanvasUtils.reloadConnectionSourceAndDestination(response.sourceId, response.destinationId);
                             }).fail(function (xhr, status, error) {
-                                if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+                                if (xhr.status === 400 || xhr.status === 401 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                                     nf.Dialog.showOkDialog({
                                         headerText: 'Connection',
                                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
