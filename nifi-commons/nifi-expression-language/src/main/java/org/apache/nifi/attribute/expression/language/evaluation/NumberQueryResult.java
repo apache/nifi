@@ -18,16 +18,16 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-public class NumberQueryResult implements QueryResult<Long> {
+public class NumberQueryResult implements QueryResult<Number> {
 
-    private final Long value;
+    private final Number value;
 
-    public NumberQueryResult(final Long value) {
+    public NumberQueryResult(final Number value) {
         this.value = value;
     }
 
     @Override
-    public Long getValue() {
+    public Number getValue() {
         return value;
     }
 
