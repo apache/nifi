@@ -70,6 +70,11 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
+    public void verifyComponentTypes(FlowSnippetDTO snippet) {
+        flowController.verifyComponentTypesInSnippet(snippet);
+    }
+
+    @Override
     public Template createTemplate(TemplateDTO templateDTO, String groupId) {
         final ProcessGroup processGroup = flowController.getGroup(groupId);
         if (processGroup == null) {

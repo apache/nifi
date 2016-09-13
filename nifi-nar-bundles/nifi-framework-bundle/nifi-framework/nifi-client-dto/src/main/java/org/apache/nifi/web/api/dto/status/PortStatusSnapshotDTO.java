@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import javax.xml.bind.annotation.XmlType;
-
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * The status for a port in this NiFi.

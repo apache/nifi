@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -55,7 +56,6 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
@@ -63,15 +63,11 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
+import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -82,14 +78,19 @@ import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -290,7 +291,7 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @return The process group status
      */
-    ProcessGroupStatusDTO getProcessGroupStatus(String groupId);
+    ProcessGroupStatusEntity getProcessGroupStatus(String groupId, boolean recursive);
 
     /**
      * Gets the process group status history.
@@ -298,7 +299,7 @@ public interface NiFiServiceFacade {
      * @param groupId id
      * @return history
      */
-    StatusHistoryDTO getProcessGroupStatusHistory(String groupId);
+    StatusHistoryEntity getProcessGroupStatusHistory(String groupId);
 
     /**
      * Returns the controller status.
@@ -359,9 +360,16 @@ public interface NiFiServiceFacade {
      * Verifies a template with the specified name can be created.
      *
      * @param groupId the id of the group for the template
-     * @param name name of purposed template
+     * @param name name of proposed template
      */
     void verifyCanAddTemplate(String groupId, String name);
+
+    /**
+     * Verifies the types of components in a template.
+     *
+     * @param snippet proposed template
+     */
+    void verifyComponentTypes(FlowSnippetDTO snippet);
 
     /**
      * Creates a new Template based off the specified snippet.
@@ -455,7 +463,7 @@ public interface NiFiServiceFacade {
      * @param id id
      * @return status
      */
-    ProcessorStatusDTO getProcessorStatus(String id);
+    ProcessorStatusEntity getProcessorStatus(String id);
 
     /**
      * Gets the processor status history.
@@ -463,7 +471,7 @@ public interface NiFiServiceFacade {
      * @param id id
      * @return history
      */
-    StatusHistoryDTO getProcessorStatusHistory(String id);
+    StatusHistoryEntity getProcessorStatusHistory(String id);
 
     /**
      * Get the descriptor for the specified property of the specified processor.
@@ -540,7 +548,7 @@ public interface NiFiServiceFacade {
      * @param connectionId connection
      * @return status
      */
-    ConnectionStatusDTO getConnectionStatus(String connectionId);
+    ConnectionStatusEntity getConnectionStatus(String connectionId);
 
     /**
      * Gets the status history of the specified connection.
@@ -548,7 +556,7 @@ public interface NiFiServiceFacade {
      * @param connectionId connection
      * @return history
      */
-    StatusHistoryDTO getConnectionStatusHistory(String connectionId);
+    StatusHistoryEntity getConnectionStatusHistory(String connectionId);
 
     /**
      * Creates a new Relationship target.
@@ -708,7 +716,7 @@ public interface NiFiServiceFacade {
      * @param inputPortId input port
      * @return status
      */
-    PortStatusDTO getInputPortStatus(String inputPortId);
+    PortStatusEntity getInputPortStatus(String inputPortId);
 
     /**
      * Determines if the input port could be updated.
@@ -777,7 +785,7 @@ public interface NiFiServiceFacade {
      * @param outputPortId output port
      * @return status
      */
-    PortStatusDTO getOutputPortStatus(String outputPortId);
+    PortStatusEntity getOutputPortStatus(String outputPortId);
 
     /**
      * Determines if the output port could be updated.
@@ -937,7 +945,7 @@ public interface NiFiServiceFacade {
      * @param id remote process group
      * @return status
      */
-    RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus(String id);
+    RemoteProcessGroupStatusEntity getRemoteProcessGroupStatus(String id);
 
     /**
      * Gets the remote process group status history.
@@ -945,7 +953,7 @@ public interface NiFiServiceFacade {
      * @param id The id of the remote process group
      * @return history
      */
-    StatusHistoryDTO getRemoteProcessGroupStatusHistory(String id);
+    StatusHistoryEntity getRemoteProcessGroupStatusHistory(String id);
 
     /**
      * Verifies the specified remote process group can be updated.
@@ -1492,7 +1500,7 @@ public interface NiFiServiceFacade {
      * @param actionId id
      * @return action
      */
-    ActionDTO getAction(Integer actionId);
+    ActionEntity getAction(Integer actionId);
 
     /**
      * Purges all actions up to the specified end date.

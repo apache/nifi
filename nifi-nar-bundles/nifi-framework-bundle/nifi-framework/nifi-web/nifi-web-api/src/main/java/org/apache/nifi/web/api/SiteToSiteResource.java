@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -46,6 +29,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -57,6 +41,7 @@ import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -74,8 +59,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -98,7 +87,11 @@ public class SiteToSiteResource extends ApplicationResource {
 
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
-    private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
+    private final HttpRemoteSiteListener transactionManager;
+
+    public SiteToSiteResource(final NiFiProperties nifiProperties) {
+        transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
+    }
 
     /**
      * Authorizes access to Site To Site details.
@@ -108,12 +101,21 @@ public class SiteToSiteResource extends ApplicationResource {
     protected void authorizeSiteToSite() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        final Map<String, String> userContext;
+        if (!StringUtils.isBlank(user.getClientAddress())) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getSiteToSiteResource())
                 .identity(user.getIdentity())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.READ)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -135,15 +137,15 @@ public class SiteToSiteResource extends ApplicationResource {
             value = "Returns the details about this NiFi necessary to communicate via site to site",
             response = ControllerEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site", type = "")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getSiteToSiteDetails(@Context HttpServletRequest req) {
@@ -164,7 +166,7 @@ public class SiteToSiteResource extends ApplicationResource {
         if (isEmpty(req.getHeader(HttpHeaders.PROTOCOL_VERSION))) {
             // This indicates the client uses older NiFi version,
             // which strictly read JSON properties and fail with unknown properties.
-            // Convert result entity so that old version clients can understance.
+            // Convert result entity so that old version clients can understand.
             logger.debug("Converting result to provide backward compatibility...");
             controller.setRemoteSiteHttpListeningPort(null);
         }
@@ -172,7 +174,6 @@ public class SiteToSiteResource extends ApplicationResource {
         // generate the response
         return clusterContext(noCache(Response.ok(entity))).build();
     }
-
 
     /**
      * Returns the available Peers and its status of this NiFi.
@@ -183,20 +184,19 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("/peers")
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    // TODO: @PreAuthorize("hasRole('ROLE_NIFI')")
     @ApiOperation(
             value = "Returns the available Peers and its status of this NiFi",
             response = PeersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /site-to-site", type = "")
+                @Authorization(value = "Read - /site-to-site", type = "")
             }
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getPeers(@Context HttpServletRequest req) {

@@ -14,31 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayInputStream;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.ws.rs.HttpMethod;
-
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.ClientResponse.Status;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.core.header.InBoundHeaders;
+import com.sun.jersey.core.header.OutBoundHeaders;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -59,13 +43,25 @@ import org.mockito.internal.util.reflection.Whitebox;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.core.header.InBoundHeaders;
-import com.sun.jersey.core.header.OutBoundHeaders;
+import javax.ws.rs.HttpMethod;
+import java.io.ByteArrayInputStream;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestThreadPoolRequestReplicator {
 
@@ -75,8 +71,9 @@ public class TestThreadPoolRequestReplicator {
     }
 
     /**
-     * If we replicate a request, whenever we obtain the merged response from the AsyncClusterResponse object,
-     * the response should no longer be available and should be cleared from internal state. This test is to
+     * If we replicate a request, whenever we obtain the merged response from
+     * the AsyncClusterResponse object, the response should no longer be
+     * available and should be cleared from internal state. This test is to
      * verify that this behavior occurs.
      */
     @Test
@@ -105,7 +102,6 @@ public class TestThreadPoolRequestReplicator {
         });
     }
 
-
     @Test(timeout = 15000)
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
@@ -132,7 +128,7 @@ public class TestThreadPoolRequestReplicator {
             assertTrue(response.isComplete());
             assertNotNull(response.getMergedResponse());
             assertNull(replicator.getClusterResponse(response.getRequestIdentifier()));
-        } , Status.OK, 1000, new ClientHandlerException(new SocketTimeoutException()));
+        }, Status.OK, 1000, new ClientHandlerException(new SocketTimeoutException()));
     }
 
     @Test(timeout = 15000)
@@ -153,9 +149,8 @@ public class TestThreadPoolRequestReplicator {
 
             final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
             assertNotNull(response.awaitMergedResponse(1, TimeUnit.SECONDS));
-        } , null, 0L, new IllegalArgumentException("Exception created for unit test"));
+        }, null, 0L, new IllegalArgumentException("Exception created for unit test"));
     }
-
 
     @Test(timeout = 15000)
     public void testMultipleRequestWithTwoPhaseCommit() {
@@ -164,12 +159,14 @@ public class TestThreadPoolRequestReplicator {
         nodeIds.add(nodeId);
 
         final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
-        Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, Collections.emptySet()));
+        Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
+        final ThreadPoolRequestReplicator replicator
+                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -191,7 +188,7 @@ public class TestThreadPoolRequestReplicator {
 
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
-                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
+                    new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
             clusterResponse.awaitMergedResponse();
 
             // Ensure that we received two requests - the first should contain the X-NcmExpects header; the second should not.
@@ -210,7 +207,7 @@ public class TestThreadPoolRequestReplicator {
         Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenAnswer(new Answer<NodeConnectionStatus>() {
             @Override
             public NodeConnectionStatus answer(InvocationOnMock invocation) throws Throwable {
-                return new NodeConnectionStatus(invocation.getArgumentAt(0, NodeIdentifier.class), NodeConnectionState.CONNECTED, Collections.emptySet());
+                return new NodeConnectionStatus(invocation.getArgumentAt(0, NodeIdentifier.class), NodeConnectionState.CONNECTED);
             }
         });
 
@@ -233,10 +230,11 @@ public class TestThreadPoolRequestReplicator {
         nodeMap.put(NodeConnectionState.CONNECTING, otherState);
 
         Mockito.when(coordinator.getConnectionStates()).thenReturn(nodeMap);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
+        final ThreadPoolRequestReplicator replicator
+                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
             public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
-                    boolean indicateReplicated, boolean verify) {
+                                                  boolean indicateReplicated, boolean verify) {
                 return null;
             }
         };
@@ -278,7 +276,6 @@ public class TestThreadPoolRequestReplicator {
         }
     }
 
-
     @Test(timeout = 15000)
     public void testOneNodeRejectsTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
@@ -287,9 +284,11 @@ public class TestThreadPoolRequestReplicator {
 
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
+        final ThreadPoolRequestReplicator replicator
+                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -309,7 +308,7 @@ public class TestThreadPoolRequestReplicator {
 
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
-                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
+                    new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
             clusterResponse.awaitMergedResponse();
 
             Assert.fail("Expected to get an IllegalClusterStateException but did not");
@@ -322,17 +321,17 @@ public class TestThreadPoolRequestReplicator {
         }
     }
 
-
-
     private void withReplicator(final WithReplicator function) {
         withReplicator(function, ClientResponse.Status.OK, 0L, null);
     }
 
     private void withReplicator(final WithReplicator function, final Status status, final long delayMillis, final RuntimeException failure) {
         final ClusterCoordinator coordinator = createClusterCoordinator();
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
+        final ThreadPoolRequestReplicator replicator
+                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 if (delayMillis > 0L) {
                     try {
                         Thread.sleep(delayMillis);
@@ -362,6 +361,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     private interface WithReplicator {
+
         void withReplicator(ThreadPoolRequestReplicator replicator) throws Exception;
     }
 }

@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -27,7 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -39,18 +39,19 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.XmlElementNotifier;
 import org.apache.nifi.stream.io.BufferedInputStream;
@@ -69,6 +70,15 @@ import org.xml.sax.XMLReader;
 @Tags({"xml", "split"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Splits an XML File into multiple separate FlowFiles, each comprising a child or descendant of the original root element")
+@WritesAttributes({
+        @WritesAttribute(attribute = "fragment.identifier",
+                description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+        @WritesAttribute(attribute = "fragment.index",
+                description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+        @WritesAttribute(attribute = "fragment.count",
+                description = "The number of split FlowFiles generated from the parent FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+})
 public class SplitXml extends AbstractProcessor {
 
     public static final PropertyDescriptor SPLIT_DEPTH = new PropertyDescriptor.Builder()
@@ -146,35 +156,29 @@ public class SplitXml extends AbstractProcessor {
         final ComponentLog logger = getLogger();
 
         final List<FlowFile> splits = new ArrayList<>();
-        final XmlSplitterSaxParser parser = new XmlSplitterSaxParser(new XmlElementNotifier() {
-            @Override
-            public void onXmlElementFound(final String xmlTree) {
-                FlowFile split = session.create(original);
-                split = session.write(split, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        out.write(xmlTree.getBytes("UTF-8"));
-                    }
-                });
-                splits.add(split);
-            }
+        final String fragmentIdentifier = UUID.randomUUID().toString();
+        final AtomicInteger numberOfRecords = new AtomicInteger(0);
+        final XmlSplitterSaxParser parser = new XmlSplitterSaxParser(xmlTree -> {
+            FlowFile split = session.create(original);
+            split = session.write(split, out -> out.write(xmlTree.getBytes("UTF-8")));
+            split = session.putAttribute(split, "fragment.identifier", fragmentIdentifier);
+            split = session.putAttribute(split, "fragment.index", Integer.toString(numberOfRecords.getAndIncrement()));
+            split = session.putAttribute(split, "segment.original.filename", split.getAttribute(CoreAttributes.FILENAME.key()));
+            splits.add(split);
         }, depth);
 
         final AtomicBoolean failed = new AtomicBoolean(false);
-        session.read(original, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream rawIn) throws IOException {
-                try (final InputStream in = new BufferedInputStream(rawIn)) {
-                    SAXParser saxParser = null;
-                    try {
-                        saxParser = saxParserFactory.newSAXParser();
-                        final XMLReader reader = saxParser.getXMLReader();
-                        reader.setContentHandler(parser);
-                        reader.parse(new InputSource(in));
-                    } catch (final ParserConfigurationException | SAXException e) {
-                        logger.error("Unable to parse {} due to {}", new Object[]{original, e});
-                        failed.set(true);
-                    }
+        session.read(original, rawIn -> {
+            try (final InputStream in = new BufferedInputStream(rawIn)) {
+                SAXParser saxParser = null;
+                try {
+                    saxParser = saxParserFactory.newSAXParser();
+                    final XMLReader reader = saxParser.getXMLReader();
+                    reader.setContentHandler(parser);
+                    reader.parse(new InputSource(in));
+                } catch (final ParserConfigurationException | SAXException e) {
+                    logger.error("Unable to parse {} due to {}", new Object[]{original, e});
+                    failed.set(true);
                 }
             }
         });
@@ -183,7 +187,11 @@ public class SplitXml extends AbstractProcessor {
             session.transfer(original, REL_FAILURE);
             session.remove(splits);
         } else {
-            session.transfer(splits, REL_SPLIT);
+            splits.forEach((split) -> {
+                split = session.putAttribute(split, "fragment.count", Integer.toString(numberOfRecords.get()));
+                session.transfer(split, REL_SPLIT);
+            });
+
             session.transfer(original, REL_ORIGINAL);
             logger.info("Split {} into {} FlowFiles", new Object[]{original, splits.size()});
         }

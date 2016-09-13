@@ -25,19 +25,22 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * Will write the object in JSON format
+ *
+ * @param <T> the type of object
+ */
 public class JsonConfigurationWriter<T> implements ConfigurationWriter<T> {
     private final ObjectWriter objectWriter;
-    private final OutputStreamFactory outputStreamFactory;
     private final File file;
 
-    public JsonConfigurationWriter(ObjectMapper objectMapper, OutputStreamFactory outputStreamFactory, File file) {
+    public JsonConfigurationWriter(ObjectMapper objectMapper, File file) {
         this.objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
-        this.outputStreamFactory = outputStreamFactory;
         this.file = file;
     }
 
     @Override
-    public void write(T tlsConfig) throws IOException {
+    public void write(T tlsConfig, OutputStreamFactory outputStreamFactory) throws IOException {
         try (OutputStream stream = outputStreamFactory.create(file)) {
             objectWriter.writeValue(stream, tlsConfig);
         }

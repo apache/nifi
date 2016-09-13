@@ -18,7 +18,6 @@ package org.apache.nifi.controller.cluster;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
@@ -70,8 +69,8 @@ public class ZooKeeperClientConfig {
         return rootPath + "/" + path;
     }
 
-    public static ZooKeeperClientConfig createConfig(final Properties properties) {
-        final String connectString = properties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
+    public static ZooKeeperClientConfig createConfig(final NiFiProperties nifiProperties) {
+        final String connectString = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING);
         if (connectString == null || connectString.trim().isEmpty()) {
             throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property is not set in nifi.properties");
         }
@@ -79,9 +78,9 @@ public class ZooKeeperClientConfig {
         if (cleanedConnectString.isEmpty()) {
             throw new IllegalStateException("The '" + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property is set in nifi.properties but needs to be in pairs of host:port separated by commas");
         }
-        final long sessionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
-        final long connectionTimeoutMs = getTimePeriod(properties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
-        final String rootPath = properties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
+        final long sessionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_SESSION_TIMEOUT);
+        final long connectionTimeoutMs = getTimePeriod(nifiProperties, NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, NiFiProperties.DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT);
+        final String rootPath = nifiProperties.getProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, NiFiProperties.DEFAULT_ZOOKEEPER_ROOT_NODE);
 
         try {
             PathUtils.validatePath(rootPath);
@@ -92,8 +91,8 @@ public class ZooKeeperClientConfig {
         return new ZooKeeperClientConfig(cleanedConnectString, (int) sessionTimeoutMs, (int) connectionTimeoutMs, rootPath);
     }
 
-    private static int getTimePeriod(final Properties properties, final String propertyName, final String defaultValue) {
-        final String timeout = properties.getProperty(propertyName, defaultValue);
+    private static int getTimePeriod(final NiFiProperties nifiProperties, final String propertyName, final String defaultValue) {
+        final String timeout = nifiProperties.getProperty(propertyName, defaultValue);
         try {
             return (int) FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {

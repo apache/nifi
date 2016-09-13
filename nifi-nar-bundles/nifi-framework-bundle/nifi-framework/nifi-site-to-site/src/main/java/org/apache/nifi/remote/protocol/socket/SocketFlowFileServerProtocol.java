@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.RemoteResourceFactory;
 import org.apache.nifi.remote.StandardVersionNegotiator;
@@ -30,18 +40,6 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ResponseCode;
-import org.apache.nifi.util.NiFiProperties;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
@@ -154,7 +152,13 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
     @Override
-    public void sendPeerList(final Peer peer, final Optional<ClusterNodeInformation> clusterNodeInfo) throws IOException {
+    public void sendPeerList(
+            final Peer peer,
+            final Optional<ClusterNodeInformation> clusterNodeInfo,
+            final String remoteInputHost,
+            final int remoteInputPort,
+            final int remoteInputHttpPort,
+            final boolean isSiteToSiteSecure) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
@@ -166,11 +170,9 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
-
-        String remoteInputHost = properties.getRemoteInputHost();
-        if (remoteInputHost == null) {
-            remoteInputHost = InetAddress.getLocalHost().getHostName();
+        String remoteInputHostVal = remoteInputHost;
+        if (remoteInputHostVal == null) {
+            remoteInputHostVal = InetAddress.getLocalHost().getHostName();
         }
         logger.debug("{} Advertising Remote Input host name {}", this, peer);
 
@@ -178,8 +180,8 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         if (clusterNodeInfo.isPresent()) {
             nodeInfos = new ArrayList<>(clusterNodeInfo.get().getNodeInformation());
         } else {
-            final NodeInformation self = new NodeInformation(remoteInputHost, properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.getRemoteInputHttpPort(),
-                properties.isSiteToSiteSecure(), 0);
+            final NodeInformation self = new NodeInformation(remoteInputHostVal, remoteInputPort, remoteInputHttpPort, remoteInputHttpPort,
+                isSiteToSiteSecure, 0);
             nodeInfos = Collections.singletonList(self);
         }
 

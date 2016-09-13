@@ -22,6 +22,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import org.apache.nifi.web.api.entity.ActionEntity;
 
 /**
  * NiFi action history.
@@ -31,7 +32,7 @@ public class HistoryDTO {
 
     private Integer total;
     private Date lastRefreshed;
-    private Collection<ActionDTO> actions;
+    private Collection<ActionEntity> actions;
 
     /**
      * @return total number of actions
@@ -68,11 +69,11 @@ public class HistoryDTO {
     @ApiModelProperty(
             value = "The actions."
     )
-    public Collection<ActionDTO> getActions() {
+    public Collection<ActionEntity> getActions() {
         return actions;
     }
 
-    public void setActions(Collection<ActionDTO> actions) {
+    public void setActions(Collection<ActionEntity> actions) {
         this.actions = actions;
     }
 }

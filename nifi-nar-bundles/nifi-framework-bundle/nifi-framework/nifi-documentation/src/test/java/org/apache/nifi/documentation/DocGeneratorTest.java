@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.nar.ExtensionManager;
@@ -38,8 +40,9 @@ public class DocGeneratorTest {
         TemporaryFolder temporaryFolder = new TemporaryFolder();
         temporaryFolder.create();
 
-        NiFiProperties properties = loadSpecifiedProperties("/conf/nifi.properties");
-        properties.setProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, temporaryFolder.getRoot().getAbsolutePath());
+        NiFiProperties properties = loadSpecifiedProperties("/conf/nifi.properties",
+                NiFiProperties.COMPONENT_DOCS_DIRECTORY,
+                temporaryFolder.getRoot().getAbsolutePath());
 
         NarUnpacker.unpackNars(properties);
 
@@ -60,22 +63,16 @@ public class DocGeneratorTest {
         Assert.assertTrue(generatedHtml.contains("resources"));
     }
 
-    private NiFiProperties loadSpecifiedProperties(String propertiesFile) {
+    private NiFiProperties loadSpecifiedProperties(final String propertiesFile, final String key, final String value) {
         String file = DocGeneratorTest.class.getResource(propertiesFile).getFile();
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
 
-        NiFiProperties properties = NiFiProperties.getInstance();
-
-        // clear out existing properties
-        for (String prop : properties.stringPropertyNames()) {
-            properties.remove(prop);
-        }
-
+        final Properties props = new Properties();
         InputStream inStream = null;
         try {
             inStream = new BufferedInputStream(new FileInputStream(file));
-            properties.load(inStream);
+            props.load(inStream);
         } catch (final Exception ex) {
             throw new RuntimeException("Cannot load properties file due to "
                     + ex.getLocalizedMessage(), ex);
@@ -91,6 +88,20 @@ public class DocGeneratorTest {
             }
         }
 
-        return properties;
+        if (key != null && value != null) {
+            props.setProperty(key, value);
+        }
+
+        return new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                return props.getProperty(key);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                return props.stringPropertyNames();
+            }
+        };
     }
 }

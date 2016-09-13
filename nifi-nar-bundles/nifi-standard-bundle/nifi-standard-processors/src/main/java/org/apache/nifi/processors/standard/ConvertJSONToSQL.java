@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -668,6 +669,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
+            final ResultSetMetaData md = resultSet.getMetaData();
+            List<String> columns = new ArrayList<>();
+
+            for (int i = 1; i < md.getColumnCount() + 1; i++) {
+                columns.add(md.getColumnName(i));
+            }
+
             final String columnName = resultSet.getString("COLUMN_NAME");
             final int dataType = resultSet.getInt("DATA_TYPE");
             final int colSize = resultSet.getInt("COLUMN_SIZE");
@@ -675,7 +683,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             final String nullableValue = resultSet.getString("IS_NULLABLE");
             final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
             final String defaultValue = resultSet.getString("COLUMN_DEF");
-            final String autoIncrementValue = resultSet.getString("IS_AUTOINCREMENT");
+            String autoIncrementValue = "NO";
+
+            if(columns.contains("IS_AUTOINCREMENT")){
+                autoIncrementValue = resultSet.getString("IS_AUTOINCREMENT");
+            }
+
             final boolean isAutoIncrement = "YES".equalsIgnoreCase(autoIncrementValue);
             final boolean required = !isNullable && !isAutoIncrement && defaultValue == null;
 

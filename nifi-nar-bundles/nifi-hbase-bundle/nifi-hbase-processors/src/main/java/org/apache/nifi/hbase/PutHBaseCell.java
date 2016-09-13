@@ -33,6 +33,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,6 +54,7 @@ public class PutHBaseCell extends AbstractPutHBase {
         properties.add(HBASE_CLIENT_SERVICE);
         properties.add(TABLE_NAME);
         properties.add(ROW_ID);
+        properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(COLUMN_QUALIFIER);
         properties.add(BATCH_SIZE);
@@ -82,8 +84,15 @@ public class PutHBaseCell extends AbstractPutHBase {
             }
         });
 
-        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily, columnQualifier, buffer));
-        return new PutFlowFile(tableName, row, columns, flowFile);
+
+        final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
+                                                                            columnQualifier.getBytes(StandardCharsets.UTF_8), buffer));
+        byte[] rowKeyBytes = getRow(row,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
+
+
+        return new PutFlowFile(tableName,rowKeyBytes , columns, flowFile);
     }
+
+
 
 }

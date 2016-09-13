@@ -17,18 +17,21 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.cluster.manager.ComponentEntityStatusMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 
-public class ConnectionStatusEndpiontMerger extends AbstractNodeStatusEndpoint<ConnectionStatusEntity, ConnectionStatusDTO> {
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+public class ConnectionStatusEndpiontMerger extends AbstractSingleEntityEndpoint<ConnectionStatusEntity> implements ComponentEntityStatusMerger<ConnectionStatusDTO> {
     public static final Pattern CONNECTION_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/connections/[a-f0-9\\-]{36}/status");
 
     @Override
@@ -42,17 +45,19 @@ public class ConnectionStatusEndpiontMerger extends AbstractNodeStatusEndpoint<C
     }
 
     @Override
-    protected ConnectionStatusDTO getDto(ConnectionStatusEntity entity) {
-        return entity.getConnectionStatus();
-    }
+    protected void mergeResponses(ConnectionStatusEntity clientEntity, Map<NodeIdentifier, ConnectionStatusEntity> entityMap, Set<NodeResponse> successfulResponses,
+                                  Set<NodeResponse> problematicResponses) {
+        final ConnectionStatusDTO mergedConnectionStatus = clientEntity.getConnectionStatus();
+        mergedConnectionStatus.setNodeSnapshots(new ArrayList<>());
 
-    @Override
-    protected void mergeResponses(ConnectionStatusDTO clientDto, Map<NodeIdentifier, ConnectionStatusDTO> dtoMap, NodeIdentifier selectedNodeId) {
-        final ConnectionStatusDTO mergedConnectionStatus = clientDto;
-        mergedConnectionStatus.setNodeSnapshots(new ArrayList<NodeConnectionStatusSnapshotDTO>());
+        final NodeIdentifier selectedNodeId = entityMap.entrySet().stream()
+                .filter(e -> e.getValue() == clientEntity)
+                .map(e -> e.getKey())
+                .findFirst()
+                .orElse(null);
 
         final NodeConnectionStatusSnapshotDTO selectedNodeSnapshot = new NodeConnectionStatusSnapshotDTO();
-        selectedNodeSnapshot.setStatusSnapshot(clientDto.getAggregateSnapshot().clone());
+        selectedNodeSnapshot.setStatusSnapshot(mergedConnectionStatus.getAggregateSnapshot().clone());
         selectedNodeSnapshot.setAddress(selectedNodeId.getApiAddress());
         selectedNodeSnapshot.setApiPort(selectedNodeId.getApiPort());
         selectedNodeSnapshot.setNodeId(selectedNodeId.getId());
@@ -60,15 +65,22 @@ public class ConnectionStatusEndpiontMerger extends AbstractNodeStatusEndpoint<C
         mergedConnectionStatus.getNodeSnapshots().add(selectedNodeSnapshot);
 
         // merge the other nodes
-        for (final Map.Entry<NodeIdentifier, ConnectionStatusDTO> entry : dtoMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ConnectionStatusEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final ConnectionStatusDTO nodeConnectionStatus = entry.getValue();
-            if (nodeConnectionStatus == clientDto) {
+            final ConnectionStatusEntity nodeConnectionStatusEntity = entry.getValue();
+            final ConnectionStatusDTO nodeConnectionStatus = nodeConnectionStatusEntity.getConnectionStatus();
+            if (nodeConnectionStatus == mergedConnectionStatus) {
                 continue;
             }
 
-            StatusMerger.merge(mergedConnectionStatus, nodeConnectionStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            mergeStatus(mergedConnectionStatus, clientEntity.getCanRead(), nodeConnectionStatus, nodeConnectionStatusEntity.getCanRead(), nodeId);
         }
     }
 
+    @Override
+    public void mergeStatus(ConnectionStatusDTO clientStatus, boolean clientStatusReadablePermission, ConnectionStatusDTO status, boolean statusReadablePermission,
+                            NodeIdentifier statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
+    }
 }

@@ -20,19 +20,15 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.util.Date;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ControllerConfigurationDTO.
  */
 @XmlRootElement(name = "controllerConfigurationEntity")
-public class ControllerConfigurationEntity extends Entity {
+public class ControllerConfigurationEntity extends Entity implements Permissible<ControllerConfigurationDTO> {
 
-    private Date currentTime;
     private ControllerConfigurationDTO controllerConfiguration;
     private RevisionDTO revision;
     private PermissionsDTO permissions;
@@ -63,11 +59,11 @@ public class ControllerConfigurationEntity extends Entity {
     @ApiModelProperty(
         value = "The controller configuration."
     )
-    public ControllerConfigurationDTO getControllerConfiguration() {
+    public ControllerConfigurationDTO getComponent() {
         return controllerConfiguration;
     }
 
-    public void setControllerConfiguration(ControllerConfigurationDTO controllerConfiguration) {
+    public void setComponent(ControllerConfigurationDTO controllerConfiguration) {
         this.controllerConfiguration = controllerConfiguration;
     }
 
@@ -87,18 +83,4 @@ public class ControllerConfigurationEntity extends Entity {
         this.permissions = permissions;
     }
 
-    /**
-     * @return current time on the server
-     */
-    @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The current time on the system."
-    )
-    public Date getCurrentTime() {
-        return currentTime;
-    }
-
-    public void setCurrentTime(Date currentTime) {
-        this.currentTime = currentTime;
-    }
 }

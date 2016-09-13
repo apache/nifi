@@ -18,9 +18,11 @@
 package org.apache.nifi.cluster.integration;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -30,15 +32,16 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.ReportedEvent;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
-import org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender;
+import org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender;
 import org.apache.nifi.cluster.coordination.node.NodeClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ClusterCoordinationProtocolSender;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
@@ -51,6 +54,8 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
+import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
@@ -61,7 +66,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.mockito.Mockito;
@@ -72,11 +76,13 @@ public class Node {
 
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
+    private final FlowElection flowElection;
 
     private NodeClusterCoordinator clusterCoordinator;
-    private CuratorNodeProtocolSender protocolSender;
+    private NodeProtocolSender protocolSender;
     private FlowController flowController;
     private StandardFlowService flowService;
+    private LeaderElectionManager electionManager;
 
     private ProtocolListener protocolListener;
 
@@ -84,21 +90,45 @@ public class Node {
 
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
-    public Node(final NiFiProperties properties) {
-        this(new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null), properties);
+
+    public Node(final NiFiProperties properties, final FlowElection flowElection) {
+        this(createNodeId(), properties, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final FlowElection flowElection) {
         this.nodeId = nodeId;
-        this.nodeProperties = properties;
+        this.nodeProperties = new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                if(key.equals(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT)){
+                    return String.valueOf(nodeId.getSocketPort());
+                }else if(key.equals(NiFiProperties.WEB_HTTP_PORT)){
+                    return String.valueOf(nodeId.getApiPort());
+                }else {
+                    return properties.getProperty(key);
+                }
+            }
 
-        nodeProperties.setProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, String.valueOf(nodeId.getSocketPort()));
-        nodeProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, String.valueOf(nodeId.getApiPort()));
+            @Override
+            public Set<String> getPropertyKeys() {
+                final Set<String> keys = new HashSet<>(properties.getPropertyKeys());
+                keys.add(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
+                keys.add(NiFiProperties.WEB_HTTP_PORT);
+                return keys;
+            }
+        };
 
         revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.<Revision> emptyList());
+        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+
+        electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
+        this.flowElection = flowElection;
     }
 
+
+    private static NodeIdentifier createNodeId() {
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+    }
 
     public synchronized void start() {
         running = true;
@@ -106,11 +136,12 @@ public class Node {
         protocolSender = createNodeProtocolSender();
         clusterCoordinator = createClusterCoordinator();
         clusterCoordinator.setLocalNodeIdentifier(nodeId);
-        clusterCoordinator.setConnected(true);
+        //        clusterCoordinator.setConnected(true);
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
-            null, null, StringEncryptor.createEncryptor(), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator, heartbeatMonitor, VariableRegistry.EMPTY_REGISTRY);
+            null, null, StringEncryptor.createEncryptor(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
+            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY);
 
         try {
             flowController.initializeFlow();
@@ -123,9 +154,10 @@ public class Node {
             flowController.getStateManagerProvider().getStateManager("Cluster Node Configuration").setState(Collections.singletonMap("Node UUID", nodeId.getId()), Scope.LOCAL);
 
             flowService = StandardFlowService.createClusteredInstance(flowController, nodeProperties, senderListener, clusterCoordinator,
-                StringEncryptor.createEncryptor(), revisionManager, Mockito.mock(Authorizer.class));
+                StringEncryptor.createEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
+
             flowService.load(null);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -195,23 +227,18 @@ public class Node {
         }
     }
 
-    public Set<String> getRoles() {
-        final NodeConnectionStatus status = getConnectionStatus();
-        return status == null ? Collections.emptySet() : status.getRoles();
-    }
-
     public NodeConnectionStatus getConnectionStatus() {
         return clusterCoordinator.getConnectionStatus(nodeId);
     }
 
     @SuppressWarnings("unchecked")
-    private CuratorNodeProtocolSender createNodeProtocolSender() {
+    private NodeProtocolSender createNodeProtocolSender() {
         final SocketConfiguration socketConfig = new SocketConfiguration();
         socketConfig.setSocketTimeout(3000);
         socketConfig.setReuseAddress(true);
 
         final ProtocolContext<ProtocolMessage> protocolContext = new JaxbProtocolContext<>(JaxbProtocolUtils.JAXB_CONTEXT);
-        final CuratorNodeProtocolSender protocolSender = new CuratorNodeProtocolSender(socketConfig, protocolContext, nodeProperties);
+        final NodeProtocolSender protocolSender = new LeaderElectionNodeProtocolSender(socketConfig, protocolContext, electionManager);
         return protocolSender;
     }
 
@@ -250,11 +277,11 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, null, revisionManager, nodeProperties);
+        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null, revisionManager, nodeProperties);
     }
 
 
-    public ClusterCoordinator getClusterCoordinator() {
+    public NodeClusterCoordinator getClusterCoordinator() {
         return clusterCoordinator;
     }
 
@@ -278,8 +305,22 @@ public class Node {
         ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> isConnected());
     }
 
+    private String getClusterAddress() {
+        final InetSocketAddress address = nodeProperties.getClusterNodeProtocolAddress();
+        return address.getHostName() + ":" + address.getPort();
+    }
+
+    public boolean hasRole(final String roleName) {
+        final String leaderAddress = electionManager.getLeader(roleName);
+        if (leaderAddress == null) {
+            return false;
+        }
+
+        return leaderAddress.equals(getClusterAddress());
+    }
+
     public void waitUntilElectedForRole(final String roleName, final long time, final TimeUnit timeUnit) {
-        ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> getRoles().contains(roleName));
+        ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> hasRole(roleName));
     }
 
     // Assertions
@@ -292,7 +333,8 @@ public class Node {
      */
     public void assertNodeConnects(final NodeIdentifier nodeId, final long time, final TimeUnit timeUnit) {
         ClusterUtils.waitUntilConditionMet(time, timeUnit,
-            () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.CONNECTED);
+            () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.CONNECTED,
+            () -> "Connection Status is " + getClusterCoordinator().getConnectionStatus(nodeId).toString());
     }
 
 
@@ -305,7 +347,8 @@ public class Node {
      */
     public void assertNodeDisconnects(final NodeIdentifier nodeId, final long time, final TimeUnit timeUnit) {
         ClusterUtils.waitUntilConditionMet(time, timeUnit,
-            () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.DISCONNECTED);
+            () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.DISCONNECTED,
+            () -> "Connection Status is " + getClusterCoordinator().getConnectionStatus(nodeId).toString());
     }
 
 

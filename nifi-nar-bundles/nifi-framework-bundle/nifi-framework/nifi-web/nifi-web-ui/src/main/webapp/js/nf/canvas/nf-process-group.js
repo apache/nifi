@@ -1018,18 +1018,30 @@ nf.ProcessGroup = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processGroupEntity) {
-                // add the process group
-                processGroupMap.set(processGroupEntity.id, $.extend({
-                    type: 'ProcessGroup',
-                    dimensions: dimensions
-                }, processGroupEntity));
+            var set = function (proposedProcessGroupEntity) {
+                var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
+
+                // set the process group if appropriate
+                if (nf.Client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity)) {
+                    processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
+                        type: 'ProcessGroup',
+                        dimensions: dimensions
+                    }, proposedProcessGroupEntity));
+                }
             };
 
             // determine how to handle the specified process groups
             if ($.isArray(processGroupEntities)) {
                 $.each(processGroupMap.keys(), function (_, key) {
-                    processGroupMap.remove(key);
+                    var currentProcessGroupEntity = processGroupMap.get(key);
+                    var isPresent = $.grep(processGroupEntities, function (proposedProcessGroupEntity) {
+                        return proposedProcessGroupEntity.id === currentProcessGroupEntity.id;
+                    });
+
+                    // if the current process group is not present, remove it
+                    if (isPresent.length === 0) {
+                        processGroupMap.remove(key);
+                    }
                 });
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     set(processGroupEntity);
@@ -1082,13 +1094,13 @@ nf.ProcessGroup = (function () {
 
         /**
          * Reloads the process group state from the server and refreshes the UI.
-         * If the process group is currently unknown, this function just returns.
+         * If the process group is currently unknown, this function reloads the canvas.
          *
-         * @param {object} processGroup The process group to reload
+         * @param {string} id The process group id
          */
-        reload: function (processGroup) {
-            if (processGroupMap.has(processGroup.id)) {
-                var processGroupEntity = processGroupMap.get(processGroup.id);
+        reload: function (id) {
+            if (processGroupMap.has(id)) {
+                var processGroupEntity = processGroupMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: processGroupEntity.uri,
@@ -1106,28 +1118,6 @@ nf.ProcessGroup = (function () {
          */
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
-        },
-
-        /**
-         * Sets the process group status using the specified status.
-         *
-         * @param {array} processGroupStatus       Process group status
-         */
-        setStatus: function (processGroupStatus) {
-            if (nf.Common.isEmpty(processGroupStatus)) {
-                return;
-            }
-
-            // update the specified process group status
-            $.each(processGroupStatus, function (_, status) {
-                if (processGroupMap.has(status.id)) {
-                    var processGroup = processGroupMap.get(status.id);
-                    processGroup.status = status;
-                }
-            });
-
-            // update the visible process groups
-            d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
         },
 
         /**

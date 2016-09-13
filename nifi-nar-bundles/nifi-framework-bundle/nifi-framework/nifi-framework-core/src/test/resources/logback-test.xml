@@ -33,4 +33,6 @@
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
+    
+    <logger name="StandardProcessSession.claims" level="DEBUG" />
 </configuration>

@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class ProcessGroupsEntityMerger {
 
+    private static final ProcessGroupEntityMerger processGroupEntityMerger = new ProcessGroupEntityMerger();
+
     /**
      * Merges multiple ProcessGroupEntity responses.
      *
@@ -32,7 +34,7 @@ public class ProcessGroupsEntityMerger {
      */
     public static void mergeProcessGroups(final Set<ProcessGroupEntity> processGroupEntities, final Map<String, Map<NodeIdentifier, ProcessGroupEntity>> entityMap) {
         for (final ProcessGroupEntity entity : processGroupEntities) {
-            ProcessGroupEntityMerger.mergeProcessGroups(entity, entityMap.get(entity.getId()));
+            processGroupEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

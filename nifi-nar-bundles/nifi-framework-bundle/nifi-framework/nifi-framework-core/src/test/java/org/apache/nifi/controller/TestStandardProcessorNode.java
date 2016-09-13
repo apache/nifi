@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -48,11 +49,11 @@ public class TestStandardProcessorNode {
 
     @Test(timeout = 10000)
     public void testStart() throws InterruptedException {
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessorNode.class.getResource("/conf/nifi.properties").getFile());
         final ProcessorThatThrowsExceptionOnScheduled processor = new ProcessorThatThrowsExceptionOnScheduled();
         final String uuid = UUID.randomUUID().toString();
 
-        final StandardProcessorNode procNode = new StandardProcessorNode(processor, uuid, createValidationContextFactory(), null, null);
+        final StandardProcessorNode procNode = new StandardProcessorNode(processor, uuid, createValidationContextFactory(), null, null, NiFiProperties.createBasicNiFiProperties(null, null));
         final ScheduledExecutorService taskScheduler = new FlowEngine(2, "TestStandardProcessorNode", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, null);

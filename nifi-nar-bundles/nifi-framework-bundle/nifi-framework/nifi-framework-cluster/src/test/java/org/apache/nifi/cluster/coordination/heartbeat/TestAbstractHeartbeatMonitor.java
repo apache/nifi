@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -52,6 +51,7 @@ public class TestAbstractHeartbeatMonitor {
 
     @Before
     public void setup() throws Exception {
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, null, false);
     }
 
@@ -169,8 +169,8 @@ public class TestAbstractHeartbeatMonitor {
 
 
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
-        final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state, Collections.emptySet());
-        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, Collections.emptySet(), 0, 0, 0, 0);
+        final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state);
+        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, 0, 0, 0, 0);
     }
 
     private TestFriendlyHeartbeatMonitor createMonitor(final ClusterCoordinator coordinator) {
@@ -179,10 +179,10 @@ public class TestAbstractHeartbeatMonitor {
         return monitor;
     }
 
-    private Properties createProperties() {
-        final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, "10 ms");
-        return properties;
+    private NiFiProperties createProperties() {
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, "10 ms");
+        return NiFiProperties.createBasicNiFiProperties(null, addProps);
     }
 
     private static class ClusterCoordinatorAdapter implements ClusterCoordinator {
@@ -195,7 +195,7 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public synchronized void requestNodeConnect(NodeIdentifier nodeId, String userDn) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING, Collections.emptySet()));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
         }
 
         @Override
@@ -205,17 +205,17 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public synchronized void finishNodeConnection(NodeIdentifier nodeId) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, Collections.emptySet()));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
         }
 
         @Override
         public synchronized void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, Collections.emptySet()));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
 
         @Override
         public synchronized void disconnectionRequestedByNode(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, Collections.emptySet()));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
 
         @Override
@@ -244,10 +244,6 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public synchronized void reportEvent(NodeIdentifier nodeId, Severity severity, String event) {
             events.add(new ReportedEvent(nodeId, severity, event));
-        }
-
-        @Override
-        public void updateNodeRoles(NodeIdentifier nodeId, Set<String> roles) {
         }
 
         synchronized List<ReportedEvent> getEvents() {
@@ -310,15 +306,27 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public void addRole(String clusterRole) {
-        }
-
-        @Override
-        public void removeRole(String clusterRole) {
-        }
-
-        @Override
         public NodeIdentifier getLocalNodeIdentifier() {
+            return null;
+        }
+
+        @Override
+        public List<NodeConnectionStatus> getConnectionStatuses() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId) {
+            return false;
+        }
+
+        @Override
+        public boolean isFlowElectionComplete() {
+            return true;
+        }
+
+        @Override
+        public String getFlowElectionStatus() {
             return null;
         }
     }
@@ -328,8 +336,8 @@ public class TestAbstractHeartbeatMonitor {
         private Map<NodeIdentifier, NodeHeartbeat> heartbeats = new HashMap<>();
         private final Object mutex = new Object();
 
-        public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, Properties properties) {
-            super(clusterCoordinator, properties);
+        public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, NiFiProperties nifiProperties) {
+            super(clusterCoordinator, nifiProperties);
         }
 
         @Override
@@ -359,6 +367,11 @@ public class TestAbstractHeartbeatMonitor {
             synchronized (mutex) {
                 mutex.wait();
             }
+        }
+
+        @Override
+        public String getHeartbeatAddress() {
+            return "localhost";
         }
     }
 }

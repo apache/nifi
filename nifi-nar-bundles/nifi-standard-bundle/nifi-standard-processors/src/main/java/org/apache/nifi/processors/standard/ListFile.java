@@ -69,7 +69,7 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"file", "get", "list", "ingest", "source", "filesystem"})
 @CapabilityDescription("Retrieves a listing of files from the local filesystem. For each file that is listed, " +
-        "creates a FlowFile that represents the file so that it can be fetched in conjunction with ListFile. This " +
+        "creates a FlowFile that represents the file so that it can be fetched in conjunction with FetchFile. This " +
         "Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new " +
         "Primary Node will pick up where the previous node left off without duplicating all of the data. Unlike " +
         "GetFile, this Processor does not delete any data from the local filesystem.")

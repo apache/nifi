@@ -151,12 +151,12 @@ public class TestSiteToSiteResource {
     }
 
     private SiteToSiteResource getSiteToSiteResource(final NiFiServiceFacade serviceFacade) {
-        final SiteToSiteResource resource = new SiteToSiteResource() {
+        final SiteToSiteResource resource = new SiteToSiteResource(NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
             protected void authorizeSiteToSite() {
             }
         };
-        resource.setProperties(NiFiProperties.getInstance());
+        resource.setProperties(NiFiProperties.createBasicNiFiProperties(null, null));
         resource.setServiceFacade(serviceFacade);
         return resource;
     }

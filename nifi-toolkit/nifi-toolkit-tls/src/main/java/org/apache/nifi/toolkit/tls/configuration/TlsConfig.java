@@ -17,8 +17,12 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.StringUtils;
 
+/**
+ * Configuration object for CA server
+ */
 public class TlsConfig {
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final String DEFAULT_KEY_STORE_TYPE = "jks";
@@ -43,7 +47,7 @@ public class TlsConfig {
     private int port = DEFAULT_PORT;
 
     public static String calcDefaultDn(String hostname) {
-        return "CN=" + hostname + ",OU=NIFI";
+        return CertificateUtils.reorderDn("CN=" + hostname + ",OU=NIFI");
     }
 
     public int getPort() {

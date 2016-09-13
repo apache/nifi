@@ -76,23 +76,8 @@ public class TestDebugFlow {
         runner.setProperty(DebugFlow.NO_FF_YIELD_ITERATIONS, "0");
     }
 
-    @Test
-    public void testGetSupportedPropertyDescriptors() throws Exception {
-        assertEquals(11, debugFlow.getPropertyDescriptors().size());
-    }
-
-    @Test
-    public void testGetRelationships() throws Exception {
-        assertEquals(2, debugFlow.getRelationships().size());
-    }
-
     private boolean isInContents(byte[] content) {
-        for (Map.Entry entry : contents.entrySet()) {
-            if (((String)entry.getValue()).compareTo(new String(content)) == 0) {
-                return true;
-            }
-        }
-        return false;
+        return contents.containsValue(new String(content));
     }
 
     @Test

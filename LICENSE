@@ -500,7 +500,7 @@ This product bundles HexViewJS available under an MIT License
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-This product bundles 'jBCrypt' which is available under a BSD license.
+This product bundles 'jBCrypt' which is available under an MIT license.
 For details see https://github.com/svenkubiak/jBCrypt/blob/0.4.1/LICENSE
 
     Copyright (c) 2006 Damien Miller <djm@mindrot.org>
@@ -565,6 +565,28 @@ This product bundles 'js-beautify' which is available under an MIT license.
 This product bundles 'jsonlint' which is available under an MIT license.
 
     Copyright (C) 2012 Zachary Carter
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+This product bundles source from 'AbstractingTheJavaConsole'. The source is available under an MIT LICENSE.
+
+    Copyright (C) 2010 McDowell
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal

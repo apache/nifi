@@ -26,6 +26,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.nifi.toolkit.tls.TlsToolkitMain;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 
+/**
+ * Base class with common CLI parsing functionality as well as arguments shared by multiple entry points
+ */
 public abstract class BaseCommandLine {
     public static final String HELP_ARG = "help";
     public static final String JAVA_HOME = "JAVA_HOME";
@@ -112,7 +115,7 @@ public abstract class BaseCommandLine {
 
     protected <T> T printUsageAndThrow(String errorMessage, ExitCode exitCode) throws CommandLineParseException {
         printUsage(errorMessage);
-        throw new CommandLineParseException(errorMessage, exitCode.ordinal());
+        throw new CommandLineParseException(errorMessage, exitCode);
     }
 
     protected int getIntValue(CommandLine commandLine, String arg, int defaultVal) throws CommandLineParseException {
@@ -123,30 +126,65 @@ public abstract class BaseCommandLine {
         }
     }
 
+    /**
+     * Returns the number of bits used when generating KeyPairs
+     *
+     * @return the number of bits used when generating KeyPairs
+     */
     public int getKeySize() {
         return keySize;
     }
 
+    /**
+     * Returns the algorithm used when generating KeyPairs
+     *
+     * @return the algorithm used when generating KeyPairs
+     */
     public String getKeyAlgorithm() {
         return keyAlgorithm;
     }
 
+    /**
+     * Returns the CA Hostname
+     *
+     * @return the CA Hostname
+     */
     public String getCertificateAuthorityHostname() {
         return certificateAuthorityHostname;
     }
 
+    /**
+     * Returns the type to use for KeyStores
+     *
+     * @return the type to use for KeyStores
+     */
     public String getKeyStoreType() {
         return keyStoreType;
     }
 
+    /**
+     * Returns the number of Certificates should be valid for
+     *
+     * @return the number of Certificates should be valid for
+     */
     public int getDays() {
         return days;
     }
 
+    /**
+     * Returns the signing algorithm to use for cryptographic operations
+     *
+     * @return the signing algorithm to use for cryptographic operations
+     */
     public String getSigningAlgorithm() {
         return signingAlgorithm;
     }
 
+    /**
+     * Returns true if different passwords should be used for KeyStore and individual Key entries
+     *
+     * @return true if different passwords should be used for KeyStore and individual Key entries
+     */
     public boolean differentPasswordForKeyAndKeystore() {
         return differentPasswordForKeyAndKeystore;
     }
@@ -172,6 +210,12 @@ public abstract class BaseCommandLine {
         return commandLine;
     }
 
+    /**
+     * Parses the command line arguments
+     *
+     * @param args the command line arguments
+     * @throws CommandLineParseException if the arguments cannot be parsed
+     */
     public void parse(String... args) throws CommandLineParseException {
         doParse(args);
     }

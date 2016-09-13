@@ -134,10 +134,20 @@ public interface ServerProtocol extends VersionedRemoteResource {
      *
      * @param peer peer
      * @param clusterNodeInfo the cluster information
+     * @param remoteInputHost the remote input host
+     * @param remoteInputPort the remote input port
+     * @param remoteInputHttpPort the remote input http port
+     * @param isSiteToSiteSecure whether site to site is secure
      *
      * @throws java.io.IOException ioe
      */
-    void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo) throws IOException;
+    void sendPeerList(
+            Peer peer,
+            Optional<ClusterNodeInformation> clusterNodeInfo,
+            String remoteInputHost,
+            int remoteInputPort,
+            int remoteInputHttpPort,
+            boolean isSiteToSiteSecure) throws IOException;
 
     void shutdown(Peer peer);
 

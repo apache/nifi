@@ -407,6 +407,8 @@ nf.Common = (function () {
                     $('#message-title').text('Unauthorized');
                 } else if (xhr.status === 403) {
                     $('#message-title').text('Access Denied');
+                } else if (xhr.status === 409) {
+                    $('#message-title').text('Invalid State');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
                 }
@@ -1195,7 +1197,7 @@ nf.Common = (function () {
             if ($.isArray(bulletins) && $.isArray(otherBulletins)) {
                 if (bulletins.length === otherBulletins.length) {
                     for (var i = 0; i < bulletins.length; i++) {
-                        if (bulletins[i].id !== otherBulletins[i].id) {
+                        if (bulletins[i].id !== otherBulletins[i].id || bulletins[i].canRead !== otherBulletins[i].canRead) {
                             return true;
                         }
                     }
@@ -1214,10 +1216,12 @@ nf.Common = (function () {
          * @argument {array} bulletins      The bulletins
          * @return {array}                  The jQuery objects
          */
-        getFormattedBulletins: function (bulletins) {
-            var formattedBulletins = [];
-            $.each(bulletins, function (j, bulletin) {
-                if (!nf.Common.isBlank(bulletin.level)) {
+        getFormattedBulletins: function (bulletinEntities) {
+            var formattedBulletinEntities = [];
+            $.each(bulletinEntities, function (j, bulletinEntity) {
+                if (bulletinEntity.canRead === true) {
+                    var bulletin = bulletinEntity.bulletin;
+
                     // format the node address
                     var nodeAddress = '';
                     if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
@@ -1236,10 +1240,10 @@ nf.Common = (function () {
                             '<b>' + nf.Common.escapeHtml(bulletin.level) + '</b>&nbsp;' +
                             '</div>').append(bulletinMessage);
 
-                    formattedBulletins.push(formattedBulletin);
+                    formattedBulletinEntities.push(formattedBulletin);
                 }
             });
-            return formattedBulletins;
+            return formattedBulletinEntities;
         }
     };
 }());

@@ -45,6 +45,15 @@
             <outputDirectory>conf/</outputDirectory>
             <fileMode>0600</fileMode>
         </fileSet>
+        <!--<fileSet>-->
+            <!--<directory>${project.build.directory}/nifi-resources/src/main/resources/conf</directory>-->
+            <!--<outputDirectory>conf/</outputDirectory>-->
+            <!--<fileMode>0600</fileMode>-->
+            <!--<includes>-->
+                <!--<include>nifi.properties</include>-->
+                <!--<include>bootstrap.conf</include>-->
+            <!--</includes>-->
+        <!--</fileSet>-->
         <fileSet>
             <directory>${project.basedir}/src/main/resources/classpath</directory>
             <outputDirectory>classpath/</outputDirectory>

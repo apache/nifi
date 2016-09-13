@@ -76,7 +76,7 @@ package org.apache.nifi.remote.io.socket;
 //        dos.flush();
 //
 //        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
-//        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, NiFiProperties.getInstance());
+//        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, nifiProperties);
 //
 //        final StandardSiteToSiteProtocol negotiatedProtocol = (StandardSiteToSiteProtocol) RemoteResourceFactory.initiateResourceNegotiation(proposedProtocol, dis, dos);
 //        System.out.println(negotiatedProtocol);

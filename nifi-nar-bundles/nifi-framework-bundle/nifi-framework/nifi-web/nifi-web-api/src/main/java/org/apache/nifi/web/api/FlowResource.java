@@ -44,6 +44,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
@@ -54,22 +55,13 @@ import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
@@ -243,7 +235,6 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("client-id")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Generates a client id.",
             response = String.class,
@@ -425,6 +416,7 @@ public class FlowResource extends ApplicationResource {
 
         // create the response entity
         final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setCurrentTime(new Date());
         entity.setControllerServices(controllerServices);
 
         // generate the response
@@ -465,12 +457,17 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
         final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setCurrentTime(new Date());
         entity.setControllerServices(controllerServices);
 
         // generate the response
@@ -530,7 +527,7 @@ public class FlowResource extends ApplicationResource {
      *
      * @param httpServletRequest       request
      * @param id                       The id of the process group.
-     * @param scheduleComponentsEntity A scheduleComponentsEntity.
+     * @param requestScheduleComponentsEntity A scheduleComponentsEntity.
      * @return A processGroupEntity.
      */
     @PUT
@@ -562,20 +559,23 @@ public class FlowResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") String id,
-            ScheduleComponentsEntity scheduleComponentsEntity) {
+            @ApiParam(
+                    value = "The request to schedule or unschedule. If the comopnents in the request are not specified, all authorized components will be considered.",
+                    required = true
+            ) final ScheduleComponentsEntity requestScheduleComponentsEntity) {
 
         // ensure the same id is being used
-        if (!id.equals(scheduleComponentsEntity.getId())) {
+        if (!id.equals(requestScheduleComponentsEntity.getId())) {
             throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
-                    + "not equal the process group id of the requested resource (%s).", scheduleComponentsEntity.getId(), id));
+                    + "not equal the process group id of the requested resource (%s).", requestScheduleComponentsEntity.getId(), id));
         }
 
         final ScheduledState state;
-        if (scheduleComponentsEntity.getState() == null) {
+        if (requestScheduleComponentsEntity.getState() == null) {
             throw new IllegalArgumentException("The scheduled state must be specified.");
         } else {
             try {
-                state = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+                state = ScheduledState.valueOf(requestScheduleComponentsEntity.getState());
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
             }
@@ -587,7 +587,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // if the components are not specified, gather all components and their current revision
-        if (scheduleComponentsEntity.getComponents() == null) {
+        if (requestScheduleComponentsEntity.getComponents() == null) {
             // get the current revisions for the components being updated
             final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
                 final Set<String> componentIds = new HashSet<>();
@@ -629,34 +629,42 @@ public class FlowResource extends ApplicationResource {
             });
 
             // set the components and their current revision
-            scheduleComponentsEntity.setComponents(componentsToSchedule);
+            requestScheduleComponentsEntity.setComponents(componentsToSchedule);
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, scheduleComponentsEntity);
+            return replicate(HttpMethod.PUT, requestScheduleComponentsEntity);
         }
 
-        final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
-        final Map<String, Revision> componentRevisions = componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
-        final Set<Revision> revisions = new HashSet<>(componentRevisions.values());
+        final Map<String, RevisionDTO> requestComponentsToSchedule = requestScheduleComponentsEntity.getComponents();
+        final Map<String, Revision> requestComponentRevisions =
+                requestComponentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> requestRevisions = new HashSet<>(requestComponentRevisions.values());
 
         return withWriteLock(
                 serviceFacade,
-                revisions,
+                requestScheduleComponentsEntity,
+                requestRevisions,
                 lookup -> {
                     // ensure access to the flow
                     authorizeFlow();
 
                     // ensure access to every component being scheduled
-                    componentsToSchedule.keySet().forEach(componentId -> {
+                    requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable connectable = lookup.getConnectable(componentId);
                         connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
-                () -> serviceFacade.verifyScheduleComponents(id, state, componentRevisions.keySet()),
-                () -> {
+                () -> serviceFacade.verifyScheduleComponents(id, state, requestComponentRevisions.keySet()),
+                (revisions, scheduleComponentsEntity) -> {
+                    final ScheduledState scheduledState = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+
+                    final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
+                    final Map<String, Revision> componentRevisions =
+                            componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+
                     // update the process group
-                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, state, componentRevisions);
+                    final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, scheduledState, componentRevisions);
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );
@@ -1273,13 +1281,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status
-        final ProcessorStatusDTO processorStatus = serviceFacade.getProcessorStatus(id);
-
-        // generate the response entity
-        final ProcessorStatusEntity entity = new ProcessorStatusEntity();
-        entity.setProcessorStatus(processorStatus);
-
-        // generate the response
+        final ProcessorStatusEntity entity = serviceFacade.getProcessorStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1352,13 +1354,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified input port status
-        final PortStatusDTO portStatus = serviceFacade.getInputPortStatus(id);
-
-        // generate the response entity
-        final PortStatusEntity entity = new PortStatusEntity();
-        entity.setPortStatus(portStatus);
-
-        // generate the response
+        final PortStatusEntity entity = serviceFacade.getInputPortStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1431,13 +1427,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified output port status
-        final PortStatusDTO portStatus = serviceFacade.getOutputPortStatus(id);
-
-        // generate the response entity
-        final PortStatusEntity entity = new PortStatusEntity();
-        entity.setPortStatus(portStatus);
-
-        // generate the response
+        final PortStatusEntity entity = serviceFacade.getOutputPortStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1510,13 +1500,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified remote process group status
-        final RemoteProcessGroupStatusDTO remoteProcessGroupStatus = serviceFacade.getRemoteProcessGroupStatus(id);
-
-        // generate the response entity
-        final RemoteProcessGroupStatusEntity entity = new RemoteProcessGroupStatusEntity();
-        entity.setRemoteProcessGroupStatus(remoteProcessGroupStatus);
-
-        // generate the response
+        final RemoteProcessGroupStatusEntity entity = serviceFacade.getRemoteProcessGroupStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1597,35 +1581,8 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the status
-        final ProcessGroupStatusDTO statusReport = serviceFacade.getProcessGroupStatus(groupId);
-
-        // prune the response as necessary
-        if (!recursive) {
-            pruneChildGroups(statusReport.getAggregateSnapshot());
-            if (statusReport.getNodeSnapshots() != null) {
-                for (final NodeProcessGroupStatusSnapshotDTO nodeSnapshot : statusReport.getNodeSnapshots()) {
-                    pruneChildGroups(nodeSnapshot.getStatusSnapshot());
-                }
-            }
-        }
-
-        // create the response entity
-        final ProcessGroupStatusEntity entity = new ProcessGroupStatusEntity();
-        entity.setProcessGroupStatus(statusReport);
-
-        // generate the response
+        final ProcessGroupStatusEntity entity = serviceFacade.getProcessGroupStatus(groupId, recursive);
         return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    private void pruneChildGroups(final ProcessGroupStatusSnapshotDTO snapshot) {
-        for (final ProcessGroupStatusSnapshotDTO childProcessGroupStatus : snapshot.getProcessGroupStatusSnapshots()) {
-            childProcessGroupStatus.setConnectionStatusSnapshots(null);
-            childProcessGroupStatus.setProcessGroupStatusSnapshots(null);
-            childProcessGroupStatus.setInputPortStatusSnapshots(null);
-            childProcessGroupStatus.setOutputPortStatusSnapshots(null);
-            childProcessGroupStatus.setProcessorStatusSnapshots(null);
-            childProcessGroupStatus.setRemoteProcessGroupStatusSnapshots(null);
-        }
     }
 
     /**
@@ -1697,13 +1654,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified connection status
-        final ConnectionStatusDTO connectionStatus = serviceFacade.getConnectionStatus(id);
-
-        // generate the response entity
-        final ConnectionStatusEntity entity = new ConnectionStatusEntity();
-        entity.setConnectionStatus(connectionStatus);
-
-        // generate the response
+        final ConnectionStatusEntity entity = serviceFacade.getConnectionStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1753,13 +1704,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO processorStatusHistory = serviceFacade.getProcessorStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(processorStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getProcessorStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1805,13 +1750,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO processGroupStatusHistory = serviceFacade.getProcessGroupStatusHistory(groupId);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(processGroupStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getProcessGroupStatusHistory(groupId);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1857,13 +1796,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO remoteProcessGroupStatusHistory = serviceFacade.getRemoteProcessGroupStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(remoteProcessGroupStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getRemoteProcessGroupStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1909,13 +1842,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO connectionStatusHistory = serviceFacade.getConnectionStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(connectionStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getConnectionStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -2123,12 +2050,8 @@ public class FlowResource extends ApplicationResource {
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
-        // get the specified action
-        final ActionDTO action = serviceFacade.getAction(id.getInteger());
-
-        // create the response entity
-        final ActionEntity entity = new ActionEntity();
-        entity.setAction(action);
+        // get the response entity for the specified action
+        final ActionEntity entity = serviceFacade.getAction(id.getInteger());
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -2145,11 +2068,12 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history/components/{componentId}")
     @ApiOperation(
-            value = "Gets configuration history for a processor",
+            value = "Gets configuration history for a component",
             notes = NON_GUARANTEED_ENDPOINT,
             response = ComponentHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow", type = ""),
+                    @Authorization(value = "Read underlying component - /{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -2168,7 +2092,38 @@ public class FlowResource extends ApplicationResource {
             )
             @PathParam("componentId") final String componentId) {
 
-        authorizeFlow();
+        serviceFacade.authorizeAccess(lookup -> {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // authorize the flow
+            authorizeFlow();
+
+            try {
+                final Authorizable authorizable = lookup.getProcessor(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a processor
+            }
+
+            try {
+                final Authorizable authorizable = lookup.getControllerService(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a controller service
+            }
+
+            try {
+                final Authorizable authorizable = lookup.getReportingTask(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a reporting task
+            }
+
+            throw new ResourceNotFoundException(String.format("Unable to find component with id '%s'.", componentId));
+        });
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 

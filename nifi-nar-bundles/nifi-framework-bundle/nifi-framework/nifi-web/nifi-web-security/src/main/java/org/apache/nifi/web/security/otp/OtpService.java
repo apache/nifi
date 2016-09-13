@@ -20,6 +20,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.web.security.token.OtpAuthenticationToken;
+import org.apache.nifi.web.security.util.CacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +28,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.concurrent.ConcurrentMap;
@@ -129,7 +129,7 @@ public class OtpService {
         cache.putIfAbsent(cacheKey, authenticationToken.getName());
 
         // return the token
-        return cacheKey.getToken();
+        return cacheKey.getKey();
     }
 
     /**
@@ -176,44 +176,6 @@ public class OtpService {
             final String errorMessage = "There was an error generating the OTP";
             logger.error(errorMessage, e);
             throw new IllegalStateException("Unable to generate single use token.");
-        }
-    }
-
-    /**
-     * Key for the cache. Necessary to override the default String.equals() to utilize MessageDigest.isEquals() to prevent timing attacks.
-     */
-    private static class CacheKey {
-        final String token;
-
-        public CacheKey(String token) {
-            this.token = token;
-        }
-
-        public String getToken() {
-            return token;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            final CacheKey otherCacheKey = (CacheKey) o;
-            return MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8), otherCacheKey.token.getBytes(StandardCharsets.UTF_8));
-        }
-
-        @Override
-        public int hashCode() {
-            return token.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return "CacheKey{token ending in '..." + token.substring(token.length() - 6) + "'}";
         }
     }
 }

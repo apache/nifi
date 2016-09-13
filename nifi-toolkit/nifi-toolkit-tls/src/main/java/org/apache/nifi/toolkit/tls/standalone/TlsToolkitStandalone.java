@@ -18,14 +18,18 @@
 package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
+import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.manager.BaseTlsManager;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
@@ -33,11 +37,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
@@ -57,17 +64,8 @@ public class TlsToolkitStandalone {
         this.outputStreamFactory = outputStreamFactory;
     }
 
-    public void createNifiKeystoresAndTrustStores(File baseDir, TlsConfig tlsConfig, NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, List<String> hostnames, List<String> keyStorePasswords,
-                                                  List<String> keyPasswords, List<String> trustStorePasswords, int httpsPort) throws GeneralSecurityException, IOException {
-        String signingAlgorithm = tlsConfig.getSigningAlgorithm();
-        int days = tlsConfig.getDays();
-        String keyPairAlgorithm = tlsConfig.getKeyPairAlgorithm();
-        int keySize = tlsConfig.getKeySize();
-        TlsCertificateAuthorityManager tlsCertificateAuthorityManager = new TlsCertificateAuthorityManager(tlsConfig);
-        KeyStore.PrivateKeyEntry privateKeyEntry = tlsCertificateAuthorityManager.getOrGenerateCertificateAuthority();
-        X509Certificate certificate = (X509Certificate) privateKeyEntry.getCertificateChain()[0];
-        KeyPair caKeyPair = new KeyPair(certificate.getPublicKey(), privateKeyEntry.getPrivateKey());
-
+    public void createNifiKeystoresAndTrustStores(StandaloneConfig standaloneConfig) throws GeneralSecurityException, IOException {
+        File baseDir = standaloneConfig.getBaseDir();
         if (!baseDir.exists() && !baseDir.mkdirs()) {
             throw new IOException(baseDir + " doesn't exist and unable to create it.");
         }
@@ -76,64 +74,167 @@ public class TlsToolkitStandalone {
             throw new IOException("Expected directory to output to");
         }
 
-        if (logger.isInfoEnabled()) {
-            logger.info("Running standalone certificate generation with output directory " + baseDir + " and hostnames " + hostnames);
-        }
+        String signingAlgorithm = standaloneConfig.getSigningAlgorithm();
+        int days = standaloneConfig.getDays();
+        String keyPairAlgorithm = standaloneConfig.getKeyPairAlgorithm();
+        int keySize = standaloneConfig.getKeySize();
 
         File nifiCert = new File(baseDir, NIFI_CERT + ".pem");
-        if (nifiCert.exists()) {
-            throw new IOException(nifiCert.getAbsolutePath() + " exists already.");
-        }
-
         File nifiKey = new File(baseDir, NIFI_KEY + ".key");
-        if (nifiKey.exists()) {
-            throw new IOException(nifiKey.getAbsolutePath() + " exists already.");
-        }
 
-        for (String hostname : hostnames) {
-            File hostDirectory = new File(baseDir, hostname);
-            if (hostDirectory.exists()) {
-                throw new IOException("Output destination for host " + hostname + " (" + hostDirectory.getAbsolutePath() + ") exists already.");
+        X509Certificate certificate;
+        KeyPair caKeyPair;
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Running standalone certificate generation with output directory " + baseDir);
+        }
+        if (nifiCert.exists()) {
+            if (!nifiKey.exists()) {
+                throw new IOException(nifiCert + " exists already, but " + nifiKey + " does not, we need both certificate and key to continue with an existing CA.");
+            }
+            try (FileReader pemEncodedCertificate = new FileReader(nifiCert)) {
+                certificate = TlsHelper.parseCertificate(pemEncodedCertificate);
+            }
+            try (FileReader pemEncodedKeyPair = new FileReader(nifiKey)) {
+                caKeyPair = TlsHelper.parseKeyPair(pemEncodedKeyPair);
+            }
+
+            certificate.verify(caKeyPair.getPublic());
+            if (!caKeyPair.getPublic().equals(certificate.getPublicKey())) {
+                throw new IOException("Expected " + nifiKey + " to correspond to CA certificate at " + nifiCert);
+            }
+
+            if (logger.isInfoEnabled()) {
+                logger.info("Using existing CA certificate " + nifiCert + " and key " + nifiKey);
+            }
+        } else if (nifiKey.exists()) {
+            throw new IOException(nifiKey + " exists already, but " + nifiCert + " does not, we need both certificate and key to continue with an existing CA.");
+        } else {
+            TlsCertificateAuthorityManager tlsCertificateAuthorityManager = new TlsCertificateAuthorityManager(standaloneConfig);
+            KeyStore.PrivateKeyEntry privateKeyEntry = tlsCertificateAuthorityManager.getOrGenerateCertificateAuthority();
+            certificate = (X509Certificate) privateKeyEntry.getCertificateChain()[0];
+            caKeyPair = new KeyPair(certificate.getPublicKey(), privateKeyEntry.getPrivateKey());
+
+            try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiCert)))) {
+                pemWriter.writeObject(new JcaMiscPEMGenerator(certificate));
+            }
+
+            try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiKey)))) {
+                pemWriter.writeObject(new JcaMiscPEMGenerator(caKeyPair));
+            }
+
+            if (logger.isInfoEnabled()) {
+                logger.info("Generated new CA certificate " + nifiCert + " and key " + nifiKey);
             }
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiCert)))) {
-            pemWriter.writeObject(new JcaMiscPEMGenerator(certificate));
+        NiFiPropertiesWriterFactory niFiPropertiesWriterFactory = standaloneConfig.getNiFiPropertiesWriterFactory();
+        boolean overwrite = standaloneConfig.isOverwrite();
+
+        List<InstanceDefinition> instanceDefinitions = standaloneConfig.getInstanceDefinitions();
+        if (instanceDefinitions.isEmpty() && logger.isInfoEnabled()) {
+            logger.info("No " + TlsToolkitStandaloneCommandLine.HOSTNAMES_ARG + " specified, not generating any host certificates or configuration.");
         }
+        for (InstanceDefinition instanceDefinition : instanceDefinitions) {
+            String hostname = instanceDefinition.getHostname();
+            File hostDir;
+            int hostIdentifierNumber = instanceDefinition.getInstanceIdentifier().getNumber();
+            if (hostIdentifierNumber == 1) {
+                hostDir = new File(baseDir, hostname);
+            } else {
+                hostDir = new File(baseDir, hostname + "_" + hostIdentifierNumber);
+            }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiKey)))) {
-            pemWriter.writeObject(new JcaMiscPEMGenerator(caKeyPair));
-        }
+            TlsClientConfig tlsClientConfig = new TlsClientConfig(standaloneConfig);
+            File keystore = new File(hostDir, "keystore." + tlsClientConfig.getKeyStoreType().toLowerCase());
+            File truststore = new File(hostDir, "truststore." + tlsClientConfig.getTrustStoreType().toLowerCase());
 
-        for (int i = 0; i < hostnames.size(); i++) {
-            String hostname = hostnames.get(i);
-            File hostDir = new File(baseDir, hostname);
-
-            if (!hostDir.mkdirs()) {
+            if (hostDir.exists()) {
+                if (!hostDir.isDirectory()) {
+                    throw new IOException(hostDir + " exists but is not a directory.");
+                } else if (overwrite) {
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Overwriting any existing ssl configuration in " + hostDir);
+                    }
+                    keystore.delete();
+                    if (keystore.exists()) {
+                        throw new IOException("Keystore " + keystore + " already exists and couldn't be deleted.");
+                    }
+                    truststore.delete();
+                    if (truststore.exists()) {
+                        throw new IOException("Truststore " + truststore + " already exists and couldn't be deleted.");
+                    }
+                } else {
+                    throw new IOException(hostDir + " exists and overwrite is not set.");
+                }
+            } else if (!hostDir.mkdirs()) {
                 throw new IOException("Unable to make directory: " + hostDir.getAbsolutePath());
+            } else if (logger.isInfoEnabled()) {
+                logger.info("Writing new ssl configuration to " + hostDir);
             }
 
-            TlsClientConfig tlsClientConfig = new TlsClientConfig(tlsConfig);
-            tlsClientConfig.setKeyStore(new File(hostDir, "keystore." + tlsClientConfig.getKeyStoreType().toLowerCase()).getAbsolutePath());
-            tlsClientConfig.setKeyStorePassword(keyStorePasswords.get(i));
-            tlsClientConfig.setKeyPassword(keyPasswords.get(i));
-            tlsClientConfig.setTrustStore(new File(hostDir, "truststore." + tlsClientConfig.getTrustStoreType().toLowerCase()).getAbsolutePath());
-            tlsClientConfig.setTrustStorePassword(trustStorePasswords.get(i));
+            tlsClientConfig.setKeyStore(keystore.getAbsolutePath());
+            tlsClientConfig.setKeyStorePassword(instanceDefinition.getKeyStorePassword());
+            tlsClientConfig.setKeyPassword(instanceDefinition.getKeyPassword());
+            tlsClientConfig.setTrustStore(truststore.getAbsolutePath());
+            tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(TlsConfig.calcDefaultDn(hostname),
                     keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
-            tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"),
-                    hostname, httpsPort));
+            tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, new File(hostDir, "nifi.properties"),
+                    hostname, instanceDefinition.getNumber()));
             tlsClientManager.write(outputStreamFactory);
             if (logger.isInfoEnabled()) {
-                logger.info("Successfully generated TLS configuration for " + hostname + ":" + httpsPort + " in " + hostDir);
+                logger.info("Successfully generated TLS configuration for " + hostname + " " + hostIdentifierNumber + " in " + hostDir);
+            }
+        }
+
+        List<String> clientDns = standaloneConfig.getClientDns();
+        if (standaloneConfig.getClientDns().isEmpty() && logger.isInfoEnabled()) {
+            logger.info("No " + TlsToolkitStandaloneCommandLine.CLIENT_CERT_DN_ARG + " specified, not generating any client certificates.");
+        }
+
+        List<String> clientPasswords = standaloneConfig.getClientPasswords();
+        for (int i = 0; i < clientDns.size(); i++) {
+            String reorderedDn = CertificateUtils.reorderDn(clientDns.get(i));
+            String clientDnFile = getClientDnFile(reorderedDn);
+            File clientCertFile = new File(baseDir, clientDnFile + ".p12");
+
+            if (clientCertFile.exists()) {
+                if (overwrite) {
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Overwriting existing client cert " + clientCertFile);
+                    }
+                } else {
+                    throw new IOException(clientCertFile + " exists and overwrite is not set.");
+                }
+            } else if (logger.isInfoEnabled()) {
+                logger.info("Generating new client certificate " + clientCertFile);
+            }
+            KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
+            X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(reorderedDn, keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days);
+            KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
+            keyStore.load(null, null);
+            keyStore.setKeyEntry(NIFI_KEY, keyPair.getPrivate(), null, new Certificate[]{clientCert, certificate});
+            String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, clientPasswords.get(i), standaloneConfig.isClientPasswordsGenerated());
+
+            try (FileWriter fileWriter = new FileWriter(new File(baseDir, clientDnFile + ".password"))) {
+                fileWriter.write(password);
+            }
+
+            if (logger.isInfoEnabled()) {
+                logger.info("Successfully generated client certificate " + clientCertFile);
             }
         }
 
         if (logger.isInfoEnabled()) {
-            logger.info("Successfully generated TLS configuration for all hosts");
+            logger.info("tls-toolkit standalone completed successfully");
         }
+    }
+
+    protected static String getClientDnFile(String clientDn) {
+        return clientDn.replace(',', '_').replace(' ', '_');
     }
 }

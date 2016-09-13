@@ -357,20 +357,22 @@ nf.Port = (function () {
                 return img;
             })
             .each(function (d) {
-                // remove the existing tip if necessary
+                // get the tip
                 var tip = d3.select('#run-status-tip-' + d.id);
-                if (!tip.empty()) {
-                    tip.remove();
-                }
 
                 // if there are validation errors generate a tooltip
                 if (d.permissions.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
-                    tip = d3.select('#port-tooltips').append('div')
-                        .attr('id', function () {
-                            return 'run-status-tip-' + d.id;
-                        })
-                        .attr('class', 'tooltip nifi-tooltip')
-                        .html(function () {
+                    // create the tip if necessary
+                    if (tip.empty()) {
+                        tip = d3.select('#port-tooltips').append('div')
+                            .attr('id', function () {
+                                return 'run-status-tip-' + d.id;
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // update the tip
+                    tip.html(function () {
                             var list = nf.Common.formatUnorderedList(d.component.validationErrors);
                             if (list === null || list.length === 0) {
                                 return '';
@@ -381,6 +383,11 @@ nf.Port = (function () {
 
                     // add the tooltip
                     nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
+                } else {
+                    // remove if necessary
+                    if (!tip.empty()) {
+                        tip.remove();
+                    }
                 }
             });
 
@@ -533,21 +540,34 @@ nf.Port = (function () {
                 dimensions = remotePortDimensions;
             }
 
-            var set = function (portEntity) {
-                // add the port
-                portMap.set(portEntity.id, $.extend({
-                    type: 'Port',
-                    dimensions: dimensions,
-                    status: {
-                        activeThreadCount: 0
-                    }
-                }, portEntity));
+            var set = function (proposedPortEntity) {
+                var currentPortEntity = portMap.get(proposedPortEntity.id);
+
+                // set the port if appropriate
+                if (nf.Client.isNewerRevision(currentPortEntity, proposedPortEntity)) {
+                    // add the port
+                    portMap.set(proposedPortEntity.id, $.extend({
+                        type: 'Port',
+                        dimensions: dimensions,
+                        status: {
+                            activeThreadCount: 0
+                        }
+                    }, proposedPortEntity));
+                }
             };
 
             // determine how to handle the specified port status
             if ($.isArray(portEntities)) {
                 $.each(portMap.keys(), function (_, key) {
-                    portMap.remove(key);
+                    var currentPortEntity = portMap.get(key);
+                    var isPresent = $.grep(portEntities, function (proposedPortEntity) {
+                        return proposedPortEntity.id === currentPortEntity.id;
+                    });
+
+                    // if the current port is not present, remove it
+                    if (isPresent.length === 0) {
+                        portMap.remove(key);
+                    }
                 });
                 $.each(portEntities, function (_, portNode) {
                     set(portNode);
@@ -602,21 +622,17 @@ nf.Port = (function () {
          * Reloads the port state from the server and refreshes the UI.
          * If the port is currently unknown, this function just returns.
          *
-         * @param {object} port The port to reload
+         * @param {string} id The port id
          */
-        reload: function (port) {
-            if (portMap.has(port.id)) {
-                var portEntity = portMap.get(port.id);
+        reload: function (id) {
+            if (portMap.has(id)) {
+                var portEntity = portMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: portEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
-                        nf.Port.set(response);
-                    } else {
-                        nf.Port.set(response);
-                    }
+                    nf.Port.set(response);
                 });
             }
         },
@@ -628,28 +644,6 @@ nf.Port = (function () {
          */
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
-        },
-
-        /**
-         * Sets the port status using the specified status.
-         *
-         * @param {array} portStatus       Port status
-         */
-        setStatus: function (portStatus) {
-            if (nf.Common.isEmpty(portStatus)) {
-                return;
-            }
-
-            // update the specified port status
-            $.each(portStatus, function (_, status) {
-                if (portMap.has(status.id)) {
-                    var port = portMap.get(status.id);
-                    port.status = status;
-                }
-            });
-
-            // update the visible ports
-            d3.selectAll('g.input-port.visible, g.output-port.visible').call(updatePortStatus);
         },
 
         /**

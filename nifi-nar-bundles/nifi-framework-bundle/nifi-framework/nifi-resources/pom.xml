@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -81,8 +81,11 @@
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
 
+        <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>PBEWITHMD5AND256BITAES-CBC-OPENSSL</nifi.sensitive.props.algorithm>
         <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
+        <nifi.sensitive.props.additional.keys />
+
         <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
 
         <nifi.remote.input.socket.port>9990</nifi.remote.input.socket.port>
@@ -149,11 +152,13 @@
         <nifi.cluster.node.connection.timeout>5 sec</nifi.cluster.node.connection.timeout>
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
         <nifi.cluster.firewall.file />
+        <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
+        <nifi.cluster.flow.election.max.candidates></nifi.cluster.flow.election.max.candidates>
 
         <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
 
         <!--  nifi.properties: zookeeper properties -->
-        <nifi.zookeeper.connect.string></nifi.zookeeper.connect.string>
+        <nifi.zookeeper.connect.string />
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
@@ -161,8 +166,10 @@
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
         <nifi.kerberos.service.principal />
-        <nifi.kerberos.keytab.location />
-        <nifi.kerberos.authentication.expiration>12 hours</nifi.kerberos.authentication.expiration>
+        <nifi.kerberos.service.keytab.location />
+        <nifi.kerberos.spnego.principal />
+        <nifi.kerberos.spnego.keytab.location />
+        <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
     </properties>
     <build>
         <plugins>

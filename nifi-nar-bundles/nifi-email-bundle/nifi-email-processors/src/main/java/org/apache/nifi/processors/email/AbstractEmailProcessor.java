@@ -57,8 +57,7 @@ import org.springframework.util.StreamUtils;
  * Base processor for implementing processors to consume messages from Email
  * servers using Spring Integration libraries.
  *
- * @param <T>
- *            the type of {@link AbstractMailReceiver}.
+ * @param <T> the type of {@link AbstractMailReceiver}.
  */
 abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends AbstractProcessor {
 
@@ -122,15 +121,24 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
+    static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("connection.timeout")
+            .displayName("Connection timeout")
+            .description("The amount of time to wait to connect to Email server")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .defaultValue("30 sec")
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All messages that are the are successfully received from Email server and converted to FlowFiles are routed to this relationship")
             .build();
 
-    static List<PropertyDescriptor> SHARED_DESCRIPTORS = new ArrayList<>();
+    final static List<PropertyDescriptor> SHARED_DESCRIPTORS = new ArrayList<>();
 
-    static Set<Relationship> SHARED_RELATIONSHIPS = new HashSet<>();
+    final static Set<Relationship> SHARED_RELATIONSHIPS = new HashSet<>();
 
     /*
      * Will ensure that list of PropertyDescriptors is build only once, since
@@ -144,6 +152,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         SHARED_DESCRIPTORS.add(FOLDER);
         SHARED_DESCRIPTORS.add(FETCH_SIZE);
         SHARED_DESCRIPTORS.add(SHOULD_DELETE_MESSAGES);
+        SHARED_DESCRIPTORS.add(CONNECTION_TIMEOUT);
 
         SHARED_RELATIONSHIPS.add(REL_SUCCESS);
     }
@@ -207,8 +216,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * Delegates to sub-classes to build the target receiver as
      * {@link AbstractMailReceiver}
      *
-     * @param context
-     *            instance of {@link ProcessContext}
+     * @param context instance of {@link ProcessContext}
      * @return new instance of {@link AbstractMailReceiver}
      */
     protected abstract T buildMessageReceiver(ProcessContext context);
@@ -287,17 +295,22 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     /**
      * Extracts dynamic properties which typically represent the Java Mail
-     * properties from the {@link ProcessContext} returnining them as instance
-     * of {@link Properties}
+     * properties from the {@link ProcessContext} returning them as instance of
+     * {@link Properties}
      */
     private Properties buildJavaMailProperties(ProcessContext context) {
         Properties javaMailProperties = new Properties();
         for (Entry<PropertyDescriptor, String> propertyDescriptorEntry : context.getProperties().entrySet()) {
-            if (propertyDescriptorEntry.getKey().isDynamic()) {
+            if (propertyDescriptorEntry.getKey().isDynamic()
+                    && !propertyDescriptorEntry.getKey().getName().equals("mail.imap.timeout")
+                    && !propertyDescriptorEntry.getKey().getName().equals("mail.pop3.timeout")) {
                 javaMailProperties.setProperty(propertyDescriptorEntry.getKey().getName(),
                         propertyDescriptorEntry.getValue());
             }
         }
+        String propertyName = this.getProtocol(context).equals("pop3") ? "mail.pop3.timeout" : "mail.imap.timeout";
+        final String timeoutInMillis = String.valueOf(context.getProperty(CONNECTION_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS));
+        javaMailProperties.setProperty(propertyName, timeoutInMillis);
         return javaMailProperties;
     }
 
@@ -359,7 +372,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         }
 
         processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);
-        this.getLogger().info("Successfully received {} from {} in {} millis", new Object[] { flowFile, fromAddressesString, executionDuration });
+        this.getLogger().info("Successfully received {} from {} in {} millis", new Object[]{flowFile, fromAddressesString, executionDuration});
         processSession.transfer(flowFile, REL_SUCCESS);
 
         try {

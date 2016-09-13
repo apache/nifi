@@ -149,7 +149,7 @@ public class TestRangerNiFiAuthorizer {
                 .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
-        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
+        when(nifiProperties.getKerberosServiceKeytabLocation()).thenReturn("");
 
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
@@ -169,7 +169,7 @@ public class TestRangerNiFiAuthorizer {
                 .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
-        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
+        when(nifiProperties.getKerberosServiceKeytabLocation()).thenReturn("");
         when(nifiProperties.getKerberosServicePrincipal()).thenReturn("");
 
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
@@ -203,7 +203,7 @@ public class TestRangerNiFiAuthorizer {
                 .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
-        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("test");
+        when(nifiProperties.getKerberosServiceKeytabLocation()).thenReturn("test");
         when(nifiProperties.getKerberosServicePrincipal()).thenReturn("test");
 
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);

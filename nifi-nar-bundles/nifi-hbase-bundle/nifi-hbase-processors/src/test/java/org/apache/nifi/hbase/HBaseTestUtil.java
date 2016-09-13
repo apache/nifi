@@ -19,6 +19,7 @@ package org.apache.nifi.hbase;
 
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class HBaseTestUtil {
         boolean foundPut = false;
 
         for (final PutFlowFile put : puts) {
-            if (!row.equals(put.getRow())) {
+            if (!row.equals(new String(put.getRow(), StandardCharsets.UTF_8))) {
                 continue;
             }
 
@@ -49,7 +50,8 @@ public class HBaseTestUtil {
                 // determine if we have the current expected column
                 boolean foundColumn = false;
                 for (PutColumn putColumn : put.getColumns()) {
-                    if (columnFamily.equals(putColumn.getColumnFamily()) && entry.getKey().equals(putColumn.getColumnQualifier())
+                    if (columnFamily.equals(new String(putColumn.getColumnFamily(), StandardCharsets.UTF_8))
+                            && entry.getKey().equals(new String(putColumn.getColumnQualifier(), StandardCharsets.UTF_8))
                             && Arrays.equals(entry.getValue(), putColumn.getBuffer())) {
                         foundColumn = true;
                         break;

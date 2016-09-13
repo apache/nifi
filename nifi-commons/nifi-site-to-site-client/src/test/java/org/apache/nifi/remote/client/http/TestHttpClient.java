@@ -20,14 +20,17 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.KeystoreType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
+import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -39,14 +42,24 @@ import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.littleshoot.proxy.HttpProxyServer;
+import org.littleshoot.proxy.ProxyAuthenticator;
+import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +71,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.HashMap;
@@ -83,11 +97,17 @@ public class TestHttpClient {
     private static Logger logger = LoggerFactory.getLogger(TestHttpClient.class);
 
     private static Server server;
+    private static ServerConnector httpConnector;
+    private static ServerConnector sslConnector;
     final private static AtomicBoolean isTestCaseFinished = new AtomicBoolean(false);
+
+    private static HttpProxyServer proxyServer;
+    private static HttpProxyServer proxyServerWithAuth;
 
     private static Set<PortDTO> inputPorts;
     private static Set<PortDTO> outputPorts;
     private static Set<PeerDTO> peers;
+    private static Set<PeerDTO> peersSecure;
     private static String serverChecksum;
 
     public static class SiteInfoServlet extends HttpServlet {
@@ -96,11 +116,18 @@ public class TestHttpClient {
         protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
 
             final ControllerDTO controller = new ControllerDTO();
-            controller.setRemoteSiteHttpListeningPort(server.getURI().getPort());
+
+            if (req.getLocalPort() == httpConnector.getLocalPort()) {
+                controller.setRemoteSiteHttpListeningPort(httpConnector.getLocalPort());
+                controller.setSiteToSiteSecure(false);
+            } else {
+                controller.setRemoteSiteHttpListeningPort(sslConnector.getLocalPort());
+                controller.setSiteToSiteSecure(true);
+            }
+
             controller.setId("remote-controller-id");
             controller.setInstanceId("remote-instance-id");
             controller.setName("Remote NiFi Flow");
-            controller.setSiteToSiteSecure(false);
 
             assertNotNull("Test case should set <inputPorts> depending on the test scenario.", inputPorts);
             controller.setInputPorts(inputPorts);
@@ -124,8 +151,13 @@ public class TestHttpClient {
 
             final PeersEntity peersEntity = new PeersEntity();
 
-            assertNotNull("Test case should set <peers> depending on the test scenario.", peers);
-            peersEntity.setPeers(peers);
+            if (req.getLocalPort() == httpConnector.getLocalPort()) {
+                assertNotNull("Test case should set <peers> depending on the test scenario.", peers);
+                peersEntity.setPeers(peers);
+            } else {
+                assertNotNull("Test case should set <peersSecure> depending on the test scenario.", peersSecure);
+                peersEntity.setPeers(peersSecure);
+            }
 
             respondWithJson(resp, peersEntity);
         }
@@ -147,6 +179,18 @@ public class TestHttpClient {
             setCommonResponseHeaders(resp, reqProtocolVersion);
 
             respondWithJson(resp, entity, HttpServletResponse.SC_CREATED);
+        }
+
+    }
+
+    public static class PortTransactionsAccessDeniedServlet extends HttpServlet {
+
+        @Override
+        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+            respondWithText(resp, "Unable to perform the desired action" +
+                    " due to insufficient permissions. Contact the system administrator.", 403);
+
         }
 
     }
@@ -383,9 +427,25 @@ public class TestHttpClient {
         ServletHandler servletHandler = new ServletHandler();
         contextHandler.insertHandler(servletHandler);
 
+        SslContextFactory sslContextFactory = new SslContextFactory();
+        sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
+        sslContextFactory.setKeyStorePassword("localtest");
+        sslContextFactory.setKeyStoreType("JKS");
+
+        httpConnector = new ServerConnector(server);
+
+        HttpConfiguration https = new HttpConfiguration();
+        https.addCustomizer(new SecureRequestCustomizer());
+        sslConnector = new ServerConnector(server,
+                new SslConnectionFactory(sslContextFactory, "http/1.1"),
+                new HttpConnectionFactory(https));
+
+        server.setConnectors(new Connector[] { httpConnector, sslConnector });
+
         servletHandler.addServletWithMapping(SiteInfoServlet.class, "/site-to-site");
         servletHandler.addServletWithMapping(PeersServlet.class, "/site-to-site/peers");
 
+        servletHandler.addServletWithMapping(PortTransactionsAccessDeniedServlet.class, "/data-transfer/input-ports/input-access-denied-id/transactions");
         servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/input-ports/input-running-id/transactions");
         servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id");
         servletHandler.addServletWithMapping(FlowFilesServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id/flow-files");
@@ -412,14 +472,65 @@ public class TestHttpClient {
 
         server.start();
 
-        int serverPort = server.getURI().getPort();
-        logger.info("Starting server on port {}", serverPort);
+        logger.info("Starting server on port {} for HTTP, and {} for HTTPS", httpConnector.getLocalPort(), sslConnector.getLocalPort());
+
+        startProxyServer();
+        startProxyServerWithAuth();
+    }
+
+    private static void startProxyServer() throws IOException {
+        int proxyServerPort;
+        try (final ServerSocket serverSocket = new ServerSocket(0)) {
+            proxyServerPort = serverSocket.getLocalPort();
+        }
+        proxyServer = DefaultHttpProxyServer.bootstrap()
+                .withPort(proxyServerPort)
+                .withAllowLocalOnly(true)
+                .start();
+    }
+
+    private static final String PROXY_USER = "proxy user";
+    private static final String PROXY_PASSWORD = "proxy password";
+    private static void startProxyServerWithAuth() throws IOException {
+        int proxyServerPort;
+        try (final ServerSocket serverSocket = new ServerSocket(0)) {
+            proxyServerPort = serverSocket.getLocalPort();
+        }
+        proxyServerWithAuth = DefaultHttpProxyServer.bootstrap()
+                .withPort(proxyServerPort)
+                .withAllowLocalOnly(true)
+                .withProxyAuthenticator(new ProxyAuthenticator() {
+                    @Override
+                    public boolean authenticate(String userName, String password) {
+                        return PROXY_USER.equals(userName) && PROXY_PASSWORD.equals(password);
+                    }
+
+                    @Override
+                    public String getRealm() {
+                        return "NiFi Unit Test";
+                    }
+                })
+                .start();
     }
 
     @AfterClass
     public static void teardown() throws Exception {
-        logger.info("Stopping server.");
-        server.stop();
+        logger.info("Stopping servers.");
+        try {
+            server.stop();
+        } catch (Exception e) {
+            logger.error("Failed to stop Jetty server due to " + e, e);
+        }
+        try {
+            proxyServer.stop();
+        } catch (Exception e) {
+            logger.error("Failed to stop Proxy server due to " + e, e);
+        }
+        try {
+            proxyServerWithAuth.stop();
+        } catch (Exception e) {
+            logger.error("Failed to stop Proxy server with auth due to " + e, e);
+        }
     }
 
     private static class DataPacketBuilder {
@@ -449,69 +560,78 @@ public class TestHttpClient {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "TRACE");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "DEBUG");
 
-        final URI uri = server.getURI();
+        isTestCaseFinished.set(false);
+
         final PeerDTO peer = new PeerDTO();
-        peer.setHostname(uri.getHost());
-        peer.setPort(uri.getPort());
+        peer.setHostname("localhost");
+        peer.setPort(httpConnector.getLocalPort());
         peer.setFlowFileCount(10);
         peer.setSecure(false);
-
-        isTestCaseFinished.set(false);
 
         peers = new HashSet<>();
         peers.add(peer);
 
+        final PeerDTO peerSecure = new PeerDTO();
+        peerSecure.setHostname("localhost");
+        peerSecure.setPort(sslConnector.getLocalPort());
+        peerSecure.setFlowFileCount(10);
+        peerSecure.setSecure(true);
+
+        peersSecure = new HashSet<>();
+        peersSecure.add(peerSecure);
+
         inputPorts = new HashSet<>();
 
         final PortDTO runningInputPort = new PortDTO();
-        runningInputPort.setId("running-input-port");
-        inputPorts.add(runningInputPort);
         runningInputPort.setName("input-running");
         runningInputPort.setId("input-running-id");
         runningInputPort.setType("INPUT_PORT");
         runningInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(runningInputPort);
 
         final PortDTO timeoutInputPort = new PortDTO();
-        timeoutInputPort.setId("timeout-input-port");
-        inputPorts.add(timeoutInputPort);
         timeoutInputPort.setName("input-timeout");
         timeoutInputPort.setId("input-timeout-id");
         timeoutInputPort.setType("INPUT_PORT");
         timeoutInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(timeoutInputPort);
 
         final PortDTO timeoutDataExInputPort = new PortDTO();
-        timeoutDataExInputPort.setId("timeout-dataex-input-port");
-        inputPorts.add(timeoutDataExInputPort);
         timeoutDataExInputPort.setName("input-timeout-data-ex");
         timeoutDataExInputPort.setId("input-timeout-data-ex-id");
         timeoutDataExInputPort.setType("INPUT_PORT");
         timeoutDataExInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(timeoutDataExInputPort);
+
+        final PortDTO accessDeniedInputPort = new PortDTO();
+        accessDeniedInputPort.setName("input-access-denied");
+        accessDeniedInputPort.setId("input-access-denied-id");
+        accessDeniedInputPort.setType("INPUT_PORT");
+        accessDeniedInputPort.setState(ScheduledState.RUNNING.name());
+        inputPorts.add(accessDeniedInputPort);
 
         outputPorts = new HashSet<>();
 
         final PortDTO runningOutputPort = new PortDTO();
-        runningOutputPort.setId("running-output-port");
-        outputPorts.add(runningOutputPort);
         runningOutputPort.setName("output-running");
         runningOutputPort.setId("output-running-id");
         runningOutputPort.setType("OUTPUT_PORT");
         runningOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(runningOutputPort);
 
         final PortDTO timeoutOutputPort = new PortDTO();
-        timeoutOutputPort.setId("timeout-output-port");
-        outputPorts.add(timeoutOutputPort);
         timeoutOutputPort.setName("output-timeout");
         timeoutOutputPort.setId("output-timeout-id");
         timeoutOutputPort.setType("OUTPUT_PORT");
         timeoutOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(timeoutOutputPort);
 
         final PortDTO timeoutDataExOutputPort = new PortDTO();
-        timeoutDataExOutputPort.setId("timeout-dataex-output-port");
-        outputPorts.add(timeoutDataExOutputPort);
         timeoutDataExOutputPort.setName("output-timeout-data-ex");
         timeoutDataExOutputPort.setId("output-timeout-data-ex-id");
         timeoutDataExOutputPort.setType("OUTPUT_PORT");
         timeoutDataExOutputPort.setState(ScheduledState.RUNNING.name());
+        outputPorts.add(timeoutDataExOutputPort);
 
 
     }
@@ -522,9 +642,20 @@ public class TestHttpClient {
     }
 
     private SiteToSiteClient.Builder getDefaultBuilder() {
-        final URI uri = server.getURI();
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
-                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/nifi")
+                .url("http://localhost:" + httpConnector.getLocalPort() + "/nifi")
+                ;
+    }
+
+    private SiteToSiteClient.Builder getDefaultBuilderHTTPS() {
+        return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
+                .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
+                .keystoreFilename("src/test/resources/certs/localhost-ks.jks")
+                .keystorePass("localtest")
+                .keystoreType(KeystoreType.JKS)
+                .truststoreFilename("src/test/resources/certs/localhost-ts.jks")
+                .truststorePass("localtest")
+                .truststoreType(KeystoreType.JKS)
                 ;
     }
 
@@ -591,38 +722,221 @@ public class TestHttpClient {
         }
     }
 
+    private void testSend(SiteToSiteClient client) throws Exception {
+        final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+        assertNotNull(transaction);
+
+        serverChecksum = "1071206772";
+
+
+        for (int i = 0; i < 20; i++) {
+            DataPacket packet = new DataPacketBuilder()
+                    .contents("Example contents from client.")
+                    .attr("Client attr 1", "Client attr 1 value")
+                    .attr("Client attr 2", "Client attr 2 value")
+                    .build();
+            transaction.send(packet);
+            long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
+            logger.info("{}: {} bytes have been written.", i, written);
+        }
+
+        transaction.confirm();
+
+        transaction.complete();
+    }
+
     @Test
     public void testSendSuccess() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
-            SiteToSiteClient client = getDefaultBuilder()
-                .portName("input-running")
-                .build()
+                final SiteToSiteClient client = getDefaultBuilder()
+                    .portName("input-running")
+                    .build()
+        ) {
+            testSend(client);
+        }
+
+    }
+
+    @Test
+    public void testSendSuccessWithProxy() throws Exception {
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
+                        .build()
+        ) {
+            testSend(client);
+        }
+
+    }
+
+    @Test
+    public void testSendProxyAuthFailed() throws Exception {
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), null, null))
+                        .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+            assertNull("createTransaction should fail at peer selection and return null.", transaction);
+        }
 
-            assertNotNull(transaction);
+    }
 
-            serverChecksum = "1071206772";
+    @Test
+    public void testSendSuccessWithProxyAuth() throws Exception {
 
+        try (
+                final SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
+                        .build()
+        ) {
+            testSend(client);
+        }
 
-            for (int i = 0; i < 20; i++) {
-                DataPacket packet = new DataPacketBuilder()
-                        .contents("Example contents from client.")
-                        .attr("Client attr 1", "Client attr 1 value")
-                        .attr("Client attr 2", "Client attr 2 value")
-                        .build();
-                transaction.send(packet);
-                long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
-                logger.info("{}: {} bytes have been written.", i, written);
+    }
+
+    @Test
+    public void testSendAccessDeniedHTTPS() throws Exception {
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-access-denied")
+                        .build()
+        ) {
+            try {
+                client.createTransaction(TransferDirection.SEND);
+                fail("Handshake exception should be thrown.");
+            } catch (HandshakeException e) {
             }
+        }
 
-            transaction.confirm();
+    }
 
-            transaction.complete();
+    @Test
+    public void testSendSuccessHTTPS() throws Exception {
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-running")
+                        .build()
+        ) {
+            testSend(client);
+        }
+
+    }
+
+    private static void testSendLargeFile(SiteToSiteClient client) throws IOException {
+        final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+        assertNotNull(transaction);
+
+        serverChecksum = "1527414060";
+
+        final int contentSize = 10_000;
+        final StringBuilder sb = new StringBuilder(contentSize);
+        for (int i = 0; i < contentSize; i++) {
+            sb.append("a");
+        }
+
+        DataPacket packet = new DataPacketBuilder()
+                .contents(sb.toString())
+                .attr("Client attr 1", "Client attr 1 value")
+                .attr("Client attr 2", "Client attr 2 value")
+                .build();
+        transaction.send(packet);
+        long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
+        logger.info("{} bytes have been written.", written);
+
+        transaction.confirm();
+
+        transaction.complete();
+    }
+
+    @Test
+    public void testSendLargeFileHTTP() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .build()
+        ) {
+            testSendLargeFile(client);
+        }
+
+    }
+
+    @Test
+    public void testSendLargeFileHTTPWithProxy() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
+                        .build()
+        ) {
+            testSendLargeFile(client);
+        }
+
+    }
+
+    @Test
+    public void testSendLargeFileHTTPWithProxyAuth() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
+                        .build()
+        ) {
+            testSendLargeFile(client);
+        }
+
+    }
+
+    @Test
+    public void testSendLargeFileHTTPS() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-running")
+                        .build()
+        ) {
+            testSendLargeFile(client);
+        }
+
+    }
+
+    @Test
+    public void testSendLargeFileHTTPSWithProxy() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
+                        .build()
+        ) {
+            testSendLargeFile(client);
+        }
+
+    }
+
+    @Test
+    public void testSendLargeFileHTTPSWithProxyAuth() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("input-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
+                        .build()
+        ) {
+            testSendLargeFile(client);
         }
 
     }
@@ -630,9 +944,6 @@ public class TestHttpClient {
     @Test
     public void testSendSuccessCompressed() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .portName("input-running")
@@ -667,9 +978,6 @@ public class TestHttpClient {
     @Test
     public void testSendSlowClientSuccess() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .idleExpiration(1000, TimeUnit.MILLISECONDS)
@@ -722,9 +1030,6 @@ public class TestHttpClient {
     @Test
     public void testSendTimeout() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
             SiteToSiteClient client = getDefaultBuilder()
                 .timeout(1, TimeUnit.SECONDS)
@@ -761,9 +1066,6 @@ public class TestHttpClient {
 
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote.protocol.http.HttpClientTransaction", "INFO");
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .idleExpiration(500, TimeUnit.MILLISECONDS)
@@ -819,61 +1121,111 @@ public class TestHttpClient {
         }
     }
 
+    private void testReceive(SiteToSiteClient client) throws IOException {
+        final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
+
+        assertNotNull(transaction);
+
+        DataPacket packet;
+        while ((packet = transaction.receive()) != null) {
+            consumeDataPacket(packet);
+        }
+        transaction.confirm();
+        transaction.complete();
+    }
+
     @Test
     public void testReceiveSuccess() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
             SiteToSiteClient client = getDefaultBuilder()
                 .portName("output-running")
                 .build()
         ) {
-            final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
+            testReceive(client);
+        }
+    }
 
-            assertNotNull(transaction);
+    @Test
+    public void testReceiveSuccessWithProxy() throws Exception {
 
-            DataPacket packet;
-            while ((packet = transaction.receive()) != null) {
-                consumeDataPacket(packet);
-            }
-            transaction.confirm();
-            transaction.complete();
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("output-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
+                        .build()
+        ) {
+            testReceive(client);
+        }
+    }
+
+    @Test
+    public void testReceiveSuccessWithProxyAuth() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("output-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
+                        .build()
+        ) {
+            testReceive(client);
+        }
+    }
+
+    @Test
+    public void testReceiveSuccessHTTPS() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("output-running")
+                        .build()
+        ) {
+            testReceive(client);
+        }
+    }
+
+    @Test
+    public void testReceiveSuccessHTTPSWithProxy() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("output-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServer.getListenAddress().getPort(), null, null))
+                        .build()
+        ) {
+            testReceive(client);
+        }
+    }
+
+    @Test
+    public void testReceiveSuccessHTTPSWithProxyAuth() throws Exception {
+
+        try (
+                SiteToSiteClient client = getDefaultBuilderHTTPS()
+                        .portName("output-running")
+                        .httpProxy(new HttpProxy("localhost", proxyServerWithAuth.getListenAddress().getPort(), PROXY_USER, PROXY_PASSWORD))
+                        .build()
+        ) {
+            testReceive(client);
         }
     }
 
     @Test
     public void testReceiveSuccessCompressed() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .portName("output-running")
                         .useCompression(true)
                         .build()
         ) {
-            final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
-
-            assertNotNull(transaction);
-
-            DataPacket packet;
-            while ((packet = transaction.receive()) != null) {
-                consumeDataPacket(packet);
-            }
-            transaction.confirm();
-            transaction.complete();
+            testReceive(client);
         }
     }
 
     @Test
     public void testReceiveSlowClientSuccess() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .portName("output-running")
@@ -896,9 +1248,6 @@ public class TestHttpClient {
     @Test
     public void testReceiveTimeout() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .timeout(1, TimeUnit.SECONDS)
@@ -918,9 +1267,6 @@ public class TestHttpClient {
     @Test
     public void testReceiveTimeoutAfterDataExchange() throws Exception {
 
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
         try (
                 SiteToSiteClient client = getDefaultBuilder()
                         .timeout(1, TimeUnit.SECONDS)

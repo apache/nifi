@@ -34,7 +34,6 @@ import org.apache.hive.hcatalog.streaming.TransactionBatch;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveOptions;
@@ -60,7 +59,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for PutHiveStreaming processor.
@@ -81,13 +79,9 @@ public class TestPutHiveStreaming {
         System.setProperty("java.security.krb5.realm", "nifi.com");
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
-        NiFiProperties niFiPropertiesWithKerberos = mock(NiFiProperties.class);
-        when(niFiPropertiesWithKerberos.getKerberosConfigurationFile()).thenReturn(new File("src/test/resources/krb5.conf"));
-        kerberosPropsWithFile = KerberosProperties.create(niFiPropertiesWithKerberos);
+        kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
 
-        NiFiProperties niFiPropertiesWithoutKerberos = mock(NiFiProperties.class);
-        when(niFiPropertiesWithKerberos.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosPropsWithoutFile = KerberosProperties.create(niFiPropertiesWithoutKerberos);
+        kerberosPropsWithoutFile = new KerberosProperties(null);
 
         processor = new MockPutHiveStreaming();
         processor.setKerberosProperties(kerberosPropsWithFile);
@@ -520,6 +514,7 @@ public class TestPutHiveStreaming {
     }
 
     private class MockPutHiveStreaming extends PutHiveStreaming {
+
         private KerberosProperties kerberosProperties;
         private boolean generateConnectFailure = false;
         private boolean generateInterruptedExceptionOnCreateWriter = false;
@@ -603,7 +598,7 @@ public class TestPutHiveStreaming {
         private HiveEndPoint endPoint;
 
         public MockHiveWriter(HiveEndPoint endPoint, int txnsPerBatch, boolean autoCreatePartitions,
-                              long callTimeout, ExecutorService callTimeoutPool, UserGroupInformation ugi)
+                long callTimeout, ExecutorService callTimeoutPool, UserGroupInformation ugi)
                 throws InterruptedException, ConnectFailure {
             super(endPoint, txnsPerBatch, autoCreatePartitions, callTimeout, callTimeoutPool, ugi);
             this.endPoint = endPoint;
@@ -713,6 +708,5 @@ public class TestPutHiveStreaming {
             // Empty
         }
     }
-
 
 }

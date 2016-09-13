@@ -407,7 +407,7 @@ image::instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 [[label]]
-iconLabel.png["Label"]
+image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
@@ -590,21 +590,62 @@ on the Processor and selecting `Usage' from the context menu. Alternatively, sel
 corner of the UI to display a Help page with all of the documentation, including usage documentation
 for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
+[[Using_Custom_Properties]]
+=== Using Custom Properties with Expression Language
+You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values,
+and manipulate their values when you are creating and configuring dataflows.
+
+In addition to using FlowFile attributes, system properties, and environment properties within Express
+Language, you can also define custom properties for Expression Language use. Defining custom properties
+gives you more flexibility in handling and processing dataflows. You can also create custom properties
+for connection, server, and service properties, for easier dataflow configuration.
+
+To create custom properties for use with Expression Language, identify one or more sets of key/value
+pairs, and give them to your system administrator.
+
+NiFi properties have resolution precedence of which you should be aware when creating custom properties: 
 
 
-[[Controller_Services_and_Reporting_Tasks]]
-=== Controller Services and Reporting Tasks
+* Processor-specific attributes
+* FlowFile properties 
+* FlowFile attributes 
+* From variable registry: 
+** User defined properties (custom properties)
+** System properties 
+** Operating System environment variables
 
-While DFMs have the ability to create Controller Services from the Configure Processor window, there is also a central place within the
-UI for adding and configuring both Controller Services and Reporting Tasks. To get there, select Controller Settings from the Global Menu.
+When you are creating custom properties, ensure that each custom property contains a distinct property value,
+so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
+Once you have added the new custom properties, ensure that you have updated the nifi.variable.registry.properties
+field in the nifi.properties file, with the custom properties location.
 
-[[Controller_Settings]]
-==== Controller Settings
+For more information on Expression Language, see the link:expression-language-guide.html[Expression Lanuaguage Guide].
+For information on how to define custom properties, see the link:administration-guide.html[System Administrator’s Guide].
 
-image:controller-settings-button.png["Controller Settings Button"]
+[[Controller_Services]]
+=== Controller Services
+
+Controller Services are available for reporting tasks, processors, and other services to utilize for
+configuration or task execution. You can use the NiFi UI to add Controller Services for either reporting
+tasks or dataflows.
+
+Your ability to view and add Controller Services is dependent on the roles and privileges assigned to you. If you
+do not have access to one or more Controller Services, you are not able to see or access it in the UI. Roles and
+privileges can be assigned on a global or Controller Service-specific basis.
+
+Controller Services are not reporting task or dataflow specific. You have access to the full set of available Controller
+Services whether you are adding it for a reporting task or a dataflow.
 
 
-The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is
+
+[[Controller_Services_for_Reporting_Tasks]]
+==== Adding Controller Settings for Reporting Tasks
+
+To add a Controller Service for a reporting task, select Controller Settings from the Global Menu.
+This displays the NiFi Settings window.
+
+
+The NiFi Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is
 for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for
 the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance
 that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
@@ -657,6 +698,29 @@ button to cancel the changes and close the window.
 Note that after a Controller Service has been configured, it must be enabled in order to run. Do this using the
 Enable button in the far-right column of the Controller Services tab of the Controller Settings window. Then,
 in order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing processors, reporting tasks, and controller services). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. Likewise, when enabling a controller service, the DFM has the option to start/enable all referencing processors, reporting tasks, and controller services.
+
+[[Controller_Services_for_Dataflows]]
+==== Adding Controller Services for Dataflows
+To add a Controller Service for a dataflow, you can either right click a Process Group and select Configure, or click
+Configure from the Operate Palette. When you click Configure from the Operate Palette with nothing selected on your
+canvas, you add a Controller Service for your root Process Group. That Controller Service is then available to all
+nested Process Groups in your dataflow.  When you select a Process Group on the canvas and then click Configure from
+either the Operate Palette or the Process Group context menu, you add a Controller Service only for use with the selected
+Process Group.
+
+In either case, use the following steps to add a Controller Service:
+
+. Click Configure, either from the Operate Palette, or from the Process Group context menu.
+. From the Process Group Configuration page, select the Controller Services tab.
+. Click the Add button to display the Add Controller Service dialog.
+. Select the Controller Service you want to add, and click Add.
+. Perform any necessary Controller Service configuration tasks by clicking the View Details icon (
+image:iconViewDetails.png["View Details"]
+) in the left-hand column.
+
+
+[[Reporting_Tasks]]
+=== Reporting Tasks
 
 The Reporting Tasks tab behaves similarly to the Controller Services tab. The DFM has the option to add Reporting Tasks and configure them in the same way as Controller Services.
 
@@ -1473,7 +1537,7 @@ received from others can then be imported into an instance of NiFi and dragged o
 To create a Template, select the components that are to be a part of the template, and then click the
 ``Create Template'' (
 image:iconNewTemplate.png["Create Template"]
-) button in the Actions Toolbar (See <<User_Interface>> for more information on the Actions Toolbar).
+) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
 
 Clicking this button without selecting anything will create a Template that contains all of the contents of the
 current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
@@ -1492,6 +1556,21 @@ created Processors may not be valid if they are missing values for their sensiti
 Connection that was selected when making the Template is not included in the Template if either the source or the
 destination of the Connection is not also included in the Template.
 ********************************************************************************************************************
+
+[[Import_Template]]
+=== Importing a Template
+After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
+the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
+authorization.
+
+From the Operate Palette, click the ``Upload Template'' (
+image:iconUploadTemplate.png["Upload Template"]
+)  button (See <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
+dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
+Select the file and click Open.
+Clicking the ``Upload'' button will attempt to import the Template into this instance of NiFi.
+The Upload Template dialog will update to show ``Success'' or an error message if there was a problem importing the template.
+
 
 === Instantiating a Template
 
@@ -1515,18 +1594,7 @@ One of the most powerful features of NiFi Templates is the ability to easily exp
 and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
 of a DataFlow with others. You can select Templates from the Global Menu (see <<User_Interface>>) to open a dialog
 that displays all of the Templates that are currently available,
-filter the templates to see only those of interest, and import, export, and delete Templates.
-
-
-[[Import_Template]]
-==== Importing a Template
-After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
-the template into this instance of NiFi. From the Template Management dialog (see <<Manage_Templates>>), click the
-``Browse'' button. This provides a File Selection dialog that allows the user to choose which template file to upload.
-Select the file and click Open. The ``Browse'' button is replaced by an ``Import'' button and a ``Cancel'' button.
-Clicking the ``Import'' button will attempt to import the Template into this instance of NiFi. If unable to import
-the Template, an error message will appear in red next to the ``Browse'' button. Otherwise, the Template will be
-added to the table and the ``Browse'' button will reappear.
+filter the templates to see only those of interest, export, and delete Templates.
 
 
 [[Export_Template]]

@@ -42,6 +42,9 @@
     <bean id="clusterCoordinationProtocolSender" class="org.apache.nifi.cluster.protocol.impl.StandardClusterCoordinationProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
+        <constructor-arg>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+        </constructor-arg>
         <property name="handshakeTimeout">
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
         </property>
@@ -54,10 +57,17 @@
     </bean>
     
     <!-- node protocol sender -->
+    <!--
     <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
         <constructor-arg ref="nifiProperties"/>
+    </bean>
+    -->
+    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender">
+        <constructor-arg ref="protocolSocketConfiguration"/>
+        <constructor-arg ref="protocolContext"/>
+        <constructor-arg ref="leaderElectionManager"/>
     </bean>
     
     <!-- protocol listener -->

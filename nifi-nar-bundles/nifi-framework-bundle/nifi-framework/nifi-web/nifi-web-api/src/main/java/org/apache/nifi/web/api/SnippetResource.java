@@ -30,6 +30,7 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
 import javax.servlet.http.HttpServletRequest;
@@ -94,7 +95,7 @@ public class SnippetResource extends ApplicationResource {
      * Creates a snippet based off the specified configuration.
      *
      * @param httpServletRequest request
-     * @param snippetEntity      A snippetEntity
+     * @param requestSnippetEntity      A snippetEntity
      * @return A snippetEntity
      */
     @POST
@@ -122,53 +123,51 @@ public class SnippetResource extends ApplicationResource {
                     value = "The snippet configuration details.",
                     required = true
             )
-            final SnippetEntity snippetEntity) {
+            final SnippetEntity requestSnippetEntity) {
 
-        if (snippetEntity == null || snippetEntity.getSnippet() == null) {
+        if (requestSnippetEntity == null || requestSnippetEntity.getSnippet() == null) {
             throw new IllegalArgumentException("Snippet details must be specified.");
         }
 
-        if (snippetEntity.getSnippet().getId() != null) {
+        if (requestSnippetEntity.getSnippet().getId() != null) {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, snippetEntity);
+            return replicate(HttpMethod.POST, requestSnippetEntity);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                final SnippetDTO snippet = snippetEntity.getSnippet();
+        return withWriteLock(
+                serviceFacade,
+                requestSnippetEntity,
+                lookup -> {
+                    final SnippetDTO snippet = requestSnippetEntity.getSnippet();
 
-                // the snippet being created may be used later for batch component modifications,
-                // copy/paste, or template creation. during those subsequent actions, the snippet
-                // will again be authorized accordingly (read or write). at this point we do not
-                // know what the snippet will be used for so we need to attempt to authorize as
-                // read OR write
+                    // the snippet being created may be used later for batch component modifications,
+                    // copy/paste, or template creation. during those subsequent actions, the snippet
+                    // will again be authorized accordingly (read or write). at this point we do not
+                    // know what the snippet will be used for so we need to attempt to authorize as
+                    // read OR write
 
-                try {
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
-                } catch (final AccessDeniedException e) {
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                    try {
+                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+                    } catch (final AccessDeniedException e) {
+                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                    }
+                },
+                null,
+                (snippetEntity) -> {
+                    // set the processor id as appropriate
+                    snippetEntity.getSnippet().setId(generateUuid());
+
+                    // create the snippet
+                    final SnippetEntity entity = serviceFacade.createSnippet(snippetEntity.getSnippet());
+                    populateRemainingSnippetEntityContent(entity);
+
+                    // build the response
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
                 }
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
-
-        // set the processor id as appropriate
-        snippetEntity.getSnippet().setId(generateUuid());
-
-        // create the snippet
-        final SnippetEntity entity = serviceFacade.createSnippet(snippetEntity.getSnippet());
-        populateRemainingSnippetEntityContent(entity);
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getSnippet().getUri()), entity)).build();
+        );
     }
 
     /**
@@ -176,7 +175,7 @@ public class SnippetResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param snippetId          The id of the snippet.
-     * @param snippetEntity      A snippetEntity
+     * @param requestSnippetEntity      A snippetEntity
      * @return A snippetEntity
      */
     @PUT
@@ -210,40 +209,41 @@ public class SnippetResource extends ApplicationResource {
             @ApiParam(
                     value = "The snippet configuration details.",
                     required = true
-            ) final SnippetEntity snippetEntity) {
+            ) final SnippetEntity requestSnippetEntity) {
 
-        if (snippetEntity == null || snippetEntity.getSnippet() == null) {
+        if (requestSnippetEntity == null || requestSnippetEntity.getSnippet() == null) {
             throw new IllegalArgumentException("Snippet details must be specified.");
         }
 
         // ensure the ids are the same
-        final SnippetDTO requestSnippetDTO = snippetEntity.getSnippet();
+        final SnippetDTO requestSnippetDTO = requestSnippetEntity.getSnippet();
         if (!snippetId.equals(requestSnippetDTO.getId())) {
             throw new IllegalArgumentException(String.format("The snippet id (%s) in the request body does not equal the "
                     + "snippet id of the requested resource (%s).", requestSnippetDTO.getId(), snippetId));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, snippetEntity);
+            return replicate(HttpMethod.PUT, requestSnippetEntity);
         }
 
         // get the revision from this snippet
-        final Set<Revision> revisions = serviceFacade.getRevisionsFromSnippet(snippetId);
+        final Set<Revision> requestRevisions = serviceFacade.getRevisionsFromSnippet(snippetId);
         return withWriteLock(
-            serviceFacade,
-            revisions,
-            lookup -> {
-                // ensure write access to the target process group
-                if (requestSnippetDTO.getParentGroupId() != null) {
-                    lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                }
+                serviceFacade,
+                requestSnippetEntity,
+                requestRevisions,
+                lookup -> {
+                    // ensure write access to the target process group
+                    if (requestSnippetDTO.getParentGroupId() != null) {
+                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
 
-                    // ensure write permission to every component in the snippet
-                    final Snippet snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                        // ensure write permission to every component in the snippet
+                        final Snippet snippet = lookup.getSnippet(snippetId);
+                        authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
                 },
-                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, revisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
-                () -> {
+                () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
+                (revisions, snippetEntity) -> {
                     // update the snippet
                     final SnippetEntity entity = serviceFacade.updateSnippet(revisions, snippetEntity.getSnippet());
                     populateRemainingSnippetEntityContent(entity);
@@ -291,20 +291,24 @@ public class SnippetResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final ComponentEntity requestEntity = new ComponentEntity();
+        requestEntity.setId(snippetId);
+
         // get the revision from this snippet
-        final Set<Revision> revisions = serviceFacade.getRevisionsFromSnippet(snippetId);
+        final Set<Revision> requestRevisions = serviceFacade.getRevisionsFromSnippet(snippetId);
         return withWriteLock(
                 serviceFacade,
-                revisions,
+                requestEntity,
+                requestRevisions,
                 lookup -> {
                     // ensure read permission to every component in the snippet
                     final Snippet snippet = lookup.getSnippet(snippetId);
                     authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
                 },
-                () -> serviceFacade.verifyDeleteSnippet(snippetId, revisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
-                () -> {
+                () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
+                (revisions, entity) -> {
                     // delete the specified snippet
-                    final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revisions, snippetId);
+                    final SnippetEntity snippetEntity = serviceFacade.deleteSnippet(revisions, entity.getId());
                     return clusterContext(generateOkResponse(snippetEntity)).build();
                 }
         );

@@ -349,7 +349,7 @@ nf.ContextMenu = (function () {
      * {
      *      click: refresh (function),
      *      text: 'Start' (string),
-     *      img: 'images/iconRun.png'
+     *      clazz: 'fa fa-refresh'
      * }
      * 
      * @param {jQuery} contextMenu The context menu

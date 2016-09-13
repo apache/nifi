@@ -1314,6 +1314,46 @@ public class TestQuery {
         verifyEquals("${line:getDelimitedField(2)}", attributes, " 32");
     }
 
+    @Test
+    public void testEscapeFunctions() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("string", "making air \"QUOTES\".");
+        verifyEquals("${string:escapeJson()}", attributes, "making air \\\"QUOTES\\\".");
+
+        attributes.put("string", "M & M");
+        verifyEquals("${string:escapeXml()}", attributes, "M &amp; M");
+
+        attributes.put("string", "making air \"QUOTES\".");
+        verifyEquals("${string:escapeCsv()}", attributes, "\"making air \"\"QUOTES\"\".\"");
+
+        attributes.put("string", "special ¡");
+        verifyEquals("${string:escapeHtml3()}", attributes, "special &iexcl;");
+
+        attributes.put("string", "special ♣");
+        verifyEquals("${string:escapeHtml4()}", attributes, "special &clubs;");
+      }
+
+      @Test
+      public void testUnescapeFunctions() {
+          final Map<String, String> attributes = new HashMap<>();
+
+          attributes.put("string", "making air \\\"QUOTES\\\".");
+          verifyEquals("${string:unescapeJson()}", attributes, "making air \"QUOTES\".");
+
+          attributes.put("string", "M &amp; M");
+          verifyEquals("${string:unescapeXml()}", attributes, "M & M");
+
+          attributes.put("string", "\"making air \"\"QUOTES\"\".\"");
+          verifyEquals("${string:unescapeCsv()}", attributes, "making air \"QUOTES\".");
+
+          attributes.put("string", "special &iexcl;");
+          verifyEquals("${string:unescapeHtml3()}", attributes, "special ¡");
+
+          attributes.put("string", "special &clubs;");
+          verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
+        }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));

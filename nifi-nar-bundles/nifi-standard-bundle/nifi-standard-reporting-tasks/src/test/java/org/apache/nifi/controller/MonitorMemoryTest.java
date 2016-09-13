@@ -32,6 +32,8 @@ import org.slf4j.Logger;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -43,10 +45,11 @@ public class MonitorMemoryTest {
     @Before
     public void before() throws Exception {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
-        NiFiProperties.getInstance().setProperty(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
-        NiFiProperties.getInstance().setProperty(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
-        NiFiProperties.getInstance().setProperty(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
-        fc = this.buildFlowControllerForTest();
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.ADMINISTRATIVE_YIELD_DURATION, "1 sec");
+        addProps.put(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "target/test-classes/state-management.xml");
+        addProps.put(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
+        fc = this.buildFlowControllerForTest(addProps);
     }
 
     @After
@@ -127,17 +130,15 @@ public class MonitorMemoryTest {
         return capturingLogger;
     }
 
-    private FlowController buildFlowControllerForTest() throws Exception {
-        NiFiProperties properties = NiFiProperties.getInstance();
-
-        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS,
-                MockProvenanceRepository.class.getName());
-        properties.setProperty("nifi.remote.input.socket.port", "");
-        properties.setProperty("nifi.remote.input.secure", "");
+    private FlowController buildFlowControllerForTest(final Map<String, String> addProps) throws Exception {
+        addProps.put(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
+        addProps.put("nifi.remote.input.socket.port", "");
+        addProps.put("nifi.remote.input.secure", "");
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         return FlowController.createStandaloneInstance(
                 mock(FlowFileEventRepository.class),
-                properties,
+                nifiProperties,
                 mock(Authorizer.class),
                 mock(AuditService.class),
                 null,

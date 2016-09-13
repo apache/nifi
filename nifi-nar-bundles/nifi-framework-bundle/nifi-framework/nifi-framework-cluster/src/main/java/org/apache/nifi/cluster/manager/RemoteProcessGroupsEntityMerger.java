@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class RemoteProcessGroupsEntityMerger {
 
+    private static final RemoteProcessGroupEntityMerger remoteProcessGroupEntityMerger = new RemoteProcessGroupEntityMerger();
+
     /**
      * Merges multiple RemoteProcessGroupEntity responses.
      *
@@ -32,7 +34,7 @@ public class RemoteProcessGroupsEntityMerger {
      */
     public static void mergeRemoteProcessGroups(final Set<RemoteProcessGroupEntity> remoteProcessGroupEntities, final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap) {
         for (final RemoteProcessGroupEntity entity : remoteProcessGroupEntities) {
-            RemoteProcessGroupEntityMerger.mergeRemoteProcessGroups(entity, entityMap.get(entity.getId()));
+            remoteProcessGroupEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.io.File;
 import org.apache.avro.Schema;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -52,8 +53,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
@@ -245,6 +244,7 @@ public class PutHiveStreaming extends AbstractProcessor {
     private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     protected KerberosProperties kerberosProperties;
+    private volatile File kerberosConfigFile = null;
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
@@ -283,7 +283,8 @@ public class PutHiveStreaming extends AbstractProcessor {
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        kerberosProperties = getKerberosProperties();
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosProperties = new KerberosProperties(kerberosConfigFile);
         propertyDescriptors.add(kerberosProperties.getKerberosPrincipal());
         propertyDescriptors.add(kerberosProperties.getKerberosKeytab());
     }
@@ -367,7 +368,7 @@ public class PutHiveStreaming extends AbstractProcessor {
 
         final List<String> partitionColumnList;
         final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
-        if (StringUtils.isEmpty(partitionColumns)) {
+        if (partitionColumns == null || partitionColumns.isEmpty()) {
             partitionColumnList = Collections.emptyList();
         } else {
             String[] partitionCols = partitionColumns.split(",");
@@ -832,7 +833,7 @@ public class PutHiveStreaming extends AbstractProcessor {
     }
 
     protected KerberosProperties getKerberosProperties() {
-        return KerberosProperties.create(NiFiProperties.getInstance());
+        return kerberosProperties;
     }
 
     protected class HiveStreamingRecord {

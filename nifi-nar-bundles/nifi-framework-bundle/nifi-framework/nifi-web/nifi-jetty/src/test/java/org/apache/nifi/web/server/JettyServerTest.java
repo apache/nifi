@@ -17,12 +17,12 @@
 
 package org.apache.nifi.web.server;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -31,16 +31,16 @@ import static org.mockito.Mockito.verify;
 
 public class JettyServerTest {
     @Test
-    public void testConfigureSslContextFactoryWithKeystorePasswordAndKeyPassword() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public void testConfigureSslContextFactoryWithKeystorePasswordAndKeyPassword() {
         // Expect that if we set both passwords, KeyStore password is used for KeyStore, Key password is used for Key Manager
         String testKeystorePassword = "testKeystorePassword";
         String testKeyPassword = "testKeyPassword";
 
-        NiFiProperties nifiProperties = createNifiProperties();
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
+        addProps.put(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
         SslContextFactory contextFactory = mock(SslContextFactory.class);
-
-        nifiProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
-        nifiProperties.setProperty(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
 
         JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
 
@@ -53,10 +53,10 @@ public class JettyServerTest {
         // Expect that with no KeyStore password, we will only need to set Key Manager Password
         String testKeyPassword = "testKeyPassword";
 
-        NiFiProperties nifiProperties = createNifiProperties();
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
         SslContextFactory contextFactory = mock(SslContextFactory.class);
-
-        nifiProperties.setProperty(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
 
         JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
 
@@ -69,10 +69,10 @@ public class JettyServerTest {
         // Expect that with no KeyPassword, we use the same one from the KeyStore
         String testKeystorePassword = "testKeystorePassword";
 
-        NiFiProperties nifiProperties = createNifiProperties();
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
         SslContextFactory contextFactory = mock(SslContextFactory.class);
-
-        nifiProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
 
         JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
 
@@ -80,9 +80,4 @@ public class JettyServerTest {
         verify(contextFactory).setKeyManagerPassword(testKeystorePassword);
     }
 
-    private NiFiProperties createNifiProperties() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Constructor<NiFiProperties> constructor = NiFiProperties.class.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        return constructor.newInstance();
-    }
 }

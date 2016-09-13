@@ -62,7 +62,7 @@ nf.Settings = (function () {
                     'version': version
                 }
             }),
-            'controllerConfiguration': configuration
+            'component': configuration
         };
 
         // save the new configuration details
@@ -855,13 +855,10 @@ nf.Settings = (function () {
                 url: config.urls.controllerConfig,
                 dataType: 'json'
             }).done(function (response) {
-                // update the current time
-                $('#settings-last-refreshed').text(response.currentTime);
-
                 if (response.permissions.canWrite) {
                     // populate the settings
-                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxEventDrivenThreadCount);
+                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.component.maxTimerDrivenThreadCount);
+                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.component.maxEventDrivenThreadCount);
 
                     setEditable(true);
 
@@ -872,8 +869,8 @@ nf.Settings = (function () {
                 } else {
                     if (response.permissions.canRead) {
                         // populate the settings
-                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxEventDrivenThreadCount);
+                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.component.maxTimerDrivenThreadCount);
+                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.component.maxEventDrivenThreadCount);
                     } else {
                         setUnauthorizedText();
                     }
@@ -900,7 +897,12 @@ nf.Settings = (function () {
         var reportingTasks = loadReportingTasks();
 
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServices, reportingTasks).fail(nf.Common.handleAjaxError);
+        return $.when(settings, controllerServices, reportingTasks).done(function (settingsResult, controllerServicesResult) {
+            var controllerServicesResponse = controllerServicesResult[0];
+
+            // update the current time
+            $('#settings-last-refreshed').text(controllerServicesResponse.currentTime);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -983,7 +985,13 @@ nf.Settings = (function () {
                         $('#new-service-or-task').hide();
                         $('#settings-save').show();
                     } else {
-                        if (nf.Common.canModifyController()) {
+                        var canModifyController = false;
+                        if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                            // only consider write permissions for creating new controller services/reporting tasks
+                            canModifyController = nf.Common.currentUser.controllerPermissions.canWrite === true;
+                        }
+
+                        if (canModifyController) {
                             $('#new-service-or-task').show();
                             $('div.controller-settings-table').css('top', '32px');
 

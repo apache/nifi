@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,9 +25,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupStatusDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupStatusEntity")
-public class RemoteProcessGroupStatusEntity extends Entity {
+public class RemoteProcessGroupStatusEntity extends Entity implements ReadablePermission {
 
     private RemoteProcessGroupStatusDTO remoteProcessGroupStatus;
+    private Boolean canRead;
 
     /**
      * The RemoteProcessGroupStatusDTO that is being serialized.
@@ -41,4 +43,13 @@ public class RemoteProcessGroupStatusEntity extends Entity {
         this.remoteProcessGroupStatus = remoteProcessGroupStatus;
     }
 
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 }

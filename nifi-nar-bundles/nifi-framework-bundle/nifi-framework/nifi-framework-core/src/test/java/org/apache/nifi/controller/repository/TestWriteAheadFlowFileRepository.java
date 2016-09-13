@@ -44,10 +44,10 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -60,7 +60,7 @@ public class TestWriteAheadFlowFileRepository {
 
     @BeforeClass
     public static void setupProperties() {
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestWriteAheadFlowFileRepository.class.getResource("/conf/nifi.properties").getFile());
     }
 
     @Before
@@ -87,35 +87,35 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);
 
-        final ResourceClaim resourceClaim1 = new StandardResourceClaim("container", "section", "1", false);
+        final ResourceClaim resourceClaim1 = claimManager.newResourceClaim("container", "section", "1", false);
         final ContentClaim claim1 = new StandardContentClaim(resourceClaim1, 0L);
 
-        final ResourceClaim resourceClaim2 = new StandardResourceClaim("container", "section", "2", false);
+        final ResourceClaim resourceClaim2 = claimManager.newResourceClaim("container", "section", "2", false);
         final ContentClaim claim2 = new StandardContentClaim(resourceClaim2, 0L);
 
         // Create a flowfile repo, update it once with a FlowFile that points to one resource claim. Then,
         // indicate that a FlowFile was swapped out. We should then be able to recover these FlowFiles and the
         // resource claims' counts should be updated for both the swapped out FlowFile and the non-swapped out FlowFile
-        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository()) {
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
             repo.initialize(claimManager);
             repo.loadFlowFiles(queueProvider, -1L);
 
             // Create a Repository Record that indicates that a FlowFile was created
             final FlowFileRecord flowFile1 = new StandardFlowFileRecord.Builder()
-                .id(1L)
-                .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
-                .contentClaim(claim1)
-                .build();
+                    .id(1L)
+                    .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
+                    .contentClaim(claim1)
+                    .build();
             final StandardRepositoryRecord rec1 = new StandardRepositoryRecord(queue);
             rec1.setWorking(flowFile1);
             rec1.setDestination(queue);
 
             // Create a Record that we can swap out
             final FlowFileRecord flowFile2 = new StandardFlowFileRecord.Builder()
-                .id(2L)
-                .addAttribute("uuid", "11111111-1111-1111-1111-111111111112")
-                .contentClaim(claim2)
-                .build();
+                    .id(2L)
+                    .addAttribute("uuid", "11111111-1111-1111-1111-111111111112")
+                    .contentClaim(claim2)
+                    .build();
 
             final StandardRepositoryRecord rec2 = new StandardRepositoryRecord(queue);
             rec2.setWorking(flowFile2);
@@ -130,9 +130,8 @@ public class TestWriteAheadFlowFileRepository {
             repo.swapFlowFilesOut(Collections.singletonList(flowFile2), queue, swapLocation);
         }
 
-
         final ResourceClaimManager recoveryClaimManager = new StandardResourceClaimManager();
-        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository()) {
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
             repo.initialize(recoveryClaimManager);
             final long largestId = repo.loadFlowFiles(queueProvider, 0L);
 
@@ -163,7 +162,7 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(path.toFile(), true);
         }
 
-        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository();
+        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
@@ -217,7 +216,7 @@ public class TestWriteAheadFlowFileRepository {
         repo.close();
 
         // restore
-        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository();
+        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
         repo2.initialize(new StandardResourceClaimManager());
         repo2.loadFlowFiles(queueProvider, 0L);
 
@@ -232,6 +231,7 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     private static class TestQueueProvider implements QueueProvider {
+
         private List<Connection> connectionList = new ArrayList<>();
 
         public void addConnection(final Connection connection) {
@@ -250,6 +250,7 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     private static class MockFlowFileSwapManager implements FlowFileSwapManager {
+
         private final Map<FlowFileQueue, Map<String, List<FlowFileRecord>>> swappedRecords = new HashMap<>();
 
         @Override

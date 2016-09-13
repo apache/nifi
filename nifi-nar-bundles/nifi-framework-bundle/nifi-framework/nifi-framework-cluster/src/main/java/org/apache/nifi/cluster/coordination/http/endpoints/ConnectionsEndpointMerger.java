@@ -53,11 +53,11 @@ public class ConnectionsEndpointMerger implements EndpointResponseMerger {
             final Set<ConnectionEntity> nodeConnectionEntities = nodeResponseEntity.getConnections();
 
             for (final ConnectionEntity nodeConnectionEntity : nodeConnectionEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ConnectionEntity> innerMap = entityMap.get(nodeId);
+                final String nodeConnectionEntityId = nodeConnectionEntity.getId();
+                Map<NodeIdentifier, ConnectionEntity> innerMap = entityMap.get(nodeConnectionEntityId);
                 if (innerMap == null) {
                     innerMap = new HashMap<>();
-                    entityMap.put(nodeConnectionEntity.getId(), innerMap);
+                    entityMap.put(nodeConnectionEntityId, innerMap);
                 }
 
                 innerMap.put(nodeResponse.getNodeId(), nodeConnectionEntity);

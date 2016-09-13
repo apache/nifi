@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an input PortDTO.
  */
 @XmlRootElement(name = "portEntity")
-public class PortEntity extends ComponentEntity {
+public class PortEntity extends ComponentEntity implements Permissible<PortDTO> {
 
     private PortDTO component;
     private PortStatusDTO status;
@@ -35,10 +35,12 @@ public class PortEntity extends ComponentEntity {
     /**
      * @return input PortDTO that are being serialized
      */
+    @Override
     public PortDTO getComponent() {
         return component;
     }
 
+    @Override
     public void setComponent(PortDTO component) {
         this.component = component;
     }

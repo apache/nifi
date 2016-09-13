@@ -40,6 +40,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Optional;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol implements HttpFlowFileServerProtocol {
 
@@ -47,11 +48,12 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
 
     private final FlowFileCodec codec = new StandardFlowFileCodec();
     private final VersionNegotiator versionNegotiator;
-    private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
+    private final HttpRemoteSiteListener transactionManager;
 
-    public StandardHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
+    public StandardHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator, final NiFiProperties nifiProperties) {
         super();
         this.versionNegotiator = versionNegotiator;
+        this.transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
     }
 
     @Override
@@ -226,7 +228,8 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public void sendPeerList(final Peer peer, final Optional<ClusterNodeInformation> clusterNodeInformation) throws IOException {
+    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, String remoteInputHost, int remoteInputPort, int remoteInputHttpPort,
+                             boolean isSiteToSiteSecure) throws IOException {
     }
 
     @Override

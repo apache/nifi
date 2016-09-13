@@ -525,10 +525,12 @@
                 });
             }
             if ($.isArray(allowableValues)) {
-                $.each(allowableValues, function (i, allowableValue) {
+                $.each(allowableValues, function (i, allowableValueEntity) {
+                    var allowableValue = allowableValueEntity.allowableValue;
                     options.push({
                         text: allowableValue.displayName,
                         value: allowableValue.value,
+                        disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
                         description: nf.Common.escapeHtml(allowableValue.description)
                     });
                 });
@@ -735,7 +737,8 @@
 
                     // create the read only options
                     var options = [];
-                    $.each(allowableValues, function (i, allowableValue) {
+                    $.each(allowableValues, function (i, allowableValueEntity) {
+                        var allowableValue = allowableValueEntity.allowableValue;
                         options.push({
                             text: allowableValue.displayName,
                             value: allowableValue.value,
@@ -1018,10 +1021,15 @@
                             data.updateItem(item.id, $.extend(item, {
                                 value: response.component.id
                             }));
-
+                            
                             // close the dialog
                             newControllerServiceDialog.modal('hide');
                         });
+
+                        // invoke callback if necessary
+                        if (typeof configurationOptions.controllerServiceCreatedDeferred === 'function') {
+                            configurationOptions.controllerServiceCreatedDeferred(response);
+                        }
                     }).fail(nf.Common.handleAjaxError);
                 };
 
@@ -1053,7 +1061,7 @@
             // show the property description if applicable
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
                 if (!nf.Common.isBlank(propertyDescriptor.description) || !nf.Common.isBlank(propertyDescriptor.defaultValue) || !nf.Common.isBlank(propertyDescriptor.supportsEl)) {
-                    $('<div class="fa fa-question-circle" alt="Info" title="' + propertyDescriptor.description + '" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
+                    $('<div class="fa fa-question-circle" alt="Info" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
                     $('<span class="hidden property-descriptor-name"></span>').text(dataContext.property).appendTo(cellContent);
                     nameWidthOffset = 46; // 10 + icon width (10) + icon margin (6) + padding (20)
                 }
@@ -1081,7 +1089,8 @@
                     // if there are allowable values, attempt to swap out for the display name
                     var allowableValues = nf.Common.getAllowableValues(propertyDescriptor);
                     if ($.isArray(allowableValues)) {
-                        $.each(allowableValues, function (_, allowableValue) {
+                        $.each(allowableValues, function (_, allowableValueEntity) {
+                            var allowableValue = allowableValueEntity.allowableValue;
                             if (value === allowableValue.value) {
                                 value = allowableValue.displayName;
                                 return false;
@@ -1147,7 +1156,8 @@
             // check to see if we should provide a button for going to a controller service
             if (identifiesControllerService && isConfigured && isOnCanvas) {
                 // ensure the configured value is referencing a valid service
-                $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
+                $.each(propertyDescriptor.allowableValues, function (_, allowableValueEntity) {
+                    var allowableValue = allowableValueEntity.allowableValue;
                     if (allowableValue.value === dataContext.value) {
                         markup += '<div class="pointer go-to-service fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
                         return false;

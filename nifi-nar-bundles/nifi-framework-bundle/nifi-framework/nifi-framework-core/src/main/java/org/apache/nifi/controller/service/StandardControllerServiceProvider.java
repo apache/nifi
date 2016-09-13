@@ -59,6 +59,7 @@ import org.apache.nifi.registry.VariableRegistry;
 
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +74,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private final StateManagerProvider stateManagerProvider;
     private final VariableRegistry variableRegistry;
     private final FlowController flowController;
+    private final NiFiProperties nifiProperties;
 
     static {
         // methods that are okay to be called when the service is disabled.
@@ -87,13 +89,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
-            final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry) {
+            final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry, final NiFiProperties nifiProperties) {
 
         this.flowController = flowController;
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
         this.variableRegistry = variableRegistry;
+        this.nifiProperties = nifiProperties;
     }
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
@@ -162,7 +165,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
                     if (disabled && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
-                        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                             throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
                                     + " because the Controller Service is disabled");
                         } catch (final Throwable e) {
@@ -170,7 +173,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         }
                     }
 
-                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                         return method.invoke(originalService, args);
                     } catch (final InvocationTargetException e) {
                         // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want
@@ -189,7 +192,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             logger.info("Created Controller Service of type {} with identifier {}", type, id);
 
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
-            originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id)));
+            originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id), nifiProperties));
 
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
@@ -198,7 +201,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             serviceNode.setName(rawClass.getSimpleName());
 
             if (firstTimeAdded) {
-                try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
                 } catch (final Exception e) {
                     throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);

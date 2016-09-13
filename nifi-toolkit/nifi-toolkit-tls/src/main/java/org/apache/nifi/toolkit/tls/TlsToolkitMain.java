@@ -25,14 +25,16 @@ import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Command line entry point
+ * Command line entry point that looks through a map of possible services to delegate to
  */
 public class TlsToolkitMain {
     public static final String DESCRIPTION = "DESCRIPTION";
+    public static final String UNABLE_TO_GET_DESCRIPTION = "Unable to get description. (";
     private final Map<String, Class<?>> mainMap;
 
     public TlsToolkitMain() {
@@ -42,11 +44,16 @@ public class TlsToolkitMain {
         mainMap.put("client", TlsCertificateAuthorityClientCommandLine.class);
     }
 
+    /**
+     * Callthrough to doMain
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         new TlsToolkitMain().doMain(args);
     }
 
-    private void printUsageAndExit(String message, ExitCode exitCode) {
+    private <T> T printUsageAndExit(String message, ExitCode exitCode) {
         System.out.println(message);
         System.out.println();
         System.out.println("Usage: tls-toolkit service [-h] [args]");
@@ -55,38 +62,49 @@ public class TlsToolkitMain {
         mainMap.forEach((s, aClass) -> System.out.println("   " + s + ": " + getDescription(aClass)));
         System.out.println();
         System.exit(exitCode.ordinal());
+        return null;
     }
 
-    private String getDescription(Class<?> clazz) {
+    protected String getDescription(Class<?> clazz) {
         try {
             Field declaredField = clazz.getDeclaredField(DESCRIPTION);
             return String.valueOf(declaredField.get(null));
         } catch (Exception e) {
-            return "Unable to get description. (" + e.getMessage() + ")";
+            return UNABLE_TO_GET_DESCRIPTION + e.getMessage() + ")";
         }
     }
 
+    protected Map<String, Class<?>> getMainMap() {
+        return mainMap;
+    }
+
+    protected Method getMain(String service) {
+        Class<?> mainClass = mainMap.get(service);
+        if (mainClass == null) {
+            printUsageAndExit("Unknown service: " + service, ExitCode.INVALID_ARGS);
+        }
+
+        try {
+            return mainClass.getDeclaredMethod("main", String[].class);
+        } catch (NoSuchMethodException e) {
+            return printUsageAndExit("Service " + service + " is missing main method.", ExitCode.SERVICE_ERROR);
+        }
+    }
+
+    /**
+     * Invokes the main of the relevant service
+     *
+     * @param args the command line arguments
+     */
     public void doMain(String[] args) {
         if (args.length < 1) {
             printUsageAndExit("Expected at least a service argument.", ExitCode.INVALID_ARGS);
         }
 
         String service = args[0].toLowerCase();
-        Class<?> mainClass = mainMap.get(service);
-        if (mainClass == null) {
-            printUsageAndExit("Unknown service: " + service, ExitCode.INVALID_ARGS);
-        }
-
-        Method main;
-        try {
-            main = mainClass.getDeclaredMethod("main", String[].class);
-        } catch (NoSuchMethodException e) {
-            printUsageAndExit("Service " + service + " is missing main method.", ExitCode.SERVICE_ERROR);
-            return;
-        }
 
         try {
-            main.invoke(null, (Object) args);
+            getMain(service).invoke(null, (Object) Arrays.copyOfRange(args, 1, args.length, String[].class));
         } catch (IllegalAccessException e) {
             printUsageAndExit("Service " + service + " has invalid main method.", ExitCode.SERVICE_ERROR);
         } catch (InvocationTargetException e) {

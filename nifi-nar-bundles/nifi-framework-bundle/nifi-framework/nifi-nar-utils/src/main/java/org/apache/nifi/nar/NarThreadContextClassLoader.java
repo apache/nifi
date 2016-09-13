@@ -34,11 +34,14 @@ import org.apache.nifi.reporting.ReportingTask;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import org.apache.nifi.util.NiFiProperties;
 
 /**
  * THREAD SAFE
@@ -165,7 +168,22 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         }
     }
 
-    public static <T> T createInstance(final String implementationClassName, final Class<T> typeDefinition) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    /**
+     * Constructs an instance of the given type using either default no args
+     * constructor or a constructor which takes a NiFiProperties object
+     * (preferred).
+     *
+     * @param <T> the type to create an instance for
+     * @param implementationClassName the implementation class name
+     * @param typeDefinition the type definition
+     * @param nifiProperties the NiFiProperties instance
+     * @return constructed instance
+     * @throws InstantiationException if there is an error instantiating the class
+     * @throws IllegalAccessException if there is an error accessing the type
+     * @throws ClassNotFoundException if the class cannot be found
+     */
+    public static <T> T createInstance(final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
+            throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
         try {
@@ -181,7 +199,16 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);
-            return typeDefinition.cast(desiredClass.newInstance());
+            if(nifiProperties == null){
+                return typeDefinition.cast(desiredClass.newInstance());
+            }
+            Constructor<?> constructor = null;
+            try {
+                constructor = desiredClass.getConstructor(NiFiProperties.class);
+                return typeDefinition.cast(constructor.newInstance(nifiProperties));
+            } catch (final NoSuchMethodException | InvocationTargetException ex) {
+                return typeDefinition.cast(desiredClass.newInstance());
+            }
         } finally {
             Thread.currentThread().setContextClassLoader(originalClassLoader);
         }

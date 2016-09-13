@@ -28,6 +28,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
@@ -38,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -73,7 +75,7 @@ public class TlsCertificateSigningRequestPerformer {
     private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
-        this.dn = dn;
+        this.dn = CertificateUtils.reorderDn(dn);
         this.token = token;
         this.port = port;
         this.objectMapper = new ObjectMapper();
@@ -141,10 +143,10 @@ public class TlsCertificateSigningRequestPerformer {
             if (!tlsCertificateAuthorityResponse.hasCertificate()) {
                 throw new IOException(EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE);
             }
-            X509Certificate x509Certificate = TlsHelper.parseCertificate(tlsCertificateAuthorityResponse.getPemEncodedCertificate());
+            X509Certificate x509Certificate = TlsHelper.parseCertificate(new StringReader(tlsCertificateAuthorityResponse.getPemEncodedCertificate()));
             x509Certificate.verify(caCertificate.getPublicKey());
             if (logger.isInfoEnabled()) {
-                logger.info("Got certificate with dn " + x509Certificate.getSubjectDN());
+                logger.info("Got certificate with dn " + x509Certificate.getSubjectX500Principal());
             }
             return new X509Certificate[]{x509Certificate, caCertificate};
         } catch (IOException e) {

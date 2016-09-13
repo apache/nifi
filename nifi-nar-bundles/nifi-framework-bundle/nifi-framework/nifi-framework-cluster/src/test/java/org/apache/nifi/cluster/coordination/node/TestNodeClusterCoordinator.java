@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.node;
 
 import static org.junit.Assert.assertEquals;
@@ -27,16 +26,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
+import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
@@ -47,6 +48,7 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,18 +58,21 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 public class TestNodeClusterCoordinator {
+
     private NodeClusterCoordinator coordinator;
     private ClusterCoordinationProtocolSenderListener senderListener;
     private List<NodeConnectionStatus> nodeStatuses;
 
-    private Properties createProperties() {
-        final Properties props = new Properties();
-        props.put("nifi.zookeeper.connect.string", "localhost:2181");
-        return props;
+    private NiFiProperties createProperties() {
+        final Map<String,String> addProps = new HashMap<>();
+        addProps.put("nifi.zookeeper.connect.string", "localhost:2181");
+        return NiFiProperties.createBasicNiFiProperties(null, addProps);
     }
 
     @Before
     public void setup() throws IOException {
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
+
         senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         nodeStatuses = Collections.synchronizedList(new ArrayList<>());
 
@@ -75,7 +80,7 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
+        coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
                 nodeStatuses.add(updatedStatus);
@@ -92,10 +97,10 @@ public class TestNodeClusterCoordinator {
     public void testConnectionResponseIndicatesAllNodes() throws IOException {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED));
 
         // Create a connection request message and send to the coordinator
         final NodeIdentifier requestedNodeId = createNodeId(6);
@@ -113,7 +118,7 @@ public class TestNodeClusterCoordinator {
         assertNotNull(statuses);
         assertEquals(6, statuses.size());
         final Map<NodeIdentifier, NodeConnectionStatus> statusMap = statuses.stream().collect(
-            Collectors.toMap(status -> status.getNodeIdentifier(), status -> status));
+                Collectors.toMap(status -> status.getNodeIdentifier(), status -> status));
 
         assertEquals(DisconnectionCode.LACK_OF_HEARTBEAT, statusMap.get(createNodeId(1)).getDisconnectCode());
         assertEquals(NodeConnectionState.DISCONNECTING, statusMap.get(createNodeId(2)).getState());
@@ -130,16 +135,18 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
+        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
         };
 
         final NodeIdentifier requestedNodeId = createNodeId(6);
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId);
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
+
+        coordinator.setConnected(true);
 
         final ProtocolMessage protocolResponse = coordinator.handle(requestMsg);
         assertNotNull(protocolResponse);
@@ -168,7 +175,7 @@ public class TestNodeClusterCoordinator {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
-        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
+        final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties()) {
             @Override
             void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
@@ -178,6 +185,7 @@ public class TestNodeClusterCoordinator {
         final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
+        coordinator.setConnected(true);
 
         final NodeIdentifier nodeId = createNodeId(1);
         coordinator.finishNodeConnection(nodeId);
@@ -258,15 +266,14 @@ public class TestNodeClusterCoordinator {
         assertEquals("Unit Test", statusChange.getDisconnectReason());
     }
 
-
     @Test
     public void testGetConnectionStates() throws IOException {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED));
 
         final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = coordinator.getConnectionStates();
         assertEquals(4, stateMap.size());
@@ -293,10 +300,10 @@ public class TestNodeClusterCoordinator {
     public void testGetNodeIdentifiers() throws IOException {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(3), NodeConnectionState.CONNECTING));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(4), NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(5), NodeConnectionState.CONNECTED));
 
         final Set<NodeIdentifier> connectedIds = coordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
         assertEquals(2, connectedIds.size());
@@ -316,13 +323,12 @@ public class TestNodeClusterCoordinator {
         assertTrue(disconnectedIds.contains(createNodeId(1)));
     }
 
-
     @Test(timeout = 5000)
     public void testRequestNodeDisconnect() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.CONNECTED));
 
         // wait for the status change message and clear it
         while (nodeStatuses.isEmpty()) {
@@ -341,14 +347,13 @@ public class TestNodeClusterCoordinator {
         assertEquals(NodeConnectionState.DISCONNECTED, status.getState());
     }
 
-
     @Test(timeout = 5000)
     public void testCannotDisconnectLastNode() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
         final NodeIdentifier nodeId2 = createNodeId(2);
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED));
 
         // wait for the status change message and clear it
         while (nodeStatuses.isEmpty()) {
@@ -369,15 +374,14 @@ public class TestNodeClusterCoordinator {
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
     }
 
-
     @Test(timeout = 5000)
     public void testUpdateNodeStatusOutOfOrder() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
         final NodeIdentifier nodeId2 = createNodeId(2);
 
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED));
 
         // wait for the status change message and clear it
         while (nodeStatuses.size() < 2) {
@@ -386,7 +390,7 @@ public class TestNodeClusterCoordinator {
         nodeStatuses.clear();
 
         final NodeConnectionStatus oldStatus = new NodeConnectionStatus(-1L, nodeId1, NodeConnectionState.DISCONNECTED,
-            DisconnectionCode.BLOCKED_BY_FIREWALL, null, 0L, null);
+            DisconnectionCode.BLOCKED_BY_FIREWALL, null, 0L);
         final NodeStatusChangeMessage msg = new NodeStatusChangeMessage();
         msg.setNodeId(nodeId1);
         msg.setNodeConnectionStatus(oldStatus);
@@ -397,68 +401,12 @@ public class TestNodeClusterCoordinator {
         assertTrue(nodeStatuses.isEmpty());
     }
 
-    @Test(timeout = 5000)
-    public void testUpdateNodeRoles() throws InterruptedException {
-        // Add a connected node
-        final NodeIdentifier nodeId1 = createNodeId(1);
-        final NodeIdentifier nodeId2 = createNodeId(2);
-
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
-        // wait for the status change message and clear it
-        while (nodeStatuses.isEmpty()) {
-            Thread.sleep(10L);
-        }
-        nodeStatuses.clear();
-
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId2, NodeConnectionState.CONNECTED, Collections.emptySet()));
-        // wait for the status change message and clear it
-        while (nodeStatuses.isEmpty()) {
-            Thread.sleep(10L);
-        }
-        nodeStatuses.clear();
-
-        // Update role of node 1 to primary node
-        coordinator.updateNodeRoles(nodeId1, Collections.singleton(ClusterRoles.PRIMARY_NODE));
-
-        // wait for the status change message
-        while (nodeStatuses.isEmpty()) {
-            Thread.sleep(10L);
-        }
-        // verify the message
-        final NodeConnectionStatus status = nodeStatuses.get(0);
-        assertNotNull(status);
-        assertEquals(nodeId1, status.getNodeIdentifier());
-        assertEquals(NodeConnectionState.CONNECTED, status.getState());
-        assertEquals(Collections.singleton(ClusterRoles.PRIMARY_NODE), status.getRoles());
-        nodeStatuses.clear();
-
-        // Update role of node 2 to primary node. This should trigger 2 status changes -
-        // node 1 should lose primary role & node 2 should gain it
-        coordinator.updateNodeRoles(nodeId2, Collections.singleton(ClusterRoles.PRIMARY_NODE));
-
-        // wait for the status change message
-        while (nodeStatuses.size() < 2) {
-            Thread.sleep(10L);
-        }
-
-        final NodeConnectionStatus status1 = nodeStatuses.get(0);
-        final NodeConnectionStatus status2 = nodeStatuses.get(1);
-        final NodeConnectionStatus id1Msg = (status1.getNodeIdentifier().equals(nodeId1)) ? status1 : status2;
-        final NodeConnectionStatus id2Msg = (status1.getNodeIdentifier().equals(nodeId2)) ? status1 : status2;
-
-        assertNotSame(id1Msg, id2Msg);
-
-        assertTrue(id1Msg.getRoles().isEmpty());
-        assertEquals(Collections.singleton(ClusterRoles.PRIMARY_NODE), id2Msg.getRoles());
-    }
-
-
     @Test
     public void testProposedIdentifierResolvedIfConflict() {
         final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, 11000, false);
         final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "localhost", 10000, 11000, false);
 
-        final ConnectionRequest connectionRequest = new ConnectionRequest(id1);
+        final ConnectionRequest connectionRequest = new ConnectionRequest(id1, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
         crm.setConnectionRequest(connectionRequest);
 
@@ -469,7 +417,7 @@ public class TestNodeClusterCoordinator {
         final NodeIdentifier resolvedNodeId = responseMessage.getConnectionResponse().getNodeIdentifier();
         assertEquals(id1, resolvedNodeId);
 
-        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId);
+        final ConnectionRequest conRequest2 = new ConnectionRequest(conflictingId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage crm2 = new ConnectionRequestMessage();
         crm2.setConnectionRequest(conRequest2);
 
@@ -492,10 +440,45 @@ public class TestNodeClusterCoordinator {
     }
 
     private ProtocolMessage requestConnection(final NodeIdentifier requestedNodeId, final NodeClusterCoordinator coordinator) {
-        final ConnectionRequest request = new ConnectionRequest(requestedNodeId);
+        final ConnectionRequest request = new ConnectionRequest(requestedNodeId, new StandardDataFlow(new byte[0], new byte[0], new byte[0]));
         final ConnectionRequestMessage requestMsg = new ConnectionRequestMessage();
         requestMsg.setConnectionRequest(request);
         return coordinator.handle(requestMsg);
     }
 
+
+    private static class FirstVoteWinsFlowElection implements FlowElection {
+        private DataFlow dataFlow;
+        private NodeIdentifier voter;
+
+        @Override
+        public boolean isElectionComplete() {
+            return dataFlow != null;
+        }
+
+        @Override
+        public synchronized DataFlow castVote(DataFlow candidate, NodeIdentifier nodeIdentifier) {
+            if (dataFlow == null) {
+                dataFlow = candidate;
+                voter = nodeIdentifier;
+            }
+
+            return dataFlow;
+        }
+
+        @Override
+        public DataFlow getElectedDataFlow() {
+            return dataFlow;
+        }
+
+        @Override
+        public String getStatusDescription() {
+            return "First Vote Wins";
+        }
+
+        @Override
+        public boolean isVoteCounted(NodeIdentifier nodeIdentifier) {
+            return voter != null && voter.equals(nodeIdentifier);
+        }
+    }
 }

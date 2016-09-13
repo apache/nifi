@@ -24,14 +24,21 @@ import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
@@ -115,8 +122,105 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getProcessor(final String id) {
-        return processorDAO.getProcessor(id);
+    public ControllerServiceReferencingComponentAuthorizable getProcessor(final String id) {
+        final ProcessorNode processorNode = processorDAO.getProcessor(id);
+        return new ControllerServiceReferencingComponentAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return processorNode;
+            }
+
+            @Override
+            public String getValue(PropertyDescriptor propertyDescriptor) {
+                return processorNode.getProperty(propertyDescriptor);
+            }
+
+            @Override
+            public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                return processorNode.getPropertyDescriptor(propertyName);
+            }
+        };
+    }
+
+    @Override
+    public ControllerServiceReferencingComponentAuthorizable getProcessorByType(String type) {
+        try {
+            final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(type);
+            return new ControllerServiceReferencingComponentAuthorizable() {
+                @Override
+                public Authorizable getAuthorizable() {
+                    return processorNode;
+                }
+
+                @Override
+                public String getValue(PropertyDescriptor propertyDescriptor) {
+                    return processorNode.getProperty(propertyDescriptor);
+                }
+
+                @Override
+                public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                    return processorNode.getPropertyDescriptor(propertyName);
+                }
+            };
+        } catch (final Exception e) {
+            throw new AccessDeniedException("Unable to create processor to verify if it references any Controller Services.");
+        }
+    }
+
+    @Override
+    public RootGroupPortAuthorizable getRootGroupInputPort(String id) {
+        final Port inputPort = inputPortDAO.getPort(id);
+
+        if (!(inputPort instanceof RootGroupPort)) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an input port in the root group.", id));
+        }
+
+        final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(inputPort);
+        return new RootGroupPortAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return baseAuthorizable;
+            }
+
+            @Override
+            public AuthorizationResult checkAuthorization(NiFiUser user) {
+                // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
+                final PortAuthorizationResult authorizationResult = ((RootGroupPort) inputPort).checkUserAuthorization(user);
+                if (authorizationResult.isAuthorized()) {
+                    return AuthorizationResult.approved();
+                } else {
+                    return AuthorizationResult.denied(authorizationResult.getExplanation());
+                }
+            }
+        };
+    }
+
+    @Override
+    public RootGroupPortAuthorizable getRootGroupOutputPort(String id) {
+        final Port outputPort = outputPortDAO.getPort(id);
+
+        if (!(outputPort instanceof RootGroupPort)) {
+            throw new IllegalArgumentException(String.format("The specified id '%s' does not represent an output port in the root group.", id));
+        }
+
+        final DataTransferAuthorizable baseAuthorizable = new DataTransferAuthorizable(outputPort);
+        return new RootGroupPortAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return baseAuthorizable;
+            }
+
+            @Override
+            public AuthorizationResult checkAuthorization(NiFiUser user) {
+                // perform the authorization of the user by using the underlying component, ensures consistent authorization with raw s2s
+                final PortAuthorizationResult authorizationResult = ((RootGroupPort) outputPort).checkUserAuthorization(user);
+                if (authorizationResult.isAuthorized()) {
+                    return AuthorizationResult.approved();
+                } else {
+                    return AuthorizationResult.denied(authorizationResult.getExplanation());
+                }
+            }
+        };
     }
 
     @Override
@@ -212,8 +316,49 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getControllerService(final String id) {
-        return controllerServiceDAO.getControllerService(id);
+    public ControllerServiceReferencingComponentAuthorizable getControllerService(final String id) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
+        return new ControllerServiceReferencingComponentAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return controllerService;
+            }
+
+            @Override
+            public String getValue(PropertyDescriptor propertyDescriptor) {
+                return controllerService.getProperty(propertyDescriptor);
+            }
+
+            @Override
+            public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                return controllerService.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
+            }
+        };
+    }
+
+    @Override
+    public ControllerServiceReferencingComponentAuthorizable getControllerServiceByType(String type) {
+        try {
+            final ControllerServiceNode controllerService = controllerFacade.createTemporaryControllerService(type);
+            return new ControllerServiceReferencingComponentAuthorizable() {
+                @Override
+                public Authorizable getAuthorizable() {
+                    return controllerService;
+                }
+
+                @Override
+                public String getValue(PropertyDescriptor propertyDescriptor) {
+                    return controllerService.getProperty(propertyDescriptor);
+                }
+
+                @Override
+                public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                    return controllerService.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
+                }
+            };
+        } catch (final Exception e) {
+            throw new AccessDeniedException("Unable to create controller service to verify if it references any Controller Services.");
+        }
     }
 
     @Override
@@ -260,8 +405,49 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getReportingTask(final String id) {
-        return reportingTaskDAO.getReportingTask(id);
+    public ControllerServiceReferencingComponentAuthorizable getReportingTask(final String id) {
+        final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(id);
+        return new ControllerServiceReferencingComponentAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return reportingTaskNode;
+            }
+
+            @Override
+            public String getValue(PropertyDescriptor propertyDescriptor) {
+                return reportingTaskNode.getProperty(propertyDescriptor);
+            }
+
+            @Override
+            public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                return reportingTaskNode.getReportingTask().getPropertyDescriptor(propertyName);
+            }
+        };
+    }
+
+    @Override
+    public ControllerServiceReferencingComponentAuthorizable getReportingTaskByType(String type) {
+        try {
+            final ReportingTaskNode reportingTask = controllerFacade.createTemporaryReportingTask(type);
+            return new ControllerServiceReferencingComponentAuthorizable() {
+                @Override
+                public Authorizable getAuthorizable() {
+                    return reportingTask;
+                }
+
+                @Override
+                public String getValue(PropertyDescriptor propertyDescriptor) {
+                    return reportingTask.getProperty(propertyDescriptor);
+                }
+
+                @Override
+                public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+                    return reportingTask.getReportingTask().getPropertyDescriptor(propertyName);
+                }
+            };
+        } catch (final Exception e) {
+            throw new AccessDeniedException("Unable to create reporting to verify if it references any Controller Services.");
+        }
     }
 
     @Override
@@ -357,7 +543,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         Authorizable authorizable = null;
         switch (resourceType) {
             case ControllerService:
-                authorizable = getControllerService(componentId);
+                authorizable = getControllerService(componentId).getAuthorizable();
                 break;
             case Funnel:
                 authorizable = getFunnel(componentId);
@@ -372,7 +558,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getOutputPort(componentId);
                 break;
             case Processor:
-                authorizable = getProcessor(componentId);
+                authorizable = getProcessor(componentId).getAuthorizable();
                 break;
             case ProcessGroup:
                 authorizable = getProcessGroup(componentId).getAuthorizable();
@@ -381,7 +567,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getRemoteProcessGroup(componentId);
                 break;
             case ReportingTask:
-                authorizable = getReportingTask(componentId);
+                authorizable = getReportingTask(componentId).getAuthorizable();
                 break;
             case Template:
                 authorizable = getTemplate(componentId);

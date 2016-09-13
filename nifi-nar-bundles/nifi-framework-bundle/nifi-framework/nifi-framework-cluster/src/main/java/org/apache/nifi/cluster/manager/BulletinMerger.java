@@ -17,23 +17,21 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public final class BulletinMerger {
 
     private BulletinMerger() {}
 
-    public static Comparator<BulletinDTO> BULLETIN_COMPARATOR = new Comparator<BulletinDTO>() {
+    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = new Comparator<BulletinEntity>() {
         @Override
-        public int compare(BulletinDTO o1, BulletinDTO o2) {
+        public int compare(BulletinEntity o1, BulletinEntity o2) {
             if (o1 == null && o2 == null) {
                 return 0;
             }
@@ -49,28 +47,31 @@ public final class BulletinMerger {
     };
 
     /**
-     * Merges the validation errors.
+     * Merges the bulletins.
      *
      * @param bulletins bulletins
      */
-    public static List<BulletinDTO> mergeBulletins(final Map<NodeIdentifier, List<BulletinDTO>> bulletins) {
-        final List<BulletinDTO> bulletinDtos = new ArrayList<>();
+    public static List<BulletinEntity> mergeBulletins(final Map<NodeIdentifier, List<BulletinEntity>> bulletins) {
+        final List<BulletinEntity> bulletinEntities = new ArrayList<>();
 
-        for (final Map.Entry<NodeIdentifier, List<BulletinDTO>> entry : bulletins.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, List<BulletinEntity>> entry : bulletins.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final List<BulletinDTO> nodeBulletins = entry.getValue();
+            final List<BulletinEntity> nodeBulletins = entry.getValue();
             final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
 
-            for (final BulletinDTO bulletin : nodeBulletins) {
-                if (bulletin.getNodeAddress() == null) {
-                    bulletin.setNodeAddress(nodeAddress);
+            for (final BulletinEntity bulletinEntity : nodeBulletins) {
+                if (bulletinEntity.getNodeAddress() == null) {
+                    bulletinEntity.setNodeAddress(nodeAddress);
                 }
 
-                bulletinDtos.add(bulletin);
+                if (bulletinEntity.getCanRead() && bulletinEntity.getBulletin() != null && bulletinEntity.getBulletin().getNodeAddress() == null) {
+                    bulletinEntity.getBulletin().setNodeAddress(nodeAddress);
+                }
+                bulletinEntities.add(bulletinEntity);
             }
         }
 
-        Collections.sort(bulletinDtos, (BulletinDTO o1, BulletinDTO o2) -> {
+        Collections.sort(bulletinEntities, (BulletinEntity o1, BulletinEntity o2) -> {
             final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
             if (timeComparison != 0) {
                 return timeComparison;
@@ -79,28 +80,6 @@ public final class BulletinMerger {
             return o1.getNodeAddress().compareTo(o2.getNodeAddress());
         });
 
-        return bulletinDtos;
-    }
-
-    /**
-     * Normalizes the validation errors.
-     *
-     * @param validationErrorMap validation errors for each node
-     * @param totalNodes total number of nodes
-     * @return the normalized validation errors
-     */
-    public static Set<String> normalizedMergedValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, int totalNodes) {
-        final Set<String> normalizedValidationErrors = new HashSet<>();
-        for (final Map.Entry<String, Set<NodeIdentifier>> validationEntry : validationErrorMap.entrySet()) {
-            final String msg = validationEntry.getKey();
-            final Set<NodeIdentifier> nodeIds = validationEntry.getValue();
-
-            if (nodeIds.size() == totalNodes) {
-                normalizedValidationErrors.add(msg);
-            } else {
-                nodeIds.forEach(id -> normalizedValidationErrors.add(id.getApiAddress() + ":" + id.getApiPort() + " -- " + msg));
-            }
-        }
-        return normalizedValidationErrors;
+        return bulletinEntities;
     }
 }

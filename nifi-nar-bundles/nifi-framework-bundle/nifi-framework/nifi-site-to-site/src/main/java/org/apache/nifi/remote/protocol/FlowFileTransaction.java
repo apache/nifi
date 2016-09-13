@@ -33,7 +33,7 @@ public class FlowFileTransaction {
     private final String calculatedCRC;
 
     public FlowFileTransaction() {
-        this(null, null, new StopWatch(true), 0, null,  null);
+        this(null, null, new StopWatch(true), 0, null, null);
     }
 
     public FlowFileTransaction(ProcessSession session, ProcessContext context, StopWatch stopWatch, long bytesSent, Set<FlowFile> flowFilesSent, String calculatedCRC) {

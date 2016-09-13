@@ -27,9 +27,9 @@
 
 #status-history-refresh-container {
     position: absolute;
-    top: 0px;
-    left: 40%;
-    right: 0px;
+    left: 20px;
+    bottom: 20px;
+    z-index: 1;
 }
 
 #status-history-loading-container {
@@ -57,6 +57,7 @@
 
 #status-history-metric-combo {
     float: right;
+    width: 250px;
 }
 
 #status-history-container {
@@ -68,7 +69,6 @@
 }
 
 #status-history-chart-container {
-    height: 265px;
     background-color: #fff;
     overflow: hidden;
     cursor: default;
@@ -86,6 +86,11 @@
     left: 0px;
     right: 60%;
     bottom: 0px;
+    overflow-y: auto;
+}
+
+#status-history-dialog > .dialog-content {
+    overflow: visible;
 }
 
 div.status-history-detail {
@@ -132,7 +137,6 @@ div.legend-entry {
 
 div.legend-label {
     font-weight: bold;
-    width: 240px;
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;

@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
-import java.util.Set;
-
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -30,7 +28,6 @@ public class AdaptedNodeConnectionStatus {
     private DisconnectionCode disconnectCode;
     private String disconnectReason;
     private Long connectionRequestTime;
-    private Set<String> roles;
 
     public Long getUpdateId() {
         return updateId;
@@ -78,13 +75,5 @@ public class AdaptedNodeConnectionStatus {
 
     public void setConnectionRequestTime(Long connectionRequestTime) {
         this.connectionRequestTime = connectionRequestTime;
-    }
-
-    public Set<String> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<String> roles) {
-        this.roles = roles;
     }
 }

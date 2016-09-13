@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation.mock;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -63,5 +64,20 @@ public class MockReportingInitializationContext implements ReportingInitializati
     @Override
     public ComponentLog getLogger() {
         return new MockComponentLogger();
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null;
     }
 }

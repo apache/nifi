@@ -40,10 +40,15 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     private volatile long lastCaptureTime = 0L;
 
+    /**
+     * Default no args constructor for service loading only
+     */
+    public VolatileComponentStatusRepository(){
+        captures = null;
+    }
 
-    public VolatileComponentStatusRepository() {
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final int numDataPoints = properties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
+    public VolatileComponentStatusRepository(final NiFiProperties nifiProperties) {
+        final int numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
 
         captures = new RingBuffer<>(numDataPoints);
     }

@@ -142,7 +142,7 @@ public class OutputPortResource extends ApplicationResource {
      *
      * @param httpServletRequest request
      * @param id                 The id of the output port to update.
-     * @param portEntity         A outputPortEntity.
+     * @param requestPortEntity         A outputPortEntity.
      * @return A outputPortEntity.
      */
     @PUT
@@ -175,40 +175,43 @@ public class OutputPortResource extends ApplicationResource {
             @ApiParam(
                     value = "The output port configuration details.",
                     required = true
-            ) final PortEntity portEntity) {
+            ) final PortEntity requestPortEntity) {
 
-        if (portEntity == null || portEntity.getComponent() == null) {
+        if (requestPortEntity == null || requestPortEntity.getComponent() == null) {
             throw new IllegalArgumentException("Output port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
+        if (requestPortEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        PortDTO requestPortDTO = portEntity.getComponent();
+        PortDTO requestPortDTO = requestPortEntity.getComponent();
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The output port id (%s) in the request body does not equal the "
                     + "output port id of the requested resource (%s).", requestPortDTO.getId(), id));
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.PUT, portEntity);
+            return replicate(HttpMethod.PUT, requestPortEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(portEntity, id);
+        final Revision requestRevision = getRevision(requestPortEntity, id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestPortEntity,
+                requestRevision,
                 lookup -> {
                     Authorizable authorizable = lookup.getOutputPort(id);
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyUpdateOutputPort(requestPortDTO),
-                () -> {
+                (revision, portEntity) -> {
+                    final PortDTO portDTO = portEntity.getComponent();
+
                     // update the output port
-                    final PortEntity entity = serviceFacade.updateOutputPort(revision, requestPortDTO);
+                    final PortEntity entity = serviceFacade.updateOutputPort(revision, portDTO);
                     populateRemainingOutputPortEntityContent(entity);
 
                     return clusterContext(generateOkResponse(entity)).build();
@@ -267,19 +270,23 @@ public class OutputPortResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
+        final PortEntity requestPortEntity = new PortEntity();
+        requestPortEntity.setId(id);
+
         // handle expects request (usually from the cluster manager)
-        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
                 serviceFacade,
-                revision,
+                requestPortEntity,
+                requestRevision,
                 lookup -> {
                     final Authorizable outputPort = lookup.getOutputPort(id);
                     outputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteOutputPort(id),
-                () -> {
+                (revision, portEntity) -> {
                     // delete the specified output port
-                    final PortEntity entity = serviceFacade.deleteOutputPort(revision, id);
+                    final PortEntity entity = serviceFacade.deleteOutputPort(revision, portEntity.getId());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );

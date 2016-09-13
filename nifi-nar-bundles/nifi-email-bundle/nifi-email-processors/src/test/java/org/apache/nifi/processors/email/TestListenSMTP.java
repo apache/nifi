@@ -13,42 +13,99 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package org.apache.nifi.processors.email;
+
+import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.SimpleEmail;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import org.apache.nifi.ssl.SSLContextService;
-
-import org.junit.Assert;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TestListenSMTP {
 
-    @Test(timeout=15000)
-    public void ValidEmailTls() throws Exception {
-        boolean[] failed = {false};
-        ListenSMTP listenSmtp = new ListenSMTP();
-        final TestRunner runner = TestRunners.newTestRunner(listenSmtp);
+    private ScheduledExecutorService executor;
 
-        runner.setProperty(ListenSMTP.SMTP_PORT, "0");
-        runner.setProperty(ListenSMTP.SMTP_HOSTNAME, "bermudatriangle");
+    @Before
+    public void before() {
+        this.executor = Executors.newScheduledThreadPool(2);
+    }
+
+    @After
+    public void after() {
+        this.executor.shutdown();
+    }
+
+    @Test
+    public void validateSuccessfulInteraction() throws Exception, EmailException {
+        int port = NetworkUtils.availablePort();
+
+        TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
+        runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
+        runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
+        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
+
+        runner.assertValid();
+        runner.run(5, false);
+        final int numMessages = 5;
+        CountDownLatch latch = new CountDownLatch(numMessages);
+
+        this.executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < numMessages; i++) {
+                    try {
+                        Email email = new SimpleEmail();
+                        email.setHostName("localhost");
+                        email.setSmtpPort(port);
+                        email.setFrom("alice@nifi.apache.org");
+                        email.setSubject("This is a test");
+                        email.setMsg("MSG-" + i);
+                        email.addTo("bob@nifi.apache.org");
+                        email.send();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+            }
+        }, 1500, TimeUnit.MILLISECONDS);
+
+        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        runner.shutdown();
+        assertTrue(complete);
+        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
+    }
+
+    @Test
+    public void validateSuccessfulInteractionWithTls() throws Exception, EmailException {
+        System.setProperty("mail.smtp.ssl.trust", "*");
+        System.setProperty("javax.net.ssl.keyStore", "src/test/resources/localhost-ks.jks");
+        System.setProperty("javax.net.ssl.keyStorePassword", "localtest");
+        int port = NetworkUtils.availablePort();
+
+        TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
+        runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
         runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
 
         // Setup the SSL Context
-        final SSLContextService sslContextService = new StandardSSLContextService();
+        SSLContextService sslContextService = new StandardSSLContextService();
         runner.addControllerService("ssl-context", sslContextService);
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
@@ -61,259 +118,89 @@ public class TestListenSMTP {
         // and add the SSL context to the runner
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(ListenSMTP.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
+        runner.assertValid();
 
+        int messageCount = 5;
+        CountDownLatch latch = new CountDownLatch(messageCount);
+        runner.run(messageCount, false);
 
-
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-
-        // NOTE: This test routine uses  the same strategy used by TestListenAndPutSyslog
-        // where listenSmtp method calls are used to allow the processor to be started using
-        // port "0" without triggering a violation of PORT_VALIDATOR
-
-        listenSmtp.onScheduled(context);
-        listenSmtp.initializeSMTPServer(context);
-
-        final int port = listenSmtp.getPort();
-
-        try {
-            final Thread clientThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
+        this.executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < messageCount; i++) {
                     try {
-
-
-                        System.setProperty("mail.smtp.ssl.trust", "*");
-                        System.setProperty("javax.net.ssl.keyStore", "src/test/resources/localhost-ks.jks");
-                        System.setProperty("javax.net.ssl.keyStorePassword", "localtest");
-
                         Email email = new SimpleEmail();
-
-                        email.setHostName("127.0.0.1");
+                        email.setHostName("localhost");
                         email.setSmtpPort(port);
+                        email.setFrom("alice@nifi.apache.org");
+                        email.setSubject("This is a test");
+                        email.setMsg("MSG-" + i);
+                        email.addTo("bob@nifi.apache.org");
 
                         // Enable STARTTLS but ignore the cert
                         email.setStartTLSEnabled(true);
                         email.setStartTLSRequired(true);
                         email.setSSLCheckServerIdentity(false);
-
-                        email.setFrom("alice@nifi.apache.org");
-                        email.setSubject("This is a test");
-                        email.setMsg("Test test test chocolate");
-                        email.addTo("bob@nifi.apache.org");
-
                         email.send();
-                    } catch (final Throwable t) {
-                        failed[0] = true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
                     }
                 }
-            });
-            clientThread.start();
-
-            while (runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS).isEmpty()) {
-                // process the request.
-                listenSmtp.onTrigger(context, processSessionFactory);
             }
+        }, 1500, TimeUnit.MILLISECONDS);
 
-                // Checks if client experienced Exception
-                Assert.assertFalse("Client experienced exception", failed[0]);
-
-            runner.assertTransferCount(ListenSMTP.REL_SUCCESS, 1);
-            clientThread.stop();
-
-            Assert.assertFalse("Sending email failed", failed[0]);
-
-            runner.assertQueueEmpty();
-            final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS);
-            splits.get(0).assertAttributeEquals("smtp.from", "alice@nifi.apache.org");
-            splits.get(0).assertAttributeEquals("smtp.to", "bob@nifi.apache.org");
-
-            Thread.sleep(100);
-        } finally {
-            // shut down the server
-            listenSmtp.startShutdown();
-        }
+        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        runner.shutdown();
+        assertTrue(complete);
+        runner.assertAllFlowFilesTransferred("success", messageCount);
     }
 
-    @Test(timeout=15000)
-    public void ValidEmail() throws Exception, EmailException {
-        final boolean[] failed = {false};
-        ListenSMTP listenSmtp = new ListenSMTP();
-        final TestRunner runner = TestRunners.newTestRunner(listenSmtp);
+    @Test
+    public void validateTooLargeMessage() throws Exception, EmailException {
+        int port = NetworkUtils.availablePort();
 
-        runner.setProperty(ListenSMTP.SMTP_PORT, "0");
-        runner.setProperty(ListenSMTP.SMTP_HOSTNAME, "bermudatriangle");
+        TestRunner runner = TestRunners.newTestRunner(ListenSMTP.class);
+        runner.setProperty(ListenSMTP.SMTP_PORT, String.valueOf(port));
         runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
         runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
+        runner.setProperty(ListenSMTP.SMTP_MAXIMUM_MSG_SIZE, "10 B");
 
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
+        runner.assertValid();
 
-        // NOTE: This test routine uses  the same strategy used by TestListenAndPutSyslog
-        // where listenSmtp method calls are used to allow the processor to be started using
-        // port "0" without triggering a violation of PORT_VALIDATOR
-        listenSmtp.onScheduled(context);
-        listenSmtp.initializeSMTPServer(context);
+        int messageCount = 1;
+        CountDownLatch latch = new CountDownLatch(messageCount);
 
-        final int port = listenSmtp.getPort();
+        runner.run(messageCount, false);
 
-        try {
-            final Thread clientThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
+        this.executor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < messageCount; i++) {
                     try {
                         Email email = new SimpleEmail();
-                        email.setHostName("127.0.0.1");
+                        email.setHostName("localhost");
                         email.setSmtpPort(port);
-                        email.setStartTLSEnabled(false);
                         email.setFrom("alice@nifi.apache.org");
                         email.setSubject("This is a test");
-                        email.setMsg("Test test test chocolate");
+                        email.setMsg("MSG-" + i);
                         email.addTo("bob@nifi.apache.org");
                         email.send();
-
-                    } catch (final EmailException t) {
-                        failed[0] = true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    } finally {
+                        latch.countDown();
                     }
                 }
-            });
-            clientThread.start();
-
-            while (runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS).isEmpty()) {
-                // process the request.
-                listenSmtp.onTrigger(context, processSessionFactory);
             }
-            clientThread.stop();
+        }, 1000, TimeUnit.MILLISECONDS);
 
-            Assert.assertFalse("Sending email failed", failed[0]);
-
-            runner.assertTransferCount(ListenSMTP.REL_SUCCESS, 1);
-
-            runner.assertQueueEmpty();
-            final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS);
-            splits.get(0).assertAttributeEquals("smtp.from", "alice@nifi.apache.org");
-            splits.get(0).assertAttributeEquals("smtp.to", "bob@nifi.apache.org");
-
-            Thread.sleep(100);
-        } finally {
-                // shut down the server
-                listenSmtp.startShutdown();
-        }
-    }
-
-    @Test(timeout=15000, expected=EmailException.class)
-    public void ValidEmailTimeOut() throws Exception {
-
-        ListenSMTP listenSmtp = new ListenSMTP();
-        final TestRunner runner = TestRunners.newTestRunner(listenSmtp);
-
-        runner.setProperty(ListenSMTP.SMTP_PORT, "0");
-        runner.setProperty(ListenSMTP.SMTP_HOSTNAME, "bermudatriangle");
-        runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "3");
-        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "50 milliseconds");
-
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-
-        // NOTE: This test routine uses  the same strategy used by TestListenAndPutSyslog
-        // where listenSmtp method calls are used to allow the processor to be started using
-        // port "0" without triggering a violation of PORT_VALIDATOR
-        listenSmtp.onScheduled(context);
-        listenSmtp.initializeSMTPServer(context);
-
-        final int port = listenSmtp.getPort();
-
-
-        Email email = new SimpleEmail();
-        email.setHostName("127.0.0.1");
-        email.setSmtpPort(port);
-        email.setStartTLSEnabled(false);
-        email.setFrom("alice@nifi.apache.org");
-        email.setSubject("This is a test");
-        email.setMsg("Test test test chocolate");
-        email.addTo("bob@nifi.apache.org");
-        email.send();
-
-        while (runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS).isEmpty()) {
-            // force timeout
-            Thread.sleep(999L);
-            // process the request.
-            listenSmtp.onTrigger(context, processSessionFactory);
-        }
-
-        runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ListenSMTP.REL_SUCCESS);
-        splits.get(0).assertAttributeEquals("smtp.from", "alice@nifi.apache.org");
-        splits.get(0).assertAttributeEquals("smtp.to", "bob@nifi.apache.org");
-
-        Thread.sleep(100);
-
-        // shut down the server
-        listenSmtp.startShutdown();
-    }
-
-    @Test(timeout=15000)
-    public void emailTooLarge() throws Exception {
-        ListenSMTP listenSmtp = new ListenSMTP();
-        final TestRunner runner = TestRunners.newTestRunner(listenSmtp);
-
-        runner.setProperty(ListenSMTP.SMTP_PORT, "0");
-        runner.setProperty(ListenSMTP.SMTP_HOSTNAME, "bermudatriangle");
-        runner.setProperty(ListenSMTP.SMTP_MAXIMUM_MSG_SIZE, "256B");
-        runner.setProperty(ListenSMTP.SMTP_MAXIMUM_CONNECTIONS, "2");
-        runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
-
-        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-        final ProcessContext context = runner.getProcessContext();
-
-        // NOTE: This test routine uses  the same strategy used by TestListenAndPutSyslog
-        // where listenSmtp method calls are used to allow the processor to be started using
-        // port "0" without triggering a violation of PORT_VALIDATOR
-        listenSmtp.onScheduled(context);
-        listenSmtp.initializeSMTPServer(context);
-
-        final int port = listenSmtp.getPort();
-        AtomicBoolean finished = new AtomicBoolean(false);;
-        AtomicBoolean failed = new AtomicBoolean(false);
-
-        try {
-            final Thread clientThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Email email = new SimpleEmail();
-                        email.setHostName("127.0.0.1");
-                        email.setSmtpPort(port);
-                        email.setStartTLSEnabled(false);
-                        email.setFrom("alice@nifi.apache.org");
-                        email.setSubject("This is a test");
-                        email.setMsg("Test test test chocolate");
-                        email.addTo("bob@nifi.apache.org");
-                        email.send();
-
-                    } catch (final EmailException t) {
-                        failed.set(true);
-                    }
-                    finished.set(true);
-                }
-            });
-            clientThread.start();
-
-            while (!finished.get()) {
-                // process the request.
-                listenSmtp.onTrigger(context, processSessionFactory);
-                Thread.sleep(10);
-            }
-            clientThread.stop();
-
-            Assert.assertTrue("Sending email succeeded when it should have failed", failed.get());
-
-            runner.assertTransferCount(ListenSMTP.REL_SUCCESS, 0);
-
-            runner.assertQueueEmpty();
-        } finally {
-            // shut down the server
-            listenSmtp.startShutdown();
-        }
+        boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
+        runner.shutdown();
+        assertTrue(complete);
+        runner.assertAllFlowFilesTransferred("success", 0);
     }
 }

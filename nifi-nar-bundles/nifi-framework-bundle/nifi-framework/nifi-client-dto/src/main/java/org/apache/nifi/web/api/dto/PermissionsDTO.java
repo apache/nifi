@@ -24,10 +24,10 @@ import javax.xml.bind.annotation.XmlType;
  * Details for the access configuration.
  */
 @XmlType(name = "permission")
-public class PermissionsDTO {
+public class PermissionsDTO implements ReadablePermission, WritablePermission {
 
-    private Boolean canRead;
-    private Boolean canWrite;
+    private boolean canRead = false;
+    private boolean canWrite = false;
 
     /**
      * @return Indicates whether the user can read a given resource.
@@ -36,10 +36,12 @@ public class PermissionsDTO {
             value = "Indicates whether the user can read a given resource.",
             readOnly = true
     )
+    @Override
     public Boolean getCanRead() {
         return canRead;
     }
 
+    @Override
     public void setCanRead(Boolean canRead) {
         this.canRead = canRead;
     }
@@ -51,10 +53,12 @@ public class PermissionsDTO {
             value = "Indicates whether the user can write a given resource.",
             readOnly = true
     )
+    @Override
     public Boolean getCanWrite() {
         return canWrite;
     }
 
+    @Override
     public void setCanWrite(Boolean canWrite) {
         this.canWrite = canWrite;
     }

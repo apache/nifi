@@ -100,7 +100,7 @@ div.string-check-container {
 div.string-check {
     width: 12px;
     height: 12px;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 span.string-check-label {
@@ -110,7 +110,6 @@ span.string-check-label {
 }
 
 div.value pre {
-    font-family: Verdana, Arial, Helvetica, sans-serif;
     overflow: hidden;
 }
 

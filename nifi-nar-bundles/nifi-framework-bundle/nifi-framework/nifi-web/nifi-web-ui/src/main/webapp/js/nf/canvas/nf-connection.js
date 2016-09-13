@@ -1359,12 +1359,12 @@ nf.Connection = (function () {
                                 var xOffset = nf.Connection.config.selfLoopXOffset;
                                 var yOffset = nf.Connection.config.selfLoopYOffset;
 
-                                connectionEntity.connection.bends = [];
-                                connectionEntity.connection.bends.push({
+                                connectionEntity.component.bends = [];
+                                connectionEntity.component.bends.push({
                                     'x': (rightCenter.x + xOffset),
                                     'y': (rightCenter.y - yOffset)
                                 });
-                                connectionEntity.connection.bends.push({
+                                connectionEntity.component.bends.push({
                                     'x': (rightCenter.x + xOffset),
                                     'y': (rightCenter.y + yOffset)
                                 });
@@ -1582,17 +1582,29 @@ nf.Connection = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (connectionEntity) {
-                // add the connection
-                connectionMap.set(connectionEntity.id, $.extend({
-                    type: 'Connection'
-                }, connectionEntity));
+            var set = function (proposedConnectionEntity) {
+                var currentConnectionEntity = connectionMap.get(proposedConnectionEntity.id);
+
+                // set the connection if appropriate
+                if (nf.Client.isNewerRevision(currentConnectionEntity, proposedConnectionEntity)) {
+                    connectionMap.set(proposedConnectionEntity.id, $.extend({
+                        type: 'Connection'
+                    }, proposedConnectionEntity));
+                }
             };
 
             // determine how to handle the specified connection
             if ($.isArray(connectionEntities)) {
                 $.each(connectionMap.keys(), function (_, key) {
-                    connectionMap.remove(key);
+                    var currentConnectionEntity = connectionMap.get(key);
+                    var isPresent = $.grep(connectionEntities, function (proposedConnectionEntity) {
+                        return proposedConnectionEntity.id === currentConnectionEntity.id;
+                    });
+
+                    // if the current connection is not present, remove it
+                    if (isPresent.length === 0) {
+                        connectionMap.remove(key);
+                    }
                 });
                 $.each(connectionEntities, function (_, connectionEntity) {
                     set(connectionEntity);
@@ -1617,28 +1629,6 @@ nf.Connection = (function () {
          */
         reorder: function () {
             d3.selectAll('g.connection').call(sort);
-        },
-
-        /**
-         * Sets the connection status using the specified status.
-         *
-         * @param {array} connectionStatus
-         */
-        setStatus: function (connectionStatus) {
-            if (nf.Common.isEmpty(connectionStatus)) {
-                return;
-            }
-
-            // update the connection status
-            $.each(connectionStatus, function (_, status) {
-                if (connectionMap.has(status.id)) {
-                    var connection = connectionMap.get(status.id);
-                    connection.status = status;
-                }
-            });
-
-            // update the visible connections
-            d3.selectAll('g.connection.visible').call(updateConnectionStatus);
         },
 
         /**
@@ -1698,11 +1688,11 @@ nf.Connection = (function () {
         /**
          * Reloads the connection state from the server and refreshes the UI.
          *
-         * @param {object} connection       The connection to reload
+         * @param {string} id       The connection id
          */
-        reload: function (connection) {
-            if (connectionMap.has(connection.id)) {
-                var connectionEntity = connectionMap.get(connection.id);
+        reload: function (id) {
+            if (connectionMap.has(id)) {
+                var connectionEntity = connectionMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: connectionEntity.uri,

@@ -17,15 +17,14 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 @XmlType(name = "connectionStatus")
 public class ConnectionStatusDTO implements Cloneable {
@@ -37,9 +36,10 @@ public class ConnectionStatusDTO implements Cloneable {
     private String sourceId;
     private String sourceName;
     private String destinationId;
-    private String destinationName;
 
+    private String destinationName;
     private ConnectionStatusSnapshotDTO aggregateSnapshot;
+
     private List<NodeConnectionStatusSnapshotDTO> nodeSnapshots;
 
     @ApiModelProperty("The ID of the connection")
@@ -144,6 +144,7 @@ public class ConnectionStatusDTO implements Cloneable {
         other.setSourceId(getSourceId());
         other.setSourceName(getSourceName());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
+
 
         final List<NodeConnectionStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
         final List<NodeConnectionStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());

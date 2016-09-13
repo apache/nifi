@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.controller.state.providers.zookeeper;
 
 import java.io.IOException;
@@ -38,8 +37,8 @@ import org.testng.Assert;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
-    private StateProvider provider;
-    private TestingServer zkServer;
+    private volatile StateProvider provider;
+    private volatile TestingServer zkServer;
 
     private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
 
@@ -48,7 +47,6 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         defaultProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
         defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
     }
-
 
     @Before
     public void setup() throws Exception {
@@ -99,9 +97,11 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
     @After
     public void clear() throws IOException {
         try {
-            getProvider().onComponentRemoved(componentId);
-            getProvider().disable();
-            getProvider().shutdown();
+            if (provider != null) {
+                provider.onComponentRemoved(componentId);
+                provider.disable();
+                provider.shutdown();
+            }
         } finally {
             if (zkServer != null) {
                 zkServer.stop();
@@ -110,12 +110,10 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         }
     }
 
-
     @Override
     protected StateProvider getProvider() {
         return provider;
     }
-
 
     @Test(timeout = 20000)
     public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
@@ -151,7 +149,6 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             }
         }
     }
-
 
     @Test(timeout = 20000)
     public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {

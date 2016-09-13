@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.remote.client;
 
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.web.api.dto.ControllerDTO;
-import org.apache.nifi.web.api.dto.PortDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
@@ -34,9 +25,16 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class SiteInfoProvider {
+import javax.net.ssl.SSLContext;
 
-    private static final Logger logger = LoggerFactory.getLogger(SiteInfoProvider.class);
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
+
+public class SiteInfoProvider {
 
     private static final long REMOTE_REFRESH_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
@@ -60,7 +58,7 @@ public class SiteInfoProvider {
     private ControllerDTO refreshRemoteInfo() throws IOException {
         final ControllerDTO controller;
 
-        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy)) {
+        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP)) {
             apiClient.resolveBaseUrl(clusterUrl);
             apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
             apiClient.setReadTimeoutMillis(readTimeoutMillis);

@@ -63,12 +63,21 @@ import org.wali.WriteAheadRepository;
  * </p>
  *
  * <p>
- * We expose a property named <code>nifi.flowfile.repository.always.sync</code> that is a boolean value indicating whether or not to force WALI to sync with disk on each update. By default, the value
- * is <code>false</code>. This is needed only in situations in which power loss is expected and not mitigated by Uninterruptable Power Sources (UPS) or when running in an unstable Virtual Machine for
- * instance. Otherwise, we will flush the data that is written to the Operating System and the Operating System will be responsible to flush its buffers when appropriate. The Operating System can be
- * configured to hold only a certain buffer size or not to buffer at all, as well. When using a UPS, this is generally not an issue, as the machine is typically notified before dying, in which case
- * the Operating System will flush the data to disk. Additionally, most disks on enterprise servers also have battery backups that can power the disks long enough to flush their buffers. For this
- * reason, we choose instead to not sync to disk for every write but instead sync only when we checkpoint.
+ * We expose a property named <code>nifi.flowfile.repository.always.sync</code>
+ * that is a boolean value indicating whether or not to force WALI to sync with
+ * disk on each update. By default, the value is <code>false</code>. This is
+ * needed only in situations in which power loss is expected and not mitigated
+ * by Uninterruptable Power Sources (UPS) or when running in an unstable Virtual
+ * Machine for instance. Otherwise, we will flush the data that is written to
+ * the Operating System and the Operating System will be responsible to flush
+ * its buffers when appropriate. The Operating System can be configured to hold
+ * only a certain buffer size or not to buffer at all, as well. When using a
+ * UPS, this is generally not an issue, as the machine is typically notified
+ * before dying, in which case the Operating System will flush the data to disk.
+ * Additionally, most disks on enterprise servers also have battery backups that
+ * can power the disks long enough to flush their buffers. For this reason, we
+ * choose instead to not sync to disk for every write but instead sync only when
+ * we checkpoint.
  * </p>
  */
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
@@ -112,15 +121,24 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // on restart.
     private final ConcurrentMap<Integer, BlockingQueue<ResourceClaim>> claimsAwaitingDestruction = new ConcurrentHashMap<>();
 
+    /**
+     * default no args constructor for service loading only.
+     */
     public WriteAheadFlowFileRepository() {
-        final NiFiProperties properties = NiFiProperties.getInstance();
+        alwaysSync = false;
+        checkpointDelayMillis = 0l;
+        flowFileRepositoryPath = null;
+        numPartitions = 0;
+        checkpointExecutor = null;
+    }
 
-        alwaysSync = Boolean.parseBoolean(properties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
+    public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
+        alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
 
         // determine the database file path and ensure it exists
-        flowFileRepositoryPath = properties.getFlowFileRepositoryPath();
-        numPartitions = properties.getFlowFileRepositoryPartitions();
-        checkpointDelayMillis = FormatUtils.getTimeDuration(properties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
+        flowFileRepositoryPath = nifiProperties.getFlowFileRepositoryPath();
+        numPartitions = nifiProperties.getFlowFileRepositoryPartitions();
+        checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
     }
@@ -177,17 +195,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         claimManager.markDestructable(resourceClaim);
     }
 
-    private int getClaimantCount(final ContentClaim claim) {
+    private boolean isDestructable(final ContentClaim claim) {
         if (claim == null) {
-            return 0;
+            return false;
         }
 
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         if (resourceClaim == null) {
-            return 0;
+            return false;
         }
 
-        return claimManager.getClaimantCount(resourceClaim);
+        return !resourceClaim.isInUse();
     }
 
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
@@ -211,19 +229,28 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final Set<ResourceClaim> claimsToAdd = new HashSet<>();
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
-                // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
-                if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
+                // For any DELETE record that we have, if claim is destructible, mark it so
+                if (record.getCurrentClaim() != null && isDestructable(record.getCurrentClaim())) {
                     claimsToAdd.add(record.getCurrentClaim().getResourceClaim());
                 }
 
-                // If the original claim is different than the current claim and the original claim has a claimant count <= 0, mark it as destructable.
-                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                // If the original claim is different than the current claim and the original claim is destructible, mark it so
+                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && isDestructable(record.getOriginalClaim())) {
                     claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
-                // if we have an update, and the original is no longer needed, mark original as destructable
-                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                // if we have an update, and the original is no longer needed, mark original as destructible
+                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && isDestructable(record.getOriginalClaim())) {
                     claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
+                }
+            }
+
+            final List<ContentClaim> transientClaims = record.getTransientClaims();
+            if (transientClaims != null) {
+                for (final ContentClaim transientClaim : transientClaims) {
+                    if (isDestructable(transientClaim)) {
+                        claimsToAdd.add(transientClaim.getResourceClaim());
+                    }
                 }
             }
         }
@@ -243,7 +270,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             claimQueue.addAll(claimsToAdd);
         }
     }
-
 
     @Override
     public void onSync(final int partitionIndex) {
@@ -273,7 +299,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     /**
-     * Swaps the FlowFiles that live on the given Connection out to disk, using the specified Swap File and returns the number of FlowFiles that were persisted.
+     * Swaps the FlowFiles that live on the given Connection out to disk, using
+     * the specified Swap File and returns the number of FlowFiles that were
+     * persisted.
      *
      * @param queue queue to swap out
      * @param swapLocation location to swap to
@@ -388,6 +416,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     private static class WriteAheadRecordSerde implements SerDe<RepositoryRecord> {
+
         private static final int CURRENT_ENCODING_VERSION = 9;
 
         public static final byte ACTION_CREATE = 0;
@@ -542,7 +571,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             if (version > 1) {
                 // read the lineage identifiers and lineage start date, which were added in version 2.
-                if(version < 9){
+                if (version < 9) {
                     final int numLineageIds = in.readInt();
                     for (int i = 0; i < numLineageIds; i++) {
                         in.readUTF(); //skip identifiers
@@ -653,7 +682,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             if (version > 1) {
                 // read the lineage identifiers and lineage start date, which were added in version 2.
-                if(version < 9) {
+                if (version < 9) {
                     final int numLineageIds = in.readInt();
                     for (int i = 0; i < numLineageIds; i++) {
                         in.readUTF(); //skip identifiers

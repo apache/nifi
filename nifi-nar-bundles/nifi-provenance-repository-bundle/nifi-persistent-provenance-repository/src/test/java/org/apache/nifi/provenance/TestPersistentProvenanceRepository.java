@@ -16,6 +16,34 @@
  */
 package org.apache.nifi.provenance;
 
+import static org.apache.nifi.provenance.TestUtil.createFlowFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
@@ -36,6 +64,7 @@ import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
+import org.apache.nifi.provenance.lucene.CachingIndexManager;
 import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.search.Query;
@@ -62,34 +91,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
-
-import static org.apache.nifi.provenance.TestUtil.createFlowFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class TestPersistentProvenanceRepository {
 
@@ -496,16 +497,16 @@ public class TestPersistentProvenanceRepository {
 
         final CountDownLatch obtainIndexSearcherLatch = new CountDownLatch(2);
         repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
-            private IndexManager wrappedManager = null;
+            private CachingIndexManager wrappedManager = null;
 
             // Create an IndexManager that adds a delay before returning the Index Searcher.
             @Override
-            protected synchronized IndexManager getIndexManager() {
+            protected synchronized CachingIndexManager getIndexManager() {
                 if (wrappedManager == null) {
                     final IndexManager mgr = super.getIndexManager();
                     final Logger logger = LoggerFactory.getLogger("IndexManager");
 
-                    wrappedManager = new IndexManager() {
+                    wrappedManager = new CachingIndexManager() {
                         final AtomicInteger indexSearcherCount = new AtomicInteger(0);
 
                         @Override
@@ -1666,6 +1667,61 @@ public class TestPersistentProvenanceRepository {
         }
 
         assertEquals(10000, counter);
+    }
+
+    @Test
+    public void testRolloverRetry() throws IOException, InterruptedException {
+        final AtomicInteger retryAmount = new AtomicInteger(0);
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS){
+            @Override
+            File mergeJournals(List<File> journalFiles, File suggestedMergeFile, EventReporter eventReporter) throws IOException {
+                retryAmount.incrementAndGet();
+                return super.mergeJournals(journalFiles, suggestedMergeFile, eventReporter);
+            }
+
+            // Indicate that there are no files available.
+            @Override
+            protected List<File> filterUnavailableFiles(List<File> journalFiles) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            protected long getRolloverRetryMillis() {
+                return 10L; // retry quickly.
+            }
+        };
+        repo.initialize(getEventReporter(), null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10000; i++) {
+            exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    repo.registerEvent(record);
+                }
+            });
+        }
+        exec.shutdown();
+        exec.awaitTermination(10, TimeUnit.SECONDS);
+
+        repo.waitForRollover();
+        assertEquals(5,retryAmount.get());
     }
 
     @Test

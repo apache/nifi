@@ -33,24 +33,24 @@ import org.springframework.context.ApplicationContextAware;
 
 public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<ThreadPoolRequestReplicator>, ApplicationContextAware {
     private ApplicationContext applicationContext;
-    private NiFiProperties properties;
+    private NiFiProperties nifiProperties;
 
     private ThreadPoolRequestReplicator replicator = null;
 
     @Override
     public ThreadPoolRequestReplicator getObject() throws Exception {
-        if (replicator == null && properties.isNode()) {
+        if (replicator == null && nifiProperties.isNode()) {
             final EventReporter eventReporter = applicationContext.getBean("eventReporter", EventReporter.class);
             final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
             final RequestCompletionCallback requestCompletionCallback = applicationContext.getBean("clusterCoordinator", RequestCompletionCallback.class);
 
-            final int numThreads = properties.getClusterNodeProtocolThreads();
-            final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(properties));
-            final String connectionTimeout = properties.getClusterNodeConnectionTimeout();
-            final String readTimeout = properties.getClusterNodeReadTimeout();
+            final int numThreads = nifiProperties.getClusterNodeProtocolThreads();
+            final Client jerseyClient = WebUtils.createClient(new DefaultClientConfig(), SslContextFactory.createSslContext(nifiProperties));
+            final String connectionTimeout = nifiProperties.getClusterNodeConnectionTimeout();
+            final String readTimeout = nifiProperties.getClusterNodeReadTimeout();
 
             replicator = new ThreadPoolRequestReplicator(numThreads, jerseyClient, clusterCoordinator,
-                connectionTimeout, readTimeout, requestCompletionCallback, eventReporter);
+                connectionTimeout, readTimeout, requestCompletionCallback, eventReporter, nifiProperties);
         }
 
         return replicator;
@@ -71,8 +71,8 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
         this.applicationContext = applicationContext;
     }
 
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setProperties(final NiFiProperties properties) {
+        this.nifiProperties = properties;
     }
 
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.io.File;
 import java.util.Set;
 import java.util.UUID;
 
@@ -85,5 +86,20 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     @Override
     public NodeTypeProvider getNodeTypeProvider() {
         return context;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null; //this needs to be wired in.
     }
 }

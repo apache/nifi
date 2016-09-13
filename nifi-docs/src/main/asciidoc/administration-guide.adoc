@@ -169,6 +169,83 @@ Now that the User Interface has been secured, we can easily secure Site-to-Site 
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
 
 
+TLS Generation Toolkit
+~~~~~~~~~~~~~~~~~~~~~~
+
+In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
+
+The `tls-toolkit` command line tool has two primary modes of operation:
+
+1. Standalone -- generates the certificate authority, keystores, truststores, and nifi.properties files in one command.
+2. Client/Server mode -- uses a Certificate Authority Server that accepts Certificate Signing Requests from clients, signs them, and sends the resulting certificates back.  Both client and server validate the other’s identity through a shared secret.
+
+Standalone
+^^^^^^^^^^
+Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which prints the usage information along with descriptions of options that can be specified.
+
+The most common options to specify are:
+
+* `-n,--hostnames`          The comma-separated list of hostnames that you’d like to generate certificates for.  It can be specified multiple times.  Range and instance patterns are supported. See below for details.
+* `-C,--clientCertDn`       The DN that you'd like to generate a client certificate for.  It can be specified multiple times.
+* `-f,--nifiPropertiesFile` The base 'nifi.properties' file that the tool will update for each host.
+* `-o,--outputDirectory`    The directory to use for the resulting Certificate Authority files and NiFi configurations.  A subdirectory will be made for each host.
+
+Hostname Patterns:
+
+* Square brackets can be used in order to easily specify a range of hostnames. Example: [01-20]
+* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: (5)
+
+Examples:
+
+Create 4 sets of keystore, truststore, nifi.properties for localhost along with a client certificate with the given DN:
+----
+bin/tls-toolkit.sh standalone -n 'localhost(4)' -C 'CN=username,OU=NIFI'
+----
+
+Create keystore, truststore, nifi.properties for 10 NiFi hostnames in each of 4 subdomains:
+----
+bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain'
+----
+
+Create 2 sets of keystore, truststore, nifi.properties for 10 NiFi hostnames in each of 4 subdomains along with a client certificate with the given DN:
+----
+bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
+----
+
+
+Client/Server
+^^^^^^^^^^^^^
+Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates.  The CA can be stopped when you’re not bringing nodes online.
+
+
+===== Server
+
+The CA server is invoked by running `./bin/tls-toolkit server -h` prints the usage information along with descriptions of options that can be specified.
+
+The most common options to specify are:
+
+* `-f,--configJson`        The location of the json config (written after first run)
+* `-F,--useConfigJson`     Loads all relevant configuration from the config json (configJson is the only other argument necessary)
+* `-t,--token`             The token used to prevent man in the middle attacks (this should be a long, random value and needs to be known when invoking the client)
+* `-D,--dn`                The DN for the CA
+
+===== Client
+
+The client can be used to request new Certificates from the CA.  The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority.  The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
+
+The most common options to specify are:
+
+* `-f,--configJson`                   The json config file
+* `-c,--certificateAuthorityHostname`  The hostname of the CA
+* `-D,--DN`                            The DN for the CSR (and Certificate)
+* `-t,--token`                         The token used to prevent man in the middle attacks (this should be a long, random value and needs to be the same one used to start the CA server)
+* `-T,--keyStoreType`                  The type of keystore to create (leave default for NiFi nodes, specify PKCS12 to create client cert)
+
+After running the client you will have the CA’s certificate, a keystore, a truststore, and a config.json with information about them as well as their passwords.
+
+For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`
+
+
 User Authentication
 -------------------
 
@@ -879,7 +956,6 @@ image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
 
 On a JVM with limited strength cryptography, some PBE algorithms limit the maximum password length to 7, and in this case it will not be possible to provide a "safe" password. It is recommended to install the JCE Unlimited Strength Jurisdiction Policy files for the JVM to mitigate this issue.
 
-* http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[JCE Unlimited Strength Jurisdiction Policy files for Java 7]
 * http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8]
 
 If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above).
@@ -892,6 +968,115 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 
 It is preferable to request upstream/downstream systems to switch to https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption] or use a "strong" https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi].
 
+Encrypted Passwords in Configuration Files
+------------------------------------------
+
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
+
+This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files
+
+If no administrator action is taken, the configuration values remain unencrypted.
+
+[[encrypt-config_tool]]
+Encrypt-Config Tool
+~~~~~~~~~~~~~~~~~~~
+
+The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a 'nifi.properties' file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new 'nifi.properties' file if specified.
+
+The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
+
+You can use the following command line options with the `encrypt-config` tool:
+
+* `-b,--bootstrapConf <arg>`          The bootstrap.conf file to persist master key
+* `-h,--help`                         Prints this usage message
+* `-k,--key <arg>`                    The raw hexadecimal key to use to encrypt the sensitive properties (the key can be entered with spaces or '-' delimiters to assist manual entry -- these will be ignored)
+* `-n,--niFiProperties <arg>`         The 'nifi.properties' file containing unprotected config values (will be overwritten by default unless `-o` is provided)
+* `-o,--outputNiFiProperties <arg>`   The destination 'nifi.properties' file containing protected config values (will not modify input 'nifi.properties')
+* `-p,--password <arg>`               The password from which to derive the key to use to encrypt the sensitive properties
+* `-r,--useRawKey`                    If provided, the secure console will prompt for the raw key value in hexadecimal form
+* `-v,--verbose`                      Sets verbose mode (default false)
+
+As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
+
+----
+# security properties #
+nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.provider=BC
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=thisIsABadKeystorePassword
+nifi.security.keyPasswd=thisIsABadKeyPassword
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+----
+
+Enter the following arguments when using the tool:
+
+----
+encrypt-config.sh
+-b bootstrap.conf
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+-n nifi.properties
+----
+
+As a result, the 'nifi.properties' file is overwritten with protected properties and sibling encryption identifiers (`aes/gcm/256`, the currently supported algorithm):
+
+----
+# security properties #
+nifi.sensitive.props.key=n2z+tTTbHuZ4V4V2||uWhdasyDXD4ZG2lMAes/vqh6u4vaz4xgL4aEbF4Y/dXevqk3ulRcOwf1vc4RDQ==
+nifi.sensitive.props.key.protected=aes/gcm/256
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.provider=BC
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=oBjT92hIGRElIGOh||MZ6uYuWNBrOA6usq/Jt3DaD2e4otNirZDytac/w/KFe0HOkrJR03vcbo
+nifi.security.keystorePasswd.protected=aes/gcm/256
+nifi.security.keyPasswd=ac/BaE35SL/esLiJ||+ULRvRLYdIDA2VqpE0eQXDEMjaLBMG2kbKOdOwBk/hGebDKlVg==
+nifi.security.keyPasswd.protected=aes/gcm/256
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+----
+
+Additionally, the 'bootstrap.conf' file is updated with the encryption key as follows:
+
+----
+# Master key in hexadecimal format for encrypted sensitive configuration values
+nifi.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+----
+
+Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired.  To encrypt additional properties, specify them as comma-separated values in the `nifi.sensitive.props.additional.keys` property.
+
+If the 'nifi.properties' file already has valid protected values, those property values are not modified by the tool.
+
+[[encrypt-config_password]]
+Password Key Derivation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of providing a 32 or 64 character raw hexadecimal key, you can provide a password from which the key will be derived. As of 1.0.0, the password must be at least 12 characters, and the key will be derived using `SCrypt` with the parameters:
+
+* `pw` -- the password bytes in `UTF-8`
+* `salt` -- the fixed salt value (`NIFI_SCRYPT_SALT`) bytes in `UTF-8`
+* `N` -- 2^16^
+* `r` -- 8
+* `p` -- 1
+* `dkLen` -- determined by the JCE policies available
+
+As of August 2016, these values are determined to be strong for this threat model but may change in future versions.
+
+NOTE: While fixed salts are counter to best practices, a static salt is necessary for deterministic key derivation without additional storage of the salt value.
+
+[[encrypt-config_secure_prompt]]
+Secure Prompt
+~~~~~~~~~~~~~
+
+If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
 
 [[clustering]]
 Clustering Configuration
@@ -986,6 +1171,20 @@ There are cases where a DFM may wish to continue making changes to the flow, eve
 In this case, they DFM may elect to remove the node from the cluster entirely through the Cluster Management dialog. Once removed,
 the node cannot be rejoined to the cluster until it has been restarted.
 
+*Flow Election* +
+When a cluster first starts up, NiFi must determine which of the nodes have the
+"correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
+attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
+has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
+Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
+flow will be added to the pool of possibly elected flows with one vote. After
+some amount of time has elapsed (configured by setting the `nifi.cluster.flow.election.max.wait.time` property) or
+some number of Nodes have cast votes (configured by setting the `nifi.cluster.flow.election.max.candidates` property),
+a flow is elected to be the "correct" copy of the flow. All nodes that have incompatible flows are then disconnected
+from the cluster while those with compatible flows inherit the cluster's flow. Election is performed according to
+the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
+allows an administrator to remove a node's `flow.xml.gz` file and restart the node, knowing that the node's flow will
+not be voted to be the "correct" flow unless no other flow is found.
 
 *Basic Cluster Setup* +
 
@@ -1019,8 +1218,13 @@ For each Node, the minimum properties to configure are as follows:
    that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
    the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
    that is specified.
-** nifi.cluster.request.replication.claim.timeout - Specifies how long a component can be 'locked' during a request replication
-   before the lock expires and is automatically unlocked. See <<claim_management>> for more information.
+** nifi.cluster.flow.election.max.wait.time - Specifies the amount of time to wait before electing a Flow as the "correct" Flow.
+   If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates`
+   property, the cluster will not wait this long. The default is 5 minutes. Note that the time starts as soon as the first vote
+   is cast.
+** nifi.cluster.flow.election.max.candidates - Specifies the number of Nodes required in the cluster to cause early election
+   of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach
+   at least this number of nodes in the cluster.
 
 Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
 one of the nodes, and the User Interface should look similar to the following:
@@ -1793,6 +1997,7 @@ Security Configuration section of this Administrator's Guide.
 |nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 |nifi.sensitive.props.provider|The sensitive property provider. The default value is BC.
+|nifi.sensitive.props.additional.keys|The comma separated list of properties to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |nifi.security.keystore*|The full path and name of the keystore. It is blank by default.
 |nifi.security.keystoreType|The keystore type. It is blank by default.
 |nifi.security.keystorePasswd|The keystore password. It is blank by default.
@@ -1903,17 +2108,35 @@ that is specified.
 
 |====
 |*Property*|*Description*
-|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. Note that this property is not used to authenticate NiFi users.
-    Rather, it is made available for extension points, such as Hadoop-based Processors, to use. At this time, only a single krb5 file is allowed to
-    be specified per NiFi instance, so this property is configured here rather than in individual Processors.
+|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. At this time, only a single krb5 file is allowed to
+    be specified per NiFi instance, so this property is configured here to support SPNEGO and service principles rather than in individual Processors.
+    If necessary the krb5 file can support multiple realms.
     Example: `/etc/krb5.conf`
-|nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+|nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
+   Example: `nifi/nifi.example.com` or `nifi/nifi.example.com@EXAMPLE.COM`
+|nifi.kerberos.service.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
+  Example: `/etc/nifi.keytab`
+|nifi.kerberos.spnego.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
    Example: `HTTP/nifi.example.com` or `HTTP/nifi.example.com@EXAMPLE.COM`
-|nifi.kerberos.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+|nifi.kerberos.spnego.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
   Example: `/etc/http-nifi.keytab`
-|nifi.kerberos.authentication.expiration*|The expiration duration of a successful Kerberos user authentication, if used. It is 12 hours by default.
+|nifi.kerberos.spengo.authentication.expiration*|The expiration duration of a successful Kerberos user authentication, if used. It is 12 hours by default.
   Example: `12 hours`
 |====
 
+[[custom_properties]]
+=== Custom Properties
+
+To configure custom properties for use with NiFi’s Expression Language:
+
+* Create the custom property. Ensure that:
+** Each custom property contains a distinct property value, so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
+** Each node in a clustered environment is configured with the same custom properties.
+* Update the 'nifi.properties' file with the location of the custom property files.
+
+|====
+|*Property*|*Description*
+|nifi.variable.registry.properties|This is a comma-separated list of file location paths for one or more custom property files.
+|====
 
 NOTE: *For Upgrading* - Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.

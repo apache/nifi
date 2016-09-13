@@ -40,9 +40,16 @@ import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
 class CertificateUtilsTest extends GroovyTestCase {
@@ -443,7 +450,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertTrue(notBefore.after(inFuture(-1)));
         assertTrue(notBefore.before(inFuture(1)));
 
-        assertEquals(dn, x509Certificate.getIssuerDN().getName());
+        assertEquals(dn, x509Certificate.getIssuerX500Principal().getName());
         assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase());
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm());
 
@@ -458,12 +465,12 @@ class CertificateUtilsTest extends GroovyTestCase {
         KeyPair issuerKeyPair = generateKeyPair();
         X509Certificate issuer = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, "CN=testCa,O=testOrg", SIGNATURE_ALGORITHM, days);
 
-        String dn = "CN=testIssued,O=testOrg";
+        String dn = "CN=testIssued, O=testOrg";
 
         KeyPair keyPair = generateKeyPair();
         X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair, SIGNATURE_ALGORITHM, days);
-        assertEquals(dn, x509Certificate.getSubjectDN().toString());
-        assertEquals(issuer.getSubjectDN().toString(), x509Certificate.getIssuerDN().toString());
+        assertEquals(dn, x509Certificate.getSubjectX500Principal().toString());
+        assertEquals(issuer.getSubjectX500Principal().toString(), x509Certificate.getIssuerX500Principal().toString());
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
 
         Date notAfter = x509Certificate.getNotAfter();
@@ -478,5 +485,71 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm());
 
         x509Certificate.verify(issuerKeyPair.getPublic());
+    }
+
+    @Test
+    public void reorderShouldPutElementsInCorrectOrder() {
+        String cn = "CN=testcn";
+        String l = "L=testl";
+        String st = "ST=testst";
+        String o = "O=testo";
+        String ou = "OU=testou";
+        String c = "C=testc";
+        String street = "STREET=teststreet";
+        String dc = "DC=testdc";
+        String uid = "UID=testuid";
+        String surname = "SURNAME=testsurname";
+        String initials = "INITIALS=testinitials";
+        String givenName = "GIVENNAME=testgivenname";
+        assertEquals("$cn,$l,$st,$o,$ou,$c,$street,$dc,$uid,$surname,$givenName,$initials".toString(),
+                CertificateUtils.reorderDn("$surname,$st,$o,$initials,$givenName,$uid,$street,$c,$cn,$ou,$l,$dc"));
+    }
+
+    @Test
+    public void testUniqueSerialNumbers() {
+        def running = new AtomicBoolean(true);
+        def executorService = Executors.newCachedThreadPool()
+        def serialNumbers = Collections.newSetFromMap(new ConcurrentHashMap())
+        try {
+            def futures = new ArrayList<Future>()
+            for (int i = 0; i < 8; i++) {
+                futures.add(executorService.submit(new Callable<Integer>() {
+                    @Override
+                    Integer call() throws Exception {
+                        int count = 0;
+                        while (running.get()) {
+                            def before = System.currentTimeMillis()
+                            def serialNumber = CertificateUtils.getUniqueSerialNumber()
+                            def after = System.currentTimeMillis()
+                            def serialNumberMillis = serialNumber.shiftRight(32)
+                            assertTrue(serialNumberMillis >= before)
+                            assertTrue(serialNumberMillis <= after)
+                            assertTrue(serialNumbers.add(serialNumber))
+                            count++;
+                        }
+                        return count;
+                    }
+                }));
+            }
+
+            Thread.sleep(1000)
+
+            running.set(false)
+
+            def totalRuns = 0;
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    def numTimes = futures.get(i).get()
+                    logger.info("future $i executed $numTimes times")
+                    totalRuns += numTimes;
+                } catch (ExecutionException e) {
+                    throw e.getCause()
+                }
+            }
+            logger.info("Generated ${serialNumbers.size()} unique serial numbers")
+            assertEquals(totalRuns, serialNumbers.size())
+        } finally {
+            executorService.shutdown()
+        }
     }
 }

@@ -111,8 +111,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     public static final PropertyDescriptor MAX_VALUE_COLUMN_NAMES = new PropertyDescriptor.Builder()
             .name("Maximum-value Columns")
             .description("A comma-separated list of column names. The processor will keep track of the maximum value "
-                    + "for each column that has been returned since the processor started running. This can be used to "
-                    + "retrieve only those rows that have been added/updated since the last retrieval. Note that some "
+                    + "for each column that has been returned since the processor started running. Using multiple columns implies an order "
+                    + "to the column list, and each column's values are expected to increase more slowly than the previous columns' values. Thus, "
+                    + "using multiple columns implies a hierarchical structure of columns, which is usually used for partitioning tables. This processor "
+                    + "can be used to retrieve only those rows that have been added/updated since the last retrieval. Note that some "
                     + "JDBC types such as bit/boolean are not conducive to maintaining maximum value, so columns of these "
                     + "types should not be listed in this property, and will result in error(s) during processing. If no columns "
                     + "are provided, all rows from the table will be considered, which could have a performance impact.")

@@ -476,11 +476,8 @@ nf.CanvasUtils = (function () {
         bulletins: function (selection, d, getTooltipContainer, offset) {
             offset = nf.Common.isDefinedAndNotNull(offset) ? offset : 0;
 
-            // remove any existing tip if necessary
+            // get the tip
             var tip = d3.select('#bulletin-tip-' + d.id);
-            if (!tip.empty()) {
-                tip.remove();
-            }
 
             var hasBulletins = false;
             if (!nf.Common.isEmpty(d.bulletins)) {
@@ -499,17 +496,20 @@ nf.CanvasUtils = (function () {
                 // update the tooltip
                 selection.select('text.bulletin-icon')
                         .each(function () {
-                            // if there are bulletins generate a tooltip
-                            tip = getTooltipContainer().append('div')
+                            // create the tip if necessary
+                            if (tip.empty()) {
+                                tip = getTooltipContainer().append('div')
                                     .attr('id', function () {
                                         return 'bulletin-tip-' + d.id;
                                     })
-                                    .attr('class', 'tooltip nifi-tooltip')
-                                    .html(function () {
-                                        return $('<div></div>').append(list).html();
-                                    });
+                                    .attr('class', 'tooltip nifi-tooltip');
+                            }
 
                             // add the tooltip
+                            tip.html(function () {
+                                return $('<div></div>').append(list).html();
+                            });
+
                             nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
 
@@ -517,6 +517,11 @@ nf.CanvasUtils = (function () {
                 selection.select('text.bulletin-icon').style("visibility", "visible");
                 selection.select('rect.bulletin-background').style("visibility", "visible");
             } else {
+                // clean up if necessary
+                if (!tip.empty()) {
+                    tip.remove();
+                }
+
                 // update the tooltip background
                 selection.select('text.bulletin-icon').style("visibility", "hidden");
                 selection.select('rect.bulletin-background').style("visibility", "hidden");
@@ -792,7 +797,8 @@ nf.CanvasUtils = (function () {
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
                         nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.status.aggregateSnapshot.runStatus === 'Stopped');
+                        (selectedData.status.aggregateSnapshot.runStatus === 'Stopped' ||
+                        selectedData.status.aggregateSnapshot.runStatus === 'Invalid'));
             });
         },
 
@@ -936,6 +942,10 @@ nf.CanvasUtils = (function () {
             if (selection.size() !== 1) {
                 return false;
             }
+
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
             if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
@@ -956,16 +966,19 @@ nf.CanvasUtils = (function () {
             if (selection.size() !== 1) {
                 return false;
             }
+
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
             if (nf.CanvasUtils.canRead(selection) === false) {
                 return false;
             }
-
             if (nf.CanvasUtils.canModify(selection)) {
                 if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isConnection(selection)) {
                     return !nf.CanvasUtils.isConfigurable(selection);
                 }
             } else {
-                return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
+                return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
             }
 
             return false;
@@ -1187,11 +1200,11 @@ nf.CanvasUtils = (function () {
                     if (sourceData.permissions.canRead) {
                         // update the source status if necessary
                         if (nf.CanvasUtils.isProcessor(source)) {
-                            nf.Processor.reload(sourceData.component);
+                            nf.Processor.reload(sourceData.id);
                         } else if (nf.CanvasUtils.isInputPort(source)) {
-                            nf.Port.reload(sourceData.component);
+                            nf.Port.reload(sourceData.id);
                         } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                            nf.RemoteProcessGroup.reload(sourceData.component);
+                            nf.RemoteProcessGroup.reload(sourceData.id);
                         }
                     }
                 }
@@ -1205,9 +1218,9 @@ nf.CanvasUtils = (function () {
                     if (destinationData.permissions.canRead) {
                         // update the destination component accordingly
                         if (nf.CanvasUtils.isProcessor(destination)) {
-                            nf.Processor.reload(destinationData.component);
+                            nf.Processor.reload(destinationData.id);
                         } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                            nf.RemoteProcessGroup.reload(destinationData.component);
+                            nf.RemoteProcessGroup.reload(destinationData.id);
                         }
                     }
                 }
@@ -1285,6 +1298,9 @@ nf.CanvasUtils = (function () {
          * @param {string} groupId
          */
         enterGroup: function (groupId) {
+            // hide the context menu
+            nf.ContextMenu.hide();
+
             // set the new group id
             nf.Canvas.setGroupId(groupId);
 
@@ -1364,7 +1380,7 @@ nf.CanvasUtils = (function () {
             // move the components into the destination and...
             moveComponents(components, groupData.id).done(function () {
                 // reload the target group
-                nf.ProcessGroup.reload(groupData.component);
+                nf.ProcessGroup.reload(groupData.id);
             });
         },
         

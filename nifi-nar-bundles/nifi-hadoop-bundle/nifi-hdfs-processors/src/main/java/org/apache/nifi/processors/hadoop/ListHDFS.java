@@ -42,7 +42,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.HDFSListing;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
@@ -89,20 +88,13 @@ import java.util.concurrent.TimeUnit;
     + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
+
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
         .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HDFS so that if a new node "
                 + "begins pulling data, it won't duplicate all of the work that has been done.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
-        .build();
-
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-        .name(DIRECTORY_PROP_NAME)
-        .description("The HDFS directory from which files should be read")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
         .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
@@ -287,14 +279,14 @@ public class ListHDFS extends AbstractHadoopProcessor {
         // Pull in any file that is newer than the timestamp that we have.
         final FileSystem hdfs = getFileSystem();
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
-        final Path rootPath = new Path(directory);
 
         final Set<FileStatus> statuses;
         try {
+            final Path rootPath = new Path(directory);
             statuses = getStatuses(rootPath, recursive, hdfs);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {ioe});
+        } catch (final IOException | IllegalArgumentException e) {
+            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
             return;
         }
 

@@ -17,10 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -41,40 +38,38 @@ public class NodeConnectionStatus {
     private final DisconnectionCode disconnectCode;
     private final String disconnectReason;
     private final Long connectionRequestTime;
-    private final Set<String> roles;
 
 
-    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final Set<String> roles) {
-        this(nodeId, state, null, null, null, roles);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state) {
+        this(nodeId, state, null, null, null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
-        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionCode.name(), null, null);
+        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionCode.toString(), null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String disconnectionExplanation) {
-        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionExplanation, null, null);
+        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionExplanation, null);
     }
 
-    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectionCode, final Set<String> roles) {
-        this(nodeId, state, disconnectionCode, disconnectionCode.name(), null, roles);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectionCode) {
+        this(nodeId, state, disconnectionCode, disconnectionCode == null ? null : disconnectionCode.toString(), null);
     }
 
-    public NodeConnectionStatus(final NodeConnectionStatus status, final Set<String> roles) {
-        this(status.getNodeIdentifier(), status.getState(), status.getDisconnectCode(), status.getDisconnectReason(), status.getConnectionRequestTime(), roles);
+    public NodeConnectionStatus(final NodeConnectionStatus status) {
+        this(status.getNodeIdentifier(), status.getState(), status.getDisconnectCode(), status.getDisconnectReason(), status.getConnectionRequestTime());
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
-        final String disconnectReason, final Long connectionRequestTime, final Set<String> roles) {
-        this(idGenerator.getAndIncrement(), nodeId, state, disconnectCode, disconnectReason, connectionRequestTime, roles);
+        final String disconnectReason, final Long connectionRequestTime) {
+        this(idGenerator.getAndIncrement(), nodeId, state, disconnectCode, disconnectReason, connectionRequestTime);
     }
 
     public NodeConnectionStatus(final long updateId, final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
-        final String disconnectReason, final Long connectionRequestTime, final Set<String> roles) {
+        final String disconnectReason, final Long connectionRequestTime) {
         this.updateId = updateId;
         this.nodeId = nodeId;
         this.state = state;
-        this.roles = roles == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(roles));
         if (state == NodeConnectionState.DISCONNECTED && disconnectCode == null) {
             this.disconnectCode = DisconnectionCode.UNKNOWN;
             this.disconnectReason = this.disconnectCode.toString();
@@ -88,10 +83,6 @@ public class NodeConnectionStatus {
 
     public long getUpdateIdentifier() {
         return updateId;
-    }
-
-    public Set<String> getRoles() {
-        return roles;
     }
 
     public NodeIdentifier getNodeIdentifier() {
@@ -118,11 +109,10 @@ public class NodeConnectionStatus {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         final NodeConnectionState state = getState();
-        sb.append("NodeConnectionStatus[state=").append(state);
+        sb.append("NodeConnectionStatus[nodeId=").append(nodeId).append(", state=").append(state);
         if (state == NodeConnectionState.DISCONNECTED || state == NodeConnectionState.DISCONNECTING) {
             sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getDisconnectReason());
         }
-        sb.append(", roles=").append(getRoles());
         sb.append(", updateId=").append(getUpdateIdentifier());
         sb.append("]");
         return sb.toString();
@@ -142,7 +132,6 @@ public class NodeConnectionStatus {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-        result = prime * result + ((roles == null) ? 0 : roles.hashCode());
         result = prime * result + ((state == null) ? 0 : state.hashCode());
         return result;
     }
@@ -163,7 +152,6 @@ public class NodeConnectionStatus {
 
         NodeConnectionStatus other = (NodeConnectionStatus) obj;
         return Objects.deepEquals(getNodeIdentifier(), other.getNodeIdentifier())
-            && Objects.deepEquals(getRoles(), other.getRoles())
             && Objects.deepEquals(getState(), other.getState());
     }
 }

@@ -74,6 +74,8 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
 
     @Override
     public void interrupt() {
+        input.interrupt();
+        output.interrupt();
     }
 
     @Override

@@ -277,7 +277,10 @@ nf.HistoryTable = (function () {
 
         // define how general values are formatted
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            return nf.Common.formatValue(value);
+            if(dataContext.canRead !== true) {
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">Not authorized</span>';
+            }
+            return nf.Common.formatValue(dataContext.action[columnDef.field]);
         };
 
         // initialize the templates table

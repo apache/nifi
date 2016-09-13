@@ -27,7 +27,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
     /**
      * Sort based on the current position in the queue
      */
-    QUEUE_POSITION (new Comparator<FlowFileSummary>() {
+    QUEUE_POSITION(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return Integer.compare(o1.getPosition(), o2.getPosition());
@@ -37,7 +37,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
     /**
      * Sort based on the UUID of the FlowFile
      */
-    FLOWFILE_UUID (new Comparator<FlowFileSummary>() {
+    FLOWFILE_UUID(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return o1.getUuid().compareTo(o2.getUuid());
@@ -47,7 +47,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
     /**
      * Sort based on the 'filename' attribute of the FlowFile
      */
-    FILENAME (new Comparator<FlowFileSummary>() {
+    FILENAME(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return o1.getFilename().compareTo(o2.getFilename());
@@ -67,7 +67,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
     /**
      * Sort based on how long the FlowFile has been sitting in the queue
      */
-    QUEUED_DURATION (new Comparator<FlowFileSummary>() {
+    QUEUED_DURATION(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return -Long.compare(o1.getLastQueuedTime(), o2.getLastQueuedTime());
@@ -78,7 +78,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
      * Sort based on the age of the FlowFile. I.e., the time at which the FlowFile's
      * "greatest ancestor" entered the flow
      */
-    FLOWFILE_AGE (new Comparator<FlowFileSummary>() {
+    FLOWFILE_AGE(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return Long.compare(o1.getLineageStartDate(), o2.getLineageStartDate());
@@ -88,7 +88,7 @@ public enum SortColumn implements Comparator<FlowFileSummary> {
     /**
      * Sort based on when the FlowFile's penalization ends
      */
-    PENALIZATION (new Comparator<FlowFileSummary>() {
+    PENALIZATION(new Comparator<FlowFileSummary>() {
         @Override
         public int compare(final FlowFileSummary o1, final FlowFileSummary o2) {
             return Boolean.compare(o1.isPenalized(), o2.isPenalized());

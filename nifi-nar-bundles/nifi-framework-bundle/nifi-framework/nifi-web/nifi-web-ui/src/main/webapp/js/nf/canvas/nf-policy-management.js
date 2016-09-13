@@ -949,9 +949,13 @@ nf.PolicyManagement = (function () {
                     loadPolicy();
                 }
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error)
+                nf.Common.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
+            }).always(function () {
+                nf.Canvas.reload({
+                    'transition': true
+                });
             });
         } else {
             nf.Dialog.showOkDialog({

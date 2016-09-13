@@ -17,11 +17,11 @@
 
 package org.apache.nifi.controller.status.history;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public enum RemoteProcessGroupStatusDescriptor {
     SENT_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytes",

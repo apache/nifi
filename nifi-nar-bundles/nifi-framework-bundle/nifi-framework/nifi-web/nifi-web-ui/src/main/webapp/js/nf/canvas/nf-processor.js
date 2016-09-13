@@ -608,20 +608,22 @@ nf.Processor = (function () {
                 return img;
             })
             .each(function (d) {
-                // remove the existing tip if necessary
+                // get the tip
                 var tip = d3.select('#run-status-tip-' + d.id);
-                if (!tip.empty()) {
-                    tip.remove();
-                }
 
                 // if there are validation errors generate a tooltip
                 if (d.permissions.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
-                    tip = d3.select('#processor-tooltips').append('div')
-                        .attr('id', function () {
-                            return 'run-status-tip-' + d.id;
-                        })
-                        .attr('class', 'tooltip nifi-tooltip')
-                        .html(function () {
+                    // create the tip if necessary
+                    if (tip.empty()) {
+                        tip = d3.select('#processor-tooltips').append('div')
+                            .attr('id', function () {
+                                return 'run-status-tip-' + d.id;
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // update the tip
+                    tip.html(function () {
                             var list = nf.Common.formatUnorderedList(d.component.validationErrors);
                             if (list === null || list.length === 0) {
                                 return '';
@@ -632,6 +634,11 @@ nf.Processor = (function () {
 
                     // add the tooltip
                     nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
+                } else {
+                    // remove the tip if necessary
+                    if (!tip.empty()) {
+                        tip.remove();
+                    }
                 }
             });
 
@@ -784,18 +791,30 @@ nf.Processor = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processorEntity) {
-                // add the processor
-                processorMap.set(processorEntity.id, $.extend({
-                    type: 'Processor',
-                    dimensions: dimensions
-                }, processorEntity));
+            var set = function (proposedProcessorEntity) {
+                var currentProcessorEntity = processorMap.get(proposedProcessorEntity.id);
+
+                // set the processor if appropriate
+                if (nf.Client.isNewerRevision(currentProcessorEntity, proposedProcessorEntity)) {
+                    processorMap.set(proposedProcessorEntity.id, $.extend({
+                        type: 'Processor',
+                        dimensions: dimensions
+                    }, proposedProcessorEntity));
+                }
             };
 
             // determine how to handle the specified processor
             if ($.isArray(processorEntities)) {
                 $.each(processorMap.keys(), function (_, key) {
-                    processorMap.remove(key);
+                    var currentProcessorEntity = processorMap.get(key);
+                    var isPresent = $.grep(processorEntities, function (proposedProcessorEntity) {
+                        return proposedProcessorEntity.id === currentProcessorEntity.id;
+                    });
+
+                    // if the current processor is not present, remove it
+                    if (isPresent.length === 0) {
+                        processorMap.remove(key);
+                    }
                 });
                 $.each(processorEntities, function (_, processorEntity) {
                     set(processorEntity);
@@ -859,11 +878,11 @@ nf.Processor = (function () {
          * Reloads the processor state from the server and refreshes the UI.
          * If the processor is currently unknown, this function just returns.
          *
-         * @param {object} processor The processor to reload
+         * @param {string} id The processor id
          */
-        reload: function (processor) {
-            if (processorMap.has(processor.id)) {
-                var processorEntity = processorMap.get(processor.id);
+        reload: function (id) {
+            if (processorMap.has(id)) {
+                var processorEntity = processorMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: processorEntity.uri,
@@ -897,28 +916,6 @@ nf.Processor = (function () {
          */
         removeAll: function () {
             nf.Processor.remove(processorMap.keys());
-        },
-
-        /**
-         * Sets the processor status using the specified status.
-         *
-         * @param {array} processorStatus       Processor status
-         */
-        setStatus: function (processorStatus) {
-            if (nf.Common.isEmpty(processorStatus)) {
-                return;
-            }
-
-            // update the specified processor status
-            $.each(processorStatus, function (_, status) {
-                if (processorMap.has(status.id)) {
-                    var processor = processorMap.get(status.id);
-                    processor.status = status;
-                }
-            });
-
-            // update the visible processor status
-            d3.selectAll('g.processor.visible').call(updateProcessorStatus);
         },
 
         /**

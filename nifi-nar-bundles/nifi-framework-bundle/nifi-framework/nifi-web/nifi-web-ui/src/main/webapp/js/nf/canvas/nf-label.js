@@ -399,17 +399,28 @@ nf.Label = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (labelEntity) {
-                // add the label
-                labelMap.set(labelEntity.id, $.extend({
-                    type: 'Label'
-                }, labelEntity));
+            var set = function (proposedLabelEntity) {
+                var currentLabelEntity = labelMap.get(proposedLabelEntity.id);
+
+                // set the processor if appropriate
+                if (nf.Client.isNewerRevision(currentLabelEntity, proposedLabelEntity)) {
+                    labelMap.set(proposedLabelEntity.id, $.extend({
+                        type: 'Label'
+                    }, proposedLabelEntity));
+                }
             };
 
-            // determine how to handle the specified label status
             if ($.isArray(labelEntities)) {
                 $.each(labelMap.keys(), function (_, key) {
-                    labelMap.remove(key);
+                    var currentLabelEntity = labelMap.get(key);
+                    var isPresent = $.grep(labelEntities, function (proposedLabelEntity) {
+                        return proposedLabelEntity.id === currentLabelEntity.id;
+                    });
+
+                    // if the current label is not present, remove it
+                    if (isPresent.length === 0) {
+                        labelMap.remove(key);
+                    }
                 });
                 $.each(labelEntities, function (_, labelEntity) {
                     set(labelEntity);
@@ -457,11 +468,11 @@ nf.Label = (function () {
          * Reloads the label state from the server and refreshes the UI.
          * If the label is currently unknown, this function just returns.
          *
-         * @param {object} label The label to reload
+         * @param {string} id The label id
          */
-        reload: function (label) {
-            if (labelMap.has(label.id)) {
-                var labelEntity = labelMap.get(label.id);
+        reload: function (id) {
+            if (labelMap.has(id)) {
+                var labelEntity = labelMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: labelEntity.uri,

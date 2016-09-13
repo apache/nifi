@@ -30,10 +30,17 @@ import java.util.regex.Pattern;
 
 public class ProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<ProcessGroupEntity> implements EndpointResponseMerger {
     public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
+    public static final Pattern CONTROLLER_ARCHIVE_URI_PATTERN = Pattern.compile("/nifi-api/controller/archive");
+    private ProcessGroupEntityMerger processGroupEntityMerger = new ProcessGroupEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return ("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && PROCESS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches();
+        if ("GET".equalsIgnoreCase(method) && (PROCESS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches() || CONTROLLER_ARCHIVE_URI_PATTERN.matcher(uri.getPath()).matches())) {
+            return true;
+        } else if ("PUT".equalsIgnoreCase(method) && PROCESS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches()) {
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -43,6 +50,6 @@ public class ProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<Pro
 
     @Override
     protected void mergeResponses(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        ProcessGroupEntityMerger.mergeProcessGroups(clientEntity, entityMap);
+        processGroupEntityMerger.merge(clientEntity, entityMap);
     }
 }

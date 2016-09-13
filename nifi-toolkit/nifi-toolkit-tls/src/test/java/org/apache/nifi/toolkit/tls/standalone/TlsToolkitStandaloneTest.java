@@ -18,40 +18,48 @@
 package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.manager.BaseTlsManager;
+import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.Permission;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 public class TlsToolkitStandaloneTest {
     public static final String NIFI_FAKE_PROPERTY = "nifi.fake.property";
     public static final String FAKE_VALUE = "fake value";
     public static final String TEST_NIFI_PROPERTIES = "src/test/resources/localhost/nifi.properties";
-    private SecurityManager originalSecurityManager;
+    private SystemExitCapturer systemExitCapturer;
 
     private File tempDir;
 
@@ -65,48 +73,29 @@ public class TlsToolkitStandaloneTest {
         if (!tempDir.mkdirs()) {
             throw new IOException("Couldn't make directory " + tempDir);
         }
-
-        originalSecurityManager = System.getSecurityManager();
-        // [see http://stackoverflow.com/questions/309396/java-how-to-test-methods-that-call-system-exit#answer-309427]
-        System.setSecurityManager(new SecurityManager() {
-            @Override
-            public void checkPermission(Permission perm) {
-                // Noop
-            }
-
-            @Override
-            public void checkPermission(Permission perm, Object context) {
-                // Noop
-            }
-
-            @Override
-            public void checkExit(int status) {
-                super.checkExit(status);
-                throw new ExitException(status);
-            }
-        });
+        systemExitCapturer = new SystemExitCapturer();
     }
 
     @After
     public void teardown() throws IOException {
-        System.setSecurityManager(originalSecurityManager);
+        systemExitCapturer.close();
         FileUtils.deleteDirectory(tempDir);
     }
 
     @Test
     public void testBadParse() {
-        runAndAssertExitCode(ExitCode.ERROR_PARSING_COMMAND_LINE.ordinal(), "--unknownArgument");
+        runAndAssertExitCode(ExitCode.ERROR_PARSING_COMMAND_LINE, "--unknownArgument");
     }
 
     @Test
     public void testHelp() {
-        runAndAssertExitCode(ExitCode.HELP.ordinal(), "-h");
-        runAndAssertExitCode(ExitCode.HELP.ordinal(), "--help");
+        runAndAssertExitCode(ExitCode.HELP, "-h");
+        runAndAssertExitCode(ExitCode.HELP, "--help");
     }
 
     @Test
     public void testDirOutput() throws Exception {
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath());
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -116,7 +105,7 @@ public class TlsToolkitStandaloneTest {
 
     @Test
     public void testDifferentArg() throws Exception {
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-g");
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-g", "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -126,7 +115,7 @@ public class TlsToolkitStandaloneTest {
 
     @Test
     public void testFileArg() throws Exception {
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-f", TEST_NIFI_PROPERTIES);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-f", TEST_NIFI_PROPERTIES, "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -134,23 +123,36 @@ public class TlsToolkitStandaloneTest {
     }
 
     @Test
-    public void testHostnamesArgument() throws Exception {
+    public void testHostnamesArgumentOverwrite() throws Exception {
         String nifi1 = "nifi1";
         String nifi2 = "nifi2";
         String nifi3 = "nifi3";
 
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-n", nifi1 + "," + nifi2 + "," + nifi3);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", nifi1 + "," + nifi2);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", nifi3);
 
         checkHostDirAndReturnNifiProperties(nifi1, x509Certificate);
         checkHostDirAndReturnNifiProperties(nifi2, x509Certificate);
         checkHostDirAndReturnNifiProperties(nifi3, x509Certificate);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-O", "-n", nifi3);
+        checkHostDirAndReturnNifiProperties(nifi3, x509Certificate);
+    }
+
+    @Test
+    public void testHostnamesArgumentNoOverwrite() throws Exception {
+        String nifi = "nifi";
+
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", nifi);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        checkHostDirAndReturnNifiProperties(nifi, x509Certificate);
+        runAndAssertExitCode(ExitCode.ERROR_GENERATING_CONFIG, "-o", tempDir.getAbsolutePath(), "-n", nifi);
     }
 
     @Test
     public void testKeyPasswordArg() throws Exception {
         String testKey = "testKey";
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-K", testKey);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-K", testKey, "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -160,7 +162,7 @@ public class TlsToolkitStandaloneTest {
     @Test
     public void testKeyStorePasswordArg() throws Exception {
         String testKeyStore = "testKeyStore";
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-S", testKeyStore);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-S", testKeyStore, "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -170,11 +172,36 @@ public class TlsToolkitStandaloneTest {
     @Test
     public void testTrustStorePasswordArg() throws Exception {
         String testTrustStore = "testTrustStore";
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-P", testTrustStore);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-P", testTrustStore, "-n", TlsConfig.DEFAULT_HOSTNAME);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(testTrustStore, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));
+    }
+
+    @Test
+    public void testClientDnsArg() throws Exception {
+        String clientDn = "OU=NIFI,CN=testuser";
+        String clientDn2 = "OU=NIFI,CN=testuser2";
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn, "-C", clientDn2, "-B", "pass1", "-P", "pass2");
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+
+        checkClientCert(clientDn, x509Certificate);
+        checkClientCert(clientDn2, x509Certificate);
+
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-O", "-C", clientDn2, "-B", "pass3");
+        checkClientCert(clientDn2, x509Certificate);
+    }
+
+    @Test
+    public void testClientDnsArgNoOverwrite() throws Exception {
+        String clientDn = "OU=NIFI,CN=testuser";
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn, "-B", "passwor");
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+
+        checkClientCert(clientDn, x509Certificate);
+
+        runAndAssertExitCode(ExitCode.ERROR_GENERATING_CONFIG, "-o", tempDir.getAbsolutePath(), "-C", clientDn);
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
@@ -201,13 +228,16 @@ public class TlsToolkitStandaloneTest {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }
 
+        String trustStoreFilename = BaseCommandLine.KEYSTORE + trustStoreType;
+        assertEquals("./conf/" + trustStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+
         Certificate certificate = trustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT);
         assertEquals(rootCert, certificate);
 
         String keyStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
         String keyStoreFilename = BaseCommandLine.KEYSTORE + keyStoreType;
         File keyStoreFile = new File(hostDir, keyStoreFilename);
-        assertEquals(keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+        assertEquals("./conf/" + keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         try (InputStream inputStream = new FileInputStream(keyStoreFile)) {
@@ -227,27 +257,35 @@ public class TlsToolkitStandaloneTest {
         assertEquals(rootCert, certificateChain[1]);
         certificateChain[1].verify(rootCert.getPublicKey());
         certificateChain[0].verify(rootCert.getPublicKey());
+        TlsCertificateAuthorityTest.assertPrivateAndPublicKeyMatch(privateKeyEntry.getPrivateKey(), certificateChain[0].getPublicKey());
         return nifiProperties;
     }
 
-    private void runAndAssertExitCode(int exitCode, String... args) {
-        try {
-            TlsToolkitStandaloneCommandLine.main(args);
-            fail("Expecting exit code: " + exitCode);
-        } catch (ExitException e) {
-            assertEquals(exitCode, e.getExitCode());
+    private void checkClientCert(String clientDn, X509Certificate rootCert) throws Exception {
+        String clientDnFile = TlsToolkitStandalone.getClientDnFile(CertificateUtils.reorderDn(clientDn));
+        String password;
+        try (FileReader fileReader = new FileReader(new File(tempDir, clientDnFile + ".password"))) {
+            List<String> lines = IOUtils.readLines(fileReader);
+            assertEquals(1, lines.size());
+            password = lines.get(0);
         }
+
+        KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
+        try (FileInputStream fileInputStream = new FileInputStream(new File(tempDir, clientDnFile + ".p12"))) {
+            keyStore.load(fileInputStream, password.toCharArray());
+        }
+        PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, new char[0]);
+        Certificate[] certificateChain = keyStore.getCertificateChain(TlsToolkitStandalone.NIFI_KEY);
+        assertEquals(2, certificateChain.length);
+        assertEquals(rootCert, certificateChain[1]);
+        certificateChain[1].verify(rootCert.getPublicKey());
+        certificateChain[0].verify(rootCert.getPublicKey());
+        PublicKey publicKey = certificateChain[0].getPublicKey();
+        TlsCertificateAuthorityTest.assertPrivateAndPublicKeyMatch(privateKey, publicKey);
+
     }
 
-    private static class ExitException extends SecurityException {
-        private final int exitCode;
-
-        public ExitException(int exitCode) {
-            this.exitCode = exitCode;
-        }
-
-        public int getExitCode() {
-            return exitCode;
-        }
+    private void runAndAssertExitCode(ExitCode exitCode, String... args) {
+        systemExitCapturer.runAndAssertExitCode(() -> TlsToolkitStandaloneCommandLine.main(args), exitCode);
     }
 }

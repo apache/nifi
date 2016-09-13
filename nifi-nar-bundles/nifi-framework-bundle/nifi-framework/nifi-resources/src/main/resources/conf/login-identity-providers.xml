@@ -94,7 +94,6 @@
         Identity Provider for users logging in with username/password against a Kerberos KDC server.
 
         'Default Realm' - Default realm to provide when user enters incomplete user principal (i.e. NIFI.APACHE.ORG).
-        'Kerberos Config File' - Absolute path to Kerberos client configuration file.
         'Authentication Expiration' - The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
     -->
     <!-- To enable the kerberos-provider remove 2 lines. This is 1 of 2.
@@ -102,7 +101,6 @@
         <identifier>kerberos-provider</identifier>
         <class>org.apache.nifi.kerberos.KerberosProvider</class>
         <property name="Default Realm">NIFI.APACHE.ORG</property>
-        <property name="Kerberos Config File">/etc/krb5.conf</property>
         <property name="Authentication Expiration">12 hours</property>
     </provider>
     To enable the kerberos-provider remove 2 lines. This is 2 of 2. -->

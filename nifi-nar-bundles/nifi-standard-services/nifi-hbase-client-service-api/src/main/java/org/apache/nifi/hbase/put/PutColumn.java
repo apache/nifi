@@ -21,22 +21,22 @@ package org.apache.nifi.hbase.put;
  */
 public class PutColumn {
 
-    private final String columnFamily;
-    private final String columnQualifier;
+    private final byte[] columnFamily;
+    private final byte[] columnQualifier;
     private final byte[] buffer;
 
 
-    public PutColumn(final String columnFamily, final String columnQualifier, final byte[] buffer) {
+    public PutColumn(final byte[] columnFamily, final byte[] columnQualifier, final byte[] buffer) {
         this.columnFamily = columnFamily;
         this.columnQualifier = columnQualifier;
         this.buffer = buffer;
     }
 
-    public String getColumnFamily() {
+    public byte[] getColumnFamily() {
         return columnFamily;
     }
 
-    public String getColumnQualifier() {
+    public byte[] getColumnQualifier() {
         return columnQualifier;
     }
 

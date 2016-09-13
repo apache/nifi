@@ -102,7 +102,7 @@ public class RangerNiFiAuthorizer implements Authorizer {
                     // login with the nifi principal and keytab, RangerAdminRESTClient will use Ranger's MiscUtil which
                     // will grab UserGroupInformation.getLoginUser() and call ugi.checkTGTAndReloginFromKeytab();
                     final String nifiPrincipal = nifiProperties.getKerberosServicePrincipal();
-                    final String nifiKeytab = nifiProperties.getKerberosKeytabLocation();
+                    final String nifiKeytab = nifiProperties.getKerberosServiceKeytabLocation();
 
                     if (StringUtils.isBlank(nifiPrincipal) || StringUtils.isBlank(nifiKeytab)) {
                         throw new AuthorizerCreationException("Principal and Keytab must be provided when Kerberos is enabled");

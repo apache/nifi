@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class ControllerServicesEntityMerger {
 
+    private static final ControllerServiceEntityMerger controllerServiceEntityMerger = new ControllerServiceEntityMerger();
+
     /**
      * Merges multiple ControllerServiceEntity responses.
      *
@@ -32,7 +34,7 @@ public class ControllerServicesEntityMerger {
      */
     public static void mergeControllerServices(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, Map<NodeIdentifier, ControllerServiceEntity>> entityMap) {
         for (final ControllerServiceEntity entity : controllerServiceEntities) {
-            ControllerServiceEntityMerger.mergeControllerServices(entity, entityMap.get(entity.getId()));
+            controllerServiceEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }
