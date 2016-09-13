@@ -58,6 +58,13 @@ nf.Connection = (function () {
 
     var connectionMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // ---------------------
     // connection containers
     // ---------------------
@@ -1201,6 +1208,8 @@ nf.Connection = (function () {
 
         init: function () {
             connectionMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the connection container
             connectionContainer = d3.select('#canvas').append('g')
@@ -1543,7 +1552,12 @@ nf.Connection = (function () {
                 selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (connectionEntity) {
+                addedCache.set(connectionEntity.id, now);
+
                 // add the connection
                 connectionMap.set(connectionEntity.id, $.extend({
                     type: 'Connection'
@@ -1585,8 +1599,8 @@ nf.Connection = (function () {
             var set = function (proposedConnectionEntity) {
                 var currentConnectionEntity = connectionMap.get(proposedConnectionEntity.id);
 
-                // set the connection if appropriate
-                if (nf.Client.isNewerRevision(currentConnectionEntity, proposedConnectionEntity)) {
+                // set the connection if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentConnectionEntity, proposedConnectionEntity) && !removedCache.has(proposedConnectionEntity.id)) {
                     connectionMap.set(proposedConnectionEntity.id, $.extend({
                         type: 'Connection'
                     }, proposedConnectionEntity));
@@ -1601,8 +1615,8 @@ nf.Connection = (function () {
                         return proposedConnectionEntity.id === currentConnectionEntity.id;
                     });
 
-                    // if the current connection is not present, remove it
-                    if (isPresent.length === 0) {
+                    // if the current connection is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
                         connectionMap.remove(key);
                     }
                 });
@@ -1663,15 +1677,19 @@ nf.Connection = (function () {
         /**
          * Removes the specified connection.
          *
-         * @param {array|string} connections      The connection id
+         * @param {array|string} connectionIds      The connection id
          */
-        remove: function (connections) {
-            if ($.isArray(connections)) {
-                $.each(connections, function (_, connection) {
-                    connectionMap.remove(connection);
+        remove: function (connectionIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(connectionIds)) {
+                $.each(connectionIds, function (_, connectionId) {
+                    removedCache.set(connectionId, now);
+                    connectionMap.remove(connectionId);
                 });
             } else {
-                connectionMap.remove(connections);
+                removedCache.set(connectionIds, now);
+                connectionMap.remove(connectionIds);
             }
 
             // apply the selection and handle all removed connections
@@ -1732,6 +1750,24 @@ nf.Connection = (function () {
             } else {
                 return connectionMap.get(id);
             }
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         }
     };
 }());

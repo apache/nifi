@@ -33,6 +33,13 @@ nf.Processor = (function () {
 
     var processorMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -733,6 +740,8 @@ nf.Processor = (function () {
          */
         init: function () {
             processorMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the processor container
             processorContainer = d3.select('#canvas').append('g')
@@ -754,7 +763,12 @@ nf.Processor = (function () {
                 selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (processorEntity) {
+                addedCache.set(processorEntity.id, now);
+
                 // add the processor
                 processorMap.set(processorEntity.id, $.extend({
                     type: 'Processor',
@@ -794,8 +808,8 @@ nf.Processor = (function () {
             var set = function (proposedProcessorEntity) {
                 var currentProcessorEntity = processorMap.get(proposedProcessorEntity.id);
 
-                // set the processor if appropriate
-                if (nf.Client.isNewerRevision(currentProcessorEntity, proposedProcessorEntity)) {
+                // set the processor if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentProcessorEntity, proposedProcessorEntity) && !removedCache.has(proposedProcessorEntity.id)) {
                     processorMap.set(proposedProcessorEntity.id, $.extend({
                         type: 'Processor',
                         dimensions: dimensions
@@ -811,8 +825,8 @@ nf.Processor = (function () {
                         return proposedProcessorEntity.id === currentProcessorEntity.id;
                     });
 
-                    // if the current processor is not present, remove it
-                    if (isPresent.length === 0) {
+                    // if the current processor is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
                         processorMap.remove(key);
                     }
                 });
@@ -896,15 +910,19 @@ nf.Processor = (function () {
         /**
          * Removes the specified processor.
          *
-         * @param {array|string} processors      The processors
+         * @param {array|string} processorIds      The processors
          */
-        remove: function (processors) {
-            if ($.isArray(processors)) {
-                $.each(processors, function (_, processor) {
-                    processorMap.remove(processor);
+        remove: function (processorIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(processorIds)) {
+                $.each(processorIds, function (_, processorId) {
+                    removedCache.set(processorId, now);
+                    processorMap.remove(processorId);
                 });
             } else {
-                processorMap.remove(processors);
+                removedCache.set(processorIds, now);
+                processorMap.remove(processorIds);
             }
 
             // apply the selection and handle all removed processors
@@ -916,6 +934,24 @@ nf.Processor = (function () {
          */
         removeAll: function () {
             nf.Processor.remove(processorMap.keys());
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         },
 
         /**

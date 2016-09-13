@@ -615,6 +615,8 @@ nf.Canvas = (function () {
      * @argument {object} options               Configuration options
      */
     var reloadProcessGroup = function (processGroupId, options) {
+        var now = new Date().getTime();
+
         // load the controller
         return $.ajax({
             type: 'GET',
@@ -654,6 +656,7 @@ nf.Canvas = (function () {
             }
 
             // refresh the graph
+            nf.Graph.expireCaches(now);
             nf.Graph.set(processGroupFlow.flow, $.extend({
                 'selectAll': false
             }, options));

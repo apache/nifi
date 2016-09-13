@@ -30,6 +30,13 @@ nf.Funnel = (function () {
 
     var funnelMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -160,6 +167,8 @@ nf.Funnel = (function () {
          */
         init: function () {
             funnelMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the funnel container
             funnelContainer = d3.select('#canvas').append('g')
@@ -181,7 +190,12 @@ nf.Funnel = (function () {
                 selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (funnelEntity) {
+                addedCache.set(funnelEntity.id, now);
+
                 // add the funnel
                 funnelMap.set(funnelEntity.id, $.extend({
                     type: 'Funnel',
@@ -221,8 +235,8 @@ nf.Funnel = (function () {
             var set = function (proposedFunnelEntity) {
                 var currentFunnelEntity = funnelMap.get(proposedFunnelEntity.id);
 
-                // set the funnel if appropriate
-                if (nf.Client.isNewerRevision(currentFunnelEntity, proposedFunnelEntity)) {
+                // set the funnel if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
                     funnelMap.set(proposedFunnelEntity.id, $.extend({
                         type: 'Funnel',
                         dimensions: dimensions
@@ -237,8 +251,8 @@ nf.Funnel = (function () {
                         return proposedFunnelEntity.id === currentFunnelEntity.id;
                     });
 
-                    // if the current funnel is not present, remove it
-                    if (isPresent.length === 0) {
+                    // if the current funnel is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
                         funnelMap.remove(key);
                     }
                 });
@@ -315,15 +329,19 @@ nf.Funnel = (function () {
         /**
          * Removes the specified funnel.
          *
-         * @param {array|string} funnels      The funnel id
+         * @param {array|string} funnelIds      The funnel id
          */
-        remove: function (funnels) {
-            if ($.isArray(funnels)) {
-                $.each(funnels, function (_, funnel) {
-                    funnelMap.remove(funnel);
+        remove: function (funnelIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(funnelIds)) {
+                $.each(funnelIds, function (_, funnelId) {
+                    removedCache.set(funnelId, now);
+                    funnelMap.remove(funnelId);
                 });
             } else {
-                funnelMap.remove(funnels);
+                removedCache.set(funnelIds, now);
+                funnelMap.remove(funnelIds);
             }
 
             // apply the selection and handle all removed funnels
@@ -335,6 +353,24 @@ nf.Funnel = (function () {
          */
         removeAll: function () {
             nf.Funnel.remove(funnelMap.keys());
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         }
     };
 }());
