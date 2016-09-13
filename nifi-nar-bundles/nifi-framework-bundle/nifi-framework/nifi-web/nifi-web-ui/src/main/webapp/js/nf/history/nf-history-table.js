@@ -338,7 +338,7 @@ nf.HistoryTable = (function () {
             // determine the desired action
             if (historyGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('show-action-details')) {
-                    showActionDetails(item);
+                    showActionDetails(item.action);
                 }
             }
         });
