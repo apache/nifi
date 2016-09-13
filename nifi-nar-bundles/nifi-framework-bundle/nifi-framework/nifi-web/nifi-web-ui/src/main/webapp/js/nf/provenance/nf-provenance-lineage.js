@@ -45,14 +45,22 @@ nf.ng.ProvenanceLineage = function () {
     var downloadSvgFile = function(svgString){
         var link = document.getElementById("image-download-link");
         var downloadSupported = typeof link.download != 'undefined';
+        var fileName ='lineage.svg';
 
         if(downloadSupported) {
+
             var DOMURL = self.URL || self.webkitURL || self;
             var svg = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
-            var url = DOMURL.createObjectURL(svg);
-            link.href = url;
-            link.download='lineage.svg';
-            link.click();
+
+            if(window.navigator.msSaveOrOpenBlob){
+                window.navigator.msSaveOrOpenBlob(svg, fileName);
+            }else {
+                var url = DOMURL.createObjectURL(svg);
+                link.href = url;
+                link.download = fileName;
+                link.click();
+            }
+
         }else {
             window.open('data:image/svg+xml;charset=utf-8,' + encodeURI(svgString));
         }
@@ -1269,7 +1277,28 @@ nf.ng.ProvenanceLineage = function () {
                  });
 
                  // namespaces
-                 svg = svg.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"');
+                 svg = svg.replace(/<svg ([^>]*)/,function(match){
+
+                     var svgString = match;
+                     var nsSVG = ' xmlns="http://www.w3.org/2000/svg"';
+                     var nsXlink = ' xmlns:xlink="http://www.w3.org/1999/xlink"';
+                     var version = ' version="1.1" ';
+
+                     if(svgString.indexOf(nsSVG) == -1){
+                         svgString += nsSVG;
+                     }
+
+                     if(svgString.indexOf(nsXlink) == -1){
+                         svgString += nsXlink;
+                     }
+
+                     if(svgString.indexOf(version) == -1){
+                         svgString += version;
+                     }
+
+                     return svgString;
+
+                 });
 
                  // doctype
                  svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
