@@ -346,6 +346,10 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     @Override
     public PortAuthorizationResult checkUserAuthorization(final String dn) {
+        if (!secure) {
+            return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
+        }
+
         if (dn == null) {
             final String message = String.format("%s authorization failed for user %s because the DN is unknown", this, dn);
             logger.warn(message);
