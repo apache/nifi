@@ -1,0 +1,6 @@
+{
+  "name": "nifi-web-ui",
+  "dependencies": {
+    "bower": "1.7.2"
+  }
+}
