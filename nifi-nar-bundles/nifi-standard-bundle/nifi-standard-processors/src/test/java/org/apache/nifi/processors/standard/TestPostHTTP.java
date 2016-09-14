@@ -434,4 +434,11 @@ public class TestPostHTTP {
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertEquals("4700",lastPostHeaders.get("Content-Length"));
     }
+
+    @Test
+    public void testDefaultUserAgent() throws Exception {
+        setup(null);
+        Assert.assertTrue(runner.getProcessContext().getProperty(PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
+    }
+
 }
