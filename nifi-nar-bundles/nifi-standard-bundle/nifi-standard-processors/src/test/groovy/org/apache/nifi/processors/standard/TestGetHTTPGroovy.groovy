@@ -20,6 +20,7 @@ import groovy.servlet.GroovyServlet
 import groovy.test.GroovyAssert
 import org.apache.nifi.ssl.SSLContextService
 import org.apache.nifi.ssl.StandardSSLContextService
+import org.apache.nifi.util.StandardProcessorTestRunner
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -190,6 +191,8 @@ class TestGetHTTPGroovy extends GroovyTestCase {
         HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier)
 
         runner.setProperty(GetHTTP.FILENAME, "mockFlowfile_${System.currentTimeMillis()}")
+
+        (runner as StandardProcessorTestRunner).clearQueue()
     }
 
     @After
@@ -202,6 +205,7 @@ class TestGetHTTPGroovy extends GroovyTestCase {
 
         runner.clearTransferState()
         runner.clearProvenanceEvents()
+        (runner as StandardProcessorTestRunner).clearQueue()
     }
 
     @Test
@@ -325,13 +329,13 @@ class TestGetHTTPGroovy extends GroovyTestCase {
             logger.info("Set context service protocol to ${tlsVersion}")
             enableContextServiceProtocol(runner, tlsVersion)
             runner.assertQueueEmpty()
-            runner.enqueue(MSG.getBytes())
+//            runner.enqueue(MSG.getBytes())
             logger.info("Queue size (before run): ${runner.queueSize}")
             runner.run()
 
             // Assert
             logger.info("Queue size (after run): ${runner.queueSize}")
-            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS)
+            runner.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1)
             runner.clearTransferState()
             logger.info("Ran successfully")
         }
