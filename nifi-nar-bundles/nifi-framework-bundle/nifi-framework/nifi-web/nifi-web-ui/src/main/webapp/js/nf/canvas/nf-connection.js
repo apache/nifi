@@ -1579,7 +1579,7 @@ nf.Connection = (function () {
             selection.call(updateConnections, {
                 'updatePath': true,
                 'updateLabel': false
-            });
+            }).call(sort);
         },
 
         /**
@@ -1634,15 +1634,8 @@ nf.Connection = (function () {
                 'updatePath': true,
                 'updateLabel': true,
                 'transition': transition
-            });
+            }).call(sort);
             selection.exit().call(removeConnections);
-        },
-
-        /**
-         * Reorders the connections based on their current z index.
-         */
-        reorder: function () {
-            d3.selectAll('g.connection').call(sort);
         },
 
         /**

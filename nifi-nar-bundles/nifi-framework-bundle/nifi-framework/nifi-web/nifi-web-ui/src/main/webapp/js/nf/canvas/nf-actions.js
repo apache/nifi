@@ -1450,9 +1450,7 @@ nf.Actions = (function () {
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
-                    // update the edge's zIndex
                     nf.Connection.set(response);
-                    nf.Connection.reorder();
                 });
             }
         }
