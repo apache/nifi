@@ -32,7 +32,6 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
-import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -78,22 +77,24 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     @Override
     protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        final JMSResponse response = this.targetResource.consume();
-        if (response != null){
-            FlowFile flowFile = processSession.create();
-            flowFile = processSession.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    out.write(response.getMessageBody());
-                }
-            });
-            Map<String, Object> jmsHeaders = response.getMessageHeaders();
-            flowFile = this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
-            processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
-            processSession.transfer(flowFile, REL_SUCCESS);
-        } else {
-            context.yield();
-        }
+        this.targetResource.consume(response -> {
+            if (response != null) {
+                FlowFile flowFile = processSession.create();
+                flowFile = processSession.write(flowFile, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream out) throws IOException {
+                        out.write(response.getMessageBody());
+                    }
+                });
+                Map<String, Object> jmsHeaders = response.getMessageHeaders();
+                flowFile = this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
+                processSession.getProvenanceReporter().receive(flowFile,
+                        context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
+                processSession.transfer(flowFile, REL_SUCCESS);
+            } else {
+                context.yield();
+            }
+        });
     }
 
     /**

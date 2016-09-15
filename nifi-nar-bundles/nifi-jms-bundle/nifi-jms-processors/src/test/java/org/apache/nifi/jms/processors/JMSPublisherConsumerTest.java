@@ -20,8 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
@@ -30,7 +32,6 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
-import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -94,7 +95,8 @@ public class JMSPublisherConsumerTest {
 
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         try {
-            consumer.consume();
+            consumer.consume(response -> {
+            });
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
@@ -118,11 +120,77 @@ public class JMSPublisherConsumerTest {
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         assertEquals("JMSConsumer[destination:testQueue; pub-sub:false;]", consumer.toString());
 
-        JMSResponse response = consumer.consume();
-        assertEquals("hello from the other side", new String(response.getMessageBody()));
-        assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
-        assertEquals("foo", response.getMessageProperties().get("foo"));
-        assertEquals("false", response.getMessageProperties().get("bar"));
+        AtomicBoolean lambdaInvoked = new AtomicBoolean();
+        consumer.consume(response -> {
+            lambdaInvoked.set(true);
+            assertEquals("hello from the other side", new String(response.getMessageBody()));
+            assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
+            assertEquals("foo", response.getMessageProperties().get("foo"));
+            assertEquals("false", response.getMessageProperties().get("bar"));
+        });
+        assertTrue(lambdaInvoked.get());
+        ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
+    }
+
+    @Test
+    public void validateMessageRedeliveryWhenNotAcked() throws Exception {
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
+        JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+        publisher.publish("1".getBytes(StandardCharsets.UTF_8));
+        publisher.publish("2".getBytes(StandardCharsets.UTF_8));
+
+        JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
+        assertEquals("JMSConsumer[destination:testQueue; pub-sub:false;]", consumer.toString());
+
+        AtomicBoolean lambdaInvoked = new AtomicBoolean();
+        try {
+            consumer.consume(response -> {
+                lambdaInvoked.set(true);
+                assertEquals("1", new String(response.getMessageBody()));
+                throw new RuntimeException("intentional to avoid explicit ack");
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        assertTrue(lambdaInvoked.get());
+        lambdaInvoked.set(false);
+
+        // should receive the same message, but will process it successfully
+        try {
+            consumer.consume(response -> {
+                lambdaInvoked.set(true);
+                assertEquals("1", new String(response.getMessageBody()));
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        assertTrue(lambdaInvoked.get());
+        lambdaInvoked.set(false);
+
+        // receiving next message and fail again
+        try {
+            consumer.consume(response -> {
+                lambdaInvoked.set(true);
+                assertEquals("2", new String(response.getMessageBody()));
+                throw new RuntimeException("intentional to avoid explicit ack");
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        assertTrue(lambdaInvoked.get());
+        lambdaInvoked.set(false);
+
+        // should receive the same message, but will process it successfully
+        try {
+            consumer.consume(response -> {
+                lambdaInvoked.set(true);
+                assertEquals("2", new String(response.getMessageBody()));
+            });
+        } catch (Exception e) {
+            // ignore
+        }
+        assertTrue(lambdaInvoked.get());
+        lambdaInvoked.set(false);
 
         ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
     }

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.jms.ConnectionFactory;
+import javax.jms.Session;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -205,7 +206,11 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             jmsTemplate.setDefaultDestinationName(this.destinationName);
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
-            // set of properties that may be good candidates for exposure via configuration
+            // always require explicit client ack to ensure atomic message
+            // consumption (from JMS) and disposition to NiFi, otherwise message
+            // will remain on destination for future retrieval
+            jmsTemplate.setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
+
             jmsTemplate.setReceiveTimeout(10000);
 
             this.targetResource = this.finishBuildingTargetResource(jmsTemplate);
