@@ -185,7 +185,7 @@ public class TailFile extends AbstractProcessor {
      * tailed file.
      */
     private void recoverState(final ProcessContext context, final Map<String, String> stateValues) throws IOException {
-        final String currentFilename = context.getProperty(FILENAME).getValue();
+        final String currentFilename = getFileNameValue(context);
         if (!stateValues.containsKey(TailFileState.StateKeys.FILENAME)) {
             resetState(currentFilename);
             return;
@@ -199,7 +199,7 @@ public class TailFile extends AbstractProcessor {
             return;
         }
 
-        final String currentFilename = getFileNameValue(context);
+
         final String checksumValue = stateValues.get(TailFileState.StateKeys.CHECKSUM);
         final boolean checksumPresent = (checksumValue != null);
         final String storedStateFilename = stateValues.get(TailFileState.StateKeys.FILENAME);
@@ -747,7 +747,7 @@ public class TailFile extends AbstractProcessor {
                                 session.remove(flowFile);
                                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                                 cleanup();
-                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
+                                state = new TailFileState(getFileNameValue(context), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
                             } else {
                                 flowFile = session.putAttribute(flowFile, "filename", firstFile.getName());
 
