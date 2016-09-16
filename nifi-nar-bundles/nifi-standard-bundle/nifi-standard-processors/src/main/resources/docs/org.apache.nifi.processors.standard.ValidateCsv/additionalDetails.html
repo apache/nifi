@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8"/>
+    <title>ValidateCsv</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<!-- Processor Documentation ================================================== -->
+<h2>Usage Information</h2>
+
+<p>
+	The Validate CSV processor is based on the super-csv library and the concept of 
+	<a href="http://super-csv.github.io/super-csv/cell_processors.html" target="_blank">Cell Processors</a>.
+	The corresponding java documentation can be found 
+	<a href="http://super-csv.github.io/super-csv/apidocs/org/supercsv/cellprocessor/ift/CellProcessor.html" target="_blank">here</a>.
+</p>
+
+<p>
+	The cell processors cannot be nested (except with Optional which gives the possibility to define a CellProcessor for values
+	that could be null) and must be defined in a comma-delimited string as the Schema property.
+</p>
+
+<p>
+	The supported cell processors are:
+	<ul>
+		<li>ParseBigDecimal</li>
+		<li>ParseBool</li>
+		<li>ParseChar</li>
+		<li>ParseDate</li>
+		<li>ParseDouble</li>
+		<li>ParseInt</li>
+		<li>Optional</li>
+		<li>DMinMax</li>
+		<li>Equals</li>
+		<li>ForbidSubStr</li>
+		<li>LMinMax</li>
+		<li>NotNull</li>
+		<li>Null</li>
+		<li>RequireHashCode</li>
+		<li>RequireSubStr</li>
+		<li>Strlen</li>
+		<li>StrMinMax</li>
+		<li>StrNotNullOrEmpty</li>
+		<li>StrRegEx</li>
+		<li>Unique</li>
+		<li>UniqueHashCode</li>
+		<li>IsIncludedIn</li>
+	</ul>
+</p>
+
+<p>
+	Here are some examples:
+	
+	<ul>
+	<b>Schema property:</b> Null, ParseDate("dd/MM/yyyy"), Optional(ParseDouble())<br />
+	<b>Meaning:</b> the input CSV has three columns, the first one can be null and has no specification, the second one must be a date
+	formatted as expected, and the third one must a double or null (no value).
+	</ul>
+	
+	<ul>
+	<b>Schema property:</b> ParseBigDecimal(), ParseBool(), ParseChar(), ParseInt(), ParseLong()<br />
+	<b>Meaning:</b> the input CSV has five columns, the first one must be a big decimal, the second one must be a boolean, 
+	the third one must be a char, the fourth one must be an integer and the fifth one must be a long.
+	</ul>
+	
+	<ul>
+	<b>Schema property:</b> Equals(), NotNull(), StrNotNullOrEmpty()<br />
+	<b>Meaning:</b> the input CSV has three columns, all the values of the first column must be equal to each other, all the values
+	of the second column must be not null, and all the values of the third column are not null/empty string values.
+	</ul>
+	
+	<ul>
+	<b>Schema property:</b> Strlen(4), StrMinMax(3,5), StrRegex("[a-z0-9\\._]+@[a-z0-9\\.]+")<br />
+	<b>Meaning:</b> the input CSV has three columns, all the values of the first column must be 4-characters long, all the values
+	of the second column must be between 3 and 5 characters (inclusive), and all the values of the last column must match
+	the provided regular expression (email address).
+	</ul>
+	
+	<ul>
+	<b>Schema property:</b> Unique(), UniqueHashCode()<br />
+	<b>Meaning:</b> the input CSV has two columns. All the values of the first column must be unique (all the values are stored in
+	memory and this can be consuming depending of the input). All the values of the second column must be unique (only hash
+	codes of the input values are stored to ensure uniqueness).
+	</ul>
+	
+	<ul>
+	<b>Schema property:</b> ForbidSubStr("test", "tset"), RequireSubStr("test")<br />
+	<b>Meaning:</b> the input CSV has two columns. None of the values in the first column must contain one of the provided strings.
+	And all the values of the second column must contain the provided string.
+	</ul>
+</p>
+</body>
+</html>
