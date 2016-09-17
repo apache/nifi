@@ -302,7 +302,15 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public boolean isContentEqual(String excpected) {
-        final String value = new String(this.data, Charset.forName("UTF-8"));
+        return isContentEqual(excpected, Charset.forName("UTF-8"));
+    }
+
+    public boolean isContentEqual(String excpected, final Charset charset) {
+        final String value = new String(this.data, charset);
         return Objects.equals(excpected, value);
+    }
+
+    public boolean isContentEqual(final byte[] excpected) {
+        return Arrays.equals(excpected, this.data);
     }
 }
