@@ -31,5 +31,4 @@ import org.apache.nifi.processor.exception.ProcessException;
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 public interface DBCPService extends ControllerService {
     public Connection getConnection()  throws ProcessException;
-
 }

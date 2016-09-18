@@ -115,15 +115,15 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
-            .name("Validation query")
-            .description("Validation query used to validate connections before returning them."
-                + "When connection is invalid, it get's dropped and new valid connection will be returned."
-                + "Note!! Using validation might have some performance penalty.")
-            .defaultValue(null)
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
+        .name("Validation-query")
+        .displayName("Validation query")
+        .description("Validation query used to validate connections before returning them. "
+            + "When connection is invalid, it get's dropped and new valid connection will be returned. "
+            + "Note!! Using validation might have some performance penalty.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .build();
 
     private static final List<PropertyDescriptor> properties;
 
@@ -184,7 +184,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
 
-        if (validationQuery!=null && validationQuery.isEmpty()==false) {
+        if (validationQuery!=null && !validationQuery.isEmpty()) {
             dataSource.setValidationQuery(validationQuery);
             dataSource.setTestOnBorrow(true);
         }
