@@ -98,7 +98,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             try {
-                this.targetResource.publish(this.extractMessageBody(flowFile, processSession),
+                final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
+                this.targetResource.publish(destinationName, this.extractMessageBody(flowFile, processSession),
                         flowFile.getAttributes());
                 processSession.transfer(flowFile, REL_SUCCESS);
                 processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
