@@ -128,16 +128,16 @@ nf.Cluster = (function () {
                         $('#cluster-table').css('bottom', 127);
                         $('#cluster-refresh-container').css('margin', 40);
                     }
-
-                    // configure the initial grid height
-                    nf.ClusterTable.resetTableSize();
                 };
 
                 // set the initial size
                 setBodySize();
 
-                // create the counters table
+                // create the cluster table
                 nf.ClusterTable.init();
+
+                // resize to fit
+                nf.ClusterTable.resetTableSize();
 
                 // load the table
                 nf.ClusterTable.loadClusterTable().done(function () {
