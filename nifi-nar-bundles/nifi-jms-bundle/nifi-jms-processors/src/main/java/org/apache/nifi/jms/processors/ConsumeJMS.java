@@ -25,13 +25,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import javax.jms.Session;
+
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
+import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
+import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -53,7 +59,30 @@ import org.springframework.jms.core.JmsTemplate;
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
+    static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
+            "AUTO_ACKNOWLEDGE",
+            "Automatically acknowledges a client's receipt of a message, regardless if NiFi session has been commited. "
+                    + "Can result in data loss in the event where NiFi abruptly stopped before session was commited.");
+
+    static final AllowableValue CLIENT_ACK = new AllowableValue(String.valueOf(Session.CLIENT_ACKNOWLEDGE),
+            "CLIENT_ACKNOWLEDGE",
+            "(DEFAULT) Manually acknowledges a client's receipt of a message after NiFi Session was commited, thus ensuring no data loss");
+
+    static final AllowableValue DUPS_OK = new AllowableValue(String.valueOf(Session.DUPS_OK_ACKNOWLEDGE),
+            "DUPS_OK_ACKNOWLEDGE",
+            "This acknowledgment mode instructs the session to lazily acknowledge the delivery of messages. May result uin both data "
+                    + "duplication and data loss while achieving the best throughput.");
+
     public static final String JMS_SOURCE_DESTINATION_NAME = "jms.source.destination";
+
+    static final PropertyDescriptor ACKNOWLEDGEMENT_MODE = new PropertyDescriptor.Builder()
+            .name("Acknowledgement Mode")
+            .description("The JMS Acknowledgement Mode. Using Auto Acknowledge can cause messages to be lost on restart of NiFi but may provide "
+                    + "better performance than Client Acknowledge.")
+            .required(true)
+            .allowableValues(AUTO_ACK, CLIENT_ACK, DUPS_OK)
+            .defaultValue(CLIENT_ACK.getValue())
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -63,6 +92,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     private final static Set<Relationship> relationships;
 
     static {
+        propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
@@ -77,22 +107,25 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     @Override
     protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        this.targetResource.consume(response -> {
-            if (response != null) {
-                FlowFile flowFile = processSession.create();
-                flowFile = processSession.write(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        out.write(response.getMessageBody());
-                    }
-                });
-                Map<String, Object> jmsHeaders = response.getMessageHeaders();
-                flowFile = this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
-                processSession.getProvenanceReporter().receive(flowFile,
-                        context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
-                processSession.transfer(flowFile, REL_SUCCESS);
-            } else {
-                context.yield();
+        this.targetResource.consume(new ConsumerCallback() {
+            @Override
+            public void accept(JMSResponse response) {
+                if (response != null) {
+                    FlowFile flowFile = processSession.create();
+                    flowFile = processSession.write(flowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            out.write(response.getMessageBody());
+                        }
+                    });
+                    Map<String, Object> jmsHeaders = response.getMessageHeaders();
+                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
+                    processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
+                    processSession.transfer(flowFile, REL_SUCCESS);
+                    processSession.commit();
+                } else {
+                    context.yield();
+                }
             }
         });
     }
@@ -101,7 +134,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      * Will create an instance of {@link JMSConsumer}
      */
     @Override
-    protected JMSConsumer finishBuildingTargetResource(JmsTemplate jmsTemplate) {
+    protected JMSConsumer finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext) {
+        int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
+        jmsTemplate.setSessionAcknowledgeMode(ackMode);
         return new JMSConsumer(jmsTemplate, this.getLogger());
     }
 

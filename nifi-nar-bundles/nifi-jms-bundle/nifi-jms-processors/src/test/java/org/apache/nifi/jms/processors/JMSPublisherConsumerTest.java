@@ -32,6 +32,8 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import org.apache.nifi.jms.processors.JMSConsumer.ConsumerCallback;
+import org.apache.nifi.jms.processors.JMSConsumer.JMSResponse;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.Test;
 import org.springframework.jms.connection.CachingConnectionFactory;
@@ -144,10 +146,13 @@ public class JMSPublisherConsumerTest {
 
         AtomicBoolean lambdaInvoked = new AtomicBoolean();
         try {
-            consumer.consume(response -> {
-                lambdaInvoked.set(true);
-                assertEquals("1", new String(response.getMessageBody()));
-                throw new RuntimeException("intentional to avoid explicit ack");
+            consumer.consume(new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    lambdaInvoked.set(true);
+                    assertEquals("1", new String(response.getMessageBody()));
+                    throw new RuntimeException("intentional to avoid explicit ack");
+                }
             });
         } catch (Exception e) {
             // ignore
@@ -157,9 +162,12 @@ public class JMSPublisherConsumerTest {
 
         // should receive the same message, but will process it successfully
         try {
-            consumer.consume(response -> {
-                lambdaInvoked.set(true);
-                assertEquals("1", new String(response.getMessageBody()));
+            consumer.consume(new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    lambdaInvoked.set(true);
+                    assertEquals("1", new String(response.getMessageBody()));
+                }
             });
         } catch (Exception e) {
             // ignore
@@ -169,10 +177,13 @@ public class JMSPublisherConsumerTest {
 
         // receiving next message and fail again
         try {
-            consumer.consume(response -> {
-                lambdaInvoked.set(true);
-                assertEquals("2", new String(response.getMessageBody()));
-                throw new RuntimeException("intentional to avoid explicit ack");
+            consumer.consume(new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    lambdaInvoked.set(true);
+                    assertEquals("2", new String(response.getMessageBody()));
+                    throw new RuntimeException("intentional to avoid explicit ack");
+                }
             });
         } catch (Exception e) {
             // ignore
@@ -182,9 +193,12 @@ public class JMSPublisherConsumerTest {
 
         // should receive the same message, but will process it successfully
         try {
-            consumer.consume(response -> {
-                lambdaInvoked.set(true);
-                assertEquals("2", new String(response.getMessageBody()));
+            consumer.consume(new ConsumerCallback() {
+                @Override
+                public void accept(JMSResponse response) {
+                    lambdaInvoked.set(true);
+                    assertEquals("2", new String(response.getMessageBody()));
+                }
             });
         } catch (Exception e) {
             // ignore

@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.jms.ConnectionFactory;
-import javax.jms.Session;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -103,12 +102,12 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * all other lifecycle methods are invoked multiple times.
      */
     static {
-        propertyDescriptors.add(USER);
-        propertyDescriptors.add(PASSWORD);
+        propertyDescriptors.add(CF_SERVICE);
         propertyDescriptors.add(DESTINATION);
         propertyDescriptors.add(DESTINATION_TYPE);
+        propertyDescriptors.add(USER);
+        propertyDescriptors.add(PASSWORD);
         propertyDescriptors.add(SESSION_CACHE_SIZE);
-        propertyDescriptors.add(CF_SERVICE);
     }
 
     protected volatile T targetResource;
@@ -177,7 +176,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * @see JMSPublisher
      * @see JMSConsumer
      */
-    protected abstract T finishBuildingTargetResource(JmsTemplate jmsTemplate);
+    protected abstract T finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext);
 
     /**
      * This method essentially performs initialization of this Processor by
@@ -206,14 +205,9 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             jmsTemplate.setDefaultDestinationName(this.destinationName);
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
-            // always require explicit client ack to ensure atomic message
-            // consumption (from JMS) and disposition to NiFi, otherwise message
-            // will remain on destination for future retrieval
-            jmsTemplate.setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
+            jmsTemplate.setReceiveTimeout(1000);
 
-            jmsTemplate.setReceiveTimeout(10000);
-
-            this.targetResource = this.finishBuildingTargetResource(jmsTemplate);
+            this.targetResource = this.finishBuildingTargetResource(jmsTemplate, context);
         }
     }
 }

@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import javax.jms.BytesMessage;
 import javax.jms.Destination;
@@ -58,12 +57,11 @@ final class JMSConsumer extends JMSWorker {
         }
     }
 
-
     /**
      *
      */
-    public void consume(Consumer<JMSResponse> messageProcessor) {
-        jmsTemplate.execute(new SessionCallback<Void>() {
+    public void consume(ConsumerCallback consumerCallback) {
+        this.jmsTemplate.execute(new SessionCallback<Void>() {
             @Override
             public Void doInJms(Session session) throws JMSException {
                 /*
@@ -72,10 +70,11 @@ final class JMSConsumer extends JMSWorker {
                  * delivery and restarts with the oldest unacknowledged message
                  */
                 session.recover();
-                Destination destination = jmsTemplate.getDestinationResolver().resolveDestinationName(session,
-                        jmsTemplate.getDefaultDestinationName(), jmsTemplate.isPubSubDomain());
-                MessageConsumer msgConsumer = session.createConsumer(destination, null, jmsTemplate.isPubSubDomain());
-                Message message = msgConsumer.receive();
+                Destination destination = JMSConsumer.this.jmsTemplate.getDestinationResolver().resolveDestinationName(session,
+                        JMSConsumer.this.jmsTemplate.getDefaultDestinationName(), JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                MessageConsumer msgConsumer = session.createConsumer(destination, null, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
+                JMSResponse response = null;
                 try {
                     if (message != null) {
                         byte[] messageBody = null;
@@ -84,17 +83,18 @@ final class JMSConsumer extends JMSWorker {
                         } else if (message instanceof BytesMessage) {
                             messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
                         } else {
-                            throw new IllegalStateException(
-                                    "Message type other then TextMessage and BytesMessage are "
+                            throw new IllegalStateException("Message type other then TextMessage and BytesMessage are "
                                             + "not supported at the moment");
                         }
                         Map<String, Object> messageHeaders = extractMessageHeaders(message);
                         Map<String, String> messageProperties = extractMessageProperties(message);
-                        JMSResponse response = new JMSResponse(messageBody, messageHeaders, messageProperties);
-                        // invoke the processor callback as part of this inJMS
-                        // call and ACK message *only* after its successful
-                        // invocation
-                        messageProcessor.accept(response);
+                        response = new JMSResponse(messageBody, messageHeaders, messageProperties);
+                    }
+                    // invoke the processor callback (regatrdless if it's null)
+                    // as part of this inJMS call and ACK message *only* after
+                    // its successful invocation
+                    consumerCallback.accept(response);
+                    if (message != null && session.getAcknowledgeMode() == Session.CLIENT_ACKNOWLEDGE) {
                         message.acknowledge();
                     }
                 } finally {
@@ -198,5 +198,13 @@ final class JMSConsumer extends JMSWorker {
         public Map<String, String> getMessageProperties() {
             return messageProperties;
         }
+    }
+
+    /**
+     * Callback to be invoked while executing inJMS call (the call within the
+     * live JMS session)
+     */
+    static interface ConsumerCallback {
+        void accept(JMSResponse response);
     }
 }
