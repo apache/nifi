@@ -202,7 +202,6 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             JmsTemplate jmsTemplate = new JmsTemplate();
             jmsTemplate.setConnectionFactory(this.cachingConnectionFactory);
             this.destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
-            jmsTemplate.setDefaultDestinationName(this.destinationName);
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
             // set of properties that may be good candidates for exposure via configuration
