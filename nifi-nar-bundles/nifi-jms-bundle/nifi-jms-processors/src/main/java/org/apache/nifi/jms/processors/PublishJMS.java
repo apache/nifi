@@ -122,7 +122,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
      * Will create an instance of {@link JMSPublisher}
      */
     @Override
-    protected JMSPublisher finishBuildingTargetResource(JmsTemplate jmsTemplate) {
+    protected JMSPublisher finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext) {
         return new JMSPublisher(jmsTemplate, this.getLogger());
     }
 
