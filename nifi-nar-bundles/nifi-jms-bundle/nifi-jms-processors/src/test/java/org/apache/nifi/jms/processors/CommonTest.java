@@ -48,13 +48,12 @@ public class CommonTest {
         assertTrue(consumeJmsPresent);
     }
 
-    static JmsTemplate buildJmsTemplateForDestination(String destinationName, boolean pubSub) {
+    static JmsTemplate buildJmsTemplateForDestination(boolean pubSub) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(
                 "vm://localhost?broker.persistent=false");
         CachingConnectionFactory cf = new CachingConnectionFactory(connectionFactory);
 
         JmsTemplate jmsTemplate = new JmsTemplate(cf);
-        jmsTemplate.setDefaultDestinationName(destinationName);
         jmsTemplate.setPubSubDomain(pubSub);
         return jmsTemplate;
     }

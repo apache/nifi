@@ -78,7 +78,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     @Override
     protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        final JMSResponse response = this.targetResource.consume();
+        final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
+        final JMSResponse response = this.targetResource.consume(destinationName);
         if (response != null){
             FlowFile flowFile = processSession.create();
             flowFile = processSession.write(flowFile, new OutputStreamCallback() {

@@ -37,12 +37,13 @@ public class ConsumeJMSTest {
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
+        final String  destinationName = "cooQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         final Map<String, String> senderAttributes = new HashMap<>();
         senderAttributes.put("filename", "message.txt");
         senderAttributes.put("attribute_from_sender", "some value");
-        sender.publish("Hey dude!".getBytes(), senderAttributes);
+        sender.publish(destinationName, "Hey dude!".getBytes(), senderAttributes);
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
@@ -51,14 +52,14 @@ public class ConsumeJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(ConsumeJMS.DESTINATION, "cooQueue");
+        runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
         runner.run(1, false);
         //
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
         successFF.assertAttributeExists(JmsHeaders.DESTINATION);
-        successFF.assertAttributeEquals(JmsHeaders.DESTINATION, "cooQueue");
+        successFF.assertAttributeEquals(JmsHeaders.DESTINATION, destinationName);
         successFF.assertAttributeExists("filename");
         successFF.assertAttributeEquals("filename", "message.txt");
         successFF.assertAttributeExists("attribute_from_sender");
