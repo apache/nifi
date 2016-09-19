@@ -249,6 +249,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>super-csv</artifactId>
             <version>2.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.everit.json</groupId>
+            <artifactId>org.everit.json.schema</artifactId>
+            <version>1.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>
