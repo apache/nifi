@@ -94,6 +94,7 @@ public class TestStandardProcessSession {
     private StandardProcessSession session;
     private MockContentRepository contentRepo;
     private FlowFileQueue flowFileQueue;
+    private FlowFileQueue secondFlowFileQueue;
     private ProcessContext context;
 
     private ProvenanceEventRepository provenanceRepo;
@@ -144,13 +145,18 @@ public class TestStandardProcessSession {
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
         provenanceRepo = new MockProvenanceRepository();
 
-        final Connection connection = Mockito.mock(Connection.class);
+        final Connection firstConnection = Mockito.mock(Connection.class);
+        final Connection secondConnection = Mockito.mock(Connection.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
-
         final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
-        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
-        flowFileQueue = Mockito.spy(actualQueue);
-        when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
+
+        final StandardFlowFileQueue firstActualQueue = new StandardFlowFileQueue("1", firstConnection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
+        flowFileQueue = Mockito.spy(firstActualQueue);
+        when(firstConnection.getFlowFileQueue()).thenReturn(flowFileQueue);
+
+        final StandardFlowFileQueue secondActualQueue = new StandardFlowFileQueue("2", secondConnection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
+        secondFlowFileQueue = Mockito.spy(secondActualQueue);
+        when(secondConnection.getFlowFileQueue()).thenReturn(secondFlowFileQueue);
 
         Mockito.doAnswer(new Answer<Object>() {
             @Override
@@ -158,7 +164,7 @@ public class TestStandardProcessSession {
                 flowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
                 return null;
             }
-        }).when(connection).enqueue(Mockito.any(FlowFileRecord.class));
+        }).when(firstConnection).enqueue(Mockito.any(FlowFileRecord.class));
 
         Mockito.doAnswer(new Answer<Object>() {
             @Override
@@ -166,14 +172,34 @@ public class TestStandardProcessSession {
                 flowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
                 return null;
             }
-        }).when(connection).enqueue(Mockito.any(Collection.class));
+        }).when(firstConnection).enqueue(Mockito.any(Collection.class));
 
         final Connectable dest = Mockito.mock(Connectable.class);
-        when(connection.getDestination()).thenReturn(dest);
-        when(connection.getSource()).thenReturn(dest);
+        when(firstConnection.getDestination()).thenReturn(dest);
+        when(firstConnection.getSource()).thenReturn(dest);
+
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                secondFlowFileQueue.put((FlowFileRecord) invocation.getArguments()[0]);
+                return null;
+            }
+        }).when(secondConnection).enqueue(Mockito.any(FlowFileRecord.class));
+
+        Mockito.doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                secondFlowFileQueue.putAll((Collection<FlowFileRecord>) invocation.getArguments()[0]);
+                return null;
+            }
+        }).when(secondConnection).enqueue(Mockito.any(Collection.class));
+
+        when(secondConnection.getDestination()).thenReturn(dest);
+        when(secondConnection.getSource()).thenReturn(dest);
 
         final List<Connection> connList = new ArrayList<>();
-        connList.add(connection);
+        connList.add(firstConnection);
+        connList.add(secondConnection);
 
         final ProcessGroup procGroup = Mockito.mock(ProcessGroup.class);
         when(procGroup.getIdentifier()).thenReturn("proc-group-identifier-1");
@@ -196,7 +222,10 @@ public class TestStandardProcessSession {
                 } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP)) {
                     return null;
                 } else {
-                    return new HashSet<>(connList);
+                    // to ensure only one destination with the two incoming connections
+                    final List<Connection> singleConn = new ArrayList<>();
+                    singleConn.add(firstConnection);
+                    return new HashSet<>(singleConn);
                 }
             }
         }).when(connectable).getConnections(Mockito.any(Relationship.class));
@@ -1276,6 +1305,37 @@ public class TestStandardProcessSession {
 
         final List<FlowFile> flowFiles = session.get(7);
         assertEquals(7, flowFiles.size());
+    }
+
+    @Test
+    public void testGetOneFromEachConnection() {
+        for (int i = 0; i < 2; i++) {
+            final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                    .id(i)
+                    .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                    .build();
+            this.flowFileQueue.put(flowFile);
+        }
+
+        List<FlowFile> list = null;
+
+        list = session.getOneFromEachConnection(true);
+        assertEquals(0, list.size());
+
+        list = session.getOneFromEachConnection(false);
+        assertEquals(1, list.size());
+        assertEquals(0, list.get(0).getId());
+
+        final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                .id(2)
+                .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + 2)
+                .build();
+        this.secondFlowFileQueue.put(flowFile);
+
+        list = session.getOneFromEachConnection(true);
+        assertEquals(2, list.size());
+        assertEquals(1, list.get(0).getId());
+        assertEquals(2, list.get(1).getId());
     }
 
     @Test

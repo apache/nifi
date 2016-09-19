@@ -88,6 +88,11 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
+        public List<FlowFile> getOneFromEachConnection(boolean isEveryConnection) {
+            return session.getOneFromEachConnection(isEveryConnection);
+        }
+
+        @Override
         public List<FlowFile> get(FlowFileFilter filter) {
             return session.get(filter);
         }

@@ -144,6 +144,19 @@ public interface ProcessSession {
     List<FlowFile> get(int maxResults);
 
     /**
+     * Return a list of FlowFiles with up to one per incoming connection.
+     *
+     * @param isEveryConnection if true, it will return exactly one FlowFile
+     * per incoming connection, or return an empty list if there are incoming
+     * connections with no FlowFile to get. If false, it will try to get one
+     * Flow File per incoming connection so that the list of returned FlowFiles
+     * can be up to the number of incoming connections.
+     * @return List of FlowFiles with maximum one coming from each incoming
+     * relationship.
+     */
+    List<FlowFile> getOneFromEachConnection(boolean isEveryConnection);
+
+    /**
      * <p>
      * Returns all FlowFiles from all of the incoming queues for which the given
      * {@link FlowFileFilter} indicates should be accepted. Calls to this method

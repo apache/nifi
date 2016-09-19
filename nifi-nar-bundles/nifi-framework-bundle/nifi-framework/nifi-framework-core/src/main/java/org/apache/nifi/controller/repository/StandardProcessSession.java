@@ -1265,6 +1265,28 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
+    public List<FlowFile> getOneFromEachConnection(boolean isEveryConnection) {
+        List<FlowFile> result = getFromEach(new QueuePoller() {
+            @Override
+            public List<FlowFileRecord> poll(final FlowFileQueue queue, final Set<FlowFileRecord> expiredRecords) {
+                return queue.poll(new FlowFileFilter() {
+                    @Override
+                    public FlowFileFilterResult filter(final FlowFile flowFile) {
+                        return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+                    }
+                }, expiredRecords);
+            }
+        }, false);
+
+        if(isEveryConnection && result.size() != context.getPollableConnections().size()) {
+            rollback();
+            return Collections.emptyList();
+        } else {
+            return result;
+        }
+    }
+
+    @Override
     public List<FlowFile> get(final int maxResults) {
         if (maxResults < 0) {
             throw new IllegalArgumentException();
@@ -1328,6 +1350,42 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
 
             return new ArrayList<>();
+        } finally {
+            if (lockAllQueues) {
+                for (final Connection connection : connections) {
+                    connection.unlock();
+                }
+            }
+        }
+    }
+
+    private List<FlowFile> getFromEach(final QueuePoller poller, final boolean lockAllQueues) {
+        final List<Connection> connections = context.getPollableConnections();
+        if (lockAllQueues) {
+            for (final Connection connection : connections) {
+                connection.lock();
+            }
+        }
+
+        try {
+            List<FlowFile> result = new ArrayList<FlowFile>();
+            for (final Connection conn : connections) {
+                final Set<FlowFileRecord> expired = new HashSet<>();
+                final List<FlowFileRecord> newlySelected = poller.poll(conn.getFlowFileQueue(), expired);
+                removeExpired(expired, conn);
+
+                if (newlySelected.isEmpty() && expired.isEmpty()) {
+                    continue;
+                }
+
+                for (final FlowFileRecord flowFile : newlySelected) {
+                    registerDequeuedRecord(flowFile, conn);
+                }
+
+                result.addAll(newlySelected);
+            }
+
+            return result;
         } finally {
             if (lockAllQueues) {
                 for (final Connection connection : connections) {
