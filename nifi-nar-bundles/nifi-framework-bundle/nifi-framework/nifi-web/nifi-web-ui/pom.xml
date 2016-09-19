@@ -136,7 +136,26 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-bower-json</id>
+                        <id>copy-client-side-deps</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.assets}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.working.dir}/node_modules</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-package-json</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -148,7 +167,7 @@
                                     <directory>${frontend.dependency.configs}</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>bower.json</include>
+                                        <include>package.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -271,22 +290,12 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>install-bower</id>
+                        <id>npm install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install bower</arguments>
-                            <workingDirectory>${frontend.working.dir}</workingDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>bower-install</id>
-                        <goals>
-                            <goal>bower</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>install ${bower.options} --config.directory=${frontend.assets}</arguments>
+                            <arguments>--cache-min Infinity install</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -787,7 +796,7 @@
                         <configuration>
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
-                                <exclude>src/main/frontend/bower.json</exclude>
+                                <exclude>src/main/frontend/package.json</exclude>
                                 <exclude>src/main/webapp/js/json2.js</exclude>
                                 <exclude>src/main/webapp/js/jquery/</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
