@@ -1230,8 +1230,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void deleteTemplate(final String id) {
-        // create the template
+        // delete the template and save the flow
         templateDAO.deleteTemplate(id);
+        controllerFacade.save();
     }
 
     @Override
