@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
@@ -37,7 +40,10 @@ public class ConsumeJMSTest {
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
         JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        sender.publish("Hey dude!".getBytes());
+        final Map<String, String> senderAttributes = new HashMap<>();
+        senderAttributes.put("filename", "message.txt");
+        senderAttributes.put("attribute_from_sender", "some value");
+        sender.publish("Hey dude!".getBytes(), senderAttributes);
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
@@ -52,7 +58,12 @@ public class ConsumeJMSTest {
         //
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
-        assertEquals("cooQueue", successFF.getAttributes().get(JmsHeaders.DESTINATION));
+        successFF.assertAttributeExists(JmsHeaders.DESTINATION);
+        successFF.assertAttributeEquals(JmsHeaders.DESTINATION, "cooQueue");
+        successFF.assertAttributeExists("filename");
+        successFF.assertAttributeEquals("filename", "message.txt");
+        successFF.assertAttributeExists("attribute_from_sender");
+        successFF.assertAttributeEquals("attribute_from_sender", "some value");
         successFF.assertContentEquals("Hey dude!".getBytes());
         String sourceDestination = successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME);
         assertNotNull(sourceDestination);
