@@ -38,7 +38,7 @@
 <script type="text/javascript" src="../nifi/assets/angular-material/angular-material.min.js"></script>
 
 <!--Bower Libraries-->
-<script type="text/javascript" src="assets/angular-ui-codemirror/ui-codemirror.min.js"></script>
+<script type="text/javascript" src="assets/angular-ui-codemirror/src/ui-codemirror.js"></script>
 <script type="text/javascript" src="assets/angular-ui-router/release/angular-ui-router.min.js"></script>
 
 <!--Local Libraries-->

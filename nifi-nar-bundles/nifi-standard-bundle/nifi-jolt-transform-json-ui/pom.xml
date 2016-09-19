@@ -144,7 +144,26 @@ language governing permissions and limitations under the License. -->
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-bower-json</id>
+                        <id>copy-client-side-deps</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${frontend.assets}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${frontend.working.dir}/node_modules</directory>
+                                    <filtering>false</filtering>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-package-json</id>
                         <phase>generate-sources</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -156,8 +175,7 @@ language governing permissions and limitations under the License. -->
                                     <directory>${frontend.dependency.configs}</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>bower.json</include>
-                                        <include>.bowerrc</include>
+                                        <include>package.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -172,7 +190,6 @@ language governing permissions and limitations under the License. -->
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
-
                 <executions>
                     <execution>
                         <id>install-node-and-npm</id>
@@ -186,22 +203,12 @@ language governing permissions and limitations under the License. -->
                         </configuration>
                     </execution>
                     <execution>
-                        <id>install-bower</id>
+                        <id>npm install</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>install bower</arguments>
-                            <workingDirectory>${frontend.working.dir}</workingDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>bower-install</id>
-                        <goals>
-                            <goal>bower</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>install --config.directory=${frontend.assets}</arguments>
+                            <arguments>--cache-min Infinity install</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -212,8 +219,7 @@ language governing permissions and limitations under the License. -->
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/main/frontend/.bowerrc</exclude>
-                        <exclude>src/main/frontend/bower.json</exclude>
+                        <exclude>src/main/frontend/package.json</exclude>
                         <exclude>src/main/webapp/css/main.css</exclude>
                         <exclude>src/main/webapp/js/jsonlint/*</exclude>
                         <exclude>src/main/webapp/js/js-beautify/*</exclude>
