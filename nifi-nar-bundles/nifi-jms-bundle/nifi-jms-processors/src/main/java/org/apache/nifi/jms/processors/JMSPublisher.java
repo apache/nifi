@@ -63,8 +63,8 @@ final class JMSPublisher extends JMSWorker {
      *
      * @param messageBytes byte array representing contents of the message
      */
-    void publish(byte[] messageBytes) {
-        this.publish(messageBytes, null);
+    void publish(final String destinationName, byte[] messageBytes) {
+        this.publish(destinationName, messageBytes, null);
     }
 
     /**
@@ -74,8 +74,8 @@ final class JMSPublisher extends JMSWorker {
      * @param flowFileAttributes
      *            Map representing {@link FlowFile} attributes.
      */
-    void publish(final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
-        this.jmsTemplate.send(new MessageCreator() {
+    void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
+        this.jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
@@ -83,7 +83,7 @@ final class JMSPublisher extends JMSWorker {
                 if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
                     // set message headers and properties
                     for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
-                        if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-")) {// '-' is illegal char in JMS prop names
+                        if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-") && !entry.getKey().contains(".")) {// '-' and '.' are illegal char in JMS prop names
                             message.setStringProperty(entry.getKey(), entry.getValue());
                         } else if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
                             message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
