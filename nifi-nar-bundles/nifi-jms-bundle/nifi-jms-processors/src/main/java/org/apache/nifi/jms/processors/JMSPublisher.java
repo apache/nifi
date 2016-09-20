@@ -74,7 +74,7 @@ final class JMSPublisher extends JMSWorker {
      * @param flowFileAttributes
      *            Map representing {@link FlowFile} attributes.
      */
-    void publish(final String destinationName, final byte[] messageBytes, Map<String, String> flowFileAttributes) {
+    void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
         this.jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
