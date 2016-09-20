@@ -66,7 +66,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .build();
     static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination Name")
-            .description("The name of the JMS Destination. Usually provided by the administrator (e.g., 'topic://myTopic').")
+            .description("The name of the JMS Destination. Usually provided by the administrator (e.g., 'topic://myTopic' or 'myTopic').")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)

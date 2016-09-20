@@ -55,7 +55,7 @@ import org.springframework.jms.support.JmsHeaders;
 @Tags({ "jms", "put", "message", "send", "publish" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends it to a "
-        + "JMS Destination (queue or topic) as JMS BytesMessage.")
+        + "JMS Destination (queue or topic) as JMS BytesMessage. FlowFile attributes will be added as JMS headers and/or properties to the outgoing JMS message.")
 @SeeAlso(value = { ConsumeJMS.class, JMSConnectionFactoryProvider.class })
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
@@ -98,9 +98,8 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
         FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             try {
-                final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
-                this.targetResource.publish(destinationName, this.extractMessageBody(flowFile, processSession),
-                        flowFile.getAttributes());
+                String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions(flowFile).getValue();
+                this.targetResource.publish(destinationName, this.extractMessageBody(flowFile, processSession), flowFile.getAttributes());
                 processSession.transfer(flowFile, REL_SUCCESS);
                 processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             } catch (Exception e) {

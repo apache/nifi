@@ -63,7 +63,7 @@ final class JMSPublisher extends JMSWorker {
      *
      * @param messageBytes byte array representing contents of the message
      */
-    void publish(final String destinationName, byte[] messageBytes) {
+    void publish(String destinationName, byte[] messageBytes) {
         this.publish(destinationName, messageBytes, null);
     }
 
@@ -74,7 +74,7 @@ final class JMSPublisher extends JMSWorker {
      * @param flowFileAttributes
      *            Map representing {@link FlowFile} attributes.
      */
-    void publish(final String destinationName, final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
+    void publish(final String destinationName, final byte[] messageBytes, Map<String, String> flowFileAttributes) {
         this.jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
@@ -125,9 +125,8 @@ final class JMSPublisher extends JMSWorker {
      *
      */
     private void logUnbuildableDestination(String destinationName, String headerName) {
-        logger.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
-                + headerName + "' will not be set.");
-        processLog.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
+        this.processLog.warn("Failed to determine destination type from destination name '" + destinationName
+                + "'. The '"
                 + headerName + "' will not be set.");
     }
 

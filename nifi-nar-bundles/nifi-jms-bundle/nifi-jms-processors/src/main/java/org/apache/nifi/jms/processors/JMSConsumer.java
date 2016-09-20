@@ -61,7 +61,7 @@ final class JMSConsumer extends JMSWorker {
     /**
      *
      */
-    public JMSResponse consume(final String destinationName) {
+    public JMSResponse consume(String destinationName) {
         Message message = this.jmsTemplate.receive(destinationName);
         if (message != null) {
             byte[] messageBody = null;

@@ -50,7 +50,7 @@ import org.springframework.jms.core.JmsTemplate;
 @Tags({ "jms", "get", "message", "receive", "consume" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes JMS Message of type BytesMessage or TextMessage transforming its content to "
-        + "a FlowFile and transitioning it to 'success' relationship.")
+        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes.")
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
@@ -90,8 +90,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             });
             Map<String, Object> jmsHeaders = response.getMessageHeaders();
             Map<String, Object> jmsProperties = Collections.<String, Object>unmodifiableMap(response.getMessageProperties());
-            flowFile = this.updateFlowFileAttributesWithMap(jmsHeaders, flowFile, processSession);
-            flowFile = this.updateFlowFileAttributesWithMap(jmsProperties, flowFile, processSession);
+            flowFile = this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+            flowFile = this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
             processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             processSession.transfer(flowFile, REL_SUCCESS);
         } else {
@@ -116,11 +116,15 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     }
 
     /**
-     *
+     * Copies JMS attributes (i.e., headers and properties) as FF attributes.
+     * Given that FF attributes mandate that values are of type String, the
+     * copied values of JMS attributes will be stringified via
+     * String.valueOf(attribute).
      */
-    private FlowFile updateFlowFileAttributesWithMap(Map<String, Object> map, FlowFile flowFile, ProcessSession processSession) {
+    private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, Object> jmsAttributes, FlowFile flowFile,
+            ProcessSession processSession) {
         Map<String, String> attributes = new HashMap<String, String>();
-        for (Entry<String, Object> entry : map.entrySet()) {
+        for (Entry<String, Object> entry : jmsAttributes.entrySet()) {
             attributes.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
         attributes.put(JMS_SOURCE_DESTINATION_NAME, this.destinationName);
