@@ -25,22 +25,22 @@ import javax.jms.BytesMessage;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import javax.jms.Queue;
+import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.SessionCallback;
 import org.springframework.jms.support.JmsHeaders;
+import org.springframework.jms.support.JmsUtils;
 
 /**
  * Generic consumer of messages from JMS compliant messaging system.
  */
 final class JMSConsumer extends JMSWorker {
-
-    private final static Logger logger = LoggerFactory.getLogger(JMSConsumer.class);
 
     /**
      * Creates an instance of this consumer
@@ -52,8 +52,8 @@ final class JMSConsumer extends JMSWorker {
      */
     JMSConsumer(JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(jmsTemplate, processLog);
-        if (logger.isInfoEnabled()) {
-            logger.info("Created Message Consumer for '" + jmsTemplate.toString() + "'.");
+        if (this.processLog.isInfoEnabled()) {
+            this.processLog.info("Created Message Consumer for '" + jmsTemplate.toString() + "'.");
         }
     }
 
@@ -61,27 +61,51 @@ final class JMSConsumer extends JMSWorker {
     /**
      *
      */
-    public JMSResponse consume(String destinationName) {
-        Message message = this.jmsTemplate.receive(destinationName);
-        if (message != null) {
-            byte[] messageBody = null;
-            try {
-                if (message instanceof TextMessage) {
-                    messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message);
-                } else if (message instanceof BytesMessage) {
-                    messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
-                } else {
-                    throw new UnsupportedOperationException("Message type other then TextMessage and BytesMessage are "
-                            + "not supported at the moment");
+    public void consume(final String destinationName, final ConsumerCallback consumerCallback) {
+        this.jmsTemplate.execute(new SessionCallback<Void>() {
+            @Override
+            public Void doInJms(Session session) throws JMSException {
+                /*
+                 * We need to call recover to ensure that in in the event of
+                 * abrupt end or exception the current session will stop message
+                 * delivery and restarts with the oldest unacknowledged message
+                 */
+                session.recover();
+                Destination destination = JMSConsumer.this.jmsTemplate.getDestinationResolver().resolveDestinationName(
+                        session, destinationName, JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                MessageConsumer msgConsumer = session.createConsumer(destination, null,
+                        JMSConsumer.this.jmsTemplate.isPubSubDomain());
+                Message message = msgConsumer.receive(JMSConsumer.this.jmsTemplate.getReceiveTimeout());
+                JMSResponse response = null;
+                try {
+                    if (message != null) {
+                        byte[] messageBody = null;
+                        if (message instanceof TextMessage) {
+                            messageBody = MessageBodyToBytesConverter.toBytes((TextMessage) message);
+                        } else if (message instanceof BytesMessage) {
+                            messageBody = MessageBodyToBytesConverter.toBytes((BytesMessage) message);
+                        } else {
+                            throw new IllegalStateException("Message type other then TextMessage and BytesMessage are "
+                                    + "not supported at the moment");
+                        }
+                        Map<String, Object> messageHeaders = extractMessageHeaders(message);
+                        Map<String, String> messageProperties = extractMessageProperties(message);
+                        response = new JMSResponse(messageBody, messageHeaders, messageProperties);
+                    }
+                    // invoke the processor callback (regardless if it's null,
+                    // so the processor can yield) as part of this inJMS call
+                    // and ACK message *only* after its successful invocation
+                    // and if CLIENT_ACKNOWLEDGE is set.
+                    consumerCallback.accept(response);
+                    if (message != null && session.getAcknowledgeMode() == Session.CLIENT_ACKNOWLEDGE) {
+                        message.acknowledge();
+                    }
+                } finally {
+                    JmsUtils.closeMessageConsumer(msgConsumer);
                 }
-                Map<String, Object> messageHeaders = this.extractMessageHeaders(message);
-                Map<String, String> messageProperties = this.extractMessageProperties(message);
-                return new JMSResponse(messageBody, messageHeaders, messageProperties);
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
+                return null;
             }
-        }
-        return null;
+        }, true);
     }
 
     /**
@@ -97,7 +121,6 @@ final class JMSConsumer extends JMSWorker {
                 properties.put(propertyName, String.valueOf(message.getObjectProperty(propertyName)));
             }
         } catch (JMSException e) {
-            logger.warn("Failed to extract message properties", e);
             this.processLog.warn("Failed to extract message properties", e);
         }
         return properties;
@@ -145,7 +168,6 @@ final class JMSConsumer extends JMSWorker {
                 destinationName = (destination instanceof Queue) ? ((Queue) destination).getQueueName()
                         : ((Topic) destination).getTopicName();
             } catch (JMSException e) {
-                logger.warn("Failed to retrieve Destination name for '" + headerName + "' header", e);
                 this.processLog.warn("Failed to retrieve Destination name for '" + headerName + "' header", e);
             }
         }
@@ -179,5 +201,13 @@ final class JMSConsumer extends JMSWorker {
         public Map<String, String> getMessageProperties() {
             return messageProperties;
         }
+    }
+
+    /**
+     * Callback to be invoked while executing inJMS call (the call within the
+     * live JMS session)
+     */
+    static interface ConsumerCallback {
+        void accept(JMSResponse response);
     }
 }
