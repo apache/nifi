@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.jms.processors;
 
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,30 +33,17 @@ import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-<<<<<<< HEAD
-=======
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
->>>>>>> c238676... NIFI-2789, NIFI-2790 - Read JMS properties and add to FlowFile attributes in ConsumeJMS
 public class ConsumeJMSTest {
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
-<<<<<<< HEAD
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
-        JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ProcessorLog.class));
-        sender.publish("Hey dude!".getBytes());
-=======
         final String  destinationName = "cooQueue";
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
-        JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
+        JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ProcessorLog.class));
         final Map<String, String> senderAttributes = new HashMap<>();
         senderAttributes.put("filename", "message.txt");
         senderAttributes.put("attribute_from_sender", "some value");
         sender.publish(destinationName, "Hey dude!".getBytes(), senderAttributes);
->>>>>>> c238676... NIFI-2789, NIFI-2790 - Read JMS properties and add to FlowFile attributes in ConsumeJMS
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");

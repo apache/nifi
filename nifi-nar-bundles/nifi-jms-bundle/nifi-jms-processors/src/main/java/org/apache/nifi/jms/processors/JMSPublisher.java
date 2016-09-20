@@ -63,7 +63,7 @@ final class JMSPublisher extends JMSWorker {
      *
      * @param messageBytes byte array representing contents of the message
      */
-    void publish(final String destinationName, byte[] messageBytes) {
+    void publish(String destinationName, byte[] messageBytes) {
         this.publish(destinationName, messageBytes, null);
     }
 
@@ -125,9 +125,8 @@ final class JMSPublisher extends JMSWorker {
      *
      */
     private void logUnbuildableDestination(String destinationName, String headerName) {
-        logger.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
-                + headerName + "' will not be set.");
-        processLog.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
+        this.processLog.warn("Failed to determine destination type from destination name '" + destinationName
+                + "'. The '"
                 + headerName + "' will not be set.");
     }
 
