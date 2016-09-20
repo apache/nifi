@@ -238,6 +238,26 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
+    public void testContentType() throws IOException {
+        PutS3Object processor = new PutS3Object();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.CONTENT_TYPE, "text/plain");
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertAttributeEquals(PutS3Object.S3_CONTENT_TYPE, "text/plain");
+    }
+
+    @Test
     public void testPutInFolder() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
