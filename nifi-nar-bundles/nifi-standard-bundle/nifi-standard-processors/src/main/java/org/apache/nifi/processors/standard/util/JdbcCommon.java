@@ -45,10 +45,13 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -102,12 +105,55 @@ public class JdbcCommon {
                 }
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final int javaSqlType = meta.getColumnType(i);
+
+                    // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
+                    if (javaSqlType == CLOB) {
+                        Clob clob = rs.getClob(i);
+                        if (clob != null) {
+                            long numChars = clob.length();
+                            char[] buffer = new char[(int) numChars];
+                            InputStream is = clob.getAsciiStream();
+                            int index = 0;
+                            int c = is.read();
+                            while (c > 0) {
+                                buffer[index++] = (char) c;
+                                c = is.read();
+                            }
+                            rec.put(i - 1, new String(buffer));
+                            clob.free();
+                        } else {
+                            rec.put(i - 1, null);
+                        }
+                        continue;
+                    }
+
+                    if (javaSqlType == BLOB) {
+                        Blob blob = rs.getBlob(i);
+                        if (blob != null) {
+                            long numChars = blob.length();
+                            byte[] buffer = new byte[(int) numChars];
+                            InputStream is = blob.getBinaryStream();
+                            int index = 0;
+                            int c = is.read();
+                            while (c > 0) {
+                                buffer[index++] = (byte) c;
+                                c = is.read();
+                            }
+                            ByteBuffer bb = ByteBuffer.wrap(buffer);
+                            rec.put(i - 1, bb);
+                            blob.free();
+                        } else {
+                            rec.put(i - 1, null);
+                        }
+                        continue;
+                    }
+
                     final Object value = rs.getObject(i);
 
                     if (value == null) {
                         rec.put(i - 1, null);
 
-                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY || javaSqlType == BLOB || javaSqlType == CLOB) {
+                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY) {
                         // bytes requires little bit different handling
                         byte[] bytes = rs.getBytes(i);
                         ByteBuffer bb = ByteBuffer.wrap(bytes);
@@ -211,6 +257,7 @@ public class JdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
+                case CLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
@@ -277,7 +324,6 @@ public class JdbcCommon {
                 case LONGVARBINARY:
                 case ARRAY:
                 case BLOB:
-                case CLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
                     break;
 
