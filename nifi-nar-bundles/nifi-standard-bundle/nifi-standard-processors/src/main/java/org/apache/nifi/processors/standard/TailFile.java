@@ -95,7 +95,7 @@ public class TailFile extends AbstractProcessor {
     static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("File to Tail")
             .description("Fully-qualified filename of the file that should be tailed")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
@@ -105,7 +105,7 @@ public class TailFile extends AbstractProcessor {
                     + "identify files that have rolled over so that if NiFi is restarted, and the file has rolled over, it will be able to pick up where it left off. "
                     + "This pattern supports wildcard characters * and ? and will assume that the files that have rolled over live in the same directory as the file being tailed.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .required(false)
             .build();
     static final PropertyDescriptor STATE_LOCATION = new PropertyDescriptor.Builder()
@@ -185,7 +185,7 @@ public class TailFile extends AbstractProcessor {
      * tailed file.
      */
     private void recoverState(final ProcessContext context, final Map<String, String> stateValues) throws IOException {
-        final String currentFilename = context.getProperty(FILENAME).getValue();
+        final String currentFilename = getFileNameValue(context);
         if (!stateValues.containsKey(TailFileState.StateKeys.FILENAME)) {
             resetState(currentFilename);
             return;
@@ -198,6 +198,7 @@ public class TailFile extends AbstractProcessor {
             resetState(currentFilename);
             return;
         }
+
 
         final String checksumValue = stateValues.get(TailFileState.StateKeys.CHECKSUM);
         final boolean checksumPresent = (checksumValue != null);
@@ -294,9 +295,9 @@ public class TailFile extends AbstractProcessor {
                 recoverRolledFiles(context, session, this.expectedRecoveryChecksum, state.getTimestamp(), state.getPosition());
             } else if (START_CURRENT_FILE.getValue().equals(recoverPosition)) {
                 cleanup();
-                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, 0L, null, state.getBuffer());
+                state = new TailFileState(getFileNameValue(context), null, null, 0L, 0L, null, state.getBuffer());
             } else {
-                final String filename = context.getProperty(FILENAME).getValue();
+                final String filename = getFileNameValue(context);
                 final File file = new File(filename);
 
                 try {
@@ -352,7 +353,7 @@ public class TailFile extends AbstractProcessor {
 
         // Create a reader if necessary.
         if (file == null || reader == null) {
-            file = new File(context.getProperty(FILENAME).getValue());
+            file = new File(getFileNameValue(context));
             reader = createReader(file, position);
             if (reader == null) {
                 context.yield();
@@ -382,7 +383,7 @@ public class TailFile extends AbstractProcessor {
             // In this case, the state should not have changed, and we will have created no FlowFiles, so we don't have to
             // persist the state or commit the session; instead, just return here.
             getLogger().debug("No data to consume; created no FlowFiles");
-            state = this.state = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, checksum, state.getBuffer());
+            state = this.state = new TailFileState(getFileNameValue(context), file, reader, position, timestamp, checksum, state.getBuffer());
             persistState(state, context);
             context.yield();
             return;
@@ -440,7 +441,7 @@ public class TailFile extends AbstractProcessor {
         }
 
         // Create a new state object to represent our current position, timestamp, etc.
-        final TailFileState updatedState = new TailFileState(context.getProperty(FILENAME).getValue(), file, reader, position, timestamp, checksum, state.getBuffer());
+        final TailFileState updatedState = new TailFileState(getFileNameValue(context), file, reader, position, timestamp, checksum, state.getBuffer());
         this.state = updatedState;
 
         // We must commit session before persisting state in order to avoid data loss on restart
@@ -552,14 +553,14 @@ public class TailFile extends AbstractProcessor {
      * @throws IOException if unable to perform the listing of files
      */
     private List<File> getRolledOffFiles(final ProcessContext context, final long minTimestamp) throws IOException {
-        final String tailFilename = context.getProperty(FILENAME).getValue();
+        final String tailFilename = getFileNameValue(context);
         final File tailFile = new File(tailFilename);
         File directory = tailFile.getParentFile();
         if (directory == null) {
             directory = new File(".");
         }
 
-        final String rollingPattern = context.getProperty(ROLLING_FILENAME_PATTERN).getValue();
+        final String rollingPattern = context.getProperty(ROLLING_FILENAME_PATTERN).evaluateAttributeExpressions().getValue();
         if (rollingPattern == null) {
             return Collections.emptyList();
         }
@@ -746,7 +747,7 @@ public class TailFile extends AbstractProcessor {
                                 session.remove(flowFile);
                                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                                 cleanup();
-                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
+                                state = new TailFileState(getFileNameValue(context), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
                             } else {
                                 flowFile = session.putAttribute(flowFile, "filename", firstFile.getName());
 
@@ -757,7 +758,7 @@ public class TailFile extends AbstractProcessor {
 
                                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                                 cleanup();
-                                state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
+                                state = new TailFileState(getFileNameValue(context), null, null, 0L, firstFile.lastModified() + 1L, null, state.getBuffer());
 
                                 // must ensure that we do session.commit() before persisting state in order to avoid data loss.
                                 session.commit();
@@ -812,7 +813,7 @@ public class TailFile extends AbstractProcessor {
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
             cleanup();
-            state = new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, file.lastModified() + 1L, null, state.getBuffer());
+            state = new TailFileState(getFileNameValue(context), null, null, 0L, file.lastModified() + 1L, null, state.getBuffer());
 
             // must ensure that we do session.commit() before persisting state in order to avoid data loss.
             session.commit();
@@ -820,6 +821,51 @@ public class TailFile extends AbstractProcessor {
         }
 
         return state;
+    }
+
+    private String getFileNameValue(ProcessContext context) {
+
+
+        final File configuredFileName = new File(context.getProperty(FILENAME)
+                .evaluateAttributeExpressions().getValue());
+        if ((configuredFileName.exists())) {
+            //it is not a filter, but maps to a file that exists just return it.
+            return configuredFileName.toString();
+        } else {
+            //the filename, appears to be a pattern that we will use as a filter.
+            File directory = configuredFileName.getParentFile();
+            if (directory == null) {
+                directory = new File(".");
+            }
+
+            List<Path> files = new ArrayList<>();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory.toPath(), configuredFileName.getName())) {
+                for (Path path : stream) {
+                    files.add(path);
+                }
+            } catch (IOException ioException) {
+                getLogger().error("Caught exception trying to get files in directory", ioException);
+                throw new ProcessException(ioException);
+            }
+            if(0 < files.size()) {
+                Collections.sort(files, new Comparator<Path>() {
+                    public int compare(Path path1, Path path2) {
+                        try {
+                            return Files.getLastModifiedTime(path1).compareTo(Files.getLastModifiedTime(path2));
+                        } catch (IOException e) {
+                            //if we can get the listing from above then we should not get an IOException here.
+                            getLogger().error("Caught exception trying to compare file last modified times", e);
+                            throw new ProcessException(e);
+                        }
+                    }
+                });
+
+                //the array should now hold the files in descending order of last modified timestamp
+                return files.get(0).toString();
+            }else{
+                return configuredFileName.toString();
+            }
+        }
     }
 
     /**
