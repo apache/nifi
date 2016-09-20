@@ -65,7 +65,7 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn("my-access-token");
         when(request.getContextPath()).thenReturn("/nifi-api");
-        when(request.getPathInfo()).thenReturn("/controller/config");
+        when(request.getPathInfo()).thenReturn("/flow/cluster/summary");
 
         assertNull(otpAuthenticationFilter.attemptAuthentication(request));
     }
@@ -88,7 +88,7 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn(DOWNLOAD_TOKEN);
         when(request.getContextPath()).thenReturn("/nifi-api");
-        when(request.getPathInfo()).thenReturn("/controller/provenance/events/0/content/input");
+        when(request.getPathInfo()).thenReturn("/provenance-events/0/content/input");
 
         final OtpAuthenticationRequestToken result = (OtpAuthenticationRequestToken) otpAuthenticationFilter.attemptAuthentication(request);
         assertEquals(DOWNLOAD_TOKEN, result.getToken());
@@ -101,7 +101,7 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn(DOWNLOAD_TOKEN);
         when(request.getContextPath()).thenReturn("/nifi-api");
-        when(request.getPathInfo()).thenReturn("/controller/provenance/events/0/content/output");
+        when(request.getPathInfo()).thenReturn("/provenance-events/0/content/output");
 
         final OtpAuthenticationRequestToken result = (OtpAuthenticationRequestToken) otpAuthenticationFilter.attemptAuthentication(request);
         assertEquals(DOWNLOAD_TOKEN, result.getToken());
@@ -116,7 +116,7 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn(DOWNLOAD_TOKEN);
         when(request.getContextPath()).thenReturn("/nifi-api");
-        when(request.getPathInfo()).thenReturn(String.format("/controller/process-groups/root/connections/%s/flowfiles/%s/content", uuid, uuid));
+        when(request.getPathInfo()).thenReturn(String.format("/flowfile-queues/%s/flowfiles/%s/content", uuid, uuid));
 
         final OtpAuthenticationRequestToken result = (OtpAuthenticationRequestToken) otpAuthenticationFilter.attemptAuthentication(request);
         assertEquals(DOWNLOAD_TOKEN, result.getToken());
@@ -131,7 +131,7 @@ public class OtpAuthenticationFilterTest {
         when(request.isSecure()).thenReturn(true);
         when(request.getParameter(OtpAuthenticationFilter.ACCESS_TOKEN)).thenReturn(DOWNLOAD_TOKEN);
         when(request.getContextPath()).thenReturn("/nifi-api");
-        when(request.getPathInfo()).thenReturn(String.format("/controller/templates/%s", uuid));
+        when(request.getPathInfo()).thenReturn(String.format("/templates/%s/download", uuid));
 
         final OtpAuthenticationRequestToken result = (OtpAuthenticationRequestToken) otpAuthenticationFilter.attemptAuthentication(request);
         assertEquals(DOWNLOAD_TOKEN, result.getToken());
