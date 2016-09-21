@@ -392,6 +392,11 @@ public final class ConfigTransformer {
             addTextElement(element, "schedulingStrategy", processorConfig.getSchedulingStrategy());
             addTextElement(element, "runDurationNanos", String.valueOf(processorConfig.getRunDurationNanos()));
 
+            String annotationData = processorConfig.getAnnotationData();
+            if(annotationData != null && !annotationData.isEmpty()) {
+                addTextElement(element, "annotationData", annotationData);
+            }
+
             addConfiguration(element, processorConfig.getProperties());
 
             Collection<String> autoTerminatedRelationships = processorConfig.getAutoTerminatedRelationshipsList();

@@ -59,6 +59,11 @@ public class ProcessorSchemaFunction implements Function<ProcessorDTO, Processor
                 .collect(Collectors.toList()));
         map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(BaseSchema.nullToEmpty(processorDTOConfig.getProperties())));
 
+        String annotationData = processorDTOConfig.getAnnotationData();
+        if(annotationData != null && !annotationData.isEmpty()) {
+            map.put(ProcessorSchema.ANNOTATION_DATA_KEY, annotationData);
+        }
+
         return new ProcessorSchema(map);
     }
 }

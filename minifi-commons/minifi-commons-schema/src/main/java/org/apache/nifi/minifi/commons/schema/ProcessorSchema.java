@@ -37,6 +37,8 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
     public static final String RUN_DURATION_NANOS_KEY = "run duration nanos";
     public static final String AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY = "auto-terminated relationships list";
     public static final String PROCESSOR_PROPS_KEY = "Properties";
+    public static final String ANNOTATION_DATA_KEY = "annotation data";
+
     public static final int DEFAULT_MAX_CONCURRENT_TASKS = 1;
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
     public static final String DEFAULT_YIELD_DURATION = "1 sec";
@@ -54,6 +56,7 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
     private Number runDurationNanos = DEFAULT_RUN_DURATION_NANOS;
     private List<String> autoTerminatedRelationshipsList = DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST;
     private Map<String, Object> properties = DEFAULT_PROPERTIES;
+    private String annotationData = "";
 
     public ProcessorSchema(Map map) {
         super(map, PROCESSORS_KEY);
@@ -70,6 +73,8 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         runDurationNanos = getOptionalKeyAsType(map, RUN_DURATION_NANOS_KEY, Number.class, PROCESSORS_KEY, DEFAULT_RUN_DURATION_NANOS);
         autoTerminatedRelationshipsList = getOptionalKeyAsType(map, AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, List.class, PROCESSORS_KEY, DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST);
         properties = getOptionalKeyAsType(map, PROCESSOR_PROPS_KEY, Map.class, PROCESSORS_KEY, DEFAULT_PROPERTIES);
+
+        annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, PROCESSORS_KEY, "");
     }
 
     private static boolean isSchedulingStrategy(String string) {
@@ -93,6 +98,11 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         result.put(RUN_DURATION_NANOS_KEY, runDurationNanos);
         result.put(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, autoTerminatedRelationshipsList);
         result.put(PROCESSOR_PROPS_KEY, new TreeMap<>(properties));
+
+        if(annotationData != null && !annotationData.isEmpty()) {
+            result.put(ANNOTATION_DATA_KEY, annotationData);
+        }
+
         return result;
     }
 
@@ -131,4 +141,9 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
     public Map<String, Object> getProperties() {
         return properties;
     }
+
+    public String getAnnotationData() {
+        return annotationData;
+    }
+
 }

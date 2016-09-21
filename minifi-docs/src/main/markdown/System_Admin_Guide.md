@@ -299,6 +299,7 @@ penalization period                 | Specifies how long FlowFiles will be penal
 yield period                        | In the event the processor cannot make progress it should `yield` which will prevent the processor from being scheduled to run for some period of time. That period of time is specific using this property.
 run duration nanos                  | If the processor supports batching this property can be used to control how long the Processor should be scheduled to run each time that it is triggered. Smaller values will have lower latency but larger values will have higher throughput. This period should typically only be set between 0 and 2000000000 (2 seconds).
 auto-terminated relationships list  | A YAML list of the relationships to auto-terminate for the processor.
+annotation data                     | Some processors make use of "Annotation Data" in order to do more complex configuration, such as the Advanced portion of UpdateAttribute. This data will be unique to each implementing processor and more than likely will not be written out manually.
 
 #### Processor Properties
 

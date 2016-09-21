@@ -45,6 +45,35 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
     private final String testKey = "testKey";
     private final String testValue = "testValue";
     private final String testPenalizationPeriod = "55 s";
+    private final String testAnnotationData = "&lt;criteria&gt;\n" +
+            "    &lt;flowFilePolicy&gt;USE_ORIGINAL&lt;/flowFilePolicy&gt;\n" +
+            "    &lt;rules&gt;\n" +
+            "        &lt;actions&gt;\n" +
+            "            &lt;attribute&gt;it's the one&lt;/attribute&gt;\n" +
+            "            &lt;id&gt;364cdf1a-3ac8-46a7-9d5d-e83618d9dfde&lt;/id&gt;\n" +
+            "            &lt;value&gt;true&lt;/value&gt;\n" +
+            "        &lt;/actions&gt;\n" +
+            "        &lt;conditions&gt;\n" +
+            "            &lt;expression&gt;${uuid:equals(\"theUUID!\")}&lt;/expression&gt;\n" +
+            "            &lt;id&gt;c0ceadcd-6de5-4994-bf76-f76a5fd1640c&lt;/id&gt;\n" +
+            "        &lt;/conditions&gt;\n" +
+            "        &lt;id&gt;e6fb8d10-49ac-494b-8f02-ced1109c9445&lt;/id&gt;\n" +
+            "        &lt;name&gt;testRule&lt;/name&gt;\n" +
+            "    &lt;/rules&gt;\n" +
+            "    &lt;rules&gt;\n" +
+            "        &lt;actions&gt;\n" +
+            "            &lt;attribute&gt;the tenth&lt;/attribute&gt;\n" +
+            "            &lt;id&gt;0bbe7bcd-e6b9-4801-b1e4-337da5f0532f&lt;/id&gt;\n" +
+            "            &lt;value&gt;${hostname()}&lt;/value&gt;\n" +
+            "        &lt;/actions&gt;\n" +
+            "        &lt;conditions&gt;\n" +
+            "            &lt;expression&gt;${random:mod(10):equals(0)}&lt;/expression&gt;\n" +
+            "            &lt;id&gt;48735bfe-02ef-4634-8d99-f384ebcd8fa8&lt;/id&gt;\n" +
+            "        &lt;/conditions&gt;\n" +
+            "        &lt;id&gt;74b86ba2-4a8b-4952-8aef-ea672847c589&lt;/id&gt;\n" +
+            "        &lt;name&gt;testRule3&lt;/name&gt;\n" +
+            "    &lt;/rules&gt;\n" +
+            "&lt;/criteria&gt;";
     private ProcessorConfigDTO config;
 
     public ProcessorSchemaTest() {
@@ -70,6 +99,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         config.setPenaltyDuration(testPenalizationPeriod);
         config.setYieldDuration(testYieldDuration);
         config.setRunDurationMillis(testRunDurationNanos / 1000);
+        config.setAnnotationData(testAnnotationData);
         dto.setRelationships(Arrays.asList(relationshipDTO));
         Map<String, String> properties = new HashMap<>();
         properties.put(testKey, testValue);
@@ -87,6 +117,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         map.put(ProcessorSchema.RUN_DURATION_NANOS_KEY, testRunDurationNanos);
         map.put(ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, Arrays.asList(testRelationship));
         map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(properties));
+        map.put(ProcessorSchema.ANNOTATION_DATA_KEY, testAnnotationData);
     }
 
     @Test
@@ -174,6 +205,13 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         assertDtoAndMapConstructorAreSame(0);
     }
 
+    @Test
+    public void testNoAnnotationData() {
+        config.setAnnotationData(null);
+        map.remove(ProcessorSchema.ANNOTATION_DATA_KEY);
+        assertDtoAndMapConstructorAreSame(0);
+    }
+
     @Override
     public void assertSchemaEquals(ProcessorSchema one, ProcessorSchema two) {
         assertEquals(one.getName(), two.getName());
@@ -186,5 +224,6 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         assertEquals(one.getRunDurationNanos(), two.getRunDurationNanos());
         assertEquals(one.getAutoTerminatedRelationshipsList(), two.getAutoTerminatedRelationshipsList());
         assertEquals(one.getProperties(), two.getProperties());
+        assertEquals(one.getAnnotationData(), two.getAnnotationData());
     }
 }
