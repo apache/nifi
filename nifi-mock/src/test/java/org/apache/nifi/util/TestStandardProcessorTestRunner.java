@@ -20,8 +20,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
+
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -51,6 +55,45 @@ public class TestStandardProcessorTestRunner {
 
         assertEquals(1, proc.getOnStoppedCallsWithContext());
         assertEquals(1, proc.getOnStoppedCallsWithoutContext());
+    }
+
+    @Test
+    public void testAllConditionsMet() {
+        TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("GROUP_ATTRIBUTE_KEY", "1");
+        attributes.put("KeyB", "hihii");
+        runner.enqueue("1,hello\n1,good-bye".getBytes(), attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GoodProcessor.REL_SUCCESS, 1);
+
+        runner.assertAllConditionsMet("success",
+            mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1") && mff.isContentEqual("1,hello\n1,good-bye")
+        );
+    }
+
+    @Test
+    public void testAllConditionsMetComplex() {
+        TestRunner runner = new StandardProcessorTestRunner(new GoodProcessor());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("GROUP_ATTRIBUTE_KEY", "1");
+        attributes.put("KeyB", "hihii");
+        runner.enqueue("1,hello\n1,good-bye".getBytes(), attributes);
+
+        attributes.clear();
+        attributes.put("age", "34");
+        runner.enqueue("May Andersson".getBytes(), attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GoodProcessor.REL_SUCCESS, 2);
+
+        Predicate<MockFlowFile> firstPredicate = mff -> mff.isAttributeEqual("GROUP_ATTRIBUTE_KEY", "1");
+        Predicate<MockFlowFile> either = firstPredicate.or(mff -> mff.isAttributeEqual("age", "34"));
+
+        runner.assertAllConditionsMet("success", either);
     }
 
     @Test
@@ -184,6 +227,41 @@ public class TestStandardProcessorTestRunner {
                 session.transfer(ff, REL_FAILURE);
             }
             counter++;
+        }
+    }
+
+    private static class GoodProcessor extends AbstractProcessor {
+
+        public static final Relationship REL_SUCCESS = new Relationship.Builder()
+        .name("success")
+        .description("Successfully created FlowFile from ...")
+        .build();
+
+        public static final Relationship REL_FAILURE = new Relationship.Builder()
+        .name("failure")
+        .description("... execution failed. Incoming FlowFile will be penalized and routed to this relationship")
+        .build();
+
+        private final Set<Relationship> relationships;
+
+        public GoodProcessor() {
+            final Set<Relationship> r = new HashSet<>();
+            r.add(REL_SUCCESS);
+            r.add(REL_FAILURE);
+            relationships = Collections.unmodifiableSet(r);
+        }
+
+        @Override
+        public Set<Relationship> getRelationships() {
+            return relationships;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+            for( FlowFile incoming : session.get(20)) {
+                session.transfer(incoming, REL_SUCCESS);
+            }
         }
     }
 }

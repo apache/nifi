@@ -114,6 +114,17 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .sensitive(false)
         .build();
 
+    public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
+        .name("Validation-query")
+        .displayName("Validation query")
+        .description("Validation query used to validate connections before returning them. "
+            + "When connection is invalid, it get's dropped and new valid connection will be returned. "
+            + "Note!! Using validation might have some performance penalty.")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
+        .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -125,6 +136,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
+        props.add(VALIDATION_QUERY);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -158,6 +170,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
 
         dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
@@ -170,6 +183,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
+
+        if (validationQuery!=null && !validationQuery.isEmpty()) {
+            dataSource.setValidationQuery(validationQuery);
+            dataSource.setTestOnBorrow(true);
+        }
 
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);

@@ -1,3 +1,18 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements. See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 language: java
 
 os:
@@ -6,6 +21,12 @@ os:
 jdk:
   - oraclejdk8
 
+# Caches mvn repository in order to speed upbuilds
+cache:
+  directories:
+  - $HOME/.m2
+  - $HOME/.npm
+
 # before_install aids in a couple workarounds for issues within the Travis-CI environment
 #   1. Workaround for buffer overflow issues with OpenJDK versions of java as per https://github.com/travis-ci/travis-ci/issues/5227#issuecomment-165135711
 #   2. Workaround for non-existent Maven repository as per: https://github.com/travis-ci/travis-ci/issues/4629#issuecomment-131214465
@@ -13,5 +34,11 @@ before_install:
   - sudo hostname "$(hostname | cut -c1-63)"
   - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
   - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
+  - echo "MAVEN_OPTS='-Xmx2g -XX:+UseG1GC'" > ~/.mavenrc
+  - mvn apache-rat:check
 
-script: mvn clean install -Pcontrib-check
+install:
+  - mvn -q -T 2C -DskipTests=true clean install
+
+script:
+  - mvn -Pcontrib-check verify

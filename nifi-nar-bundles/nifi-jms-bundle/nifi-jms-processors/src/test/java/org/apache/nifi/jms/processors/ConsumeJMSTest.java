@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.jms.processors;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
@@ -26,7 +29,6 @@ import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -35,9 +37,13 @@ public class ConsumeJMSTest {
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
+        final String  destinationName = "cooQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
         JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        sender.publish("Hey dude!".getBytes());
+        final Map<String, String> senderAttributes = new HashMap<>();
+        senderAttributes.put("filename", "message.txt");
+        senderAttributes.put("attribute_from_sender", "some value");
+        sender.publish(destinationName, "Hey dude!".getBytes(), senderAttributes);
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
@@ -46,13 +52,18 @@ public class ConsumeJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(ConsumeJMS.DESTINATION, "cooQueue");
+        runner.setProperty(ConsumeJMS.DESTINATION, destinationName);
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
         runner.run(1, false);
         //
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
-        assertEquals("cooQueue", successFF.getAttributes().get(JmsHeaders.DESTINATION));
+        successFF.assertAttributeExists(JmsHeaders.DESTINATION);
+        successFF.assertAttributeEquals(JmsHeaders.DESTINATION, destinationName);
+        successFF.assertAttributeExists("filename");
+        successFF.assertAttributeEquals("filename", "message.txt");
+        successFF.assertAttributeExists("attribute_from_sender");
+        successFF.assertAttributeEquals("attribute_from_sender", "some value");
         successFF.assertContentEquals("Hey dude!".getBytes());
         String sourceDestination = successFF.getAttribute(ConsumeJMS.JMS_SOURCE_DESTINATION_NAME);
         assertNotNull(sourceDestination);

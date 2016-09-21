@@ -43,6 +43,7 @@ public class PublishJMSTest {
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
+        final String destinationName = "fooQueue";
         PublishJMS pubProc = new PublishJMS();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
@@ -53,7 +54,7 @@ public class PublishJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(PublishJMS.DESTINATION, "fooQueue");
+        runner.setProperty(PublishJMS.DESTINATION, destinationName);
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
@@ -65,8 +66,43 @@ public class PublishJMSTest {
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
-        jmst.setDefaultDestinationName("fooQueue");
-        BytesMessage message = (BytesMessage) jmst.receive();
+        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
+
+        byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
+        assertEquals("Hey dude!", new String(messageBytes));
+        assertEquals("cooQueue", ((Queue) message.getJMSReplyTo()).getQueueName());
+        assertEquals("foo", message.getStringProperty("foo"));
+    }
+
+    @Test
+    public void validateSuccessfulPublishAndTransferToSuccessWithEL() throws Exception {
+        ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
+
+        final String destinationNameExpression = "${foo}Queue";
+        final String destinationName = "fooQueue";
+        PublishJMS pubProc = new PublishJMS();
+        TestRunner runner = TestRunners.newTestRunner(pubProc);
+        JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
+        when(cs.getIdentifier()).thenReturn("cfProvider");
+        when(cs.getConnectionFactory()).thenReturn(cf);
+
+        runner.addControllerService("cfProvider", cs);
+        runner.enableControllerService(cs);
+
+        runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
+        runner.setProperty(PublishJMS.DESTINATION, destinationNameExpression);
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("foo", "foo");
+        attributes.put(JmsHeaders.REPLY_TO, "cooQueue");
+        runner.enqueue("Hey dude!".getBytes(), attributes);
+        runner.run(1, false);
+
+        final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
+        assertNotNull(successFF);
+
+        JmsTemplate jmst = new JmsTemplate(cf);
+        BytesMessage message = (BytesMessage) jmst.receive(destinationName);
 
         byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
         assertEquals("Hey dude!", new String(messageBytes));

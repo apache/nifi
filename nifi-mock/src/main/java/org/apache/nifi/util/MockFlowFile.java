@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -289,5 +290,26 @@ public class MockFlowFile implements FlowFileRecord {
     @Override
     public long getQueueDateIndex() {
         return 0;
+    }
+    public boolean isAttributeEqual(final String attributeName, final String expectedValue) {
+        // unknown attribute name, so cannot be equal.
+        if (attributes.containsKey(attributeName) == false)
+            return false;
+
+        String value = attributes.get(attributeName);
+        return Objects.equals(expectedValue, value);
+    }
+
+    public boolean isContentEqual(String expected) {
+        return isContentEqual(expected, Charset.forName("UTF-8"));
+    }
+
+    public boolean isContentEqual(String expected, final Charset charset) {
+        final String value = new String(this.data, charset);
+        return Objects.equals(expected, value);
+    }
+
+    public boolean isContentEqual(final byte[] expected) {
+        return Arrays.equals(expected, this.data);
     }
 }

@@ -50,7 +50,7 @@ import org.springframework.jms.core.JmsTemplate;
 @Tags({ "jms", "get", "message", "receive", "consume" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes JMS Message of type BytesMessage or TextMessage transforming its content to "
-        + "a FlowFile and transitioning it to 'success' relationship.")
+        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes.")
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
@@ -78,7 +78,8 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     @Override
     protected void rendezvousWithJms(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        final JMSResponse response = this.targetResource.consume();
+        final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
+        final JMSResponse response = this.targetResource.consume(destinationName);
         if (response != null){
             FlowFile flowFile = processSession.create();
             flowFile = processSession.write(flowFile, new OutputStreamCallback() {
@@ -88,7 +89,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                 }
             });
             Map<String, Object> jmsHeaders = response.getMessageHeaders();
-            flowFile = this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
+            Map<String, Object> jmsProperties = Collections.<String, Object>unmodifiableMap(response.getMessageProperties());
+            flowFile = this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+            flowFile = this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
             processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             processSession.transfer(flowFile, REL_SUCCESS);
         } else {
@@ -113,12 +116,16 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     }
 
     /**
-     *
+     * Copies JMS attributes (i.e., headers and properties) as FF attributes.
+     * Given that FF attributes mandate that values are of type String, the
+     * copied values of JMS attributes will be stringified via
+     * String.valueOf(attribute).
      */
-    private FlowFile updateFlowFileAttributesWithJmsHeaders(Map<String, Object> jmsHeaders, FlowFile flowFile, ProcessSession processSession) {
+    private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, Object> jmsAttributes, FlowFile flowFile,
+            ProcessSession processSession) {
         Map<String, String> attributes = new HashMap<String, String>();
-        for (Entry<String, Object> headersEntry : jmsHeaders.entrySet()) {
-            attributes.put(headersEntry.getKey(), String.valueOf(headersEntry.getValue()));
+        for (Entry<String, Object> entry : jmsAttributes.entrySet()) {
+            attributes.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
         attributes.put(JMS_SOURCE_DESTINATION_NAME, this.destinationName);
         flowFile = processSession.putAllAttributes(flowFile, attributes);

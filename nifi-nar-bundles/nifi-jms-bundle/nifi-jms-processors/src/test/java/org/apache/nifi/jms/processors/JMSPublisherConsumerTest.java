@@ -42,12 +42,13 @@ public class JMSPublisherConsumerTest {
 
     @Test
     public void validateByesConvertedToBytesMessageOnSend() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
+        final String destinationName = "testQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
-        publisher.publish("hellomq".getBytes());
+        publisher.publish(destinationName, "hellomq".getBytes());
 
-        Message receivedMessage = jmsTemplate.receive();
+        Message receivedMessage = jmsTemplate.receive(destinationName);
         assertTrue(receivedMessage instanceof BytesMessage);
         byte[] bytes = new byte[7];
         ((BytesMessage) receivedMessage).readBytes(bytes);
@@ -58,15 +59,16 @@ public class JMSPublisherConsumerTest {
 
     @Test
     public void validateJmsHeadersAndPropertiesAreTransferredFromFFAttributes() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
+        final String destinationName = "testQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
         JMSPublisher publisher = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("foo", "foo");
         flowFileAttributes.put(JmsHeaders.REPLY_TO, "myTopic");
-        publisher.publish("hellomq".getBytes(), flowFileAttributes);
+        publisher.publish(destinationName, "hellomq".getBytes(), flowFileAttributes);
 
-        Message receivedMessage = jmsTemplate.receive();
+        Message receivedMessage = jmsTemplate.receive(destinationName);
         assertTrue(receivedMessage instanceof BytesMessage);
         assertEquals("foo", receivedMessage.getStringProperty("foo"));
         assertTrue(receivedMessage.getJMSReplyTo() instanceof Topic);
@@ -83,9 +85,10 @@ public class JMSPublisherConsumerTest {
      */
     @Test(expected = IllegalStateException.class)
     public void validateFailOnUnsupportedMessageType() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
+        final String destinationName = "testQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        jmsTemplate.send(new MessageCreator() {
+        jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 return session.createObjectMessage();
@@ -94,7 +97,7 @@ public class JMSPublisherConsumerTest {
 
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
         try {
-            consumer.consume();
+            consumer.consume(destinationName);
         } finally {
             ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
         }
@@ -102,9 +105,10 @@ public class JMSPublisherConsumerTest {
 
     @Test
     public void validateConsumeWithCustomHeadersAndProperties() throws Exception {
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("testQueue", false);
+        final String destinationName = "testQueue";
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(false);
 
-        jmsTemplate.send(new MessageCreator() {
+        jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 TextMessage message = session.createTextMessage("hello from the other side");
@@ -116,9 +120,7 @@ public class JMSPublisherConsumerTest {
         });
 
         JMSConsumer consumer = new JMSConsumer(jmsTemplate, mock(ComponentLog.class));
-        assertEquals("JMSConsumer[destination:testQueue; pub-sub:false;]", consumer.toString());
-
-        JMSResponse response = consumer.consume();
+        JMSResponse response = consumer.consume(destinationName);
         assertEquals("hello from the other side", new String(response.getMessageBody()));
         assertEquals("fooQueue", response.getMessageHeaders().get(JmsHeaders.REPLY_TO));
         assertEquals("foo", response.getMessageProperties().get("foo"));
