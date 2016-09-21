@@ -47,7 +47,6 @@
                 <exclude>netty</exclude>
                 <exclude>jaxb-impl</exclude>
                 <exclude>httpclient</exclude>
-                <exclude>quartz</exclude>
                 <exclude>mail</exclude>
                 <exclude>log4j</exclude>
                 <exclude>lucene-queryparser</exclude>
