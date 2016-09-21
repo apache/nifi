@@ -350,6 +350,51 @@ public class TestPersistentProvenanceRepository {
     }
 
     @Test
+    public void testIndexOnRolloverWithImmenseAttribute() throws IOException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
+        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
+        config.setSearchableAttributes(SearchableFieldParser.extractSearchableFields("immense", false));
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        repo.initialize(getEventReporter(), null, null);
+
+        int immenseAttrSize = 33000; // must be greater than 32766 for a meaningful test
+        StringBuilder immenseBldr = new StringBuilder(immenseAttrSize);
+        for (int i=0; i < immenseAttrSize; i++) {
+            immenseBldr.append('0');
+        }
+        final String uuid = "00000000-0000-0000-0000-000000000000";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "xyz");
+        attributes.put("xyz", "abc");
+        attributes.put("filename", "file-" + uuid);
+        attributes.put("immense", immenseBldr.toString());
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        for (int i = 0; i < 10; i++) {
+            attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            repo.registerEvent(builder.build());
+        }
+
+        repo.waitForRollover();
+
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("immense"), "000*"));
+        query.setMaxResults(100);
+
+        final QueryResult result = repo.queryEvents(query, createUser());
+        assertEquals(10, result.getMatchingEvents().size());
+    }
+
+    @Test
     public void testIndexOnRolloverAndSubsequentSearch() throws IOException, InterruptedException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
