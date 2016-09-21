@@ -25,7 +25,7 @@
 
 From the minifi.sh script there is the ability to query to get the current status of the flow. This section will give an overview of the different options.
 
-Note: Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups or processors that contain ":", ";" or "," will cause parsing errors when querying.
+Note: Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups or processors that contain " " (a space), ":", ";" or "," will cause parsing errors when querying.
 
 ## Processors
 
