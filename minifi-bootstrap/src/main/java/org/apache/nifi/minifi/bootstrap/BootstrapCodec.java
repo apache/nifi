@@ -60,7 +60,7 @@ public class BootstrapCodec {
         try {
             processRequest(cmd, args);
         } catch (final InvalidCommandException ice) {
-            throw new IOException("Received invalid command from MiNiFi: " + line + " : " + ice.getMessage() == null ? "" : "Details: " + ice.toString());
+            throw new IOException("Received invalid command from MiNiFi: " + line + " : " + (ice.getMessage() == null ? "" : "Details: " + ice.toString()));
         }
     }
 
