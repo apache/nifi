@@ -76,4 +76,30 @@ public class TestValidateJson {
 
         runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID, 1);
     }
+
+    @Test
+    public void testInvalidJsonArraySchemaBody() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
+
+        String schemaBody = "{\"type\": \"object\",\"required\": [\"missingField\"]}"; //invalid schema for JSONArray
+
+        runner.setProperty(ValidateJson.SCHEMA_BODY, schemaBody);
+
+        runner.enqueue(Paths.get("src/test/resources/TestJson/json-sample.json"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
+    }
+
+    @Test
+    public void testInvalidJsonObjectSchemaBody() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
+        String schemaBody = "{\"type\": \"object\",\"required\": [\"missingField\"]}"; //schema requires missingField
+        runner.setProperty(ValidateJson.SCHEMA_BODY, schemaBody);
+
+        runner.enqueue(Paths.get("src/test/resources/TestJson/json-object-sample.json")); //json without missingField
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
+    }
 }

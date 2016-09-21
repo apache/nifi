@@ -174,7 +174,7 @@ public class ValidateJson extends AbstractProcessor {
         final AtomicBoolean valid = new AtomicBoolean(true);
         session.read(flowFile, new InputStreamCallback() {
             @Override
-            public void process(final InputStream in) throws IOException {
+            public void process(final InputStream in) {
                 try {
                     String str = IOUtils.toString(in, StandardCharsets.UTF_8);
                     if (str.startsWith("[")) {

@@ -279,6 +279,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-sample-schema.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-object-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-object-sample-schema.json</exclude>
                         <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
