@@ -967,12 +967,8 @@ nf.ClusterTable = (function () {
          */
         resetTableSize: function () {
             clusterTabs.forEach(function (tab) {
-                try {
-                    if (tab.grid) {
-                        tab.grid.resizeCanvas();
-                    }
-                } catch (ex) {
-                    console.error("Failed to resize tab", tab, ex);
+                if (tab && tab.grid) {
+                    tab.grid.resizeCanvas();
                 }
             });
         },
