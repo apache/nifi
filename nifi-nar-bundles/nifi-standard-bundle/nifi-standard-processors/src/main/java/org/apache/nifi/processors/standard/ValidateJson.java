@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,6 +41,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -48,6 +53,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
@@ -66,10 +72,20 @@ import org.json.JSONTokener;
 public class ValidateJson extends AbstractProcessor {
 
     public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder()
-            .name("Schema File")
-            .description("The path to the Schema file that is to be used for validation")
-            .required(true)
+            .name("validate-json-schema-file")
+            .displayName("Schema File")
+            .description("The path to the Schema file that is to be used for validation. Only one of Schema File or Schema Body may be used")
+            .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SCHEMA_BODY = new PropertyDescriptor.Builder()
+            .name("validate-json-schema-body")
+            .displayName("Schema Body")
+            .required(false)
+            .description("Json Schema Body that is to be used for validation. Only one of Schema File or Schema Body may be used")
+            .expressionLanguageSupported(false)
+            .addValidator(Validator.VALID)
             .build();
 
     public static final Relationship REL_VALID = new Relationship.Builder()
@@ -85,10 +101,33 @@ public class ValidateJson extends AbstractProcessor {
     private Set<Relationship> relationships;
     private final AtomicReference<Schema> schemaRef = new AtomicReference<>();
 
+    /**
+     * Custom validation for ensuring exactly one of Script File or Script Body is populated
+     *
+     * @param validationContext provides a mechanism for obtaining externally
+     *                          managed values, such as property values and supplies convenience methods
+     *                          for operating on those values
+     * @return A collection of validation results
+     */
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        Set<ValidationResult> results = new HashSet<>();
+
+        // Verify that exactly one of "script file" or "script body" is set
+        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
+        if (StringUtils.isEmpty(propertyMap.get(SCHEMA_FILE)) == StringUtils.isEmpty(propertyMap.get(SCHEMA_BODY))) {
+            results.add(new ValidationResult.Builder().valid(false).explanation(
+                    "Exactly one of Schema File or Schema Body must be set").build());
+        }
+
+        return results;
+    }
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SCHEMA_FILE);
+        properties.add(SCHEMA_BODY);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -109,51 +148,55 @@ public class ValidateJson extends AbstractProcessor {
 
     @OnScheduled
     public void parseSchema(final ProcessContext context) throws IOException {
-        try(FileInputStream inputStream = new FileInputStream(new File(context.getProperty(SCHEMA_FILE).getValue()))) {
-            JSONTokener jsonTokener = new JSONTokener(inputStream);
-            JSONObject jsonObject = new JSONObject(jsonTokener);
-            Schema schema = SchemaLoader.load(jsonObject);
-            this.schemaRef.set(schema);
+        JSONObject jsonObjectSchema;
+        if(context.getProperty(SCHEMA_FILE).isSet()){
+            try(FileInputStream inputStream = new FileInputStream(new File(context.getProperty(SCHEMA_FILE).getValue()))) {
+                JSONTokener jsonTokener = new JSONTokener(inputStream);
+                jsonObjectSchema = new JSONObject(jsonTokener);
+            }
+        } else {
+            String rawSchema = context.getProperty(SCHEMA_BODY).getValue();
+            jsonObjectSchema = new JSONObject(rawSchema);
         }
+        Schema schema = SchemaLoader.load(jsonObjectSchema);
+        this.schemaRef.set(schema);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final List<FlowFile> flowFiles = session.get(50);
-        if (flowFiles.isEmpty()) {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
             return;
         }
         final Schema schema = schemaRef.get();
         final ComponentLog logger = getLogger();
 
-        for (final FlowFile flowFile : flowFiles) {
-            final AtomicBoolean valid = new AtomicBoolean(true);
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    try {
-                        String str = IOUtils.toString(in, StandardCharsets.UTF_8);
-                        if (str.startsWith("[")) {
-                            schema.validate(new JSONArray(str)); // throws a ValidationException if this object is invalid
-                        } else {
-                            schema.validate(new JSONObject(str)); // throws a ValidationException if this object is invalid
-                        }
-                    } catch (final IllegalArgumentException | ValidationException e) {
-                        valid.set(false);
-                        logger.debug("Failed to validate {} against schema due to {}", new Object[]{flowFile, e});
+        final AtomicBoolean valid = new AtomicBoolean(true);
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                try {
+                    String str = IOUtils.toString(in, StandardCharsets.UTF_8);
+                    if (str.startsWith("[")) {
+                        schema.validate(new JSONArray(str)); // throws a ValidationException if this object is invalid
+                    } else {
+                        schema.validate(new JSONObject(str)); // throws a ValidationException if this object is invalid
                     }
+                } catch (final IllegalArgumentException | ValidationException | IOException e) {
+                    valid.set(false);
+                    logger.debug("Failed to validate {} against schema due to {}", new Object[]{flowFile, e});
                 }
-            });
-
-            if (valid.get()) {
-                logger.info("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
-                session.getProvenanceReporter().route(flowFile, REL_VALID);
-                session.transfer(flowFile, REL_VALID);
-            } else {
-                logger.info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
-                session.getProvenanceReporter().route(flowFile, REL_INVALID);
-                session.transfer(flowFile, REL_INVALID);
             }
+        });
+
+        if (valid.get()) {
+            logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+            session.getProvenanceReporter().route(flowFile, REL_VALID);
+            session.transfer(flowFile, REL_VALID);
+        } else {
+            logger.debug("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
+            session.getProvenanceReporter().route(flowFile, REL_INVALID);
+            session.transfer(flowFile, REL_INVALID);
         }
     }
 }

@@ -19,6 +19,8 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.nio.file.Paths;
 
+import org.apache.commons.io.IOUtils;
+
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -28,7 +30,7 @@ import org.xml.sax.SAXException;
 public class TestValidateJson {
 
     @Test
-    public void testValidJsonArray() throws IOException, SAXException {
+    public void testValidJsonArraySchemaFile() throws IOException, SAXException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
         runner.setProperty(ValidateJson.SCHEMA_FILE, "src/test/resources/TestJson/json-sample-schema.json");
 
@@ -39,7 +41,7 @@ public class TestValidateJson {
     }
 
     @Test
-    public void testValidJsonObject() throws IOException, SAXException {
+    public void testValidJsonObjectSchemaFile() throws IOException, SAXException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
         runner.setProperty(ValidateJson.SCHEMA_FILE, "src/test/resources/TestJson/json-object-sample-schema.json");
 
@@ -49,4 +51,29 @@ public class TestValidateJson {
         runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID, 1);
     }
 
+    @Test
+    public void testValidJsonArraySchemaBody() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
+
+        String schemaBody = IOUtils.toString(getClass().getClassLoader().getResourceAsStream("TestJson/json-sample-schema.json"), "UTF-8");
+
+        runner.setProperty(ValidateJson.SCHEMA_BODY, schemaBody);
+
+        runner.enqueue(Paths.get("src/test/resources/TestJson/json-sample.json"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID, 1);
+    }
+
+    @Test
+    public void testValidJsonObjectSchemaBody() throws IOException, SAXException {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateJson());
+        String schemaBody = IOUtils.toString(getClass().getClassLoader().getResourceAsStream("TestJson/json-object-sample-schema.json"), "UTF-8");
+        runner.setProperty(ValidateJson.SCHEMA_BODY, schemaBody);
+
+        runner.enqueue(Paths.get("src/test/resources/TestJson/json-object-sample.json"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateJson.REL_VALID, 1);
+    }
 }
