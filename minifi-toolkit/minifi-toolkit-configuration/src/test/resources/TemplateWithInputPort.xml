@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+ -->
+<template><description></description><name>TemplateWithInputPort</name><snippet><inputPorts><id>8d2c579e-4ad2-4922-a311-a37b7e551b7a</id><parentGroupId>5e4f1cc2-78e9-4e08-a0c2-11779c9efc17</parentGroupId><position><x>2100.7989688172092</x><y>452.8720286116666</y></position><concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount><name>input port</name><state>STOPPED</state><transmitting>false</transmitting><type>INPUT_PORT</type><validationErrors>'Port 'input port'' is invalid because Output connection for port 'input port' is not defined.</validationErrors></inputPorts></snippet><timestamp>09/21/2016 19:05:44 EDT</timestamp></template>

@@ -137,7 +137,7 @@ public class ConfigMainTest {
                 throw new IOException();
             }
         });
-        assertEquals(ConfigMain.ERR_UNABLE_TO_TRANFORM_TEMPLATE, configMain.execute(new String[]{ConfigMain.TRANSFORM, testInput, testOutput}));
+        assertEquals(ConfigMain.ERR_UNABLE_TO_TRANSFORM_TEMPLATE, configMain.execute(new String[]{ConfigMain.TRANSFORM, testInput, testOutput}));
     }
 
     @Test
@@ -171,6 +171,26 @@ public class ConfigMainTest {
     @Test
     public void testTransformRoundTripStressTestFramework() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("StressTestFramework");
+    }
+
+    @Test(expected = SchemaLoaderException.class)
+    public void testFailToTransformProcessGroup() throws IOException, JAXBException, SchemaLoaderException {
+        ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithProcessGroup.xml")).toMap();
+    }
+
+    @Test(expected = SchemaLoaderException.class)
+    public void testFailToTransformInputPort() throws IOException, JAXBException, SchemaLoaderException {
+        ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithOutputPort.xml")).toMap();
+    }
+
+    @Test(expected = SchemaLoaderException.class)
+    public void testFailToTransformOutputPort() throws IOException, JAXBException, SchemaLoaderException {
+        ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithInputPort.xml")).toMap();
+    }
+
+    @Test(expected = SchemaLoaderException.class)
+    public void testFailToTransformFunnel() throws IOException, JAXBException, SchemaLoaderException {
+        ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithFunnel.xml")).toMap();
     }
 
     private void transformRoundTrip(String name) throws JAXBException, IOException, SchemaLoaderException {
