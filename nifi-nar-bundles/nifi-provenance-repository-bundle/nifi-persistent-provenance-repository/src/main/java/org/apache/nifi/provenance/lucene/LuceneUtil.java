@@ -17,6 +17,12 @@
 package org.apache.nifi.provenance.lucene;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +36,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
@@ -193,5 +200,38 @@ public class LuceneUtil {
             sortDocsForRetrieval(groupedDocuments);
         }
         return documentGroups;
+    }
+
+    /**
+     * Truncate a single field so that it does not exceed Lucene's byte size limit on indexed terms.
+     *
+     * @param field the string to be indexed
+     * @return a string that can be indexed which is within Lucene's byte size limit, or null if anything goes wrong
+     */
+    public static String truncateIndexField(String field) {
+        if (field == null) {
+            return field;
+        }
+
+        Charset charset = Charset.defaultCharset();
+        byte[] bytes = field.getBytes(charset);
+        if (bytes.length <= IndexWriter.MAX_TERM_LENGTH) {
+            return field;
+        }
+
+        // chop the field to maximum allowed byte length
+        ByteBuffer bbuf = ByteBuffer.wrap(bytes, 0, IndexWriter.MAX_TERM_LENGTH);
+
+        try {
+            // decode the chopped byte buffer back into original charset
+            CharsetDecoder decoder = charset.newDecoder();
+            decoder.onMalformedInput(CodingErrorAction.IGNORE);
+            decoder.reset();
+            CharBuffer cbuf = decoder.decode(bbuf);
+            return cbuf.toString();
+        } catch (CharacterCodingException shouldNotHappen) {}
+
+        // if we get here, something bad has happened
+        return null;
     }
 }
