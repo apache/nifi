@@ -72,8 +72,9 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "\"abc(def)?(g)\" we would add an attribute \"regex.1\" with a value of \"def\" if the \"def\" matched. If "
         + "the \"def\" did not match, no attribute named \"regex.1\" would be added but an attribute named \"regex.2\" "
         + "with a value of \"g\" will be added regardless."
-        + "The value of the property must be a valid Regular Expressions with one or more capturing groups.  "
-        + "If the Regular Expression matches more than once, only the first match will be used.  "
+        + "The value of the property must be a valid Regular Expressions with one or more capturing groups. "
+        + "If the Regular Expression matches more than once, only the first match will be used unless the property "
+        + "enabling repeating capture group is set to true. "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' "
         + "and no attributes will be applied to the FlowFile.")
@@ -193,6 +194,16 @@ public class ExtractText extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
+    public static final PropertyDescriptor ENABLE_REPEATING_CAPTURE_GROUP = new PropertyDescriptor.Builder()
+            .name("extract-text-enable-repeating-capture-group")
+            .displayName("Enable repeating capture group")
+            .description("If set to true, every string matching the capture groups will be extracted. Otherwise, "
+                    + "if the Regular Expression matches more than once, only the first match will be extracted.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
             .description("FlowFiles are routed to this relationship when the Regular Expression is successfully evaluated and the FlowFile is modified as a result")
@@ -229,6 +240,7 @@ public class ExtractText extends AbstractProcessor {
         props.add(UNICODE_CHARACTER_CLASS);
         props.add(UNIX_LINES);
         props.add(INCLUDE_CAPTURE_GROUP_ZERO);
+        props.add(ENABLE_REPEATING_CAPTURE_GROUP);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -320,21 +332,27 @@ public class ExtractText extends AbstractProcessor {
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
 
             final Matcher matcher = entry.getValue().matcher(contentString);
+            int j = 0;
 
-            if (matcher.find()) {
+            while (matcher.find()) {
                 final String baseKey = entry.getKey();
-                for (int i = startGroupIdx; i <= matcher.groupCount(); i++) {
-                    final String key = new StringBuilder(baseKey).append(".").append(i).toString();
+                int start = j == 0 ? startGroupIdx : 1;
+                for (int i = start; i <= matcher.groupCount(); i++) {
+                    final String key = new StringBuilder(baseKey).append(".").append(i+j).toString();
                     String value = matcher.group(i);
-                    if (value != null) {
+                    if (value != null && !value.isEmpty()) {
                         if (value.length() > maxCaptureGroupLength) {
                             value = value.substring(0, maxCaptureGroupLength);
                         }
                         regexResults.put(key, value);
-                        if (i == 1) {
+                        if (i == 1 && j == 0) {
                             regexResults.put(baseKey, value);
                         }
                     }
+                }
+                j += matcher.groupCount();
+                if(!context.getProperty(ENABLE_REPEATING_CAPTURE_GROUP).asBoolean()) {
+                    break;
                 }
             }
         }
