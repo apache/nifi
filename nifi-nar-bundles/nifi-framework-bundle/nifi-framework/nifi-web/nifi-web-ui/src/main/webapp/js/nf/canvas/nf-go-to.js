@@ -615,7 +615,7 @@ nf.GoTo = (function () {
             // populate the downstream dialog
             $('#connections-context')
                 .append('<div class="search-result-icon icon-port-in"></div>')
-                .append($('<div class="connections-component-name"></div>').text(portEntity))
+                .append($('<div class="connections-component-name"></div>').text(portLabel))
                 .append('<div class="clear"></div>');
 
             // add the destination for each connection
