@@ -68,6 +68,7 @@ import okhttp3.ResponseBody;
         + "To retrieve more records, use the ScrollElasticsearchHttp processor.")
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename attribute is set to the document identifier"),
+        @WritesAttribute(attribute = "es.id", description = "The Elasticsearch document identifier"),
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type"),
         @WritesAttribute(attribute = "es.result.*", description = "If Target is 'Flow file attributes', the JSON attributes of "
@@ -106,13 +107,14 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("query-es-query").displayName("Query")
-            .description("The Lucene-style query to run against ElasticSearch").required(true)
+            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)").required(true)
             .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("query-es-index").displayName("Index")
-            .description("The name of the index to read from").required(true)
+            .description("The name of the index to read from. If the property is set "
+                            + "to _all, the query will match across all indexes.").required(true)
             .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -120,10 +122,12 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .name("query-es-type")
             .displayName("Type")
             .description(
-                    "The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty or set "
-                            + "to _all, the first document matching the identifier across all types will be retrieved.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
+                            + "the the query will match across all types.")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
             .name("query-es-fields")
@@ -131,8 +135,10 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .description(
                     "A comma-separated list of fields to retrieve from the document. If the Fields property is left blank, "
                             + "then the entire document's source will be retrieved.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
             .name("query-es-sort")
@@ -331,11 +337,13 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 }
 
                 JsonNode source = hit.get("_source");
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.id", retrievedId);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.index", retrievedIndex);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.type", retrievedType);
 
                 if (targetIsContent) {
                     documentFlowFile = session.putAttribute(documentFlowFile, "filename", retrievedId);
+                    documentFlowFile = session.putAttribute(documentFlowFile, "mime.type", "application/json");
                     documentFlowFile = session.write(documentFlowFile, out -> {
                         out.write(source.toString().getBytes());
                     });
@@ -390,8 +398,10 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             throw new MalformedURLException("Base URL cannot be null");
         }
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder();
-        builder.addPathSegment(index);
-        builder.addPathSegment((StringUtils.isEmpty(type)) ? "_all" : type);
+        builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
+        if (!StringUtils.isEmpty(type)) {
+            builder.addPathSegment(type);
+        }
         builder.addPathSegment("_search");
         builder.addQueryParameter(QUERY_QUERY_PARAM, query);
         builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
