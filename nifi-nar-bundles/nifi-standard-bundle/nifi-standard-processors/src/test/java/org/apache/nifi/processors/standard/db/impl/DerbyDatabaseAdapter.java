@@ -49,7 +49,7 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
         }
         if (!StringUtils.isEmpty(orderByClause)) {
             query.append(" ORDER BY ");
-            query.append(whereClause);
+            query.append(orderByClause);
         }
         if (offset != null && offset > 0) {
             query.append(" OFFSET ");
