@@ -132,6 +132,19 @@ public class PutS3Object extends AbstractS3Processor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+        .name("Content Type")
+        .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
+                "object. The value of this header is a standard MIME type.\n" +
+                "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
+                " yet. Users are responsible for ensuring a suitable content type is set when uploading streams. If " +
+                "no content type is provided and cannot be determined by the filename, the default content type " +
+                "\"application/octet-stream\" will be used.")
+        .required(false)
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
         .name("Storage Class")
         .required(true)
@@ -190,13 +203,14 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION,
             PROXY_HOST, PROXY_HOST_PORT));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
+    final static String S3_CONTENT_TYPE = "s3.contenttype";
     final static String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
     final static String S3_VERSION_ATTR_KEY = "s3.version";
     final static String S3_ETAG_ATTR_KEY = "s3.etag";
@@ -405,6 +419,12 @@ public class PutS3Object extends AbstractS3Processor {
                         final ObjectMetadata objectMetadata = new ObjectMetadata();
                         objectMetadata.setContentDisposition(ff.getAttribute(CoreAttributes.FILENAME.key()));
                         objectMetadata.setContentLength(ff.getSize());
+
+                        final String contentType = context.getProperty(CONTENT_TYPE)
+                                .evaluateAttributeExpressions(ff).getValue();
+                        if (contentType != null) {
+                            objectMetadata.setContentType(contentType);
+                        }
 
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID)
                                 .evaluateAttributeExpressions(ff).getValue();
