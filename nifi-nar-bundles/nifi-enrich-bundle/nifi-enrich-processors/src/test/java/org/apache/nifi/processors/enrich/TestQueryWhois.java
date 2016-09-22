@@ -163,7 +163,7 @@ public class TestQueryWhois {
                 ".${ip_address:getDelimitedField(2, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(1, '.'):trim()}");
         queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER, QueryWhois.REGEX.getValue());
-        queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER_INPUT, "\n^([^\\|]*)\\|\\s+(?<KEY>\\S+)\\s+\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|(.*)$");
+        queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER_INPUT, "\n^([^\\|]*)\\|\\s+(\\S+)\\s+\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|(.*)$");
 
         final Map<String, String> attributeMap1 = new HashMap<>();
         final Map<String, String> attributeMap2 = new HashMap<>();
@@ -183,6 +183,39 @@ public class TestQueryWhois {
         assertTrue(nonMatchingResults.size() == 1);
 
         matchingResults.get(0).assertAttributeEquals("enrich.whois.record0.group8", " Apache NiFi");
+
+    }
+
+    @Test
+    public void testValidDataWithRegexButInvalidCaptureGroup()  {
+
+        queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_SERVER, "127.0.0.1");
+        queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_QUERY_TYPE, "origin");
+        queryWhoisTestRunner.setProperty(QueryWhois.WHOIS_TIMEOUT, "1000 ms");
+        queryWhoisTestRunner.setProperty(QueryWhois.KEY_GROUP, "9");
+        queryWhoisTestRunner.setProperty(QueryWhois.QUERY_INPUT, "${ip_address:getDelimitedField(4, '.'):trim()}" +
+                ".${ip_address:getDelimitedField(3, '.'):trim()}" +
+                ".${ip_address:getDelimitedField(2, '.'):trim()}" +
+                ".${ip_address:getDelimitedField(1, '.'):trim()}");
+        queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER, QueryWhois.REGEX.getValue());
+        queryWhoisTestRunner.setProperty(QueryWhois.QUERY_PARSER_INPUT, "\n^([^\\|]*)\\|\\s+(\\S+)\\s+\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|([^\\|]*)\\|(.*)$");
+
+        final Map<String, String> attributeMap1 = new HashMap<>();
+        final Map<String, String> attributeMap2 = new HashMap<>();
+        final Map<String, String> attributeMap3 = new HashMap<>();
+        attributeMap1.put("ip_address", "123.123.123.123");
+        attributeMap2.put("ip_address", "124.124.124.124");
+        attributeMap3.put("ip_address", "125.125.125.125");
+
+        queryWhoisTestRunner.enqueue(new byte[0], attributeMap1);
+        queryWhoisTestRunner.enqueue(new byte[0], attributeMap2);
+        queryWhoisTestRunner.enqueue(new byte[0], attributeMap3);
+        queryWhoisTestRunner.run();
+
+        List<MockFlowFile> matchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_FOUND);
+        assertTrue(matchingResults.size() == 0);
+        List<MockFlowFile> nonMatchingResults = queryWhoisTestRunner.getFlowFilesForRelationship(QueryWhois.REL_NOT_FOUND);
+        assertTrue(nonMatchingResults.size() == 3);
 
     }
 

@@ -128,6 +128,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
 
         if (!chosenQUERY_PARSER.equals(NONE.getValue())  &&  !validationContext.getProperty(QUERY_PARSER_INPUT).isSet() ) {
             results.add(new ValidationResult.Builder().input("QUERY_PARSER_INPUT")
+                    .subject(QUERY_PARSER_INPUT.getDisplayName())
                     .explanation("Split and Regex parsers require a valid Regular Expression")
                     .valid(false)
                     .build());
@@ -136,6 +137,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
 
         if (validationContext.getProperty(BATCH_SIZE).asInteger() > 1 &&   !validationContext.getProperty(KEY_GROUP).isSet() )  {
             results.add(new ValidationResult.Builder().input("KEY_GROUP")
+                    .subject(KEY_GROUP.getDisplayName())
                     .explanation("when operating in Batching mode, RegEx and Split parsers require a " +
                             "valid capture group/matching column. Configure the processor batch size to 1" +
                             " or enter a valid column / named capture value.")
@@ -144,7 +146,8 @@ public class QueryWhois extends AbstractEnrichProcessor {
         }
 
         if ( validationContext.getProperty(BATCH_SIZE).asInteger() > 1  && chosenQUERY_PARSER.equals(NONE.getValue())  ) {
-            results.add(new ValidationResult.Builder().input("QUERY_PARSER")
+            results.add(new ValidationResult.Builder().input(validationContext.getProperty(BATCH_SIZE).getValue())
+                    .subject(QUERY_PARSER.getDisplayName())
                     .explanation("NONE parser does not support batching. Configure Batch Size to 1 or use another parser.")
                     .valid(false)
                     .build());
@@ -152,6 +155,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
 
         if ( validationContext.getProperty(BATCH_SIZE).asInteger() == 1  && !validationContext.getProperty(BULK_PROTOCOL).getValue().equals(BULK_NONE.getValue()) ) {
             results.add(new ValidationResult.Builder().input("BULK_PROTOCOL")
+                    .subject(BATCH_SIZE.getDisplayName())
                     .explanation("Bulk protocol requirement requires batching. Configure Batch Size to more than 1 or " +
                             "use another protocol.")
                     .valid(false)
@@ -217,10 +221,13 @@ public class QueryWhois extends AbstractEnrichProcessor {
         final String queryType = context.getProperty(WHOIS_QUERY_TYPE).getValue();
 
         // Verify the the protocol mode and craft the "begin" pseudo-command, otherwise just the query type
-        buildString = context.getProperty(BULK_PROTOCOL).getValue().equals(BEGIN_END.getValue())  ? buildString.concat("begin") : buildString.concat("");
+        buildString = context.getProperty(BULK_PROTOCOL).getValue().equals(BEGIN_END.getValue())  ? buildString.concat("begin ") : buildString.concat("");
 
         // Append the query type
-        buildString = context.getProperty(WHOIS_QUERY_TYPE).isSet()  ? buildString.concat(" " + queryType + "\n") : buildString.concat("");
+        buildString = context.getProperty(WHOIS_QUERY_TYPE).isSet()  ? buildString.concat(queryType + " " ) : buildString.concat("");
+
+        // A new line is required when working on Begin/End
+        buildString = context.getProperty(BULK_PROTOCOL).getValue().equals(BEGIN_END.getValue()) ? buildString.concat("\n") : buildString.concat("");
 
         // append the values
         for (FlowFile flowFile : flowFiles) {
@@ -234,7 +241,7 @@ public class QueryWhois extends AbstractEnrichProcessor {
 
         final String queryParser = context.getProperty(QUERY_PARSER).getValue();
         final String queryRegex = context.getProperty(QUERY_PARSER_INPUT).getValue();
-        final String keyLookup = context.getProperty(KEY_GROUP).getValue();
+        final int keyLookup = context.getProperty(KEY_GROUP).asInteger();
         final int whoisTimeout = context.getProperty(WHOIS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final String whoisServer = context.getProperty(WHOIS_SERVER).getValue();
         final int whoisPort = context.getProperty(WHOIS_SERVER_PORT).asInteger();
@@ -259,13 +266,13 @@ public class QueryWhois extends AbstractEnrichProcessor {
                     if (parsedResults.isEmpty()) {
                         // parsedResults didn't return anything valid, sending to not found.
                         flowFilesNotMatched.add(flowFile);
-                    } else
+                    } else {
                         // Still, extraction is needed
                         flowFile = session.putAllAttributes(flowFile, parsedResults);
                         flowFilesMatched.add(flowFile);
 
                         // Finished processing single result
-
+                    }
                 } else {
                     // Otherwise call the multiline parser and get the row map;
                     final Map<String, Map<String, String>> rowMap = parseBatchResponse(result, queryParser, queryRegex, keyLookup, "whois").rowMap();
