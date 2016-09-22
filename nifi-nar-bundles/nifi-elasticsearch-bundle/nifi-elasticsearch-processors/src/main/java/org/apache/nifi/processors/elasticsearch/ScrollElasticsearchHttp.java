@@ -100,7 +100,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("scroll-es-query").displayName("Query")
-            .description("The Lucene-style query to run against ElasticSearch").required(true)
+            .description("The Lucene-style query to run against ElasticSearch (e.g., genre:blues AND -artist:muddy)").required(true)
             .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -116,19 +116,24 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             .build();
 
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("scroll-es-index").displayName("Index")
-            .description("The name of the index to read from").required(true)
-            .expressionLanguageSupported(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .name("scroll-es-index")
+            .displayName("Index")
+            .description("The name of the index to read from. If the property is set "
+                            + "to _all, the query will match across all indexes.")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("scroll-es-type")
             .displayName("Type")
             .description(
-                    "The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty or set "
-                            + "to _all, the first document matching the identifier across all types will be retrieved.")
-            .required(false).expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+                    "The (optional) type of this query, used by Elasticsearch for indexing and searching. If the property is empty, "
+                    + "the the query will match across all types.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(true).build();
 
     public static final PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
             .name("scroll-es-fields")
@@ -303,6 +308,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 JsonNode source = hit.get("_source");
                 flowFile = session.putAttribute(flowFile, "es.index", retrievedIndex);
                 flowFile = session.putAttribute(flowFile, "es.type", retrievedType);
+                flowFile = session.putAttribute(flowFile, "mime.type", "application/json");
 
                 builder.append(source.toString());
                 if (i < hits.size() - 1) {
@@ -394,8 +400,10 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
             builder.addPathSegment("scroll");
             builder.addQueryParameter(SCROLL_ID_QUERY_PARAM, scrollId);
         } else {
-            builder.addPathSegment(index);
-            builder.addPathSegment((StringUtils.isEmpty(type)) ? "_all" : type);
+            builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
+            if (!StringUtils.isEmpty(type)) {
+                builder.addPathSegment(type);
+            }
             builder.addPathSegment("_search");
             builder.addQueryParameter(QUERY_QUERY_PARAM, query);
             builder.addQueryParameter(SIZE_QUERY_PARAM, String.valueOf(pageSize));
