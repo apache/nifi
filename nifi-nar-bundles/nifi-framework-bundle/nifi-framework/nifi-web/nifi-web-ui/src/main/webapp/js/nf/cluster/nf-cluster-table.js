@@ -32,10 +32,12 @@ nf.ClusterTable = (function () {
         },
         data: [{
                 name: 'cluster',
-                update: refreshClusterData
+                update: refreshClusterData,
+                isAuthorized: nf.Common.canAccessController
             },{
                 name: 'systemDiagnostics',
-                update: refreshSystemDiagnosticsData
+                update: refreshSystemDiagnosticsData,
+                isAuthorized: nf.Common.canAccessSystem
             }
         ]
     };
@@ -192,15 +194,6 @@ nf.ClusterTable = (function () {
     var clusterTabs = [nodesTab, systemTab, jvmTab, flowFileTab, contentTab];
     var tabsByName = {};
     var dataSetHandlers = {};
-    clusterTabs.forEach(function (tab) {
-        tabsByName[tab.name] = tab;
-        var dataSetHandlerList = dataSetHandlers[tab.data.dataSet];
-        if (dataSetHandlerList) {
-            dataSetHandlers[tab.data.dataSet] = dataSetHandlerList.concat([tab.data.update]);
-        } else {
-            dataSetHandlers[tab.data.dataSet] = [tab.data.update];
-        }
-    });
 
     /**
      * Click handler for the Nodes table options.
@@ -931,6 +924,38 @@ nf.ClusterTable = (function () {
                 applyFilter();
             });
 
+            // Authorize data sets
+            var dataSetAuthorized = {};
+            config.data = config.data.filter(function (dataSetConfig) {
+                dataSetConfig.authorized = dataSetConfig.isAuthorized();
+                dataSetAuthorized[dataSetConfig.name] = dataSetConfig.authorized;
+                if (dataSetConfig.authorized) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+
+            // Filter tabs to authorized data sets
+            clusterTabs = clusterTabs.filter(function (tab) {
+                var tabDataSet = tab.data.dataSet;
+                if (dataSetAuthorized[tabDataSet]) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+            clusterTabs.forEach(function (tab) {
+                tabsByName[tab.name] = tab;
+                var dataSetHandlerList = dataSetHandlers[tab.data.dataSet];
+                if (dataSetHandlerList) {
+                    dataSetHandlers[tab.data.dataSet] = dataSetHandlerList.concat([tab.data.update]);
+                } else {
+                    dataSetHandlers[tab.data.dataSet] = [tab.data.update];
+                }
+            });
+
+            // Initialize tab set
             $('#cluster-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',

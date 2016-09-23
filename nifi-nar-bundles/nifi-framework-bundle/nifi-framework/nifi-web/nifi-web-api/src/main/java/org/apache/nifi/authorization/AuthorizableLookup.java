@@ -262,4 +262,13 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getAuthorizableFromResource(final String resource);
+
+
+    /**
+     * Get the authorizable for access to the System resource.
+     *
+     * @return authorizable
+     */
+    Authorizable getSystem();
+
 }
