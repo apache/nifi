@@ -177,8 +177,8 @@ public class JdbcCommon {
                         // long (and the schema says it will be), so try to get its value as a long.
                         // Otherwise, Avro can't handle BigInteger as a number - it will throw an AvroRuntimeException
                         // such as: "Unknown datum type: java.math.BigInteger: 38". In this case the schema is expecting a string.
-                        int precision = meta.getPrecision(i);
                         if (javaSqlType == BIGINT) {
+                            int precision = meta.getPrecision(i);
                             if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
                                 rec.put(i - 1, value.toString());
                             } else {
@@ -194,7 +194,16 @@ public class JdbcCommon {
                         }
 
                     } else if (value instanceof Number || value instanceof Boolean) {
-                        rec.put(i - 1, value);
+                        if (javaSqlType == BIGINT) {
+                            int precision = meta.getPrecision(i);
+                            if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
+                                rec.put(i - 1, value.toString());
+                            } else {
+                                rec.put(i - 1, value);
+                            }
+                        } else {
+                            rec.put(i - 1, value);
+                        }
 
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
