@@ -119,5 +119,18 @@ run() {
 }
 
 
-init "$1"
-run "$@"
+case "$1" in
+    transform|validate)
+        init "$1"
+        run "$@"
+        ;;
+    *)
+        echo ""
+        echo "MiNiFi toolkit Usage, valid commands include: {transform|validate}"
+        echo "transform: Transform template xml into MiNiFi config YAML"
+        echo "    config.sh transform INPUT_FILE OUTPUT_FILE"
+        echo "validate: Validate config YAML"
+        echo "    config.sh validate INPUT_FILE"
+        echo ""
+        ;;
+esac

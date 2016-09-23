@@ -85,8 +85,6 @@ public class ConfigMain {
     public static void printValidateUsage() {
         System.out.println("Validate Usage:");
         System.out.println();
-        System.out.print("java ");
-        System.out.print(ConfigMain.class.getCanonicalName());
         System.out.println(" validate INPUT_FILE");
         System.out.println();
     }
@@ -128,8 +126,6 @@ public class ConfigMain {
     public static void printTransformUsage() {
         System.out.println("Transform Usage:");
         System.out.println();
-        System.out.print("java ");
-        System.out.print(ConfigMain.class.getCanonicalName());
         System.out.println(" transform INPUT_FILE OUTPUT_FILE");
         System.out.println();
     }
@@ -312,10 +308,6 @@ public class ConfigMain {
 
     public void printUsage() {
         System.out.println("Usage:");
-        System.out.println();
-        System.out.print("java ");
-        System.out.print(ConfigMain.class.getCanonicalName());
-        System.out.println(" <command> options");
         System.out.println();
         System.out.println("Valid commands include:");
         commandMap.forEach((s, command) -> System.out.println(s + ": " + command.description));
