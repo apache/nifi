@@ -12,7 +12,8 @@ install:
         )
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
-  - cmd: SET PATH=C:\maven\apache-maven-3.1.1\bin;%JAVA_HOME%\bin;%PATH%
+  - cmd: SET M2_HOME=C:\maven\apache-maven-3.1.1
+  - cmd: SET PATH=%M2_HOME%\bin;%JAVA_HOME%\bin;%PATH%%
   - cmd: SET MAVEN_OPTS=-XX:MaxPermSize=2g -Xmx4g
   - cmd: SET JAVA_OPTS=-XX:MaxPermSize=2g -Xmx4g
 build_script:
