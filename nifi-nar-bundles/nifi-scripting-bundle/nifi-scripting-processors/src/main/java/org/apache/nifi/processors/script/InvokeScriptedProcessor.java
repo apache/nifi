@@ -232,6 +232,10 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 || MODULES.equals(descriptor)
                 || SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
+            // Need to reset scriptEngine if the value has changed
+            if (SCRIPT_ENGINE.equals(descriptor)) {
+                scriptEngine = null;
+            }
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {
