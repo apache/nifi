@@ -202,7 +202,7 @@ public class ProcessorDTO extends ComponentDTO {
      * @return The processor configuration details
      */
     @ApiModelProperty(
-            value = "The configuration details for the processor. These details will be included in a resopnse if the verbose flag is included in a request."
+            value = "The configuration details for the processor. These details will be included in a response if the verbose flag is included in a request."
     )
     public ProcessorConfigDTO getConfig() {
         return config;

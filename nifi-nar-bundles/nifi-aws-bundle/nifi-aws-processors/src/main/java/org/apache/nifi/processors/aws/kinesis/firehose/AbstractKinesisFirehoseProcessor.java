@@ -68,7 +68,7 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCreden
     }
 
     /**
-     * Create client using AWSCredentails
+     * Create client using AWSCredentials
      *
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */

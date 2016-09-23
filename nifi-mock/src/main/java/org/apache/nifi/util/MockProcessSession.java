@@ -164,7 +164,7 @@ public class MockProcessSession implements ProcessSession {
      * {@link org.apache.nifi.processor.Processor#onTrigger} commits or rolls back the
      * session
      */
-    public void clearCommited() {
+    public void clearCommitted() {
         committed = false;
     }
 

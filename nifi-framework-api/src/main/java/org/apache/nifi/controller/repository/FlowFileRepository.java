@@ -109,7 +109,7 @@ public interface FlowFileRepository extends Closeable {
     void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue flowFileQueue, String swapLocation) throws IOException;
 
     /**
-     * Updates the Repository to indicate that the given FlowFileRecpords were
+     * Updates the Repository to indicate that the given FlowFileRecords were
      * Swapped In to memory
      *
      * @param swapLocation the location (e.g., a filename) from which FlowFiles

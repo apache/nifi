@@ -64,7 +64,7 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
 
     /**
      * Get ignite instance
-     * @return iginte instance
+     * @return ignite instance
      */
     protected Ignite getIgnite() {
         return ignite;

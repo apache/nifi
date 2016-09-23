@@ -85,7 +85,7 @@ public class BulletinDTO {
      * @return category of this message
      */
     @ApiModelProperty(
-            value = "The catagory of this bulletin."
+            value = "The category of this bulletin."
     )
     public String getCategory() {
         return category;

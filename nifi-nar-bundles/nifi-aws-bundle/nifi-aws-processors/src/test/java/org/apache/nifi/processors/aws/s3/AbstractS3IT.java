@@ -55,7 +55,7 @@ public abstract class AbstractS3IT {
     protected final static String REGION = System.getProperty("it.aws.region", "us-west-1");
     // Adding REGION to bucket prevents errors of
     //      "A conflicting conditional operation is currently in progress against this resource."
-    // when bucket is rapidly added/deleted and consistency propogation causes this error.
+    // when bucket is rapidly added/deleted and consistency propagation causes this error.
     // (Should not be necessary if REGION remains static, but added to prevent future frustration.)
     // [see http://stackoverflow.com/questions/13898057/aws-error-message-a-conflicting-conditional-operation-is-currently-in-progress]
     protected final static String BUCKET_NAME = "test-bucket-00000000-0000-0000-0000-123456789021-" + REGION;

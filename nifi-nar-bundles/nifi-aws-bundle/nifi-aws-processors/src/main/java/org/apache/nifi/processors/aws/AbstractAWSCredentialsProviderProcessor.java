@@ -99,11 +99,11 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
     }
 
     /**
-     * Abstract method to create aws client using credetials provider.  This is the preferred method
+     * Abstract method to create aws client using credentials provider.  This is the preferred method
      * for creating aws clients
      * @param context process context
      * @param credentialsProvider aws credentials provider
-     * @param config aws client configuraiton
+     * @param config aws client configuration
      * @return ClientType the client
      */
     protected abstract ClientType createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config);

@@ -80,7 +80,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     /**
-     * Hook method called by the thread that executed the given runnable after execution of the runnable completed. Logs the fact of completion and any errors that might have occured.
+     * Hook method called by the thread that executed the given runnable after execution of the runnable completed. Logs the fact of completion and any errors that might have occurred.
      *
      * @param runnable runnable
      * @param throwable throwable

@@ -71,7 +71,7 @@ public class PropertyDescriptorDTO {
      * @return An explanation of the meaning of the given property. This description is meant to be displayed to a user or simply provide a mechanism of documenting intent
      */
     @ApiModelProperty(
-            value = "The descriptoin for the property. Used to relay additional details to a user or provide a mechanism of documenting intent."
+            value = "The description for the property. Used to relay additional details to a user or provide a mechanism of documenting intent."
     )
     public String getDescription() {
         return description;

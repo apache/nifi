@@ -121,7 +121,7 @@ public class EmbeddedKafka {
             logger.info("Starting Kafka server");
             this.kafkaServer.startup();
 
-            logger.info("Embeded Kafka is started at localhost:" + this.kafkaServer.serverConfig().port()
+            logger.info("Embedded Kafka is started at localhost:" + this.kafkaServer.serverConfig().port()
                     + ". Zookeeper connection string: " + this.kafkaConfig.getProperty("zookeeper.connect"));
             this.started = true;
         }
@@ -137,7 +137,7 @@ public class EmbeddedKafka {
             this.kafkaServer.awaitShutdown();
             logger.info("Shutting down Zookeeper server");
             this.shutdownZookeeper();
-            logger.info("Embeded Kafka is shut down.");
+            logger.info("Embedded Kafka is shut down.");
             this.cleanupKafkaWorkDir();
             this.started = false;
         }

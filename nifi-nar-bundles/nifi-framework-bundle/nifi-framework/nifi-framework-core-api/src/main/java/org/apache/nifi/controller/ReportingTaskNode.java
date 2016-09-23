@@ -43,7 +43,7 @@ public interface ReportingTaskNode extends ConfiguredComponent {
      *
      * @param schedulingPeriod new period
      */
-    void setScheduldingPeriod(String schedulingPeriod);
+    void setSchedulingPeriod(String schedulingPeriod);
 
     ReportingTask getReportingTask();
 

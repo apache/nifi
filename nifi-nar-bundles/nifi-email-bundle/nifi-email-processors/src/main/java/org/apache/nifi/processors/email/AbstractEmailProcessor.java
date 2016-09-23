@@ -222,7 +222,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     protected abstract T buildMessageReceiver(ProcessContext context);
 
     /**
-     * Return the target receivere's mail protocol (e.g., imap, pop etc.)
+     * Return the target receiver's mail protocol (e.g., imap, pop etc.)
      */
     protected abstract String getProtocol(ProcessContext processContext);
 
@@ -368,7 +368,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
                 fromAddressesString = Arrays.asList(fromAddresses).toString();
             }
         } catch (MessagingException e) {
-            this.logger.warn("Faild to retrieve 'From' attribute from Message.");
+            this.logger.warn("Failed to retrieve 'From' attribute from Message.");
         }
 
         processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);
