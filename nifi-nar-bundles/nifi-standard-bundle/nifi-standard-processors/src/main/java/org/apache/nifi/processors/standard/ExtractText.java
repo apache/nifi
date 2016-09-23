@@ -119,7 +119,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor CASE_INSENSITIVE = new PropertyDescriptor.Builder()
             .name("Enable Case-insensitive Matching")
-            .description("Indicates that two characters match even if they are in a different case.  Can also be specified via the embeded flag (?i).")
+            .description("Indicates that two characters match even if they are in a different case.  Can also be specified via the embedded flag (?i).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -127,7 +127,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor COMMENTS = new PropertyDescriptor.Builder()
             .name("Permit Whitespace and Comments in Pattern")
-            .description("In this mode, whitespace is ignored, and embedded comments starting with # are ignored until the end of a line.  Can also be specified via the embeded flag (?x).")
+            .description("In this mode, whitespace is ignored, and embedded comments starting with # are ignored until the end of a line.  Can also be specified via the embedded flag (?x).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -135,7 +135,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor DOTALL = new PropertyDescriptor.Builder()
             .name("Enable DOTALL Mode")
-            .description("Indicates that the expression '.' should match any character, including a line terminator.  Can also be specified via the embeded flag (?s).")
+            .description("Indicates that the expression '.' should match any character, including a line terminator.  Can also be specified via the embedded flag (?s).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -152,7 +152,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor MULTILINE = new PropertyDescriptor.Builder()
             .name("Enable Multiline Mode")
             .description("Indicates that '^' and '$' should match just after and just before a line terminator or end of sequence, instead of "
-                    + "only the begining or end of the entire input.  Can also be specified via the embeded flag (?m).")
+                    + "only the beginning or end of the entire input.  Can also be specified via the embeded flag (?m).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -161,7 +161,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNICODE_CASE = new PropertyDescriptor.Builder()
             .name("Enable Unicode-aware Case Folding")
             .description("When used with 'Enable Case-insensitive Matching', matches in a manner consistent with the Unicode Standard.  Can also "
-                    + "be specified via the embeded flag (?u).")
+                    + "be specified via the embedded flag (?u).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -170,7 +170,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNICODE_CHARACTER_CLASS = new PropertyDescriptor.Builder()
             .name("Enable Unicode Predefined Character Classes")
             .description("Specifies conformance with the Unicode Technical Standard #18: Unicode Regular Expression Annex C: Compatibility "
-                    + "Properties.  Can also be specified via the embeded flag (?U).")
+                    + "Properties.  Can also be specified via the embedded flag (?U).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -179,7 +179,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNIX_LINES = new PropertyDescriptor.Builder()
             .name("Enable Unix Lines Mode")
             .description("Indicates that only the '\n' line terminator is recognized in the behavior of '.', '^', and '$'.  Can also be specified "
-                    + "via the embeded flag (?d).")
+                    + "via the embedded flag (?d).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")

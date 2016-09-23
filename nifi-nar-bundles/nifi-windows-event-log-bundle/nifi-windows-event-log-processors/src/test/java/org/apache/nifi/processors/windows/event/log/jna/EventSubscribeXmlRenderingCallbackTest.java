@@ -96,7 +96,7 @@ public class EventSubscribeXmlRenderingCallbackTest {
     }
 
     @Test
-    public void testUnuccessfulRender() {
+    public void testUnsuccessfulRender() {
         String large = "abcde";
         handle = ConsumeWindowsEventLogTest.mockEventHandles(wEvtApi, kernel32, Arrays.asList(large)).get(0);
         eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);

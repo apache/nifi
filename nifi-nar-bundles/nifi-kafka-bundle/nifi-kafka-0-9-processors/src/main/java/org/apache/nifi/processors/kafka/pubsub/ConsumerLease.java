@@ -227,7 +227,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         if (bundleMap.size() > 200) { //a magic number - the number of simultaneous bundles to track
             return false;
         } else {
-            return totalFlowFiles < 15000;//admittedlly a magic number - good candidate for processor property
+            return totalFlowFiles < 15000;//admittedly a magic number - good candidate for processor property
         }
     }
 

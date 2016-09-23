@@ -165,7 +165,7 @@ public class ControllerServiceDTO extends ComponentDTO {
      * @return annotation data for this controller service
      */
     @ApiModelProperty(
-            value = "The annontation for the controller service. This is how the custom UI relays configuration to the controller service."
+            value = "The annotation for the controller service. This is how the custom UI relays configuration to the controller service."
     )
     public String getAnnotationData() {
         return annotationData;

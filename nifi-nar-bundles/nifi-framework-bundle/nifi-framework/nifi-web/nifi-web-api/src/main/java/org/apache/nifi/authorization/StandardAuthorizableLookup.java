@@ -392,8 +392,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
-        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
+    public Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
         final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
 

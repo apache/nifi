@@ -257,7 +257,7 @@ The `nifi.login.identity.provider.configuration.file` property specifies the con
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
 used. If this property is not configured, NiFi will not support username/password authentication and will require client
 certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be
-explicity enabled.
+explicitly enabled.
 
 NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
 

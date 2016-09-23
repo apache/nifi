@@ -38,7 +38,7 @@
             If the property is not set, the entire contents of the FlowFile
             will be sent as a single message. When using the demarcator, if some messages are
             successfully sent but other messages fail to send, the resulting FlowFile will be
-            considered a failed FlowFuile and will have additional attributes to that effect.
+            considered a failed FlowFile and will have additional attributes to that effect.
             One of such attributes is 'failed.last.idx' which indicates the index of the last message
             that was successfully ACKed by Kafka. (if no demarcator is used the value of this index will be -1).
             This will allow PublishKafka to only re-send un-ACKed messages on the next re-try.

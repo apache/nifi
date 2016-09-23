@@ -19,7 +19,7 @@ package org.apache.nifi.cluster.coordination.http;
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpiontMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerConfigurationEndpointMerger;
@@ -30,7 +30,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEnd
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.CurrentUserEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpiontMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowSnippetEndpointMerger;
@@ -94,7 +94,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new ControllerBulletinsEndpointMerger());
         endpointMergers.add(new GroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorStatusEndpointMerger());
-        endpointMergers.add(new ConnectionStatusEndpiontMerger());
+        endpointMergers.add(new ConnectionStatusEndpointMerger());
         endpointMergers.add(new PortStatusEndpointMerger());
         endpointMergers.add(new RemoteProcessGroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorEndpointMerger());
@@ -116,7 +116,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new ControllerServiceReferenceEndpointMerger());
         endpointMergers.add(new ReportingTaskEndpointMerger());
         endpointMergers.add(new ReportingTasksEndpointMerger());
-        endpointMergers.add(new DropRequestEndpiontMerger());
+        endpointMergers.add(new DropRequestEndpointMerger());
         endpointMergers.add(new ListFlowFilesEndpointMerger());
         endpointMergers.add(new ComponentStateEndpointMerger());
         endpointMergers.add(new BulletinBoardEndpointMerger());

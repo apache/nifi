@@ -115,7 +115,7 @@ public abstract class AbstractChannelReader implements Runnable {
             buffer.flip();
             if (buffer.remaining() > 0) {
                 consumer.addFilledBuffer(buffer);
-                buffer = null; //clear the reference - is now the consumer's responsiblity
+                buffer = null; //clear the reference - is now the consumer's responsibility
             } else {
                 buffer.clear();
                 bufferPool.returnBuffer(buffer, 0);

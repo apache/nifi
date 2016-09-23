@@ -25,7 +25,7 @@ import java.security.SecureRandom;
  * This password hashing system tries to thwart off-line password
  * cracking using a computationally-intensive hashing algorithm,
  * based on Bruce Schneier's Blowfish cipher. The work factor of
- * the algorithm is parameterised, so it can be increased as
+ * the algorithm is parametrized, so it can be increased as
  * computers get faster.
  * <p/>
  * Usage is really simple. To hash a password for the first time,

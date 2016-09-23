@@ -847,7 +847,7 @@ public class ITPutS3Object extends AbstractS3IT {
         // sleep() delays long enough to satisfy interval and age intervals.
         Thread.sleep(2000L);
 
-        // System millis are used for timing, but it is incrememtned on each
+        // System millis are used for timing, but it is incremented on each
         // call to circumvent what appears to be caching in the AWS library.
         // The increments are 1000 millis because AWS returns upload
         // initiation times in whole seconds.

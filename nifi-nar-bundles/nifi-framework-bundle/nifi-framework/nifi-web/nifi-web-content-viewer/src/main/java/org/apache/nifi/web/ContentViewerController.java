@@ -117,7 +117,7 @@ public class ContentViewerController extends HttpServlet {
             return;
         } catch (final Exception e) {
             request.setAttribute("title", "Error");
-            request.setAttribute("messages", "An unexcepted error has occurred: " + e.getMessage());
+            request.setAttribute("messages", "An unexpected error has occurred: " + e.getMessage());
 
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
@@ -147,7 +147,7 @@ public class ContentViewerController extends HttpServlet {
             return;
         }
 
-        // buffer the content to support reseting in case we need to detect the content type or char encoding
+        // buffer the content to support resetting in case we need to detect the content type or char encoding
         try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
             final String mimeType;
             final String normalizedMimeType;

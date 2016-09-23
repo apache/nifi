@@ -227,7 +227,7 @@ public class ControllerDTO {
      * @return number of inactive remote ports contained in this process group
      */
     @ApiModelProperty(
-            value = "The number of inactive remote porst contained in the NiFi."
+            value = "The number of inactive remote ports contained in the NiFi."
     )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;

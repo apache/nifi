@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ConnectionStatusEndpiontMerger extends AbstractSingleEntityEndpoint<ConnectionStatusEntity> implements ComponentEntityStatusMerger<ConnectionStatusDTO> {
+public class ConnectionStatusEndpointMerger extends AbstractSingleEntityEndpoint<ConnectionStatusEntity> implements ComponentEntityStatusMerger<ConnectionStatusDTO> {
     public static final Pattern CONNECTION_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/connections/[a-f0-9\\-]{36}/status");
 
     @Override

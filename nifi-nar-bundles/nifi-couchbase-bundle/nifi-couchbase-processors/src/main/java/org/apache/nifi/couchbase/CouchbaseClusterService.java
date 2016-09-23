@@ -43,7 +43,7 @@ import com.couchbase.client.java.CouchbaseCluster;
 @CapabilityDescription("Provides a centralized Couchbase connection and bucket passwords management."
         + " Bucket passwords can be specified via dynamic properties.")
 @Tags({ "nosql", "couchbase", "database", "connection" })
-@DynamicProperty(name = "Bucket Password for BUCKET_NAME", value = "bucket password", description = "Specify bucket password if neseccery.")
+@DynamicProperty(name = "Bucket Password for BUCKET_NAME", value = "bucket password", description = "Specify bucket password if necessary.")
 public class CouchbaseClusterService extends AbstractControllerService implements CouchbaseClusterControllerService {
 
     public static final PropertyDescriptor CONNECTION_STRING = new PropertyDescriptor
