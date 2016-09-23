@@ -109,6 +109,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
+    @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
     @WritesAttribute(attribute = "s3.uploadId", description = "The uploadId used to upload the Object to S3"),
@@ -134,6 +135,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
         .name("Content Type")
+        .displayName("Content Type")
         .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
                 "object. The value of this header is a standard MIME type.\n" +
                 "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
