@@ -26,7 +26,7 @@ PROGNAME=$(basename "$0")
 
 
 warn() {
-    echo "${PROGNAME}: $*"
+    (>&2 echo "${PROGNAME}: $*")
 }
 
 die() {

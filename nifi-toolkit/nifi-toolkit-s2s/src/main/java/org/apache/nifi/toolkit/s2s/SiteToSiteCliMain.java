@@ -17,6 +17,9 @@
 
 package org.apache.nifi.toolkit.s2s;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -31,8 +34,11 @@ import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.util.FormatUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -77,10 +83,39 @@ public class SiteToSiteCliMain {
         if (errorMessage != null) {
             System.out.println(errorMessage);
             System.out.println();
+            System.out.println();
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        System.out.println("s2s is a command line tool that can either read a list of DataPackets from stdin to send over site-to-site or write the received DataPackets to stdout");
+        System.out.println();
+        System.out.println("The s2s cli input/output format is a JSON list of DataPackets.  They can have the following formats:");
+        try {
+            System.out.println();
+            objectMapper.writeValue(System.out, Arrays.asList(new DataPacketDto("hello nifi".getBytes(StandardCharsets.UTF_8)).putAttribute("key", "value")));
+            System.out.println();
+            System.out.println("Where data is the base64 encoded value of the FlowFile content (always used for received data) or");
+            System.out.println();
+            objectMapper.writeValue(System.out, Arrays.asList(new DataPacketDto(new HashMap<>(), new File("EXAMPLE").getAbsolutePath()).putAttribute("key", "value")));
+            System.out.println();
+            System.out.println("Where dataFile is a file to read the FlowFile content from");
+            System.out.println();
+            System.out.println();
+            System.out.println("Example usage to send a FlowFile with the contents of \"hey nifi\" to a local unsecured NiFi over http with an input port named input:");
+            System.out.print("echo '");
+            DataPacketDto dataPacketDto = new DataPacketDto("hey nifi".getBytes(StandardCharsets.UTF_8));
+            dataPacketDto.setAttributes(null);
+            objectMapper.writeValue(System.out, Arrays.asList(dataPacketDto));
+            System.out.println("' | bin/s2s.sh -n input -p http");
+            System.out.println();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.setWidth(160);
         helpFormatter.printHelp("s2s", options);
+        System.out.flush();
     }
 
     /**
