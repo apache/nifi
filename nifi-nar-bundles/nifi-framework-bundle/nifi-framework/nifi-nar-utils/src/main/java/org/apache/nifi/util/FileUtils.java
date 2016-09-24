@@ -33,8 +33,14 @@ public class FileUtils {
 
     public static final long MILLIS_BETWEEN_ATTEMPTS = 50L;
 
+    /* Superseded by renamed class bellow */
+    @Deprecated
     public static void ensureDirectoryExistAndCanAccess(final File dir) throws IOException {
-        if (dir.exists() && !dir.isDirectory()) {
+        ensureDirectoryExistAndCanReadAndWrite(dir);
+    }
+
+    public static void ensureDirectoryExistAndCanReadAndWrite(final File dir) throws IOException {
+        if (dir.exists() && !dir.isDirectory() ) {
             throw new IOException(dir.getAbsolutePath() + " is not a directory");
         } else if (!dir.exists()) {
             final boolean made = dir.mkdirs();
@@ -44,6 +50,15 @@ public class FileUtils {
         }
         if (!(dir.canRead() && dir.canWrite())) {
             throw new IOException(dir.getAbsolutePath() + " directory does not have read/write privilege");
+        }
+    }
+
+    public static void ensureDirectoryExistAndCanRead(final File dir) throws IOException {
+        if (dir.exists() && !dir.isDirectory()) {
+            throw new IOException(dir.getAbsolutePath() + " is not a directory");
+        }
+        if (dir.exists() && !dir.canRead()) {
+            throw new IOException(dir.getAbsolutePath() + " directory does not have read privilege");
         }
     }
 
