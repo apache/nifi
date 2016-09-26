@@ -1302,7 +1302,7 @@ language governing permissions and limitations under the License. -->
                     <version>2.18</version>
                     <configuration>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
+                        <argLine combine.children="append">-Xmx2G -Djava.net.preferIPv4Stack=true</argLine>
                     </configuration>
                     <dependencies>
                         <dependency>
