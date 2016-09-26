@@ -2470,6 +2470,23 @@ public final class StandardProcessGroup implements ProcessGroup {
                     throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
                 }
             }
+
+            for (final String id : snippet.getProcessors().keySet()) {
+                final ProcessorNode processorNode = getProcessor(id);
+
+                for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
+                    if (descriptor.getControllerServiceDefinition() != null) {
+                        final String serviceId = processorNode.getProperty(descriptor);
+                        final ControllerServiceNode controllerServiceNode = findControllerService(serviceId);
+
+                        // if the parent process group of this controller service is the current process group, prevent the move operation
+                        // since the controller service will be out of scope
+                        if (this.equals(controllerServiceNode.getProcessGroup())) {
+                            throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+                        }
+                    }
+                }
+            }
         } finally {
             readLock.unlock();
         }
