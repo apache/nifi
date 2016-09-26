@@ -42,6 +42,9 @@ public class TlsClientConfig extends TlsConfig {
         setKeyPairAlgorithm(tlsConfig.getKeyPairAlgorithm());
         setKeySize(tlsConfig.getKeySize());
         setSigningAlgorithm(tlsConfig.getSigningAlgorithm());
+        setDnPrefix(tlsConfig.getDnPrefix());
+        setDnSuffix(tlsConfig.getDnSuffix());
+        setReorderDn(tlsConfig.getReorderDn());
     }
 
 

@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -56,6 +57,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String CLIENT_CERT_DN_ARG = "clientCertDn";
     public static final String CLIENT_CERT_PASSWORD_ARG = "clientCertPassword";
     public static final String GLOBAL_PORT_SEQUENCE_ARG = "globalPortSequence";
+    public static final String NIFI_DN_PREFIX_ARG = "nifiDnPrefix";
+    public static final String NIFI_DN_SUFFIX_ARG = "nifiDnSuffix";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
 
@@ -71,6 +74,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
     private boolean overwrite;
+    private String dnPrefix;
+    private String dnSuffix;
 
     public TlsToolkitStandaloneCommandLine() {
         this(new PasswordUtil());
@@ -89,6 +94,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         addOptionWithArg("B", CLIENT_CERT_PASSWORD_ARG, "Password for client certificate.  Must either be one value or one for each client DN. (autogenerate if not specified)");
         addOptionWithArg("G", GLOBAL_PORT_SEQUENCE_ARG, "Use sequential ports that are calculated for all hosts according to the provided hostname expressions. " +
                 "(Can be specified multiple times, MUST BE SAME FROM RUN TO RUN.)");
+        addOptionWithArg(null, NIFI_DN_PREFIX_ARG, "String to prepend to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_PREFIX);
+        addOptionWithArg(null, NIFI_DN_SUFFIX_ARG, "String to append to hostname(s) when determining DN.", TlsConfig.DEFAULT_DN_SUFFIX);
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
     }
 
@@ -114,6 +121,9 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         CommandLine commandLine = super.doParse(args);
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
+
+        dnPrefix = commandLine.getOptionValue(NIFI_DN_PREFIX_ARG, TlsConfig.DEFAULT_DN_PREFIX);
+        dnSuffix = commandLine.getOptionValue(NIFI_DN_SUFFIX_ARG, TlsConfig.DEFAULT_DN_SUFFIX);
 
         Stream<String> globalOrderExpressions = null;
         if (commandLine.hasOption(GLOBAL_PORT_SEQUENCE_ARG)) {
@@ -207,6 +217,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         standaloneConfig.setKeyPairAlgorithm(getKeyAlgorithm());
         standaloneConfig.setSigningAlgorithm(getSigningAlgorithm());
         standaloneConfig.setDays(getDays());
+        standaloneConfig.setDnPrefix(dnPrefix);
+        standaloneConfig.setDnSuffix(dnSuffix);
         standaloneConfig.initDefaults();
 
         return standaloneConfig;

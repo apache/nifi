@@ -60,7 +60,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        Assert.assertEquals(TlsConfig.calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
+        Assert.assertEquals(new TlsConfig().calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsConfig.DEFAULT_KEY_STORE_TYPE.toLowerCase(), clientConfig.getKeyStore());
         assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());

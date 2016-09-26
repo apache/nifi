@@ -108,7 +108,7 @@ public class TlsCertificateSigningRequestPerformerTest {
 
         when(tlsClientConfig.getToken()).thenReturn(testToken);
         when(tlsClientConfig.getCaHostname()).thenReturn(testCaHostname);
-        when(tlsClientConfig.getDn()).thenReturn(TlsConfig.calcDefaultDn(testCaHostname));
+        when(tlsClientConfig.getDn()).thenReturn(new TlsConfig().calcDefaultDn(testCaHostname));
         when(tlsClientConfig.getPort()).thenReturn(testPort);
         when(tlsClientConfig.createCertificateSigningRequestPerformer()).thenReturn(tlsCertificateSigningRequestPerformer);
         when(tlsClientConfig.getSigningAlgorithm()).thenReturn(TlsConfig.DEFAULT_SIGNING_ALGORITHM);

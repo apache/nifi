@@ -180,6 +180,16 @@ public class TlsToolkitStandaloneTest {
     }
 
     @Test
+    public void testDnArgs() throws Exception {
+        String nifiDnPrefix = "O=apache, CN=";
+        String nifiDnSuffix = ", OU=nifi";
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", TlsConfig.DEFAULT_HOSTNAME,
+                "--" + TlsToolkitStandaloneCommandLine.NIFI_DN_PREFIX_ARG, nifiDnPrefix, "--" + TlsToolkitStandaloneCommandLine.NIFI_DN_SUFFIX_ARG, nifiDnSuffix);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, nifiDnPrefix, nifiDnSuffix, x509Certificate);
+    }
+
+    @Test
     public void testClientDnsArg() throws Exception {
         String clientDn = "OU=NIFI,CN=testuser";
         String clientDn2 = "OU=NIFI,CN=testuser2";
@@ -216,6 +226,10 @@ public class TlsToolkitStandaloneTest {
     }
 
     private Properties checkHostDirAndReturnNifiProperties(String hostname, X509Certificate rootCert) throws Exception {
+        return checkHostDirAndReturnNifiProperties(hostname, TlsConfig.DEFAULT_DN_PREFIX, TlsConfig.DEFAULT_DN_SUFFIX, rootCert);
+    }
+
+    private Properties checkHostDirAndReturnNifiProperties(String hostname, String dnPrefix, String dnSuffix, X509Certificate rootCert) throws Exception {
         File hostDir = new File(tempDir, hostname);
         Properties nifiProperties = new Properties();
         try (InputStream inputStream = new FileInputStream(new File(hostDir, TlsToolkitStandalone.NIFI_PROPERTIES))) {
@@ -257,6 +271,10 @@ public class TlsToolkitStandaloneTest {
         assertEquals(rootCert, certificateChain[1]);
         certificateChain[1].verify(rootCert.getPublicKey());
         certificateChain[0].verify(rootCert.getPublicKey());
+        TlsConfig tlsConfig = new TlsConfig();
+        tlsConfig.setDnPrefix(dnPrefix);
+        tlsConfig.setDnSuffix(dnSuffix);
+        assertEquals(tlsConfig.calcDefaultDn(hostname), CertificateUtils.convertAbstractX509Certificate(certificateChain[0]).getSubjectX500Principal().getName());
         TlsCertificateAuthorityTest.assertPrivateAndPublicKeyMatch(privateKeyEntry.getPrivateKey(), certificateChain[0].getPublicKey());
         return nifiProperties;
     }

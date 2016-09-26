@@ -31,6 +31,9 @@ public class TlsConfig {
     public static final int DEFAULT_KEY_SIZE = 2048;
     public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";
     public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA";
+    public static final String DEFAULT_DN_PREFIX = "CN=";
+    public static final String DEFAULT_DN_SUFFIX = ", OU=NIFI";
+    public static final boolean DEFAULT_REORDER_DN = true;
 
     private int days = DEFAULT_DAYS;
     private int keySize = DEFAULT_KEY_SIZE;
@@ -45,9 +48,16 @@ public class TlsConfig {
     private String token;
     private String caHostname = DEFAULT_HOSTNAME;
     private int port = DEFAULT_PORT;
+    private String dnPrefix = DEFAULT_DN_PREFIX;
+    private String dnSuffix = DEFAULT_DN_SUFFIX;
+    private boolean reorderDn = DEFAULT_REORDER_DN;
 
-    public static String calcDefaultDn(String hostname) {
-        return CertificateUtils.reorderDn("CN=" + hostname + ",OU=NIFI");
+    public String calcDefaultDn(String hostname) {
+        String dn = dnPrefix + hostname + dnSuffix;
+        if (reorderDn) {
+            return CertificateUtils.reorderDn(dn);
+        }
+        return dn;
     }
 
     public int getPort() {
@@ -144,6 +154,30 @@ public class TlsConfig {
 
     public void setSigningAlgorithm(String signingAlgorithm) {
         this.signingAlgorithm = signingAlgorithm;
+    }
+
+    public String getDnPrefix() {
+        return dnPrefix;
+    }
+
+    public void setDnPrefix(String dnPrefix) {
+        this.dnPrefix = dnPrefix;
+    }
+
+    public String getDnSuffix() {
+        return dnSuffix;
+    }
+
+    public void setDnSuffix(String dnSuffix) {
+        this.dnSuffix = dnSuffix;
+    }
+
+    public boolean getReorderDn() {
+        return reorderDn;
+    }
+
+    public void setReorderDn(boolean reorderDn) {
+        this.reorderDn = reorderDn;
     }
 
     public void initDefaults() {
