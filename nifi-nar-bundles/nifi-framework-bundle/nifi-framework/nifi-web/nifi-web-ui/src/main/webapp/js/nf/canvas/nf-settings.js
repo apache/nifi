@@ -586,20 +586,20 @@ nf.Settings = (function () {
                 return '';
             }
 
-            var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle" style="margin-top: 5px; float: left;" ></div>';
+            var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle"></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 6px; margin-top: 5px; float: left;"></div>';
+            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book"></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 3px; float: left;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o"></div>';
             }
 
             if (hasErrors || hasBulletins) {
