@@ -17,7 +17,12 @@
 
 'use strict';
 
-var AppRun =  function($rootScope,$state){
+var AppRun =  function($rootScope,$state,$http){
+
+    if (nf.Storage.hasItem('jwt')) {
+        var token = nf.Storage.getItem('jwt');
+        $http.defaults.headers.common.Authorization = 'Bearer ' + token;
+    }
 
     $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error){
         event.preventDefault();
@@ -35,7 +40,7 @@ var AppConfig = function ($urlRouterProvider) {
 
 };
 
-AppRun.$inject = ['$rootScope','$state'];
+AppRun.$inject = ['$rootScope','$state','$http'];
 
 AppConfig.$inject = ['$urlRouterProvider'];
 
