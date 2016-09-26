@@ -24,6 +24,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.naming.Context;
 import javax.naming.NameNotFoundException;
@@ -86,10 +87,10 @@ public class QueryDNS extends AbstractEnrichProcessor {
     public static final PropertyDescriptor DNS_TIMEOUT = new PropertyDescriptor.Builder()
             .name("DNS_TIMEOUT")
             .displayName("DNS Query Timeout")
-            .description("The amount of milliseconds to wait until considering a query as failed")
+            .description("The amount of time to wait until considering a query as failed")
             .required(true)
-            .defaultValue("1500")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("1500 ms")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DNS_RETRIES = new PropertyDescriptor.Builder()
@@ -218,7 +219,7 @@ public class QueryDNS extends AbstractEnrichProcessor {
 
     protected void initializeResolver(final ProcessContext context ) {
 
-        final String dnsTimeout = context.getProperty(DNS_TIMEOUT).getValue();
+        final String dnsTimeout = context.getProperty(DNS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).toString();
         final String dnsServer = context.getProperty(DNS_SERVER).getValue();
         final String dnsRetries = context.getProperty(DNS_RETRIES).getValue();
 
@@ -247,7 +248,7 @@ public class QueryDNS extends AbstractEnrichProcessor {
     /**
      * This method performs a simple DNS lookup using JNDI
      * @param queryInput String containing the query body itself (e.g. 4.3.3.1.in-addr.arpa);
-     * @param queryType String containign the query type (e.g. TXT);
+     * @param queryType String containing the query type (e.g. TXT);
      */
     protected Attributes doLookup(String queryInput, String queryType) throws NamingException {
         // This is a simple DNS lookup attempt

@@ -74,7 +74,7 @@ public class TestQueryDNS  {
     public void testVanillaQueryWithoutSplit()  {
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "PTR");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
-        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000");
+        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_INPUT, "${ip_address:getDelimitedField(4, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(3, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(2, '.'):trim()}" +
@@ -103,7 +103,7 @@ public class TestQueryDNS  {
     public void testValidDataWithSplit()  {
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "TXT");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
-        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000");
+        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_INPUT, "${ip_address:getDelimitedField(4, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(3, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(2, '.'):trim()}" +
@@ -130,7 +130,7 @@ public class TestQueryDNS  {
 
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "TXT");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
-        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000");
+        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_INPUT, "${ip_address:getDelimitedField(4, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(3, '.'):trim()}" +
                 ".${ip_address:getDelimitedField(2, '.'):trim()}" +
@@ -157,7 +157,7 @@ public class TestQueryDNS  {
     public void testInvalidData()  {
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "AAAA");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
-        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000");
+        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_INPUT, "nifi.apache.org");
 
 
@@ -176,7 +176,7 @@ public class TestQueryDNS  {
     public void testCustomValidator() {
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "AAAA");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
-        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000");
+        queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_INPUT, "nifi.apache.org");
         // Note the absence of a QUERY_PARSER_INPUT value
         queryDNSTestRunner.setProperty(QueryDNS.QUERY_PARSER, QueryDNS.REGEX.getValue());
