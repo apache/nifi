@@ -1320,7 +1320,7 @@ public class TestPersistentProvenanceRepository {
                 };
             }
         };
-        repo.initialize(getEventReporter(), null, null);
+        repo.initialize(getEventReporter());
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
