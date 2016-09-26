@@ -100,6 +100,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 }
             }
         }
+        // Add defaults
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
         return Collections.unmodifiableSet(relationships);
     }
 
