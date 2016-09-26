@@ -126,7 +126,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             return new PrintWriter(response);
         });
         caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
-        requestedDn = TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
+        requestedDn = new TlsConfig().calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
         certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         testPemEncodedCsr = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);

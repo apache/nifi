@@ -53,7 +53,7 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
         addOptionNoArg("F", USE_CONFIG_JSON_ARG, "Flag specifying that all configuration is read from " + CONFIG_JSON_ARG + " to facilitate automated use (otherwise "
                 + CONFIG_JSON_ARG + " will only be written to.");
         addOptionWithArg("p", PORT_ARG, getPortDescription(), TlsConfig.DEFAULT_PORT);
-        addOptionWithArg("D", DN_ARG, getDnDescription(), TlsConfig.calcDefaultDn(getDnHostname()));
+        addOptionWithArg("D", DN_ARG, getDnDescription(), new TlsConfig().calcDefaultDn(getDnHostname()));
     }
 
     protected abstract String getTokenDescription();
@@ -82,7 +82,7 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
             printUsageAndThrow(TOKEN_ARG + " argument must not be empty unless " + USE_CONFIG_JSON_ARG + " or " + READ_CONFIG_JSON_ARG+ " set", ExitCode.ERROR_TOKEN_ARG_EMPTY);
         }
         port = getIntValue(commandLine, PORT_ARG, TlsConfig.DEFAULT_PORT);
-        dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(getDnHostname()));
+        dn = commandLine.getOptionValue(DN_ARG, new TlsConfig().calcDefaultDn(getDnHostname()));
         return commandLine;
     }
 
