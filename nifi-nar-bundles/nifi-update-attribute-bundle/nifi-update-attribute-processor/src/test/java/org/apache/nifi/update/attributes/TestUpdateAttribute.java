@@ -105,17 +105,50 @@ public class TestUpdateAttribute {
     @Test
     public void testDefaultAddAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setProperty("NewAttr", "abc${'Hello${Goose}'}!");
+        runner.setProperty("NewAttr", "${one:plus(${two})}");
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("Goose", "Geese");
-        attributes.put("HelloGeese", "123");
+        attributes.put("one", "1");
+        attributes.put("two", "2");
         runner.enqueue(new byte[0], attributes);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(0).assertAttributeEquals("NewAttr", "abc123!");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(0).assertAttributeEquals("NewAttr", "3");
+    }
+
+    @Test
+    public void testDefaultState() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        runner.setProperty(UpdateAttribute.STATE_LOCATION, UpdateAttribute.LOCATION_LOCAL);
+        runner.setProperty("count", "${count_state:plus(1)}");
+        runner.setProperty("avg", "${sum_state:divide(${count_state})}");
+        runner.setProperty("sum", "${sum_state:plus(${pencils})}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes2 = new HashMap<>();
+        attributes2.put("pencils", "2");
+
+        runner.enqueue(new byte[0],attributes2);
+        runner.enqueue(new byte[0],attributes2);
+
+        final Map<String, String> attributes3 = new HashMap<>();
+        attributes3.put("pencils", "3");
+        runner.enqueue(new byte[0], attributes3);
+        runner.enqueue(new byte[0], attributes3);
+
+        final Map<String, String> attributes5 = new HashMap<>();
+        attributes5.put("pencils", "5");
+        runner.enqueue(new byte[0], attributes5);
+
+        runner.run(5);
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_SUCCESS, 5);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("count", "5");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("sum", "15");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS).get(4).assertAttributeEquals("avg", "3");
     }
 
     @Test
