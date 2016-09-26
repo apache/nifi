@@ -32,13 +32,6 @@
             <artifactId>nifi-security-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-resources</artifactId>
-            <scope>provided</scope>
-            <classifier>resources</classifier>
-            <type>zip</type>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
@@ -74,41 +67,15 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unpack</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>unpack</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.apache.nifi</groupId>
-                                    <artifactId>nifi-resources</artifactId>
-                                    <type>zip</type>
-                                    <classifier>resources</classifier>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/classes</outputDirectory>
-                                    <includes>**/nifi.properties</includes>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/rootCert.crt</exclude>
+                        <exclude>src/test/resources/rootCert.key</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
-                <plugin>
-                    <groupId>org.apache.rat</groupId>
-                    <artifactId>apache-rat-plugin</artifactId>
-                    <configuration>
-                        <excludes combine.children="append">
-                            <exclude>src/test/resources/rootCert.crt</exclude>
-                            <exclude>src/test/resources/rootCert.key</exclude>
-                        </excludes>
-                    </configuration>
-                </plugin>
         </plugins>
     </build>
 </project>

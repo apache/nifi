@@ -30,8 +30,26 @@
         <dependencySet>
             <outputDirectory>lib</outputDirectory>
             <useProjectArtifact>false</useProjectArtifact>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0660</fileMode>
+            <directoryMode>0700</directoryMode>
+            <fileMode>0600</fileMode>
+        </dependencySet>
+        <dependencySet>
+            <scope>provided</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>classpath</outputDirectory>
+            <directoryMode>0700</directoryMode>
+            <fileMode>0600</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>conf/nifi.properties</include>
+                </includes>
+            </unpackOptions>
         </dependencySet>
     </dependencySets>
     <fileSets>
@@ -45,15 +63,6 @@
             <outputDirectory>conf/</outputDirectory>
             <fileMode>0600</fileMode>
         </fileSet>
-        <!--<fileSet>-->
-            <!--<directory>${project.build.directory}/nifi-resources/src/main/resources/conf</directory>-->
-            <!--<outputDirectory>conf/</outputDirectory>-->
-            <!--<fileMode>0600</fileMode>-->
-            <!--<includes>-->
-                <!--<include>nifi.properties</include>-->
-                <!--<include>bootstrap.conf</include>-->
-            <!--</includes>-->
-        <!--</fileSet>-->
         <fileSet>
             <directory>${project.basedir}/src/main/resources/classpath</directory>
             <outputDirectory>classpath/</outputDirectory>
