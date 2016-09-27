@@ -2919,6 +2919,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         entity.setTenantsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getTenant()));
         entity.setControllerPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getController()));
         entity.setPoliciesPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getPolicies()));
+        entity.setSystemPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getSystem()));
         return entity;
     }
 
