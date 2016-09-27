@@ -39,6 +39,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -2473,15 +2474,15 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             for (final String id : snippet.getProcessors().keySet()) {
                 final ProcessorNode processorNode = getProcessor(id);
-
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
-                    if (descriptor.getControllerServiceDefinition() != null) {
-                        final String serviceId = processorNode.getProperty(descriptor);
-                        final ControllerServiceNode controllerServiceNode = findControllerService(serviceId);
+                    final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
+                    if (serviceDefinition != null) {
+                        // get all the available services for the new process group
+                        final Set<String> controllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
 
-                        // if the parent process group of this controller service is the current process group, prevent the move operation
-                        // since the controller service will be out of scope
-                        if (this.equals(controllerServiceNode.getProcessGroup())) {
+                        // ensure the configured service is an allowed service
+                        final String serviceId = processorNode.getProperty(descriptor);
+                        if (!controllerServiceIds.contains(serviceId)) {
                             throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
                         }
                     }
