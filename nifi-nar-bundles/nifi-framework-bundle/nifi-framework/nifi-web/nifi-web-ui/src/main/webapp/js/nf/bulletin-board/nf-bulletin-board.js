@@ -196,7 +196,7 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
      */
     var poll = function () {
         // if the page is no longer open, stop polling
-        var isOpen = $('body').is(':visible');
+        var isOpen = $('#bulletin-board').is(':visible');
         if (!isOpen) {
             bulletinBoardCtrl.polling = false;
         }
