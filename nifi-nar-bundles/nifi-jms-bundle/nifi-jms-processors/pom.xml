@@ -55,8 +55,8 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.activemq</groupId>
-			<artifactId>activemq-broker</artifactId>
-			<scope>test</scope>
+			<artifactId>activemq-all</artifactId>
+			<version>5.12.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.nifi</groupId>

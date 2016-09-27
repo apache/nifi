@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.jms.processors.PublishJMS
 org.apache.nifi.jms.processors.ConsumeJMS
+org.apache.nifi.jms.processors.ListenJMS
