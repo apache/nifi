@@ -94,11 +94,10 @@ nf.Shell = (function () {
                     canUndock = true;
                 }
 
-                // remove the previous contents of the shell
-                shell.empty();
-
                 // register a new close handler
                 $('#shell-dialog').modal('setCloseHandler', function () {
+                    // remove the previous contents of the shell
+                    shell.empty();
                     deferred.resolve();
                 });
 
