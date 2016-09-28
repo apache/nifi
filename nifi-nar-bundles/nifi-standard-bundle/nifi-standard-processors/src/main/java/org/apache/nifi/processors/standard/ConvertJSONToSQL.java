@@ -68,8 +68,8 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 @SupportsBatching
 @SeeAlso(PutSQL.class)
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"json", "sql", "database", "rdbms", "insert", "update", "relational", "flat"})
-@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE or INSERT SQL statement. The incoming FlowFile is expected to be "
+@Tags({"json", "sql", "database", "rdbms", "insert", "update", "merge", "relational", "flat"})
+@CapabilityDescription("Converts a JSON-formatted FlowFile into an UPDATE, INSERT or MERGE SQL statement. The incoming FlowFile is expected to be "
         + "\"flat\" JSON message, meaning that it consists of a single JSON element and each field maps to a simple type. If a field maps to "
         + "a JSON object, that JSON object will be interpreted as Text. If the input is an array of JSON elements, each element in the array is "
         + "output as a separate FlowFile to the 'sql' relationship. Upon successful conversion, the original FlowFile is routed to the 'original' "
@@ -96,6 +96,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 public class ConvertJSONToSQL extends AbstractProcessor {
     private static final String UPDATE_TYPE = "UPDATE";
     private static final String INSERT_TYPE = "INSERT";
+    private static final String MERGE_TYPE = "MERGE";
 
     static final AllowableValue IGNORE_UNMATCHED_FIELD = new AllowableValue("Ignore Unmatched Fields", "Ignore Unmatched Fields",
             "Any field in the JSON document that cannot be mapped to a column in the database is ignored");
@@ -122,7 +123,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate")
             .required(true)
-            .allowableValues(UPDATE_TYPE, INSERT_TYPE)
+            .allowableValues(UPDATE_TYPE, INSERT_TYPE, MERGE_TYPE)
             .build();
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
             .name("Table Name")
@@ -167,7 +168,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
     static final PropertyDescriptor UPDATE_KEY = new PropertyDescriptor.Builder()
             .name("Update Keys")
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
-                    + "If the Statement Type is UPDATE and this property is not set, the table's Primary Keys are used. "
+                    + "If the Statement Type is UPDATE or MERGE and this property is not set, the table's Primary Keys are used. "
                     + "In this case, if no Primary Key exists, the conversion to SQL will fail if Unmatched Column Behaviour is set to FAIL. "
                     + "This property is ignored if the Statement Type is INSERT")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -248,7 +249,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final SchemaKey schemaKey = new SchemaKey(catalog, tableName);
-        final boolean includePrimaryKeys = UPDATE_TYPE.equals(statementType) && updateKeys == null;
+        final boolean includePrimaryKeys = (UPDATE_TYPE.equals(statementType) || MERGE_TYPE.equals(statementType)) && updateKeys == null;
 
         // Is the unmatched column behaviour fail or warning?
         final boolean failUnmappedColumns = FAIL_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
@@ -331,6 +332,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
                 if (INSERT_TYPE.equals(statementType)) {
                     sql = generateInsert(jsonNode, attributes, fqTableName, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
+                } else if (MERGE_TYPE.equals(statementType)) {
+                    sql = generateMerge(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
                 } else {
                     sql = generateUpdate(jsonNode, attributes, fqTableName, updateKeys, schema, translateFieldNames, ignoreUnmappedFields, failUnmappedColumns, warningUnmappedColumns);
                 }
@@ -576,6 +579,154 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         return sqlBuilder.toString();
+    }
+
+    private String generateMerge(final JsonNode rootNode, final Map<String, String> attributes, final String tableName, final String updateKeys,
+                                  final TableSchema schema, final boolean translateFieldNames, final boolean ignoreUnmappedFields, final boolean failUnmappedColumns,
+                                  final boolean warningUnmappedColumns) {
+
+        ///////////////////////////////////////////
+        //  This is the SQL Format we are building
+        ///////////////////////////////////////////
+        //    MERGE <TableName> target_t
+        //    USING VALUES (<ValueList>)
+        //    AS source_t (<ColumnList>)
+        //    ON <MatchClause>
+        //    WHEN MATCHED THEN
+        //    UPDATE SET <SetList>
+        //    WHEN NOT MATCHED THEN
+        //    INSERT (<ColumnList>)
+        //    VALUES (<NamedValueList>)
+        //    ; --A MERGE statement must be terminated by a semi-colon (;).
+        //
+        // We first need to collect: ValueList, ColumnList, MatchClause, SetList and NamedValueList
+        final String source_table = "source_t";
+        final String target_table = "target_t";
+
+        final Set<String> updateKeyNames;
+        if (updateKeys == null) {
+            updateKeyNames = schema.getPrimaryKeyColumnNames();
+        } else {
+            updateKeyNames = new HashSet<>();
+            for (final String updateKey : updateKeys.split(",")) {
+                updateKeyNames.add(updateKey.trim());
+            }
+        }
+
+        if (updateKeyNames.isEmpty()) {
+            throw new ProcessException("Table '" + tableName + "' does not have a Primary Key and no Update Keys were specified");
+        }
+
+        // Create a Set of all normalized Update Key names, and ensure that there is a field in the JSON
+        // for each of the Update Key fields.
+        final Set<String> normalizedFieldNames = getNormalizedColumnNames(rootNode, translateFieldNames);
+        final Set<String> normalizedUpdateNames = new HashSet<>();
+        for (final String uk : updateKeyNames) {
+            final String normalizedUK = normalizeColumnName(uk, translateFieldNames);
+            normalizedUpdateNames.add(normalizedUK);
+
+            if (!normalizedFieldNames.contains(normalizedUK)) {
+                String missingColMessage = "JSON does not have a value for the " + (updateKeys == null ? "Primary" : "Update") + "Key column '" + uk + "'";
+                if (failUnmappedColumns) {
+                    getLogger().error(missingColMessage);
+                    throw new ProcessException(missingColMessage);
+                } else if (warningUnmappedColumns) {
+                    getLogger().warn(missingColMessage);
+                }
+            }
+        }
+
+        // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
+        // adding the column value to a "sql.args.N.value" attribute and the type of a "sql.args.N.type" attribute add the
+        // columns that we are inserting into
+        final StringBuilder valueListBuilder = new StringBuilder();
+        final StringBuilder namedValueListBuilder = new StringBuilder();
+        final StringBuilder columnListBuilder = new StringBuilder();
+        final StringBuilder setListBuilder = new StringBuilder();
+        final StringBuilder matchClauseBuilder = new StringBuilder();
+        int fieldCount = 0;
+
+        Iterator<String> fieldNames = rootNode.getFieldNames();
+        while (fieldNames.hasNext()) {
+            final String fieldName = fieldNames.next();
+
+            final String normalizedColName = normalizeColumnName(fieldName, translateFieldNames);
+            final ColumnDescription desc = schema.getColumns().get(normalizedColName);
+            if (desc == null) {
+                if (!ignoreUnmappedFields) {
+                    throw new ProcessException("Cannot map JSON field '" + fieldName + "' to any column in the database");
+                } else {
+                    continue;
+                }
+            }
+
+            // Build Named Value List, Column List, and Value list
+            valueListBuilder.append("?,");
+            columnListBuilder.append(normalizedColName).append(",");
+            namedValueListBuilder.append(String.format("%s.%s,",source_table,normalizedColName));
+
+            // Check if this column is an Update Key. If so,
+            // Use it to build the Match Clause
+            if (normalizedUpdateNames.contains(normalizedColName)) {
+                matchClauseBuilder.append(String.format("%s.%s = %s.%s and ", target_table,normalizedColName,source_table,normalizedColName));
+            } else {
+                setListBuilder.append(String.format("%s = %s.%s,",normalizedColName, source_table,normalizedColName));
+            }
+
+            // Create parameter attributes
+            fieldCount++;
+            final int sqlType = desc.getDataType();
+            attributes.put("sql.args." + fieldCount + ".type", String.valueOf(sqlType));
+
+            final Integer colSize = desc.getColumnSize();
+
+            final JsonNode fieldNode = rootNode.get(fieldName);
+            if (!fieldNode.isNull()) {
+                String fieldValue = rootNode.get(fieldName).asText();
+                if (colSize != null && fieldValue.length() > colSize) {
+                    fieldValue = fieldValue.substring(0, colSize);
+                }
+                attributes.put("sql.args." + fieldCount + ".value", fieldValue);
+            }
+        }
+
+        // Trim trailing delimiters
+        final String valueList = trimTrailingDelimiter(valueListBuilder.toString(), ",");
+        final String columnList = trimTrailingDelimiter(columnListBuilder.toString(), ",");
+        final String matchClause = trimTrailingDelimiter(matchClauseBuilder.toString(), " and ");
+        final String setList = trimTrailingDelimiter(setListBuilder.toString(), ",");
+        final String namedValueList = trimTrailingDelimiter(namedValueListBuilder.toString(),",");
+
+        // We need all of these lists to be non-empty to proceed
+        if (valueList.isEmpty() || columnList.isEmpty() || matchClause.isEmpty() || setList.isEmpty() || namedValueList.isEmpty()) {
+            throw new ProcessException("Unable to generate MERGE statement.  There were no columns in the target table that matched fields in the JSON message.");
+        }
+
+        // Build the SQL statement from the pieces we gathered
+        return String.format("MERGE %s target_t \n"     +
+                             "USING VALUES (%s) \n"     +
+                             "AS source_t (%s) \n"      +
+                             "ON %s \n"                 +
+                             "WHEN MATCHED THEN \n"     +
+                             "UPDATE SET %s \n"         +
+                             "WHEN NOT MATCHED THEN \n" +
+                             "INSERT (%s) \n"           +
+                             "VALUES (%s) \n"           +
+                             ";", // --MERGE requires a trailing semi-colon
+                tableName, valueList, columnList, matchClause,
+                setList, columnList, namedValueList);
+    }
+
+    // Helper utility to trim trailing delimiter if present
+    private static String trimTrailingDelimiter(final String value, final String delimiter) {
+        int delimiterIndex = value.length() - delimiter.length();
+        if (value.isEmpty()
+            || value.length() < delimiter.length()
+            || ! delimiter.equals(value.substring(delimiterIndex))) {
+            return value;
+        } else {
+            return value.substring(0,delimiterIndex);
+        }
     }
 
     private static String normalizeColumnName(final String colName, final boolean translateColumnNames) {
