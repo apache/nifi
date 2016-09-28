@@ -149,7 +149,7 @@ public class ITListS3 extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 14, pd.size());
+        assertEquals("size should be eq", 15, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -157,6 +157,7 @@ public class ITListS3 extends AbstractS3IT {
         assertTrue(pd.contains(ListS3.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(ListS3.REGION));
         assertTrue(pd.contains(ListS3.SECRET_KEY));
+        assertTrue(pd.contains(ListS3.SIGNER_OVERRIDE));
         assertTrue(pd.contains(ListS3.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(ListS3.TIMEOUT));
         assertTrue(pd.contains(ListS3.PROXY_HOST));
