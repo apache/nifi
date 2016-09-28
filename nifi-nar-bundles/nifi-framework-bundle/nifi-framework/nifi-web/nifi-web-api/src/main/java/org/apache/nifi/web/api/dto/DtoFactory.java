@@ -1012,6 +1012,8 @@ public final class DtoFactory {
         snapshot.setName(connectionStatus.getName());
         snapshot.setSourceName(connectionStatus.getSourceName());
         snapshot.setDestinationName(connectionStatus.getDestinationName());
+        snapshot.setBackPressureDataSizeThresholdLong(connectionStatus.getBackPressureDataSizeThresholdLong());
+        snapshot.setBackPressureObjectThreshold(connectionStatus.getBackPressureObjectThreshold());
 
         snapshot.setFlowFilesQueued(connectionStatus.getQueuedCount());
         snapshot.setBytesQueued(connectionStatus.getQueuedBytes());
@@ -1021,6 +1023,10 @@ public final class DtoFactory {
 
         snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
         snapshot.setBytesOut(connectionStatus.getOutputBytes());
+
+        snapshot.setMaxQueuedBytes(connectionStatus.getQueuedBytes());
+        snapshot.setMaxQueuedCount(connectionStatus.getQueuedCount());
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
 
         return connectionStatusDto;
