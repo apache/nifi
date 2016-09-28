@@ -2476,14 +2476,20 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final ProcessorNode processorNode = getProcessor(id);
                 for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
                     final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
-                    if (serviceDefinition != null) {
-                        // get all the available services for the new process group
-                        final Set<String> controllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
 
-                        // ensure the configured service is an allowed service
+                    // if this descriptor identifies a controller service
+                    if (serviceDefinition != null) {
                         final String serviceId = processorNode.getProperty(descriptor);
-                        if (!controllerServiceIds.contains(serviceId)) {
-                            throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+
+                        // if the processor is configured with a service
+                        if (serviceId != null) {
+                            // get all the available services for the new process group
+                            final Set<String> controllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
+
+                            // ensure the configured service is an allowed service
+                            if (!controllerServiceIds.contains(serviceId)) {
+                                throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+                            }
                         }
                     }
                 }
