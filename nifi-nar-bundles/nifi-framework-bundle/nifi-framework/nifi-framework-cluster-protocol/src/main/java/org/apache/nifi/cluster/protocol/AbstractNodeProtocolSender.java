@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -94,6 +96,21 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         throw new ProtocolException("Expected message type '" + MessageType.HEARTBEAT_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
 
+    @Override
+    public ClusterWorkloadResponseMessage clusterWorkload(final ClusterWorkloadRequestMessage msg) throws ProtocolException {
+        final InetSocketAddress serviceAddress;
+        try {
+            serviceAddress = getServiceAddress();
+        } catch (IOException e) {
+            throw new ProtocolException("Failed to getServiceAddress due to " + e, e);
+        }
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, serviceAddress.getHostName(), serviceAddress.getPort());
+        if (MessageType.CLUSTER_WORKLOAD_RESPONSE == responseMessage.getType()) {
+            return (ClusterWorkloadResponseMessage) responseMessage;
+        }
+
+        throw new ProtocolException("Expected message type '" + MessageType.CLUSTER_WORKLOAD_RESPONSE + "' but found '" + responseMessage.getType() + "'");
+    }
 
     private Socket createSocket() {
         InetSocketAddress socketAddress = null;

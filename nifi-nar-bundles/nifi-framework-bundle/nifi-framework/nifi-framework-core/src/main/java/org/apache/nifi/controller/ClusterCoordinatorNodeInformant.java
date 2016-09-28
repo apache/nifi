@@ -17,12 +17,11 @@
 
 package org.apache.nifi.controller;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
@@ -37,14 +36,16 @@ public class ClusterCoordinatorNodeInformant implements NodeInformant {
 
     @Override
     public ClusterNodeInformation getNodeInformation() {
-        final List<NodeInformation> nodeInfoCollection = new ArrayList<>();
-        final Set<NodeIdentifier> nodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
-
-        // TODO: Get total number of FlowFiles for each node
-        for (final NodeIdentifier nodeId : nodeIds) {
-            final NodeInformation nodeInfo = new NodeInformation(nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
-                nodeId.getSiteToSiteHttpApiPort(), nodeId.getApiPort(), nodeId.isSiteToSiteSecure(), 0);
-            nodeInfoCollection.add(nodeInfo);
+        final List<NodeInformation> nodeInfoCollection;
+        try {
+            nodeInfoCollection = clusterCoordinator.getClusterWorkload().entrySet().stream().map(entry -> {
+                final NodeIdentifier nodeId = entry.getKey();
+                final NodeInformation nodeInfo = new NodeInformation(nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
+                        nodeId.getSiteToSiteHttpApiPort(), nodeId.getApiPort(), nodeId.isSiteToSiteSecure(), entry.getValue().getFlowFileCount());
+                return nodeInfo;
+            }).collect(Collectors.toList());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to retrieve cluster workload due to " + e, e);
         }
 
         final ClusterNodeInformation nodeInfo = new ClusterNodeInformation();

@@ -23,12 +23,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 import javax.xml.bind.JAXBException;
 
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -38,6 +42,8 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.web.Revision;
@@ -123,5 +129,55 @@ public class TestJaxbProtocolUtils {
         JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
         final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
         assertTrue(unmarshalled instanceof HeartbeatMessage);
+    }
+
+    @Test
+    public void testRoundTripClusterWorkloadRequest() throws JAXBException {
+        final ClusterWorkloadRequestMessage msg = new ClusterWorkloadRequestMessage();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
+        final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
+        assertTrue(unmarshalled instanceof ClusterWorkloadRequestMessage);
+    }
+
+    @Test
+    public void testRoundTripClusterWorkloadResponse() throws JAXBException {
+        final ClusterWorkloadResponseMessage msg = new ClusterWorkloadResponseMessage();
+        final Map<NodeIdentifier, NodeWorkload> expectedNodeWorkloads = new HashMap<>();
+
+        IntStream.range(1, 4).forEach(i -> {
+            final String hostname = "node" + i;
+            final NodeIdentifier nodeId = new NodeIdentifier(hostname, hostname, 8080, hostname, 8081, hostname, 8082, 8083, false);
+            final NodeWorkload workload = new NodeWorkload();
+            workload.setReportedTimestamp(System.currentTimeMillis() - 1000);
+            workload.setSystemStartTime(System.currentTimeMillis());
+            workload.setActiveThreadCount(i);
+            workload.setFlowFileCount(i * 10);
+            workload.setFlowFileBytes(i * 10 * 1024);
+            expectedNodeWorkloads.put(nodeId, workload);
+        });
+        msg.setNodeWorkloads(expectedNodeWorkloads);
+
+        // Marshall.
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
+
+        // Un-marshall.
+        final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
+        assertTrue(unmarshalled instanceof ClusterWorkloadResponseMessage);
+
+        // Assert result.
+        final ClusterWorkloadResponseMessage response = (ClusterWorkloadResponseMessage) unmarshalled;
+        assertEquals(expectedNodeWorkloads.size(), response.getNodeWorkloads().size());
+        response.getNodeWorkloads().entrySet().stream().forEach(entry -> {
+            assertTrue(expectedNodeWorkloads.containsKey(entry.getKey()));
+            final NodeWorkload w = entry.getValue();
+            NodeWorkload expectedW = expectedNodeWorkloads.get(entry.getKey());
+            assertEquals(expectedW.getActiveThreadCount(), w.getActiveThreadCount());
+            assertEquals(expectedW.getReportedTimestamp(), w.getReportedTimestamp());
+            assertEquals(expectedW.getSystemStartTime(), w.getSystemStartTime());
+            assertEquals(expectedW.getFlowFileBytes(), w.getFlowFileBytes());
+            assertEquals(expectedW.getFlowFileCount(), w.getFlowFileCount());
+        });
     }
 }
