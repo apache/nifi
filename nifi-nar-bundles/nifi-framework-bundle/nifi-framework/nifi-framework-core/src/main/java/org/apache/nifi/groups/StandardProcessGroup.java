@@ -2483,11 +2483,12 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                         // if the processor is configured with a service
                         if (serviceId != null) {
-                            // get all the available services for the new process group
-                            final Set<String> controllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
+                            // get all the available services
+                            final Set<String> currentControllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, getIdentifier());
+                            final Set<String> proposedControllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
 
-                            // ensure the configured service is an allowed service
-                            if (!controllerServiceIds.contains(serviceId)) {
+                            // ensure the configured service is an allowed service if it's still a valid service
+                            if (currentControllerServiceIds.contains(serviceId) && !proposedControllerServiceIds.contains(serviceId)) {
                                 throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
                             }
                         }
