@@ -2931,6 +2931,8 @@ nf.SummaryTable = (function () {
                         $('#total-items').text(nf.Common.formatInteger(inputPortItems.length));
                     } else if ($('#output-port-summary-table').is(':visible')) {
                         $('#total-items').text(nf.Common.formatInteger(outputPortItems.length));
+                    } else if ($('#process-group-summary-table').is(':visible')) {
+                        $('#total-items').text(nf.Common.formatInteger(processGroupItems.length));
                     } else {
                         $('#total-items').text(nf.Common.formatInteger(remoteProcessGroupItems.length));
                     }
