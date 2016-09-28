@@ -608,7 +608,7 @@ nf.ng.ProvenanceLineage = function () {
                 'orient': 'auto',
                 'fill': function (d) {
                     if (d.indexOf('SELECTED') >= 0) {
-                        return '#ba554a';
+                        return '#f0ad4e';
                     } else {
                         return '#000000';
                     }

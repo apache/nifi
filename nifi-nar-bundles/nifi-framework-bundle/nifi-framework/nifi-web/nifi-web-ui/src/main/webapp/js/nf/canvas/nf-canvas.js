@@ -213,7 +213,7 @@ nf.Canvas = (function () {
                     if (d === 'ghost') {
                         return '#aaaaaa';
                     } else if (d === 'unauthorized') {
-                        return '#ba554a';
+                        return '#f0ad4e';
                     } else {
                         return '#000000';
                     }

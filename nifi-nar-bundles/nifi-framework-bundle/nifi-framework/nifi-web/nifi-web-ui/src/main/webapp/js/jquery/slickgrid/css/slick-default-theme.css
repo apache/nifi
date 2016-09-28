@@ -77,7 +77,7 @@ classes should alter those!
 }
 
 .slick-cell.invalid {
-    border-color: #ba554a;
+    border-color: #f0ad4e;
     -moz-animation-duration: 0.2s;
     -webkit-animation-duration: 0.2s;
     -moz-animation-name: slickgrid-invalid-hilite;
