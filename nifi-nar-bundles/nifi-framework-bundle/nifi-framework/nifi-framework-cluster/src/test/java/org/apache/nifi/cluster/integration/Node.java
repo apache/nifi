@@ -277,7 +277,8 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null, revisionManager, nodeProperties);
+        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
+                revisionManager, nodeProperties, protocolSender);
     }
 
 

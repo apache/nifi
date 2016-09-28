@@ -34,7 +34,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
@@ -59,13 +59,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
@@ -216,18 +216,23 @@ public class SiteToSiteResource extends ApplicationResource {
 
         final List<PeerDTO> peers = new ArrayList<>();
         if (properties.isNode()) {
-            final Set<NodeIdentifier> nodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
 
-            // TODO: Get total number of FlowFiles for each node
-            for (final NodeIdentifier nodeId : nodeIds) {
-                final PeerDTO peer = new PeerDTO();
-                final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
-                peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
-                peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
-                peer.setSecure(nodeId.isSiteToSiteSecure());
-                peer.setFlowFileCount(0);
-                peers.add(peer);
+            try {
+                final Map<NodeIdentifier, NodeWorkload> clusterWorkload = clusterCoordinator.getClusterWorkload();
+                clusterWorkload.entrySet().stream().forEach(entry -> {
+                    final PeerDTO peer = new PeerDTO();
+                    final NodeIdentifier nodeId = entry.getKey();
+                    final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
+                    peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
+                    peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
+                    peer.setSecure(nodeId.isSiteToSiteSecure());
+                    peer.setFlowFileCount(entry.getValue().getFlowFileCount());
+                    peers.add(peer);
+                });
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to retrieve cluster workload due to " + e, e);
             }
+
         } else {
             // Standalone mode.
             final PeerDTO peer = new PeerDTO();
