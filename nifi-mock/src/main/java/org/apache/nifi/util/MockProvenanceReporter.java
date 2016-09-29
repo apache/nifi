@@ -71,6 +71,18 @@ public class MockProvenanceReporter implements ProvenanceReporter {
         events.clear();
     }
 
+    void migrate(final MockProvenanceReporter newOwner, final Set<String> flowFileIds) {
+        final Set<ProvenanceEventRecord> toMove = new LinkedHashSet<>();
+        for (final ProvenanceEventRecord event : events) {
+            if (flowFileIds.contains(event.getFlowFileUuid())) {
+                toMove.add(event);
+            }
+        }
+
+        events.removeAll(toMove);
+        newOwner.events.addAll(toMove);
+    }
+
     /**
      * Generates a Fork event for the given child and parents but does not
      * register the event. This is useful so that a ProcessSession has the

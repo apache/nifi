@@ -69,7 +69,6 @@ public class TestPutHiveStreaming {
     private MockPutHiveStreaming processor;
 
     private KerberosProperties kerberosPropsWithFile;
-    private KerberosProperties kerberosPropsWithoutFile;
 
     @Before
     public void setUp() throws Exception {
@@ -80,8 +79,6 @@ public class TestPutHiveStreaming {
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
         kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
-
-        kerberosPropsWithoutFile = new KerberosProperties(null);
 
         processor = new MockPutHiveStreaming();
         processor.setKerberosProperties(kerberosPropsWithFile);

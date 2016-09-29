@@ -19,8 +19,10 @@ package org.apache.nifi.processor.util.bin;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +32,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.FlowFileSessionWrapper;
+import org.apache.nifi.processor.ProcessSessionFactory;
 
 /**
  * This class is thread safe
@@ -60,9 +62,7 @@ public class BinManager {
         try {
             for (final List<Bin> binList : groupBinMap.values()) {
                 for (final Bin bin : binList) {
-                    for (final FlowFileSessionWrapper wrapper : bin.getContents()) {
-                        wrapper.getSession().rollback();
-                    }
+                    bin.getSession().rollback();
                 }
             }
             groupBinMap.clear();
@@ -108,12 +108,15 @@ public class BinManager {
     /**
      * Adds the given flowFile to the first available bin in which it fits for the given group or creates a new bin in the specified group if necessary.
      * <p/>
+     *
      * @param groupIdentifier the group to which the flow file belongs; can be null
      * @param flowFile the flow file to bin
      * @param session the ProcessSession to which the FlowFile belongs
+     * @param sessionFactory a ProcessSessionFactory that can be used to create a new ProcessSession in order to
+     *            create a new bin if necessary
      * @return true if added; false if no bin exists which can fit this item and no bin can be created based on current min/max criteria
      */
-    public boolean offer(final String groupIdentifier, final FlowFile flowFile, final ProcessSession session) {
+    public boolean offer(final String groupIdentifier, final FlowFile flowFile, final ProcessSession session, final ProcessSessionFactory sessionFactory) {
         final long currentMaxSizeBytes = maxSizeBytes.get();
         if (flowFile.getSize() > currentMaxSizeBytes) { //won't fit into any new bins (and probably none existing)
             return false;
@@ -123,7 +126,8 @@ public class BinManager {
             final List<Bin> currentBins = groupBinMap.get(groupIdentifier);
             if (currentBins == null) { // this is a new group we need to register
                 final List<Bin> bins = new ArrayList<>();
-                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(), maxEntries.get(), fileCountAttribute.get());
+                final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
+                    maxEntries.get(), fileCountAttribute.get());
                 bins.add(bin);
                 groupBinMap.put(groupIdentifier, bins);
                 binCount++;
@@ -137,7 +141,8 @@ public class BinManager {
                 }
 
                 //if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
-                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(), maxEntries.get(), fileCountAttribute.get());
+                final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
+                    maxEntries.get(), fileCountAttribute.get());
                 currentBins.add(bin);
                 binCount++;
                 return bin.offer(flowFile, session);
@@ -145,6 +150,71 @@ public class BinManager {
         } finally {
             wLock.unlock();
         }
+    }
+
+    /**
+     * Adds the given flowFiles to the first available bin in which it fits for the given group or creates a new bin in the specified group if necessary.
+     * <p/>
+     *
+     * @param groupIdentifier the group to which the flow file belongs; can be null
+     * @param flowFiles the flow files to bin
+     * @param session the ProcessSession to which the FlowFiles belong
+     * @param sessionFactory a ProcessSessionFactory that can be used to create a new ProcessSession in order to
+     *            create a new bin if necessary
+     * @return all of the FlowFiles that could not be successfully binned
+     */
+    public Set<FlowFile> offer(final String groupIdentifier, final Collection<FlowFile> flowFiles, final ProcessSession session, final ProcessSessionFactory sessionFactory) {
+        final long currentMaxSizeBytes = maxSizeBytes.get();
+        final Set<FlowFile> unbinned = new HashSet<>();
+
+        wLock.lock();
+        try {
+            flowFileLoop: for (final FlowFile flowFile : flowFiles) {
+                if (flowFile.getSize() > currentMaxSizeBytes) { //won't fit into any new bins (and probably none existing)
+                    unbinned.add(flowFile);
+                    continue;
+                }
+
+                final List<Bin> currentBins = groupBinMap.get(groupIdentifier);
+                if (currentBins == null) { // this is a new group we need to register
+                    final List<Bin> bins = new ArrayList<>();
+                    final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
+                        maxEntries.get(), fileCountAttribute.get());
+                    bins.add(bin);
+                    groupBinMap.put(groupIdentifier, bins);
+                    binCount++;
+
+                    final boolean added = bin.offer(flowFile, session);
+                    if (!added) {
+                        unbinned.add(flowFile);
+                    }
+                    continue;
+                } else {
+                    for (final Bin bin : currentBins) {
+                        final boolean accepted = bin.offer(flowFile, session);
+                        if (accepted) {
+                            continue flowFileLoop;
+                        }
+                    }
+
+                    //if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
+                    final Bin bin = new Bin(sessionFactory.createSession(), minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(),
+                        maxEntries.get(), fileCountAttribute.get());
+                    currentBins.add(bin);
+                    binCount++;
+                    final boolean added = bin.offer(flowFile, session);
+                    if (!added) {
+                        unbinned.add(flowFile);
+                    }
+
+                    continue;
+                }
+            }
+        } finally {
+            wLock.unlock();
+        }
+
+        return unbinned;
     }
 
     /**
