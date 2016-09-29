@@ -39,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1395,6 +1396,37 @@ public class TestStandardProcessSession {
             Assert.fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException iae) {
         }
+    }
+
+    @Test
+    public void testMigrateWithAppendableStream() throws IOException {
+        FlowFile flowFile = session.create();
+        flowFile = session.append(flowFile, out -> out.write("1".getBytes()));
+        flowFile = session.append(flowFile, out -> out.write("2".getBytes()));
+
+        final StandardProcessSession newSession = new StandardProcessSession(context);
+
+        assertTrue(session.isFlowFileKnown(flowFile));
+        assertFalse(newSession.isFlowFileKnown(flowFile));
+
+        session.migrate(newSession, Collections.singleton(flowFile));
+
+        assertFalse(session.isFlowFileKnown(flowFile));
+        assertTrue(newSession.isFlowFileKnown(flowFile));
+
+        flowFile = newSession.append(flowFile, out -> out.write("3".getBytes()));
+
+        final byte[] buff = new byte[3];
+        try (final InputStream in = newSession.read(flowFile)) {
+            StreamUtils.fillBuffer(in, buff, true);
+            assertEquals(-1, in.read());
+        }
+
+        assertTrue(Arrays.equals(new byte[] {'1', '2', '3'}, buff));
+
+        newSession.remove(flowFile);
+        newSession.commit();
+        session.commit();
     }
 
     private static class MockFlowFileRepository implements FlowFileRepository {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.provenance;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.flowfile.FlowFile;
@@ -180,11 +181,11 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder setTransitUri(String transitUri);
 
     /**
-     * Adds the given FlowFile as a parent for Events of type {@link ProvenanceEventType#SPAWN},
+     * Adds the given FlowFile as a parent for Events of type,
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for {@link ProvenanceEventType#SPAWN},
+     * This is valid only for
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
@@ -195,11 +196,11 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder addParentFlowFile(FlowFile parent);
 
     /**
-     * Removes the given FlowFile as a parent for Events of type {@link ProvenanceEventType#SPAWN},
+     * Removes the given FlowFile as a parent for Events of type,
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for {@link ProvenanceEventType#SPAWN},
+     * This is valid only for
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
@@ -210,11 +211,11 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder removeParentFlowFile(FlowFile parent);
 
     /**
-     * Adds the given FlowFile as a child for Events of type {@link ProvenanceEventType#SPAWN},
+     * Adds the given FlowFile as a child for Events of type
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for {@link ProvenanceEventType#SPAWN},
+     * This is valid only for
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
@@ -225,11 +226,20 @@ public interface ProvenanceEventBuilder {
     ProvenanceEventBuilder addChildFlowFile(FlowFile child);
 
     /**
-     * Removes the given FlowFile as a child for Events of type {@link ProvenanceEventType#SPAWN},
+     * Adds the given FlowFile identifier as a child for Events of type
+     * {@link ProvenanceEventType#FORK} and {@link ProvenanceEventType#CLONE}
+     *
+     * @param childId the ID of the FlowFile that is a child
+     * @return the builder
+     */
+    ProvenanceEventBuilder addChildFlowFile(String childId);
+
+    /**
+     * Removes the given FlowFile as a child for Events of type
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for {@link ProvenanceEventType#SPAWN},
+     * This is valid only for
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
@@ -295,4 +305,23 @@ public interface ProvenanceEventBuilder {
      */
     ProvenanceEventRecord build();
 
+    /**
+     * @return the ids of all FlowFiles that have been added as children via {@link #addChildFlowFile(FlowFile)}
+     */
+    List<String> getChildFlowFileIds();
+
+    /**
+     * @return the ids of all FlowFiles that have been added as parents via {@link #addParentFlowFile(FlowFile)}
+     */
+    List<String> getParentFlowFileIds();
+
+    /**
+     * @return the id of the FlowFile for which the event is being built
+     */
+    String getFlowFileId();
+
+    /**
+     * @return a new Provenance Event Builder that is identical to this one (a deep copy)
+     */
+    ProvenanceEventBuilder copy();
 }

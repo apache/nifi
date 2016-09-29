@@ -397,9 +397,18 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 0);
 
         attrs.remove("correlationId");
-        runner.enqueue(new byte[0], attrs);
 
         runner.clearTransferState();
+
+        // Run a single iteration but do not perform the @OnStopped action because
+        // we do not want to purge our Bin Manager. This causes some bins to get
+        // created. We then enqueue a FlowFile with no correlation id. We do it this
+        // way because if we just run a single iteration, then all FlowFiles will be
+        // pulled in at once, and we don't know if the first bin to be created will
+        // have 5 FlowFiles or 1 FlowFile, since this one that we are about to enqueue
+        // will be in a separate bin.
+        runner.run(1, false, true);
+        runner.enqueue(new byte[0], attrs);
         runner.run();
 
         runner.assertTransferCount(MergeContent.REL_MERGED, 1);

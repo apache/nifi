@@ -19,8 +19,11 @@ package org.apache.nifi.processor.util.bin;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +41,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.FlowFileSessionWrapper;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -110,9 +112,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         Bin bin;
         while ((bin = readyBins.poll()) != null) {
-            for (final FlowFileSessionWrapper wrapper : bin.getContents()) {
-                wrapper.getSession().rollback();
-            }
+            bin.getSession().rollback();
         }
     }
 
@@ -146,17 +146,17 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     /**
      * Processes a single bin. Implementing class is responsible for committing each session
      *
-     * @param unmodifiableBin A reference to a single bin of flow file/session wrappers
-     * @param binContents A copy of the contents of the bin
+     * @param unmodifiableBin A reference to a single bin of flow files
      * @param context The context
-     * @param session The session that created the bin
-     * @return Return true if the input bin was already committed. E.g., in case of a failure, the implementation may choose to transfer all binned files to Failure and commit their sessions. If
-     * false, the processBins() method will transfer the files to Original and commit the sessions
+     * @return <code>true</code> if the input bin was already committed. E.g., in case of a failure, the implementation
+     *         may choose to transfer all binned files to Failure and commit their sessions. If
+     *         false, the processBins() method will transfer the files to Original and commit the sessions
      *
-     * @throws ProcessException if any problem arises while processing a bin of FlowFiles. All flow files in the bin will be transferred to failure and the ProcessSession provided by the 'session'
-     * argument rolled back
+     * @throws ProcessException if any problem arises while processing a bin of FlowFiles. All flow files in the bin
+     *             will be transferred to failure and the ProcessSession provided by the 'session'
+     *             argument rolled back
      */
-    protected abstract boolean processBin(Bin unmodifiableBin, List<FlowFileSessionWrapper> binContents, ProcessContext context, ProcessSession session) throws ProcessException;
+    protected abstract boolean processBin(Bin unmodifiableBin, ProcessContext context) throws ProcessException;
 
     /**
      * Allows additional custom validation to be done. This will be called from the parent's customValidation method.
@@ -188,7 +188,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
 
         final int binsMigrated = migrateBins(context);
-        final int binsProcessed = processBins(context, sessionFactory);
+        final int binsProcessed = processBins(context);
         //If we accomplished nothing then let's yield
         if (flowFilesBinned == 0 && binsMigrated == 0 && binsProcessed == 0) {
             context.yield();
@@ -215,7 +215,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         return added;
     }
 
-    private int processBins(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+    private int processBins(final ProcessContext context) {
         final Bin bin = readyBins.poll();
         if (bin == null) {
             return 0;
@@ -225,42 +225,31 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         bins.add(bin);
 
         final ComponentLog logger = getLogger();
-        final ProcessSession session = sessionFactory.createSession();
-
-        final List<FlowFileSessionWrapper> binCopy = new ArrayList<>(bin.getContents());
 
         boolean binAlreadyCommitted = false;
         try {
-            binAlreadyCommitted = this.processBin(bin, binCopy, context, session);
+            binAlreadyCommitted = this.processBin(bin, context);
         } catch (final ProcessException e) {
-            logger.error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
+            logger.error("Failed to process bundle of {} files due to {}", new Object[] {bin.getContents().size(), e});
 
-            for (final FlowFileSessionWrapper wrapper : binCopy) {
-                wrapper.getSession().transfer(wrapper.getFlowFile(), REL_FAILURE);
-                wrapper.getSession().commit();
+            final ProcessSession binSession = bin.getSession();
+            for (final FlowFile flowFile : bin.getContents()) {
+                binSession.transfer(flowFile, REL_FAILURE);
             }
-            session.rollback();
+            binSession.commit();
             return 1;
         } catch (final Exception e) {
-            logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {binCopy.size(), e});
+            logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
 
-            for (final FlowFileSessionWrapper wrapper : binCopy) {
-                wrapper.getSession().rollback();
-            }
-            session.rollback();
+            bin.getSession().rollback();
             return 1;
         }
 
-        // we first commit the bundle's session before the originals' sessions because if we are restarted or crash
-        // between commits, we favor data redundancy over data loss. Since we have no Distributed Transaction capability
-        // across multiple sessions, we cannot guarantee atomicity across the sessions
-        session.commit();
         // If this bin's session has been committed, move on.
         if (!binAlreadyCommitted) {
-            for (final FlowFileSessionWrapper wrapper : bin.getContents()) {
-                wrapper.getSession().transfer(wrapper.getFlowFile(), REL_ORIGINAL);
-                wrapper.getSession().commit();
-            }
+            final ProcessSession binSession = bin.getSession();
+            binSession.transfer(bin.getContents(), REL_ORIGINAL);
+            binSession.commit();
         }
 
         return 1;
@@ -274,25 +263,26 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             }
 
             final ProcessSession session = sessionFactory.createSession();
-            FlowFile flowFile = session.get();
-            if (flowFile == null) {
+            final List<FlowFile> flowFiles = session.get(1000);
+            if (flowFiles.isEmpty()) {
                 break;
             }
 
-            flowFile = this.preprocessFlowFile(context, session, flowFile);
-
-            String groupId = this.getGroupId(context, flowFile);
-
-            final boolean binned = binManager.offer(groupId, flowFile, session);
-
-            // could not be added to a bin -- probably too large by itself, so create a separate bin for just this guy.
-            if (!binned) {
-                Bin bin = new Bin(0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
-                bin.offer(flowFile, session);
-                this.readyBins.add(bin);
+            final Map<String, List<FlowFile>> flowFileGroups = new HashMap<>();
+            for (FlowFile flowFile : flowFiles) {
+                flowFile = this.preprocessFlowFile(context, session, flowFile);
+                final String groupingIdentifier = getGroupId(context, flowFile);
+                flowFileGroups.computeIfAbsent(groupingIdentifier, id -> new ArrayList<>()).add(flowFile);
             }
 
-            flowFilesBinned++;
+            for (final Map.Entry<String, List<FlowFile>> entry : flowFileGroups.entrySet()) {
+                final Set<FlowFile> unbinned = binManager.offer(entry.getKey(), entry.getValue(), session, sessionFactory);
+                for (final FlowFile flowFile : unbinned) {
+                    Bin bin = new Bin(session, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
+                    bin.offer(flowFile, session);
+                    this.readyBins.add(bin);
+                }
+            }
         }
 
         return flowFilesBinned;
