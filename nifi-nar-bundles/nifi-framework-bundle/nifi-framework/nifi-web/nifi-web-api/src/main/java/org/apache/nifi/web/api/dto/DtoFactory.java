@@ -107,6 +107,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
@@ -193,6 +194,7 @@ public final class DtoFactory {
     private ControllerServiceProvider controllerServiceProvider;
     private EntityFactory entityFactory;
     private Authorizer authorizer;
+    private NiFiProperties properties;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -2356,6 +2358,10 @@ public final class DtoFactory {
             garbageCollectionDtos.add(createGarbageCollectionDTO(entry.getKey(), entry.getValue()));
         }
 
+        // version info
+        final SystemDiagnosticsSnapshotDTO.VersionInfoDTO versionInfoDto = createVersionInfoDTO();
+        snapshot.setVersionInfo(versionInfoDto);
+
         return dto;
     }
 
@@ -2392,6 +2398,21 @@ public final class DtoFactory {
         dto.setCollectionCount(garbageCollection.getCollectionCount());
         dto.setCollectionTime(FormatUtils.formatHoursMinutesSeconds(garbageCollection.getCollectionTime(), TimeUnit.MILLISECONDS));
         dto.setCollectionMillis(garbageCollection.getCollectionTime());
+        return dto;
+    }
+
+    public SystemDiagnosticsSnapshotDTO.VersionInfoDTO createVersionInfoDTO() {
+        final SystemDiagnosticsSnapshotDTO.VersionInfoDTO dto = new SystemDiagnosticsSnapshotDTO.VersionInfoDTO();
+        dto.setNiFiVersion(properties.getUiTitle());
+        dto.setJavaVendor(System.getProperty("java.vendor"));
+        dto.setJavaVersion(System.getProperty("java.version"));
+        dto.setOsName(System.getProperty("os.name"));
+        dto.setOsVersion(System.getProperty("os.version"));
+        dto.setOsArchitecture(System.getProperty("os.arch"));
+        dto.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
+        dto.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
+        dto.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
+        dto.setBuildTimestamp(properties.getBuildTimestamp());
         return dto;
     }
 
@@ -3062,5 +3083,9 @@ public final class DtoFactory {
 
     public void setBulletinRepository(BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setProperties(final NiFiProperties properties) {
+        this.properties = properties;
     }
 }

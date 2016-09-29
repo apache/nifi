@@ -278,6 +278,26 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     // set the document title and the about title
                     document.title = aboutDetails.title;
                     $('#nf-version').text(aboutDetails.version);
+                    var showVersionDetail = false;
+                    if (aboutDetails.buildTag && aboutDetails.buildTag !== 'HEAD') {
+                        $('#nf-about-build-tag').text(aboutDetails.buildTag);
+                        $('#nf-version-detail-tag').show();
+                        showVersionDetail = true;
+                    }
+                    if (aboutDetails.buildRevision) {
+                        $('#nf-about-build-revision').text(aboutDetails.buildRevision);
+                        $('#nf-about-build-branch').text(aboutDetails.buildBranch);
+                        $('#nf-version-detail-commit').show();
+                        showVersionDetail = true
+                    }
+                    if (aboutDetails.buildTimestamp) {
+                        $('#nf-about-build-timestamp').text(aboutDetails.buildTimestamp);
+                        $('#nf-version-detail-timestamp').show();
+                        showVersionDetail = true;
+                    }
+                    if (showVersionDetail) {
+                        $('#nf-version-detail').show();
+                    }
 
                     // store the content viewer url if available
                     if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {

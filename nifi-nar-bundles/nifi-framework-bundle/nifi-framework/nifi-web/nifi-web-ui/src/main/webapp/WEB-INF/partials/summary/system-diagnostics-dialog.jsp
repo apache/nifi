@@ -163,6 +163,35 @@
                 </div>
             </div>
         </div>
+
+        <div id="version-tab-content" class="configuration-tab">
+            <div class="setting">
+                <div class="setting-header">NiFi</div>
+                <dl class="setting-attributes-list">
+                    <dt>NiFi Version</dt><dd><span id="version-nifi"></span></dd>
+                    <dt>Tag</dt><dd><span id="version-build-tag"></span></dd>
+                    <dt>Build Date/Time</dt><dd><span id="version-build-timestamp"></span></dd>
+                    <dt>Branch</dt><dd><span id="version-build-branch"></span></dd>
+                    <dt>Revision</dt><dd><span id="version-build-revision"></span></dd>
+                </dl>
+            </div>
+            <div class="setting">
+                <div class="setting-header">Java</div>
+                <dl class="setting-attributes-list">
+                    <dt>Version</dt><dd><span id="version-java-version"></span></dd>
+                    <dt>Vendor</dt><dd><span id="version-java-vendor"></span></dd>
+                </dl>
+            </div>
+            <div class="setting">
+                <div class="setting-header">Operating System</div>
+                <dl class="setting-attributes-list">
+                    <dt>Name</dt><dd><span id="version-os-name"></span></dd>
+                    <dt>Version</dt><dd><span id="version-os-version"></span></dd>
+                    <dt>Architecture</dt><dd><span id="version-os-arch"></span></dd>
+                </dl>
+            </div>
+        </div>
+
         </div>
         <div id="system-diagnostics-refresh-container">
             <button id="system-diagnostics-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>

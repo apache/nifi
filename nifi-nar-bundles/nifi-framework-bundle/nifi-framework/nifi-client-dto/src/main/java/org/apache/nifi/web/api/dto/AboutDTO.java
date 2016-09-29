@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimezoneAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -35,6 +36,11 @@ public class AboutDTO {
     private String uri;
     private String contentViewerUrl;
     private Date timezone;
+
+    private String buildTag;
+    private String buildRevision;
+    private String buildBranch;
+    private Date buildTimestamp;
 
     /* getters / setters */
     /**
@@ -112,5 +118,51 @@ public class AboutDTO {
 
     public void setTimezone(Date timezone) {
         this.timezone = timezone;
+    }
+
+    @ApiModelProperty(
+            value = "Build tag"
+    )
+    public String getBuildTag() {
+        return buildTag;
+    }
+
+    public void setBuildTag(String buildTag) {
+        this.buildTag = buildTag;
+    }
+
+    @ApiModelProperty(
+            value = "Build revision or commit hash"
+    )
+    public String getBuildRevision() {
+        return buildRevision;
+    }
+
+    public void setBuildRevision(String buildRevision) {
+        this.buildRevision = buildRevision;
+    }
+
+    @ApiModelProperty(
+            value = "Build branch"
+    )
+    public String getBuildBranch() {
+        return buildBranch;
+    }
+
+    public void setBuildBranch(String buildBranch) {
+        this.buildBranch = buildBranch;
+    }
+
+    @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "Build timestamp",
+            dataType = "string"
+    )
+    public Date getBuildTimestamp() {
+        return buildTimestamp;
+    }
+
+    public void setBuildTimestamp(Date buildTimestamp) {
+        this.buildTimestamp = buildTimestamp;
     }
 }
