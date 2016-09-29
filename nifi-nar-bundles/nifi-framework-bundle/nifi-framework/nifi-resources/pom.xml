@@ -170,6 +170,13 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
+
+        <!-- nifi.properties: build info -->
+        <nifi.build.tag>${project.scm.tag}</nifi.build.tag>
+        <nifi.build.timestamp>${maven.build.timestamp}</nifi.build.timestamp>
+        <!-- buildRevision and buildBranch provided by buildnumber-maven-plugin or build-info-read-properties profile -->
+        <nifi.build.branch>${buildBranch}</nifi.build.branch>
+        <nifi.build.revision>${buildRevision}</nifi.build.revision>
     </properties>
     <build>
         <plugins>

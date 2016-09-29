@@ -196,6 +196,12 @@ public abstract class NiFiProperties {
     // expression language properties
     public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
+    // build info
+    public static final String BUILD_TAG = "nifi.build.tag";
+    public static final String BUILD_BRANCH = "nifi.build.branch";
+    public static final String BUILD_REVISION = "nifi.build.revision";
+    public static final String BUILD_TIMESTAMP = "nifi.build.timestamp";
+
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;

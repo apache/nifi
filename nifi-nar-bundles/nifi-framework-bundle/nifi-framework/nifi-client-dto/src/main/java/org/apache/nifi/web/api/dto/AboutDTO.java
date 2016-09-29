@@ -36,6 +36,16 @@ public class AboutDTO {
     private String contentViewerUrl;
     private Date timezone;
 
+    private String javaVendor;
+    private String javaVersion;
+    private String osName;
+    private String osVersion;
+    private String osArchitecture;
+    private String buildTag;
+    private String buildRevision;
+    private String buildBranch;
+    private String buildTimestamp;
+
     /* getters / setters */
     /**
      * The title to be used on the page and in the About dialog.
@@ -111,5 +121,104 @@ public class AboutDTO {
 
     public void setTimezone(Date timezone) {
         this.timezone = timezone;
+    }
+
+    @ApiModelProperty(
+            value = "Java JVM vendor"
+    )
+    public String getJavaVendor() {
+        return javaVendor;
+    }
+
+    public void setJavaVendor(String javaVendor) {
+        this.javaVendor = javaVendor;
+    }
+
+    @ApiModelProperty(
+            value = "Java version"
+    )
+    public String getJavaVersion() {
+        return javaVersion;
+    }
+
+    public void setJavaVersion(String javaVersion) {
+        this.javaVersion = javaVersion;
+    }
+
+    @ApiModelProperty(
+            value = "Host operating system name"
+    )
+    public String getOsName() {
+        return osName;
+    }
+
+    public void setOsName(String osName) {
+        this.osName = osName;
+    }
+
+    @ApiModelProperty(
+            value = "Host operating system version"
+    )
+    public String getOsVersion() {
+        return osVersion;
+    }
+
+    public void setOsVersion(String osVersion) {
+        this.osVersion = osVersion;
+    }
+
+    @ApiModelProperty(
+            value = "Host operating system architecture"
+    )
+    public String getOsArchitecture() {
+        return osArchitecture;
+    }
+
+    public void setOsArchitecture(String osArchitecture) {
+        this.osArchitecture = osArchitecture;
+    }
+
+    @ApiModelProperty(
+            value = "Build tag"
+    )
+    public String getBuildTag() {
+        return buildTag;
+    }
+
+    public void setBuildTag(String buildTag) {
+        this.buildTag = buildTag;
+    }
+
+    @ApiModelProperty(
+            value = "Build revision or commit hash"
+    )
+    public String getBuildRevision() {
+        return buildRevision;
+    }
+
+    public void setBuildRevision(String buildRevision) {
+        this.buildRevision = buildRevision;
+    }
+
+    @ApiModelProperty(
+            value = "Build branch"
+    )
+    public String getBuildBranch() {
+        return buildBranch;
+    }
+
+    public void setBuildBranch(String buildBranch) {
+        this.buildBranch = buildBranch;
+    }
+
+    @ApiModelProperty(
+            value = "Build timestamp"
+    )
+    public String getBuildTimestamp() {
+        return buildTimestamp;
+    }
+
+    public void setBuildTimestamp(String buildTimestamp) {
+        this.buildTimestamp = buildTimestamp;
     }
 }

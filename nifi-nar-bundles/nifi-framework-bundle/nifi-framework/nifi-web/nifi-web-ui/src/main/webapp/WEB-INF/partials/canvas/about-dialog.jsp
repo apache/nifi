@@ -22,6 +22,24 @@
     <div class="dialog-content">
         <div id="nf-about-content">
             <span id="nf-version"></span>
+            <span id="nf-version-detail-toggle">&hellip;</span>
+            <div id="nf-version-detail">
+                <p>
+                    <span id="nf-about-build-timestamp"></span>
+                </p>
+                <p id="nf-version-detail-tag">
+                    Tag <span id="nf-about-build-tag"></span>
+                </p>
+                <p id="nf-version-detail-commit">
+                    From <span id="nf-about-build-revision"></span> on branch <span id="nf-about-build-branch"></span>
+                </p>
+                <p>
+                    Java <span id="nf-about-java-version"></span>, <span id="nf-about-java-vendor"></span>
+                </p>
+                <p>
+                    <span id="nf-about-os-name"></span> (<span id="nf-about-os-version"></span>, <span id="nf-about-os-arch"></span>)
+                </p>
+            </div>
             <p>
                 Apache NiFi is a framework to support highly scalable and flexible dataflows.
                 It can be run on on laptops up through clusters of enterprise class servers.

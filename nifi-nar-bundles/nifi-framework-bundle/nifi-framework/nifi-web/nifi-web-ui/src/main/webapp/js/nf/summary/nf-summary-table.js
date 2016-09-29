@@ -1985,6 +1985,9 @@ nf.SummaryTable = (function () {
             }, {
                 name: 'System',
                 tabContentId: 'system-tab-content'
+            }, {
+                name: 'Version',
+                tabContentId: 'version-tab-content'
             }]
         });
 
@@ -2252,6 +2255,18 @@ nf.SummaryTable = (function () {
             $.each(aggregateSnapshot.contentRepositoryStorageUsage, function (_, contentRepository) {
                 addStorageUsage(contentRepositoryUsageContainer, contentRepository);
             });
+
+            // Version
+            $('#version-nifi').text(aggregateSnapshot.versionInfo.niFiVersion);
+            $('#version-build-tag').text(aggregateSnapshot.versionInfo.buildTag);
+            $('#version-build-timestamp').text(aggregateSnapshot.versionInfo.buildTimestamp);
+            $('#version-build-branch').text(aggregateSnapshot.versionInfo.buildBranch);
+            $('#version-build-revision').text(aggregateSnapshot.versionInfo.buildRevision);
+            $('#version-java-version').text(aggregateSnapshot.versionInfo.javaVersion);
+            $('#version-java-vendor').text(aggregateSnapshot.versionInfo.javaVendor);
+            $('#version-os-name').text(aggregateSnapshot.versionInfo.osName);
+            $('#version-os-version').text(aggregateSnapshot.versionInfo.osVersion);
+            $('#version-os-arch').text(aggregateSnapshot.versionInfo.osArchitecture);
 
             // update the stats last refreshed timestamp
             $('#system-diagnostics-last-refreshed').text(aggregateSnapshot.statsLastRefreshed);
