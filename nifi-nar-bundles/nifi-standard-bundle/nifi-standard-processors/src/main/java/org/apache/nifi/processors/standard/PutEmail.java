@@ -318,7 +318,7 @@ public class PutEmail extends AbstractProcessor {
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
                 final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
                 mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
-                        Base64.encodeBase64(messageText.getBytes("UTF-8")), "text/plain; charset=\"utf-8\"")));
+                        Base64.encodeBase64(messageText.getBytes("UTF-8")), contentType + "; charset=\"utf-8\"")));
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, new InputStreamCallback() {
                     @Override
