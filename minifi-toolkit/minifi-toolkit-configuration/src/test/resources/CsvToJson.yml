@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 1
+MiNiFi Config Version: 2
 Flow Controller:
   name: CsvToJsonWorking
   comment: ''
@@ -152,7 +152,8 @@ Connections:
 - name: ExtractText/matched/ReplaceText2
   id: 56ef3e2e-ee35-4598-9fbe-ae86050960b0
   source id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6
-  source relationship name: matched
+  source relationship names:
+  - matched
   destination id: 8db2ebc8-12c8-4396-89b6-479d907fbc6b
   max work queue size: 0
   max work queue data size: 0 MB
@@ -161,7 +162,8 @@ Connections:
 - name: GenerateFlowFile/success/ReplaceText
   id: 0cc34e0a-0ae9-44ba-838f-792ed393a301
   source id: ffb6d4e9-9d6c-4fbe-ab8a-52bad90ce2e5
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: cdcc2028-238b-42b7-bf95-dd4f301b91fc
   max work queue size: 0
   max work queue data size: 0 MB
@@ -170,7 +172,8 @@ Connections:
 - name: ReplaceText/success/ExtractText
   id: e32e19cb-6c4c-4c6c-a8db-408447ba2ca2
   source id: cdcc2028-238b-42b7-bf95-dd4f301b91fc
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6
   max work queue size: 0
   max work queue data size: 0 MB
@@ -179,7 +182,8 @@ Connections:
 - name: ReplaceText2/success/UpdateAttribute
   id: b061c170-19da-4e84-9709-327303fef579
   source id: 8db2ebc8-12c8-4396-89b6-479d907fbc6b
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 1d00089c-78cd-467f-9aa6-31e3bdf90cb0
   max work queue size: 0
   max work queue data size: 0 MB

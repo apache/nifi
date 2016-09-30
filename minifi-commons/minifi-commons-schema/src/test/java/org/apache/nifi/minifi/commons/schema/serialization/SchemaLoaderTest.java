@@ -49,6 +49,14 @@ public class SchemaLoaderTest {
     @Test
     public void testMinimalConfigV1Version() throws IOException, SchemaLoaderException {
         Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
+        yamlAsMap.put(ConfigSchema.VERSION, "1");
+        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        validateMinimalConfigVersion1Parse(configSchema);
+    }
+
+    @Test
+    public void testMinimalConfigV2Version() throws IOException, SchemaLoaderException {
+        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, ConfigSchema.CONFIG_VERSION);
         ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
         validateMinimalConfigVersion1Parse(configSchema);

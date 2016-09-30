@@ -36,6 +36,7 @@ public class SchemaLoader {
         Map<String, Function<Map, ConfigSchema>> result = new HashMap<>();
         result.put(String.valueOf((Object)null), ConfigSchema::new);
         result.put("", ConfigSchema::new);
+        result.put("1", ConfigSchema::new);
         result.put(Integer.toString(ConfigSchema.CONFIG_VERSION), ConfigSchema::new);
         return result;
     }

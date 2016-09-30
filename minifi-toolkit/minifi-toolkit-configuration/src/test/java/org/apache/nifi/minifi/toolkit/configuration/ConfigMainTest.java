@@ -173,6 +173,11 @@ public class ConfigMainTest {
         transformRoundTrip("StressTestFramework");
     }
 
+    @Test
+    public void testTransformRoundTripMultipleRelationships() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("MultipleRelationships");
+    }
+
     @Test(expected = SchemaLoaderException.class)
     public void testFailToTransformProcessGroup() throws IOException, JAXBException, SchemaLoaderException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithProcessGroup.xml")).toMap();

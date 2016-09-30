@@ -15,7 +15,7 @@
 
 MiNiFi Config Version: 2
 Flow Controller:
-  name: StressTestFramework
+  name: MultipleRelationships
   comment: ''
 Core Properties:
   flow controller graceful shutdown period: 10 sec
@@ -57,7 +57,7 @@ Security Properties:
     provider: BC
 Processors:
 - name: GenerateFlowFile
-  id: 16a47794-5391-4ad2-8d7b-be7ef83b8fee
+  id: 7c755ed6-0157-1000-0000-000000000000
   class: org.apache.nifi.processors.standard.GenerateFlowFile
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
@@ -67,56 +67,83 @@ Processors:
   run duration nanos: 0
   auto-terminated relationships list: []
   Properties:
-    Batch Size: '100'
-    Data Format:
-    File Size: 0 KB
-    Unique FlowFiles:
-- name: RouteOnAttribute
-  id: 397a4910-cc01-4c6b-88c9-e99b17b094e8
-  class: org.apache.nifi.processors.standard.RouteOnAttribute
-  max concurrent tasks: 2
+    Batch Size: '1'
+    Data Format: Binary
+    File Size: 0 B
+    Unique FlowFiles: 'false'
+- name: LogAttribute
+  id: 7c75ab71-0157-1000-0000-000000000000
+  class: org.apache.nifi.processors.standard.LogAttribute
+  max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
   scheduling period: 0 sec
   penalization period: 30 sec
   yield period: 1 sec
-  run duration nanos: 50000
+  run duration nanos: 0
   auto-terminated relationships list:
-  - unmatched
+  - success
   Properties:
-    Routing Strategy:
-- name: UpdateAttribute
-  id: 92557c76-f251-45a4-96a4-79057b24e832
-  class: org.apache.nifi.processors.attributes.UpdateAttribute
-  max concurrent tasks: 2
+    Attributes to Ignore:
+    Attributes to Log:
+    Log Level: info
+    Log Payload: 'false'
+    Log prefix:
+- name: RouteOnAttribute
+  id: 7c768622-0157-1000-0000-000000000000
+  class: org.apache.nifi.processors.standard.RouteOnAttribute
+  max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
   scheduling period: 0 sec
   penalization period: 30 sec
   yield period: 1 sec
-  run duration nanos: 100000
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Routing Strategy: Route to Property name
+    abc: ${filename:equals('abc')}
+- name: UpdateAttribute
+  id: 7c79ba25-0157-1000-0000-000000000000
+  class: org.apache.nifi.processors.attributes.UpdateAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
   auto-terminated relationships list: []
   Properties:
     Delete Attributes Expression:
-    property 1: value 1
-    property 2: value 2 ${nextInt()}
+    filename: abc
 Connections:
 - name: GenerateFlowFile/success/UpdateAttribute
-  id: 0e6873cc-cb9d-4e98-92aa-a3319f4c1b02
-  source id: 16a47794-5391-4ad2-8d7b-be7ef83b8fee
+  id: 7c79cce3-0157-1000-0000-000000000000
+  source id: 7c755ed6-0157-1000-0000-000000000000
   source relationship names:
   - success
-  destination id: 92557c76-f251-45a4-96a4-79057b24e832
-  max work queue size: 200
-  max work queue data size: 0 MB
+  destination id: 7c79ba25-0157-1000-0000-000000000000
+  max work queue size: 10000
+  max work queue data size: 1 GB
   flowfile expiration: 0 sec
-  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+  queue prioritizer class: ''
+- name: RouteOnAttribute/abc/LogAttribute
+  id: 7c798ca3-0157-1000-0000-000000000000
+  source id: 7c768622-0157-1000-0000-000000000000
+  source relationship names:
+  - abc
+  - unmatched
+  destination id: 7c75ab71-0157-1000-0000-000000000000
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
 - name: UpdateAttribute/success/RouteOnAttribute
-  id: 4c53556e-eb46-458c-9e98-8329a8cf70fd
-  source id: 92557c76-f251-45a4-96a4-79057b24e832
+  id: 7c79d576-0157-1000-0000-000000000000
+  source id: 7c79ba25-0157-1000-0000-000000000000
   source relationship names:
   - success
-  destination id: 397a4910-cc01-4c6b-88c9-e99b17b094e8
-  max work queue size: 2000
-  max work queue data size: 0 MB
+  destination id: 7c768622-0157-1000-0000-000000000000
+  max work queue size: 10000
+  max work queue data size: 1 GB
   flowfile expiration: 0 sec
-  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+  queue prioritizer class: ''
 Remote Processing Groups: []

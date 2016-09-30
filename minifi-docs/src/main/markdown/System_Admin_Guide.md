@@ -176,7 +176,7 @@ The first section of config.yml is for naming and commenting on the file.
 
  Property             | Description
 --------------------- | -----------
-MiNiFi Config Version | The version of the configuration file.  The default value if this property is missing or empty is 1 which is the only version (and correct value) currently.
+MiNiFi Config Version | The version of the configuration file.  The default value if this property is missing or empty is 1, the current value is 2.
 name                  | The name of the file.
 comment               | A comment describing the usage of this config file.
 

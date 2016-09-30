@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
@@ -40,9 +41,7 @@ public class ConnectionSchemaFunction implements Function<ConnectionDTO, Connect
         map.put(NAME_KEY, connectionDTO.getName());
         map.put(ConnectionSchema.SOURCE_ID_KEY, connectionDTO.getSource().getId());
         Set<String> selectedRelationships = BaseSchema.nullToEmpty(connectionDTO.getSelectedRelationships());
-        if (selectedRelationships.size() > 0) {
-            map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, selectedRelationships.iterator().next());
-        }
+        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, selectedRelationships.stream().sorted().collect(Collectors.toList()));
         map.put(ConnectionSchema.DESTINATION_ID_KEY, connectionDTO.getDestination().getId());
 
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, connectionDTO.getBackPressureObjectThreshold());
@@ -55,9 +54,6 @@ public class ConnectionSchemaFunction implements Function<ConnectionDTO, Connect
         ConnectionSchema connectionSchema = new ConnectionSchema(map);
         if (ConnectableType.FUNNEL.name().equals(connectionDTO.getSource().getType())) {
             connectionSchema.addValidationIssue("Connection " + connectionDTO.getName() + " has type " + ConnectableType.FUNNEL.name() + " which is not supported by MiNiFi");
-        }
-        if (selectedRelationships.size() > 1) {
-            connectionSchema.addValidationIssue(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, CONNECTIONS_KEY, " has more than one selected relationship");
         }
         if (queuePrioritizers.size() > 1) {
             connectionSchema.addValidationIssue(ConnectionSchema.QUEUE_PRIORITIZER_CLASS_KEY, CONNECTIONS_KEY, " has more than one queue prioritizer");

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 1
+MiNiFi Config Version: 2
 Flow Controller:
   name: ReplaceTextExpressionLanguageCSVReformatting
   comment: ''
@@ -127,7 +127,8 @@ Connections:
 - name: Generate Empty File/success/Set CSV Content
   id: ca71a875-0ff5-41ef-bbe0-da5de0ca1e08
   source id: e626f756-f018-4670-8802-c8f8e459e15d
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 7ba79381-4317-4c99-bcc0-256ee7ad44e9
   max work queue size: 0
   max work queue data size: 0 MB
@@ -136,7 +137,8 @@ Connections:
 - name: Reformat Date Column/success/No-Op Termination
   id: 7fe8e5c6-6d9b-4b8f-af89-5d543bcc0199
   source id: a25f67cb-029c-466f-b040-9339ba64a4b5
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: bfa4fb38-096b-455d-a10f-2a1ed044bd49
   max work queue size: 0
   max work queue data size: 0 MB
@@ -145,7 +147,8 @@ Connections:
 - name: Set CSV Content/success/Reformat Date Column
   id: 1b327d4e-918f-43bc-97cf-043efed7ffbc
   source id: 7ba79381-4317-4c99-bcc0-256ee7ad44e9
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: a25f67cb-029c-466f-b040-9339ba64a4b5
   max work queue size: 0
   max work queue data size: 0 MB

@@ -25,9 +25,11 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -70,7 +72,7 @@ public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, Con
         map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(ConnectionSchema.SOURCE_ID_KEY, testSourceId);
-        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, testSelectedRelationship);
+        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>(Arrays.asList(testSelectedRelationship)));
         map.put(ConnectionSchema.DESTINATION_ID_KEY, testDestinationId);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, testMaxWorkQueueSize);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY, testMaxWorkQueueDataSize);
@@ -101,17 +103,19 @@ public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, Con
 
     @Test
     public void testDtoMultipleSourceRelationships() {
-        dto.setSelectedRelationships(Arrays.asList("one", "two").stream().collect(Collectors.toSet()));
-        assertEquals(1, dtoSchemaFunction.apply(dto).getValidationIssues().size());
+        List<String> relationships = Arrays.asList("one", "two");
+        dto.setSelectedRelationships(relationships.stream().collect(Collectors.toSet()));
+        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>(relationships));
+        assertDtoAndMapConstructorAreSame(0);
     }
 
     @Test
     public void testNoSelectedRelationshipName() {
         dto.setSelectedRelationships(null);
-        map.remove(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY);
+        map.remove(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY);
         assertDtoAndMapConstructorAreSame(1);
         dto.setSelectedRelationships(Collections.emptySet());
-        map.remove(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY);
+        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>());
         assertDtoAndMapConstructorAreSame(1);
     }
 
@@ -163,7 +167,7 @@ public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, Con
         assertEquals(one.getName(), two.getName());
         assertEquals(one.getId(), two.getId());
         assertEquals(one.getSourceId(), two.getSourceId());
-        assertEquals(one.getSourceRelationshipName(), two.getSourceRelationshipName());
+        assertEquals(one.getSourceRelationshipNames(), two.getSourceRelationshipNames());
         assertEquals(one.getDestinationId(), two.getDestinationId());
         assertEquals(one.getMaxWorkQueueSize(), two.getMaxWorkQueueSize());
         assertEquals(one.getMaxWorkQueueDataSize(), two.getMaxWorkQueueDataSize());

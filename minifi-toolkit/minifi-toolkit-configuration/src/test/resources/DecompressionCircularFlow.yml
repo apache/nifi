@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 1
+MiNiFi Config Version: 2
 Flow Controller:
   name: DecompressionCircularFlow2
   comment: ''
@@ -191,7 +191,8 @@ Connections:
 - name: Compressed?/gzip/Uncompress GZIP
   id: 5de215d5-9f7e-414b-98aa-2edaa0514d99
   source id: 1377e3cc-db4e-4832-8a90-c8dc9e08f603
-  source relationship name: gzip
+  source relationship names:
+  - gzip
   destination id: 0bdda776-0c7e-4723-b3ce-969b7d10a922
   max work queue size: 0
   max work queue data size: 0 MB
@@ -200,7 +201,8 @@ Connections:
 - name: Compressed?/unmatched/LogAttribute
   id: a72e8727-9a5c-44dd-a4f5-cf94b3422c1a
   source id: 1377e3cc-db4e-4832-8a90-c8dc9e08f603
-  source relationship name: unmatched
+  source relationship names:
+  - unmatched
   destination id: 7209cf79-23ba-421c-b1c3-925ed86c302d
   max work queue size: 0
   max work queue data size: 0 MB
@@ -209,7 +211,8 @@ Connections:
 - name: GZIP CompressContent/failure/GZIP CompressContent
   id: 4f98618d-2443-465d-9856-bbf7c1ee49e1
   source id: 9e28dd28-8116-4199-aeab-bc7a1002aec5
-  source relationship name: failure
+  source relationship names:
+  - failure
   destination id: 9e28dd28-8116-4199-aeab-bc7a1002aec5
   max work queue size: 0
   max work queue data size: 0 MB
@@ -218,7 +221,8 @@ Connections:
 - name: GZIP CompressContent/success/GZIP CompressContent2
   id: 5cdc2e79-ec8c-4f7d-a3ab-d284c80e3afe
   source id: 9e28dd28-8116-4199-aeab-bc7a1002aec5
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: e227167f-62af-49cc-8fb5-a5b5e5251066
   max work queue size: 0
   max work queue data size: 0 MB
@@ -227,7 +231,8 @@ Connections:
 - name: GZIP CompressContent2/failure/GZIP CompressContent2
   id: f6ff74cf-a30b-4916-86b3-e269266666ff
   source id: e227167f-62af-49cc-8fb5-a5b5e5251066
-  source relationship name: failure
+  source relationship names:
+  - failure
   destination id: e227167f-62af-49cc-8fb5-a5b5e5251066
   max work queue size: 0
   max work queue data size: 0 MB
@@ -236,7 +241,8 @@ Connections:
 - name: GZIP CompressContent2/success/GZIP CompressContent3
   id: ac822b4f-7d0d-462a-8ac0-03e9032ebefb
   source id: e227167f-62af-49cc-8fb5-a5b5e5251066
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: defa6d98-3e98-41dd-82ac-1bdfd39eacfc
   max work queue size: 0
   max work queue data size: 0 MB
@@ -245,7 +251,8 @@ Connections:
 - name: GZIP CompressContent3/failure/GZIP CompressContent3
   id: bdfdb568-682d-4d3b-b87b-99199c15505c
   source id: defa6d98-3e98-41dd-82ac-1bdfd39eacfc
-  source relationship name: failure
+  source relationship names:
+  - failure
   destination id: defa6d98-3e98-41dd-82ac-1bdfd39eacfc
   max work queue size: 0
   max work queue data size: 0 MB
@@ -254,7 +261,8 @@ Connections:
 - name: GZIP CompressContent3/success/GZIP CompressContent4
   id: 645ec08f-3d6d-4255-b4d9-0f6d61708974
   source id: defa6d98-3e98-41dd-82ac-1bdfd39eacfc
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 9d33bbc9-2f51-43c8-aa8a-94dcc367b371
   max work queue size: 0
   max work queue data size: 0 MB
@@ -263,7 +271,8 @@ Connections:
 - name: GZIP CompressContent4/failure/GZIP CompressContent4
   id: 42bd2967-d74a-4e22-9b16-9e0a51024658
   source id: 9d33bbc9-2f51-43c8-aa8a-94dcc367b371
-  source relationship name: failure
+  source relationship names:
+  - failure
   destination id: 9d33bbc9-2f51-43c8-aa8a-94dcc367b371
   max work queue size: 0
   max work queue data size: 0 MB
@@ -272,7 +281,8 @@ Connections:
 - name: GZIP CompressContent4/success/Uncompress GZIP
   id: 6eeca4aa-04c7-4774-aee5-bb6340c3a7b6
   source id: 9d33bbc9-2f51-43c8-aa8a-94dcc367b371
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 0bdda776-0c7e-4723-b3ce-969b7d10a922
   max work queue size: 0
   max work queue data size: 0 MB
@@ -281,7 +291,8 @@ Connections:
 - name: GenerateFlowFile/success/GZIP CompressContent
   id: 299f7d1f-e216-43a3-ad0b-7a6d6680dacc
   source id: ad8ff6a3-ba60-4b9b-af9e-0773c8afc1c9
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 9e28dd28-8116-4199-aeab-bc7a1002aec5
   max work queue size: 0
   max work queue data size: 0 MB
@@ -290,7 +301,8 @@ Connections:
 - name: IdentifyMimeType/success/Compressed?
   id: ded9891b-4433-4f56-9fc0-1a240146835f
   source id: 212097d4-2ea8-497b-b574-b1354fae40f2
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 1377e3cc-db4e-4832-8a90-c8dc9e08f603
   max work queue size: 0
   max work queue data size: 0 MB
@@ -299,7 +311,8 @@ Connections:
 - name: Uncompress GZIP/failure/Uncompress GZIP
   id: 37f15fde-d463-41b1-9fe7-28c72cd6c871
   source id: 0bdda776-0c7e-4723-b3ce-969b7d10a922
-  source relationship name: failure
+  source relationship names:
+  - failure
   destination id: 0bdda776-0c7e-4723-b3ce-969b7d10a922
   max work queue size: 0
   max work queue data size: 0 MB
@@ -308,7 +321,8 @@ Connections:
 - name: Uncompress GZIP/success/IdentifyMimeType
   id: bb250fb4-0b15-418f-83f9-83a43bd3de9c
   source id: 0bdda776-0c7e-4723-b3ce-969b7d10a922
-  source relationship name: success
+  source relationship names:
+  - success
   destination id: 212097d4-2ea8-497b-b574-b1354fae40f2
   max work queue size: 0
   max work queue data size: 0 MB

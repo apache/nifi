@@ -539,7 +539,9 @@ public final class ConfigTransformer {
                 addTextElement(element, "destinationType", "PROCESSOR");
             }
 
-            addTextElement(element, "relationship", connectionProperties.getSourceRelationshipName());
+            for (String relationshipName : connectionProperties.getSourceRelationshipNames()) {
+                addTextElement(element, "relationship", relationshipName);
+            }
 
             addTextElement(element, "maxWorkQueueSize", String.valueOf(connectionProperties.getMaxWorkQueueSize()));
             addTextElement(element, "maxWorkQueueDataSize", connectionProperties.getMaxWorkQueueDataSize());
