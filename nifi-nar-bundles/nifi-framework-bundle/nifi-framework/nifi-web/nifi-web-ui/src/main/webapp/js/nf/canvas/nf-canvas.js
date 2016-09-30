@@ -1299,8 +1299,8 @@ nf.Canvas = (function () {
 
                     // get the canvas normalized width and height
                     var canvasContainer = $('#canvas-container');
-                    var canvasWidth = canvasContainer.width();
-                    var canvasHeight = canvasContainer.height();
+                    var canvasWidth = canvasContainer.width() - $('#graph-controls').outerWidth();
+                    var canvasHeight = canvasContainer.height() - $('#breadcrumbs').outerHeight();
 
                     // get the bounding box for the graph
                     var graphBox = d3.select('#canvas').node().getBoundingClientRect();
