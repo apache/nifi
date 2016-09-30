@@ -967,9 +967,6 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            if (nf.CanvasUtils.isProcessGroup(selection)) {
-                return true;
-            }
             if (nf.CanvasUtils.canRead(selection) === false) {
                 return false;
             }
