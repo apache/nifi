@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,17 +152,15 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
     public static final String IGNITE_BATCH_FLOW_FILE_FAILED_MISSING_KEY_MESSAGE = "The FlowFile key attribute was missing";
     public static final String IGNITE_BATCH_FLOW_FILE_FAILED_ZERO_SIZE_MESSAGE = "The FlowFile size was zero";
 
-    static {
-        descriptors = new ArrayList<>();
-        descriptors.add(IGNITE_CONFIGURATION_FILE);
-        descriptors.add(CACHE_NAME);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(IGNITE_CACHE_ENTRY_KEY);
-        descriptors.add(DATA_STREAMER_PER_NODE_PARALLEL_OPERATIONS);
-        descriptors.add(DATA_STREAMER_PER_NODE_BUFFER_SIZE);
-        descriptors.add(DATA_STREAMER_AUTO_FLUSH_FREQUENCY);
-        descriptors.add(DATA_STREAMER_ALLOW_OVERRIDE);
-    }
+    /**
+     * Property descriptors
+     */
+    protected static final List<PropertyDescriptor> descriptors =
+        Arrays.asList(IGNITE_CONFIGURATION_FILE,CACHE_NAME,BATCH_SIZE,
+            IGNITE_CACHE_ENTRY_KEY,
+            DATA_STREAMER_PER_NODE_PARALLEL_OPERATIONS,
+            DATA_STREAMER_PER_NODE_BUFFER_SIZE,
+            DATA_STREAMER_AUTO_FLUSH_FREQUENCY,DATA_STREAMER_ALLOW_OVERRIDE);
 
     /**
      * Data streamer instance

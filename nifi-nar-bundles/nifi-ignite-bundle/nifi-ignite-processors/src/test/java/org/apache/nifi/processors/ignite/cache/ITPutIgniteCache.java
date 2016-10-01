@@ -50,6 +50,7 @@ public class ITPutIgniteCache {
     @AfterClass
     public static void teardown() {
         runner = null;
+        putIgniteCache.getIgniteCache().destroy();
         putIgniteCache = null;
     }
 
@@ -82,6 +83,7 @@ public class ITPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test".getBytes());
+        System.out.println("Value was: " + new String((byte[])putIgniteCache.getIgniteCache().get("key5")));
         Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key5"));
         runner.shutdown();
     }
@@ -115,6 +117,7 @@ public class ITPutIgniteCache {
         out.assertAttributeEquals(PutIgniteCache.IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER, "0");
 
         out.assertContentEquals("test1".getBytes());
+        System.out.println("value was " + new String(putIgniteCache.getIgniteCache().get("key51")));
         Assert.assertArrayEquals("test1".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key51"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS).get(1);

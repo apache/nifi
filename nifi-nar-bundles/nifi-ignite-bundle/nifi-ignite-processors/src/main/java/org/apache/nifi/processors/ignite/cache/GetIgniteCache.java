@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.ignite.cache;
 
 import java.io.ByteArrayInputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -52,7 +52,6 @@ import org.apache.nifi.processor.exception.ProcessException;
     " can be turned off by setting the log level for logger 'org.apache.ignite' to WARN in the logback.xml configuration file.")
 @WritesAttributes({
     @WritesAttribute(attribute = GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY, description = "The reason for getting entry from cache"),
-    @WritesAttribute(attribute = GetIgniteCache.IGNITE_GET_FAILED_MISSING_KEY_MESSAGE, description = "The FlowFile key attribute was missing.")
     })
 @SeeAlso({PutIgniteCache.class})
 public class GetIgniteCache extends AbstractIgniteCacheProcessor {
@@ -63,12 +62,11 @@ public class GetIgniteCache extends AbstractIgniteCacheProcessor {
     public static final String IGNITE_GET_FAILED_MISSING_ENTRY_MESSAGE = "The cache byte array entry was null or zero length";
     public static final String IGNITE_GET_FAILED_MESSAGE_PREFIX = "The cache request failed because of ";
 
-    static {
-        descriptors = new ArrayList<>();
-        descriptors.add(IGNITE_CONFIGURATION_FILE);
-        descriptors.add(CACHE_NAME);
-        descriptors.add(IGNITE_CACHE_ENTRY_KEY);
-    }
+    /**
+     * Property descriptors
+     */
+    protected static final List<PropertyDescriptor> descriptors =
+        Arrays.asList(IGNITE_CONFIGURATION_FILE, CACHE_NAME, IGNITE_CACHE_ENTRY_KEY);
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {

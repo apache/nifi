@@ -50,6 +50,7 @@ public class ITGetIgniteCache {
     @AfterClass
     public static void teardown() {
         runner = null;
+        getIgniteCache.getIgniteCache().destroy();
         getIgniteCache = null;
     }
 

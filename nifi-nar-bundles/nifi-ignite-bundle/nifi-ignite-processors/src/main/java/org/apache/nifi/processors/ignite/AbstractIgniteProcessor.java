@@ -18,6 +18,8 @@
  */
 package org.apache.nifi.processors.ignite;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
@@ -89,6 +91,14 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
 
         if ( getIgnite() != null ) {
             getLogger().warn("Ignite already initialized");
+            return;
+        }
+
+        List<Ignite> grids = Ignition.allGrids();
+
+        if ( grids.size() == 1 ) {
+            getLogger().warn("Ignite grid already avaialble");
+            ignite = grids.get(0);
             return;
         }
 

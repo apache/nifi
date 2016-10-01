@@ -18,7 +18,6 @@ package org.apache.nifi.processors.ignite.cache;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.ignite.IgniteCache;
@@ -59,11 +58,6 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
             .expressionLanguageSupported(true)
             .build();
-
-    /**
-     * Property descriptors
-     */
-    protected static List<PropertyDescriptor> descriptors;
 
     /**
      * Relations
