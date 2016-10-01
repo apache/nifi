@@ -89,12 +89,12 @@ import java.util.regex.Pattern;
                 + "are needed to complete the transaction."),
         @ReadsAttribute(attribute = "fragment.index", description = "If the <Support Fragment Transactions> property is true, this attribute is used to determine the order that the FlowFiles "
                 + "in a transaction should be evaluated."),
-        @ReadsAttribute(attribute = "sql.args.N.type", description = "Incoming FlowFiles are expected to be parameterized SQL statements. The type of each Parameter is specified as an integer "
+        @ReadsAttribute(attribute = "sql.args.N.type", description = "Incoming FlowFiles are expected to be parametrized SQL statements. The type of each Parameter is specified as an integer "
                 + "that represents the JDBC Type of the parameter."),
-        @ReadsAttribute(attribute = "sql.args.N.value", description = "Incoming FlowFiles are expected to be parameterized SQL statements. The value of the Parameters are specified as "
+        @ReadsAttribute(attribute = "sql.args.N.value", description = "Incoming FlowFiles are expected to be parametrized SQL statements. The value of the Parameters are specified as "
                 + "sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. The type of the sql.args.1.value Parameter is specified by the sql.args.1.type attribute."),
         @ReadsAttribute(attribute = "sql.args.N.format", description = "This attribute is always optional, but default options may not always work for your data. "
-                + "Incoming FlowFiles are expected to be parameterized SQL statements. In some cases "
+                + "Incoming FlowFiles are expected to be parametrized SQL statements. In some cases "
                 + "a format option needs to be specified, currently this is only applicable for binary data types. For binary data types "
                 + "available options are 'ascii', 'base64' and 'hex'.  In 'ascii' format each string character in your attribute value represents a single byte, this is the default format "
                 + "and the format provided by Avro Processors. In 'base64' format your string is a Base64 encoded string.  In 'hex' format the string is hex encoded with all "

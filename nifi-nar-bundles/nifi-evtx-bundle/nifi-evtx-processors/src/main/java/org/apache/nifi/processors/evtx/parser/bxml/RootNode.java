@@ -43,9 +43,9 @@ public class RootNode extends BxmlNode {
         List<VariantTypeSizeAndFactory> substitutionVariantFactories = new ArrayList<>(substitutionCount);
         for (long i = 0; i < substitutionCount; i++) {
             try {
-                int substitionSize = binaryReader.readWord();
+                int substitutionSize = binaryReader.readWord();
                 int substitutionType = binaryReader.readWord();
-                substitutionVariantFactories.add(new VariantTypeSizeAndFactory(substitionSize, ValueNode.factories.get(substitutionType)));
+                substitutionVariantFactories.add(new VariantTypeSizeAndFactory(substitutionSize, ValueNode.factories.get(substitutionType)));
             } catch (Exception e) {
                 throw new IOException(e);
             }

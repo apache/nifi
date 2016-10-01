@@ -222,7 +222,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
 
     @Override
     protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
-        String transitUriPrefix = handshakenProperties.getTransitUriPrefix();
+        String transitUriPrefix = handshakeProperties.getTransitUriPrefix();
         return (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
     }
 }

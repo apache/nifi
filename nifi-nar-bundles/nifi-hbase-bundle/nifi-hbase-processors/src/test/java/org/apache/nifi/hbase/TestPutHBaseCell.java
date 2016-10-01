@@ -83,7 +83,7 @@ public class TestPutHBaseCell {
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
         final String content = "some content";
-        final Map<String, String> attributes = getAtrributeMapWithEL(tableName, row, columnFamily, columnQualifier);
+        final Map<String, String> attributes = getAttributeMapWithEL(tableName, row, columnFamily, columnQualifier);
         runner.enqueue(content.getBytes("UTF-8"), attributes);
 
         runner.run();
@@ -144,7 +144,7 @@ public class TestPutHBaseCell {
 
         // this will go to success
         final String content2 = "some content2";
-        final Map<String, String> attributes = getAtrributeMapWithEL("table", "row", "cf", "cq");
+        final Map<String, String> attributes = getAttributeMapWithEL("table", "row", "cf", "cq");
         runner.enqueue(content2.getBytes("UTF-8"), attributes);
 
         runner.run();
@@ -167,11 +167,11 @@ public class TestPutHBaseCell {
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
         final String content1 = "some content1";
-        final Map<String, String> attributes1 = getAtrributeMapWithEL(tableName, row1, columnFamily, columnQualifier);
+        final Map<String, String> attributes1 = getAttributeMapWithEL(tableName, row1, columnFamily, columnQualifier);
         runner.enqueue(content1.getBytes("UTF-8"), attributes1);
 
         final String content2 = "some content1";
-        final Map<String, String> attributes2 = getAtrributeMapWithEL(tableName, row2, columnFamily, columnQualifier);
+        final Map<String, String> attributes2 = getAttributeMapWithEL(tableName, row2, columnFamily, columnQualifier);
         runner.enqueue(content2.getBytes("UTF-8"), attributes2);
 
         runner.run();
@@ -205,11 +205,11 @@ public class TestPutHBaseCell {
         hBaseClient.setThrowException(true);
 
         final String content1 = "some content1";
-        final Map<String, String> attributes1 = getAtrributeMapWithEL(tableName, row1, columnFamily, columnQualifier);
+        final Map<String, String> attributes1 = getAttributeMapWithEL(tableName, row1, columnFamily, columnQualifier);
         runner.enqueue(content1.getBytes("UTF-8"), attributes1);
 
         final String content2 = "some content1";
-        final Map<String, String> attributes2 = getAtrributeMapWithEL(tableName, row2, columnFamily, columnQualifier);
+        final Map<String, String> attributes2 = getAttributeMapWithEL(tableName, row2, columnFamily, columnQualifier);
         runner.enqueue(content2.getBytes("UTF-8"), attributes2);
 
         runner.run();
@@ -230,7 +230,7 @@ public class TestPutHBaseCell {
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
 
         final String content1 = "some content1";
-        final Map<String, String> attributes1 = getAtrributeMapWithEL(tableName, row, columnFamily, columnQualifier);
+        final Map<String, String> attributes1 = getAttributeMapWithEL(tableName, row, columnFamily, columnQualifier);
         runner.enqueue(content1.getBytes("UTF-8"), attributes1);
 
         final String content2 = "some content1";
@@ -299,7 +299,7 @@ public class TestPutHBaseCell {
 
         assertEquals(1, runner.getProvenanceEvents().size());
     }
-    private Map<String, String> getAtrributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
+    private Map<String, String> getAttributeMapWithEL(String tableName, String row, String columnFamily, String columnQualifier) {
         final Map<String,String> attributes1 = new HashMap<>();
         attributes1.put("hbase.tableName", tableName);
         attributes1.put("hbase.row", row);

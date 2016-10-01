@@ -105,7 +105,7 @@ final class ValueLookup implements Map<String, String> {
         if (value == null) {
             return false;
         }
-        //check entrySet then iterate through values (otherwise might find a value that was hidden/overriden
+        //check entrySet then iterate through values (otherwise might find a value that was hidden/overridden
         final Collection<String> values = values();
         return values.contains(value.toString());
     }

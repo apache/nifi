@@ -96,7 +96,7 @@ public class AccessPolicyAuditor extends NiFiAuditor {
             + "args(accessPolicyDTO) && "
             + "target(accessPolicyDAO)")
     public AccessPolicy updateAccessPolicyAdvice(ProceedingJoinPoint proceedingJoinPoint, AccessPolicyDTO accessPolicyDTO, AccessPolicyDAO accessPolicyDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(accessPolicyDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(accessPolicy, accessPolicyDTO);
 

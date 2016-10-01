@@ -213,7 +213,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      *
      * @return The transferred status for this process group
      */
-    @ApiModelProperty("The count/size transferred to/frome queues in the process group in the last 5 minutes.")
+    @ApiModelProperty("The count/size transferred to/from queues in the process group in the last 5 minutes.")
     public String getTransferred() {
         return transferred;
     }

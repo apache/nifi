@@ -93,7 +93,7 @@ public class ReplaceText extends AbstractProcessor {
         "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
             + "the value will be prepended to each line. For \"Entire Text\" evaluation mode, the value will be prepended to the entire text.");
     static final AllowableValue APPEND = new AllowableValue(appendValue, appendValue,
-        "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evluation Mode). For \"Line-by-Line\" Evaluation Mode, "
+        "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
             + "the value will be appended to each line. For \"Entire Text\" evaluation mode, the value will be appended to the entire text.");
     static final AllowableValue LITERAL_REPLACE = new AllowableValue(literalReplaceValue, literalReplaceValue,
         "Search for all instances of the Search Value and replace the matches with the Replacement Value.");

@@ -131,7 +131,7 @@ public class ITAccessTokenEndpoint {
     public void testCreateProcessorUsingToken() throws Exception {
         String url = BASE_URL + "/access/token";
 
-        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "whateve");
+        ClientResponse response = TOKEN_USER.testCreateToken(url, "user@nifi", "whatever");
 
         // ensure the request is successful
         Assert.assertEquals(201, response.getStatus());

@@ -102,7 +102,7 @@ public class TestListHDFS {
     }
 
     @Test
-    public void testListingWithInalidELFunction() throws InterruptedException {
+    public void testListingWithInvalidELFunction() throws InterruptedException {
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):foo()}");
         runner.assertNotValid();
     }

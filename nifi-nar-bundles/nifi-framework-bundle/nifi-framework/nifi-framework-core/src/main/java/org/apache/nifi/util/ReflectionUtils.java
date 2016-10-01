@@ -232,7 +232,7 @@ public class ReflectionUtils {
         try {
             return invokeMethodsWithAnnotations(true, logger, instance, annotationArray, args);
         } catch (Exception e) {
-            LOG.error("Failed while attemptiing to invoke methods with '" + Arrays.asList(annotationArray) + "' annotations", e);
+            LOG.error("Failed while attempting to invoke methods with '" + Arrays.asList(annotationArray) + "' annotations", e);
             return false;
         }
     }

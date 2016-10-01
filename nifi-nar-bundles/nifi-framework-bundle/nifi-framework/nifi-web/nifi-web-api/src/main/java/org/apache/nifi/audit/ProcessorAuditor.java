@@ -110,7 +110,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             + "args(processorDTO) && "
             + "target(processorDAO)")
     public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
         final ScheduledState scheduledState = processor.getScheduledState();

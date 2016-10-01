@@ -139,7 +139,7 @@ public class TestRangerNiFiAuthorizer {
             Assert.fail("Should have thrown exception");
         } catch (AuthorizerCreationException e) {
             // want to make sure this exception is from our authorizer code
-            veryifyOnlyAuthorizerCreationExceptions(e);
+            verifyOnlyAuthorizeCreationExceptions(e);
         }
     }
 
@@ -159,7 +159,7 @@ public class TestRangerNiFiAuthorizer {
             Assert.fail("Should have thrown exception");
         } catch (AuthorizerCreationException e) {
             // want to make sure this exception is from our authorizer code
-            veryifyOnlyAuthorizerCreationExceptions(e);
+            verifyOnlyAuthorizeCreationExceptions(e);
         }
     }
 
@@ -180,11 +180,11 @@ public class TestRangerNiFiAuthorizer {
             Assert.fail("Should have thrown exception");
         } catch (AuthorizerCreationException e) {
             // want to make sure this exception is from our authorizer code
-            veryifyOnlyAuthorizerCreationExceptions(e);
+            verifyOnlyAuthorizeCreationExceptions(e);
         }
     }
 
-    private void veryifyOnlyAuthorizerCreationExceptions(AuthorizerCreationException e) {
+    private void verifyOnlyAuthorizeCreationExceptions(AuthorizerCreationException e) {
         boolean foundOtherException = false;
         Throwable cause = e.getCause();
         while (cause != null) {

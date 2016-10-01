@@ -28,7 +28,7 @@ public class TestGetTwitter {
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
-        runner.setProperty(GetTwitter.ACCESS_TOKEN, "acessToken");
+        runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
         runner.setProperty(GetTwitter.ACCESS_TOKEN_SECRET, "accessTokenSecret");
         runner.setProperty(GetTwitter.LOCATIONS, "-122.75,36.8,-121.75,37.8,-74,40,-73,41");
         runner.assertValid();
@@ -40,7 +40,7 @@ public class TestGetTwitter {
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
-        runner.setProperty(GetTwitter.ACCESS_TOKEN, "acessToken");
+        runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
         runner.setProperty(GetTwitter.ACCESS_TOKEN_SECRET, "accessTokenSecret");
         runner.setProperty(GetTwitter.LOCATIONS, "-122.75,36.8,-121.75,37.8,-74,40,-73,40");
         runner.assertNotValid();
@@ -52,7 +52,7 @@ public class TestGetTwitter {
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
-        runner.setProperty(GetTwitter.ACCESS_TOKEN, "acessToken");
+        runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
         runner.setProperty(GetTwitter.ACCESS_TOKEN_SECRET, "accessTokenSecret");
         runner.setProperty(GetTwitter.LOCATIONS, "-122.75,36.8,-121.75,37.8,-74,40,-74,41");
         runner.assertNotValid();
@@ -64,7 +64,7 @@ public class TestGetTwitter {
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
-        runner.setProperty(GetTwitter.ACCESS_TOKEN, "acessToken");
+        runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
         runner.setProperty(GetTwitter.ACCESS_TOKEN_SECRET, "accessTokenSecret");
         runner.setProperty(GetTwitter.LOCATIONS, "-122.75,36.8,-121.75,37.8,-74,40,-73,39");
         runner.assertNotValid();
@@ -76,7 +76,7 @@ public class TestGetTwitter {
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
-        runner.setProperty(GetTwitter.ACCESS_TOKEN, "acessToken");
+        runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
         runner.setProperty(GetTwitter.ACCESS_TOKEN_SECRET, "accessTokenSecret");
         runner.setProperty(GetTwitter.LOCATIONS, "-122.75,36.8,-121.75,37.8,-74,40,-75,41");
         runner.assertNotValid();
