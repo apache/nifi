@@ -91,12 +91,12 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     private class TransactionWrapper {
 
         private final FlowFileTransaction transaction;
-        private final HandshakeProperties handshakenProperties;
+        private final HandshakeProperties handshakeProperties;
         private long lastCommunicationAt;
 
-        private TransactionWrapper(final FlowFileTransaction transaction, final HandshakeProperties handshakenProperties) {
+        private TransactionWrapper(final FlowFileTransaction transaction, final HandshakeProperties handshakeProperties) {
             this.transaction = transaction;
-            this.handshakenProperties = handshakenProperties;
+            this.handshakeProperties = handshakeProperties;
             this.lastCommunicationAt = System.currentTimeMillis();
         }
 
@@ -197,7 +197,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     public HandshakeProperties getHandshakenProperties(final String transactionId) {
         TransactionWrapper transaction = transactions.get(transactionId);
         if (isTransactionActive(transaction)) {
-            return transaction.handshakenProperties;
+            return transaction.handshakeProperties;
         }
         return null;
     }

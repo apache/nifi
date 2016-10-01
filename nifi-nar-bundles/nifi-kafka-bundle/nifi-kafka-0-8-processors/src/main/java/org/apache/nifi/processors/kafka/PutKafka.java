@@ -272,9 +272,9 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
      * Will rendezvous with Kafka if {@link ProcessSession} contains {@link FlowFile}
      * producing a result {@link FlowFile}.
      * <br>
-     * The result {@link FlowFile} that is successful is then transfered to {@link #REL_SUCCESS}
+     * The result {@link FlowFile} that is successful is then transferred to {@link #REL_SUCCESS}
      * <br>
-     * The result {@link FlowFile} that is failed is then transfered to {@link #REL_FAILURE}
+     * The result {@link FlowFile} that is failed is then transferred to {@link #REL_FAILURE}
      *
      */
     @Override

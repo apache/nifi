@@ -117,7 +117,7 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
             if (!this.configured) {
                 if (logger.isInfoEnabled()) {
                     logger.info("Configuring " + this.getClass().getSimpleName() + " for '"
-                            + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be conected to '"
+                            + context.getProperty(CONNECTION_FACTORY_IMPL).evaluateAttributeExpressions().getValue() + "' to be connected to '"
                             + BROKER_URI + "'");
                 }
                 // will load user provided libraries/resources on the classpath

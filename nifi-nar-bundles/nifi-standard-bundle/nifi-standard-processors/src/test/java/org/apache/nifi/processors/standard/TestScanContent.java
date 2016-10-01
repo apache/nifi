@@ -81,7 +81,7 @@ public class TestScanContent {
 
             while (!runner.isQueueEmpty()) {
                 runner.run(3);
-                try {  //must insert this deley or flowfiles are made so close together they become out of order in the queu
+                try {  //must insert this delay or flowfiles are made so close together they become out of order in the queue
                     Thread.sleep(500);
                 } catch (InterruptedException ex) {
                     //moving on

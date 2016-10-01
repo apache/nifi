@@ -108,7 +108,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
     @Override
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
         logger.debug("Rebalance Alert: Paritions '{}' revoked for lease '{}' with consumer '{}'", new Object[]{partitions, this, kafkaConsumer});
-        //force a commit here.  Can reuse the session and consumer after this but must commit now to avoid duplicates if kafka reassigns parittion
+        //force a commit here.  Can reuse the session and consumer after this but must commit now to avoid duplicates if kafka reassigns partition
         commit();
     }
 

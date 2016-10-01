@@ -209,7 +209,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
 
     private void drainResponses(final Set<NodeResponse> responses, final NodeResponse exclude) {
         responses.stream()
-                .parallel() // parallelize the draining of the responses, since we have multiple streams to consume
+                .parallel() // "parallelize" the draining of the responses, since we have multiple streams to consume
                 .filter(response -> response != exclude) // don't include the explicitly excluded node
                 .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
                 .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out

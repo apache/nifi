@@ -81,7 +81,7 @@ public class ConsumeKafka_0_10 extends AbstractProcessor {
     static final PropertyDescriptor TOPICS = new PropertyDescriptor.Builder()
             .name("topic")
             .displayName("Topic Name(s)")
-            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma seperated.")
+            .description("The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(true)

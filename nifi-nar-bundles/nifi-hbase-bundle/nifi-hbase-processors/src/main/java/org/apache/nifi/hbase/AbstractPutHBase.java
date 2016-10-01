@@ -71,11 +71,11 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     protected static final AllowableValue ROW_ID_ENCODING_STRING = new AllowableValue(STRING_ENCODING_VALUE, STRING_ENCODING_VALUE,
             "Stores the value of row id as a UTF-8 String.");
     protected static final AllowableValue ROW_ID_ENCODING_BINARY = new AllowableValue(BINARY_ENCODING_VALUE, BINARY_ENCODING_VALUE,
-            "Stores the value of the rows id as a binary byte array. It expects that the row id is a binary formated string.");
+            "Stores the value of the rows id as a binary byte array. It expects that the row id is a binary formatted string.");
 
     static final PropertyDescriptor ROW_ID_ENCODING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Row Identifier Encoding Strategy")
-            .description("Specifies the data type of Row ID used when inserting data into HBase. The default behaviror is" +
+            .description("Specifies the data type of Row ID used when inserting data into HBase. The default behavior is" +
                     " to convert the row id to a UTF-8 byte array. Choosing Binary will convert a binary formatted string" +
                     " to the correct byte[] representation. The Binary option should be used if you are using Binary row" +
                     " keys in HBase")
