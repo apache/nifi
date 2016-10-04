@@ -64,29 +64,6 @@ public class StandardResourceClaim implements ResourceClaim, Comparable<Resource
         return section;
     }
 
-    /**
-     * Provides the natural ordering for ResourceClaim objects. By default they are sorted by their id, then container, then section
-     *
-     * @param other other claim
-     * @return x such that x <=1 if this is less than other;
-     *         x=0 if this.equals(other);
-     *         x >= 1 if this is greater than other
-     */
-    @Override
-    public int compareTo(final ResourceClaim other) {
-        final int idComparison = id.compareTo(other.getId());
-        if (idComparison != 0) {
-            return idComparison;
-        }
-
-        final int containerComparison = container.compareTo(other.getContainer());
-        if (containerComparison != 0) {
-            return containerComparison;
-        }
-
-        return section.compareTo(other.getSection());
-    }
-
     @Override
     public boolean equals(final Object other) {
         if (this == other) {

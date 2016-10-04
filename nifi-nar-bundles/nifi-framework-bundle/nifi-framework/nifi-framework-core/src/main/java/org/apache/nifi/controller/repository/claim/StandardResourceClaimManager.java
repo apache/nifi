@@ -29,10 +29,9 @@ import org.slf4j.LoggerFactory;
 
 public class StandardResourceClaimManager implements ResourceClaimManager {
 
-    private static final ConcurrentMap<ResourceClaim, ClaimCount> claimantCounts = new ConcurrentHashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(StandardResourceClaimManager.class);
-
-    private static final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
+    private final ConcurrentMap<ResourceClaim, ClaimCount> claimantCounts = new ConcurrentHashMap<>();
+    private final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
 
     @Override
     public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant, final boolean writable) {
@@ -50,7 +49,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         return (count == null) ? null : count.getClaim();
     }
 
-    private static AtomicInteger getCounter(final ResourceClaim claim) {
+    private AtomicInteger getCounter(final ResourceClaim claim) {
         if (claim == null) {
             return null;
         }

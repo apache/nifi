@@ -210,4 +210,42 @@ public class FormatUtils {
         return sb.toString();
     }
 
+    /**
+     * Formats nanoseconds in the format:
+     * 3 seconds, 8 millis, 3 nanos - if includeTotalNanos = false,
+     * 3 seconds, 8 millis, 3 nanos (3008000003 nanos) - if includeTotalNanos = true
+     *
+     * @param nanos the number of nanoseconds to format
+     * @param includeTotalNanos whether or not to include the total number of nanoseconds in parentheses in the returned value
+     * @return a human-readable String that is a formatted representation of the given number of nanoseconds.
+     */
+    public static String formatNanos(final long nanos, final boolean includeTotalNanos) {
+        final StringBuilder sb = new StringBuilder();
+
+        final long seconds = nanos > 1000000000L ? nanos / 1000000000L : 0L;
+        long millis = nanos > 1000000L ? nanos / 1000000L : 0L;
+        final long nanosLeft = nanos % 1000000L;
+
+        if (seconds > 0) {
+            sb.append(seconds).append(" seconds");
+        }
+        if (millis > 0) {
+            if (seconds > 0) {
+                sb.append(", ");
+                millis -= seconds * 1000L;
+            }
+
+            sb.append(millis).append(" millis");
+        }
+        if (seconds > 0 || millis > 0) {
+            sb.append(", ");
+        }
+        sb.append(nanosLeft).append(" nanos");
+
+        if (includeTotalNanos) {
+            sb.append(" (").append(nanos).append(" nanos)");
+        }
+
+        return sb.toString();
+    }
 }
