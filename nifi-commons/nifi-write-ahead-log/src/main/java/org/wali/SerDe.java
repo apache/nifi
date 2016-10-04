@@ -30,6 +30,15 @@ import java.util.Map;
 public interface SerDe<T> {
 
     /**
+     * Provides the SerDe a chance to write header information to the given output stream
+     *
+     * @param out the DataOutputStream to write to
+     * @throws IOException if unable to write to the OutputStream
+     */
+    default void writeHeader(DataOutputStream out) throws IOException {
+    }
+
+    /**
      * <p>
      * Serializes an Edit Record to the log via the given
      * {@link DataOutputStream}.
@@ -55,6 +64,15 @@ public interface SerDe<T> {
     void serializeRecord(T record, DataOutputStream out) throws IOException;
 
     /**
+     * Provides the SerDe the opportunity to read header information before deserializing any records
+     *
+     * @param in the InputStream to read from
+     * @throws IOException if unable to read from the InputStream
+     */
+    default void readHeader(DataInputStream in) throws IOException {
+    }
+
+    /**
      * <p>
      * Reads an Edit Record from the given {@link DataInputStream} and merges
      * that edit with the current version of the record, returning the new,
@@ -65,9 +83,9 @@ public interface SerDe<T> {
      *
      * @param in to deserialize from
      * @param currentRecordStates an unmodifiable map of Record ID's to the
-     * current state of that record
+     *            current state of that record
      * @param version the version of the SerDe that was used to serialize the
-     * edit record
+     *            edit record
      * @return deserialized record
      * @throws IOException if failure reading
      */
@@ -125,4 +143,12 @@ public interface SerDe<T> {
      * @return version
      */
     int getVersion();
+
+    /**
+     * Closes any resources that the SerDe is holding open
+     *
+     * @throws IOException if unable to close resources
+     */
+    default void close() throws IOException {
+    }
 }

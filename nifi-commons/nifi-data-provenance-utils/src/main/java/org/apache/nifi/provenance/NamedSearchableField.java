@@ -31,6 +31,7 @@ public class NamedSearchableField implements SearchableField {
     private final SearchableFieldType fieldType;
     private final String friendlyName;
     private final boolean attribute;
+    private final int hash; // cached for more efficient/faster use in sets and maps
 
     NamedSearchableField(final String identifier, final String searchableName, final String friendlyName, final boolean attribute) {
         this(identifier, searchableName, friendlyName, attribute, SearchableFieldType.STRING);
@@ -42,6 +43,7 @@ public class NamedSearchableField implements SearchableField {
         this.friendlyName = requireNonNull(friendlyName);
         this.attribute = requireNonNull(attribute);
         this.fieldType = requireNonNull(fieldType);
+        this.hash = 298347 + searchableName.hashCode() + (attribute ? 1 : 0);
     }
 
     @Override
@@ -76,11 +78,14 @@ public class NamedSearchableField implements SearchableField {
 
     @Override
     public int hashCode() {
-        return 298347 + searchableName.hashCode() + (attribute ? 1 : 0);
+        return hash;
     }
 
     @Override
     public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
         if (obj == null) {
             return false;
         }
@@ -90,6 +95,6 @@ public class NamedSearchableField implements SearchableField {
         }
 
         final SearchableField other = (SearchableField) obj;
-        return (this.searchableName.equals(other.getSearchableFieldName()) && attribute == other.isAttribute());
+        return attribute == other.isAttribute() && this.searchableName.equals(other.getSearchableFieldName());
     }
 }

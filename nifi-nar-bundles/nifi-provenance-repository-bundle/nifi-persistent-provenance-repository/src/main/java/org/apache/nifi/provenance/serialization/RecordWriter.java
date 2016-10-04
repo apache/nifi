@@ -44,6 +44,13 @@ public interface RecordWriter extends Closeable {
     long writeRecord(ProvenanceEventRecord record, long recordIdentifier) throws IOException;
 
     /**
+     * Flushes any data that is held in a buffer to the underlying storage mechanism
+     *
+     * @throws IOException if unable to flush the bytes
+     */
+    void flush() throws IOException;
+
+    /**
      * @return the number of Records that have been written to this RecordWriter
      */
     int getRecordsWritten();
