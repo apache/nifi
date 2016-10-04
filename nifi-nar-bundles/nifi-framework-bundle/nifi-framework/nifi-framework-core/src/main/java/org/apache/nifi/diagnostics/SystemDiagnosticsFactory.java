@@ -70,7 +70,7 @@ public class SystemDiagnosticsFactory {
         if (systemLoad > 0) {
             systemDiagnostics.setProcessorLoadAverage(systemLoad);
         } else {
-            systemDiagnostics.setProcessorLoadAverage(1.0);
+            systemDiagnostics.setProcessorLoadAverage(-1.0);
         }
 
         // get the database disk usage
