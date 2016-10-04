@@ -62,6 +62,8 @@ import org.apache.nifi.cluster.coordination.http.endpoints.TemplatesEndpointMerg
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,16 +75,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 
-public class StandardHttpResponseMerger implements HttpResponseMerger {
+public class StandardHttpResponseMapper implements HttpResponseMapper {
 
-    private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMerger.class);
+    private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMapper.class);
 
     private final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
 
-    public StandardHttpResponseMerger(final NiFiProperties nifiProperties) {
+    public StandardHttpResponseMapper(final NiFiProperties nifiProperties) {
         final String snapshotFrequency = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
         long snapshotMillis;
         try {
@@ -136,11 +136,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
     }
 
     @Override
-    public NodeResponse mergeResponses(final URI uri, final String httpMethod, final Set<NodeResponse> nodeResponses) {
-        if (nodeResponses.size() == 1) {
-            return nodeResponses.iterator().next();
-        }
-
+    public NodeResponse mapResponses(final URI uri, final String httpMethod, final Set<NodeResponse> nodeResponses, final boolean merge) {
         final boolean hasSuccess = hasSuccessfulResponse(nodeResponses);
         if (!hasSuccess) {
             // If we have a response that is a 3xx, 4xx, or 5xx, then we want to choose that.
@@ -171,6 +167,11 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
             // Choose any of the successful responses to be the 'chosen one'.
             clientResponse = successResponses.iterator().next();
         }
+
+        if (merge == false) {
+            return clientResponse;
+        }
+
         EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
         if (merger == null) {
             return clientResponse;
