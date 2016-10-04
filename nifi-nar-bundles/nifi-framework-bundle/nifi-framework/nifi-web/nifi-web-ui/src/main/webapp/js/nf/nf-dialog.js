@@ -94,7 +94,6 @@ nf.Dialog = (function () {
             options = $.extend({
                 headerText: '',
                 dialogContent: '',
-                overlayBackgrond: true,
                 yesText: 'Yes',
                 noText: 'No'
             }, options);
