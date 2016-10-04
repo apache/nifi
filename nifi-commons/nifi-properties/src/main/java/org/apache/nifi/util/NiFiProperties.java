@@ -147,8 +147,10 @@ public abstract class NiFiProperties {
     // web properties
     public static final String WEB_WAR_DIR = "nifi.web.war.directory";
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
+    public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
     public static final String WEB_HTTP_HOST = "nifi.web.http.host";
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
+    public static final String WEB_HTTPS_PORT_FORWARDING = "nifi.web.https.port.forwarding";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
@@ -403,9 +405,23 @@ public abstract class NiFiProperties {
             return null;
         }
 
-        String propertyKey = isSiteToSiteSecure() ? NiFiProperties.WEB_HTTPS_PORT : NiFiProperties.WEB_HTTP_PORT;
-        Integer port = getIntegerProperty(propertyKey, 0);
-        if (port == 0) {
+        final String propertyKey;
+        if (isSiteToSiteSecure()) {
+            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTPS_PORT_FORWARDING))) {
+                propertyKey = WEB_HTTPS_PORT;
+            } else {
+                propertyKey = WEB_HTTPS_PORT_FORWARDING;
+            }
+        } else {
+            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTP_PORT_FORWARDING))) {
+                propertyKey = WEB_HTTP_PORT;
+            } else {
+                propertyKey = WEB_HTTP_PORT_FORWARDING;
+            }
+        }
+
+        final Integer port = getIntegerProperty(propertyKey, null);
+        if (port == null) {
             throw new RuntimeException("Remote input HTTP" + (isSiteToSiteSecure() ? "S" : "")
                     + " is enabled but " + propertyKey + " is not specified.");
         }
