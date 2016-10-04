@@ -20,7 +20,6 @@ import com.sun.jersey.api.client.ClientResponse
 import org.apache.nifi.cluster.manager.NodeResponse
 import org.apache.nifi.cluster.protocol.NodeIdentifier
 import org.apache.nifi.util.NiFiProperties
-import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.ConnectionDTO
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO
 import org.apache.nifi.web.api.dto.FunnelDTO
@@ -43,10 +42,10 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 @Unroll
-class StandardHttpResponseMergerSpec extends Specification {
+class StandardHttpResponseMapperSpec extends Specification {
 
     def setup() {
-        def propFile = StandardHttpResponseMergerSpec.class.getResource("/conf/nifi.properties").getFile()
+        def propFile = StandardHttpResponseMapperSpec.class.getResource("/conf/nifi.properties").getFile()
         System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
     }
 
@@ -56,7 +55,7 @@ class StandardHttpResponseMergerSpec extends Specification {
 
     def "MergeResponses: mixed HTTP GET response statuses, expecting #expectedStatus"() {
         given:
-        def responseMerger = new StandardHttpResponseMerger(NiFiProperties.createBasicNiFiProperties(null,null))
+        def responseMapper = new StandardHttpResponseMapper(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI('http://server/resource')
         def requestId = UUID.randomUUID().toString()
         def Map<ClientResponse, Map<String, Integer>> mockToRequestEntity = [:]
@@ -68,7 +67,7 @@ class StandardHttpResponseMergerSpec extends Specification {
         } as Set
 
         when:
-        def returnedResponse = responseMerger.mergeResponses(requestUri, 'get', nodeResponseSet).getStatus()
+        def returnedResponse = responseMapper.mapResponses(requestUri, 'get', nodeResponseSet, true).getStatus()
 
         then:
         mockToRequestEntity.entrySet().forEach {
@@ -94,7 +93,7 @@ class StandardHttpResponseMergerSpec extends Specification {
         mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
 
         and: "setup of the data to be used in the test"
-        def responseMerger = new StandardHttpResponseMerger(NiFiProperties.createBasicNiFiProperties(null,null))
+        def responseMerger = new StandardHttpResponseMapper(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI("http://server/$requestUriPart")
         def requestId = UUID.randomUUID().toString()
         def Map<ClientResponse, Object> mockToRequestEntity = [:]
@@ -107,7 +106,7 @@ class StandardHttpResponseMergerSpec extends Specification {
         } as Set
 
         when:
-        def returnedResponse = responseMerger.mergeResponses(requestUri, httpMethod, nodeResponseSet)
+        def returnedResponse = responseMerger.mapResponses(requestUri, httpMethod, nodeResponseSet, true)
 
         then:
         mockToRequestEntity.entrySet().forEach {
