@@ -17,10 +17,10 @@
 
 package org.apache.nifi.cluster.coordination.http;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+
 import java.net.URI;
 import java.util.Set;
-
-import org.apache.nifi.cluster.manager.NodeResponse;
 
 /**
  * <p>
@@ -29,7 +29,7 @@ import org.apache.nifi.cluster.manager.NodeResponse;
  * user/client who made the original web requests.
  * </p>
  */
-public interface HttpResponseMerger {
+public interface HttpResponseMapper {
 
     /**
      * Maps the responses from all nodes in the cluster to a single NodeResponse object that
@@ -41,7 +41,7 @@ public interface HttpResponseMerger {
      *
      * @return a single NodeResponse that represents the response that should be returned to the user/client
      */
-    NodeResponse mergeResponses(URI uri, String httpMethod, Set<NodeResponse> nodeResponses);
+    NodeResponse mapResponses(URI uri, String httpMethod, Set<NodeResponse> nodeResponses, boolean merge);
 
     /**
      * Returns a subset (or equal set) of the given Node Responses, such that all of those returned are the responses
