@@ -741,7 +741,7 @@ then the following Expressions will result in the following values:
 | `${line:getDelimitedField(2):trim()}` | 32
 | `${line:getDelimitedField(1)}` | "Jacobson, John"
 | `${line:getDelimitedField(1, ',', '"', '\\', true)}` | Jacobson, John
-| `${altLine:getDelimitedField(1, '|')} | Jacobson, John
+| `${altLine:getDelimitedField(1, '\|')}` | Jacobson, John
 |======================================================================
 
 
