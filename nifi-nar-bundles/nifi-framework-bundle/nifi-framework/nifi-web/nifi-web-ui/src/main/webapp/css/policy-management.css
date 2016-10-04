@@ -222,3 +222,12 @@ div.policy-selected-component-type {
     font-family: Roboto;
     font-size: 13px;
 }
+
+/*
+    override policy dialog
+*/
+
+#override-policy-dialog label {
+    font-family: inherit;
+    letter-spacing: inherit;
+}
