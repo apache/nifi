@@ -67,7 +67,7 @@ public class SystemDiagnosticsFactory {
         systemDiagnostics.setAvailableProcessors(os.getAvailableProcessors());
 
         final double systemLoad = os.getSystemLoadAverage();
-        if (systemLoad > 0) {
+        if (systemLoad >= 0) {
             systemDiagnostics.setProcessorLoadAverage(systemLoad);
         } else {
             systemDiagnostics.setProcessorLoadAverage(-1.0);

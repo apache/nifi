@@ -575,9 +575,9 @@ public class StatusMerger {
         target.setMaxNonHeapBytes(target.getMaxNonHeapBytes() + toMerge.getMaxNonHeapBytes());
         double systemLoad = target.getProcessorLoadAverage();
         double toMergeSystemLoad = toMerge.getProcessorLoadAverage();
-        if (systemLoad > 0 && toMergeSystemLoad > 0) {
+        if (systemLoad >= 0 && toMergeSystemLoad >= 0) {
             systemLoad += toMergeSystemLoad;
-        } else if (systemLoad < 0 && toMergeSystemLoad > 0) {
+        } else if (systemLoad < 0 && toMergeSystemLoad >= 0) {
             systemLoad = toMergeSystemLoad;
         }
         target.setProcessorLoadAverage(systemLoad);
