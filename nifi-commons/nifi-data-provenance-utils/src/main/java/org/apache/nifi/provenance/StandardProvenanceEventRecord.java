@@ -104,6 +104,10 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
+
+        if (builder.eventId != null) {
+            eventId = builder.eventId;
+        }
     }
 
     public String getStorageFilename() {
@@ -158,6 +162,14 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             }
         }
         return allAttrs;
+    }
+
+    public String getAttribute(final String attributeName) {
+        if (updatedAttributes.containsKey(attributeName)) {
+            return updatedAttributes.get(attributeName);
+        }
+
+        return previousAttributes.get(attributeName);
     }
 
     @Override
@@ -417,6 +429,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         private long storageByteOffset = -1L;
         private long eventDuration = -1L;
         private String storageFilename;
+        private Long eventId;
 
         private String contentClaimSection;
         private String contentClaimContainer;
@@ -478,6 +491,11 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             return this;
         }
 
+        public Builder setEventId(final long eventId) {
+            this.eventId = eventId;
+            return this;
+        }
+
         @Override
         public ProvenanceEventBuilder copy() {
             final Builder copy = new Builder();
@@ -536,6 +554,16 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         @Override
         public Builder setAttributes(final Map<String, String> previousAttributes, final Map<String, String> updatedAttributes) {
             this.previousAttributes = previousAttributes;
+            this.updatedAttributes = updatedAttributes;
+            return this;
+        }
+
+        public Builder setPreviousAttributes(final Map<String, String> previousAttributes) {
+            this.previousAttributes = previousAttributes;
+            return this;
+        }
+
+        public Builder setUpdatedAttributes(final Map<String, String> updatedAttributes) {
             this.updatedAttributes = updatedAttributes;
             return this;
         }
@@ -646,6 +674,16 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
                 this.childrenUuids = new ArrayList<>();
             }
             this.childrenUuids.add(uuid);
+            return this;
+        }
+
+        public Builder setChildUuids(final List<String> uuids) {
+            this.childrenUuids = uuids;
+            return this;
+        }
+
+        public Builder setParentUuids(final List<String> uuids) {
+            this.parentUuids = uuids;
             return this;
         }
 

@@ -19,7 +19,6 @@ package org.apache.nifi.provenance.lucene;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.document.Document;
@@ -45,7 +44,7 @@ public class IndexingAction {
     }
 
     private void addField(final Document doc, final SearchableField field, final String value, final Store store) {
-        if (value == null || (!nonAttributeSearchableFields.contains(field) && !field.isAttribute())) {
+        if (value == null || (!field.isAttribute() && !nonAttributeSearchableFields.contains(field))) {
             return;
         }
 
@@ -54,11 +53,9 @@ public class IndexingAction {
 
 
     public void index(final StandardProvenanceEventRecord record, final IndexWriter indexWriter, final Integer blockIndex) throws IOException {
-        final Map<String, String> attributes = record.getAttributes();
-
         final Document doc = new Document();
         addField(doc, SearchableFields.FlowFileUUID, record.getFlowFileUuid(), Store.NO);
-        addField(doc, SearchableFields.Filename, attributes.get(CoreAttributes.FILENAME.key()), Store.NO);
+        addField(doc, SearchableFields.Filename, record.getAttribute(CoreAttributes.FILENAME.key()), Store.NO);
         addField(doc, SearchableFields.ComponentID, record.getComponentId(), Store.NO);
         addField(doc, SearchableFields.AlternateIdentifierURI, record.getAlternateIdentifierUri(), Store.NO);
         addField(doc, SearchableFields.EventType, record.getEventType().name(), Store.NO);
@@ -68,13 +65,10 @@ public class IndexingAction {
         addField(doc, SearchableFields.ContentClaimContainer, record.getContentClaimContainer(), Store.NO);
         addField(doc, SearchableFields.ContentClaimIdentifier, record.getContentClaimIdentifier(), Store.NO);
         addField(doc, SearchableFields.SourceQueueIdentifier, record.getSourceQueueIdentifier(), Store.NO);
-
-        if (nonAttributeSearchableFields.contains(SearchableFields.TransitURI)) {
-            addField(doc, SearchableFields.TransitURI, record.getTransitUri(), Store.NO);
-        }
+        addField(doc, SearchableFields.TransitURI, record.getTransitUri(), Store.NO);
 
         for (final SearchableField searchableField : attributeSearchableFields) {
-            addField(doc, searchableField, LuceneUtil.truncateIndexField(attributes.get(searchableField.getSearchableFieldName())), Store.NO);
+            addField(doc, searchableField, LuceneUtil.truncateIndexField(record.getAttribute(searchableField.getSearchableFieldName())), Store.NO);
         }
 
         final String storageFilename = LuceneUtil.substringBefore(record.getStorageFilename(), ".");
@@ -94,19 +88,20 @@ public class IndexingAction {
             }
 
             // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.
-            if (record.getEventType() == ProvenanceEventType.FORK || record.getEventType() == ProvenanceEventType.CLONE || record.getEventType() == ProvenanceEventType.REPLAY) {
+            final ProvenanceEventType eventType = record.getEventType();
+            if (eventType == ProvenanceEventType.FORK || eventType == ProvenanceEventType.CLONE || eventType == ProvenanceEventType.REPLAY) {
                 for (final String uuid : record.getChildUuids()) {
                     if (!uuid.equals(record.getFlowFileUuid())) {
                         addField(doc, SearchableFields.FlowFileUUID, uuid, Store.NO);
                     }
                 }
-            } else if (record.getEventType() == ProvenanceEventType.JOIN) {
+            } else if (eventType == ProvenanceEventType.JOIN) {
                 for (final String uuid : record.getParentUuids()) {
                     if (!uuid.equals(record.getFlowFileUuid())) {
                         addField(doc, SearchableFields.FlowFileUUID, uuid, Store.NO);
                     }
                 }
-            } else if (record.getEventType() == ProvenanceEventType.RECEIVE && record.getSourceSystemFlowFileIdentifier() != null) {
+            } else if (eventType == ProvenanceEventType.RECEIVE && record.getSourceSystemFlowFileIdentifier() != null) {
                 // If we get a receive with a Source System FlowFile Identifier, we add another Document that shows the UUID
                 // that the Source System uses to refer to the data.
                 final String sourceIdentifier = record.getSourceSystemFlowFileIdentifier();

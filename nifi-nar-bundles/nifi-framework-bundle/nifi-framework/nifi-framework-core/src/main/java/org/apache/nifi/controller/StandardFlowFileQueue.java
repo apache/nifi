@@ -820,6 +820,7 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         long swapByteCount = 0L;
         Long maxId = null;
         List<ResourceClaim> resourceClaims = new ArrayList<>();
+        final long startNanos = System.nanoTime();
 
         writeLock.lock();
         try {
@@ -864,6 +865,11 @@ public class StandardFlowFileQueue implements FlowFileQueue {
             this.swapLocations.addAll(swapLocations);
         } finally {
             writeLock.unlock("Recover Swap Files");
+        }
+
+        if (!swapLocations.isEmpty()) {
+            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            logger.info("Recovered {} swap files for {} in {} millis", swapLocations.size(), this, millis);
         }
 
         return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
