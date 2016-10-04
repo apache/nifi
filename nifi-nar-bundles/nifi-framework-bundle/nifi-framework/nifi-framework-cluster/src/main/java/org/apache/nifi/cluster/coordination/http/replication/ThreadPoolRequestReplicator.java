@@ -27,8 +27,8 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
-import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
@@ -85,7 +85,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private final Client client; // the client to use for issuing requests
     private final int connectionTimeoutMs; // connection timeout per node request
     private final int readTimeoutMs; // read timeout per node request
-    private final HttpResponseMerger responseMerger;
+    private final HttpResponseMapper responseMapper;
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
     private final ClusterCoordinator clusterCoordinator;
@@ -140,7 +140,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         this.clusterCoordinator = clusterCoordinator;
         this.connectionTimeoutMs = (int) FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         this.readTimeoutMs = (int) FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
-        this.responseMerger = new StandardHttpResponseMerger(nifiProperties);
+        this.responseMapper = new StandardHttpResponseMapper(nifiProperties);
         this.eventReporter = eventReporter;
         this.callback = callback;
 
@@ -249,12 +249,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             lock.lock();
             try {
                 logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
-                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification, true);
             } finally {
                 lock.unlock();
             }
         } else {
-            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification);
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null, !performVerification, true);
         }
     }
 
@@ -269,7 +269,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
         }
 
-        return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false);
+        return replicate(Collections.singleton(coordinatorNodeId), method, uri, entity, updatedHeaders, false, null, false, false);
     }
 
     /**
@@ -286,7 +286,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @return an AsyncClusterResponse that can be used to obtain the result
      */
     private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean performVerification,
-                                           StandardAsyncClusterResponse response, boolean executionPhase) {
+                                           StandardAsyncClusterResponse response, boolean executionPhase, boolean merge) {
 
         // state validation
         Objects.requireNonNull(nodeIds);
@@ -344,7 +344,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // create a response object if one was not already passed to us
         if (response == null) {
             response = new StandardAsyncClusterResponse(requestId, uri, method, nodeIds,
-                    responseMerger, completionCallback, responseConsumedCallback);
+                    responseMapper, completionCallback, responseConsumedCallback, merge);
             responseMap.put(requestId, response);
         }
 
@@ -358,7 +358,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final boolean mutableRequest = isMutableRequest(method, uri.getPath());
         if (mutableRequest && performVerification) {
             logger.debug("Performing verification (first phase of two-phase commit) for Request ID {}", requestId);
-            performVerification(nodeIds, method, uri, entity, updatedHeaders, response);
+            performVerification(nodeIds, method, uri, entity, updatedHeaders, response, merge);
             return response;
         }
 
@@ -383,7 +383,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
 
-    private void performVerification(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, StandardAsyncClusterResponse clusterResponse) {
+    private void performVerification(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, StandardAsyncClusterResponse clusterResponse, boolean merge) {
         logger.debug("Verifying that mutable request {} {} can be made", method, uri.getPath());
 
         final Map<String, String> validationHeaders = new HashMap<>(headers);
@@ -418,7 +418,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                         // to all nodes and we are finished.
                         if (dissentingCount == 0) {
                             logger.debug("Received verification from all {} nodes that mutable request {} {} can be made", numNodes, method, uri.getPath());
-                            replicate(nodeIds, method, uri, entity, headers, false, clusterResponse, true);
+                            replicate(nodeIds, method, uri, entity, headers, false, clusterResponse, true, merge);
                             return;
                         }
 
@@ -743,7 +743,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             // create the resource
             WebResource resource = client.resource(uri);
 
-            if (responseMerger.isResponseInterpreted(uri, method)) {
+            if (responseMapper.isResponseInterpreted(uri, method)) {
                 resource.addFilter(new GZIPContentEncodingFilter(false));
             }
 
