@@ -110,6 +110,11 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
+import org.apache.nifi.util.timebuffer.TimedCountSize;
+import org.apache.nifi.util.timebuffer.TimestampedLong;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,7 +125,6 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private static final String FILE_EXTENSION = ".prov";
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
     private static final long PURGE_EVENT_MILLISECONDS = 2500L; //Determines the frequency over which the task to delete old events will occur
-    public static final int SERIALIZATION_VERSION = 9;
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
     public static final Pattern INDEX_PATTERN = Pattern.compile("index-\\d+");
     public static final Pattern LOG_FILENAME_PATTERN = Pattern.compile("(\\d+).*\\.prov");
@@ -179,6 +183,9 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private EventReporter eventReporter; // effectively final
     private Authorizer authorizer;  // effectively final
     private ProvenanceAuthorizableFactory resourceFactory;  // effectively final
+
+    private final TimedBuffer<TimedCountSize> updateCounts = new TimedBuffer<>(TimeUnit.SECONDS, 300, new CountSizeEntityAccess());
+    private final TimedBuffer<TimestampedLong> backpressurePauseMillis = new TimedBuffer<>(TimeUnit.SECONDS, 300, new LongEntityAccess());
 
     /**
      * default no args constructor for service loading only.
@@ -401,7 +408,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             final File journalDirectory = new File(storageDirectory, "journals");
             final File journalFile = new File(journalDirectory, String.valueOf(initialRecordId) + ".journal." + i);
 
-            writers[i] = RecordWriters.newRecordWriter(journalFile, false, false);
+            writers[i] = RecordWriters.newSchemaRecordWriter(journalFile, false, false);
             writers[i].writeHeader(initialRecordId);
         }
 
@@ -762,11 +769,15 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
             try {
                 try {
+                    long recordsWritten = 0L;
                     for (final ProvenanceEventRecord nextRecord : records) {
                         final long eventId = idGenerator.getAndIncrement();
                         bytesWritten += writer.writeRecord(nextRecord, eventId);
+                        recordsWritten++;
                         logger.trace("Wrote record with ID {} to {}", eventId, writer);
                     }
+
+                    writer.flush();
 
                     if (alwaysSync) {
                         writer.sync();
@@ -774,6 +785,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                     totalJournalSize = bytesWrittenSinceRollover.addAndGet(bytesWritten);
                     recordsWrittenSinceRollover.getAndIncrement();
+                    this.updateCounts.add(new TimedCountSize(recordsWritten, bytesWritten));
                 } catch (final Throwable t) {
                     // We need to set the repoDirty flag before we release the lock for this journal.
                     // Otherwise, another thread may write to this journal -- this is a problem because
@@ -1331,14 +1343,17 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                                     updated = idToPathMap.compareAndSet(existingPathMap, newIdToPathMap);
                                 }
 
-                                logger.info("Successfully Rolled over Provenance Event file containing {} records", recordsWritten);
+                                final TimedCountSize countSize = updateCounts.getAggregateValue(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES));
+                                logger.info("Successfully Rolled over Provenance Event file containing {} records. In the past 5 minutes, "
+                                    + "{} events have been written to the Provenance Repository, totaling {}",
+                                    recordsWritten, countSize.getCount(), FormatUtils.formatDataSize(countSize.getSize()));
                             }
 
                             //if files were rolled over or if out of retries stop the future
                             if (fileRolledOver != null || retryAttempts.decrementAndGet() == 0) {
 
                                 if (fileRolledOver == null && retryAttempts.get() == 0) {
-                                    logger.error("Failed to merge Journal Files {} after {} attempts. ", journalsToMerge, MAX_JOURNAL_ROLLOVER_RETRIES);
+                                    logger.error("Failed to merge Journal Files {} after {} attempts.", journalsToMerge, MAX_JOURNAL_ROLLOVER_RETRIES);
                                 }
 
                                 rolloverCompletions.getAndIncrement();
@@ -1387,6 +1402,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             // max capacity for the repo, or if we have 5 sets of journal files waiting to be merged, we will block here until
             // that is no longer the case.
             if (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
+                final long stopTheWorldStart = System.nanoTime();
+
                 logger.warn("The rate of the dataflow is exceeding the provenance recording rate. "
                         + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
                         + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
@@ -1428,8 +1445,12 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                     repoSize = getSize(getLogFiles(), 0L);
                 }
 
+                final long stopTheWorldNanos = System.nanoTime() - stopTheWorldStart;
+                backpressurePauseMillis.add(new TimestampedLong(stopTheWorldNanos));
+                final TimestampedLong pauseNanosLastFiveMinutes = backpressurePauseMillis.getAggregateValue(System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES));
                 logger.info("Provenance Repository has now caught up with rolling over journal files. Current number of "
-                        + "journal files to be rolled over is {}", journalFileCount);
+                    + "journal files to be rolled over is {}. Provenance Repository Back Pressure paused Session commits for {} ({} total in the last 5 minutes).",
+                    journalFileCount, FormatUtils.formatNanos(stopTheWorldNanos, true), FormatUtils.formatNanos(pauseNanosLastFiveMinutes.getValue(), true));
             }
 
             // we've finished rolling over successfully. Create new writers and reset state.
@@ -1635,7 +1656,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                     }
 
                     if (eventReporter != null) {
-                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "re " + ioe.toString());
+                        eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to merge Journal Files due to " + ioe.toString());
                     }
                 }
             }
@@ -1696,7 +1717,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
             // loop over each entry in the map, persisting the records to the merged file in order, and populating the map
             // with the next entry from the journal file from which the previous record was written.
-            try (final RecordWriter writer = RecordWriters.newRecordWriter(writerFile, configuration.isCompressOnRollover(), true)) {
+            try (final RecordWriter writer = RecordWriters.newSchemaRecordWriter(writerFile, configuration.isCompressOnRollover(), true)) {
                 writer.writeHeader(minEventId);
 
                 final IndexingAction indexingAction = createIndexingAction();
@@ -1903,10 +1924,19 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private StandardProvenanceEventRecord truncateAttributes(final StandardProvenanceEventRecord original) {
         boolean requireTruncation = false;
 
-        for (final Map.Entry<String, String> entry : original.getAttributes().entrySet()) {
-            if (entry.getValue().length() > maxAttributeChars) {
+        for (final String updatedAttr : original.getUpdatedAttributes().values()) {
+            if (updatedAttr != null && updatedAttr.length() > maxAttributeChars) {
                 requireTruncation = true;
                 break;
+            }
+        }
+
+        if (!requireTruncation) {
+            for (final String previousAttr : original.getPreviousAttributes().values()) {
+                if (previousAttr != null && previousAttr.length() > maxAttributeChars) {
+                    requireTruncation = true;
+                    break;
+                }
             }
         }
 

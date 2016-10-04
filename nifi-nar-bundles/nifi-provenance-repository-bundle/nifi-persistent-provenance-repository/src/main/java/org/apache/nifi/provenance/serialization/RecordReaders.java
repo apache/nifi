@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.provenance.serialization;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,8 +26,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.zip.GZIPInputStream;
 
+import org.apache.nifi.provenance.ByteArraySchemaRecordReader;
+import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
 import org.apache.nifi.provenance.StandardRecordReader;
+import org.apache.nifi.provenance.StandardRecordWriter;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -101,11 +108,39 @@ public class RecordReaders {
             }
 
             final File tocFile = TocUtil.getTocFile(file);
-            if ( tocFile.exists() ) {
-                final TocReader tocReader = new StandardTocReader(tocFile);
-                return new StandardRecordReader(fis, filename, tocReader, maxAttributeChars);
-            } else {
-                return new StandardRecordReader(fis, filename, maxAttributeChars);
+
+            final InputStream bufferedInStream = new BufferedInputStream(fis);
+            final String serializationName;
+            try {
+                bufferedInStream.mark(4096);
+                final InputStream in = filename.endsWith(".gz") ? new GZIPInputStream(bufferedInStream) : bufferedInStream;
+                final DataInputStream dis = new DataInputStream(in);
+                serializationName = dis.readUTF();
+                bufferedInStream.reset();
+            } catch (final EOFException eof) {
+                return new EmptyRecordReader();
+            }
+
+            switch (serializationName) {
+                case StandardRecordWriter.SERIALIZATION_NAME: {
+                    if (tocFile.exists()) {
+                        final TocReader tocReader = new StandardTocReader(tocFile);
+                        return new StandardRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars);
+                    } else {
+                        return new StandardRecordReader(bufferedInStream, filename, maxAttributeChars);
+                    }
+                }
+                case ByteArraySchemaRecordWriter.SERIALIZATION_NAME: {
+                    if (tocFile.exists()) {
+                        final TocReader tocReader = new StandardTocReader(tocFile);
+                        return new ByteArraySchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars);
+                    } else {
+                        return new ByteArraySchemaRecordReader(bufferedInStream, filename, maxAttributeChars);
+                    }
+                }
+                default: {
+                    throw new IOException("Unable to read data from file " + file + " because the file was written using an unknown Serializer: " + serializationName);
+                }
             }
         } catch (final IOException ioe) {
             if ( fis != null ) {
