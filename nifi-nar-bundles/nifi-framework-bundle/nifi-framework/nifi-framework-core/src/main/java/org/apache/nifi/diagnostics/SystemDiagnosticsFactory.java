@@ -69,6 +69,8 @@ public class SystemDiagnosticsFactory {
         final double systemLoad = os.getSystemLoadAverage();
         if (systemLoad > 0) {
             systemDiagnostics.setProcessorLoadAverage(systemLoad);
+        } else {
+            systemDiagnostics.setProcessorLoadAverage(1.0);
         }
 
         // get the database disk usage
