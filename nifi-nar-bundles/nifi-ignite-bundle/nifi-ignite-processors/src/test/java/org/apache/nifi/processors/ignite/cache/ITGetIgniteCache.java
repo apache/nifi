@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ignite.IgniteCache;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -50,7 +51,9 @@ public class ITGetIgniteCache {
     @AfterClass
     public static void teardown() {
         runner = null;
-        getIgniteCache.getIgniteCache().destroy();
+        IgniteCache<String, byte[]> cache = getIgniteCache.getIgniteCache();
+        if (cache != null )
+            cache.destroy();
         getIgniteCache = null;
     }
 
@@ -120,5 +123,62 @@ public class ITGetIgniteCache {
                 (byte[])getIgniteCache.getIgniteCache().get("key52"));
 
         runner.shutdown();
+    }
+
+    @Test
+    public void testgetIgniteCacheOnTriggerNoConfigurationTwoFlowFileStopStart2Times() throws IOException, InterruptedException {
+        runner = TestRunners.newTestRunner(getIgniteCache);
+        runner.setProperty(GetIgniteCache.CACHE_NAME, CACHE_NAME);
+        runner.setProperty(GetIgniteCache.IGNITE_CACHE_ENTRY_KEY, "${igniteKey}");
+
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        getIgniteCache.initialize(runner.getProcessContext());
+
+        getIgniteCache.getIgniteCache().put("key51", "test51".getBytes());
+        getIgniteCache.getIgniteCache().put("key52", "test52".getBytes());
+        runner.run(2, false, true);
+
+        runner.assertAllFlowFilesTransferred(GetIgniteCache.REL_SUCCESS, 2);
+
+        getIgniteCache.closeIgniteCache();
+
+        runner.clearTransferState();
+
+        // reinit and check first time
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        getIgniteCache.initialize(runner.getProcessContext());
+
+        runner.run(2, false, true);
+
+        runner.assertAllFlowFilesTransferred(GetIgniteCache.REL_SUCCESS, 2);
+
+        getIgniteCache.closeIgniteCache();
+
+        runner.clearTransferState();
+
+        // reinit and check second time
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        getIgniteCache.initialize(runner.getProcessContext());
+
+        runner.run(2, false, true);
+
+        runner.assertAllFlowFilesTransferred(GetIgniteCache.REL_SUCCESS, 2);
+
+        getIgniteCache.closeIgniteCache();
+
+        runner.clearTransferState();
+
     }
 }

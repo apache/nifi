@@ -90,28 +90,28 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
     public void initializeIgnite(ProcessContext context) {
 
         if ( getIgnite() != null ) {
-            getLogger().warn("Ignite already initialized");
+            getLogger().info("Ignite already initialized");
             return;
         }
 
-        List<Ignite> grids = Ignition.allGrids();
 
-        if ( grids.size() == 1 ) {
-            getLogger().warn("Ignite grid already avaialble");
-            ignite = grids.get(0);
-            return;
+        synchronized(Ignition.class) {
+            List<Ignite> grids = Ignition.allGrids();
+
+            if ( grids.size() == 1 ) {
+                getLogger().info("Ignite grid already available");
+                ignite = grids.get(0);
+                return;
+            }
+            Ignition.setClientMode(true);
+
+            String configuration = context.getProperty(IGNITE_CONFIGURATION_FILE).getValue();
+            getLogger().info("Initializing ignite with configuration {} ", new Object[] { configuration });
+            if ( StringUtils.isEmpty(configuration) ) {
+                ignite = Ignition.start();
+            } else {
+                ignite = Ignition.start(configuration);
+            }
         }
-
-        Ignition.setClientMode(true);
-
-        String configuration = context.getProperty(IGNITE_CONFIGURATION_FILE).getValue();
-        getLogger().info("Initializing ignite with configuration {} ", new Object[] { configuration });
-        if ( StringUtils.isEmpty(configuration) ) {
-            ignite = Ignition.start();
-        } else {
-            ignite = Ignition.start(configuration);
-        }
-
     }
-
 }

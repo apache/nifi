@@ -85,7 +85,7 @@ public class ITPutIgniteCache {
         out.assertContentEquals("test".getBytes());
         System.out.println("Value was: " + new String((byte[])putIgniteCache.getIgniteCache().get("key5")));
         Assert.assertArrayEquals("test".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key5"));
-        runner.shutdown();
+        putIgniteCache.getIgniteCache().remove("key5");
     }
 
     @Test
@@ -129,7 +129,67 @@ public class ITPutIgniteCache {
 
         out2.assertContentEquals("test2".getBytes());
         Assert.assertArrayEquals("test2".getBytes(),(byte[])putIgniteCache.getIgniteCache().get("key52"));
+        putIgniteCache.getIgniteCache().remove("key52");
+        putIgniteCache.getIgniteCache().remove("key51");
 
-        runner.shutdown();
+    }
+
+    @Test
+    public void testPutIgniteCacheOnTriggerNoConfigurationTwoFlowFileStopAndStart2Times() throws IOException, InterruptedException {
+        runner = TestRunners.newTestRunner(putIgniteCache);
+        runner.setProperty(PutIgniteCache.BATCH_SIZE, "5");
+        runner.setProperty(PutIgniteCache.CACHE_NAME, CACHE_NAME);
+        runner.setProperty(PutIgniteCache.DATA_STREAMER_PER_NODE_BUFFER_SIZE, "1");
+        runner.setProperty(PutIgniteCache.IGNITE_CACHE_ENTRY_KEY, "${igniteKey}");
+
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        runner.run(1, false, true);
+        putIgniteCache.getIgniteCache().remove("key51");
+        putIgniteCache.getIgniteCache().remove("key52");
+
+        runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
+        putIgniteCache.getIgniteCache().remove("key52");
+        putIgniteCache.getIgniteCache().remove("key52");
+
+        // Close and restart first time
+        putIgniteCache.closeIgniteDataStreamer();
+
+        runner.clearTransferState();
+
+        putIgniteCache.initilizeIgniteDataStreamer(runner.getProcessContext());
+
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        runner.run(1, false, true);
+
+        runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
+        putIgniteCache.getIgniteCache().remove("key51");
+        putIgniteCache.getIgniteCache().remove("key52");
+
+        // Close and restart second time
+        putIgniteCache.closeIgniteDataStreamer();
+
+        runner.clearTransferState();
+
+        putIgniteCache.initilizeIgniteDataStreamer(runner.getProcessContext());
+
+        runner.assertValid();
+        properties1.put("igniteKey", "key51");
+        runner.enqueue("test1".getBytes(),properties1);
+        properties2.put("igniteKey", "key52");
+        runner.enqueue("test2".getBytes(),properties2);
+        runner.run(1, false, true);
+
+        runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
+        putIgniteCache.getIgniteCache().remove("key52");
+        putIgniteCache.getIgniteCache().remove("key51");
+
     }
 }

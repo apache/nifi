@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -180,9 +181,13 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
         if (igniteDataStreamer != null) {
             getLogger().info("Closing ignite data streamer");
             igniteDataStreamer.flush();
-            igniteDataStreamer.close();
             igniteDataStreamer = null;
         }
+    }
+
+    @OnShutdown
+    public final void closeIgniteDataStreamerAndCache() {
+        closeIgniteDataStreamer();
         super.closeIgniteCache();
     }
 

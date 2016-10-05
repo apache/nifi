@@ -21,7 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.ignite.IgniteCache;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.processor.ProcessContext;
@@ -65,16 +65,19 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
     protected static Set<Relationship> relationships;
 
     /**
-     * Ignite cache instance
+     * Ignite cache name
      */
-    private transient IgniteCache<String,byte[]> igniteCache;
+    private String cacheName;
 
     /**
      * Get ignite cache instance
      * @return ignite cache instance
      */
     protected IgniteCache<String, byte[]> getIgniteCache() {
-        return igniteCache;
+         if ( getIgnite() == null )
+            return null;
+         else
+            return getIgnite().getOrCreateCache(cacheName);
     }
 
     static {
@@ -104,8 +107,7 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
                 super.initializeIgnite(context);
             }
 
-            String cacheName = context.getProperty(CACHE_NAME).getValue();
-            igniteCache = getIgnite().getOrCreateCache(cacheName);
+            cacheName = context.getProperty(CACHE_NAME).getValue();
 
         } catch (Exception e) {
             getLogger().error("Failed to initialize ignite cache due to {}", new Object[] { e }, e);
@@ -116,12 +118,11 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
     /**
      * Close Ignite cache instance and calls base class closeIgnite
      */
-    @OnStopped
+    @OnShutdown
     public void closeIgniteCache() {
-        if (igniteCache != null) {
+        if (getIgniteCache() != null) {
             getLogger().info("Closing ignite cache");
-            igniteCache.close();
-            igniteCache = null;
+            getIgniteCache().close();
         }
         super.closeIgnite();
     }
