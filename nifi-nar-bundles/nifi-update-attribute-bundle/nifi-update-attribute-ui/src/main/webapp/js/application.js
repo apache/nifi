@@ -22,6 +22,27 @@ $(document).ready(function () {
     ua.init();
 });
 
+/**
+ * Determine if an `element` has content overflow and adds a colored bottom border if it does.
+ *
+ * @param {HTMLElement} element The DOM element to toggle .scrollable upon.
+ */
+var toggleScrollable = function (element) {
+    if ($(element).is(':visible')){
+        if (element.offsetHeight < element.scrollHeight ||
+            element.offsetWidth < element.scrollWidth) {
+            // your element has overflow
+            $(element).css({
+                'border-bottom': '1px solid #d0dbe0'
+            });
+        } else {
+            $(element).css({
+                'border-bottom': '1px solid #ffffff'
+            });
+        }
+    }
+};
+
 var ua = {
     newRuleIndex: 0,
     editable: false,
@@ -43,18 +64,6 @@ var ua = {
         // configure the grids
         var conditionsGrid = ua.initConditionsGrid();
         var actionsGrid = ua.initActionsGrid();
-
-        var toggleScrollable = function(element) {
-            if ($(element).is(':visible')){
-                if (element.offsetHeight < element.scrollHeight ||
-                    element.offsetWidth < element.scrollWidth) {
-                    // your element has overflow
-                    $(element).addClass('scrollable');
-                } else {
-                    $(element).removeClass('scrollable');
-                }
-            }
-        };
 
         // enable grid resizing
         $(window).resize(function (e) {
@@ -1519,9 +1528,9 @@ var ua = {
      * @returns {undefined}
      */
     showMessage: function (text) {
-        $('#message').text(text);
+        toggleScrollable($('#message').text(text).get(0));
         setTimeout(function () {
-            $('#message').text('');
+            toggleScrollable($('#message').text('').get(0));
         }, 10000);
     },
     

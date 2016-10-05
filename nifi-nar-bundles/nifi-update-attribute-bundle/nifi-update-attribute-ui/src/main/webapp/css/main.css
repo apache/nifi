@@ -135,6 +135,7 @@ div.label {
     padding: 0px 10px;
     box-shadow: 0 1px 1px rgba(0,0,0,0.4);
     margin-bottom: 5px;
+    display: flex;
 }
 
 #rule-list li.selected {
@@ -158,6 +159,7 @@ div.label {
 
 div.rule-label {
     float: left;
+    flex-grow: 1;
 }
 
 div.remove-rule {
@@ -249,11 +251,14 @@ div.large-label-container {
 #message {
     color: #ba554a;
     margin-left: 20px;
-    float: right;
     margin-right: 20px;
-    line-height: 28px;
+    line-height: 32px;
     font-size: 13px;
     font-weight: bold;
+    flex-grow: 1;
+    overflow: auto;
+    width: 100%;
+    height: 41px;
 }
 
 #message-and-save-container {
@@ -261,11 +266,12 @@ div.large-label-container {
     right: 0px;
     left: 0px;
     bottom: 0px;
+    display: flex;
 }
 
 #selected-rule-save {
     margin-right: 20px;
-    float: right;
+    margin-top: 10px;
 }
 
 input.editor-text {
