@@ -223,12 +223,18 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
         }
     }
 
-    synchronized void setFailure(final RuntimeException failure) {
+    synchronized void setFailure(final RuntimeException failure, final NodeIdentifier nodeId) {
         this.failure = failure;
 
-        notifyAll();
-        if (completionCallback != null) {
-            completionCallback.onCompletion(this);
+        final int completedCount = requestsCompleted.incrementAndGet();
+        logger.debug("Notified of failure for {} from {}", id, nodeId);
+
+        if (completedCount == responseMap.size()) {
+
+            notifyAll();
+            if (completionCallback != null) {
+                completionCallback.onCompletion(this);
+            }
         }
     }
 
