@@ -260,6 +260,17 @@ language governing permissions and limitations under the License. -->
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>io.thekraken</groupId>
+            <artifactId>grok</artifactId>
+            <version>0.1.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.code</groupId>
+                    <artifactId>gson</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
@@ -390,6 +401,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>
