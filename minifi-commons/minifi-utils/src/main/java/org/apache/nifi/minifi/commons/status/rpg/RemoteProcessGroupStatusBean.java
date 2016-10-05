@@ -19,13 +19,13 @@ package org.apache.nifi.minifi.commons.status.rpg;
 
 import org.apache.nifi.minifi.commons.status.common.BulletinStatus;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class RemoteProcessGroupStatusBean implements java.io.Serializable {
+public class RemoteProcessGroupStatusBean implements Serializable {
     private String name;
     private RemoteProcessGroupHealth remoteProcessGroupHealth;
     private List<BulletinStatus> bulletinList;
-    private List<String> authorizationIssues;
     private List<InputPortStatus> inputPortStatusList;
     private RemoteProcessGroupStats remoteProcessGroupStats;
 
@@ -56,14 +56,6 @@ public class RemoteProcessGroupStatusBean implements java.io.Serializable {
         this.bulletinList = bulletinList;
     }
 
-    public List<String> getAuthorizationIssues() {
-        return authorizationIssues;
-    }
-
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
-        this.authorizationIssues = authorizationIssues;
-    }
-
     public List<InputPortStatus> getInputPortStatusList() {
         return inputPortStatusList;
     }
@@ -90,7 +82,6 @@ public class RemoteProcessGroupStatusBean implements java.io.Serializable {
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
         if (getRemoteProcessGroupHealth() != null ? !getRemoteProcessGroupHealth().equals(that.getRemoteProcessGroupHealth()) : that.getRemoteProcessGroupHealth() != null) return false;
         if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) return false;
-        if (getAuthorizationIssues() != null ? !getAuthorizationIssues().equals(that.getAuthorizationIssues()) : that.getAuthorizationIssues() != null) return false;
         if (getInputPortStatusList() != null ? !getInputPortStatusList().equals(that.getInputPortStatusList()) : that.getInputPortStatusList() != null) return false;
         return getRemoteProcessGroupStats() != null ? getRemoteProcessGroupStats().equals(that.getRemoteProcessGroupStats()) : that.getRemoteProcessGroupStats() == null;
 
@@ -101,7 +92,6 @@ public class RemoteProcessGroupStatusBean implements java.io.Serializable {
         int result = getName() != null ? getName().hashCode() : 0;
         result = 31 * result + (getRemoteProcessGroupHealth() != null ? getRemoteProcessGroupHealth().hashCode() : 0);
         result = 31 * result + (getBulletinList() != null ? getBulletinList().hashCode() : 0);
-        result = 31 * result + (getAuthorizationIssues() != null ? getAuthorizationIssues().hashCode() : 0);
         result = 31 * result + (getInputPortStatusList() != null ? getInputPortStatusList().hashCode() : 0);
         result = 31 * result + (getRemoteProcessGroupStats() != null ? getRemoteProcessGroupStats().hashCode() : 0);
         return result;
@@ -113,7 +103,6 @@ public class RemoteProcessGroupStatusBean implements java.io.Serializable {
                 "name='" + name + '\'' +
                 ", remoteProcessGroupHealth=" + remoteProcessGroupHealth +
                 ", bulletinList=" + bulletinList +
-                ", authorizationIssues=" + authorizationIssues +
                 ", inputPortStatusList=" + inputPortStatusList +
                 ", remoteProcessGroupStats=" + remoteProcessGroupStats +
                 '}';

@@ -435,7 +435,7 @@ public class TestStatusConfigReporter {
         FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
 
-        addExpectedRemoteProcessGroupStatus(expected, true, false, false, false, false, false);
+        addExpectedRemoteProcessGroupStatus(expected, true, false, false, false, false);
 
         assertEquals(expected, actual);
     }
@@ -450,22 +450,7 @@ public class TestStatusConfigReporter {
         FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
 
-        addExpectedRemoteProcessGroupStatus(expected, false, false, false, false, true, true);
-
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    public void remoteProcessGroupStatusAuthorizationIssues() throws Exception {
-        populateRemoteProcessGroup(false, true);
-
-        String statusRequest = "remoteProcessGroup:all:authorizationissues";
-        FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(TestStatusConfigReporter.class));
-
-        FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
-
-        addExpectedRemoteProcessGroupStatus(expected, false, true, false, false, false, false);
+        addExpectedRemoteProcessGroupStatus(expected, false, false, false, true, true);
 
         assertEquals(expected, actual);
     }
@@ -480,7 +465,7 @@ public class TestStatusConfigReporter {
         FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
 
-        addExpectedRemoteProcessGroupStatus(expected, false, false, true, false, false, false);
+        addExpectedRemoteProcessGroupStatus(expected, false, true, false, false, false);
 
         assertEquals(expected, actual);
     }
@@ -495,7 +480,7 @@ public class TestStatusConfigReporter {
         FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
 
-        addExpectedRemoteProcessGroupStatus(expected, false, false, false, true, false, false);
+        addExpectedRemoteProcessGroupStatus(expected, false, false, true, false, false);
 
         assertEquals(expected, actual);
     }
@@ -505,13 +490,13 @@ public class TestStatusConfigReporter {
     public void remoteProcessGroupStatusAll() throws Exception {
         populateRemoteProcessGroup(true, true);
 
-        String statusRequest = "remoteProcessGroup:all:health, authorizationissues, bulletins, inputPorts, stats";
+        String statusRequest = "remoteProcessGroup:all:health, bulletins, inputPorts, stats";
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(TestStatusConfigReporter.class));
 
         FlowStatusReport expected = new FlowStatusReport();
         expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
 
-        addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, true, true);
+        addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, true);
 
         assertEquals(expected, actual);
     }
@@ -530,7 +515,7 @@ public class TestStatusConfigReporter {
 
         String statusRequest = "controllerServices:bulletins,health; processor:all:health,stats,bulletins; instance:bulletins,health,stats ; systemDiagnostics:garbagecollection, heap, " +
                 "processorstats, contentrepositoryusage, flowfilerepositoryusage; connection:all:health,stats; provenanceReporting:health,bulletins; remoteProcessGroup:all:health, " +
-                "authorizationissues, bulletins, inputPorts, stats";
+                "bulletins, inputPorts, stats";
 
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(TestStatusConfigReporter.class));
 
@@ -543,7 +528,7 @@ public class TestStatusConfigReporter {
         addReportingTaskStatus(expected, true, true, true, false);
         addConnectionStatus(expected, true, true);
         addProcessorStatus(expected, true, true, true, true, false);
-        addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, true, false);
+        addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, false);
 
         assertEquals(expected, actual);
     }
@@ -714,11 +699,6 @@ public class TestStatusConfigReporter {
 
         RemoteProcessGroupStatus remoteProcessGroupStatus = new RemoteProcessGroupStatus();
         addRemoteProcessGroupStatus(remoteProcessGroupStatus);
-        if (addAuthIssues) {
-            remoteProcessGroupStatus.setAuthorizationIssues(Collections.singletonList("auth issue"));
-        } else {
-            remoteProcessGroupStatus.setAuthorizationIssues(Collections.EMPTY_LIST);
-        }
         if (addBulletins) {
             addBulletins("Bulletin message", remoteProcessGroupStatus.getId());
         }

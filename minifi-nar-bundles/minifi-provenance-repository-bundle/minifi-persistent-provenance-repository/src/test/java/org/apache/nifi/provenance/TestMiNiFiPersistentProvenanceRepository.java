@@ -148,7 +148,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1L);
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -176,7 +176,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         Thread.sleep(500L); // Give the repo time to shutdown (i.e., close all file handles, etc.)
 
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, 12);
 
         Assert.assertEquals("Did not establish the correct, Max Event Id through recovery after reloading", 9, repo.getMaxEventId().intValue());
@@ -198,7 +198,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setCompressOnRollover(true);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -236,7 +236,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final String uuid = "00000000-0000-0000-0000-000000000001";
         final Map<String, String> attributes = new HashMap<>();
@@ -244,7 +244,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         attributes.put("uuid", uuid);
         attributes.put("filename", "file-" + uuid);
 
-        repo.submitLineageComputation(uuid);
+        repo.submitLineageComputation(uuid, null);
     }
 
 
@@ -253,7 +253,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -279,7 +279,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         repo.close();
 
         final MiNiFiPersistentProvenanceRepository secondRepo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        secondRepo.initialize(getEventReporter());
+        secondRepo.initialize(getEventReporter(), null, null);
 
         try {
             final ProvenanceEventRecord event11 = builder.build();
@@ -336,7 +336,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         config.setDesiredIndexSize(10);
 
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         String uuid = UUID.randomUUID().toString();
         for (int i = 0; i < 20; i++) {
@@ -369,7 +369,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
                 return journalCountRef.get();
             }
         };
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final Map<String, String> attributes = new HashMap<>();
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
@@ -422,7 +422,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final Map<String, String> attributes = new HashMap<>();
 
@@ -473,7 +473,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         config.setMaxAttributeChars(50);
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
         repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
@@ -520,7 +520,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         };
 
         // initialize with our event reporter
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         // create some events in the journal files.
         final Map<String, String> attributes = new HashMap<>();
@@ -597,7 +597,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
                 return spiedWriters;
             }
         };
-        repo.initialize(getEventReporter());
+        repo.initialize(getEventReporter(), null, null);
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
@@ -658,7 +658,7 @@ public class TestMiNiFiPersistentProvenanceRepository {
         };
 
         try {
-            recoveryRepo.initialize(getEventReporter());
+            recoveryRepo.initialize(getEventReporter(), null, null);
         } finally {
             recoveryRepo.close();
         }

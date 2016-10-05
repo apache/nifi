@@ -134,19 +134,15 @@ public class StatusReportPopulator {
         flowStatusReport.setConnectionStatusList(Collections.singletonList(expectedConnectionStatus));
     }
 
-    public static void addExpectedRemoteProcessGroupStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addAuthorizationIssues, boolean addInputPort,
+    public static void addExpectedRemoteProcessGroupStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addInputPort,
                                                            boolean addStats, boolean addBulletins, boolean populateBulletins) {
         RemoteProcessGroupStatusBean expectedRemoteProcessGroupStatus = new RemoteProcessGroupStatusBean();
         expectedRemoteProcessGroupStatus.setName("rpg1");
-        if (addAuthorizationIssues) {
-            expectedRemoteProcessGroupStatus.setAuthorizationIssues(Collections.singletonList("auth issue"));
-        }
 
         if (addHealth) {
             RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
             remoteProcessGroupHealth.setTransmissionStatus("Transmitting");
             remoteProcessGroupHealth.setHasBulletins(populateBulletins);
-            remoteProcessGroupHealth.setHasAuthorizationIssues(addAuthorizationIssues);
             remoteProcessGroupHealth.setActivePortCount(1);
             remoteProcessGroupHealth.setInactivePortCount(2);
             expectedRemoteProcessGroupStatus.setRemoteProcessGroupHealth(remoteProcessGroupHealth);

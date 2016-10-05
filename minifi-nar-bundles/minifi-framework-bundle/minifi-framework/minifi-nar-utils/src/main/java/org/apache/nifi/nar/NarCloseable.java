@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.nar;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 
 /**
@@ -23,10 +26,54 @@ import java.io.Closeable;
  */
 public class NarCloseable implements Closeable {
 
-    public static org.apache.nifi.nar.NarCloseable withNarLoader() {
+    private static final Logger logger = LoggerFactory.getLogger(NarCloseable.class);
+
+    public static NarCloseable withNarLoader() {
         final ClassLoader current = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
-        return new org.apache.nifi.nar.NarCloseable(current);
+        return new NarCloseable(current);
+    }
+
+    /**
+     * Sets the current thread context class loader to the specific appropriate
+     * Nar class loader for the given configurable component. Restores to the
+     * previous classloader once complete. If the given class is not assignable
+     * from ConfigurableComponent then the NarThreadContextClassLoader is used.
+     *
+     * @param componentClass componentClass
+     * @return NarCloseable with current thread context classloader jailed to
+     * the nar of the component
+     */
+    public static NarCloseable withComponentNarLoader(final Class componentClass) {
+        final ClassLoader current = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(componentClass.getClassLoader());
+        return new NarCloseable(current);
+    }
+
+    /**
+     * Creates a Closeable object that can be used to to switch to current class
+     * loader to the framework class loader and will automatically set the
+     * ClassLoader back to the previous class loader when closed
+     *
+     * @return a NarCloseable
+     */
+    public static NarCloseable withFrameworkNar() {
+        final ClassLoader frameworkClassLoader;
+        try {
+            frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkClassLoader();
+        } catch (final Exception e) {
+            // This should never happen in a running instance, but it will occur in unit tests
+            logger.error("Unable to access Framework ClassLoader due to " + e + ". Will continue without changing ClassLoaders.");
+            if (logger.isDebugEnabled()) {
+                logger.error("", e);
+            }
+
+            return new NarCloseable(null);
+        }
+
+        final ClassLoader current = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
+        return new NarCloseable(current);
     }
 
     private final ClassLoader toSet;

@@ -162,6 +162,7 @@ install() {
 run() {
     BOOTSTRAP_CONF_DIR="${MINIFI_HOME}/conf"
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
+    MINIFI_LIBS="${MINIFI_HOME}/lib/*"
     BOOTSTRAP_LIBS="${MINIFI_HOME}/lib/bootstrap/*"
 
     run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
@@ -181,10 +182,11 @@ run() {
         BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
         BOOTSTRAP_CONF_DIR=$(cygpath --path --windows "${BOOTSTRAP_CONF_DIR}")
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
-        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS}"
+        MINIFI_LIBS=$(cygpath --path --windows "${MINIFI_LIBS}")
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR};${BOOTSTRAP_LIBS};${MINIFI_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
             TOOLS_JAR=$(cygpath --path --windows "${TOOLS_JAR}")
-            BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH}"
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR};${BOOTSTRAP_CLASSPATH};${MINIFI_LIBS}"
         fi
     else
         if [ -n "${run_as}" ]; then
@@ -195,13 +197,14 @@ run() {
                 exit 1
             fi
         fi;
-        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR}:${BOOTSTRAP_LIBS}"
+        BOOTSTRAP_CLASSPATH="${BOOTSTRAP_CONF_DIR}:${BOOTSTRAP_LIBS}:${MINIFI_LIBS}"
         if [ -n "${TOOLS_JAR}" ]; then
-            BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}"
+            BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}:${MINIFI_LIBS}"
         fi
     fi
 
     echo
+    echo "Bootstrap Classpath: ${BOOTSTRAP_CLASSPATH}"
     echo "Java home: ${JAVA_HOME}"
     echo "MiNiFi home: ${MINIFI_HOME}"
     echo

@@ -24,10 +24,10 @@ import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaSaver;
 import org.apache.nifi.minifi.toolkit.configuration.dto.ConfigSchemaFunction;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.NiFiComponentDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -115,7 +115,7 @@ public class ConfigMain {
                         return ERR_INVALID_CONFIG;
                     }
                 });
-            } catch (IOException|SchemaLoaderException e) {
+            } catch (IOException | SchemaLoaderException e) {
                 return handleErrorLoadingConfiguration(e, ConfigMain::printValidateUsage);
             }
         } catch (FileNotFoundException e) {
@@ -148,7 +148,7 @@ public class ConfigMain {
         // RPGs with no name get Target URI as name
         remoteProcessGroups.stream().filter(r -> StringUtil.isNullOrEmpty(r.getName())).forEach(r -> r.setName(r.getTargetUri()));
 
-        Map<String, String> connectableNameMap = getAll(allFlowSnippets, FlowSnippetDTO::getProcessors).collect(Collectors.toMap(NiFiComponentDTO::getId, ProcessorDTO::getName));
+        Map<String, String> connectableNameMap = getAll(allFlowSnippets, FlowSnippetDTO::getProcessors).collect(Collectors.toMap(ComponentDTO::getId, ProcessorDTO::getName));
 
         for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {
             RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
@@ -252,7 +252,7 @@ public class ConfigMain {
                     }
                     return configSchema;
                 });
-            } catch (IOException|SchemaLoaderException e) {
+            } catch (IOException | SchemaLoaderException e) {
                 return handleErrorLoadingConfiguration(e, ConfigMain::printUpgradeUsage);
             }
         } catch (FileNotFoundException e) {

@@ -33,24 +33,24 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-            	<exclude>minifi-bootstrap</exclude>
+                <exclude>minifi-bootstrap</exclude>
                 <exclude>minifi-resources</exclude>
                 <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
+                <exclude>zookeeper</exclude>
                 <exclude>spring-aop</exclude>
                 <exclude>spring-context</exclude>
-                <exclude>spring-security-core</exclude>
                 <exclude>spring-beans</exclude>
                 <exclude>swagger-annotations</exclude>
-                <exclude>slf4j-log4j12</exclude>
                 <exclude>aspectjweaver</exclude>
                 <exclude>h2</exclude>
-                <exclude>netty</exclude>
                 <exclude>jaxb-impl</exclude>
-                <exclude>httpclient</exclude>
                 <exclude>mail</exclude>
                 <exclude>log4j</exclude>
+                <exclude>lucene-analyzers-common</exclude>
                 <exclude>lucene-queryparser</exclude>
                 <exclude>commons-net</exclude>
+                <exclude>spring-context</exclude>
+                <exclude>spring-security-core</exclude>
             </excludes>
         </dependencySet>
 
@@ -63,18 +63,10 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-            	<include>minifi-bootstrap</include>
-                <include>slf4j-api</include>
-                <include>logback-classic</include>
-                <include>nifi-api</include>
+                <include>minifi-bootstrap</include>
+                <include>minifi-utils</include>
                 <include>nifi-utils</include>
-                <include>jetty-server</include>
-                <include>jetty-util</include>
-                <include>jetty-http</include>
-                <include>jetty-io</include>
-                <include>javax.servlet-api</include>
                 <include>commons-io</include>
-                <include>okhttp</include>
             </includes>
         </dependencySet>
 
@@ -87,7 +79,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-            	<include>minifi-resources</include>
+                <include>minifi-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>
@@ -113,7 +105,7 @@
             <fileMode>0770</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-            	<include>minifi-resources</include>
+                <include>minifi-resources</include>
             </includes>
             <unpack>true</unpack>
             <unpackOptions>

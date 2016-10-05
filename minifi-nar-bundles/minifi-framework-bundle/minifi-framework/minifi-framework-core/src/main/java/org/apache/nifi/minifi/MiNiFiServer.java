@@ -17,18 +17,28 @@
 package org.apache.nifi.minifi;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.admin.service.impl.StandardAuditService;
-import org.apache.nifi.admin.service.impl.StandardUserService;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.AuthorizerConfigurationContext;
+import org.apache.nifi.authorization.AuthorizerInitializationContext;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RingBufferEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
 import org.apache.nifi.minifi.status.StatusRequestException;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +50,7 @@ public class MiNiFiServer {
     private static final Logger logger = LoggerFactory.getLogger(MiNiFiServer.class);
     private final NiFiProperties props;
     private FlowService flowService;
+    private FlowController flowController;
 
     /**
      *
@@ -55,26 +66,55 @@ public class MiNiFiServer {
 
             FlowFileEventRepository flowFileEventRepository = new RingBufferEventRepository(5);
             AuditService auditService = new StandardAuditService();
-            UserService userService = new StandardUserService();
-            StringEncryptor encryptor = StringEncryptor.createEncryptor();
+            Authorizer authorizer = new Authorizer() {
+                @Override
+                public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+                    return AuthorizationResult.approved();
+                }
+
+                @Override
+                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                    // do nothing
+                }
+
+                @Override
+                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                    // do nothing
+                }
+
+                @Override
+                public void preDestruction() throws AuthorizerDestructionException {
+                    // do nothing
+                }
+            };
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(props);
+            VariableRegistry variableRegistry = new FileBasedVariableRegistry(props.getVariableRegistryPropertiesPaths());
+            BulletinRepository bulletinRepository = new VolatileBulletinRepository();
 
             FlowController flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     props,
-                    userService,
+                    authorizer,
                     auditService,
-                    encryptor);
+                    encryptor,
+                    bulletinRepository,
+                    variableRegistry
+                    );
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     props,
-                    encryptor);
+                    encryptor,
+                    null, // revision manager
+                    authorizer);
 
             // start and load the flow
             flowService.start();
             flowService.load(null);
             flowController.onFlowInitialized(true);
             flowController.getGroup(flowController.getRootGroupId()).startProcessing();
+
+            this.flowController = flowController;
 
             logger.info("Flow loaded successfully.");
         } catch (Exception e) {
@@ -107,6 +147,6 @@ public class MiNiFiServer {
     }
 
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
-        return StatusConfigReporter.getStatus(flowService.getController(), requestString, logger);
+        return StatusConfigReporter.getStatus(this.flowController, requestString, logger);
     }
 }

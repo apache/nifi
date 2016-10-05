@@ -54,11 +54,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.expiration.ExpirationAction;
 import org.apache.nifi.provenance.expiration.FileRemovalAction;
-import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
@@ -77,7 +80,7 @@ import org.slf4j.LoggerFactory;
 
 
 // TODO: When API, FlowController, and supporting classes are refactored/reimplemented migrate this class and its accompanying imports to minifi package structure
-public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepository {
+public class MiNiFiPersistentProvenanceRepository implements ProvenanceRepository {
 
     public static final String EVENT_CATEGORY = "Provenance Repository";
     private static final String FILE_EXTENSION = ".prov";
@@ -132,7 +135,20 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
     private Long maxId = null;
 
     public MiNiFiPersistentProvenanceRepository() throws IOException {
-        this(createRepositoryConfiguration(), 10000);
+        maxPartitionMillis = 0;
+        maxPartitionBytes = 0;
+        writers = null;
+        configuration = null;
+        alwaysSync = false;
+        rolloverCheckMillis = 0;
+        maxAttributeChars = 0;
+        scheduledExecService = null;
+        rolloverExecutor = null;
+        eventReporter = null;
+    }
+
+    public MiNiFiPersistentProvenanceRepository(final NiFiProperties nifiProperties) throws IOException {
+        this(createRepositoryConfiguration(nifiProperties), 10000);
     }
 
     public MiNiFiPersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
@@ -170,7 +186,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
     }
 
     @Override
-    public void initialize(final EventReporter eventReporter) throws IOException {
+    public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
         writeLock.lock();
         try {
             if (initialized.getAndSet(true)) {
@@ -237,8 +253,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         }
     }
 
-    private static RepositoryConfiguration createRepositoryConfiguration() throws IOException {
-        final NiFiProperties properties = NiFiProperties.getInstance();
+    private static RepositoryConfiguration createRepositoryConfiguration(final NiFiProperties properties) throws IOException {
         final Map<String, Path> storageDirectories = properties.getProvenanceRepositoryPaths();
         if (storageDirectories.isEmpty()) {
             storageDirectories.put("provenance_repository", Paths.get("provenance_repository"));
@@ -334,6 +349,11 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
     @Override
     public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
         persistRecord(events);
+    }
+
+    @Override
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) throws IOException {
+        throw new MethodNotSupportedException("Cannot list events for a specified user.");
     }
 
     @Override
@@ -511,7 +531,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                     continue;
                 }
 
-                final String basename = LuceneUtil.substringBefore(recoveredJournal.getName(), ".");
+                final String basename = StringUtils.substringBefore(recoveredJournal.getName(), ".");
                 try {
                     final long minId = Long.parseLong(basename);
 
@@ -586,7 +606,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                 final int numDirty = dirtyWriterCount.get();
                 if (numDirty >= recordWriters.length) {
                     throw new IllegalStateException("Cannot update repository because all partitions are unusable at this time. Writing to the repository would cause corruption. "
-                        + "This most often happens as a result of the repository running out of disk space or the JMV running out of memory.");
+                            + "This most often happens as a result of the repository running out of disk space or the JMV running out of memory.");
                 }
 
                 final long idx = writerIndex.getAndIncrement();
@@ -754,8 +774,8 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         final Comparator<File> sortByBasenameComparator = new Comparator<File>() {
             @Override
             public int compare(final File o1, final File o2) {
-                final String baseName1 = LuceneUtil.substringBefore(o1.getName(), ".");
-                final String baseName2 = LuceneUtil.substringBefore(o2.getName(), ".");
+                final String baseName1 = StringUtils.substringBefore(o1.getName(), ".");
+                final String baseName2 = StringUtils.substringBefore(o2.getName(), ".");
 
                 Long id1 = null;
                 Long id2 = null;
@@ -809,7 +829,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         // Age off the data.
         final Set<String> removed = new LinkedHashSet<>();
         for (File file : uniqueFilesToPurge) {
-            final String baseName = LuceneUtil.substringBefore(file.getName(), ".");
+            final String baseName = StringUtils.substringBefore(file.getName(), ".");
             ExpirationAction currentAction = null;
             try {
                 for (final ExpirationAction action : expirationActions) {
@@ -826,15 +846,15 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                 removed.add(baseName);
             } catch (final FileNotFoundException fnf) {
                 logger.warn("Failed to perform Expiration Action {} on Provenance Event file {} because the file no longer exists; will not "
-                    + "perform additional Expiration Actions on this file", currentAction, file);
+                        + "perform additional Expiration Actions on this file", currentAction, file);
                 removed.add(baseName);
             } catch (final Throwable t) {
                 logger.warn("Failed to perform Expiration Action {} on Provenance Event file {} due to {}; will not perform additional "
-                    + "Expiration Actions on this file at this time", currentAction, file, t.toString());
+                        + "Expiration Actions on this file at this time", currentAction, file, t.toString());
                 logger.warn("", t);
                 eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to perform Expiration Action " + currentAction +
-                    " on Provenance Event file " + file + " due to " + t.toString() + "; will not perform additional Expiration Actions " +
-                    "on this file at this time");
+                        " on Provenance Event file " + file + " due to " + t.toString() + "; will not perform additional Expiration Actions " +
+                        "on this file at this time");
             }
         }
 
@@ -852,7 +872,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
             while (itr.hasNext()) {
                 final Map.Entry<Long, Path> entry = itr.next();
                 final String filename = entry.getValue().toFile().getName();
-                final String baseName = LuceneUtil.substringBefore(filename, ".");
+                final String baseName = StringUtils.substringBefore(filename, ".");
 
                 if (removed.contains(baseName)) {
                     itr.remove();
@@ -972,7 +992,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                 if (journalsToMerge.isEmpty()) {
                     logger.debug("No journals to merge; all RecordWriters were already closed");
                 } else {
-                    logger.debug("Going to merge {} files for journals starting with ID {}", journalsToMerge.size(), LuceneUtil.substringBefore(journalsToMerge.get(0).getName(), "."));
+                    logger.debug("Going to merge {} files for journals starting with ID {}", journalsToMerge.size(), StringUtils.substringBefore(journalsToMerge.get(0).getName(), "."));
                 }
             }
 
@@ -1010,7 +1030,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                             // We need to make sure that another thread doesn't also update the map at the same time. We cannot
                             // use the write lock when purging old events, and we want to use the same approach here.
                             boolean updated = false;
-                            final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
+                            final Long fileFirstEventId = Long.valueOf(StringUtils.substringBefore(fileRolledOver.getName(), "."));
                             while (!updated) {
                                 final SortedMap<Long, Path> existingPathMap = idToPathMap.get();
                                 final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
@@ -1064,10 +1084,10 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
             // that is no longer the case.
             if (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                 logger.warn("The rate of the dataflow is exceeding the provenance recording rate. "
-                    + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
-                    + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
+                        + "Slowing down flow to accommodate. Currently, there are {} journal files ({} bytes) and "
+                        + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
                 eventReporter.reportEvent(Severity.WARNING, "Provenance Repository", "The rate of the dataflow is "
-                    + "exceeding the provenance recording rate. Slowing down flow to accommodate");
+                        + "exceeding the provenance recording rate. Slowing down flow to accommodate");
 
                 while (journalFileCount > journalCountThreshold || repoSize > sizeThreshold) {
                     // if a shutdown happens while we are in this loop, kill the rollover thread and break
@@ -1097,15 +1117,15 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                     }
 
                     logger.debug("Provenance Repository is still behind. Keeping flow slowed down "
-                        + "to accommodate. Currently, there are {} journal files ({} bytes) and "
-                        + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
+                            + "to accommodate. Currently, there are {} journal files ({} bytes) and "
+                            + "threshold for blocking is {} ({} bytes)", journalFileCount, repoSize, journalCountThreshold, sizeThreshold);
 
                     journalFileCount = getJournalCount();
                     repoSize = getSize(getLogFiles(), 0L);
                 }
 
                 logger.info("Provenance Repository has now caught up with rolling over journal files. Current number of "
-                    + "journal files to be rolled over is {}", journalFileCount);
+                        + "journal files to be rolled over is {}", journalFileCount);
             }
 
             // we've finished rolling over successfully. Create new writers and reset state.
@@ -1143,7 +1163,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                     continue;
                 }
 
-                final String basename = LuceneUtil.substringBefore(journalFile.getName(), ".");
+                final String basename = StringUtils.substringBefore(journalFile.getName(), ".");
                 List<File> files = journalMap.get(basename);
                 if (files == null) {
                     files = new ArrayList<>();
@@ -1171,7 +1191,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         // verify that all Journal files have the same basename
         String canonicalBaseName = null;
         for (final File journal : journalFiles) {
-            final String basename = LuceneUtil.substringBefore(journal.getName(), ".");
+            final String basename =  StringUtils.substringBefore(journal.getName(), ".");
             if (canonicalBaseName == null) {
                 canonicalBaseName = basename;
             }
@@ -1203,7 +1223,6 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
      * @throws IOException if a problem occurs writing to the mergedFile, reading from a journal
      */
     File mergeJournals(final List<File> journalFiles, final File suggestedMergeFile, final EventReporter eventReporter) throws IOException {
-        logger.warn("Merging {} to {}", journalFiles, suggestedMergeFile);
         if (this.closed.get()) {
             logger.info("Provenance Repository has been closed; will not merge journal files to {}", suggestedMergeFile);
             return null;
@@ -1217,8 +1236,8 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         Collections.sort(journalFiles, new Comparator<File>() {
             @Override
             public int compare(final File o1, final File o2) {
-                final String suffix1 = LuceneUtil.substringAfterLast(o1.getName(), ".");
-                final String suffix2 = LuceneUtil.substringAfterLast(o2.getName(), ".");
+                final String suffix1 = StringUtils.substringAfterLast(o1.getName(), ".");
+                final String suffix2 = StringUtils.substringAfterLast(o2.getName(), ".");
 
                 try {
                     final int journalIndex1 = Integer.parseInt(suffix1);
@@ -1231,7 +1250,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
         });
 
         final String firstJournalFile = journalFiles.get(0).getName();
-        final String firstFileSuffix = LuceneUtil.substringAfterLast(firstJournalFile, ".");
+        final String firstFileSuffix = StringUtils.substringAfterLast(firstJournalFile, ".");
         final boolean allPartialFiles = firstFileSuffix.equals("0");
 
         // check if we have all of the "partial" files for the journal.
@@ -1240,26 +1259,26 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                 // we have all "partial" files and there is already a merged file. Delete the data from the index
                 // because the merge file may not be fully merged. We will re-merge.
                 logger.warn("Merged Journal File {} already exists; however, all partial journal files also exist "
-                    + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
+                        + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
 
                 // Since we only store the file's basename, block offset, and event ID, and because the newly created file could end up on
                 // a different Storage Directory than the original, we need to ensure that we delete both the partially merged
                 // file and the TOC file. Otherwise, we could get the wrong copy and have issues retrieving events.
                 if (!suggestedMergeFile.delete()) {
                     logger.error("Failed to delete partially written Provenance Journal File {}. This may result in events from this journal "
-                        + "file not being able to be displayed. This file should be deleted manually.", suggestedMergeFile);
+                            + "file not being able to be displayed. This file should be deleted manually.", suggestedMergeFile);
                 }
 
                 final File tocFile = TocUtil.getTocFile(suggestedMergeFile);
                 if (tocFile.exists() && !tocFile.delete()) {
                     logger.error("Failed to delete .toc file {}; this may result in not being able to read the Provenance Events from the {} Journal File. "
-                        + "This can be corrected by manually deleting the {} file", tocFile, suggestedMergeFile, tocFile);
+                            + "This can be corrected by manually deleting the {} file", tocFile, suggestedMergeFile, tocFile);
                 }
             }
         } else {
             logger.warn("Cannot merge journal files {} because expected first file to end with extension '.0' "
-                + "but it did not; assuming that the files were already merged but only some finished deletion "
-                + "before restart. Deleting remaining partial journal files.", journalFiles);
+                    + "but it did not; assuming that the files were already merged but only some finished deletion "
+                    + "before restart. Deleting remaining partial journal files.", journalFiles);
 
             for (final File file : journalFiles) {
                 if (!file.delete() && file.exists()) {
@@ -1320,14 +1339,14 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
                 } catch (final EOFException eof) {
                 } catch (final Exception e) {
                     logger.warn("Failed to generate Provenance Event Record from Journal due to " + e + "; it's possible that the record wasn't "
-                        + "completely written to the file. This record will be skipped.");
+                            + "completely written to the file. This record will be skipped.");
                     if (logger.isDebugEnabled()) {
                         logger.warn("", e);
                     }
 
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read Provenance Event Record from Journal due to " + e +
-                            "; it's possible that hte record wasn't completely written to the file. This record will be skipped.");
+                                "; it's possible that hte record wasn't completely written to the file. This record will be skipped.");
                     }
                 }
 
@@ -1393,7 +1412,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
 
                 if (eventReporter != null) {
                     eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to remove temporary journal file " +
-                        journalFile.getAbsolutePath() + "; this file should be cleaned up manually");
+                            journalFile.getAbsolutePath() + "; this file should be cleaned up manually");
                 }
             }
 
@@ -1403,7 +1422,7 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
 
                 if (eventReporter != null) {
                     eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to remove temporary journal TOC file " +
-                        tocFile.getAbsolutePath() + "; this file should be cleaned up manually");
+                            tocFile.getAbsolutePath() + "; this file should be cleaned up manually");
                 }
             }
         }
@@ -1598,12 +1617,12 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
     }
 
     @Override
-    public QuerySubmission submitQuery(Query query) {
+    public QuerySubmission submitQuery(Query query, NiFiUser niFiUser) {
         throw new MethodNotSupportedException("Querying and indexing is not available for implementation " + this.getClass().getName());
     }
 
     @Override
-    public QuerySubmission retrieveQuerySubmission(String queryIdentifier) {
+    public QuerySubmission retrieveQuerySubmission(String queryIdentifier, NiFiUser niFiUser) {
         throw new MethodNotSupportedException("Querying and indexing is not available for implementation " + this.getClass().getName());
     }
 
@@ -1618,23 +1637,37 @@ public class MiNiFiPersistentProvenanceRepository implements ProvenanceEventRepo
     }
 
     @Override
-    public AsyncLineageSubmission submitLineageComputation(final String flowFileUuid) {
+    public AsyncLineageSubmission submitLineageComputation(final String flowFileUuid, NiFiUser niFiUser) {
         throw new MethodNotSupportedException("Computation of lineage is not available for implementation " + this.getClass().getName());
     }
 
     @Override
-    public AsyncLineageSubmission submitExpandChildren(final long eventId) {
+    public ComputeLineageSubmission submitLineageComputation(long eventId, NiFiUser user) {
         throw new MethodNotSupportedException("Computation of lineage is not available for implementation " + this.getClass().getName());
     }
 
     @Override
-    public AsyncLineageSubmission submitExpandParents(final long eventId) {
+    public AsyncLineageSubmission submitExpandChildren(final long eventId, NiFiUser niFiUser) {
         throw new MethodNotSupportedException("Computation of lineage is not available for implementation " + this.getClass().getName());
     }
 
     @Override
-    public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier) {
+    public AsyncLineageSubmission submitExpandParents(final long eventId, NiFiUser niFiUser) {
         throw new MethodNotSupportedException("Computation of lineage is not available for implementation " + this.getClass().getName());
     }
 
+    @Override
+    public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier, NiFiUser niFiUser) {
+        throw new MethodNotSupportedException("Computation of lineage is not available for implementation " + this.getClass().getName());
+    }
+
+    @Override
+    public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) throws IOException {
+        throw new MethodNotSupportedException("Cannot handle user authorization requests.");
+    }
+
+    @Override
+    public ProvenanceEventRepository getProvenanceEventRepository() {
+        return this;
+    }
 }

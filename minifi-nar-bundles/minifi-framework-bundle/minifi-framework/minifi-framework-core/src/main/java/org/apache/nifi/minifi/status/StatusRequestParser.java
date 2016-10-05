@@ -122,7 +122,6 @@ public final class StatusRequestParser {
                 new BulletinQuery.Builder()
                         .sourceIdMatches(inputRemoteProcessGroupStatus.getId())
                         .build());
-        List<String> authorizationIssues = inputRemoteProcessGroupStatus.getAuthorizationIssues();
 
         for (String statusType : statusSplits) {
             switch (statusType.toLowerCase().trim()) {
@@ -130,7 +129,6 @@ public final class StatusRequestParser {
                     RemoteProcessGroupHealth remoteProcessGroupHealth = new RemoteProcessGroupHealth();
 
                     remoteProcessGroupHealth.setTransmissionStatus(inputRemoteProcessGroupStatus.getTransmissionStatus().name());
-                    remoteProcessGroupHealth.setHasAuthorizationIssues(!authorizationIssues.isEmpty());
                     remoteProcessGroupHealth.setActivePortCount(inputRemoteProcessGroupStatus.getActiveRemotePortCount());
                     remoteProcessGroupHealth.setInactivePortCount(inputRemoteProcessGroupStatus.getInactiveRemotePortCount());
                     remoteProcessGroupHealth.setHasBulletins(!bulletinList.isEmpty());
@@ -139,9 +137,6 @@ public final class StatusRequestParser {
                     break;
                 case "bulletins":
                     remoteProcessGroupStatusBean.setBulletinList(transformBulletins(bulletinList));
-                    break;
-                case "authorizationissues":
-                    remoteProcessGroupStatusBean.setAuthorizationIssues(authorizationIssues);
                     break;
                 case "inputports":
                     List<InputPortStatus> inputPortStatusList = new LinkedList<>();

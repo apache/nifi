@@ -20,7 +20,6 @@ package org.apache.nifi.minifi.commons.status.rpg;
 public class RemoteProcessGroupHealth implements java.io.Serializable {
     private String transmissionStatus;
     private boolean hasBulletins;
-    private boolean hasAuthorizationIssues;
     private int activePortCount;
     private int inactivePortCount;
 
@@ -41,14 +40,6 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
 
     public void setHasBulletins(boolean hasBulletins) {
         this.hasBulletins = hasBulletins;
-    }
-
-    public boolean isHasAuthorizationIssues() {
-        return hasAuthorizationIssues;
-    }
-
-    public void setHasAuthorizationIssues(boolean hasAuthorizationIssues) {
-        this.hasAuthorizationIssues = hasAuthorizationIssues;
     }
 
     public int getActivePortCount() {
@@ -75,7 +66,6 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         RemoteProcessGroupHealth that = (RemoteProcessGroupHealth) o;
 
         if (isHasBulletins() != that.isHasBulletins()) return false;
-        if (isHasAuthorizationIssues() != that.isHasAuthorizationIssues()) return false;
         if (getActivePortCount() != that.getActivePortCount()) return false;
         if (getInactivePortCount() != that.getInactivePortCount()) return false;
         return getTransmissionStatus() != null ? getTransmissionStatus().equals(that.getTransmissionStatus()) : that.getTransmissionStatus() == null;
@@ -86,7 +76,6 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
     public int hashCode() {
         int result = getTransmissionStatus() != null ? getTransmissionStatus().hashCode() : 0;
         result = 31 * result + (isHasBulletins() ? 1 : 0);
-        result = 31 * result + (isHasAuthorizationIssues() ? 1 : 0);
         result = 31 * result + getActivePortCount();
         result = 31 * result + getInactivePortCount();
         return result;
@@ -97,7 +86,6 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
         return "{" +
                 "transmissionStatus='" + transmissionStatus + '\'' +
                 ", hasBulletins=" + hasBulletins +
-                ", hasAuthorizationIssues=" + hasAuthorizationIssues +
                 ", activePortCount=" + activePortCount +
                 ", inactivePortCount=" + inactivePortCount +
                 '}';
