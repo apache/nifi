@@ -1685,11 +1685,7 @@
                             }
                         });
 
-                        // make the new property dialog draggable
-                        newPropertyDialog.draggable({
-                            cancel: 'input, textarea, pre, .button, .' + editorClass,
-                            containment: 'body'
-                        }).on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
+                        newPropertyDialog.on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
 
                         // build the control to open the new property dialog
                         var addProperty = $('<div class="add-property"></div>').appendTo(header);
