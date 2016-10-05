@@ -479,6 +479,11 @@ nf.Canvas = (function () {
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {
+                // close the hamburger menu if open
+                if($('.md-menu-backdrop').is(':visible') === true){
+                    $('.md-menu-backdrop').click();
+                }
+
                 updateGraphSize();
                 updateFlowStatusContainerSize();
 
