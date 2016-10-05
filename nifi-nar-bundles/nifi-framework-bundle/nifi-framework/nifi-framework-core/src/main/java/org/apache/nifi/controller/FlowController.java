@@ -21,6 +21,7 @@ import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -1059,6 +1060,32 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
+
+        try {
+            final Class<?> procClass = processor.getClass();
+            if(procClass.isAnnotationPresent(DefaultSettings.class)) {
+                DefaultSettings ds = procClass.getAnnotation(DefaultSettings.class);
+                try {
+                    procNode.setYieldPeriod(ds.yieldDuration());
+                } catch(Throwable ex) {
+                    LOG.error(String.format("Error while setting yield period from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+                try {
+
+                    procNode.setPenalizationPeriod(ds.penaltyDuration());
+                } catch(Throwable ex) {
+                    LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+                try {
+                    procNode.setBulletinLevel(ds.bulletinLevel());
+                } catch (Throwable ex) {
+                    LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+
+            }
+        } catch (Throwable ex) {
+            LOG.error(String.format("Error while setting default settings from DefaultSettings annotation: %s",ex.getMessage()),ex);
+        }
 
         if (firstTimeAdded) {
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
