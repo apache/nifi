@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -427,7 +428,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                 final JsonNode fieldNode = rootNode.get(fieldName);
                 if (!fieldNode.isNull()) {
                     String fieldValue = fieldNode.asText();
-                    if (colSize != null && fieldValue.length() > colSize) {
+                    if (colSize != null && fieldValue.length() > colSize && Types.TIMESTAMP != sqlType) {
                         fieldValue = fieldValue.substring(0, colSize);
                     }
                     attributes.put("sql.args." + fieldCount + ".value", fieldValue);
