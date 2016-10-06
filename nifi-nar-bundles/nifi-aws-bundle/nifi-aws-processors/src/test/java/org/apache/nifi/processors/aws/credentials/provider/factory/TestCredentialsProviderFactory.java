@@ -232,4 +232,13 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST, "proxy.company.com");
         runner.assertNotValid();
     }
+    
+    @Test
+    public void testAssumeRoleInvalidProxyPort() throws Throwable {
+        final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
+        runner.setProperty(CredentialPropertyDescriptors.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
+        runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST, "proxy.company.com");
+        runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT, "notIntPort");
+        runner.assertNotValid();
+    }
 }
