@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.credentials.provider.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.joda.time.DateTime;
 
 /**
  * Shared definitions of properties that specify various AWS credentials.
@@ -44,7 +45,7 @@ public class CredentialPropertyDescriptors {
             .allowableValues("true", "false")
             .defaultValue("false")
             .description("If true, uses the Default Credential chain, including EC2 instance profiles or roles, " +
-                "environment variables, default user credentials, etc.")
+                    "environment variables, default user credentials, etc.")
             .build();
 
     public static final PropertyDescriptor CREDENTIALS_FILE = new PropertyDescriptor.Builder()
@@ -153,6 +154,29 @@ public class CredentialPropertyDescriptors {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .description("External ID for cross-account access. This is used in conjunction with role arn, " +
-                "role name, and optional session time out")
+                    "role name, and optional session time out")
+            .build();
+
+    /**
+     * Assume Role Proxy variables for configuring proxy to retrieve keys
+     */
+    public static final PropertyDescriptor ASSUME_ROLE_PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("assume-role-proxy-host")
+            .displayName("Assume Role Proxy Host")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("assume-role-proxy-port")
+            .displayName("Assume Role Proxy Port")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .sensitive(false)
+            .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
             .build();
 }
