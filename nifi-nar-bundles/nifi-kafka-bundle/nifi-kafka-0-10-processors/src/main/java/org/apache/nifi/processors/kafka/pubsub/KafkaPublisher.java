@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.kafka;
+package org.apache.nifi.processors.kafka.pubsub;
 
 import java.io.Closeable;
 import java.io.InputStream;
@@ -28,15 +28,11 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
-
-import kafka.producer.Partitioner;
 
 /**
  * Wrapper over {@link KafkaProducer} to assist {@link PublishKafka} processor
@@ -46,11 +42,9 @@ class KafkaPublisher implements Closeable {
 
     private final Producer<byte[], byte[]> kafkaProducer;
 
-    private long ackWaitTime = 30000;
+    private volatile long ackWaitTime = 30000;
 
     private final ComponentLog componentLog;
-
-    private final Partitioner partitioner;
 
     private final int ackCheckSize;
 
@@ -63,24 +57,12 @@ class KafkaPublisher implements Closeable {
      * corresponding Kafka {@link KafkaProducer} using provided Kafka
      * configuration properties.
      *
-     * @param kafkaProperties
-     *            instance of {@link Properties} used to bootstrap
-     *            {@link KafkaProducer}
+     * @param kafkaProperties instance of {@link Properties} used to bootstrap
+     * {@link KafkaProducer}
      */
     KafkaPublisher(Properties kafkaProperties, int ackCheckSize, ComponentLog componentLog) {
-        kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
         this.ackCheckSize = ackCheckSize;
-        try {
-            if (kafkaProperties.containsKey("partitioner.class")) {
-                this.partitioner = (Partitioner) Class.forName(kafkaProperties.getProperty("partitioner.class")).newInstance();
-            } else {
-                this.partitioner = null;
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to create partitioner", e);
-        }
         this.componentLog = componentLog;
     }
 
@@ -107,14 +89,13 @@ class KafkaPublisher implements Closeable {
      * index of the last ACKed message, so upon retry only messages with the
      * higher index are sent.
      *
-     * @param publishingContext
-     *            instance of {@link PublishingContext} which hold context
-     *            information about the message(s) to be sent.
+     * @param publishingContext instance of {@link PublishingContext} which hold
+     * context information about the message(s) to be sent.
      * @return The index of the last successful offset.
      */
     KafkaPublisherResult publish(PublishingContext publishingContext) {
         StreamDemarcator streamTokenizer = new StreamDemarcator(publishingContext.getContentStream(),
-            publishingContext.getDelimiterBytes(), publishingContext.getMaxRequestSize());
+                publishingContext.getDelimiterBytes(), publishingContext.getMaxRequestSize());
 
         int prevLastAckedMessageIndex = publishingContext.getLastAckedMessageIndex();
         List<Future<RecordMetadata>> resultFutures = new ArrayList<>();
@@ -125,12 +106,7 @@ class KafkaPublisher implements Closeable {
         KafkaPublisherResult result = null;
         for (; continueSending && (messageBytes = streamTokenizer.nextToken()) != null; tokenCounter++) {
             if (prevLastAckedMessageIndex < tokenCounter) {
-                Integer partitionId = publishingContext.getPartitionId();
-                if (partitionId == null && publishingContext.getKeyBytes() != null) {
-                    partitionId = this.getPartition(publishingContext.getKeyBytes(), publishingContext.getTopic());
-                }
-                ProducerRecord<byte[], byte[]> message =
-                    new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getPartitionId(), publishingContext.getKeyBytes(), messageBytes);
+                ProducerRecord<byte[], byte[]> message = new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getKeyBytes(), messageBytes);
                 resultFutures.add(this.kafkaProducer.send(message));
 
                 if (tokenCounter % this.ackCheckSize == 0) {
@@ -177,14 +153,12 @@ class KafkaPublisher implements Closeable {
      * be considered non-delivered and therefore could be resent at the later
      * time.
      *
-     * @param sendFutures
-     *            list of {@link Future}s representing results of publishing to
-     *            Kafka
+     * @param sendFutures list of {@link Future}s representing results of
+     * publishing to Kafka
      *
-     * @param lastAckMessageIndex
-     *            the index of the last ACKed message. It is important to
-     *            provide the last ACKed message especially while re-trying so
-     *            the proper index is maintained.
+     * @param lastAckMessageIndex the index of the last ACKed message. It is
+     * important to provide the last ACKed message especially while re-trying so
+     * the proper index is maintained.
      */
     private int processAcks(List<Future<RecordMetadata>> sendFutures, int lastAckMessageIndex) {
         boolean exceptionThrown = false;
@@ -210,11 +184,12 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will close the underlying {@link KafkaProducer}
+     * Will close the underlying {@link KafkaProducer} waiting if necessary for
+     * the same duration as supplied {@link #setAckWaitTime(long)}
      */
     @Override
     public void close() {
-        this.kafkaProducer.close();
+        this.kafkaProducer.close(this.ackWaitTime, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -224,13 +199,18 @@ class KafkaPublisher implements Closeable {
         if (e == null) {
             this.componentLog.warn(message);
         } else {
-            this.componentLog.error(message);
+            this.componentLog.error(message, e);
         }
     }
 
+    /**
+     * Encapsulates the result received from publishing messages to Kafka
+     */
     static class KafkaPublisherResult {
+
         private final int messagesSent;
         private final int lastMessageAcked;
+
         KafkaPublisherResult(int messagesSent, int lastMessageAcked) {
             this.messagesSent = messagesSent;
             this.lastMessageAcked = lastMessageAcked;
@@ -252,16 +232,5 @@ class KafkaPublisher implements Closeable {
         public String toString() {
             return "Sent:" + this.messagesSent + "; Last ACK:" + this.lastMessageAcked;
         }
-    }
-
-    /**
-     *
-     */
-    private int getPartition(Object key, String topicName) {
-        if (this.partitioner != null) {
-            int partSize = this.kafkaProducer.partitionsFor(topicName).size();
-            return this.partitioner.partition(key, partSize);
-        }
-        return 0;
     }
 }

@@ -74,7 +74,7 @@ public class ConsumerPool implements Closeable {
     public ConsumerPool(
             final int maxConcurrentLeases,
             final byte[] demarcator,
-        final Map<String, Object> kafkaProperties,
+            final Map<String, String> kafkaProperties,
             final List<String> topics,
             final long maxWaitMillis,
             final String keyEncoding,
@@ -115,7 +115,6 @@ public class ConsumerPool implements Closeable {
              * sitting idle which could prompt excessive rebalances.
              */
             lease = new SimpleConsumerLease(consumer);
-
             /**
              * This subscription tightly couples the lease to the given
              * consumer. They cannot be separated from then on.
@@ -149,7 +148,7 @@ public class ConsumerPool implements Closeable {
         });
     }
 
-    private void closeConsumer(final Consumer<?, ?> consumer) {
+    private void closeConsumer(final Consumer consumer) {
         consumerClosedCountRef.incrementAndGet();
         try {
             consumer.unsubscribe();

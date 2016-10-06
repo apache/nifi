@@ -383,7 +383,7 @@ public interface TestRunner {
      * @param path to read content from
      * @throws IOException if unable to read content
      */
-    MockFlowFile enqueue(Path path) throws IOException;
+    void enqueue(Path path) throws IOException;
 
     /**
      * Reads the content from the given {@link Path} into memory and creates a
@@ -394,7 +394,7 @@ public interface TestRunner {
      * @param attributes attributes to use for new flow file
      * @throws IOException if unable to read content
      */
-    MockFlowFile enqueue(Path path, Map<String, String> attributes) throws IOException;
+    void enqueue(Path path, Map<String, String> attributes) throws IOException;
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -403,7 +403,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    MockFlowFile enqueue(byte[] data);
+    void enqueue(byte[] data);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with no attributes,
@@ -411,7 +411,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    MockFlowFile enqueue(String data);
+    void enqueue(String data);
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -421,7 +421,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    MockFlowFile enqueue(byte[] data, Map<String, String> attributes);
+    void enqueue(byte[] data, Map<String, String> attributes);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with the given attributes,
@@ -430,7 +430,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    MockFlowFile enqueue(String data, Map<String, String> attributes);
+    void enqueue(String data, Map<String, String> attributes);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -439,7 +439,7 @@ public interface TestRunner {
      *
      * @param data to source data from
      */
-    MockFlowFile enqueue(InputStream data);
+    void enqueue(InputStream data);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -449,7 +449,7 @@ public interface TestRunner {
      * @param data source of data
      * @param attributes to use for flow files
      */
-    MockFlowFile enqueue(InputStream data, Map<String, String> attributes);
+    void enqueue(InputStream data, Map<String, String> attributes);
 
     /**
      * Copies the contents of the given {@link MockFlowFile} into a byte array

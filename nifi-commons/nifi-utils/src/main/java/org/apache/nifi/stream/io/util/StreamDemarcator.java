@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.stream.io.util;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 
 /**
  * The <code>StreamDemarcator</code> class takes an input stream and demarcates
@@ -29,7 +26,7 @@ import org.apache.nifi.stream.io.exception.TokenTooLargeException;
  * stream will be read into a single token which may result in
  * {@link OutOfMemoryError} if stream is too large.
  */
-public class StreamDemarcator implements Closeable {
+public class StreamDemarcator {
 
     private final static int INIT_BUFFER_SIZE = 8192;
 
@@ -98,10 +95,8 @@ public class StreamDemarcator implements Closeable {
     /**
      * Will read the next data token from the {@link InputStream} returning null
      * when it reaches the end of the stream.
-     *
-     * @throws IOException if unable to read from the stream
      */
-    public byte[] nextToken() throws IOException {
+    public byte[] nextToken() {
         byte[] data = null;
         int j = 0;
 
@@ -131,10 +126,8 @@ public class StreamDemarcator implements Closeable {
     /**
      * Will fill the current buffer from current 'index' position, expanding it
      * and or shuffling it if necessary
-     *
-     * @throws IOException if unable to read from the stream
      */
-    private void fill() throws IOException {
+    private void fill() {
         if (this.index >= this.buffer.length) {
             if (this.mark == 0) { // expand
                 byte[] newBuff = new byte[this.buffer.length + this.initialBufferSize];
@@ -148,16 +141,20 @@ public class StreamDemarcator implements Closeable {
             }
         }
 
-        int bytesRead;
-        do {
-            bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
-        } while (bytesRead == 0);
+        try {
+            int bytesRead;
+            do {
+                bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
+            } while (bytesRead == 0);
 
-        if (bytesRead != -1) {
-            this.readAheadLength = this.index + bytesRead;
-            if (this.readAheadLength > this.maxDataSize) {
-                throw new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + this.maxDataSize + " bytes.");
+            if (bytesRead != -1) {
+                this.readAheadLength = this.index + bytesRead;
+                if (this.readAheadLength > this.maxDataSize) {
+                    throw new IllegalStateException("Maximum allowed data size of " + this.maxDataSize + " exceeded.");
+                }
             }
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed while reading InputStream", e);
         }
     }
 
@@ -190,10 +187,5 @@ public class StreamDemarcator implements Closeable {
         } else if (delimiterBytes != null && delimiterBytes.length == 0){
             throw new IllegalArgumentException("'delimiterBytes' is an optional argument, but when provided its length must be > 0");
         }
-    }
-
-    @Override
-    public void close() throws IOException {
-        is.close();
     }
 }
