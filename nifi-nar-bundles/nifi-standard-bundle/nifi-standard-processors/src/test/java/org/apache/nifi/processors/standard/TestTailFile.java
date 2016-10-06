@@ -37,29 +37,30 @@ import org.junit.Test;
 public class TestTailFile {
 
     private File file;
-    private TailFile processor;
+    private File otherFile;
+
     private RandomAccessFile raf;
+    private RandomAccessFile otherRaf;
+
+    private TailFile processor;
     private TestRunner runner;
 
     @Before
     public void setup() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
-
-        final File targetDir = new File("target");
-        final File[] files = targetDir.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(final File dir, final String name) {
-                return name.startsWith("log");
-            }
-        });
-
-        for (final File file : files) {
-            file.delete();
-        }
+        clean();
 
         file = new File("target/log.txt");
         file.delete();
         assertTrue(file.createNewFile());
+
+        File directory = new File("target/testDir");
+        if(!directory.exists()) {
+            assertTrue(directory.mkdirs());
+        }
+        otherFile = new File("target/testDir/log.txt");
+        otherFile.delete();
+        assertTrue(otherFile.createNewFile());
 
         processor = new TailFile();
         runner = TestRunners.newTestRunner(processor);
@@ -67,12 +68,17 @@ public class TestTailFile {
         runner.assertValid();
 
         raf = new RandomAccessFile(file, "rw");
+        otherRaf = new RandomAccessFile(otherFile, "rw");
     }
 
     @After
     public void cleanup() throws IOException {
         if (raf != null) {
             raf.close();
+        }
+
+        if (otherRaf != null) {
+            otherRaf.close();
         }
 
         processor.cleanup();
@@ -436,7 +442,7 @@ public class TestTailFile {
         runner.run();
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
 
-        final TailFileState state = ((TailFile) runner.getProcessor()).getState();
+        final TailFileState state = ((TailFile) runner.getProcessor()).getState().get("target/log.txt").getState();
         assertNotNull(state);
         assertEquals("target/log.txt", state.getFilename());
         assertTrue(state.getTimestamp() <= System.currentTimeMillis());
@@ -498,6 +504,288 @@ public class TestTailFile {
         runner.clearTransferState();
         runner.run(1, true, false);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testRolloverWhenNoRollingPattern() throws IOException {
+        // write out some data and ingest it.
+        raf.write("hello there\n".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        // move the file and write data to the new log.txt file.
+        raf.write("another".getBytes());
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("new file\n".getBytes());
+
+        // because the roll over pattern has not been set we are not able to get
+        // data before the file has been moved, but we still want to ingest data
+        // from the tailed file
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("new file\n");
+        runner.clearTransferState();
+
+        // in the unlikely case where more data is written after the file is moved
+        // we are not able to detect it is a completely new file, then we continue
+        // on the tailed file as it never changed
+        raf.close();
+        file.renameTo(new File("target/log.2"));
+        raf = new RandomAccessFile(file, "rw");
+        raf.write("new file with longer data in the new file\n".getBytes());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("with longer data in the new file\n");
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMultipleFiles() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.FILENAME, "(testDir/)?log(ging)?.txt");
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "${filename}.?");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
+        runner.setProperty(TailFile.RECURSIVE, "true");
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        // I manually add a third file to tail here
+        // I'll remove it later in the test
+        File thirdFile = new File("target/logging.txt");
+        if(thirdFile.exists()) {
+            thirdFile.delete();
+        }
+        assertTrue(thirdFile.createNewFile());
+        RandomAccessFile thirdFileRaf = new RandomAccessFile(thirdFile, "rw");
+        thirdFileRaf.write("hey\n".getBytes());
+
+        otherRaf.write("hi\n".getBytes());
+        raf.write("hello\n".getBytes());
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 3);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hey\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertAttributeEquals("tailfile.original.path", thirdFile.getPath());
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("hi\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertAttributeEquals("tailfile.original.path", otherFile.getPath());
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertAttributeEquals("tailfile.original.path", file.getPath());
+        runner.clearTransferState();
+
+        otherRaf.write("world!".getBytes());
+        raf.write("world".getBytes());
+
+        Thread.sleep(100L);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0); // should not pull in data because no \n
+
+        raf.close();
+        otherRaf.close();
+        thirdFileRaf.close();
+        thirdFile.delete();
+
+        file.renameTo(new File("target/log.1"));
+        otherFile.renameTo(new File("target/testDir/log.1"));
+
+        raf = new RandomAccessFile(new File("target/log.txt"), "rw");
+        raf.write("1\n".getBytes());
+
+        otherRaf = new RandomAccessFile(new File("target/testDir/log.txt"), "rw");
+        otherRaf.write("2\n".getBytes());
+
+        // I also add a new file here
+        File fourthFile = new File("target/testDir/logging.txt");
+        if(fourthFile.exists()) {
+            fourthFile.delete();
+        }
+        assertTrue(fourthFile.createNewFile());
+        RandomAccessFile fourthFileRaf = new RandomAccessFile(fourthFile, "rw");
+        fourthFileRaf.write("3\n".getBytes());
+        fourthFileRaf.close();
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 5);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("3\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("world!");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("2\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(3).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(4).assertContentEquals("1\n");
+    }
+
+    /**
+     * This test is used to check the case where we have multiple files in the same directory
+     * and where it is not possible to specify a single rolling pattern for all files.
+     */
+    @Test
+    public void testMultipleFilesInSameDirectory() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "${filename}.?");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.FILENAME, "log(ging)?.txt");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        File myOtherFile = new File("target/logging.txt");
+        if(myOtherFile.exists()) {
+            myOtherFile.delete();
+        }
+        assertTrue(myOtherFile.createNewFile());
+
+        RandomAccessFile myOtherRaf = new RandomAccessFile(myOtherFile, "rw");
+        myOtherRaf.write("hey\n".getBytes());
+
+        raf.write("hello\n".getBytes());
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hey\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertAttributeEquals("tailfile.original.path", myOtherFile.getPath());
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertAttributeEquals("tailfile.original.path", file.getPath());
+        runner.clearTransferState();
+
+        myOtherRaf.write("guys".getBytes());
+        raf.write("world".getBytes());
+
+        Thread.sleep(100L);
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0); // should not pull in data because no \n
+
+        raf.close();
+        myOtherRaf.close();
+
+        // roll over
+        myOtherFile.renameTo(new File("target/logging.1"));
+        file.renameTo(new File("target/log.1"));
+
+        raf = new RandomAccessFile(new File("target/log.txt"), "rw");
+        raf.write("1\n".getBytes());
+
+        myOtherRaf = new RandomAccessFile(new File("target/logging.txt"), "rw");
+        myOtherRaf.write("2\n".getBytes());
+        myOtherRaf.close();
+
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 4);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("guys");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("2\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(3).assertContentEquals("1\n");
+    }
+
+    @Test
+    public void testMultipleFilesChangingNameStrategy() throws IOException, InterruptedException {
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setProperty(TailFile.ROLLING_STRATEGY, TailFile.CHANGING_NAME);
+        runner.setProperty(TailFile.BASE_DIRECTORY, "target");
+        runner.setProperty(TailFile.FILENAME, ".*app-.*.log");
+        runner.setProperty(TailFile.LOOKUP_FREQUENCY, "2s");
+        runner.setProperty(TailFile.MAXIMUM_AGE, "5s");
+
+        File multiChangeFirstFile = new File("target/app-2016-09-07.log");
+        if(multiChangeFirstFile.exists()) {
+            multiChangeFirstFile.delete();
+        }
+        assertTrue(multiChangeFirstFile.createNewFile());
+
+        RandomAccessFile multiChangeFirstRaf = new RandomAccessFile(multiChangeFirstFile, "rw");
+        multiChangeFirstRaf.write("hey\n".getBytes());
+
+        File multiChangeSndFile = new File("target/my-app-2016-09-07.log");
+        if(multiChangeSndFile.exists()) {
+            multiChangeSndFile.delete();
+        }
+        assertTrue(multiChangeSndFile.createNewFile());
+
+        RandomAccessFile multiChangeSndRaf = new RandomAccessFile(multiChangeSndFile, "rw");
+        multiChangeSndRaf.write("hello\n".getBytes());
+
+        runner.run(1, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("hey\n");
+        runner.clearTransferState();
+
+        multiChangeFirstRaf.write("hey2\n".getBytes());
+        multiChangeSndRaf.write("hello2\n".getBytes());
+
+        Thread.sleep(2000);
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello2\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("hey2\n");
+        runner.clearTransferState();
+
+        multiChangeFirstRaf.write("hey3\n".getBytes());
+        multiChangeSndRaf.write("hello3\n".getBytes());
+
+        multiChangeFirstRaf.close();
+        multiChangeSndRaf.close();
+
+        multiChangeFirstFile = new File("target/app-2016-09-08.log");
+        if(multiChangeFirstFile.exists()) {
+            multiChangeFirstFile.delete();
+        }
+        assertTrue(multiChangeFirstFile.createNewFile());
+
+        multiChangeFirstRaf = new RandomAccessFile(multiChangeFirstFile, "rw");
+        multiChangeFirstRaf.write("hey\n".getBytes());
+
+        multiChangeSndFile = new File("target/my-app-2016-09-08.log");
+        if(multiChangeSndFile.exists()) {
+            multiChangeSndFile.delete();
+        }
+        assertTrue(multiChangeSndFile.createNewFile());
+
+        multiChangeSndRaf = new RandomAccessFile(multiChangeSndFile, "rw");
+        multiChangeSndRaf.write("hello\n".getBytes());
+
+        Thread.sleep(2000);
+        runner.run(1);
+        multiChangeFirstRaf.close();
+        multiChangeSndRaf.close();
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 4);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("hello3\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("hello\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("hey3\n");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(3).assertContentEquals("hey\n");
+        runner.clearTransferState();
+    }
+
+    private void cleanFiles(String directory) {
+        final File targetDir = new File(directory);
+        if(targetDir.exists()) {
+            final File[] files = targetDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(final File dir, final String name) {
+                    return name.startsWith("log") || name.endsWith("log");
+                }
+            });
+
+            for (final File file : files) {
+                file.delete();
+            }
+        }
+    }
+
+    private void clean() {
+        cleanFiles("target");
+        cleanFiles("target/testDir");
     }
 
 }

@@ -105,12 +105,12 @@ public class DocGenerator {
         final File directory = new File(docsDir, componentClass.getCanonicalName());
         directory.mkdirs();
 
-        final File baseDocumenationFile = new File(directory, "index.html");
-        if (baseDocumenationFile.exists()) {
-            logger.warn(baseDocumenationFile + " already exists, overwriting!");
+        final File baseDocumentationFile = new File(directory, "index.html");
+        if (baseDocumentationFile.exists()) {
+            logger.warn(baseDocumentationFile + " already exists, overwriting!");
         }
 
-        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
+        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
             writer.write(component, output, hasAdditionalInfo(directory));
         }
 

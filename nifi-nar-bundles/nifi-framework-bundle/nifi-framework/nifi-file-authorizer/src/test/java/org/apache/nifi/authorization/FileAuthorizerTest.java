@@ -1009,7 +1009,7 @@ public class FileAuthorizerTest {
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
-        // retrieve user-1 and verify it exsits
+        // retrieve user-1 and verify it exists
         final User user = authorizer.getUser("user-1");
         assertEquals("user-1", user.getIdentifier());
 

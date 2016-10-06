@@ -171,11 +171,11 @@ public interface AuthorizableLookup {
     /**
      * Get the authorizable referencing component.
      *
-     * @param controllerSeriveId controller service id
+     * @param controllerServiceId controller service id
      * @param id component id
      * @return authorizable
      */
-    Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id);
+    Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id);
 
     /**
      * Get the authorizable ReportingTask.
@@ -262,4 +262,13 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getAuthorizableFromResource(final String resource);
+
+
+    /**
+     * Get the authorizable for access to the System resource.
+     *
+     * @return authorizable
+     */
+    Authorizable getSystem();
+
 }

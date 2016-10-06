@@ -134,7 +134,7 @@ public class ProcessGroupDTO extends ComponentDTO {
      * @return number of running component in this process group
      */
     @ApiModelProperty(
-            value = "The number of running componetns in this process group."
+            value = "The number of running components in this process group."
     )
     public Integer getRunningCount() {
         return runningCount;

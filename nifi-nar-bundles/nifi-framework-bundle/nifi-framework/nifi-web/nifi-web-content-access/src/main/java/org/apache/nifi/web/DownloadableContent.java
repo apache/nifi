@@ -54,7 +54,7 @@ public final class DownloadableContent {
     /**
      * The content stream.
      *
-     * @return the intput stream of the content
+     * @return the input stream of the content
      */
     public InputStream getContent() {
         return content;

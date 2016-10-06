@@ -63,7 +63,7 @@ public class TestGetSolr {
                     .getLocation().getFile() + "../../target";
 
             solrClient = EmbeddedSolrServerFactory.create(EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
-                    EmbeddedSolrServerFactory.DEFAULT_CORE_HOME, DEFAULT_SOLR_CORE, relPath);
+                    DEFAULT_SOLR_CORE, relPath);
 
             // create some test documents
             SolrInputDocument doc1 = new SolrInputDocument();

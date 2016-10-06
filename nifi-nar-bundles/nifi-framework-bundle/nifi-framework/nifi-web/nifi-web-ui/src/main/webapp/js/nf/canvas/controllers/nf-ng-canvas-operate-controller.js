@@ -114,8 +114,12 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // initialize the form
                     var templateForm = $('#template-upload-form').ajaxForm({
-                        url: '../nifi-api/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload',
+                        url: '../nifi-api/process-groups/',
                         dataType: 'xml',
+                        beforeSubmit: function (formData, $form, options) {
+                            // ensure uploading to the current process group
+                            options.url += (encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload');
+                        },
                         success: function (response, statusText, xhr, form) {
                             // see if the import was successful
                             if (response.documentElement.tagName === 'templateEntity') {

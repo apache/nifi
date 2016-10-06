@@ -27,8 +27,8 @@
     overflow: auto;
 }
 
-#cluster-header-and-filter {
-    height: 98px;
+#cluster-filter-controls {
+    z-index: 1;
 }
 
 #cluster-header-text {
@@ -37,6 +37,10 @@
     color: #728E9B;
     font-family: Roboto Slab;
     margin-bottom: 30px;
+}
+
+#cluster-tabs-content {
+    top: 80px;
 }
 
 #cluster-refresh-container {
@@ -63,15 +67,25 @@
     padding-top: 10px;
 }
 
-/* counters table */
+/* cluster table */
 
-#cluster-table {
+.cluster-tabbed-table {
     position: absolute;
-    top: 98px;
+    top: 70px;
     left: 0px;
     bottom: 47px;
     right: 0px;
     min-height: 150px;
+}
+
+#cluster-tabs-content .slick-cell.cell-right {
+    text-align: right;
+    padding-right: 16px;
+    padding-left: 2px;
+}
+
+#cluster-tabs-content .slick-header-column.header-right {
+    text-align: right;
 }
 
 span.sorted {

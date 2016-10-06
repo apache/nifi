@@ -238,6 +238,26 @@ public class ITPutS3Object extends AbstractS3IT {
     }
 
     @Test
+    public void testContentType() throws IOException {
+        PutS3Object processor = new PutS3Object();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.CONTENT_TYPE, "text/plain");
+
+        runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        MockFlowFile ff1 = flowFiles.get(0);
+        ff1.assertAttributeEquals(PutS3Object.S3_CONTENT_TYPE, "text/plain");
+    }
+
+    @Test
     public void testPutInFolder() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
@@ -314,7 +334,7 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 26, pd.size());
+        assertEquals("size should be eq", 27, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -328,6 +348,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertTrue(pd.contains(PutS3Object.READ_USER_LIST));
         assertTrue(pd.contains(PutS3Object.REGION));
         assertTrue(pd.contains(PutS3Object.SECRET_KEY));
+        assertTrue(pd.contains(PutS3Object.SIGNER_OVERRIDE));
         assertTrue(pd.contains(PutS3Object.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(PutS3Object.TIMEOUT));
         assertTrue(pd.contains(PutS3Object.EXPIRATION_RULE_ID));
@@ -827,7 +848,7 @@ public class ITPutS3Object extends AbstractS3IT {
         // sleep() delays long enough to satisfy interval and age intervals.
         Thread.sleep(2000L);
 
-        // System millis are used for timing, but it is incrememtned on each
+        // System millis are used for timing, but it is incremented on each
         // call to circumvent what appears to be caching in the AWS library.
         // The increments are 1000 millis because AWS returns upload
         // initiation times in whole seconds.

@@ -263,11 +263,11 @@ public class TransformXml extends AbstractProcessor {
             } else {
                 String error = null;
                 final File stylesheet = new File(input);
-                final TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
+                final TransformerFactory tFactory = new net.sf.saxon.TransformerFactoryImpl();
                 final StreamSource styleSource = new StreamSource(stylesheet);
 
                 try {
-                    tfactory.newTransformer(styleSource);
+                    tFactory.newTransformer(styleSource);
                 } catch (final Exception e) {
                     error = e.toString();
                 }

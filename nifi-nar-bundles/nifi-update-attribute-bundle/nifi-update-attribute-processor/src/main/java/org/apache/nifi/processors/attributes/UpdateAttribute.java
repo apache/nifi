@@ -351,7 +351,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         // is cloned for each matching rule. in 'use original' mode, this collection
         // will contain a single entry that maps a list of multiple rules. this is
         // because is the original flowfile is used for all matching rules. in this
-        // case the order of the matching rules is perserved in the list
+        // case the order of the matching rules is preserved in the list
         final Map<FlowFile, List<Rule>> matchedRules = new HashMap<>();
 
         for (FlowFile flowFile : flowFiles) {

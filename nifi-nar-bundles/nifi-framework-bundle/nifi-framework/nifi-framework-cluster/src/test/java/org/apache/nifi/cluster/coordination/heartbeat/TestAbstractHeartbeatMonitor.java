@@ -36,6 +36,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
@@ -327,6 +328,11 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public String getFlowElectionStatus() {
+            return null;
+        }
+
+        @Override
+        public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
             return null;
         }
     }

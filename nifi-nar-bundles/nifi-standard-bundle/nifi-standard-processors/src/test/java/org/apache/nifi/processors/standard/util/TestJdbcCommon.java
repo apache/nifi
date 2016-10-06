@@ -19,17 +19,22 @@ package org.apache.nifi.processors.standard.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.CharArrayReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -38,12 +43,14 @@ import java.sql.Types;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -160,10 +167,8 @@ public class TestJdbcCommon {
         System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
-        con.close();
 
         // Deserialize bytes to records
-
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
@@ -243,8 +248,8 @@ public class TestJdbcCommon {
             }
         }
 
-        Assert.assertTrue(foundIntSchema);
-        Assert.assertTrue(foundNullSchema);
+        assertTrue(foundIntSchema);
+        assertTrue(foundNullSchema);
     }
 
     @Test
@@ -277,8 +282,8 @@ public class TestJdbcCommon {
             }
         }
 
-        Assert.assertTrue(foundLongSchema);
-        Assert.assertTrue(foundNullSchema);
+        assertTrue(foundLongSchema);
+        assertTrue(foundNullSchema);
     }
 
 
@@ -319,6 +324,103 @@ public class TestJdbcCommon {
                 record = dataFileReader.next(record);
                 assertEquals("_1the__table", record.getSchema().getName());
                 assertEquals(bigDecimal.toString(), record.get("The_Chairman").toString());
+            }
+        }
+    }
+
+    @Test
+    public void testClob() throws Exception {
+        try (final Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE clobtest (id INT, text CLOB(64 K))");
+            stmt.execute("INSERT INTO blobtest VALUES (41, NULL)");
+            PreparedStatement ps = con.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
+            ps.setInt(1, 42);
+            final char[] buffer = new char[4002];
+            IntStream.range(0, 4002).forEach((i) -> buffer[i] = String.valueOf(i % 10).charAt(0));
+            ReaderInputStream isr = new ReaderInputStream(new CharArrayReader(buffer), Charset.defaultCharset());
+
+            // - set the value of the input parameter to the input stream
+            ps.setAsciiStream(2, isr, 4002);
+            ps.execute();
+            isr.close();
+
+            final ResultSet resultSet = stmt.executeQuery("select * from clobtest");
+
+            final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            JdbcCommon.convertToAvroStream(resultSet, outStream, false);
+
+            final byte[] serializedBytes = outStream.toByteArray();
+            assertNotNull(serializedBytes);
+
+            // Deserialize bytes to records
+            final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+            final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+            try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+                GenericRecord record = null;
+                while (dataFileReader.hasNext()) {
+                    // Reuse record object by passing it to next(). This saves us from
+                    // allocating and garbage collecting many objects for files with
+                    // many items.
+                    record = dataFileReader.next(record);
+                    Integer id = (Integer) record.get("ID");
+                    Object o = record.get("TEXT");
+                    if (id == 41) {
+                        assertNull(o);
+                    } else {
+                        assertNotNull(o);
+                        assertEquals(4002, o.toString().length());
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testBlob() throws Exception {
+        try (final Statement stmt = con.createStatement()) {
+            stmt.executeUpdate("CREATE TABLE blobtest (id INT, b BLOB(64 K))");
+            stmt.execute("INSERT INTO blobtest VALUES (41, NULL)");
+            PreparedStatement ps = con.prepareStatement("INSERT INTO blobtest VALUES (?, ?)");
+            ps.setInt(1, 42);
+            final byte[] buffer = new byte[4002];
+            IntStream.range(0, 4002).forEach((i) -> buffer[i] = (byte) ((i % 10) + 65));
+            ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+
+            // - set the value of the input parameter to the input stream
+            ps.setBlob(2, bais, 4002);
+            ps.execute();
+            bais.close();
+
+            final ResultSet resultSet = stmt.executeQuery("select * from blobtest");
+
+            final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            JdbcCommon.convertToAvroStream(resultSet, outStream, false);
+
+            final byte[] serializedBytes = outStream.toByteArray();
+            assertNotNull(serializedBytes);
+
+            // Deserialize bytes to records
+            final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+            final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+            try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+                GenericRecord record = null;
+                while (dataFileReader.hasNext()) {
+                    // Reuse record object by passing it to next(). This saves us from
+                    // allocating and garbage collecting many objects for files with
+                    // many items.
+                    record = dataFileReader.next(record);
+                    Integer id = (Integer) record.get("ID");
+                    Object o = record.get("B");
+                    if (id == 41) {
+                        assertNull(o);
+                    } else {
+                        assertNotNull(o);
+                        assertTrue(o instanceof ByteBuffer);
+                        assertEquals(4002, ((ByteBuffer) o).array().length);
+                    }
+                }
             }
         }
     }

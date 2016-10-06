@@ -338,6 +338,19 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access system diagnostics.
+         *
+         * @returns {boolean}
+         */
+        canAccessSystem: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.systemPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Adds a mouse over effect for the specified selector using
          * the specified styles.
          * 

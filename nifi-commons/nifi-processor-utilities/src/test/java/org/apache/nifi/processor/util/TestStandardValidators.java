@@ -218,4 +218,18 @@ public class TestStandardValidators {
         assertFalse(vr.isValid());
 
     }
+
+    @Test
+    public void testiso8061InstantValidator() {
+        Validator val = StandardValidators.ISO8061_INSTANT_VALIDATOR;
+        ValidationContext vc = mock(ValidationContext.class);
+        ValidationResult vr = val.validate("foo", "", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "2016-01-01T01:01:01.000-0100", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "2016-01-01T01:01:01.000Z", vc);
+        assertTrue(vr.isValid());
+    }
 }

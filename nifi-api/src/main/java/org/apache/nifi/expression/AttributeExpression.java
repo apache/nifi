@@ -22,7 +22,7 @@ import org.apache.nifi.registry.VariableRegistry;
 
 /**
  * Defines a type of expression language statement that can be applied
- * parameterized by various attributes and properties as specified in each of
+ * parametrized by various attributes and properties as specified in each of
  * the method calls. AttributeExpression evaluations may be also backed by a
  * {@link VariableRegistry} used to substitute attributes and variables found in
  * the expression for which the registry has a value.

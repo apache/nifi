@@ -90,7 +90,7 @@ public class MonitorMemoryTest {
     public void doValidate(String threshold) throws Exception {
         CapturingLogger capturingLogger = this.wrapAndReturnCapturingLogger();
         ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName());
-        reportingTask.setScheduldingPeriod("1 sec");
+        reportingTask.setSchedulingPeriod("1 sec");
         reportingTask.setProperty(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "PS Old Gen");
         reportingTask.setProperty(MonitorMemory.REPORTING_INTERVAL.getName(), "100 millis");
         reportingTask.setProperty(MonitorMemory.THRESHOLD_PROPERTY.getName(), threshold);

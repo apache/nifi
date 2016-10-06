@@ -24,12 +24,12 @@
 
 #fill-color-dialog {
     display: none;
-    width: 215px;
+    width: 240px;
     height: 470px;
 }
 
 #fill-color-value {
-    width: 100%;
+    width: 175px;
 }
 
 #fill-color-processor-preview {
@@ -58,19 +58,26 @@ div.connections-component-name {
     text-overflow: ellipsis;
 }
 
+#connections-dialog {
+    height: 400px;
+    width: 680px;
+}
+
+#connections-context {
+    padding: 5px;
+}
+
 #connections-source {
     float: left;
 }
 
 #connections-destination {
     float: left;
-    margin-left: 370px;
+    margin-left: 360px;
 }
 
 #connections-container {
     width: 612px;
-    height: 190px;
-    border: 1px solid #aaa;
     padding: 5px;
     overflow-y: auto;
 }

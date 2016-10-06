@@ -172,7 +172,7 @@ public class TestListenUDP {
     }
 
     @Test
-    public void testRunWhenNoEventsAvailale() throws IOException, InterruptedException {
+    public void testRunWhenNoEventsAvailable() throws IOException, InterruptedException {
         final List<StandardEvent> mockEvents = new ArrayList<>();
 
         MockListenUDP mockListenUDP = new MockListenUDP(mockEvents);

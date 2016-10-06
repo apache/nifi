@@ -230,7 +230,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
                 Integer limit = partitionSize == 0 ? null : partitionSize;
                 Integer offset = partitionSize == 0 ? null : i * partitionSize;
-                final String query = dbAdapter.getSelectStatement(tableName, columnNames, StringUtils.join(maxValueClauses, " AND "), null, limit, offset);
+                final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
                 sqlFlowFile = session.create();
                 sqlFlowFile = session.write(sqlFlowFile, out -> {
                     out.write(query.getBytes());

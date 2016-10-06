@@ -25,7 +25,7 @@ import java.util.Set;
 public interface TemplateDAO {
 
     /**
-     * Verifies a new template can be created with the specifed name in the specified group.
+     * Verifies a new template can be created with the specified name in the specified group.
      *
      * @param name template name
      * @param groupId group id

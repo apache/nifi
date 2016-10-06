@@ -257,7 +257,7 @@ The `nifi.login.identity.provider.configuration.file` property specifies the con
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
 used. If this property is not configured, NiFi will not support username/password authentication and will require client
 certificates for authenticating users over HTTPS. By default, this property is not configured meaning that username/password must be
-explicity enabled.
+explicitly enabled.
 
 NiFi does not perform user authentication over HTTP. Using HTTP all users will be granted all roles.
 
@@ -2109,7 +2109,7 @@ that is specified.
 |====
 |*Property*|*Description*
 |nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. At this time, only a single krb5 file is allowed to
-    be specified per NiFi instance, so this property is configured here to support SPNEGO and service principles rather than in individual Processors.
+    be specified per NiFi instance, so this property is configured here to support SPNEGO and service principals rather than in individual Processors.
     If necessary the krb5 file can support multiple realms.
     Example: `/etc/krb5.conf`
 |nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.

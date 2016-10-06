@@ -54,7 +54,7 @@ public class TestPutSQS {
     }
 
     @Test
-    public void testSimplePutUsingCredentailsProviderService() throws Throwable {
+    public void testSimplePutUsingCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
 
         runner.setProperty(PutSQS.TIMEOUT, "30 secs");

@@ -28,7 +28,7 @@ import kafka.utils.ZKStringSerializer;
 import scala.collection.JavaConversions;
 
 /**
- * Utility class to support interruction with Kafka internals.
+ * Utility class to support interaction with Kafka internals.
  *
  */
 class KafkaUtils {

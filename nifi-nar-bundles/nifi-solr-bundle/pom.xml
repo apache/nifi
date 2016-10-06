@@ -28,7 +28,7 @@
     <description>A bundle of processors that can store and retrieve data from Apache Solr</description>
 
     <properties>
-        <solr.version>5.1.0</solr.version>
+        <solr.version>6.2.0</solr.version>
     </properties>
 
     <modules>
@@ -38,11 +38,11 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- overriding these for solrj which needs 4.3.x -->
+            <!-- overriding these for solrj which needs 4.4.x -->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.3.1</version>
+                <version>4.4.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

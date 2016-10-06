@@ -29,6 +29,7 @@ import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -127,8 +128,41 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeProperties(configurableComponent, xmlStreamWriter);
         writeDynamicProperties(configurableComponent, xmlStreamWriter);
         writeAdditionalBodyInfo(configurableComponent, xmlStreamWriter);
+        writeStatefulInfo(configurableComponent, xmlStreamWriter);
         writeSeeAlso(configurableComponent, xmlStreamWriter);
         xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Write the description of the Stateful annotation if provided in this component.
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
+     */
+    private void writeStatefulInfo(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+        final Stateful stateful = configurableComponent.getClass().getAnnotation(Stateful.class);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "State management: ");
+
+        if(stateful != null) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "stateful");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Scope");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "td", join(stateful.scopes(), ", "));
+            writeSimpleElement(xmlStreamWriter, "td", stateful.description());
+            xmlStreamWriter.writeEndElement();
+
+            xmlStreamWriter.writeEndElement();
+        } else {
+            xmlStreamWriter.writeCharacters("This processor has no state management.");
+        }
     }
 
     /**
@@ -202,11 +236,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeEndElement();
     }
 
-    static String join(final String[] toJoin, final String delimiter) {
+    static String join(final Object[] objects, final String delimiter) {
         final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < toJoin.length; i++) {
-            sb.append(toJoin[i]);
-            if (i < toJoin.length - 1) {
+        for (int i = 0; i < objects.length; i++) {
+            sb.append(objects[i].toString());
+            if (i < objects.length - 1) {
                 sb.append(delimiter);
             }
         }

@@ -276,7 +276,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             reportingTask.setName(name);
         }
         if (isNotNull(schedulingPeriod)) {
-            reportingTask.setScheduldingPeriod(schedulingPeriod);
+            reportingTask.setSchedulingPeriod(schedulingPeriod);
         }
         if (isNotNull(annotationData)) {
             reportingTask.setAnnotationData(annotationData);

@@ -1,0 +1,57 @@
+{
+
+    "took": 3,
+    "timed_out": false,
+    "_shards": {
+        "total": 5,
+        "successful": 5,
+        "failed": 0
+    },
+    "hits": {
+        "total": 3,
+        "max_score": null,
+        "hits": [
+            {
+                "_index": "myindex",
+                "_type": "provenance",
+                "_id": "abc-97b-ASVsZu_vShwtGCJpGOObmuSqUJRUC3L_-SEND-S3",
+                "_score": null,
+                "_source": {
+                    "timestamp": "2016-07-22T14:47:08.102Z",
+                    "event_type": "SEND",
+                    "source": "Twitter",
+                    "identifier": "abc-97b",
+                    "transit_type": "S3",
+                    "transit_uri": "file://cluster2/data/outgoing/S3/abc-97b.zip",
+                    "object_type": "Provenance Record",
+                    "version": "ASVsZu_vShwtGCJpGOObmuSqUJRUC3L_",
+                    "file_size": "3645525"
+                },
+                "sort": [
+                    1469198828102
+                ]
+            },
+            {
+			    "_index": "myindex",
+			    "_type": "provenance",
+			    "_id": "abc-a78-SjJkrwnv6edIRqJChEYzrE7PeT1hzioz-SEND-S3",
+			    "_score": null,
+			    "_source": {
+			        "timestamp": "2016-07-22T14:47:08.101Z",
+			        "event_type": "SEND",
+			        "source": "Twitter",
+			        "identifier": "abc-a78",
+			        "transit_type": "S3",
+			        "transit_uri": "file://cluster2/data/outgoing/S3/abc-a78.zip",
+			        "object_type": "Provenance Record",
+			        "version": "SjJkrwnv6edIRqJChEYzrE7PeT1hzioz",
+			        "file_size": "4480294"
+			    },
+			    "sort": [
+			        1469198828101
+			    ]
+			
+			}
+         ]
+     }
+ }

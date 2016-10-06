@@ -152,7 +152,7 @@ public class ControllerServiceReferencingComponentDTO {
      * @return descriptors for the components properties
      */
     @ApiModelProperty(
-            value = "The descriptors for the componet properties."
+            value = "The descriptors for the component properties."
     )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -194,7 +194,7 @@ public class ControllerServiceReferencingComponentDTO {
      * @return If this referencing component represents a ControllerService, these are the components that reference it
      */
     @ApiModelProperty(
-            value = "If the referencing component represents a controller service, these are the components that referenc it."
+            value = "If the referencing component represents a controller service, these are the components that reference it."
     )
     public Set<ControllerServiceReferencingComponentEntity> getReferencingComponents() {
         return referencingComponents;

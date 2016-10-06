@@ -17,6 +17,12 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,12 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private static final Logger logger = LoggerFactory.getLogger(StandardAsyncClusterResponse.class);
 
@@ -40,10 +40,11 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private final Set<NodeIdentifier> nodeIds;
     private final URI uri;
     private final String method;
-    private final HttpResponseMerger responseMerger;
+    private final HttpResponseMapper responseMapper;
     private final CompletionCallback completionCallback;
     private final Runnable completedResultFetchedCallback;
     private final long creationTimeNanos;
+    private final boolean merge;
 
     private final Map<NodeIdentifier, ResponseHolder> responseMap = new HashMap<>();
     private final AtomicInteger requestsCompleted = new AtomicInteger(0);
@@ -52,18 +53,19 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
     private RuntimeException failure; // guarded by synchronizing on this
 
     public StandardAsyncClusterResponse(final String id, final URI uri, final String method, final Set<NodeIdentifier> nodeIds,
-        final HttpResponseMerger responseMerger, final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback) {
+                                        final HttpResponseMapper responseMapper, final CompletionCallback completionCallback, final Runnable completedResultFetchedCallback, final boolean merge) {
         this.id = id;
         this.nodeIds = Collections.unmodifiableSet(new HashSet<>(nodeIds));
         this.uri = uri;
         this.method = method;
+        this.merge = merge;
 
         creationTimeNanos = System.nanoTime();
         for (final NodeIdentifier nodeId : nodeIds) {
             responseMap.put(nodeId, new ResponseHolder(creationTimeNanos));
         }
 
-        this.responseMerger = responseMerger;
+        this.responseMapper = responseMapper;
         this.completionCallback = completionCallback;
         this.completedResultFetchedCallback = completedResultFetchedCallback;
     }
@@ -142,7 +144,7 @@ public class StandardAsyncClusterResponse implements AsyncClusterResponse {
             .map(p -> p.getResponse())
             .filter(response -> response != null)
             .collect(Collectors.toSet());
-        mergedResponse = responseMerger.mergeResponses(uri, method, nodeResponses);
+        mergedResponse = responseMapper.mapResponses(uri, method, nodeResponses, merge);
 
         logger.debug("Notifying all that merged response is complete for {}", id);
         this.notifyAll();

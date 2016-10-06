@@ -894,6 +894,11 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-toolkit-s2s</artifactId>
+                <version>1.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
@@ -1716,8 +1721,7 @@ language governing permissions and limitations under the License. -->
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.travis.yml</exclude> <!-- Travis CI Build Descriptor File -->
-                        <exclude>appveyor.yml</exclude> <!-- AppVeyor CI Build Descriptor File -->
+                        <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
                     </excludes>
                 </configuration>
                 <dependencies>

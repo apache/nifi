@@ -208,7 +208,7 @@ input[type=text], input[type=password], textarea {
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
     font-size: 13px;
-    padding: 0px 0px 0px 10px;
+    padding: 0px 10px 0px 10px;
     resize: none;
     height: 32px;
     width: 100%;
@@ -216,6 +216,9 @@ input[type=text], input[type=password], textarea {
     -moz-box-sizing: border-box; /* Firefox, other Gecko */
     box-sizing: border-box;
     color: #262626;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 input:focus, textarea:focus {

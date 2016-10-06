@@ -41,7 +41,6 @@ public class GetAzureEventHubTest {
     private static final String sasKeyName = "bogus-policy";
     private static final String sasKey = "9rHmHqxoOVWOb8wS09dvqXYxnNiLqxNMCbmt6qMaQyU!";
 
-
     private TestRunner testRunner;
     private MockGetAzureEventHub processor;
 
@@ -63,7 +62,10 @@ public class GetAzureEventHubTest {
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
         testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME,"2015-12-22T21:55:10.000Z");
+        testRunner.assertValid();
     }
+    
     @Test
     public void verifyRelationships(){
 

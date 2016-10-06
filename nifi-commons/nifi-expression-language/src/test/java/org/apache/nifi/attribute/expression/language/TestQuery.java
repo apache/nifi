@@ -1021,6 +1021,22 @@ public class TestQuery {
     }
 
     @Test
+    public void testBase64Encode(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("userpass", "admin:admin");
+        verifyEquals("${userpass:base64Encode()}", attributes, "YWRtaW46YWRtaW4=");
+
+    }
+
+    @Test
+    public void testBase64Decode(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("userpassbase64", "YWRtaW46YWRtaW4=");
+        verifyEquals("${userpassbase64:base64Decode()}", attributes, "admin:admin");
+
+    }
+
+    @Test
     public void testDateFormatConversion() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("blue", "20130917162643");

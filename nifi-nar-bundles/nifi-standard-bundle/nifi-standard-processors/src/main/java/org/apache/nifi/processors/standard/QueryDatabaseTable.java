@@ -270,11 +270,6 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                             fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
                         }
 
-                        // Add maximum values as attributes
-                        for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
-                            fileToProcess = session.putAttribute(fileToProcess, "maxvalue." + entry.getKey(), entry.getValue());
-                        }
-
                         logger.info("{} contains {} Avro records; transferring to 'success'",
                                 new Object[]{fileToProcess, nrOfRows.get()});
 
@@ -290,13 +285,19 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     fragmentIndex++;
                 }
 
-                //set count on all FlowFiles
-                if(maxRowsPerFlowFile > 0) {
-                    for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                    // Add maximum values as attributes
+                    for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
+                        resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + entry.getKey(), entry.getValue()));
+                    }
+
+                    //set count on all FlowFiles
+                    if(maxRowsPerFlowFile > 0) {
                         resultSetFlowFiles.set(i,
                                 session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
                     }
                 }
+
             } catch (final SQLException e) {
                 throw e;
             }

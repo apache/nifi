@@ -18,7 +18,10 @@
  */
 package org.apache.nifi.processors.solr;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -28,12 +31,16 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.HttpClientUtil;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.Krb5HttpClientConfigurer;
 import org.apache.solr.common.params.ModifiableSolrParams;
 
+import javax.net.ssl.SSLContext;
+import javax.security.auth.login.Configuration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,6 +81,22 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor JAAS_CLIENT_APP_NAME = new PropertyDescriptor
+            .Builder().name("JAAS Client App Name")
+            .description("The name of the JAAS configuration entry to use when performing Kerberos authentication to Solr. If this property is " +
+                    "not provided, Kerberos authentication will not be attempted. The value must match an entry in the file specified by the " +
+                    "system property java.security.auth.login.config.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context. This property must be set when communicating with a Solr over https.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
             .build();
 
     public static final PropertyDescriptor SOLR_SOCKET_TIMEOUT = new PropertyDescriptor
@@ -155,6 +178,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
         final Integer connectionTimeout = context.getProperty(SOLR_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final Integer maxConnections = context.getProperty(SOLR_MAX_CONNECTIONS).asInteger();
         final Integer maxConnectionsPerHost = context.getProperty(SOLR_MAX_CONNECTIONS_PER_HOST).asInteger();
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final String jaasClientAppName = context.getProperty(JAAS_CLIENT_APP_NAME).getValue();
 
         final ModifiableSolrParams params = new ModifiableSolrParams();
         params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
@@ -162,7 +187,20 @@ public abstract class SolrProcessor extends AbstractProcessor {
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
         params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
 
+        // has to happen before the client is created below so that correct configurer would be set if neeeded
+        if (!StringUtils.isEmpty(jaasClientAppName)) {
+            System.setProperty("solr.kerberos.jaas.appname", jaasClientAppName);
+            HttpClientUtil.setConfigurer(new Krb5HttpClientConfigurer());
+        }
+
         final HttpClient httpClient = HttpClientUtil.createClient(params);
+
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+            final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(sslContext);
+            final Scheme httpsScheme = new Scheme("https", 443, sslSocketFactory);
+            httpClient.getConnectionManager().getSchemeRegistry().register(httpsScheme);
+        }
 
         if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
             return new HttpSolrClient(solrLocation, httpClient);
@@ -201,6 +239,51 @@ public abstract class SolrProcessor extends AbstractProcessor {
                         .input(collection).valid(false)
                         .explanation("A collection must specified for Solr Type of Cloud")
                         .build());
+            }
+        }
+
+        // If a JAAS Client App Name is provided then the system property for the JAAS config file must be set,
+        // and that config file must contain an entry for the name provided by the processor
+        final String jaasAppName = context.getProperty(JAAS_CLIENT_APP_NAME).getValue();
+        if (!StringUtils.isEmpty(jaasAppName)) {
+            final String loginConf = System.getProperty(Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP);
+            if (StringUtils.isEmpty(loginConf)) {
+                problems.add(new ValidationResult.Builder()
+                        .subject(JAAS_CLIENT_APP_NAME.getDisplayName())
+                        .valid(false)
+                        .explanation("the system property " + Krb5HttpClientConfigurer.LOGIN_CONFIG_PROP + " must be set when providing a JAAS Client App Name")
+                        .build());
+            } else {
+                final Configuration config = javax.security.auth.login.Configuration.getConfiguration();
+                if (config.getAppConfigurationEntry(jaasAppName) == null) {
+                    problems.add(new ValidationResult.Builder()
+                            .subject(JAAS_CLIENT_APP_NAME.getDisplayName())
+                            .valid(false)
+                            .explanation("'" + jaasAppName + "' does not exist in " + loginConf)
+                            .build());
+                }
+            }
+        }
+
+        // For solr cloud the location will be the ZooKeeper host:port so we can't validate the SSLContext, but for standard solr
+        // we can validate if the url starts with https we need an SSLContextService, if it starts with http we can't have an SSLContextService
+        if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
+            final String solrLocation = context.getProperty(SOLR_LOCATION).getValue();
+            if (solrLocation != null) {
+                final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+                if (solrLocation.startsWith("https:") && sslContextService == null) {
+                    problems.add(new ValidationResult.Builder()
+                            .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                            .valid(false)
+                            .explanation("an SSLContextService must be provided when using https")
+                            .build());
+                } else if (solrLocation.startsWith("http:") && sslContextService != null) {
+                    problems.add(new ValidationResult.Builder()
+                            .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                            .valid(false)
+                            .explanation("an SSLContextService can not be provided when using http")
+                            .build());
+                }
             }
         }
 

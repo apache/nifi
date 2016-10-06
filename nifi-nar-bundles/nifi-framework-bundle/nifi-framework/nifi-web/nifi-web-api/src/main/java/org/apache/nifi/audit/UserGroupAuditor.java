@@ -96,7 +96,7 @@ public class UserGroupAuditor extends NiFiAuditor {
             + "args(userGroupDTO) && "
             + "target(userGroupDAO)")
     public Group updateUserAdvice(ProceedingJoinPoint proceedingJoinPoint, UserGroupDTO userGroupDTO, UserGroupDAO userGroupDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         Group user = userGroupDAO.getUserGroup(userGroupDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(user, userGroupDTO);
 

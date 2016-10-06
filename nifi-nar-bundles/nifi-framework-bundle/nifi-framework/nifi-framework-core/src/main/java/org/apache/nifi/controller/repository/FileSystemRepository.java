@@ -120,7 +120,7 @@ public class FileSystemRepository implements ContentRepository {
 
     private ResourceClaimManager resourceClaimManager; // effectively final
 
-    // Map of contianer to archived files that should be deleted next.
+    // Map of container to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
 
     // guarded by synchronizing on this

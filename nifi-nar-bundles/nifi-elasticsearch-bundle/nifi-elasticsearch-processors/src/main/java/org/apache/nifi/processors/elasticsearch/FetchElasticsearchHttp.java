@@ -104,7 +104,8 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("fetch-es-index")
             .displayName("Index")
-            .description("The name of the index to read from")
+            .description("The name of the index to read from. If the property is set "
+                    + "to _all, the query will match across all indexes.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -113,8 +114,8 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
             .name("fetch-es-type")
             .displayName("Type")
-            .description("The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty or set "
-                    + "to _all, the first document matching the identifier across all types will be retrieved.")
+            .description("The (optional) type of this document, used by Elasticsearch for indexing and searching. If the property is empty, "
+                    + "the first document matching the identifier across all types will be retrieved.")
             .required(false)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -297,8 +298,10 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             throw new MalformedURLException("Base URL cannot be null");
         }
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder();
-        builder.addPathSegment(index);
-        builder.addPathSegment((StringUtils.isEmpty(type)) ? "_all" : type);
+        builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
+        if (!StringUtils.isEmpty(type)) {
+            builder.addPathSegment(type);
+        }
         builder.addPathSegment(docId);
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));

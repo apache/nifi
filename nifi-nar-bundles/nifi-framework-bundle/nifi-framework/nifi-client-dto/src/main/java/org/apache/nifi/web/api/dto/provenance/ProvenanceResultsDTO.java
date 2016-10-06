@@ -128,7 +128,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * @return time offset on the server thats used for event time
+     * @return time offset on the server that's used for event time
      */
     @ApiModelProperty(
             value = "The time offset of the server that's used for event time."

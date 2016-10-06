@@ -98,6 +98,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     };
 
+    private static final Authorizable SYSTEM_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getSystemResource();
+        }
+    };
+
     // nifi core components
     private ControllerFacade controllerFacade;
 
@@ -392,8 +404,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
-        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
+    public Authorizable getControllerServiceReferencingComponent(String controllerServiceId, String id) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
         final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
 
@@ -706,6 +718,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public Authorizable getConnectable(String id) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
         return group.findConnectable(id);
+    }
+
+    @Override
+    public Authorizable getSystem() {
+        return SYSTEM_AUTHORIZABLE;
     }
 
     public void setProcessorDAO(ProcessorDAO processorDAO) {

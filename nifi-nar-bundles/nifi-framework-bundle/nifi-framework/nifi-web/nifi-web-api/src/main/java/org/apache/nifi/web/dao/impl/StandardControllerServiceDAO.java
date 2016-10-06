@@ -159,7 +159,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
 
-        // this request is either acting upon referncing services or schedulable components
+        // this request is either acting upon referencing services or schedulable components
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
                 return serviceProvider.enableReferencingServices(controllerService);

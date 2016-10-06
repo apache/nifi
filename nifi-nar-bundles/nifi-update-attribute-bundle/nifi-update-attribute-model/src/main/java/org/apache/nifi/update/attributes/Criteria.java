@@ -102,7 +102,7 @@ public class Criteria {
             throw new IllegalArgumentException("New rule order does not account for all known rules or contains unknown rules.");
         }
 
-        // create the new rule lookup - using a LinkedHashMap to perserve insertion order
+        // create the new rule lookup - using a LinkedHashMap to preserve insertion order
         final Map<String, Rule> newRuleLookup = new LinkedHashMap<>();
         for (final String ruleId : newRuleOrder) {
             newRuleLookup.put(ruleId, rules.get(ruleId));

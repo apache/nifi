@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.util.hive;
 
-/**
- * Created by mburgess on 5/4/16.
- */
 public class AuthenticationFailedException extends Exception {
     public AuthenticationFailedException(String reason, Exception cause) {
         super(reason, cause);

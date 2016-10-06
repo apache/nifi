@@ -140,7 +140,7 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
         // Since we get back up to the maximum number of results from each node, we need to sort those values and then
         // grab only the first X number of them. We do a sort based on time, such that the newest are included.
         // If 2 events have the same timestamp, we do a secondary sort based on Cluster Node Identifier. If those are
-        // equal, we perform a terciary sort based on the the event id
+        // equal, we perform a tertiary sort based on the the event id
         Collections.sort(allResults, new Comparator<ProvenanceEventDTO>() {
             @Override
             public int compare(final ProvenanceEventDTO o1, final ProvenanceEventDTO o2) {

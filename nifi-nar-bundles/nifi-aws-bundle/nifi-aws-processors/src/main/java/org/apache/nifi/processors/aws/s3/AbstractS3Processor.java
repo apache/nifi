@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -114,13 +115,24 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .expressionLanguageSupported(true)
             .defaultValue("${filename}")
             .build();
-
+    public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("Signer Override")
+            .description("The AWS libraries use the default signer but this property allows you to specify a custom signer to support older S3-compatible services.")
+            .required(false)
+            .allowableValues(
+                    new AllowableValue("Default Signature", "Default Signature"),
+                    new AllowableValue("AWSS3V4Signer", "Signature v4"),
+                    new AllowableValue("S3SignerType", "Signature v2"))
+            .defaultValue("Default Signature")
+            .build();
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client with credentials provider");
+
+        initializeSignerOverride(context, config);
 
         final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
 
@@ -138,6 +150,14 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
+        String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
+
+        if (signer != null && !signer.equals(SIGNER_OVERRIDE.getDefaultValue())) {
+            config.setSignerOverride(signer);
+        }
+    }
+
     /**
      * Create client using AWSCredentials
      *
@@ -146,6 +166,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client with AWS credentials");
+
+        initializeSignerOverride(context, config);
 
         final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
 

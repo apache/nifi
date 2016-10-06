@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ConnectionEntitys.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ConnectionEntity.
  */
 @XmlRootElement(name = "connectionsEntity")
 public class ConnectionsEntity extends Entity {
@@ -28,7 +28,7 @@ public class ConnectionsEntity extends Entity {
     private Set<ConnectionEntity> connections;
 
     /**
-     * @return list of ConnectionEntitys that are being serialized
+     * @return list of ConnectionEntity that are being serialized
      */
     public Set<ConnectionEntity> getConnections() {
         return connections;

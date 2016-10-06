@@ -31,11 +31,11 @@ public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
     private static final Logger logger = LoggerFactory.getLogger(OtpAuthenticationFilter.class);
 
     private static final Pattern PROVENANCE_DOWNLOAD_PATTERN =
-        Pattern.compile("/controller/provenance/events/[0-9]+/content/(?:(?:output)|(?:input))");
+        Pattern.compile("/provenance-events/([0-9]+)/content/((?:input)|(?:output))");
     private static final Pattern QUEUE_DOWNLOAD_PATTERN =
-        Pattern.compile("/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections/[a-f0-9\\-]{36}/flowfiles/[a-f0-9\\-]{36}/content");
+        Pattern.compile("/flowfile-queues/([a-f0-9\\-]{36})/flowfiles/([a-f0-9\\-]{36})/content");
     private static final Pattern TEMPLATE_DOWNLOAD_PATTERN =
-        Pattern.compile("/controller/templates/[a-f0-9\\-]{36}");
+        Pattern.compile("/templates/[a-f0-9\\-]{36}/download");
 
     protected static final String ACCESS_TOKEN = "access_token";
 

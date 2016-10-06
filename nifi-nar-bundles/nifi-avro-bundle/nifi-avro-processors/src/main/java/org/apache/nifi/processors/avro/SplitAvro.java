@@ -27,7 +27,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -43,11 +45,14 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -65,6 +70,15 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Splits a binary encoded Avro datafile into smaller files based on the configured Output Size. The Output Strategy determines if " +
         "the smaller files will be Avro datafiles, or bare Avro records with metadata in the FlowFile attributes. The output will always be binary encoded.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "fragment.identifier",
+                description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+        @WritesAttribute(attribute = "fragment.index",
+                description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+        @WritesAttribute(attribute = "fragment.count",
+                description = "The number of split FlowFiles generated from the parent FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")
+})
 public class SplitAvro extends AbstractProcessor {
 
     public static final String RECORD_SPLIT_VALUE = "Record";
@@ -200,10 +214,18 @@ public class SplitAvro extends AbstractProcessor {
 
         try {
             final List<FlowFile> splits = splitter.split(session, flowFile, splitWriter);
-            session.transfer(splits, REL_SPLIT);
+            final String fragmentIdentifier = UUID.randomUUID().toString();
+            IntStream.range(0, splits.size()).forEach((i) -> {
+                FlowFile split = splits.get(i);
+                split = session.putAttribute(split, "fragment.identifier", fragmentIdentifier);
+                split = session.putAttribute(split, "fragment.index", Integer.toString(i));
+                split = session.putAttribute(split, "segment.original.filename", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                split = session.putAttribute(split, "fragment.count", Integer.toString(splits.size()));
+                session.transfer(split, REL_SPLIT);
+            });
             session.transfer(flowFile, REL_ORIGINAL);
         } catch (ProcessException e) {
-            getLogger().error("Failed to split {} due to {}", new Object[] {flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to split {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }

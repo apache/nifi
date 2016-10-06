@@ -86,9 +86,9 @@ public class BinaryReader {
     }
 
     /**
-     * Returns the byte that would be read without changing the posiiton
+     * Returns the byte that would be read without changing the position
      *
-     * @return the byte that would be read without changing the posiiton
+     * @return the byte that would be read without changing the position
      */
     public int peek() {
         return bytes[position];
