@@ -19,8 +19,8 @@ package org.apache.nifi.minifi.bootstrap.configuration;
 import java.io.InputStream;
 
 /**
- * Interface for handling events detected and driven by an associated {@link ConfigurationChangeNotifier} to which the listener
- * has registered via {@link ConfigurationChangeNotifier#registerListener(ConfigurationChangeListener)}.
+ * Interface for handling events detected and driven by an associated {@link ConfigurationChangeCoordinator} to which the listener
+ * has registered via {@link ConfigurationChangeCoordinator#registerListener(ConfigurationChangeListener)}.
  */
 public interface ConfigurationChangeListener {
 

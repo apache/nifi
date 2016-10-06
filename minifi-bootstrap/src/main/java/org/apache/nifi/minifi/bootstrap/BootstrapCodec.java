@@ -110,7 +110,7 @@ public class BootstrapCodec {
             break;
             case "SHUTDOWN": {
                 logger.debug("Received 'SHUTDOWN' command from MINIFI");
-                runner.shutdownChangeNotifiers();
+                runner.shutdownChangeNotifier();
                 runner.shutdownPeriodicStatusReporters();
                 writer.write("OK");
                 writer.newLine();

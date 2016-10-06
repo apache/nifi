@@ -35,6 +35,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -57,14 +58,16 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.io.input.TeeInputStream;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
@@ -90,7 +93,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * <p>
  * If the {@code bootstrap.conf} file cannot be found, throws a {@code FileNotFoundException}.
  */
-public class RunMiNiFi implements QueryableStatusAggregator {
+public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHolder {
 
     public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
     public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
@@ -143,10 +146,17 @@ public class RunMiNiFi implements QueryableStatusAggregator {
     private volatile Set<Future<?>> loggingFutures = new HashSet<>(2);
     private volatile int gracefulShutdownSeconds;
 
-    private Set<ConfigurationChangeNotifier> changeNotifiers;
     private Set<PeriodicStatusReporter> periodicStatusReporters;
 
+    private ConfigurationChangeCoordinator changeCoordinator;
     private MiNiFiConfigurationChangeListener changeListener;
+
+    private final AtomicReference<ByteBuffer> currentConfigFileReference = new AtomicReference<>();
+
+    @Override
+    public AtomicReference<ByteBuffer> getConfigFileReference() {
+        return currentConfigFileReference;
+    }
 
     // Is set to true after the MiNiFi instance shuts down in preparation to be reloaded. Will be set to false after MiNiFi is successfully started again.
     private AtomicBoolean reloading = new AtomicBoolean(false);
@@ -1098,8 +1108,9 @@ public class RunMiNiFi implements QueryableStatusAggregator {
 
         final String confDir = getBootstrapProperties().getProperty(CONF_DIR_KEY);
         final File configFile = new File(getBootstrapProperties().getProperty(MINIFI_CONFIG_FILE_KEY));
-        try {
-            performTransformation(new FileInputStream(configFile), confDir);
+        try (InputStream inputStream = new FileInputStream(configFile)) {
+            ByteBuffer tempConfigFile = performTransformation(inputStream, confDir);
+            currentConfigFileReference.set(tempConfigFile.asReadOnlyBuffer());
         } catch (ConfigurationChangeException e) {
             defaultLogger.error("The config file is malformed, unable to start.", e);
             return;
@@ -1111,11 +1122,11 @@ public class RunMiNiFi implements QueryableStatusAggregator {
             return;
         }
 
-        // Instantiate configuration listener and configured notifiers
+        // Instantiate configuration listener and configured ingestors
         this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
-        this.changeNotifiers = initializeNotifiers(this.changeListener);
         this.periodicStatusReporters = initializePeriodicNotifiers();
         startPeriodicNotifiers();
+        this.changeCoordinator = initializeNotifier(this.changeListener);
 
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();
@@ -1136,7 +1147,7 @@ public class RunMiNiFi implements QueryableStatusAggregator {
                                 if (swapConfigFile.delete()) {
                                     defaultLogger.info("Swap file was successfully deleted.");
                                 } else {
-                                    defaultLogger.info("Swap file was not deleted.");
+                                    defaultLogger.error("Swap file was not deleted. It should be deleted manually.");
                                 }
                             }
 
@@ -1180,7 +1191,8 @@ public class RunMiNiFi implements QueryableStatusAggregator {
                                 defaultLogger.info("Swap file exists, MiNiFi failed trying to change configuration. Reverting to old configuration.");
 
                                 try {
-                                    performTransformation(new FileInputStream(swapConfigFile), confDir);
+                                    ByteBuffer tempConfigFile = performTransformation(new FileInputStream(swapConfigFile), confDir);
+                                    currentConfigFileReference.set(tempConfigFile.asReadOnlyBuffer());
                                 } catch (ConfigurationChangeException e) {
                                     defaultLogger.error("The swap file is malformed, unable to restart from prior state. Will not attempt to restart MiNiFi. Swap File should be cleaned up manually.");
                                     return;
@@ -1228,7 +1240,7 @@ public class RunMiNiFi implements QueryableStatusAggregator {
                 }
             }
         } finally {
-            shutdownChangeNotifiers();
+            shutdownChangeNotifier();
             shutdownPeriodicStatusReporters();
         }
     }
@@ -1424,41 +1436,26 @@ public class RunMiNiFi implements QueryableStatusAggregator {
         }
     }
 
-    public void shutdownChangeNotifiers() {
-        for (ConfigurationChangeNotifier notifier : getChangeNotifiers()) {
-            try {
-                notifier.close();
-            } catch (IOException e) {
-                defaultLogger.warn("Could not successfully stop notifier {}", notifier.getClass(), e);
-            }
+    public void shutdownChangeNotifier() {
+        try {
+            getChangeCoordinator().close();
+        } catch (IOException e) {
+            defaultLogger.warn("Could not successfully stop notifier ", e);
         }
     }
 
-    public Set<ConfigurationChangeNotifier> getChangeNotifiers() {
-        return Collections.unmodifiableSet(changeNotifiers);
+    public ConfigurationChangeCoordinator getChangeCoordinator() {
+        return changeCoordinator;
     }
 
-    private Set<ConfigurationChangeNotifier> initializeNotifiers(ConfigurationChangeListener configChangeListener) throws IOException {
-        final Set<ConfigurationChangeNotifier> changeNotifiers = new HashSet<>();
-
+    private ConfigurationChangeCoordinator initializeNotifier(ConfigurationChangeListener configChangeListener) throws IOException {
         final Properties bootstrapProperties = getBootstrapProperties();
 
-        final String notifiersCsv = bootstrapProperties.getProperty(NOTIFIER_COMPONENTS_KEY);
-        if (notifiersCsv != null && !notifiersCsv.isEmpty()) {
-            for (String notifierClassname : Arrays.asList(notifiersCsv.split(","))) {
-                try {
-                    Class<?> notifierClass = Class.forName(notifierClassname);
-                    ConfigurationChangeNotifier notifier = (ConfigurationChangeNotifier) notifierClass.newInstance();
-                    notifier.initialize(bootstrapProperties);
-                    changeNotifiers.add(notifier);
-                    notifier.registerListener(configChangeListener);
-                    notifier.start();
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-                    throw new RuntimeException("Issue instantiating notifier " + notifierClassname, e);
-                }
-            }
-        }
-        return changeNotifiers;
+        ConfigurationChangeCoordinator notifier = new ConfigurationChangeCoordinator();
+        notifier.initialize(bootstrapProperties, this, Collections.singleton(configChangeListener));
+        notifier.start();
+
+        return notifier;
     }
 
     public Set<PeriodicStatusReporter> getPeriodicStatusReporters() {
@@ -1506,6 +1503,7 @@ public class RunMiNiFi implements QueryableStatusAggregator {
 
         private final RunMiNiFi runner;
         private final Logger logger;
+        private static final ReentrantLock handlingLock = new ReentrantLock();
 
         public MiNiFiConfigurationChangeListener(RunMiNiFi runner, Logger logger) {
             this.runner = runner;
@@ -1515,7 +1513,12 @@ public class RunMiNiFi implements QueryableStatusAggregator {
         @Override
         public void handleChange(InputStream configInputStream) throws ConfigurationChangeException {
             logger.info("Received notification of a change");
+
+            if (!handlingLock.tryLock()) {
+                throw new ConfigurationChangeException("Instance is already handling another change");
+            }
             try {
+
                 final Properties bootstrapProperties = runner.getBootstrapProperties();
                 final File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
 
@@ -1528,38 +1531,50 @@ public class RunMiNiFi implements QueryableStatusAggregator {
                 }
 
                 // Create an input stream to use for writing a config file as well as feeding to the config transformer
-                final ByteArrayInputStream newConfigBais = new ByteArrayInputStream(bufferedConfigOs.toByteArray());
-                newConfigBais.mark(-1);
+                try (final ByteArrayInputStream newConfigBais = new ByteArrayInputStream(bufferedConfigOs.toByteArray())) {
+                    newConfigBais.mark(-1);
 
-                final File swapConfigFile = runner.getSwapFile(logger);
-                logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
-                Files.copy(new FileInputStream(configFile), swapConfigFile.toPath(), REPLACE_EXISTING);
+                    final File swapConfigFile = runner.getSwapFile(logger);
+                    logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
 
-                try {
-                    logger.info("Persisting changes to {}", configFile.getAbsolutePath());
-                    saveFile(newConfigBais, configFile);
-
-                     try {
-                         // Reset the input stream to provide to the transformer
-                         newConfigBais.reset();
-
-                         final String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
-                         logger.info("Performing transformation for input and saving outputs to {}", confDir);
-                         performTransformation(newConfigBais, confDir);
-
-                         logger.info("Reloading instance with new configuration");
-                         restartInstance();
-                     } catch (Exception e){
-                         logger.debug("Transformation of new config file failed after replacing original with the swap file, reverting.");
-                         Files.copy(new FileInputStream(swapConfigFile), configFile.toPath(), REPLACE_EXISTING);
-                         throw e;
-                     }
-                } catch (Exception e){
-                    logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
-                    if(!swapConfigFile.delete()){
-                        logger.warn("The swap file failed to delete after a failed handling of a change. It should be cleaned up manually.");
+                    try (FileInputStream configFileInputStream = new FileInputStream(configFile)) {
+                        Files.copy(configFileInputStream, swapConfigFile.toPath(), REPLACE_EXISTING);
                     }
-                    throw e;
+
+                    try {
+                        logger.info("Persisting changes to {}", configFile.getAbsolutePath());
+                        saveFile(newConfigBais, configFile);
+                        final String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
+
+                        try {
+                            // Reset the input stream to provide to the transformer
+                            newConfigBais.reset();
+
+                            logger.info("Performing transformation for input and saving outputs to {}", confDir);
+                            ByteBuffer tempConfigFile = performTransformation(newConfigBais, confDir);
+                            runner.currentConfigFileReference.set(tempConfigFile.asReadOnlyBuffer());
+
+                            try {
+                                logger.info("Reloading instance with new configuration");
+                                restartInstance();
+                            } catch (Exception e) {
+                                logger.debug("Transformation of new config file failed after transformation into Flow.xml and nifi.properties, reverting.");
+                                ByteBuffer resetConfigFile = performTransformation(new FileInputStream(swapConfigFile), confDir);
+                                runner.currentConfigFileReference.set(resetConfigFile.asReadOnlyBuffer());
+                                throw e;
+                            }
+                        } catch (Exception e) {
+                            logger.debug("Transformation of new config file failed after replacing original with the swap file, reverting.");
+                            Files.copy(new FileInputStream(swapConfigFile), configFile.toPath(), REPLACE_EXISTING);
+                            throw e;
+                        }
+                    } catch (Exception e) {
+                        logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
+                        if (!swapConfigFile.delete()) {
+                            logger.warn("The swap file failed to delete after a failed handling of a change. It should be cleaned up manually.");
+                        }
+                        throw e;
+                    }
                 }
             } catch (ConfigurationChangeException e){
                 logger.error("Unable to carry out reloading of configuration on receipt of notification event", e);
@@ -1567,6 +1582,15 @@ public class RunMiNiFi implements QueryableStatusAggregator {
             } catch (IOException ioe) {
                 logger.error("Unable to carry out reloading of configuration on receipt of notification event", ioe);
                 throw new ConfigurationChangeException("Unable to perform reload of received configuration change", ioe);
+            } finally {
+                try {
+                    if (configInputStream != null) {
+                        configInputStream.close() ;
+                    }
+                } catch (IOException e) {
+                    // Quietly close
+                }
+                handlingLock.unlock();
             }
         }
 
@@ -1589,8 +1613,6 @@ public class RunMiNiFi implements QueryableStatusAggregator {
             }
         }
 
-
-
         private void restartInstance() throws IOException {
             try {
                 runner.reload();
@@ -1600,9 +1622,13 @@ public class RunMiNiFi implements QueryableStatusAggregator {
         }
     }
 
-    private static void performTransformation(InputStream configIs, String configDestinationPath) throws ConfigurationChangeException, IOException {
-        try {
-            ConfigTransformer.transformConfigFile(configIs, configDestinationPath);
+    private static ByteBuffer performTransformation(InputStream configIs, String configDestinationPath) throws ConfigurationChangeException, IOException {
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                TeeInputStream teeInputStream = new TeeInputStream(configIs, byteArrayOutputStream)) {
+
+            ConfigTransformer.transformConfigFile(teeInputStream, configDestinationPath);
+
+            return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
         } catch (ConfigurationChangeException e){
             throw e;
         } catch (Exception e) {

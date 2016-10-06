@@ -73,6 +73,8 @@
                 <include>jetty-http</include>
                 <include>jetty-io</include>
                 <include>javax.servlet-api</include>
+                <include>commons-io</include>
+                <include>okhttp</include>
             </includes>
         </dependencySet>
 

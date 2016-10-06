@@ -25,8 +25,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 
 public class ShutdownHook extends Thread {
 
@@ -53,13 +53,12 @@ public class ShutdownHook extends Thread {
     public void run() {
         executor.shutdown();
 
-        System.out.println("Initiating shutdown of bootstrap change notifiers...");
-        for (ConfigurationChangeNotifier notifier : runner.getChangeNotifiers()) {
-            try {
-                notifier.close();
-            } catch (IOException ioe) {
-                System.out.println("Could not successfully stop notifier " + notifier.getClass() + " due to " + ioe);
-            }
+        System.out.println("Initiating shutdown of bootstrap change ingestors...");
+        ConfigurationChangeCoordinator notifier = runner.getChangeCoordinator();
+        try {
+            notifier.close();
+        } catch (IOException ioe) {
+            System.out.println("Could not successfully stop notifier due to " + ioe);
         }
 
         System.out.println("Initiating shutdown of bootstrap periodic status reporters...");

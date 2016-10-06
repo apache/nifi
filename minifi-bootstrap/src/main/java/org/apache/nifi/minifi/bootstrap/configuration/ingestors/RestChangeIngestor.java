@@ -15,12 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.notifiers;
+package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.commons.io.input.TeeInputStream;
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -34,54 +38,80 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URI;
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
+import java.util.function.Supplier;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.NOTIFIER_PROPERTY_PREFIX;
+import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
 
-public class RestChangeNotifier implements ConfigurationChangeNotifier {
+public class RestChangeIngestor implements ChangeIngestor {
 
-    private final Set<ConfigurationChangeListener> configurationChangeListeners = new HashSet<>();
-    private final static Logger logger = LoggerFactory.getLogger(RestChangeNotifier.class);
-    private String configFile = null;
-    private final Server jetty;
+    private static final Map<String, Supplier<Differentiator<InputStream>>> DIFFERENTIATOR_CONSTRUCTOR_MAP;
+
+    static {
+        HashMap<String, Supplier<Differentiator<InputStream>>> tempMap = new HashMap<>();
+        tempMap.put(WHOLE_CONFIG_KEY, WholeConfigDifferentiator::getInputStreamDifferentiator);
+
+        DIFFERENTIATOR_CONSTRUCTOR_MAP = Collections.unmodifiableMap(tempMap);
+    }
+
+
     public static final String GET_TEXT = "This is a config change listener for an Apache NiFi - MiNiFi instance.\n" +
             "Use this rest server to upload a conf.yml to configure the MiNiFi instance.\n" +
             "Send a POST http request to '/' to upload the file.";
-    public static final String OTHER_TEXT ="This is not a support HTTP operation. Please use GET to get more information or POST to upload a new config.yml file.\n";
-
-
+    public static final String OTHER_TEXT = "This is not a support HTTP operation. Please use GET to get more information or POST to upload a new config.yml file.\n";
     public static final String POST = "POST";
     public static final String GET = "GET";
+    private final static Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
+    private static final String RECEIVE_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".receive.http";
+    public static final String PORT_KEY = RECEIVE_HTTP_BASE_KEY + ".port";
+    public static final String HOST_KEY = RECEIVE_HTTP_BASE_KEY + ".host";
+    public static final String TRUSTSTORE_LOCATION_KEY = RECEIVE_HTTP_BASE_KEY + ".truststore.location";
+    public static final String TRUSTSTORE_PASSWORD_KEY = RECEIVE_HTTP_BASE_KEY + ".truststore.password";
+    public static final String TRUSTSTORE_TYPE_KEY = RECEIVE_HTTP_BASE_KEY + ".truststore.type";
+    public static final String KEYSTORE_LOCATION_KEY = RECEIVE_HTTP_BASE_KEY + ".keystore.location";
+    public static final String KEYSTORE_PASSWORD_KEY = RECEIVE_HTTP_BASE_KEY + ".keystore.password";
+    public static final String KEYSTORE_TYPE_KEY = RECEIVE_HTTP_BASE_KEY + ".keystore.type";
+    public static final String NEED_CLIENT_AUTH_KEY = RECEIVE_HTTP_BASE_KEY + ".need.client.auth";
+    public static final String DIFFERENTIATOR_KEY = RECEIVE_HTTP_BASE_KEY + ".differentiator";
+    private final Server jetty;
 
-    public static final String PORT_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.port";
-    public static final String HOST_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.host";
-    public static final String TRUSTSTORE_LOCATION_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.truststore.location";
-    public static final String TRUSTSTORE_PASSWORD_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.truststore.password";
-    public static final String TRUSTSTORE_TYPE_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.truststore.type";
-    public static final String KEYSTORE_LOCATION_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.keystore.location";
-    public static final String KEYSTORE_PASSWORD_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.keystore.password";
-    public static final String KEYSTORE_TYPE_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.keystore.type";
-    public static final String NEED_CLIENT_AUTH_KEY = NOTIFIER_PROPERTY_PREFIX + ".http.need.client.auth";
+    private volatile Differentiator<InputStream> differentiator;
+    private volatile ConfigurationChangeNotifier configurationChangeNotifier;
 
-    public RestChangeNotifier(){
+    public RestChangeIngestor() {
         QueuedThreadPool queuedThreadPool = new QueuedThreadPool();
         queuedThreadPool.setDaemon(true);
         jetty = new Server(queuedThreadPool);
     }
 
     @Override
-    public void initialize(Properties properties) {
+    public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         logger.info("Initializing");
+
+        final String differentiatorName = properties.getProperty(DIFFERENTIATOR_KEY);
+
+        if (differentiatorName != null && !differentiatorName.isEmpty()) {
+            Supplier<Differentiator<InputStream>> differentiatorSupplier = DIFFERENTIATOR_CONSTRUCTOR_MAP.get(differentiatorName);
+            if (differentiatorSupplier == null) {
+                throw new IllegalArgumentException("Property, " + DIFFERENTIATOR_KEY + ", has value " + differentiatorName + " which does not " +
+                        "correspond to any in the PullHttpChangeIngestor Map:" + DIFFERENTIATOR_CONSTRUCTOR_MAP.keySet());
+            }
+            differentiator = differentiatorSupplier.get();
+        } else {
+            differentiator = WholeConfigDifferentiator.getInputStreamDifferentiator();
+        }
+        differentiator.initialize(properties, configurationFileHolder);
 
         // create the secure connector if keystore location is specified
         if (properties.getProperty(KEYSTORE_LOCATION_KEY) != null) {
@@ -91,48 +121,18 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
             createConnector(properties);
         }
 
+        this.configurationChangeNotifier = configurationChangeNotifier;
+
         HandlerCollection handlerCollection = new HandlerCollection(true);
         handlerCollection.addHandler(new JettyHandler());
         jetty.setHandler(handlerCollection);
     }
 
     @Override
-    public Set<ConfigurationChangeListener> getChangeListeners() {
-        return configurationChangeListeners;
-    }
-
-    @Override
-    public boolean registerListener(ConfigurationChangeListener listener) {
-        return configurationChangeListeners.add(listener);
-    }
-
-    @Override
-    public Collection<ListenerHandleResult> notifyListeners() {
-        if (configFile == null){
-            throw new IllegalStateException("Attempting to notify listeners when there is no new config file.");
-        }
-
-        Collection<ListenerHandleResult> listenerHandleResults = new ArrayList<>(configurationChangeListeners.size());
-        for (final ConfigurationChangeListener listener : getChangeListeners()) {
-            ListenerHandleResult result;
-            try (final ByteArrayInputStream fis = new ByteArrayInputStream(configFile.getBytes())) {
-                listener.handleChange(fis);
-                result = new ListenerHandleResult(listener);
-            } catch (IOException | ConfigurationChangeException ex) {
-                result = new ListenerHandleResult(listener, ex);
-            }
-            listenerHandleResults.add(result);
-            logger.info("Listener notification result:" + result.toString());
-        }
-
-        configFile = null;
-        return listenerHandleResults;
-    }
-
-    @Override
-    public void start(){
+    public void start() {
         try {
             jetty.start();
+            logger.info("RestChangeIngester has started and is listening on port {}.", new Object[]{getPort()});
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -151,23 +151,15 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
         logger.warn("Done shutting down the jetty server");
     }
 
-    public URI getURI(){
+    public URI getURI() {
         return jetty.getURI();
     }
 
-    public int getPort(){
+    public int getPort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
         }
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
-    }
-
-    public String getConfigString(){
-        return configFile;
-    }
-
-    private void setConfigFile(String configFile){
-        this.configFile = configFile;
     }
 
     private void createConnector(Properties properties) {
@@ -203,7 +195,7 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
         final ServerConnector https = new ServerConnector(jetty, ssl);
 
         // set host and port
-        https.setPort(Integer.parseInt(properties.getProperty(PORT_KEY,"0")));
+        https.setPort(Integer.parseInt(properties.getProperty(PORT_KEY, "0")));
         https.setHost(properties.getProperty(HOST_KEY, "localhost"));
 
         // Severely taxed environments may have significant delays when executing.
@@ -215,8 +207,11 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
         logger.info("Added an https connector on the host '{}' and port '{}'", new Object[]{https.getHost(), https.getPort()});
     }
 
+    protected void setDifferentiator(Differentiator<InputStream> differentiator) {
+        this.differentiator = differentiator;
+    }
 
-    public class JettyHandler extends AbstractHandler {
+    private class JettyHandler extends AbstractHandler {
 
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
@@ -226,36 +221,46 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
 
             baseRequest.setHandled(true);
 
-            if(POST.equals(request.getMethod())) {
-                final StringBuilder configBuilder = new StringBuilder();
-                BufferedReader reader = request.getReader();
-                if(reader != null && reader.ready()){
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        configBuilder.append(line);
-                        configBuilder.append(System.getProperty("line.separator"));
-                    }
-                }
-                setConfigFile(configBuilder.substring(0,configBuilder.length()-1));
-                Collection<ListenerHandleResult> listenerHandleResults = notifyListeners();
+            if (POST.equals(request.getMethod())) {
+                int statusCode;
+                String responseText;
+                try (ByteArrayOutputStream pipedOutputStream = new ByteArrayOutputStream();
+                     TeeInputStream teeInputStream = new TeeInputStream(request.getInputStream(), pipedOutputStream)) {
 
-                int statusCode = 200;
-                for (ListenerHandleResult result: listenerHandleResults){
-                    if(!result.succeeded()){
-                        statusCode = 500;
-                        break;
-                    }
-                }
+                    if (differentiator.isNew(teeInputStream)) {
+                        // Fill the pipedOutputStream with the rest of the request data
+                        while (teeInputStream.available() != 0) {
+                            teeInputStream.read();
+                        }
 
-                writeOutput(response, getPostText(listenerHandleResults), statusCode);
-            } else if(GET.equals(request.getMethod())) {
+                        ByteBuffer newConfig = ByteBuffer.wrap(pipedOutputStream.toByteArray());
+                        ByteBuffer readOnlyNewConfig = newConfig.asReadOnlyBuffer();
+
+                        Collection<ListenerHandleResult> listenerHandleResults = configurationChangeNotifier.notifyListeners(readOnlyNewConfig);
+
+                        statusCode = 200;
+                        for (ListenerHandleResult result : listenerHandleResults) {
+                            if (!result.succeeded()) {
+                                statusCode = 500;
+                                break;
+                            }
+                        }
+                        responseText = getPostText(listenerHandleResults);
+                    } else {
+                        statusCode = 409;
+                        responseText = "Request received but instance is already running this config.";
+                    }
+
+                    writeOutput(response, responseText, statusCode);
+                }
+            } else if (GET.equals(request.getMethod())) {
                 writeOutput(response, GET_TEXT, 200);
             } else {
                 writeOutput(response, OTHER_TEXT, 404);
             }
         }
 
-        private String getPostText(Collection<ListenerHandleResult> listenerHandleResults){
+        private String getPostText(Collection<ListenerHandleResult> listenerHandleResults) {
             StringBuilder postResult = new StringBuilder("The result of notifying listeners:\n");
 
             for (ListenerHandleResult result : listenerHandleResults) {
@@ -276,7 +281,7 @@ public class RestChangeNotifier implements ConfigurationChangeNotifier {
             }
         }
 
-        private void logRequest(HttpServletRequest request){
+        private void logRequest(HttpServletRequest request) {
             logger.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.info("request method = " + request.getMethod());
             logger.info("request url = " + request.getRequestURL());

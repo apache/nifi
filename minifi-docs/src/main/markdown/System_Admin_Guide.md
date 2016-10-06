@@ -21,6 +21,103 @@
 
 [MiNiFi Homepage](https://nifi.apache.org/minifi/index.html)
 
+# Automatic Warm-Redeploy
+
+When many MiNiFi agents running on the edge, it may not be possible to manually stop, edit the config.yml and then restart every one every time their configuration needs to change. The Config Change Coordinator and its Ingestors were designed to automatically redeploy in response to a configuration update.
+
+The Config Change Ingestors are the means by which the agent is notified of a potential new configuration. Currently there are three:
+
+ - FileChangeIngestor
+ - RestChangeIngestor
+ - PullHttpChangeIngestor
+
+After a new configuration has been pulled/received the Ingestors use a Differentiator in order to determine if the currently running config is different than the new config. Which Differentiator is used, is configurable for each Ingestor. Currently there is only one Differentiator:
+
+ - WholeConfigDifferentiator: Compares the entire new config with the currently running one, byte for byte.
+
+After a new config is determined to be new, the MiNiFi agent will attempt to restart. The bootstrap first saves the old config into a swap file. The bootstrap monitors the agent as it restarts and if it fails it will roll back to the old config. If it succeeds then the swap file will be deleted and the agent will start processing using the new config.
+
+Note: Data left in connections when the agent attempts to restart will either be mapped to a connection with the same ID in the new config, or orphaned and deleted.
+
+The configuration for Warm-Redeploy is done in the bootstrap.conf and primarily revolve around the Config Change Ingestors. The configuration in the bootstrap.conf is done using the "nifi.minifi.notifier.ingestors" key followed by the full path name of the desired Ingestor implementation to run. Use a comma separated list  to define more than one Ingestor implementation. For example:
+
+```
+nifi.minifi.notifier.ingestors=org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor
+```
+
+Ingestor specific configuration is also necessary and done in the bootstrap.conf as well. Specifics for each are detailed below.
+
+## FileChangeIngestor
+
+class name: org.apache.nifi.minifi.bootstrap.configuration.ingestors.FileChangeIngestor
+
+This Config Change Ingestor watches a file and when the file is updated, the file is ingested as a new config.
+
+Note: The config file path configured here and in "nifi.minifi.config" cannot be the same. This is due to the swapping mechanism and other implementation limitations.
+
+Below are the configuration options. The file config path is the only required property.
+
+Option | Description
+------ | -----------
+nifi.minifi.notifier.ingestors.file.config.path | Path of the file to monitor for changes.  When these occur, the FileChangeNotifier, if configured, will begin the configuration reloading process
+nifi.minifi.notifier.ingestors.file.polling.period.seconds | How frequently the file specified by 'nifi.minifi.notifier.file.config.path' should be evaluated for changes. If not set then a default polling period of 15 seconds will be used.
+nifi.minifi.notifier.ingestors.file.differentiator | Which differentiator to use. If not set then it uses the WholeConfigDifferentiator as a default.
+
+## RestChangeIngestor
+
+class name: org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeIngestor
+
+This Config Change Ingestor sets up a light-weight Jetty HTTP(S) REST service in order to listen to HTTP(S) requests. A potential new configuration is sent via a POST request with the BODY being the potential new config.
+
+NOTE: The encoding is expected to be Unicode and the exact version specified by the BOM mark ('UTF-8','UTF-16BE' or 'UTF-16LE'). If there is no BOM mark, then UTF-8 is used.
+
+Here is an example post request using 'curl' hitting the local machine on pot 8338 and it is executed with the config file "config.yml" in the directory the command is run from:
+
+```
+curl --request POST --data-binary "@config.yml" http://localhost:8338/
+```
+
+Below are the configuration options. There are no required options. If no properties are set then the server will bind to hostname "localhost" on a random open port, will only connect via HTTP and will use the WholeConfigDifferentiator.
+
+Option | Description
+------ | -----------
+nifi.minifi.notifier.ingestors.receive.http.host | Hostname on which the Jetty server will bind to. If not specified then it will bind to localhost.
+nifi.minifi.notifier.ingestors.receive.http.port | Port on which the Jetty server will bind to. If not specified then it will bind to a random open port.
+nifi.minifi.notifier.ingestors.receive.http.truststore.location | If using HTTPS, this specifies the location of the truststore.
+nifi.minifi.notifier.ingestors.receive.http.truststore.password | If using HTTPS, this specifies the password of the truststore.
+nifi.minifi.notifier.ingestors.receive.http.truststore.type | If using HTTPS, this specifies the type of the truststore.
+nifi.minifi.notifier.ingestors.receive.http.keystore.location | If using HTTPS, this specifies the location of the keystore.
+nifi.minifi.notifier.ingestors.receive.http.keystore.password | If using HTTPS, this specifies the password of the keystore.
+nifi.minifi.notifier.ingestors.receive.http.keystore.type | If using HTTPS, this specifies the type of the keystore.
+nifi.minifi.notifier.ingestors.receive.http.need.client.auth | If using HTTPS, this specifies whether or not to require client authentication.
+nifi.minifi.notifier.ingestors.receive.http.differentiator | Which differentiator to use. If not set then it uses the WholeConfigDifferentiator as a default.
+
+## PullHttpChangeIngestor
+
+class name: org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor
+
+This Config Change Ingestor periodically sends a GET request to a REST endpoint using HTTP(S) to order to pull the potential new config.
+
+Below are the configuration options. The hostname and port are the only required properties.
+
+Option | Description
+------ | -----------
+nifi.minifi.notifier.ingestors.pull.http.hostname | Hostname on which to pull configurations from
+nifi.minifi.notifier.ingestors.pull.http.port | Port on which to pull configurations from
+nifi.minifi.notifier.ingestors.pull.http.path | Path on which to pull configurations from
+nifi.minifi.notifier.ingestors.pull.http.period.ms | Period on which to pull configurations from, defaults to 5 minutes if not set.
+nifi.minifi.notifier.ingestors.pull.http.use.etag | If the destination server is set up with cache control ability and utilizes an "ETag" header, then this should be set to true to utilize it. Very simply, the Ingestor remembers the "ETag" of the last successful pull (returned 200) then uses that "ETag" in a "If-None-Match" header on the next request.
+nifi.minifi.notifier.ingestors.pull.http.connect.timeout.ms | Sets the connect timeout for new connections. A value of 0 means no timeout, otherwise values must be a positive whole number in milliseconds.
+nifi.minifi.notifier.ingestors.pull.http.read.timeout.ms | Sets the read timeout for new connections. A value of 0 means no timeout, otherwise values must be a positive whole number in milliseconds.
+nifi.minifi.notifier.ingestors.pull.http.truststore.location | If using HTTPS, this specifies the location of the truststore.
+nifi.minifi.notifier.ingestors.pull.http.truststore.password | If using HTTPS, this specifies the password of the truststore.
+nifi.minifi.notifier.ingestors.pull.http.truststore.type | If using HTTPS, this specifies the type of the truststore.
+nifi.minifi.notifier.ingestors.pull.http.keystore.location | If using HTTPS, this specifies the location of the keystore.
+nifi.minifi.notifier.ingestors.pull.http.keystore.password | If using HTTPS, this specifies the password of the keystore.
+nifi.minifi.notifier.ingestors.pull.http.keystore.type | If using HTTPS, this specifies the type of the keystore.
+nifi.minifi.notifier.ingestors.pull.http.differentiator | Which differentiator to use. If not set then it uses the WholeConfigDifferentiator as a default.
+
+
 # Status Reporting and Querying
 
 In NiFi there is a lot of information, such as stats and bulletins, that is only available to view through the UI. MiNiFi provides access to this information through a query mechanism. You can query FlowStatus either using the MiNiFi.sh script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the "flowStatus" script option. The API is outlined in the "FlowStatus Query Options" section below.

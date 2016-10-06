@@ -22,34 +22,34 @@ public class ListenerHandleResult {
     private final ConfigurationChangeListener configurationChangeListener;
     private final Exception failureCause;
 
-    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener){
+    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener) {
         this.configurationChangeListener = configurationChangeListener;
         failureCause = null;
     }
 
-    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener, Exception failureCause){
+    public ListenerHandleResult(ConfigurationChangeListener configurationChangeListener, Exception failureCause) {
         this.configurationChangeListener = configurationChangeListener;
         this.failureCause = failureCause;
     }
 
-    public boolean succeeded(){
+    public boolean succeeded() {
         return failureCause == null;
     }
 
-    public String getDescriptor(){
+    public String getDescriptor() {
         return configurationChangeListener.getDescriptor();
     }
 
-    public Exception getFailureCause(){
+    public Exception getFailureCause() {
         return failureCause;
     }
 
     @Override
     public String toString() {
-        if(failureCause == null){
+        if (failureCause == null) {
             return getDescriptor() + " successfully handled the configuration change";
         } else {
-            return getDescriptor() + " FAILED to handle the configuration change due to: '"  + failureCause.getMessage() + "'";
+            return getDescriptor() + " FAILED to handle the configuration change due to: '" + failureCause.getMessage() + "'";
         }
     }
 }

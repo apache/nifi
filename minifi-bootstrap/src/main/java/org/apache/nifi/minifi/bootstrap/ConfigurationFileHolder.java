@@ -15,15 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration;
+package org.apache.nifi.minifi.bootstrap;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
-public interface ConfigurationChangeNotifier {
+public interface ConfigurationFileHolder {
 
-    Set<ConfigurationChangeListener> getChangeListeners();
-
-    Collection<ListenerHandleResult> notifyListeners(ByteBuffer is);
+    AtomicReference<ByteBuffer> getConfigFileReference();
 }

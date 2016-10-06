@@ -15,37 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.notifiers;
+package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 
-import com.squareup.okhttp.OkHttpClient;
-import org.apache.nifi.minifi.bootstrap.configuration.notifiers.util.TestRestChangeNotifierCommon;
+import okhttp3.OkHttpClient;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.TestRestChangeIngestorCommon;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.mockito.Mockito;
 
 import java.net.MalformedURLException;
 import java.util.Properties;
 
 
-public class TestRestChangeNotifier extends TestRestChangeNotifierCommon {
+public class TestRestChangeIngestor extends TestRestChangeIngestorCommon {
 
     @BeforeClass
     public static void setUp() throws InterruptedException, MalformedURLException {
         Properties properties = new Properties();
-        restChangeNotifier = new RestChangeNotifier();
-        restChangeNotifier.initialize(properties);
-        restChangeNotifier.registerListener(mockChangeListener);
-        restChangeNotifier.start();
+        restChangeIngestor = new RestChangeIngestor();
+
+        testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
+
+        restChangeIngestor.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), testNotifier);
+        restChangeIngestor.setDifferentiator(mockDifferentiator);
+        restChangeIngestor.start();
 
         client = new OkHttpClient();
 
-        url = restChangeNotifier.getURI().toURL().toString();
+        url = restChangeIngestor.getURI().toURL().toString();
         Thread.sleep(1000);
     }
 
     @AfterClass
     public static void stop() throws Exception {
-        restChangeNotifier.close();
+        restChangeIngestor.close();
         client = null;
     }
 }

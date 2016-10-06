@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap.configuration.notifiers;
+package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
@@ -30,33 +31,40 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
-import org.apache.nifi.minifi.bootstrap.configuration.notifiers.FileChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-public class TestFileChangeNotifier {
+public class TestFileChangeIngestor {
 
     private static final String CONFIG_FILENAME = "config.yml";
     private static final String TEST_CONFIG_PATH = "src/test/resources/config.yml";
 
-    private FileChangeNotifier notifierSpy;
+    private FileChangeIngestor notifierSpy;
     private WatchService mockWatchService;
     private Properties testProperties;
+    private Differentiator<InputStream> mockDifferentiator;
+    private ConfigurationChangeNotifier testNotifier;
 
     @Before
     public void setUp() throws Exception {
         mockWatchService = Mockito.mock(WatchService.class);
-        notifierSpy = Mockito.spy(new FileChangeNotifier());
-        notifierSpy.setConfigFile(Paths.get(TEST_CONFIG_PATH));
+        notifierSpy = Mockito.spy(new FileChangeIngestor());
+        mockDifferentiator = Mockito.mock(Differentiator.class);
+        testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
+
+        notifierSpy.setConfigFilePath(Paths.get(TEST_CONFIG_PATH));
         notifierSpy.setWatchService(mockWatchService);
+        notifierSpy.setDifferentiator(mockDifferentiator);
+        notifierSpy.setConfigurationChangeNotifier(testNotifier);
 
         testProperties = new Properties();
-        testProperties.put(FileChangeNotifier.CONFIG_FILE_PATH_KEY, TEST_CONFIG_PATH);
-        testProperties.put(FileChangeNotifier.POLLING_PERIOD_INTERVAL_KEY, FileChangeNotifier.DEFAULT_POLLING_PERIOD_INTERVAL);
+        testProperties.put(FileChangeIngestor.CONFIG_FILE_PATH_KEY, TEST_CONFIG_PATH);
+        testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, FileChangeIngestor.DEFAULT_POLLING_PERIOD_INTERVAL);
     }
 
     @After
@@ -66,107 +74,67 @@ public class TestFileChangeNotifier {
 
     @Test(expected = IllegalStateException.class)
     public void testInitialize_invalidFile() throws Exception {
-        testProperties.put(FileChangeNotifier.CONFIG_FILE_PATH_KEY, "/land/of/make/believe");
-        notifierSpy.initialize(testProperties);
+        testProperties.put(FileChangeIngestor.CONFIG_FILE_PATH_KEY, "/land/of/make/believe");
+        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
 
     @Test
     public void testInitialize_validFile() throws Exception {
-        notifierSpy.initialize(testProperties);
+        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
 
     @Test(expected = IllegalStateException.class)
     public void testInitialize_invalidPollingPeriod() throws Exception {
-        testProperties.put(FileChangeNotifier.POLLING_PERIOD_INTERVAL_KEY, "abc");
-        notifierSpy.initialize(testProperties);
+        testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, "abc");
+        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
 
     @Test
     public void testInitialize_useDefaultPolling() throws Exception {
-        testProperties.remove(FileChangeNotifier.POLLING_PERIOD_INTERVAL_KEY);
-        notifierSpy.initialize(testProperties);
-    }
-
-
-    @Test
-    public void testNotifyListeners() throws Exception {
-        final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
-        boolean wasRegistered = notifierSpy.registerListener(testListener);
-
-        Assert.assertTrue("Registration did not correspond to newly added listener", wasRegistered);
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 1);
-
-        notifierSpy.notifyListeners();
-
-        verify(testListener, Mockito.atMost(1)).handleChange(Mockito.any(InputStream.class));
-    }
-
-    @Test
-    public void testRegisterListener() throws Exception {
-        final ConfigurationChangeListener firstListener = Mockito.mock(ConfigurationChangeListener.class);
-        boolean wasRegistered = notifierSpy.registerListener(firstListener);
-
-        Assert.assertTrue("Registration did not correspond to newly added listener", wasRegistered);
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 1);
-
-        final ConfigurationChangeListener secondListener = Mockito.mock(ConfigurationChangeListener.class);
-        wasRegistered = notifierSpy.registerListener(secondListener);
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 2);
-
-    }
-
-    @Test
-    public void testRegisterDuplicateListener() throws Exception {
-        final ConfigurationChangeListener firstListener = Mockito.mock(ConfigurationChangeListener.class);
-        boolean wasRegistered = notifierSpy.registerListener(firstListener);
-
-        Assert.assertTrue("Registration did not correspond to newly added listener", wasRegistered);
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 1);
-
-        wasRegistered = notifierSpy.registerListener(firstListener);
-
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 1);
-        Assert.assertFalse("Registration did not correspond to newly added listener", wasRegistered);
+        testProperties.remove(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY);
+        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
 
     /* Verify handleChange events */
     @Test
     public void testTargetChangedNoModification() throws Exception {
-        final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
+        when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(false);
+        final ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
         // In this case the WatchKey is null because there were no events found
-        establishMockEnvironmentForChangeTests(testListener, null);
+        establishMockEnvironmentForChangeTests(testNotifier, null);
 
-        verify(testListener, Mockito.never()).handleChange(Mockito.any(InputStream.class));
+        verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
     }
 
     @Test
     public void testTargetChangedWithModificationEvent_nonConfigFile() throws Exception {
-        final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
+        when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(false);
+        final ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
         // In this case, we receive a trigger event for the directory monitored, but it was another file not being monitored
         final WatchKey mockWatchKey = createMockWatchKeyForPath("footage_not_found.yml");
 
-        establishMockEnvironmentForChangeTests(testListener, mockWatchKey);
+        establishMockEnvironmentForChangeTests(testNotifier, mockWatchKey);
 
         notifierSpy.targetChanged();
 
-        verify(testListener, Mockito.never()).handleChange(Mockito.any(InputStream.class));
+        verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
     }
 
     @Test
     public void testTargetChangedWithModificationEvent() throws Exception {
-        final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
+        when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(true);
 
         final WatchKey mockWatchKey = createMockWatchKeyForPath(CONFIG_FILENAME);
         // Provided as a spy to allow injection of mock objects for some tests when dealing with the finalized FileSystems class
-        establishMockEnvironmentForChangeTests(testListener, mockWatchKey);
+        establishMockEnvironmentForChangeTests(testNotifier, mockWatchKey);
 
         // Invoke the method of interest
         notifierSpy.run();
 
         verify(mockWatchService, Mockito.atLeastOnce()).poll();
-        verify(testListener, Mockito.atLeastOnce()).handleChange(Mockito.any(InputStream.class));
+        verify(testNotifier, Mockito.atLeastOnce()).notifyListeners(Mockito.any(ByteBuffer.class));
     }
 
     /* Helper methods to establish mock environment */
@@ -190,18 +158,13 @@ public class TestFileChangeNotifier {
         return mockWatchKey;
     }
 
-    private void establishMockEnvironmentForChangeTests(ConfigurationChangeListener listener, final WatchKey watchKey) throws Exception {
-        final boolean wasRegistered = notifierSpy.registerListener(listener);
-
+    private void establishMockEnvironmentForChangeTests(ConfigurationChangeNotifier configurationChangeNotifier, final WatchKey watchKey) throws Exception {
         // Establish the file mock and its parent directory
         final Path mockConfigFilePath = Mockito.mock(Path.class);
         final Path mockConfigFileParentPath = Mockito.mock(Path.class);
 
         // When getting the parent of the file, get the directory
         when(mockConfigFilePath.getParent()).thenReturn(mockConfigFileParentPath);
-
-        Assert.assertTrue("Registration did not correspond to newly added listener", wasRegistered);
-        Assert.assertEquals("Did not receive the correct number of registered listeners", notifierSpy.getChangeListeners().size(), 1);
 
         when(mockWatchService.poll()).thenReturn(watchKey);
     }

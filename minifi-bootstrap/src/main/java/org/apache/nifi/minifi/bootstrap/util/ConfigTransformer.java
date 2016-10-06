@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.bootstrap.util;
 
 
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
 import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
@@ -42,7 +43,6 @@ import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
 import org.apache.nifi.minifi.commons.schema.SwapSchema;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

@@ -15,37 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.notifiers.util;
+package org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Properties;
 
-public class MockChangeListener implements ConfigurationChangeListener {
-    String confFile;
+public interface Differentiator <T> {
+    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
 
-    @Override
-    public void handleChange(InputStream inputStream) {
-        try {
-            confFile = IOUtils.toString(inputStream, "UTF-8");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public String getDescriptor() {
-        return "MockChangeListener";
-    }
-
-    public String getConfFile() {
-        return confFile;
-    }
-
-    public void setConfFile(String confFile) {
-        this.confFile = confFile;
-    }
-
+    boolean isNew(T input) throws IOException;
 }

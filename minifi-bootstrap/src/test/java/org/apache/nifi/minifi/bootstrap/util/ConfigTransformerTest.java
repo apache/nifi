@@ -28,7 +28,6 @@ import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -96,12 +95,12 @@ public class ConfigTransformerTest {
     @Test
     public void testQueuePrioritizerWritten() throws ConfigurationChangeException, XPathExpressionException {
         Map<String, Object> map = new HashMap<>();
-        map.put(ConnectionSchema.QUEUE_PRIORITIZER_CLASS_KEY, FirstInFirstOutPrioritizer.class.getCanonicalName());
+        map.put(ConnectionSchema.QUEUE_PRIORITIZER_CLASS_KEY, "org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer");
 
         ConfigTransformer.addConnection(config, new ConnectionSchema(map), new ParentGroupIdResolver(new ProcessGroupSchema(Collections.emptyMap(), ConfigSchema.TOP_LEVEL_NAME)));
         XPath xpath = xPathFactory.newXPath();
         String expression = "connection/queuePrioritizerClass/text()";
-        assertEquals(FirstInFirstOutPrioritizer.class.getCanonicalName(), xpath.evaluate(expression, config, XPathConstants.STRING));
+        assertEquals("org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer", xpath.evaluate(expression, config, XPathConstants.STRING));
     }
 
     @Test

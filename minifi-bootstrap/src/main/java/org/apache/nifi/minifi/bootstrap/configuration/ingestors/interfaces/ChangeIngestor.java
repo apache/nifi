@@ -15,15 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration;
+package org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces;
 
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.Set;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 
-public interface ConfigurationChangeNotifier {
+import java.io.IOException;
+import java.util.Properties;
 
-    Set<ConfigurationChangeListener> getChangeListeners();
+public interface ChangeIngestor {
+    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier);
 
-    Collection<ListenerHandleResult> notifyListeners(ByteBuffer is);
+    void start();
+
+    void close() throws IOException;
 }

@@ -73,21 +73,13 @@ limitations under the License.
             <version>${jetty.version}</version>
             <scope>compile</scope>
         </dependency>
-
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-prioritizers</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
+            <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
