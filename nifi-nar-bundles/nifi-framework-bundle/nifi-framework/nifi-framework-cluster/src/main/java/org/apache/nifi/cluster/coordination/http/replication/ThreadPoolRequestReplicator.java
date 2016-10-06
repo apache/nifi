@@ -516,8 +516,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                                         }
                                     }
 
-                                    clusterResponse.setFailure(failure);
-                                    break;
+                                    clusterResponse.setFailure(failure, response.getNodeId());
                                 }
                             }
                         } finally {
@@ -525,6 +524,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                                 synchronized (monitor) {
                                     monitor.notify();
                                 }
+
+                                logger.debug("Notified monitor {} because request {} {} has failed due to at least 1 dissenting node", monitor, method, uri);
                             }
                         }
                     }
