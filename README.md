@@ -12,7 +12,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-# Apache NiFi -  MiNiFi
+# Apache NiFi -  MiNiFi [![Build Status](https://travis-ci.org/apache/nifi-minifi.svg?branch=master)](https://travis-ci.org/apache/nifi-minifi)
 
 MiNiFi is a child project effort of Apache NiFi
 
