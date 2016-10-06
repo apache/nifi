@@ -24,13 +24,18 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 
 
 /**
@@ -66,6 +71,16 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         return false;
     }
 
+    public boolean proxyVariablesValidForAssumeRole(Map<PropertyDescriptor, String> properties){
+        final String assumeRoleProxyHost = properties.get(ASSUME_ROLE_PROXY_HOST);
+        final String assumeRoleProxyPort = properties.get(ASSUME_ROLE_PROXY_PORT);
+        if (assumeRoleProxyHost != null && !assumeRoleProxyHost.isEmpty()
+                && assumeRoleProxyPort != null && !assumeRoleProxyPort.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext,
                                                  final CredentialsStrategy primaryStrategy) {
@@ -73,6 +88,8 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final boolean assumeRoleNameIsSet = validationContext.getProperty(ASSUME_ROLE_NAME).isSet();
         final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
         final boolean assumeRoleExternalIdIsSet = validationContext.getProperty(ASSUME_ROLE_EXTERNAL_ID).isSet();
+        final boolean assumeRoleProxyHostIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_HOST).isSet();
+        final boolean assumeRoleProxyPortIsSet = validationContext.getProperty(ASSUME_ROLE_PROXY_PORT).isSet();
 
         final Collection<ValidationResult> validationFailureResults  = new ArrayList<ValidationResult>();
 
@@ -96,6 +113,14 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
                     .build());
         }
 
+        // Both proxy host and proxy port are required if present
+        if (assumeRoleProxyHostIsSet ^ assumeRoleProxyPortIsSet){
+            validationFailureResults.add(new ValidationResult.Builder().input("Assume Role Proxy Host and Port")
+                    .valid(false)
+                    .explanation("Assume role with proxy requires both host and port for the proxy to be set")
+                    .build());
+        }
+
         return validationFailureResults;
     }
 
@@ -113,14 +138,27 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         rawMaxSessionTime = (rawMaxSessionTime != null) ? rawMaxSessionTime : MAX_SESSION_TIME.getDefaultValue();
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
+        STSAssumeRoleSessionCredentialsProvider.Builder builder;
+        ClientConfiguration config = new ClientConfiguration();
 
-        STSAssumeRoleSessionCredentialsProvider.Builder builder = new STSAssumeRoleSessionCredentialsProvider
+        // If proxy variables are set, then create Client Configuration with those values
+        if (proxyVariablesValidForAssumeRole(properties)) {
+            final String assumeRoleProxyHost = properties.get(ASSUME_ROLE_PROXY_HOST);
+            final Integer assumeRoleProxyPort = Integer.parseInt(properties.get(ASSUME_ROLE_PROXY_PORT));
+            config.withProxyHost(assumeRoleProxyHost);
+            config.withProxyPort(assumeRoleProxyPort);
+        }
+
+        AWSSecurityTokenService securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
+        builder = new STSAssumeRoleSessionCredentialsProvider
                 .Builder(assumeRoleArn, assumeRoleName)
-                .withLongLivedCredentialsProvider(primaryCredentialsProvider)
+                .withStsClient(securityTokenService)
                 .withRoleSessionDurationSeconds(maxSessionTime);
+
         if (assumeRoleExternalId != null && !assumeRoleExternalId.isEmpty()) {
             builder = builder.withExternalId(assumeRoleExternalId);
         }
+
         final AWSCredentialsProvider credsProvider = builder.build();
 
         return credsProvider;

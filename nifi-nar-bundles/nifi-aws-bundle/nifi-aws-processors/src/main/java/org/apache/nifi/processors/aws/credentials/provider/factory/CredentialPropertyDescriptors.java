@@ -155,4 +155,27 @@ public class CredentialPropertyDescriptors {
             .description("External ID for cross-account access. This is used in conjunction with role arn, " +
                 "role name, and optional session time out")
             .build();
+
+    /**
+     * Assume Role Proxy variables for configuring proxy to retrieve keys
+     */
+    public static final PropertyDescriptor ASSUME_ROLE_PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("assume-role-proxy-host")
+            .displayName("Assume Role Proxy Host")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .description("Proxy host for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("assume-role-proxy-port")
+            .displayName("Assume Role Proxy Port")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .sensitive(false)
+            .description("Proxy pot for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .build();
 }
