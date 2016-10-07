@@ -18,6 +18,7 @@ package org.apache.nifi.util.hive;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -69,6 +70,14 @@ public class HiveConfigurator {
             }
         }
         return hiveConfig;
+    }
+
+    public void preload(Configuration configuration) {
+        try {
+            FileSystem.get(configuration);
+        } catch (IOException ioe) {
+            // Suppress exception as future uses of this configuration will fail
+        }
     }
 
     public UserGroupInformation authenticate(final Configuration hiveConfig, String principal, String keyTab, long ticketRenewalPeriod, ComponentLog log) throws AuthenticationFailedException {
