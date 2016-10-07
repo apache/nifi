@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -215,6 +216,21 @@ public class StreamDemarcatorTest {
         StreamDemarcator scanner = new StreamDemarcator(is, "water".getBytes(StandardCharsets.UTF_8), 20, 1024);
         byte[] b = scanner.nextToken();
         assertArrayEquals(b, new byte[] { 0, 0, 0, 0, -1, 0, 0, 0 });
+    }
+
+    @Test
+    public void testOnBufferSplitNoTrailingDelimiter() throws IOException {
+        final byte[] inputData = "Yes\nNo".getBytes(StandardCharsets.UTF_8);
+        ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+        StreamDemarcator scanner = new StreamDemarcator(is, "\n".getBytes(), 1000, 3);
+
+        final byte[] first = scanner.nextToken();
+        final byte[] second = scanner.nextToken();
+        assertNotNull(first);
+        assertNotNull(second);
+
+        assertArrayEquals(first, new byte[] {'Y', 'e', 's'});
+        assertArrayEquals(second, new byte[] {'N', 'o'});
     }
 
     @Test
