@@ -31,7 +31,13 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsSt
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.*;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.MAX_SESSION_TIME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
+
 
 
 /**
@@ -148,8 +154,7 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
                     .Builder(assumeRoleArn, assumeRoleName)
                     .withStsClient(securityTokenService)
                     .withRoleSessionDurationSeconds(maxSessionTime);
-        }
-        else {
+        } else {
             builder = new STSAssumeRoleSessionCredentialsProvider
                     .Builder(assumeRoleArn, assumeRoleName)
                     .withLongLivedCredentialsProvider(primaryCredentialsProvider)
