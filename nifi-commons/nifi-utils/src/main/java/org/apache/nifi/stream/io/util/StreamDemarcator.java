@@ -138,6 +138,7 @@ public class StreamDemarcator {
                 System.arraycopy(this.buffer, this.mark, this.buffer, 0, length);
                 this.index = length;
                 this.mark = 0;
+                this.readAheadLength = length;
             }
         }
 
