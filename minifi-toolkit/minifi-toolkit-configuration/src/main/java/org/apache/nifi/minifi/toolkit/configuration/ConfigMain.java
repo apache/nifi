@@ -18,10 +18,11 @@
 package org.apache.nifi.minifi.toolkit.configuration;
 
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaSaver;
-import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.toolkit.configuration.dto.ConfigSchemaFunction;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -46,6 +47,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,12 +59,16 @@ public class ConfigMain {
     public static final int ERR_UNABLE_TO_TRANSFORM_TEMPLATE = 5;
     public static final int ERR_UNABLE_TO_PARSE_CONFIG = 6;
     public static final int ERR_INVALID_CONFIG = 7;
+    public static final int ERR_UNABLE_TO_CLOSE_CONFIG = 8;
+    public static final int ERR_UNABLE_TO_SAVE_CONFIG = 9;
 
     public static final int SUCCESS = 0;
 
     public static final String TRANSFORM = "transform";
     public static final String VALIDATE = "validate";
-    public static final String NO_VALIDATION_ERRORS_FOUND_IN_TEMPLATE = "No validation errors found in template.";
+    public static final String UPGRADE = "upgrade";
+    public static final String THERE_ARE_VALIDATION_ERRORS_WITH_THE_TEMPLATE_STILL_OUTPUTTING_YAML_BUT_IT_WILL_NEED_TO_BE_EDITED =
+            "There are validation errors with the template, still outputting YAML but it will need to be edited.";
 
     private final Map<String, Command> commandMap;
     private final PathInputStreamFactory pathInputStreamFactory;
@@ -96,37 +102,35 @@ public class ConfigMain {
         }
         try (InputStream inputStream = pathInputStreamFactory.create(args[1])) {
             try {
-                ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(inputStream);
-                if (!configSchema.isValid()) {
-                    configSchema.getValidationIssues().forEach(s -> System.out.println(s));
-                    System.out.println();
-                    return ERR_INVALID_CONFIG;
-                } else {
-                    System.out.println(NO_VALIDATION_ERRORS_FOUND_IN_TEMPLATE);
-                }
+                return loadAndPrintValidationErrors(inputStream, (configSchema, valid) -> {
+                    if (valid) {
+                        return SUCCESS;
+                    } else {
+                        return ERR_INVALID_CONFIG;
+                    }
+                });
             } catch (IOException|SchemaLoaderException e) {
-                System.out.println("Unable to load configuration. (" + e + ")");
-                System.out.println();
-                printValidateUsage();
-                return ERR_UNABLE_TO_PARSE_CONFIG;
+                return handleErrorLoadingConfiguration(e, ConfigMain::printValidateUsage);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("Unable to open file " + args[1] + " for reading. (" + e + ")");
-            System.out.println();
-            printValidateUsage();
-            return ERR_UNABLE_TO_OPEN_INPUT;
+            return handleErrorOpeningInput(args[1], ConfigMain::printValidateUsage, e);
         } catch (IOException e) {
-            System.out.println("Error closing input. (" + e + ")");
-            System.out.println();
+            handleErrorClosingInput(e);
+            return ERR_UNABLE_TO_CLOSE_CONFIG;
         }
-
-        return SUCCESS;
     }
 
     public static void printTransformUsage() {
         System.out.println("Transform Usage:");
         System.out.println();
         System.out.println(" transform INPUT_FILE OUTPUT_FILE");
+        System.out.println();
+    }
+
+    public static void printUpgradeUsage() {
+        System.out.println("Upgrade Usage:");
+        System.out.println();
+        System.out.println(" upgrade INPUT_FILE OUTPUT_FILE");
         System.out.println();
     }
 
@@ -182,32 +186,28 @@ public class ConfigMain {
         }
     }
 
-    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, IOException, SchemaLoaderException {
-        try {
-            TemplateDTO templateDTO = (TemplateDTO) JAXBContext.newInstance(TemplateDTO.class).createUnmarshaller().unmarshal(source);
+    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, SchemaLoaderException {
+        TemplateDTO templateDTO = (TemplateDTO) JAXBContext.newInstance(TemplateDTO.class).createUnmarshaller().unmarshal(source);
 
-            if (templateDTO.getSnippet().getProcessGroups().size() != 0){
-                throw new SchemaLoaderException("Process Groups are not currently supported in MiNiFi. Please remove any from the template and try again.");
-            }
-
-            if (templateDTO.getSnippet().getOutputPorts().size() != 0){
-                throw new SchemaLoaderException("Output Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
-            }
-
-            if (templateDTO.getSnippet().getInputPorts().size() != 0){
-                throw new SchemaLoaderException("Input Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
-            }
-
-            if (templateDTO.getSnippet().getFunnels().size() != 0){
-                throw new SchemaLoaderException("Funnels are not currently supported in MiNiFi. Please remove any from the template and try again.");
-            }
-
-            enrichTemplateDTO(templateDTO);
-            ConfigSchema configSchema = new ConfigSchemaFunction().apply(templateDTO);
-            return configSchema;
-        } finally {
-            source.close();
+        if (templateDTO.getSnippet().getProcessGroups().size() != 0){
+            throw new SchemaLoaderException("Process Groups are not currently supported in MiNiFi. Please remove any from the template and try again.");
         }
+
+        if (templateDTO.getSnippet().getOutputPorts().size() != 0){
+            throw new SchemaLoaderException("Output Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
+        }
+
+        if (templateDTO.getSnippet().getInputPorts().size() != 0){
+            throw new SchemaLoaderException("Input Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
+        }
+
+        if (templateDTO.getSnippet().getFunnels().size() != 0){
+            throw new SchemaLoaderException("Funnels are not currently supported in MiNiFi. Please remove any from the template and try again.");
+        }
+
+        enrichTemplateDTO(templateDTO);
+        ConfigSchema configSchema = new ConfigSchemaFunction().apply(templateDTO);
+        return configSchema;
     }
 
     private static void setName(Map<String, String> connectableNameMap, ConnectableDTO connectableDTO) {
@@ -235,60 +235,156 @@ public class ConfigMain {
         }
     }
 
+    public int upgrade(String[] args) {
+        if (args.length != 3) {
+            printUpgradeUsage();
+            return ERR_INVALID_ARGS;
+        }
+
+        ConfigSchema currentSchema = null;
+        try (InputStream inputStream = pathInputStreamFactory.create(args[1])) {
+            try {
+                currentSchema = loadAndPrintValidationErrors(inputStream, (configSchema, valid) -> {
+                    if (!valid) {
+                        System.out.println(THERE_ARE_VALIDATION_ERRORS_WITH_THE_TEMPLATE_STILL_OUTPUTTING_YAML_BUT_IT_WILL_NEED_TO_BE_EDITED);
+                        System.out.println();
+                    }
+                    return configSchema;
+                });
+            } catch (IOException|SchemaLoaderException e) {
+                return handleErrorLoadingConfiguration(e, ConfigMain::printUpgradeUsage);
+            }
+        } catch (FileNotFoundException e) {
+            return handleErrorOpeningInput(args[1], ConfigMain::printUpgradeUsage, e);
+        } catch (IOException e) {
+            handleErrorClosingInput(e);
+        }
+
+        try (OutputStream fileOutputStream = pathOutputStreamFactory.create(args[2])) {
+            try {
+                SchemaSaver.saveConfigSchema(currentSchema, fileOutputStream);
+            } catch (IOException e) {
+                return handleErrorSavingCofiguration(e);
+            }
+        } catch (FileNotFoundException e) {
+            return handleErrorOpeningOutput(args[2], ConfigMain::printUpgradeUsage, e);
+        } catch (IOException e) {
+            handleErrorClosingOutput(e);
+        }
+
+        return SUCCESS;
+    }
+
+    public <T> T loadAndPrintValidationErrors(InputStream inputStream, BiFunction<ConfigSchema, Boolean, T> resultHandler) throws IOException, SchemaLoaderException {
+        ConvertableSchema<ConfigSchema> configSchema = SchemaLoader.loadConvertableSchemaFromYaml(inputStream);
+        boolean valid = true;
+        if (!configSchema.isValid()) {
+            System.out.println("Found the following errors when parsing the configuration according to its version. (" + configSchema.getVersion() + ")");
+            configSchema.getValidationIssues().forEach(s -> System.out.println(s));
+            System.out.println();
+            valid = false;
+            configSchema.clearValidationIssues();
+        } else {
+            System.out.println("No errors found when parsing configuration according to its version. (" + configSchema.getVersion() + ")");
+        }
+
+        ConfigSchema currentSchema = configSchema.convert();
+        if (!currentSchema.isValid()) {
+            System.out.println("Found the following errors when converting configuration to latest version. (" + ConfigSchema.CONFIG_VERSION + ")");
+            currentSchema.getValidationIssues().forEach(s -> System.out.println(s));
+            System.out.println();
+            valid = false;
+        } else if (configSchema.getVersion() == currentSchema.getVersion()) {
+            System.out.println("Configuration was already latest version (" + ConfigSchema.CONFIG_VERSION + ") so no conversion was needed.");
+        } else {
+            System.out.println("No errors found when converting configuration to latest version. (" + ConfigSchema.CONFIG_VERSION + ")");
+        }
+        return resultHandler.apply(currentSchema, valid);
+    }
+
     public int transform(String[] args) {
         if (args.length != 3) {
             printTransformUsage();
             return ERR_INVALID_ARGS;
         }
+
+        ConfigSchema configSchema = null;
         try (InputStream inputStream = pathInputStreamFactory.create(args[1])) {
-            try (OutputStream fileOutputStream = pathOutputStreamFactory.create(args[2])) {
-                try {
-                    ConfigSchema configSchema = transformTemplateToSchema(inputStream);
-                    if (!configSchema.isValid()) {
-                        System.out.println("There are validation errors with the template, still outputting YAML but it will need to be edited.");
-                        for (String s : configSchema.getValidationIssues()) {
-                            System.out.println(s);
-                        }
-                        System.out.println();
-                    } else {
-                        System.out.println(NO_VALIDATION_ERRORS_FOUND_IN_TEMPLATE);
-                    }
-                    SchemaSaver.saveConfigSchema(configSchema, fileOutputStream);
-                } catch (JAXBException e) {
-                    System.out.println("Error reading template. (" + e + ")");
+            try {
+                configSchema = transformTemplateToSchema(inputStream);
+                if (!configSchema.isValid()) {
+                    System.out.println(THERE_ARE_VALIDATION_ERRORS_WITH_THE_TEMPLATE_STILL_OUTPUTTING_YAML_BUT_IT_WILL_NEED_TO_BE_EDITED);
+                    configSchema.getValidationIssues().forEach(System.out::println);
                     System.out.println();
-                    printTransformUsage();
-                    return ERR_UNABLE_TO_READ_TEMPLATE;
-                } catch (IOException e) {
-                    System.out.println("Error transforming template to YAML. (" + e + ")");
-                    System.out.println();
-                    printTransformUsage();
-                    return ERR_UNABLE_TO_TRANSFORM_TEMPLATE;
-                } catch (SchemaLoaderException e) {
-                    System.out.println("Error transforming template to YAML. (" + e.getMessage() + ")");
-                    System.out.println();
-                    return ERR_UNABLE_TO_TRANSFORM_TEMPLATE;
+                } else {
+                    System.out.println("No validation errors found in converted configuration.");
                 }
-            } catch (FileNotFoundException e) {
-                System.out.println("Unable to open file " + args[2] + " for writing. (" + e + ")");
+            } catch (JAXBException e) {
+                System.out.println("Error reading template. (" + e + ")");
                 System.out.println();
                 printTransformUsage();
-                return ERR_UNABLE_TO_OPEN_OUTPUT;
-            } catch (IOException e) {
-                System.out.println("Error closing output. (" + e + ")");
+                return ERR_UNABLE_TO_READ_TEMPLATE;
+            } catch (SchemaLoaderException e) {
+                System.out.println("Error transforming template to YAML. (" + e.getMessage() + ")");
                 System.out.println();
+                return ERR_UNABLE_TO_TRANSFORM_TEMPLATE;
             }
         } catch (FileNotFoundException e) {
-            System.out.println("Unable to open file " + args[1] + " for reading. (" + e + ")");
-            System.out.println();
-            printTransformUsage();
-            return ERR_UNABLE_TO_OPEN_INPUT;
+            return handleErrorOpeningInput(args[1], ConfigMain::printTransformUsage, e);
         } catch (IOException e) {
-            System.out.println("Error closing input. (" + e + ")");
-            System.out.println();
+            handleErrorClosingInput(e);
+        }
+
+        try (OutputStream fileOutputStream = pathOutputStreamFactory.create(args[2])) {
+            try {
+                SchemaSaver.saveConfigSchema(configSchema, fileOutputStream);
+            } catch (IOException e) {
+                return handleErrorSavingCofiguration(e);
+            }
+        } catch (FileNotFoundException e) {
+            return handleErrorOpeningOutput(args[2], ConfigMain::printTransformUsage, e);
+        } catch (IOException e) {
+            handleErrorClosingOutput(e);
         }
 
         return SUCCESS;
+    }
+
+    protected void handleErrorClosingOutput(IOException e) {
+        System.out.println("Error closing output. (" + e + ")");
+        System.out.println();
+    }
+
+    protected void handleErrorClosingInput(IOException e) {
+        System.out.println("Error closing input. (" + e + ")");
+        System.out.println();
+    }
+
+    protected int handleErrorOpeningInput(String fileName, Runnable usagePrinter, FileNotFoundException e) {
+        System.out.println("Unable to open file " + fileName + " for reading. (" + e + ")");
+        System.out.println();
+        usagePrinter.run();
+        return ERR_UNABLE_TO_OPEN_INPUT;
+    }
+
+    protected int handleErrorOpeningOutput(String fileName, Runnable usagePrinter, FileNotFoundException e) {
+        System.out.println("Unable to open file " + fileName + " for writing. (" + e + ")");
+        System.out.println();
+        usagePrinter.run();
+        return ERR_UNABLE_TO_OPEN_OUTPUT;
+    }
+
+    protected int handleErrorLoadingConfiguration(Exception e, Runnable usagePrinter) {
+        System.out.println("Unable to load configuration. (" + e + ")");
+        System.out.println();
+        usagePrinter.run();
+        return ERR_UNABLE_TO_PARSE_CONFIG;
+    }
+
+    protected int handleErrorSavingCofiguration(IOException e) {
+        System.out.println("Unable to save configuration: " + e);
+        System.out.println();
+        return ERR_UNABLE_TO_SAVE_CONFIG;
     }
 
     public int execute(String[] args) {
@@ -303,6 +399,7 @@ public class ConfigMain {
         Map<String, Command> result = new TreeMap<>();
         result.put(TRANSFORM, new Command(this::transform, "Transform template xml into MiNiFi config YAML"));
         result.put(VALIDATE, new Command(this::validate, "Validate config YAML"));
+        result.put(UPGRADE, new Command(this::upgrade, "Upgrade config YAML to current version (" + ConfigSchema.CONFIG_VERSION + ")"));
         return result;
     }
 

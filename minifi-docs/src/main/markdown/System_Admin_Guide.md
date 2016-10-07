@@ -237,6 +237,18 @@ available at https://nifi.apache.org/minifi/minifi-toolkit.html.
 NOTE: Note that values for periods of time and data sizes must include the unit of measure,
 for example "10 sec" or "10 MB", not simply "10".
 
+## Versioning
+
+The "MiNiFi Config Version" property is used to indicate to the configuration parser which version of the config file it is looking at.  If the property is empty or missing, version 1 is assumed.
+
+The MiNiFi Toolkit Converter is capable of parsing previous versions (possibly subject to a future deprecation policy) and writing out the current version.  It can also validate that a given config file
+parses and upconverts to the current version without issue.
+
+### Version 1 -> Version 2 changes
+
+1. Use ids instead of names for processors, connections.
+2. Allow multiple source relationships for connections.
+
 
 ## Flow Controller
 

@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
-public abstract class BaseSchemaWithIdAndName extends BaseSchema {
+public abstract class BaseSchemaWithIdAndName extends BaseSchema implements WritableSchema {
     public static final Pattern VALID_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
     public static final String ID_DOES_NOT_MATCH_VALID_ID_PATTERN = "Id does not match valid pattern (" + VALID_ID_PATTERN + "): ";
 
@@ -40,35 +40,35 @@ public abstract class BaseSchemaWithIdAndName extends BaseSchema {
         this.wrapperName = wrapperName;
     }
 
-    protected String getName(Map map, String wrapperName) {
-        return getOptionalKeyAsType(map, NAME_KEY, String.class, wrapperName, "");
-    }
-
     protected String getId(Map map, String wrapperName) {
         return getOptionalKeyAsType(map, ID_KEY, String.class, wrapperName, "");
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    protected void setName(String name) {
-        this.name = name;
+    protected String getName(Map map, String wrapperName) {
+        return getOptionalKeyAsType(map, NAME_KEY, String.class, wrapperName, "");
     }
 
     public String getId() {
         return id;
     }
 
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
+    }
+
+    protected void setName(String name) {
+        this.name = name;
     }
 
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> map = mapSupplier.get();
-        map.put(NAME_KEY, name);
         map.put(ID_KEY, id);
+        map.put(NAME_KEY, name);
         return map;
     }
 

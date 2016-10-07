@@ -18,12 +18,13 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMPONENT_STATUS_REPO_KEY;
 
-public class ComponentStatusRepositorySchema extends BaseSchema {
+public class ComponentStatusRepositorySchema extends BaseSchema implements WritableSchema {
     public static final String BUFFER_SIZE_KEY = "buffer size";
     public static final String SNAPSHOT_FREQUENCY_KEY = "snapshot frequency";
 

@@ -18,7 +18,10 @@
 package org.apache.nifi.minifi.commons.schema.serialization;
 
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
+import org.apache.nifi.minifi.commons.schema.v1.ConfigSchemaV1;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 
@@ -30,13 +33,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SchemaLoader {
-    private static final Map<String, Function<Map, ConfigSchema>> configSchemaFactories = initConfigSchemaFactories();
+    private static final Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> configSchemaFactories = initConfigSchemaFactories();
 
-    private static Map<String, Function<Map, ConfigSchema>> initConfigSchemaFactories() {
-        Map<String, Function<Map, ConfigSchema>> result = new HashMap<>();
-        result.put(String.valueOf((Object)null), ConfigSchema::new);
-        result.put("", ConfigSchema::new);
-        result.put("1", ConfigSchema::new);
+    private static Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> initConfigSchemaFactories() {
+        Map<String, Function<Map, ConvertableSchema<ConfigSchema>>> result = new HashMap<>();
+        result.put(String.valueOf((Object) null), ConfigSchemaV1::new);
+        result.put("", ConfigSchemaV1::new);
+        result.put(Integer.toString(ConfigSchemaV1.CONFIG_VERSION), ConfigSchemaV1::new);
         result.put(Integer.toString(ConfigSchema.CONFIG_VERSION), ConfigSchema::new);
         return result;
     }
@@ -67,11 +70,19 @@ public class SchemaLoader {
     }
 
     public static ConfigSchema loadConfigSchemaFromYaml(Map<String, Object> yamlAsMap) throws SchemaLoaderException {
+        return loadConvertableSchemaFromYaml(yamlAsMap).convert();
+    }
+
+    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(InputStream inputStream) throws SchemaLoaderException, IOException {
+        return loadConvertableSchemaFromYaml(loadYamlAsMap(inputStream));
+    }
+
+    public static ConvertableSchema<ConfigSchema> loadConvertableSchemaFromYaml(Map<String, Object> yamlAsMap) throws SchemaLoaderException {
         String version = String.valueOf(yamlAsMap.get(ConfigSchema.VERSION));
-        Function<Map, ConfigSchema> schemaFactory = configSchemaFactories.get(version);
+        Function<Map, ConvertableSchema<ConfigSchema>> schemaFactory = configSchemaFactories.get(version);
         if (schemaFactory == null) {
             throw new SchemaLoaderException("YAML configuration version " + version + " not supported.  Supported versions: "
-                    + configSchemaFactories.keySet().stream().sorted().collect(Collectors.joining(", ")));
+                    + configSchemaFactories.keySet().stream().filter(s -> !StringUtil.isNullOrEmpty(s) && !String.valueOf((Object) null).equals(s)).sorted().collect(Collectors.joining(", ")));
         }
         return schemaFactory.apply(yamlAsMap);
     }

@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CO
 /**
  *
  */
-public class ContentRepositorySchema extends BaseSchema {
+public class ContentRepositorySchema extends BaseSchema implements WritableSchema {
     public static final String CONTENT_CLAIM_MAX_APPENDABLE_SIZE_KEY = "content claim max appendable size";
     public static final String CONTENT_CLAIM_MAX_FLOW_FILES_KEY = "content claim max flow files";
 

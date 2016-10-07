@@ -30,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 
 public class ConnectionSchemaTest {
     private String testId;
@@ -41,8 +39,6 @@ public class ConnectionSchemaTest {
     private String testSourceRelationShip2;
     private List<String> testSourceRelationships;
     private String testDestinationId;
-    private String testSourceName;
-    private String testDestinationName;
     private int testMaxWorkQueueSize;
     private String testMaxWorkQueueDataSize;
     private String testFlowfileExpiration;
@@ -57,8 +53,6 @@ public class ConnectionSchemaTest {
         testSourceRelationShip2 = "testSourceRelationShip2";
         testSourceRelationships = Arrays.asList(testSourceRelationShip1, testSourceRelationShip2);
         testDestinationId = "testDestinationId";
-        testSourceName = "testSourceName";
-        testDestinationName = "testDestinationName";
         testMaxWorkQueueSize = 55;
         testMaxWorkQueueDataSize = "testMaxWorkQueueDataSize";
         testFlowfileExpiration = "testFlowfileExpiration";
@@ -71,7 +65,7 @@ public class ConnectionSchemaTest {
 
     private ConnectionSchema createSchema(Map<String, Object> map, int expectedValidationIssues) {
         ConnectionSchema connectionSchema = new ConnectionSchema(map);
-        assertEquals(expectedValidationIssues, connectionSchema.getValidationIssues().size());
+        assertEquals(connectionSchema.getValidationIssues().toString(), expectedValidationIssues, connectionSchema.getValidationIssues().size());
         return connectionSchema;
     }
 
@@ -82,8 +76,6 @@ public class ConnectionSchemaTest {
         map.put(ConnectionSchema.SOURCE_ID_KEY, testSourceId);
         map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, testSourceRelationships);
         map.put(ConnectionSchema.DESTINATION_ID_KEY, testDestinationId);
-        map.put(ConnectionSchema.SOURCE_NAME_KEY, testSourceName);
-        map.put(ConnectionSchema.DESTINATION_NAME_KEY, testDestinationName);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, testMaxWorkQueueSize);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY, testMaxWorkQueueDataSize);
         map.put(ConnectionSchema.FLOWFILE_EXPIRATION__KEY, testFlowfileExpiration);
@@ -140,59 +132,8 @@ public class ConnectionSchemaTest {
     }
 
     @Test
-    public void testNoSourceNameWithId() {
+    public void testSourceRelationshipNames() {
         ConnectionSchema schema = createSchema(0);
-        assertNull(schema.getSourceName());
-        assertFalse(schema.toMap().containsKey(ConnectionSchema.SOURCE_NAME_KEY));
-    }
-
-    @Test
-    public void testSourceNameNoId() {
-        Map<String, Object> map = createMap();
-        map.remove(ConnectionSchema.SOURCE_ID_KEY);
-        ConnectionSchema schema = createSchema(map, 1);
-        assertEquals("", schema.getSourceId());
-        assertEquals(testSourceName, schema.getSourceName());
-        Map<String, Object> outputMap = schema.toMap();
-        assertEquals(schema.getSourceId(), outputMap.get(ConnectionSchema.SOURCE_ID_KEY));
-        assertFalse(schema.toMap().containsKey(ConnectionSchema.SOURCE_NAME_KEY));
-    }
-
-    @Test
-    public void testNoSourceIdOrSourceName() {
-        Map<String, Object> map = createMap();
-        map.remove(ConnectionSchema.SOURCE_ID_KEY);
-        map.remove(ConnectionSchema.SOURCE_NAME_KEY);
-        ConnectionSchema schema = createSchema(map, 2);
-        assertEquals("", schema.getSourceId());
-        assertNull(schema.getSourceName());
-        Map<String, Object> outputMap = schema.toMap();
-        assertEquals(schema.getSourceId(), outputMap.get(ConnectionSchema.SOURCE_ID_KEY));
-        assertFalse(schema.toMap().containsKey(ConnectionSchema.SOURCE_NAME_KEY));
-    }
-
-    @Test
-    public void testSourceRelationShipNames() {
-        ConnectionSchema schema = createSchema(0);
-        assertEquals(testSourceRelationships, schema.getSourceRelationshipNames());
-        assertEquals(schema.getSourceRelationshipNames(), schema.toMap().get(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY));
-    }
-
-    @Test
-    public void testSourceRelationshipName() {
-        Map<String, Object> map = createMap();
-        map.remove(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY);
-        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, testSourceRelationShip1);
-        ConnectionSchema schema = createSchema(map, 0);
-        assertEquals(new ArrayList<>(Arrays.asList(testSourceRelationShip1)), schema.getSourceRelationshipNames());
-        assertEquals(schema.getSourceRelationshipNames(), schema.toMap().get(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY));
-    }
-
-    @Test
-    public void testSourceRelationshipNameAndSourceRelationshipNames() {
-        Map<String, Object> map = createMap();
-        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAME_KEY, testSourceRelationShip1);
-        ConnectionSchema schema = createSchema(map, 1);
         assertEquals(testSourceRelationships, schema.getSourceRelationshipNames());
         assertEquals(schema.getSourceRelationshipNames(), schema.toMap().get(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY));
     }
@@ -220,35 +161,6 @@ public class ConnectionSchemaTest {
         ConnectionSchema schema = createSchema(map, 1);
         assertEquals("", schema.getDestinationId());
         assertEquals(schema.getDestinationId(), schema.toMap().get(ConnectionSchema.DESTINATION_ID_KEY));
-    }
-
-    @Test
-    public void testDestinationNameWithId() {
-        ConnectionSchema schema = createSchema(0);
-        assertNull(schema.getDestinationName());
-        assertFalse(schema.toMap().containsKey(ConnectionSchema.DESTINATION_NAME_KEY));
-    }
-
-    @Test
-    public void testDestinationNameNoId() {
-        Map<String, Object> map = createMap();
-        map.remove(ConnectionSchema.DESTINATION_ID_KEY);
-        ConnectionSchema schema = createSchema(map, 1);
-        assertEquals(testDestinationName, schema.getDestinationName());
-        assertFalse(schema.toMap().containsKey(ConnectionSchema.DESTINATION_NAME_KEY));
-    }
-
-    @Test
-    public void testNoDestinationNameNoId() {
-        Map<String, Object> map = createMap();
-        map.remove(ConnectionSchema.DESTINATION_ID_KEY);
-        map.remove(ConnectionSchema.DESTINATION_NAME_KEY);
-        ConnectionSchema schema = createSchema(map, 2);
-        assertEquals("", schema.getDestinationId());
-        assertNull(schema.getDestinationName());
-        Map<String, Object> outputMap = schema.toMap();
-        assertEquals(schema.getDestinationId(), outputMap.get(ConnectionSchema.DESTINATION_ID_KEY));
-        assertFalse(outputMap.containsKey(ConnectionSchema.DESTINATION_NAME_KEY));
     }
 
     @Test

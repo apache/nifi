@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YI
 /**
  *
  */
-public class RemoteProcessingGroupSchema extends BaseSchema {
+public class RemoteProcessingGroupSchema extends BaseSchema implements WritableSchema {
     public static final String URL_KEY = "url";
     public static final String TIMEOUT_KEY = "timeout";
 

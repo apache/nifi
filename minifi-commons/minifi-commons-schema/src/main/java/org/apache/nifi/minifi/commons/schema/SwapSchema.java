@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -26,7 +27,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SW
 /**
  *
  */
-public class SwapSchema extends BaseSchema {
+public class SwapSchema extends BaseSchema implements WritableSchema {
     public static final String THRESHOLD_KEY = "threshold";
     public static final String IN_PERIOD_KEY = "in period";
     public static final String IN_THREADS_KEY = "in threads";

@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SW
 /**
  *
  */
-public class FlowFileRepositorySchema extends BaseSchema {
+public class FlowFileRepositorySchema extends BaseSchema implements WritableSchema {
     public static final String PARTITIONS_KEY = "partitions";
     public static final String CHECKPOINT_INTERVAL_KEY = "checkpoint interval";
     public static final int DEFAULT_PARTITIONS = 256;

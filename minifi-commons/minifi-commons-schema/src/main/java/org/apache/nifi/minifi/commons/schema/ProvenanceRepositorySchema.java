@@ -18,12 +18,13 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
 
-public class ProvenanceRepositorySchema extends BaseSchema {
+public class ProvenanceRepositorySchema extends BaseSchema implements WritableSchema {
     public static final String PROVENANCE_REPO_ROLLOVER_TIME_KEY = "provenance rollover time";
 
     public static final String DEFAULT_PROVENANCE_ROLLOVER_TIME = "1 min";

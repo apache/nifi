@@ -21,7 +21,6 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +29,12 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CO
 
 public class ConnectionSchema extends BaseSchemaWithIdAndName {
     public static final String SOURCE_ID_KEY = "source id";
-    public static final String SOURCE_RELATIONSHIP_NAME_KEY = "source relationship name";
     public static final String SOURCE_RELATIONSHIP_NAMES_KEY = "source relationship names";
     public static final String DESTINATION_ID_KEY = "destination id";
     public static final String MAX_WORK_QUEUE_SIZE_KEY = "max work queue size";
     public static final String MAX_WORK_QUEUE_DATA_SIZE_KEY = "max work queue data size";
     public static final String FLOWFILE_EXPIRATION__KEY = "flowfile expiration";
     public static final String QUEUE_PRIORITIZER_CLASS_KEY = "queue prioritizer class";
-    public static final String SOURCE_NAME_KEY = "source name";
-    public static final String DESTINATION_NAME_KEY = "destination name";
 
     public static final long DEFAULT_MAX_WORK_QUEUE_SIZE = 0;
     public static final String DEFAULT_MAX_QUEUE_DATA_SIZE = "0 MB";
@@ -48,9 +44,6 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
     private List<String> sourceRelationshipNames;
     private String destinationId;
 
-    private String sourceName;
-    private String destinationName;
-
     private Number maxWorkQueueSize = DEFAULT_MAX_WORK_QUEUE_SIZE;
     private String maxWorkQueueDataSize = DEFAULT_MAX_QUEUE_DATA_SIZE;
     private String flowfileExpiration = DEFAULT_FLOWFILE_EXPIRATION;
@@ -59,30 +52,13 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
     public ConnectionSchema(Map map) {
         super(map, CONNECTIONS_KEY);
 
+        // In case of older version, these may not be available until after construction, validated in getValidationIssues()
         sourceId = getOptionalKeyAsType(map, SOURCE_ID_KEY, String.class, CONNECTIONS_KEY, "");
-        if (StringUtil.isNullOrEmpty(sourceId)) {
-            sourceName = getRequiredKeyAsType(map, SOURCE_NAME_KEY, String.class, CONNECTIONS_KEY);
-        }
-
-        String sourceRelationshipName = getOptionalKeyAsType(map, SOURCE_RELATIONSHIP_NAME_KEY, String.class, CONNECTIONS_KEY, null);
-        if (StringUtil.isNullOrEmpty(sourceRelationshipName)) {
-            sourceRelationshipNames = getOptionalKeyAsType(map, SOURCE_RELATIONSHIP_NAMES_KEY, List.class, CONNECTIONS_KEY, new ArrayList());
-            if (sourceRelationshipNames.isEmpty()) {
-                addValidationIssue(getIssueText(SOURCE_RELATIONSHIP_NAMES_KEY, CONNECTIONS_KEY, "expected at least one relationship to be specified"));
-            }
-        } else {
-            if (map.containsKey(SOURCE_RELATIONSHIP_NAMES_KEY)) {
-                addValidationIssue("Only one of " + SOURCE_RELATIONSHIP_NAME_KEY + ", " + SOURCE_RELATIONSHIP_NAMES_KEY + " should be set per connection.  Found both on "
-                        + (StringUtil.isNullOrEmpty(getName()) ? getId() : getName()));
-                sourceRelationshipNames = getRequiredKeyAsType(map, SOURCE_RELATIONSHIP_NAMES_KEY, List.class, CONNECTIONS_KEY);
-            } else {
-                sourceRelationshipNames = new ArrayList<>(Arrays.asList(sourceRelationshipName));
-            }
-        }
-
         destinationId = getOptionalKeyAsType(map, DESTINATION_ID_KEY, String.class, CONNECTIONS_KEY, "");
-        if (StringUtil.isNullOrEmpty(getDestinationId())) {
-            destinationName = getRequiredKeyAsType(map, DESTINATION_NAME_KEY, String.class, CONNECTIONS_KEY);
+
+        sourceRelationshipNames = getOptionalKeyAsType(map, SOURCE_RELATIONSHIP_NAMES_KEY, List.class, CONNECTIONS_KEY, new ArrayList<>());
+        if (sourceRelationshipNames.isEmpty()) {
+            addValidationIssue("Expected at least one value in " + SOURCE_RELATIONSHIP_NAMES_KEY + " for " + CONNECTIONS_KEY + " " + getName());
         }
 
         maxWorkQueueSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_SIZE_KEY, Number.class, CONNECTIONS_KEY, DEFAULT_MAX_WORK_QUEUE_SIZE);
@@ -139,14 +115,6 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
 
     public String getQueuePrioritizerClass() {
         return queuePrioritizerClass;
-    }
-
-    public String getSourceName() {
-        return sourceName;
-    }
-
-    public String getDestinationName() {
-        return destinationName;
     }
 
     @Override

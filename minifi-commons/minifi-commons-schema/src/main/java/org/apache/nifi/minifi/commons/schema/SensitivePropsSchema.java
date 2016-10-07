@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -26,7 +27,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SE
 /**
  *
  */
-public class SensitivePropsSchema extends BaseSchema {
+public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
     public static final String SENSITIVE_PROPS_KEY_KEY = "key";
     public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "algorithm";
     public static final String SENSITIVE_PROPS_PROVIDER_KEY = "provider";

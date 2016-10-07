@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 import org.junit.Test;
 
 import java.util.Map;
@@ -25,7 +25,7 @@ import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 
-public abstract class BaseSchemaTester<Schema extends BaseSchema, DTO> {
+public abstract class BaseSchemaTester<Schema extends WritableSchema, DTO> {
     protected final Function<DTO, Schema> dtoSchemaFunction;
     protected final Function<Map, Schema> mapSchemaFunction;
     protected DTO dto;

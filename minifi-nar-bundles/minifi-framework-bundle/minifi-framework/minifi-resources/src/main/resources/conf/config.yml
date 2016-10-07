@@ -13,58 +13,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+MiNiFi Config Version: 2
 Flow Controller:
-    name: MiNiFi Flow
-    comment:
-
+  name: MiNiFi Flow
+  comment: ''
 Core Properties:
-    flow controller graceful shutdown period: 10 sec
-    flow service write delay interval: 500 ms
-    administrative yield duration: 30 sec
-    bored yield duration: 10 millis
-    max concurrent threads: 1
-
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
 FlowFile Repository:
-    partitions: 256
-    checkpoint interval: 2 mins
-    always sync: false
-    Swap:
-        threshold: 20000
-        in period: 5 sec
-        in threads: 1
-        out period: 5 sec
-        out threads: 4
-
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
 Content Repository:
-    content claim max appendable size: 10 MB
-    content claim max flow files: 100
-    always sync: false
-
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
 Provenance Repository:
-    provenance rollover time: 1 min
-
+  provenance rollover time: 1 min
 Component Status Repository:
-    buffer size: 1440
-    snapshot frequency: 1 min
-
+  buffer size: 1440
+  snapshot frequency: 1 min
 Security Properties:
-    keystore:
-    keystore type:
-    keystore password:
-    key password:
-    truststore:
-    truststore type:
-    truststore password:
-    ssl protocol:
-    Sensitive Props:
-        key:
-        algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-        provider: BC
-
-Processors:
-
-Connections:
-
-Remote Processing Groups:
-
-Provenance Reporting:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key: ''
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+Processors: []
+Connections: []
+Remote Processing Groups: []

@@ -20,18 +20,25 @@ package org.apache.nifi.minifi.commons.schema.common;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public abstract class BaseSchema {
+public abstract class BaseSchema implements Schema {
     public static final String IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED = "it was not found and it is required";
+    public static final String EMPTY_NAME = "empty_name";
+
+    public static final Pattern ID_REPLACE_PATTERN = Pattern.compile("[^A-Za-z0-9_-]");
+
     protected final Supplier<Map<String, Object>> mapSupplier;
 
     public BaseSchema() {
@@ -43,41 +50,16 @@ public abstract class BaseSchema {
     }
 
     /******* Validation Issue helper methods *******/
-    private List<String> validationIssues = new LinkedList<>();
+    private Collection<String> validationIssues = new HashSet<>();
 
+    @Override
     public boolean isValid() {
         return getValidationIssues().isEmpty();
     }
 
+    @Override
     public List<String> getValidationIssues() {
-        return new ArrayList<>(validationIssues);
-    }
-
-    public String getValidationIssuesAsString() {
-        StringBuilder stringBuilder = new StringBuilder();
-        boolean first = true;
-        for (String validationIssue : getValidationIssues()) {
-            if (!first) {
-                stringBuilder.append(", ");
-            }
-            stringBuilder.append("[");
-            stringBuilder.append(validationIssue);
-            stringBuilder.append("]");
-            first = false;
-        }
-        return stringBuilder.toString();
-    }
-
-    public <T> T getAndValidateNotNull(Supplier<T> supplier, String keyName, String wrapperName) {
-        return getAndValidate(supplier, t -> t != null, keyName, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED);
-    }
-
-    public <T> T getAndValidate(Supplier<T> supplier, Predicate<T> predicate, String keyName, String wrapperName, String reason) {
-        T result = supplier.get();
-        if (!predicate.test(result)) {
-            addValidationIssue(keyName, wrapperName, reason);
-        }
-        return result;
+        return validationIssues.stream().sorted().collect(Collectors.toList());
     }
 
     public void addValidationIssue(String issue) {
@@ -95,6 +77,12 @@ public abstract class BaseSchema {
     public void addIssuesIfNotNull(BaseSchema baseSchema) {
         if (baseSchema != null) {
             validationIssues.addAll(baseSchema.getValidationIssues());
+        }
+    }
+
+    public void addIssuesIfNotNull(List<? extends BaseSchema> baseSchemas) {
+        if (baseSchemas != null) {
+            baseSchemas.forEach(this::addIssuesIfNotNull);
         }
     }
 
@@ -138,7 +126,7 @@ public abstract class BaseSchema {
 
     public <InputT, OutputT> List<OutputT> convertListToType(List<InputT> list, String simpleListType, Class<? extends OutputT> targetClass, String wrapperName){
         if (list == null) {
-            return null;
+            return new ArrayList<>();
         }
         List<OutputT> result = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); i++) {
@@ -182,17 +170,15 @@ public abstract class BaseSchema {
         return null;
     }
 
-    public abstract Map<String, Object> toMap();
-
-    public static void putIfNotNull(Map valueMap, String key, BaseSchema schema) {
+    public static void putIfNotNull(Map valueMap, String key, WritableSchema schema) {
         if (schema != null) {
             valueMap.put(key, schema.toMap());
         }
     }
 
-    public static void putListIfNotNull(Map valueMap, String key, List<? extends BaseSchema> list) {
+    public static void putListIfNotNull(Map valueMap, String key, List<? extends WritableSchema> list) {
         if (list != null) {
-            valueMap.put(key, list.stream().map(BaseSchema::toMap).collect(Collectors.toList()));
+            valueMap.put(key, list.stream().map(WritableSchema::toMap).collect(Collectors.toList()));
         }
     }
 
@@ -206,5 +192,27 @@ public abstract class BaseSchema {
 
     public static <K, V> Map<K, V> nullToEmpty(Map<K, V> map) {
         return map == null ? Collections.emptyMap() : map;
+    }
+
+
+
+    public static void checkForDuplicates(Consumer<String> duplicateMessageConsumer, String errorMessagePrefix, List<String> strings) {
+        if (strings != null) {
+            Set<String> seen = new HashSet<>();
+            Set<String> duplicates = new TreeSet<>();
+            for (String string : strings) {
+                if (!seen.add(string)) {
+                    duplicates.add(String.valueOf(string));
+                }
+            }
+            if (duplicates.size() > 0) {
+                duplicateMessageConsumer.accept(errorMessagePrefix + duplicates.stream().collect(Collectors.joining(", ")));
+            }
+        }
+    }
+
+    @Override
+    public void clearValidationIssues() {
+        validationIssues.clear();
     }
 }

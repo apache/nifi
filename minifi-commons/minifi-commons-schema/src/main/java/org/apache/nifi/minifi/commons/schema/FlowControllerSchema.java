@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -28,7 +29,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NA
 /**
  *
  */
-public class FlowControllerSchema extends BaseSchema {
+public class FlowControllerSchema extends BaseSchema implements WritableSchema {
     private String name;
     private String comment;
 

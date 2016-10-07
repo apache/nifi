@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MA
 /**
  *
  */
-public class CorePropertiesSchema extends BaseSchema {
+public class CorePropertiesSchema extends BaseSchema implements WritableSchema {
 
     public static final String FLOW_CONTROLLER_SHUTDOWN_PERIOD_KEY = "flow controller graceful shutdown period";
     public static final String FLOW_SERVICE_WRITE_DELAY_INTERVAL_KEY = "flow service write delay interval";

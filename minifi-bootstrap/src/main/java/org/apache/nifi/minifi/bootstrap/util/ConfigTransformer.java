@@ -69,6 +69,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 public final class ConfigTransformer {
@@ -89,7 +90,8 @@ public final class ConfigTransformer {
     public static void transformConfigFile(InputStream sourceStream, String destPath) throws Exception {
         ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(sourceStream);
         if (!configSchema.isValid()) {
-            throw new InvalidConfigurationException("Failed to transform config file due to:" + configSchema.getValidationIssuesAsString());
+            throw new InvalidConfigurationException("Failed to transform config file due to:["
+                    + configSchema.getValidationIssues().stream().sorted().collect(Collectors.joining("], [")) + "]");
         }
 
         // Create nifi.properties and flow.xml.gz in memory

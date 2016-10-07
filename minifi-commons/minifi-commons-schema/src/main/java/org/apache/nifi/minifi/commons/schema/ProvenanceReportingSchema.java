@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.Map;
@@ -32,7 +33,7 @@ import static org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema.
 /**
  *
  */
-public class ProvenanceReportingSchema extends BaseSchema {
+public class ProvenanceReportingSchema extends BaseSchema implements WritableSchema {
     public static final String DESTINATION_URL_KEY = "destination url";
     public static final String PORT_NAME_KEY = "port name";
     public static final String ORIGINATING_URL_KEY = "originating url";

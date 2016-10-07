@@ -77,7 +77,7 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, PROCESSORS_KEY, "");
     }
 
-    private static boolean isSchedulingStrategy(String string) {
+    public static boolean isSchedulingStrategy(String string) {
         try {
             SchedulingStrategy.valueOf(string);
         } catch (Exception e) {
