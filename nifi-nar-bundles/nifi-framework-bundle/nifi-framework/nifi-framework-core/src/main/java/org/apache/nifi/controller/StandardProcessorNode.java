@@ -187,46 +187,30 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
-        try
-        {
-
-            if(procClass.isAnnotationPresent(DefaultSchedule.class))
-            {
+        try {
+            if (procClass.isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = procClass.getAnnotation(DefaultSchedule.class);
-                try
-                {
+                try {
                     this.setSchedulingStrategy(dsc.Strategy());
+                } catch (Throwable ex) {
+                    LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
-                catch (Throwable ex)
-                {
-                    LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s",ex.getMessage()));
-                }
-                try
-                {
+                try {
                     this.setScheduldingPeriod(dsc.Period());
-                }
-                catch (Throwable ex)
-                {
+                } catch (Throwable ex) {
                     this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
-                    LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s",ex.getMessage()));
+                    LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
-                if(!triggeredSerially)
-                {
-                    try
-                    {
+                if (!triggeredSerially) {
+                    try {
                         setMaxConcurrentTasks(dsc.ConcurrentTasks());
+                    } catch (Throwable ex) {
+                        LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                     }
-                    catch (Throwable ex)
-                    {
-                        LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s",ex.getMessage()));
-                    }
-
                 }
             }
-        }
-        catch (Throwable ex)
-        {
-            LOG.error(String.format("Error while setting default schedule from DefaultSchedule annotation: %s",ex.getMessage()));
+        } catch (Throwable ex) {
+            LOG.error(String.format("Error while setting default schedule from DefaultSchedule annotation: %s",ex.getMessage()),ex);
         }
 
 
