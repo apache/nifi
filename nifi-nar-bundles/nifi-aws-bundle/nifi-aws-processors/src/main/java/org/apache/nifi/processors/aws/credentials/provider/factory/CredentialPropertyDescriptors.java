@@ -18,7 +18,6 @@ package org.apache.nifi.processors.aws.credentials.provider.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.joda.time.DateTime;
 
 /**
  * Shared definitions of properties that specify various AWS credentials.
