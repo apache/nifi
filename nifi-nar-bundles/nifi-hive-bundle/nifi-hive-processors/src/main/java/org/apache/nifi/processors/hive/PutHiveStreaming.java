@@ -27,6 +27,7 @@ import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.hcatalog.streaming.ConnectionError;
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
@@ -322,6 +323,8 @@ public class PutHiveStreaming extends AbstractProcessor {
                 .withAutoCreatePartitions(autoCreatePartitions)
                 .withMaxOpenConnections(maxConnections)
                 .withHeartBeatInterval(heartbeatInterval);
+
+        hiveConfigurator.preload(hiveConfig);
 
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
             final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
