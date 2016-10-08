@@ -114,8 +114,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
-            .name("Kerberos Relogin period").required(false)
-            .description("period of time which should pass before attempting a kerberos relogin")
+            .name("Kerberos Relogin Period").required(false)
+            .description("Period of time which should pass before attempting a kerberos relogin")
             .defaultValue("4 hours")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

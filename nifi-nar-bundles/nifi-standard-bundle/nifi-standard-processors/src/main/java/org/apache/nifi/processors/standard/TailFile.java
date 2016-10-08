@@ -196,7 +196,7 @@ public class TailFile extends AbstractProcessor {
 
     static final PropertyDescriptor ROLLING_STRATEGY = new PropertyDescriptor.Builder()
             .name("tailfile-rolling-strategy")
-            .displayName("Rolling strategy")
+            .displayName("Rolling Strategy")
             .description("Specifies if the files to tail have a fixed name or not.")
             .required(true)
             .allowableValues(FIXED_NAME, CHANGING_NAME)

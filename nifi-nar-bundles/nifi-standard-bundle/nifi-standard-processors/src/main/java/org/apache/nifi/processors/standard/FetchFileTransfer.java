@@ -92,8 +92,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .expressionLanguageSupported(true)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Completion strategy")
-        .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion strategy fails, a warning will be "
+        .name("Completion Strategy")
+        .description("Specifies what to do with the original file on the server once it has been pulled into NiFi. If the Completion Strategy fails, a warning will be "
             + "logged but the data will still be transferred.")
         .expressionLanguageSupported(false)
         .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
@@ -103,7 +103,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
         .name("Move Destination Directory")
         .description("The directory on the remote server to the move the original file to once it has been ingested into NiFi. "
-            + "This property is ignored unless the Completion strategy is set to \"Move File\". The specified directory must already exist on"
+            + "This property is ignored unless the Completion Strategy is set to \"Move File\". The specified directory must already exist on"
             + "the remote system, or the rename will fail.")
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

@@ -264,9 +264,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     try {
                         new CronExpression(config.getSchedulingPeriod());
                     } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling period '%s' is not a valid cron expression: %s", config.getSchedulingPeriod(), pe.getMessage()));
+                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", config.getSchedulingPeriod(), pe.getMessage()));
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling period is not a valid cron expression: " + config.getSchedulingPeriod());
+                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + config.getSchedulingPeriod());
                     }
                     break;
             }

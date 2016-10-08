@@ -78,7 +78,7 @@ import java.util.regex.Pattern;
  * and a long value for the reportingInterval property will result in checking
  * the memory usage often so that notifications happen quickly but prevents
  * notifications from continually being generated. The format of this property
- * is The period format (e.g., 5 mins).
+ * is The Period format (e.g., 5 mins).
  * </li>
  * </ul>
  */

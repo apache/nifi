@@ -72,7 +72,7 @@ import org.apache.nifi.processors.standard.util.NLKBufferedReader;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"attributes", "routing", "text", "regexp", "regex", "Regular Expression", "Expression Language", "csv", "filter", "logs", "delimited"})
 @CapabilityDescription("Routes textual data based on a set of user-defined rules. Each line in an incoming FlowFile is compared against the values specified by user-defined Properties. "
-    + "The mechanism by which the text is compared to these user-defined properties is defined by the 'Matching strategy'. The data is then routed according to these rules, routing "
+    + "The mechanism by which the text is compared to these user-defined properties is defined by the 'Matching Strategy'. The data is then routed according to these rules, routing "
     + "each line of the text individually.")
 @DynamicProperty(name = "Relationship Name", value = "value to match against", description = "Routes data that matches the value specified in the Dynamic Property Value to the "
     + "Relationship specified in the Dynamic Property Key.")
@@ -120,8 +120,8 @@ public class RouteText extends AbstractProcessor {
             + "'lineNo' (which is the line number being evaluated. This will be 1 for the first line, 2 for the second and so on).");
 
     public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Routing strategy")
-        .description("Specifies how to determine which Relationship(s) to use when evaluating the lines of incoming text against the 'Matching strategy' and user-defined properties.")
+        .name("Routing Strategy")
+        .description("Specifies how to determine which Relationship(s) to use when evaluating the lines of incoming text against the 'Matching Strategy' and user-defined properties.")
         .required(true)
         .allowableValues(ROUTE_TO_MATCHING_PROPERTY_NAME, ROUTE_TO_MATCHED_WHEN_ALL_PROPERTIES_MATCH, ROUTE_TO_MATCHED_WHEN_ANY_PROPERTY_MATCHES)
         .defaultValue(ROUTE_TO_MATCHING_PROPERTY_NAME.getValue())
@@ -129,7 +129,7 @@ public class RouteText extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor MATCH_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Matching strategy")
+        .name("Matching Strategy")
         .description("Specifies how to evaluate each line of incoming text against the user-defined properties.")
         .required(true)
         .allowableValues(SATISFIES_EXPRESSION, STARTS_WITH, ENDS_WITH, CONTAINS, EQUALS, MATCHES_REGULAR_EXPRESSION, CONTAINS_REGULAR_EXPRESSION)
@@ -148,7 +148,7 @@ public class RouteText extends AbstractProcessor {
     static final PropertyDescriptor IGNORE_CASE = new PropertyDescriptor.Builder()
         .name("Ignore Case")
         .description("If true, capitalization will not be taken into account when comparing values. E.g., matching against 'HELLO' or 'hello' will have the same result. "
-            + "This property is ignored if the 'Matching strategy' is set to 'Satisfies Expression'.")
+            + "This property is ignored if the 'Matching Strategy' is set to 'Satisfies Expression'.")
         .expressionLanguageSupported(false)
         .allowableValues("true", "false")
         .defaultValue("false")

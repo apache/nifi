@@ -78,7 +78,7 @@ public class FetchFile extends AbstractProcessor {
         .required(true)
         .build();
     static final PropertyDescriptor COMPLETION_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Completion strategy")
+        .name("Completion Strategy")
         .description("Specifies what to do with the original file on the file system once it has been pulled into NiFi")
         .expressionLanguageSupported(false)
         .allowableValues(COMPLETION_NONE, COMPLETION_MOVE, COMPLETION_DELETE)
@@ -87,15 +87,15 @@ public class FetchFile extends AbstractProcessor {
         .build();
     static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
         .name("Move Destination Directory")
-        .description("The directory to the move the original file to once it has been fetched from the file system. This property is ignored unless the Completion strategy is set to \"Move File\". "
+        .description("The directory to the move the original file to once it has been fetched from the file system. This property is ignored unless the Completion Strategy is set to \"Move File\". "
             + "If the directory does not exist, it will be created.")
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
     static final PropertyDescriptor CONFLICT_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Move Conflict strategy")
-        .description("If Completion strategy is set to Move File and a file already exists in the destination directory with the same name, this property specifies "
+        .name("Move Conflict Strategy")
+        .description("If Completion Strategy is set to Move File and a file already exists in the destination directory with the same name, this property specifies "
             + "how that naming conflict should be resolved")
         .allowableValues(CONFLICT_RENAME, CONFLICT_REPLACE, CONFLICT_KEEP_INTACT, CONFLICT_FAIL)
         .defaultValue(CONFLICT_RENAME.getValue())
@@ -209,7 +209,7 @@ public class FetchFile extends AbstractProcessor {
             final File targetDir = new File(targetDirectoryName);
             if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
                 if (targetDir.exists() && (!isWritable(targetDir) || !isDirectory(targetDir))) {
-                    getLogger().error("Could not fetch file {} from file system for {} because Completion strategy is configured to move the original file to {}, "
+                    getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
                         + "but that is not a directory or user {} does not have permissions to write to that directory",
                         new Object[] {file, flowFile, targetDir, user});
                     session.transfer(flowFile, REL_FAILURE);
@@ -221,8 +221,8 @@ public class FetchFile extends AbstractProcessor {
                 if (CONFLICT_FAIL.getValue().equalsIgnoreCase(conflictStrategy)) {
                     final File targetFile = new File(targetDir, file.getName());
                     if (targetFile.exists()) {
-                        getLogger().error("Could not fetch file {} from file system for {} because Completion strategy is configured to move the original file to {}, "
-                            + "but a file with name {} already exists in that directory and the Move Conflict strategy is configured for failure",
+                        getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
+                            + "but a file with name {} already exists in that directory and the Move Conflict Strategy is configured for failure",
                             new Object[] {file, flowFile, targetDir, file.getName()});
                         session.transfer(flowFile, REL_FAILURE);
                         return;
@@ -243,12 +243,12 @@ public class FetchFile extends AbstractProcessor {
         session.getProvenanceReporter().modifyContent(flowFile, "Replaced content of FlowFile with contents of " + file.toURI(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
 
-        // It is critical that we commit the session before we perform the Completion strategy. Otherwise, we could have a case where we
+        // It is critical that we commit the session before we perform the Completion Strategy. Otherwise, we could have a case where we
         // ingest the file, delete/move the file, and then NiFi is restarted before the session is committed. That would result in data loss.
-        // As long as we commit the session right here, before we perform the Completion strategy, we are safe.
+        // As long as we commit the session right here, before we perform the Completion Strategy, we are safe.
         session.commit();
 
-        // Attempt to perform the Completion strategy action
+        // Attempt to perform the Completion Strategy action
         Exception completionFailureException = null;
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
             // convert to path and use Files.delete instead of file.delete so that if we fail, we know why

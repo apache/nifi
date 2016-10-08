@@ -156,7 +156,7 @@ public class ValidateCsv extends AbstractProcessor {
     public static final PropertyDescriptor VALIDATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("validate-csv-strategy")
             .displayName("Validation strategy")
-            .description("strategy to apply when routing input files to output relationships.")
+            .description("Strategy to apply when routing input files to output relationships.")
             .required(true)
             .defaultValue(VALIDATE_WHOLE_FLOWFILE.getValue())
             .allowableValues(VALIDATE_LINES_INDIVIDUALLY, VALIDATE_WHOLE_FLOWFILE)

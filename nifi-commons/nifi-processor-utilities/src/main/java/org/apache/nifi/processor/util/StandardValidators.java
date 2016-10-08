@@ -319,7 +319,7 @@ public class StandardValidators {
             }
 
             if (input == null) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time period cannot be null").build();
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
             if (Pattern.compile(FormatUtils.TIME_DURATION_REGEX).matcher(input.toLowerCase()).matches()) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
@@ -652,7 +652,7 @@ public class StandardValidators {
             }
 
             if (input == null) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time period cannot be null").build();
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
             final String lowerCase = input.toLowerCase();
             final boolean validSyntax = pattern.matcher(lowerCase).matches();

@@ -121,7 +121,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .expressionLanguageSupported(true)
             .build();
     static final PropertyDescriptor PARTITION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Partition strategy")
+            .name("Partition Strategy")
             .description("Specifies how messages should be partitioned when sent to Kafka")
             .allowableValues(ROUND_ROBIN_PARTITIONING, RANDOM_PARTITIONING, USER_DEFINED_PARTITIONING)
             .defaultValue(ROUND_ROBIN_PARTITIONING.getValue())
@@ -413,7 +413,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
         if (partitionStrategy.equalsIgnoreCase(USER_DEFINED_PARTITIONING.getValue())
                 && !validationContext.getProperty(PARTITION).isSet()) {
             results.add(new ValidationResult.Builder().subject("Partition").valid(false)
-                    .explanation("The <Partition> property must be set when configured to use the User-Defined Partitioning strategy")
+                    .explanation("The <Partition> property must be set when configured to use the User-Defined Partitioning Strategy")
                     .build());
         }
         return results;

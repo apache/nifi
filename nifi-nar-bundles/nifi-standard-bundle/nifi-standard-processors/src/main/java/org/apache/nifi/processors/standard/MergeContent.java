@@ -95,19 +95,19 @@ import org.apache.nifi.util.FlowFilePackagerV3;
         + "It is recommended that the Processor be configured with only a single incoming connection, as Group of FlowFiles will not be "
         + "created from FlowFiles in different connections. This processor updates the mime.type attribute as appropriate.")
 @ReadsAttributes({
-    @ReadsAttribute(attribute = "fragment.identifier", description = "Applicable only if the <Merge strategy> property is set to Defragment. "
+    @ReadsAttribute(attribute = "fragment.identifier", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "All FlowFiles with the same value for this attribute will be bundled together."),
-    @ReadsAttribute(attribute = "fragment.index", description = "Applicable only if the <Merge strategy> property is set to Defragment. "
+    @ReadsAttribute(attribute = "fragment.index", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "This attribute indicates the order in which the fragments should be assembled. This "
-        + "attribute must be present on all FlowFiles when using the Defragment Merge strategy and must be a unique (i.e., unique across all "
+        + "attribute must be present on all FlowFiles when using the Defragment Merge Strategy and must be a unique (i.e., unique across all "
         + "FlowFiles that have the same value for the \"fragment.identifier\" attribute) integer "
         + "between 0 and the value of the fragment.count attribute. If two or more FlowFiles have the same value for the "
         + "\"fragment.identifier\" attribute and the same value for the \"fragment.index\" attribute, the behavior of this Processor is undefined."),
-    @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge strategy> property is set to Defragment. This "
+    @ReadsAttribute(attribute = "fragment.count", description = "Applicable only if the <Merge Strategy> property is set to Defragment. This "
         + "attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute indicates how many FlowFiles should be expected "
         + "in the given bundle."),
-    @ReadsAttribute(attribute = "segment.original.filename", description = "Applicable only if the <Merge strategy> property is set to Defragment. "
+    @ReadsAttribute(attribute = "segment.original.filename", description = "Applicable only if the <Merge Strategy> property is set to Defragment. "
         + "This attribute must be present on all FlowFiles with the same value for the fragment.identifier attribute. All FlowFiles in the same "
         + "bundle must have the same value for this attribute. The value of this attribute will be used for the filename of the completed merged "
         + "FlowFile."),
@@ -207,7 +207,7 @@ public class MergeContent extends BinFiles {
     public static final String MERGE_BIN_AGE_ATTRIBUTE = "merge.bin.age";
 
     public static final PropertyDescriptor MERGE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Merge strategy")
+            .name("Merge Strategy")
             .description("Specifies the algorithm used to merge content. The 'Defragment' algorithm combines fragments that are associated by "
                     + "attributes back into a single cohesive FlowFile. The 'Bin-Packing Algorithm' generates a FlowFile populated by arbitrarily "
                     + "chosen FlowFiles")
@@ -224,7 +224,7 @@ public class MergeContent extends BinFiles {
             .build();
     public static final PropertyDescriptor ATTRIBUTE_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("Attribute strategy")
+            .name("Attribute Strategy")
             .description("Determines which FlowFile attributes should be added to the bundle. If 'Keep All Unique Attributes' is selected, any "
                     + "attribute on any FlowFile that gets bundled will be kept unless its value conflicts with the value from another FlowFile. "
                     + "If 'Keep Only Common Attributes' is selected, only the attributes that exist on all FlowFiles in the bundle, with the same "
@@ -245,7 +245,7 @@ public class MergeContent extends BinFiles {
 
     public static final PropertyDescriptor DELIMITER_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("Delimiter strategy")
+            .name("Delimiter Strategy")
             .description("Determines if Header, Footer, and Demarcator should point to files containing the respective content, or if "
                     + "the values of the properties should be used as the content.")
             .allowableValues(DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)

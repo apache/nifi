@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  * </p>
  *
  * <p>
- * A Processor is scheduled to be triggered based on its configured Scheduling period
+ * A Processor is scheduled to be triggered based on its configured Scheduling Period
  * and Scheduling Strategy. However, when the scheduling period elapses, the Processor
  * will not be scheduled if it has no work to do. Normally, a Processor is said to have
  * work to do if one of the following circumstances is true:

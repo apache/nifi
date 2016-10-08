@@ -430,7 +430,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
-     * Updates the Scheduling strategy used for this Processor
+     * Updates the Scheduling Strategy used for this Processor
      *
      * @param schedulingStrategy
      *            strategy
@@ -479,7 +479,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 new CronExpression(schedulingPeriod);
             } catch (final Exception e) {
                 throw new IllegalArgumentException(
-                        "Scheduling period is not a valid cron expression: " + schedulingPeriod);
+                        "Scheduling Period is not a valid cron expression: " + schedulingPeriod);
             }
         }
             break;
@@ -488,7 +488,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod),
                     TimeUnit.NANOSECONDS);
             if (schedulingNanos < 0) {
-                throw new IllegalArgumentException("Scheduling period must be positive");
+                throw new IllegalArgumentException("Scheduling Period must be positive");
             }
             this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
         }

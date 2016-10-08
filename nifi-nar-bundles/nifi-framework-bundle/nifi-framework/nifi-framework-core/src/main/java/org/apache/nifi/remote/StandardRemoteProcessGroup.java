@@ -328,14 +328,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             final long millis = FormatUtils.getTimeDuration(timePeriod, TimeUnit.MILLISECONDS);
             if (millis <= 0) {
-                throw new IllegalArgumentException("Time period must be more than 0 milliseconds; Invalid Time period: " + timePeriod);
+                throw new IllegalArgumentException("Time Period must be more than 0 milliseconds; Invalid Time Period: " + timePeriod);
             }
             if (millis > Integer.MAX_VALUE) {
                 throw new IllegalArgumentException("Timeout is too long; cannot be greater than " + Integer.MAX_VALUE + " milliseconds");
             }
             this.communicationsTimeout = timePeriod;
         } catch (final Exception e) {
-            throw new IllegalArgumentException("Invalid Time period: " + timePeriod);
+            throw new IllegalArgumentException("Invalid Time Period: " + timePeriod);
         }
     }
 
@@ -1233,7 +1233,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public void setYieldDuration(final String yieldDuration) {
         // verify the syntax
         if (!FormatUtils.TIME_DURATION_PATTERN.matcher(yieldDuration).matches()) {
-            throw new IllegalArgumentException("Improperly formatted Time period; should be of syntax <number> <unit> where "
+            throw new IllegalArgumentException("Improperly formatted Time Period; should be of syntax <number> <unit> where "
                     + "<number> is a positive integer and unit is one of the valid Time Units, such as nanos, millis, sec, min, hour, day");
         }
 

@@ -121,7 +121,7 @@ public class GetSplunk extends AbstractProcessor {
             "Search based on the time the event was indexed in Splunk.");
 
     public static final PropertyDescriptor TIME_FIELD_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Time Field strategy")
+            .name("Time Field Strategy")
             .description("Indicates whether to search by the time attached to the event, or by the time the event was indexed in Splunk.")
             .allowableValues(EVENT_TIME_VALUE, INDEX_TIME_VALUE)
             .defaultValue(EVENT_TIME_VALUE.getValue())
@@ -136,7 +136,7 @@ public class GetSplunk extends AbstractProcessor {
             "The the time range provided through the Earliest Time and Latest Time properties will be used.");
 
     public static final PropertyDescriptor TIME_RANGE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Time Range strategy")
+            .name("Time Range Strategy")
             .description("Indicates how to apply time ranges to each execution of the query. Selecting a managed option " +
                     "allows the processor to apply a time range from the last execution time to the current execution time. " +
                     "When using <Managed from Beginning>, an earliest time will not be applied on the first execution, and thus all " +
@@ -150,14 +150,14 @@ public class GetSplunk extends AbstractProcessor {
 
     public static final PropertyDescriptor EARLIEST_TIME = new PropertyDescriptor.Builder()
             .name("Earliest Time")
-            .description("The value to use for the earliest time when querying. Only used with a Time Range strategy of Provided. " +
+            .description("The value to use for the earliest time when querying. Only used with a Time Range Strategy of Provided. " +
                     "See Splunk's documentation on Search Time Modifiers for guidance in populating this field.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
     public static final PropertyDescriptor LATEST_TIME = new PropertyDescriptor.Builder()
             .name("Latest Time")
-            .description("The value to use for the latest time when querying. Only used with a Time Range strategy of Provided. " +
+            .description("The value to use for the latest time when querying. Only used with a Time Range Strategy of Provided. " +
                     "See Splunk's documentation on Search Time Modifiers for guidance in populating this field.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)

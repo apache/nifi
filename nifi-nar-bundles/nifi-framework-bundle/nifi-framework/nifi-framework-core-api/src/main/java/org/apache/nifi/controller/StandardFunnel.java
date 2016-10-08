@@ -425,7 +425,7 @@ public class StandardFunnel implements Funnel {
     public void setScheduldingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
         if (schedulingNanos < 0) {
-            throw new IllegalArgumentException("Scheduling period must be positive");
+            throw new IllegalArgumentException("Scheduling Period must be positive");
         }
 
         this.schedulingPeriod.set(schedulingPeriod);
