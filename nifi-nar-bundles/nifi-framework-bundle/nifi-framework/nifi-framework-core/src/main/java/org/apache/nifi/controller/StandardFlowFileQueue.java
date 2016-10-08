@@ -802,7 +802,7 @@ public class StandardFlowFileQueue implements FlowFileQueue {
     public void setFlowFileExpiration(final String flowExpirationPeriod) {
         final long millis = FormatUtils.getTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS);
         if (millis < 0) {
-            throw new IllegalArgumentException("FlowFile Expiration Period must be positive");
+            throw new IllegalArgumentException("FlowFile Expiration period must be positive");
         }
 
         expirationPeriod.set(new TimePeriod(flowExpirationPeriod, millis));

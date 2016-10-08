@@ -56,7 +56,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         .defaultValue("10000")
         .build();
     public static final PropertyDescriptor EVICTION_POLICY = new PropertyDescriptor.Builder()
-        .name("Eviction Strategy")
+        .name("Eviction strategy")
         .description("Determines which strategy should be used to evict values from the cache to make room for new entries")
         .required(true)
         .allowableValues(EVICTION_STRATEGY_LFU, EVICTION_STRATEGY_LRU, EVICTION_STRATEGY_FIFO)

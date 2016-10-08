@@ -19,7 +19,7 @@ import org.apache.nifi.logging.LogLevel;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface DefaultSettings {
-    String YieldDuration() default "1 sec";
-    String PenaltyDuration() default "30 sec";
-    LogLevel LogLevel() default LogLevel.WARN;
+    String yieldDuration() default "1 sec";
+    String penaltyDuration() default "30 sec";
+    LogLevel logLevel() default LogLevel.WARN;
 }

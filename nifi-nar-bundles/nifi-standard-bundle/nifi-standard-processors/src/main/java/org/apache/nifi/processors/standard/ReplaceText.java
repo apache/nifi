@@ -116,7 +116,7 @@ public class ReplaceText extends AbstractProcessor {
         .build();
     public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder()
         .name("Replacement Value")
-        .description("The value to insert using the 'Replacement Strategy'. Using \"Regex Replace\" back-references to Regular Expression capturing groups "
+        .description("The value to insert using the 'Replacement strategy'. Using \"Regex Replace\" back-references to Regular Expression capturing groups "
             + "are supported, but back-references that reference capturing groups that do not exist in the regular expression will be treated as literal value. "
             + "Back References may also be referenced using the Expression Language, as '$1', '$2', etc. The single-tick marks MUST be included, as these variables are "
             + "not \"Standard\" attribute names (attribute names must be quoted unless they contain only numbers, letters, and _).")
@@ -139,13 +139,13 @@ public class ReplaceText extends AbstractProcessor {
             + "the FlowFile will be routed to 'failure'. "
             + "In 'Line-by-Line' Mode, if a single line is larger than this value, the FlowFile will be routed to 'failure'. A default value "
             + "of 1 MB is provided, primarily for 'Entire Text' mode. In 'Line-by-Line' Mode, a value such as 8 KB or 16 KB is suggested. "
-            + "This value is ignored if the <Replacement Strategy> property is set to one of: Append, Prepend, Always Replace")
+            + "This value is ignored if the <Replacement strategy> property is set to one of: Append, Prepend, Always Replace")
         .required(true)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("1 MB")
         .build();
     public static final PropertyDescriptor REPLACEMENT_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Replacement Strategy")
+        .name("Replacement strategy")
         .description("The strategy for how and what to replace within the FlowFile's text content.")
         .allowableValues(PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE, ALWAYS_REPLACE)
         .defaultValue(REGEX_REPLACE.getValue())
@@ -153,7 +153,7 @@ public class ReplaceText extends AbstractProcessor {
         .build();
     public static final PropertyDescriptor EVALUATION_MODE = new PropertyDescriptor.Builder()
         .name("Evaluation Mode")
-        .description("Run the 'Replacement Strategy' against each line separately (Line-by-Line) or buffer the entire file into memory (Entire Text) "
+        .description("Run the 'Replacement strategy' against each line separately (Line-by-Line) or buffer the entire file into memory (Entire Text) "
             + "and run against that.")
         .allowableValues(LINE_BY_LINE, ENTIRE_TEXT)
         .defaultValue(ENTIRE_TEXT)

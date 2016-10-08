@@ -58,7 +58,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 @CapabilityDescription("Adds rows to HBase based on the contents of incoming JSON documents. Each FlowFile must contain a single " +
         "UTF-8 encoded JSON document, and any FlowFiles where the root element is not a single document will be routed to failure. " +
         "Each JSON field name and value will become a column qualifier and value of the HBase row. Any fields with a null value " +
-        "will be skipped, and fields with a complex value will be handled according to the Complex Field Strategy. " +
+        "will be skipped, and fields with a complex value will be handled according to the Complex Field strategy. " +
         "The row id can be specified either directly on the processor through the Row Identifier property, or can be extracted from the JSON " +
         "document by specifying the Row Identifier Field Name property. This processor will hold the contents of all FlowFiles for the given batch " +
         "in memory at one time.")
@@ -82,7 +82,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
     protected static final AllowableValue COMPLEX_FIELD_TEXT = new AllowableValue(TEXT_VALUE, TEXT_VALUE, "Use the string representation of the complex field as the value of the given column.");
 
     protected static final PropertyDescriptor COMPLEX_FIELD_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Complex Field Strategy")
+            .name("Complex Field strategy")
             .description("Indicates how to handle complex fields, i.e. fields that do not have a single text value.")
             .expressionLanguageSupported(false)
             .required(true)
@@ -98,7 +98,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
             "Stores the value of each field as the byte representation of the type derived from the JSON.");
 
     protected static final PropertyDescriptor FIELD_ENCODING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Field Encoding Strategy")
+            .name("Field Encoding strategy")
             .description(("Indicates how to store the value of each field in HBase. The default behavior is to convert each value from the " +
                     "JSON to a String, and store the UTF-8 bytes. Choosing Bytes will interpret the type of each field from " +
                     "the JSON, and convert the value to the byte representation of that type, meaning an integer will be stored as the " +

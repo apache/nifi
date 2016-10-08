@@ -86,7 +86,7 @@ public class RouteOnAttribute extends AbstractProcessor {
             "Requires that at least one user-defined expression evaluate to 'true' for the FlowFile to be considered a match");
 
     public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Routing Strategy")
+            .name("Routing strategy")
             .description("Specifies how to determine which relationship to use when evaluating the Expression Language")
             .required(true)
             .allowableValues(ROUTE_PROPERTY_NAME, ROUTE_ALL_MATCH, ROUTE_ANY_MATCHES)
@@ -99,7 +99,7 @@ public class RouteOnAttribute extends AbstractProcessor {
             .build();
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
-            .description("FlowFiles will be routed to 'match' if one or all Expressions match, depending on the configuration of the Routing Strategy property")
+            .description("FlowFiles will be routed to 'match' if one or all Expressions match, depending on the configuration of the Routing strategy property")
             .build();
 
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();

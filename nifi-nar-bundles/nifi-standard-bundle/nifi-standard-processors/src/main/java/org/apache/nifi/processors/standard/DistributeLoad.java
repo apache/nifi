@@ -62,7 +62,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @TriggerWhenAnyDestinationAvailable
 @Tags({"distribute", "load balance", "route", "round robin", "weighted"})
-@CapabilityDescription("Distributes FlowFiles to downstream processors based on a Distribution Strategy. If using the Round Robin "
+@CapabilityDescription("Distributes FlowFiles to downstream processors based on a Distribution strategy. If using the Round Robin "
         + "strategy, the default is to assign each destination a weighting of 1 (evenly distributed). However, optional properties"
         + "can be added to the change this; adding a property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
@@ -70,7 +70,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
 @DynamicRelationship(name = "A number 1..<Number Of Relationships>", description = "FlowFiles are sent to this relationship per the "
-        + "<Distribution Strategy>")
+        + "<Distribution strategy>")
 public class DistributeLoad extends AbstractProcessor {
 
     public static final String STRATEGY_ROUND_ROBIN = "round robin";
@@ -85,7 +85,7 @@ public class DistributeLoad extends AbstractProcessor {
             .defaultValue("1")
             .build();
     public static final PropertyDescriptor DISTRIBUTION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Distribution Strategy")
+            .name("Distribution strategy")
             .description("Determines how the load will be distributed. If using Round Robin, will not distribute any FlowFiles unless all "
                     + "destinations can accept FlowFiles; when using Next Available, will distribute FlowFiles as long as at least 1 "
                     + "destination can accept FlowFiles.")
@@ -226,13 +226,13 @@ public class DistributeLoad extends AbstractProcessor {
                 PropertyValue propDesc = validationContext.getProperty(HOSTNAMES);
                 if (null == propDesc || null == propDesc.getValue() || propDesc.getValue().isEmpty()) {
                     results.add(new ValidationResult.Builder().subject(HOSTNAMES.getName())
-                            .explanation("Must specify Hostnames when using 'Load Distribution Strategy'").valid(false).build());
+                            .explanation("Must specify Hostnames when using 'Load Distribution strategy'").valid(false).build());
                 }
                 propDesc = validationContext.getProperty(LOAD_DISTRIBUTION_SERVICE_TEMPLATE);
                 if (null == propDesc || null == propDesc.getValue() || propDesc.getValue().isEmpty()) {
                     results.add(new ValidationResult.Builder()
                             .subject(LOAD_DISTRIBUTION_SERVICE_TEMPLATE.getName())
-                            .explanation("Must specify 'Load Distribution Service ID' when using 'Load Distribution Strategy'")
+                            .explanation("Must specify 'Load Distribution Service ID' when using 'Load Distribution strategy'")
                             .valid(false).build());
                 }
                 if (results.isEmpty()) {

@@ -1062,22 +1062,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         try {
             final Class<?> procClass = processor.getClass();
-            if(procClass.isAnnotationPresent(DefaultSettings.class))
-            {
+            if(procClass.isAnnotationPresent(DefaultSettings.class)) {
                 DefaultSettings ds = procClass.getAnnotation(DefaultSettings.class);
                 try {
-                    procNode.setYieldPeriod(ds.YieldDuration());
+                    procNode.setYieldPeriod(ds.yieldDuration());
                 } catch(Throwable ex) {
                     LOG.error(String.format("Error while setting yield period from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
                 try {
 
-                    procNode.setPenalizationPeriod(ds.PenaltyDuration());
+                    procNode.setPenalizationPeriod(ds.penaltyDuration());
                 } catch(Throwable ex) {
                     LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
                 try {
-                    procNode.setBulletinLevel(ds.LogLevel());
+                    procNode.setBulletinLevel(ds.logLevel());
                 } catch (Throwable ex) {
                     LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }

@@ -68,7 +68,7 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 @SupportsBatching
 @Tags({ "avro", "split" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Splits a binary encoded Avro datafile into smaller files based on the configured Output Size. The Output Strategy determines if " +
+@CapabilityDescription("Splits a binary encoded Avro datafile into smaller files based on the configured Output Size. The Output strategy determines if " +
         "the smaller files will be Avro datafiles, or bare Avro records with metadata in the FlowFile attributes. The output will always be binary encoded.")
 @WritesAttributes({
         @WritesAttribute(attribute = "fragment.identifier",
@@ -85,7 +85,7 @@ public class SplitAvro extends AbstractProcessor {
     public static final AllowableValue RECORD_SPLIT = new AllowableValue(RECORD_SPLIT_VALUE, RECORD_SPLIT_VALUE, "Split at Record boundaries");
 
     public static final PropertyDescriptor SPLIT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Split Strategy")
+            .name("Split strategy")
             .description("The strategy for splitting the incoming datafile. The Record strategy will read the incoming datafile by de-serializing each record.")
             .required(true)
             .allowableValues(RECORD_SPLIT)
@@ -108,7 +108,7 @@ public class SplitAvro extends AbstractProcessor {
     public static final AllowableValue BARE_RECORD_OUTPUT = new AllowableValue(BARE_RECORD_OUTPUT_VALUE, BARE_RECORD_OUTPUT_VALUE, "Bare Avro records");
 
     public static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Output Strategy")
+            .name("Output strategy")
             .description("Determines the format of the output. Either Avro Datafile, or bare record. Bare record output is only intended for use with systems " +
                     "that already require it, and shouldn't be needed for normal use.")
             .required(true)
@@ -118,7 +118,7 @@ public class SplitAvro extends AbstractProcessor {
 
     public static final PropertyDescriptor TRANSFER_METADATA = new PropertyDescriptor.Builder()
             .name("Transfer Metadata")
-            .description("Whether or not to transfer metadata from the parent datafile to the children. If the Output Strategy is Bare Record, " +
+            .description("Whether or not to transfer metadata from the parent datafile to the children. If the Output strategy is Bare Record, " +
                     "then the metadata will be stored as FlowFile attributes, otherwise it will be in the Datafile header.")
             .required(true)
             .allowableValues("true", "false")

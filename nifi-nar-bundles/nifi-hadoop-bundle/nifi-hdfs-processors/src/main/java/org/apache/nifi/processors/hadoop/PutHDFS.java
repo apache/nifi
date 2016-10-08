@@ -98,7 +98,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
     // properties
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("Conflict Resolution Strategy")
+            .name("Conflict Resolution strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)

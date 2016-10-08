@@ -67,7 +67,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String ANNOTATION_DATA = "Annotation Data";
     private static final String AUTO_TERMINATED_RELATIONSHIPS = "Auto Terminated Relationships";
     private static final String SCHEDULING_PERIOD = "Run Schedule";
-    private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
+    private static final String SCHEDULING_STRATEGY = "Scheduling strategy";
 
     /**
      * Audits the creation of processors via createProcessor().

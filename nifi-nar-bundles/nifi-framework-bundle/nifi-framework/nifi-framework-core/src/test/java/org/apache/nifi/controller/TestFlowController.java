@@ -47,7 +47,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -74,7 +74,7 @@ public class TestFlowController {
 
     @Before
     public void setup() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FlowController.class.getResource("/nifi.properties").getFile());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFlowController.class.getResource("/nifi.properties").getFile());
 
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
@@ -332,7 +332,7 @@ public class TestFlowController {
 
     @Test
     public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
-        ProcessorNode p_scheduled = controller.createProcessor(Dummy_ScheduledProcessor.class.getName(),"1234-ScheduledProcessor");
+        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor");
         assertEquals(5,p_scheduled.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
         assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
@@ -344,7 +344,7 @@ public class TestFlowController {
     @Test
     public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
 
-        ProcessorNode p_settings = controller.createProcessor(Dummy_SettingsProcessor.class.getName(),"1234-SettingsProcessor");
+        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor");
         assertEquals("5 sec",p_settings.getYieldPeriod());
         assertEquals("1 min",p_settings.getPenalizationPeriod());
         assertEquals(LogLevel.DEBUG,p_settings.getBulletinLevel());

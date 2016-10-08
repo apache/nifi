@@ -11,8 +11,8 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 /**
  * Dummy processor to test @DefaultSchedule annotation
  */
-@DefaultSchedule(ConcurrentTasks = 5, Strategy = SchedulingStrategy.CRON_DRIVEN,Period = "0 0 0 1/1 * ?")
-public class Dummy_ScheduledProcessor extends AbstractProcessor {
+@DefaultSchedule(concurrentTasks = 5, strategy = SchedulingStrategy.CRON_DRIVEN, period = "0 0 0 1/1 * ?")
+public class DummyScheduledProcessor extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 

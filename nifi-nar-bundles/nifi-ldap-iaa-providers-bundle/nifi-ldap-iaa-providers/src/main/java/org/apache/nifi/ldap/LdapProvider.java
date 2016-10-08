@@ -101,7 +101,7 @@ public class LdapProvider implements LoginIdentityProvider {
         }
 
         // authentication strategy
-        final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication Strategy");
+        final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication strategy");
         final LdapAuthenticationStrategy authenticationStrategy;
         try {
             authenticationStrategy = LdapAuthenticationStrategy.valueOf(rawAuthenticationStrategy);
@@ -185,7 +185,7 @@ public class LdapProvider implements LoginIdentityProvider {
         }
 
         // referrals
-        final String rawReferralStrategy = configurationContext.getProperty("Referral Strategy");
+        final String rawReferralStrategy = configurationContext.getProperty("Referral strategy");
 
         final ReferralStrategy referralStrategy;
         try {

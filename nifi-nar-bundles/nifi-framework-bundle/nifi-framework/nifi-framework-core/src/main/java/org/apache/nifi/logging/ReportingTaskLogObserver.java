@@ -34,8 +34,8 @@ public class ReportingTaskLogObserver implements LogObserver {
 
     @Override
     public void onLogMessage(final LogMessage message) {
-        // Map LogLevel.WARN to Severity.WARNING so that we are consistent with the Severity enumeration. Else, just use whatever
-        // the LogLevel is (INFO and ERROR map directly and all others we will just accept as they are).
+        // Map logLevel.WARN to Severity.WARNING so that we are consistent with the Severity enumeration. Else, just use whatever
+        // the logLevel is (INFO and ERROR map directly and all others we will just accept as they are).
         final String bulletinLevel = message.getLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLevel().toString();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(null, taskNode.getIdentifier(), ComponentType.REPORTING_TASK,

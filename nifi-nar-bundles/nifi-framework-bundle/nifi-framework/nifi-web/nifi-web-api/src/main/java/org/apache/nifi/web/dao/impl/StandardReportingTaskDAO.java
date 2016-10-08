@@ -179,9 +179,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                     try {
                         new CronExpression(reportingTaskDTO.getSchedulingPeriod());
                     } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", reportingTaskDTO.getSchedulingPeriod(), pe.getMessage()));
+                        throw new IllegalArgumentException(String.format("Scheduling period '%s' is not a valid cron expression: %s", reportingTaskDTO.getSchedulingPeriod(), pe.getMessage()));
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + reportingTaskDTO.getSchedulingPeriod());
+                        throw new IllegalArgumentException("Scheduling period is not a valid cron expression: " + reportingTaskDTO.getSchedulingPeriod());
                     }
                     break;
             }

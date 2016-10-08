@@ -21,8 +21,8 @@ import java.lang.annotation.Inherited;
 @Inherited
 public @interface DefaultSchedule {
 
-    SchedulingStrategy Strategy() default  SchedulingStrategy.TIMER_DRIVEN;
-    String Period() default "0 sec";
-    int ConcurrentTasks() default 1;
+    SchedulingStrategy strategy() default  SchedulingStrategy.TIMER_DRIVEN;
+    String period() default "0 sec";
+    int concurrentTasks() default 1;
 
 }

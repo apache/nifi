@@ -191,19 +191,19 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (procClass.isAnnotationPresent(DefaultSchedule.class)) {
                 DefaultSchedule dsc = procClass.getAnnotation(DefaultSchedule.class);
                 try {
-                    this.setSchedulingStrategy(dsc.Strategy());
+                    this.setSchedulingStrategy(dsc.strategy());
                 } catch (Throwable ex) {
                     LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
                 try {
-                    this.setScheduldingPeriod(dsc.Period());
+                    this.setScheduldingPeriod(dsc.period());
                 } catch (Throwable ex) {
                     this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
                     LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
                 if (!triggeredSerially) {
                     try {
-                        setMaxConcurrentTasks(dsc.ConcurrentTasks());
+                        setMaxConcurrentTasks(dsc.concurrentTasks());
                     } catch (Throwable ex) {
                         LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                     }
@@ -430,7 +430,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
-     * Updates the Scheduling Strategy used for this Processor
+     * Updates the Scheduling strategy used for this Processor
      *
      * @param schedulingStrategy
      *            strategy
@@ -479,7 +479,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 new CronExpression(schedulingPeriod);
             } catch (final Exception e) {
                 throw new IllegalArgumentException(
-                        "Scheduling Period is not a valid cron expression: " + schedulingPeriod);
+                        "Scheduling period is not a valid cron expression: " + schedulingPeriod);
             }
         }
             break;
@@ -488,7 +488,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod),
                     TimeUnit.NANOSECONDS);
             if (schedulingNanos < 0) {
-                throw new IllegalArgumentException("Scheduling Period must be positive");
+                throw new IllegalArgumentException("Scheduling period must be positive");
             }
             this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
         }
