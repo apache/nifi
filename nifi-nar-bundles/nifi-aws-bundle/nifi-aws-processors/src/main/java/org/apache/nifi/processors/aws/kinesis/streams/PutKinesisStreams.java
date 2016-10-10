@@ -39,7 +39,12 @@ import org.apache.nifi.util.Tuple;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map.Entry;
 
 @SupportsBatching
