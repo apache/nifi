@@ -26,8 +26,5 @@ public interface RemoteSiteListener {
 
     void start() throws IOException;
 
-    int getPort();
-
     void stop();
-
 }

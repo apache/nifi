@@ -24,7 +24,9 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -64,7 +66,11 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
-@WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
+@ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
+        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
+})
 @SeeAlso(GetHDFS.class)
 public class PutHDFS extends AbstractHadoopProcessor {
 
@@ -74,6 +80,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
     public static final int BUFFER_SIZE_DEFAULT = 4096;
+
+    public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -88,13 +96,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .build();
 
     // properties
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name(DIRECTORY_PROP_NAME)
-            .description("The parent HDFS directory to which files should be written")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
@@ -160,7 +161,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.add(DIRECTORY);
+        props.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(DIRECTORY)
+                .description("The parent HDFS directory to which files should be written")
+                .build());
         props.add(CONFLICT_RESOLUTION);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
@@ -204,27 +208,29 @@ public class PutHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final Path configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
-        final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
-
-        final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
-        final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
-
-        final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-        final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
-
-        final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
-        final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
-                .getDefaultReplication(configuredRootDirPath);
-
-        final CompressionCodec codec = getCompressionCodec(context, configuration);
-
-        final String filename = codec != null
-                ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
-                : flowFile.getAttribute(CoreAttributes.FILENAME.key());
-
         Path tempDotCopyFile = null;
         try {
+            final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+            final Path configuredRootDirPath = new Path(dirValue);
+
+            final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
+
+            final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
+            final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
+
+            final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
+            final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
+
+            final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
+            final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
+                    .getDefaultReplication(configuredRootDirPath);
+
+            final CompressionCodec codec = getCompressionCodec(context, configuration);
+
+            final String filename = codec != null
+                    ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                    : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
             final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
             final Path copyFile = new Path(configuredRootDirPath, filename);
 
@@ -329,8 +335,13 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
             final String outputPath = copyFile.toString();
+            final String newFilename = copyFile.getName();
+            final String hdfsPath = copyFile.getParent().toString();
+            flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
+            flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
             final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
             session.getProvenanceReporter().send(flowFile, transitUri);
+
             session.transfer(flowFile, REL_SUCCESS);
 
         } catch (final Throwable t) {

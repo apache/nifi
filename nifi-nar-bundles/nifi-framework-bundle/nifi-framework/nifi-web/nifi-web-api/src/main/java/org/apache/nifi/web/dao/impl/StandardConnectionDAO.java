@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -34,7 +38,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -42,8 +45,6 @@ import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +65,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectionDAO.class);
 
     private FlowController flowController;
-    private KeyService keyService;
+    private Authorizer authorizer;
 
     private Connection locateConnection(final String connectionId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -129,6 +131,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (flowFile == null) {
                 throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
+
+            // get the attributes and ensure appropriate access
+            final Map<String, String> attributes = flowFile.getAttributes();
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser(), attributes);
 
             return flowFile;
         } catch (final IOException ioe) {
@@ -292,6 +299,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             source = sourceGroup.getConnectable(sourceConnectableDTO.getId());
         }
 
+        // ensure the user has write access to the source component
+        source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
         // find the destination
         final Connectable destination;
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationConnectableDTO.getType())) {
@@ -314,6 +324,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final ProcessGroup destinationGroup = locateProcessGroup(flowController, destinationConnectableDTO.getGroupId());
             destination = destinationGroup.getConnectable(destinationConnectableDTO.getId());
         }
+
+        // ensure the user has write access to the source component
+        destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // determine the relationships
         final Set<String> relationships = new HashSet<>();
@@ -365,6 +378,34 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (!validationErrors.isEmpty()) {
             throw new ValidationException(validationErrors);
         }
+
+        // Ensure that both the source and the destination for the connection exist.
+        // In the case that the source or destination is a port in a Remote Process Group,
+        // this is necessary because the ports can change in the background. It may still be
+        // possible for a port to disappear between the 'verify' stage and the creation stage,
+        // but this prevents the case where some nodes already know about the port while other
+        // nodes in the cluster do not. This is a more common case, as users may try to connect
+        // to the port as soon as the port is created.
+        final ConnectableDTO sourceDto = connectionDTO.getSource();
+        if (sourceDto == null || sourceDto.getId() == null) {
+            throw new IllegalArgumentException("Cannot create connection without specifying source");
+        }
+
+        final ConnectableDTO destinationDto = connectionDTO.getDestination();
+        if (destinationDto == null || destinationDto.getId() == null) {
+            throw new IllegalArgumentException("Cannot create connection without specifying destination");
+        }
+
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Connectable sourceConnectable = rootGroup.findConnectable(sourceDto.getId());
+        if (sourceConnectable == null) {
+            throw new IllegalArgumentException("The specified source for the connection does not exist");
+        }
+
+        final Connectable destinationConnectable = rootGroup.findConnectable(destinationDto.getId());
+        if (destinationConnectable == null) {
+            throw new IllegalArgumentException("The specified destination for the connection does not exist");
+        }
     }
 
     private void verifyList(final FlowFileQueue queue) {
@@ -400,6 +441,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // ensure there was no validation errors
             if (!validationErrors.isEmpty()) {
                 throw new ValidationException(validationErrors);
+            }
+
+            // If destination is changing, ensure that current destination is not running. This check is done here, rather than
+            // in the Connection object itself because the Connection object itself does not know which updates are to occur and
+            // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
+            final Connectable destination = connection.getDestination();
+            if (destination != null && destination.isRunning() && destination.getConnectableType() != ConnectableType.FUNNEL && destination.getConnectableType() != ConnectableType.INPUT_PORT) {
+                throw new ValidationException(Collections.singletonList("Cannot change the destination of connection because the current destination is running"));
             }
 
             // verify that this connection supports modification
@@ -565,9 +614,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     public DownloadableContent getContent(String id, String flowFileUuid, String requestUri) {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
-            if (user == null) {
-                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-            }
 
             final Connection connection = locateConnection(id);
             final FlowFileQueue queue = connection.getFlowFileQueue();
@@ -577,15 +623,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
 
-            // calculate the dn chain
-            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
-
-            // TODO - ensure the users in this chain are allowed to download this content
+            // get the attributes and ensure appropriate access
             final Map<String, String> attributes = flowFile.getAttributes();
-//            final DownloadAuthorization downloadAuthorization = keyService.authorizeDownload(dnChain, attributes);
-//            if (!downloadAuthorization.isApproved()) {
-//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-//            }
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, user, attributes);
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());
@@ -612,7 +653,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         this.flowController = flowController;
     }
 
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

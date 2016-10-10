@@ -41,7 +41,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -117,7 +116,7 @@ public class ExecuteFlumeSource extends AbstractFlumeProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final SchedulingContext context) {
+    public void onScheduled(final ProcessContext context) {
         try {
             source = SOURCE_FACTORY.create(
                     context.getProperty(SOURCE_NAME).getValue(),

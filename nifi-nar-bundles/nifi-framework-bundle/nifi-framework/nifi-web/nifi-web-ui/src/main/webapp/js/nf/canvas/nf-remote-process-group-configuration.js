@@ -22,64 +22,79 @@ nf.RemoteProcessGroupConfiguration = (function () {
         init: function () {
             $('#remote-process-group-configuration').modal({
                 headerText: 'Configure Remote Process Group',
-                overlayBackground: true,
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
-                        buttonText: 'Apply',
-                        handler: {
-                            click: function () {
-                                var remoteProcessGroupId = $('#remote-process-group-id').text();
-                                var remoteProcessGroupData = d3.select('#id-' + remoteProcessGroupId).datum();
+                    buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            var remoteProcessGroupId = $('#remote-process-group-id').text();
+                            var remoteProcessGroupData = d3.select('#id-' + remoteProcessGroupId).datum();
 
                                 // create the remote process group details
                                 var remoteProcessGroupEntity = {
-                                    revision: nf.Client.getRevision(),
-                                    remoteProcessGroup: {
+                                    'revision': nf.Client.getRevision(remoteProcessGroupData),
+                                    'component': {
                                         id: remoteProcessGroupId,
                                         communicationsTimeout: $('#remote-process-group-timeout').val(),
-                                        yieldDuration: $('#remote-process-group-yield-duration').val()
+                                        yieldDuration: $('#remote-process-group-yield-duration').val(),
+                                        transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
+                                        proxyHost: $('#remote-process-group-proxy-host').val(),
+                                        proxyPort: $('#remote-process-group-proxy-port').val(),
+                                        proxyUser: $('#remote-process-group-proxy-user').val(),
+                                        proxyPassword: $('#remote-process-group-proxy-password').val()
                                     }
                                 };
 
-                                // update the selected component
-                                $.ajax({
-                                    type: 'PUT',
-                                    data: JSON.stringify(remoteProcessGroupEntity),
-                                    url: remoteProcessGroupData.component.uri,
-                                    dataType: 'json',
-                                    contentType: 'application/json'
-                                }).done(function (response) {
-                                    // update the revision
-                                    nf.Client.setRevision(response.revision);
-                                    
-                                    // refresh the remote process group component
-                                    nf.RemoteProcessGroup.set(response.remoteProcessGroup);
+                            // update the selected component
+                            $.ajax({
+                                type: 'PUT',
+                                data: JSON.stringify(remoteProcessGroupEntity),
+                                url: remoteProcessGroupData.uri,
+                                dataType: 'json',
+                                contentType: 'application/json'
+                            }).done(function (response) {
+                                // refresh the remote process group component
+                                nf.RemoteProcessGroup.set(response);
 
-                                    // close the details panel
-                                    $('#remote-process-group-configuration').modal('hide');
-                                }).fail(function (xhr, status, error) {
-                                    if (xhr.status === 400) {
-                                        var errors = xhr.responseText.split('\n');
+                                // inform Angular app values have changed
+                                nf.ng.Bridge.digest();
+                                
+                                // close the details panel
+                                $('#remote-process-group-configuration').modal('hide');
+                            }).fail(function (xhr, status, error) {
+                                if (xhr.status === 400) {
+                                    var errors = xhr.responseText.split('\n');
 
-                                        var content;
-                                        if (errors.length === 1) {
-                                            content = $('<span></span>').text(errors[0]);
-                                        } else {
-                                            content = nf.Common.formatUnorderedList(errors);
-                                        }
-
-                                        nf.Dialog.showOkDialog({
-                                            dialogContent: content,
-                                            overlayBackground: false,
-                                            headerText: 'Configuration Error'
-                                        });
+                                    var content;
+                                    if (errors.length === 1) {
+                                        content = $('<span></span>').text(errors[0]);
                                     } else {
-                                        nf.Common.handleAjaxError(xhr, status, error);
+                                        content = nf.Common.formatUnorderedList(errors);
                                     }
-                                });
-                            }
+
+                                    nf.Dialog.showOkDialog({
+                                        dialogContent: content,
+                                        headerText: 'Remote Process Group Configuration'
+                                    });
+                                } else {
+                                    nf.Common.handleAjaxError(xhr, status, error);
+                                }
+                            });
                         }
-                    }, {
+                    }
+                },
+                    {
                         buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 $('#remote-process-group-configuration').modal('hide');
@@ -94,17 +109,31 @@ nf.RemoteProcessGroupConfiguration = (function () {
                         $('#remote-process-group-url').text('');
                         $('#remote-process-group-timeout').val('');
                         $('#remote-process-group-yield-duration').val('');
+                        $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
+                            value: 'RAW'
+                        });
+                        $('#remote-process-group-proxy-host').val('');
+                        $('#remote-process-group-proxy-port').val('');
+                        $('#remote-process-group-proxy-user').val('');
+                        $('#remote-process-group-proxy-password').val('');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
+            });
+            // initialize the transport protocol combo
+            $('#remote-process-group-transport-protocol-combo').combo({
+                options: [{
+                        text: 'RAW',
+                        value: 'RAW'
+                    }, {
+                        text: 'HTTP',
+                        value: 'HTTP'
+                    }]
             });
         },
-        
+
         /**
          * Shows the details for the remote process group in the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
@@ -113,13 +142,22 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                $('#remote-process-group-id').text(selectionData.component.id);
+                $('#remote-process-group-id').text(selectionData.id);
                 $('#remote-process-group-name').text(selectionData.component.name);
                 $('#remote-process-group-url').text(selectionData.component.targetUri);
 
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);
                 $('#remote-process-group-yield-duration').val(selectionData.component.yieldDuration);
+                $('#remote-process-group-proxy-host').val(selectionData.component.proxyHost);
+                $('#remote-process-group-proxy-port').val(selectionData.component.proxyPort);
+                $('#remote-process-group-proxy-user').val(selectionData.component.proxyUser);
+                $('#remote-process-group-proxy-password').val(selectionData.component.proxyPassword);
+
+                // select the appropriate transport-protocol
+                $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
+                    value: selectionData.component.transportProtocol
+                });
 
                 // show the details
                 $('#remote-process-group-configuration').modal('show');

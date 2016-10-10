@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.web.api.dto.ComponentDTO;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,24 +30,34 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.NiFiComponentDTO;
-import org.apache.nifi.web.api.dto.PositionDTO;
-
 /**
  * Utility class for moving Snippets.
  */
 public final class SnippetUtils {
 
     /**
-     * Moves the content of the specified template around the specified location.
+     * Moves the content of the specified snippet around the specified location.  Does not scale components in child process groups.
      *
      * @param snippet snippet
-     * @param x x location
-     * @param y y location
+     * @param x       x location
+     * @param y       y location
      */
     public static void moveSnippet(FlowSnippetDTO snippet, Double x, Double y) {
+        moveAndScaleSnippet(snippet, x, y, 1.0, 1.0);
+    }
+
+    /**
+     * Moves the content of the specified snippet around the specified location
+     * and scales the placement of individual components of the template by the
+     * given factorX and factorY.  Does not scale components in child process groups.
+     *
+     * @param snippet snippet
+     * @param x       x location
+     * @param y       y location
+     * @param factorX x location scaling factor
+     * @param factorY y location scaling factor
+     */
+    public static void moveAndScaleSnippet(FlowSnippetDTO snippet, Double x, Double y, double factorX, double factorY) {
         // ensure the point is specified
         if (x != null && y != null) {
             final PositionDTO origin = new PositionDTO(x, y);
@@ -50,7 +66,7 @@ public final class SnippetUtils {
             final Collection<ConnectionDTO> connections = getConnections(snippet);
 
             // get the components and their positions from the template contents
-            final Collection<NiFiComponentDTO> components = getComponents(snippet);
+            final Collection<ComponentDTO> components = getComponents(snippet);
 
             // only perform the operation if there are components in this snippet
             if (connections.isEmpty() && components.isEmpty()) {
@@ -58,27 +74,82 @@ public final class SnippetUtils {
             }
 
             // get the component positions from the snippet contents
-            final Map<NiFiComponentDTO, PositionDTO> componentPositionLookup = getPositionLookup(components);
+            final Map<ComponentDTO, PositionDTO> componentPositionLookup = getPositionLookup(components);
             final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup = getConnectionPositionLookup(connections);
             final PositionDTO currentOrigin = getOrigin(componentPositionLookup.values(), connectionPositionLookup.values());
 
             // adjust all component positions
             for (final PositionDTO position : componentPositionLookup.values()) {
-                position.setX(origin.getX() + (position.getX() - currentOrigin.getX()));
-                position.setY(origin.getY() + (position.getY() - currentOrigin.getY()));
+                position.setX(origin.getX() + ((position.getX() - currentOrigin.getX()) * factorX));
+                position.setY(origin.getY() + ((position.getY() - currentOrigin.getY()) * factorY));
             }
 
             // adjust all connection positions
             for (final List<PositionDTO> bends : connectionPositionLookup.values()) {
                 for (final PositionDTO bend : bends) {
-                    bend.setX(origin.getX() + (bend.getX() - currentOrigin.getX()));
-                    bend.setY(origin.getY() + (bend.getY() - currentOrigin.getY()));
+                    bend.setX(origin.getX() + ((bend.getX() - currentOrigin.getX()) * factorX));
+                    bend.setY(origin.getY() + ((bend.getY() - currentOrigin.getY()) * factorY));
                 }
             }
 
             // apply the updated positions
             applyUpdatedPositions(componentPositionLookup, connectionPositionLookup);
         }
+    }
+
+    /**
+     * Scales the placement of individual components of the snippet by the
+     * given factorX and factorY. Does not scale components in child process groups.
+     *
+     * @param snippet snippet
+     * @param factorX x location scaling factor
+     * @param factorY y location scaling factor
+     */
+    public static void scaleSnippet(FlowSnippetDTO snippet, double factorX, double factorY) {
+        // get the connections
+        final Collection<ConnectionDTO> connections = getConnections(snippet);
+
+        // get the components and their positions from the template contents
+        final Collection<ComponentDTO> components = getComponents(snippet);
+
+        // only perform the operation if there are components in this snippet
+        if (connections.isEmpty() && components.isEmpty()) {
+            return;
+        }
+
+        // get the component positions from the snippet contents
+        final Map<ComponentDTO, PositionDTO> componentPositionLookup = getPositionLookup(components);
+        final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup = getConnectionPositionLookup(connections);
+
+        // adjust all component positions
+        for (final PositionDTO position : componentPositionLookup.values()) {
+            position.setX(position.getX() * factorX);
+            position.setY(position.getY() * factorY);
+        }
+
+        // adjust all connection positions
+        for (final List<PositionDTO> bends : connectionPositionLookup.values()) {
+            for (final PositionDTO bend : bends) {
+                bend.setX(bend.getX() * factorX);
+                bend.setY(bend.getY() * factorY);
+            }
+        }
+
+        // apply the updated positions
+        applyUpdatedPositions(componentPositionLookup, connectionPositionLookup);
+    }
+
+    /**
+     * Finds all {@link ProcessGroupDTO}s in the given {@link FlowSnippetDTO}.
+     * @param snippet containing the child {@link ProcessGroupDTO}s to be returned
+     * @return List of child {@link ProcessGroupDTO}s found in the given {@link FlowSnippetDTO}.
+     */
+    public static List<ProcessGroupDTO> findAllProcessGroups(FlowSnippetDTO snippet) {
+        final List<ProcessGroupDTO> allProcessGroups = new ArrayList<>(snippet.getProcessGroups());
+        for (final ProcessGroupDTO childGroup : snippet.getProcessGroups()) {
+            allProcessGroups.addAll(findAllProcessGroups(childGroup.getContents()));
+        }
+        return allProcessGroups;
     }
 
     /**
@@ -101,8 +172,8 @@ public final class SnippetUtils {
      * @param contents snippet
      * @return component dtos
      */
-    private static Collection<NiFiComponentDTO> getComponents(FlowSnippetDTO contents) {
-        final Collection<NiFiComponentDTO> components = new HashSet<>();
+    private static Collection<ComponentDTO> getComponents(FlowSnippetDTO contents) {
+        final Collection<ComponentDTO> components = new HashSet<>();
 
         // add all components
         if (contents.getInputPorts() != null) {
@@ -136,11 +207,11 @@ public final class SnippetUtils {
      * @param components components
      * @return component and position map
      */
-    private static Map<NiFiComponentDTO, PositionDTO> getPositionLookup(Collection<NiFiComponentDTO> components) {
-        final Map<NiFiComponentDTO, PositionDTO> positionLookup = new HashMap<>();
+    private static Map<ComponentDTO, PositionDTO> getPositionLookup(Collection<ComponentDTO> components) {
+        final Map<ComponentDTO, PositionDTO> positionLookup = new HashMap<>();
 
         // determine the position for each component
-        for (final NiFiComponentDTO component : components) {
+        for (final ComponentDTO component : components) {
             positionLookup.put(component, new PositionDTO(component.getPosition().getX(), component.getPosition().getY()));
         }
 
@@ -176,7 +247,7 @@ public final class SnippetUtils {
     /**
      * Gets the origin of the bounding box of all specified component positions
      *
-     * @param componentPositions position list for components
+     * @param componentPositions  position list for components
      * @param connectionPositions position list for connections
      * @return position
      */
@@ -220,12 +291,12 @@ public final class SnippetUtils {
     /**
      * Applies the updated positions to the corresponding components.
      *
-     * @param componentPositionLookup lookup
+     * @param componentPositionLookup  lookup
      * @param connectionPositionLookup lookup
      */
-    private static void applyUpdatedPositions(final Map<NiFiComponentDTO, PositionDTO> componentPositionLookup, final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup) {
-        for (final Map.Entry<NiFiComponentDTO, PositionDTO> entry : componentPositionLookup.entrySet()) {
-            final NiFiComponentDTO component = entry.getKey();
+    private static void applyUpdatedPositions(final Map<ComponentDTO, PositionDTO> componentPositionLookup, final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup) {
+        for (final Map.Entry<ComponentDTO, PositionDTO> entry : componentPositionLookup.entrySet()) {
+            final ComponentDTO component = entry.getKey();
             final PositionDTO position = entry.getValue();
             component.setPosition(position);
         }

@@ -39,7 +39,6 @@ import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
-import org.apache.nifi.util.LongHolder;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "tcp", "udp"})
@@ -59,14 +59,6 @@ import java.util.concurrent.TimeUnit;
         "delimiter, and send each message to Splunk. If a Message Delimiter is not provided then the content of " +
         "the FlowFile will be sent directly to Splunk as if it were a single message.")
 public class PutSplunk extends AbstractPutEventProcessor {
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
-                    "messages will be sent over a secure connection.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
 
     public static final char NEW_LINE_CHAR = '\n';
 
@@ -227,7 +219,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
         // some pattern. We can use this to search for the delimiter as we read through the stream of bytes in the FlowFile
         final NonThreadSafeCircularBuffer buffer = new NonThreadSafeCircularBuffer(delimiterBytes);
 
-        final LongHolder messagesSent = new LongHolder(0L);
+        final AtomicLong messagesSent = new AtomicLong(0L);
         final FlowFileMessageBatch messageBatch = new FlowFileMessageBatch(session, flowFile);
         activeBatches.add(messageBatch);
 

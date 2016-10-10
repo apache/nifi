@@ -44,7 +44,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -54,7 +54,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 import org.apache.nifi.util.search.Search;
@@ -142,7 +141,7 @@ public class ScanContent extends AbstractProcessor {
         }
     }
 
-    private boolean reloadDictionary(final ProcessContext context, final boolean force, final ProcessorLog logger) throws IOException {
+    private boolean reloadDictionary(final ProcessContext context, final boolean force, final ComponentLog logger) throws IOException {
         boolean obtainedLock;
         if (force) {
             dictionaryUpdateLock.lock();
@@ -188,7 +187,7 @@ public class ScanContent extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final SynchronousFileWatcher fileWatcher = fileWatcherRef.get();
         try {
             if (fileWatcher.checkAndReset()) {
@@ -219,7 +218,7 @@ public class ScanContent extends AbstractProcessor {
         }
 
         final Search<byte[]> finalSearch = search;
-        final ObjectHolder<SearchTerm<byte[]>> termRef = new ObjectHolder<>(null);
+        final AtomicReference<SearchTerm<byte[]>> termRef = new AtomicReference<>(null);
         termRef.set(null);
 
         session.read(flowFile, new InputStreamCallback() {

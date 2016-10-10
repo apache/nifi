@@ -21,7 +21,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source of the connection.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source        The source of the connection
@@ -40,31 +40,49 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source processor.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
      */
     var initializeSourceProcessor = function (groupId, groupName, source) {
-        return $.ajax({
-            type: 'GET',
-            url: '../nifi-api/processors/' + encodeURIComponent(source.id),
-            dataType: 'json'
-        }).done(function (response) {
-            var processor = response.processor;
-            var processorName = $('<div class="label"></div>').text(processor.name);
-            var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
+        return $.Deferred(function (deferred) {
+            $.ajax({
+                type: 'GET',
+                url: '../nifi-api/processors/' + encodeURIComponent(source.id),
+                dataType: 'json'
+            }).done(function (response) {
+                var processor = response.component;
+                var processorName = $('<div class="label"></div>').text(processor.name);
+                var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
 
-            // populate source processor details
-            $('#read-only-connection-source-label').text('From processor');
-            $('#read-only-connection-source').append(processorName).append(processorType);
-            $('#read-only-connection-source-group-name').text(groupName);
-        });
+                // populate source processor details
+                $('#read-only-connection-source-label').text('From processor');
+                $('#read-only-connection-source').append(processorName).append(processorType);
+                $('#read-only-connection-source-group-name').text(groupName);
+
+                deferred.resolve();
+            }).fail(function (xhr, status, error) {
+                if (xhr.status === 403) {
+                    var processorName = $('<div class="label"></div>').text(source.name);
+                    var processorType = $('<div></div>').text('Processor');
+
+                    // populate source processor details
+                    $('#read-only-connection-source-label').text('From processor');
+                    $('#read-only-connection-source').append(processorName).append(processorType);
+                    $('#read-only-connection-source-group-name').text(groupName);
+
+                    deferred.resolve();
+                } else {
+                    deferred.reject(xhr, status, error);
+                }
+            });
+        }).promise();
     };
 
     /**
      * Initialize the details for the source funnel.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -80,32 +98,42 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the remote source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
      */
     var initializeRemoteSourcePort = function (groupId, groupName, source) {
-        return $.ajax({
-            type: 'GET',
-            url: '../nifi-api/remote-process-groups/' + encodeURIComponent(source.groupId),
-            data: {
-                verbose: true
-            },
-            dataType: 'json'
-        }).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
+        return $.Deferred(function (deferred) {
+            $.ajax({
+                type: 'GET',
+                url: '../nifi-api/remote-process-groups/' + encodeURIComponent(source.groupId),
+                dataType: 'json'
+            }).done(function (response) {
+                var remoteProcessGroup = response.component;
 
-            // populate source port details
-            $('#read-only-connection-source-label').text('From output');
-            $('#read-only-connection-source').text(source.name);
-            $('#read-only-connection-source-group-name').text(remoteProcessGroup.name);
-        });
+                // populate source port details
+                $('#read-only-connection-source-label').text('From output');
+                $('#read-only-connection-source').text(source.name);
+                $('#read-only-connection-source-group-name').text(remoteProcessGroup.name);
+            }).fail(function (xhr, status, error) {
+                if (xhr.status === 403) {
+                    // populate source processor details
+                    $('#read-only-connection-source-label').text('From output');
+                    $('#read-only-connection-source').append(source.name);
+                    $('#read-only-connection-source-group-name').text(source.groupId);
+
+                    deferred.resolve();
+                } else {
+                    deferred.reject(xhr, status, error);
+                }
+            });
+        }).promise();
     };
 
     /**
      * Initialize the details for the source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -123,12 +151,9 @@ nf.ConnectionDetails = (function () {
                 $.ajax({
                     type: 'GET',
                     url: '../nifi-api/process-groups/' + encodeURIComponent(source.groupId),
-                    data: {
-                        verbose: true
-                    },
                     dataType: 'json'
                 }).done(function (response) {
-                    var processGroup = response.processGroup;
+                    var processGroup = response.component;
 
                     // populate source port details
                     $('#read-only-connection-source-label').text('From output');
@@ -136,8 +161,17 @@ nf.ConnectionDetails = (function () {
                     $('#read-only-connection-source-group-name').text(processGroup.name);
 
                     deferred.resolve();
-                }).fail(function () {
-                    deferred.reject();
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 403) {
+                        // populate source processor details
+                        $('#read-only-connection-source-label').text('From output');
+                        $('#read-only-connection-source').append(source.name);
+                        $('#read-only-connection-source-group-name').text(source.groupId);
+
+                        deferred.resolve();
+                    } else {
+                        deferred.reject(xhr, status, error);
+                    }
                 });
             }
         }).promise();
@@ -145,7 +179,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the destination of the connection.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -164,7 +198,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the destination processor.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -176,7 +210,7 @@ nf.ConnectionDetails = (function () {
                 url: '../nifi-api/processors/' + encodeURIComponent(destination.id),
                 dataType: 'json'
             }).done(function (response) {
-                var processor = response.processor;
+                var processor = response.component;
                 var processorName = $('<div class="label"></div>').text(processor.name);
                 var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
 
@@ -186,15 +220,27 @@ nf.ConnectionDetails = (function () {
                 $('#read-only-connection-target-group-name').text(groupName);
 
                 deferred.resolve();
-            }).fail(function () {
-                deferred.reject();
+            }).fail(function (xhr, status, error) {
+                if (xhr.status === 403) {
+                    var processorName = $('<div class="label"></div>').text(destination.name);
+                    var processorType = $('<div></div>').text('Processor');
+
+                    // populate destination processor details
+                    $('#read-only-connection-target-label').text('To processor');
+                    $('#read-only-connection-target').append(processorName).append(processorType);
+                    $('#read-only-connection-target-group-name').text(groupName);
+
+                    deferred.resolve();
+                } else {
+                    deferred.reject(xhr, status, error);
+                }
             });
         }).promise();
     };
 
     /**
      * Initialize the details for the source funnel.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -210,32 +256,44 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the remote source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
      */
     var initializeDestinationRemotePort = function (groupId, groupName, destination) {
-        return $.ajax({
-            type: 'GET',
-            url: '../nifi-api/remote-process-groups/' + encodeURIComponent(destination.groupId),
-            data: {
-                verbose: true
-            },
-            dataType: 'json'
-        }).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
+        return $.Deferred(function (deferred) {
+            $.ajax({
+                type: 'GET',
+                url: '../nifi-api/remote-process-groups/' + encodeURIComponent(destination.groupId),
+                dataType: 'json'
+            }).done(function (response) {
+                var remoteProcessGroup = response.component;
 
-            // populate source port details
-            $('#read-only-connection-target-label').text('To input');
-            $('#read-only-connection-target').text(destination.name);
-            $('#read-only-connection-target-group-name').text(remoteProcessGroup.name);
-        });
+                // populate source port details
+                $('#read-only-connection-target-label').text('To input');
+                $('#read-only-connection-target').text(destination.name);
+                $('#read-only-connection-target-group-name').text(remoteProcessGroup.name);
+
+                deferred.resolve();
+            }).fail(function (xhr, status, error) {
+                if (xhr.status === 403) {
+                    // populate source port details
+                    $('#read-only-connection-target-label').text('To input');
+                    $('#read-only-connection-target').append(destination.name);
+                    $('#read-only-connection-target-group-name').text(destination.groupId);
+
+                    deferred.resolve();
+                } else {
+                    deferred.reject(xhr, status, error);
+                }
+            });
+        }).promise();
     };
 
     /**
      * Initialize the details for the destination port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -253,12 +311,9 @@ nf.ConnectionDetails = (function () {
                 $.ajax({
                     type: 'GET',
                     url: '../nifi-api/process-groups/' + encodeURIComponent(destination.groupId),
-                    data: {
-                        verbose: true
-                    },
                     dataType: 'json'
                 }).done(function (response) {
-                    var processGroup = response.processGroup;
+                    var processGroup = response.component;
 
                     // populate destination port details
                     $('#read-only-connection-target-label').text('To input');
@@ -266,8 +321,17 @@ nf.ConnectionDetails = (function () {
                     $('#read-only-connection-target-group-name').text(processGroup.name);
 
                     deferred.resolve();
-                }).fail(function () {
-                    deferred.reject();
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 403) {
+                        // populate source port details
+                        $('#read-only-connection-target-label').text('To input');
+                        $('#read-only-connection-target').append(destination.name);
+                        $('#read-only-connection-target-group-name').text(destination.groupId);
+
+                        deferred.resolve();
+                    } else {
+                        deferred.reject(xhr, status, error);
+                    }
                 });
             }
         }).promise();
@@ -276,48 +340,50 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Creates the relationship option for the specified relationship.
-     * 
+     *
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
         $('<div class="available-relationship-container"></div>').append(
-                $('<div class="relationship-name"></div>').text(name)).appendTo('#read-only-relationship-names');
+            $('<div class="relationship-name"></div>').text(name)).appendTo('#read-only-relationship-names');
     };
 
     return {
         /**
          * Initializes the connection details dialog.
-         * 
-         * @param {boolean} overlayBackground       Whether to overlay the background
          */
-        init: function (overlayBackground) {
-            overlayBackground = nf.Common.isDefinedAndNotNull(overlayBackground) ? overlayBackground : true;
-
+        init: function () {
             // initialize the details tabs
             $('#connection-details-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                        name: 'Details',
-                        tabContentId: 'read-only-connection-details-tab-content'
-                    }, {
-                        name: 'Settings',
-                        tabContentId: 'read-only-connection-settings-tab-content'
-                    }]
+                    name: 'Details',
+                    tabContentId: 'read-only-connection-details-tab-content'
+                }, {
+                    name: 'Settings',
+                    tabContentId: 'read-only-connection-settings-tab-content'
+                }]
             });
 
             // configure the connection details dialog
             $('#connection-details').modal({
                 headerText: 'Connection Details',
-                overlayBackground: overlayBackground,
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                $('#connection-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#connection-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the relationship names
@@ -345,21 +411,17 @@ nf.ConnectionDetails = (function () {
                         $('#read-only-back-pressure-object-threshold').text('');
                         $('#read-only-back-pressure-data-size-threshold').text('');
                         $('#read-only-prioritizers').empty();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
-            
-            if (overlayBackground) {
-                $('#connection-details').draggable({
-                    containment: 'parent',
-                    handle: '.dialog-header'
-                });
-            }
         },
-        
+
         /**
          * Shows the details for the specified edge.
-         * 
+         *
          * @argument {string} groupId           The group id
          * @argument {string} connectionId      The connection id
          */
@@ -367,7 +429,7 @@ nf.ConnectionDetails = (function () {
             // get the group details
             var groupXhr = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/process-groups/' + encodeURIComponent(groupId),
+                url: '../nifi-api/flow/process-groups/' + encodeURIComponent(groupId),
                 dataType: 'json'
             });
 
@@ -383,15 +445,16 @@ nf.ConnectionDetails = (function () {
                 var groupResponse = groupResult[0];
                 var connectionResponse = connectionResult[0];
 
-                if (nf.Common.isDefinedAndNotNull(groupResponse.processGroup) && nf.Common.isDefinedAndNotNull(connectionResponse.connection)) {
-                    var processGroup = groupResponse.processGroup;
-                    var connection = connectionResponse.connection;
+                // ensure we can read this connection.. though should never fail as the request returned successfully
+                if (connectionResponse.permissions.canRead) {
+                    var connection = connectionResponse.component;
+                    var groupName = groupResponse.permissions.canRead ? groupResponse.processGroupFlow.breadcrumb.breadcrumb.name : groupResponse.processGroupFlow.id;
 
                     // process the source
-                    var connectionSource = initializeConnectionSource(processGroup.id, processGroup.name, connection.source);
+                    var connectionSource = initializeConnectionSource(groupResponse.id, groupName, connection.source);
 
                     // process the destination
-                    var connectionDestination = initializeConnectionDestination(processGroup.id, processGroup.name, connection.destination);
+                    var connectionDestination = initializeConnectionDestination(groupResponse.id, groupName, connection.destination);
 
                     // finish populating the dialog once the source and destination have been loaded
                     $.when(connectionSource, connectionDestination).done(function () {
@@ -462,7 +525,7 @@ nf.ConnectionDetails = (function () {
                         if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > relationshipNames.innerHeight()) {
                             relationshipNames.css('border-width', '1px');
                         }
-                    });
+                    }).fail(nf.Common.handleAjaxError);
                 }
             }).fail(nf.Common.handleAjaxError);
         }

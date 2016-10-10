@@ -39,7 +39,7 @@ import java.lang.annotation.Target;
 public @interface InputRequirement {
     Requirement value();
 
-    public static enum Requirement {
+    enum Requirement {
         /**
          * This value is used to indicate that the Processor requires input from other Processors
          * in order to run. As a result, the Processor will not be valid if it does not have any

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.reporting;
 
-import java.util.Map;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
+
+import java.util.Map;
 
 /**
  * This interface provides a bridge between the NiFi Framework and a
@@ -59,9 +59,10 @@ public interface ReportingContext {
     BulletinRepository getBulletinRepository();
 
     /**
-     * Creates a system-level {@link Bulletin} with the given category, severity
+     * Creates a controller-level {@link Bulletin} with the given category, severity
      * level, and message, so that the Bulletin can be added to the
-     * {@link BulletinRepository}.
+     * {@link BulletinRepository}. Access to this bulletin will be enforce through
+     * permissions on the controller.
      *
      * @param category of bulletin
      * @param severity of bulletin
@@ -72,7 +73,7 @@ public interface ReportingContext {
 
     /**
      * Creates a {@link Bulletin} for the component with the specified
-     * identifier
+     * identifier.
      *
      * @param componentId the ID of the component
      * @param category the name of the bulletin's category
@@ -92,4 +93,16 @@ public interface ReportingContext {
      * @return the StateManager that can be used to store and retrieve state for this component
      */
     StateManager getStateManager();
+
+    /**
+     * @return <code>true</code> if this instance of NiFi is configured to be part of a cluster, <code>false</code>
+     *         if this instance of NiFi is a standalone instance
+     */
+    boolean isClustered();
+
+    /**
+     * @return the ID of this node in the cluster, or <code>null</code> if either this node is not clustered or the Node Identifier
+     *         has not yet been established
+     */
+    String getClusterNodeIdentifier();
 }

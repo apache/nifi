@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.storm;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Values;
-import backtype.storm.utils.Utils;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.storm.spout.SpoutOutputCollector;
+import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.OutputFieldsDeclarer;
+import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
+import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,17 +226,7 @@ public class NiFiSpout extends BaseRichSpout {
                             StreamUtils.fillBuffer(inStream, data);
 
                             final Map<String, String> attributes = dataPacket.getAttributes();
-                            final NiFiDataPacket niFiDataPacket = new NiFiDataPacket() {
-                                @Override
-                                public byte[] getContent() {
-                                    return data;
-                                }
-
-                                @Override
-                                public Map<String, String> getAttributes() {
-                                    return attributes;
-                                }
-                            };
+                            final NiFiDataPacket niFiDataPacket = new StandardNiFiDataPacket(data, attributes);
 
                             dataPackets.add(niFiDataPacket);
                             dataPacket = transaction.receive();

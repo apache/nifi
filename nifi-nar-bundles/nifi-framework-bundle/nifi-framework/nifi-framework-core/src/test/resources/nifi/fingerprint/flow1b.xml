@@ -89,7 +89,7 @@
             </outputPort>
             <connection>
                 <id>b25c3c8f-8dfe-4dda-950e-b6edfb6c99f4</id>
-                <name>In</name>
+                <name>In Connection</name>
                 <bendPoints/>
                 <labelIndex>1</labelIndex>
                 <zIndex>0</zIndex>

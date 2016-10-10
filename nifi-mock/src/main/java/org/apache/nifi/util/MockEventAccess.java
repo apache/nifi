@@ -65,7 +65,6 @@ public class MockEventAccess implements EventAccess {
         this.provenanceRecords.add(record);
     }
 
-    @Override
     public ProvenanceEventRepository getProvenanceRepository() {
         return null;
     }

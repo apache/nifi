@@ -26,12 +26,11 @@ import javax.xml.bind.annotation.XmlType;
  * Component that is capable of reporting internal NiFi state to an external service
  */
 @XmlType(name = "reportingTask")
-public class ReportingTaskDTO extends NiFiComponentDTO {
+public class ReportingTaskDTO extends ComponentDTO {
 
     private String name;
     private String type;
     private String state;
-    private String availability;
     private String comments;
     private Boolean persistsState;
 
@@ -150,21 +149,6 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return Where this service is available. Possible values are NCM, NODE
-     */
-    @ApiModelProperty(
-            value = "Where the reporting task is available.",
-            allowableValues = "NCM, NODE"
-    )
-    public String getAvailability() {
-        return availability;
-    }
-
-    public void setAvailability(String availability) {
-        this.availability = availability;
-    }
-
-    /**
      * @return reporting task's properties
      */
     @ApiModelProperty(
@@ -210,7 +194,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
      * @return currently configured annotation data for the reporting task
      */
     @ApiModelProperty(
-            value = "The anntation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
+            value = "The annotation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
     )
     public String getAnnotationData() {
         return annotationData;

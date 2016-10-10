@@ -268,7 +268,7 @@ public class StandardLineageResult implements ComputeLineageResult {
                             final boolean isNewFlowFile = nodes.add(childNode);
                             if (!isNewFlowFile) {
                                 final String msg = "Unable to generate Lineage Graph because multiple "
-                                        + "events were registered claiming to have generated the same FlowFile (UUID = " + childNode.getFlowFileUuid() + ")";
+                                    + "events were registered claiming to have generated the same FlowFile (UUID = " + childNode.getFlowFileUuid() + ")";
                                 logger.error(msg);
                                 setError(msg);
                                 return;
@@ -287,7 +287,7 @@ public class StandardLineageResult implements ComputeLineageResult {
                         lastEventMap.put(parentUuid, lineageNode);
                     }
                 }
-                break;
+                    break;
                 case RECEIVE:
                 case CREATE: {
                     // for a receive event, we want to create a FlowFile Node that represents the FlowFile received
@@ -296,7 +296,7 @@ public class StandardLineageResult implements ComputeLineageResult {
                     final boolean isNewFlowFile = nodes.add(flowFileNode);
                     if (!isNewFlowFile) {
                         final String msg = "Found cycle in graph. This indicates that multiple events "
-                                + "were registered claiming to have generated the same FlowFile (UUID = " + flowFileNode.getFlowFileUuid() + ")";
+                            + "were registered claiming to have generated the same FlowFile (UUID = " + flowFileNode.getFlowFileUuid() + ")";
                         setError(msg);
                         logger.error(msg);
                         return;
@@ -304,7 +304,7 @@ public class StandardLineageResult implements ComputeLineageResult {
                     edges.add(new EdgeNode(record.getFlowFileUuid(), lineageNode, flowFileNode));
                     lastEventMap.put(record.getFlowFileUuid(), flowFileNode);
                 }
-                break;
+                    break;
                 default:
                     break;
             }

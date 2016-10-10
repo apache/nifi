@@ -54,7 +54,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -354,7 +354,7 @@ public class RouteText extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final boolean trim = context.getProperty(TRIM_WHITESPACE).asBoolean();
         final String routeStrategy = context.getProperty(ROUTE_STRATEGY).getValue();

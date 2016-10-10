@@ -16,28 +16,29 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.UserDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a UserDTO.
  */
 @XmlRootElement(name = "userEntity")
-public class UserEntity extends Entity {
+public class UserEntity extends ComponentEntity {
 
-    private UserDTO user;
+    private UserDTO component;
 
     /**
      * The UserDTO that is being serialized.
      *
      * @return The UserDTO object
      */
-    public UserDTO getUser() {
-        return user;
+    public UserDTO getComponent() {
+        return component;
     }
 
-    public void setUser(UserDTO user) {
-        this.user = user;
+    public void setComponent(UserDTO component) {
+        this.component = component;
     }
 
 }

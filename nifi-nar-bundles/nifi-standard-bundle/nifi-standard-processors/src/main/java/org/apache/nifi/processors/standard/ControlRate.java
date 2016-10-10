@@ -44,7 +44,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -261,7 +261,7 @@ public class ControlRate extends AbstractProcessor {
             }
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         for (FlowFile flowFile : flowFiles) {
             // call this to capture potential error
             final long accrualAmount = getFlowFileAccrual(flowFile);
@@ -311,13 +311,13 @@ public class ControlRate extends AbstractProcessor {
         private final AtomicLong maxRate = new AtomicLong(1L);
         private final long timePeriodMillis;
         private final TimedBuffer<TimestampedLong> timedBuffer;
-        private final ProcessorLog logger;
+        private final ComponentLog logger;
 
         private volatile long penalizationPeriod = 0;
         private volatile long penalizationExpired = 0;
         private volatile long lastUpdateTime;
 
-        public Throttle(final int timePeriod, final TimeUnit unit, final ProcessorLog logger) {
+        public Throttle(final int timePeriod, final TimeUnit unit, final ComponentLog logger) {
             this.timePeriodMillis = TimeUnit.MILLISECONDS.convert(timePeriod, unit);
             this.timedBuffer = new TimedBuffer<>(unit, timePeriod, new LongEntityAccess());
             this.logger = logger;

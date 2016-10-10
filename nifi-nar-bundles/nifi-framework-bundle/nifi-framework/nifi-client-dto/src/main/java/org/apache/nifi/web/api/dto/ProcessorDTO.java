@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
  * Details for a processor within this NiFi.
  */
 @XmlType(name = "processor")
-public class ProcessorDTO extends NiFiComponentDTO {
+public class ProcessorDTO extends ComponentDTO {
 
     private String name;
     private String type;
@@ -185,7 +185,8 @@ public class ProcessorDTO extends NiFiComponentDTO {
      * @return The available relationships
      */
     @ApiModelProperty(
-            value = "The available relationships that the processor currently supports."
+            value = "The available relationships that the processor currently supports.",
+            readOnly = true
     )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
@@ -201,7 +202,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
      * @return The processor configuration details
      */
     @ApiModelProperty(
-            value = "The configuration details for the processor. These details will be included in a resopnse if the verbose flag is included in a request."
+            value = "The configuration details for the processor. These details will be included in a response if the verbose flag is included in a request."
     )
     public ProcessorConfigDTO getConfig() {
         return config;

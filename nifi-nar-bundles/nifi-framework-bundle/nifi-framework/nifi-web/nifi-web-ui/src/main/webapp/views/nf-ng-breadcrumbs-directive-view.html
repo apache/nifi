@@ -19,13 +19,13 @@ limitations under the License.
         <div id="breadcrumbs-left-border"></div>
         <div id="data-flow-title-container">
             <span ng-repeat="crumb in breadcrumbs">
-                <span ng-if="separatorFunc(crumb.parent)" style="margin: 0 12px;">
+                <span ng-if="separatorFunc(crumb.parentBreadcrumb)" style="margin: 0 12px;">
                     &raquo;
                 </span>
                 <span class="link"
                       ng-class="(highlightCrumbId === crumb.id) ? 'link-bold' : ''"
                       ng-click="clickFunc(crumb.id)">
-                    {{crumb.name}}
+                    {{crumb.label}}
                 </span>
             </span>
         </div>

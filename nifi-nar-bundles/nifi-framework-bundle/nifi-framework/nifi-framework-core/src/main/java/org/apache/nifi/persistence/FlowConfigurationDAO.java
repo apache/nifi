@@ -22,14 +22,19 @@ import java.io.OutputStream;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationException;
-import org.apache.nifi.controller.FlowSynchronizationException;
 import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 
 /**
  * Interface to define service methods for FlowController configuration.
  */
 public interface FlowConfigurationDAO {
+
+    /**
+     * @return <code>true</code> if a file containing the flow is present, <code>false</code> otherwise
+     */
+    boolean isFlowPresent();
 
     /**
      * Loads the given controller with the values from the given proposed flow. If loading the proposed flow configuration would cause the controller to orphan flow files, then an
@@ -55,6 +60,15 @@ public interface FlowConfigurationDAO {
      * @throws IOException if unable to load the flow
      */
     void load(OutputStream os) throws IOException;
+
+    /**
+     * Loads the stored flow into the given stream, optionally compressed
+     *
+     * @param os the Output Stream to write the flow to
+     * @param compressed whether or not the data should be gzipped
+     * @throws IOException if unable to load the flow
+     */
+    void load(OutputStream os, boolean compressed) throws IOException;
 
     /**
      * Saves the given stream as the stored flow.

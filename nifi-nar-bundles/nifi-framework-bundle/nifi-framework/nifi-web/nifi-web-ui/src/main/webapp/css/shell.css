@@ -26,73 +26,42 @@
     left: 20px;
     bottom: 20px;
     right: 20px;
-    border: 6px solid #365c6a;
-    box-shadow: 4px 4px 6px rgba(0,0,0,.9);
-    -webkit-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
-    -moz-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
 }
 
 #shell-container {
     background: #fff;
-    border: 6px solid #d4e0e5;
+    padding: 20px;
     position: absolute;
     top: 0px;
-    left: 0px;
     bottom: 0px;
+    left: 0px;
     right: 0px;
+    overflow: hidden;
 }
 
 #shell-close-container {
-    background: url(../images/bgShellClose.png) no-repeat;
-    background-color: #d4e0e5;
     float: right;
-    height: 25px;
 }
 
 #shell-undock-button {
     display: none;
     float: left;
-    height: 16px;
-    width: 16px;
-    margin: 5px -5px 0px 12px;
-}
-
-div.undock-normal {
-    background: transparent url(../images/iconPopOut.png) no-repeat left;
-}
-
-div.undock-hover {
-    background: transparent url(../images/iconPopOut.png) no-repeat right;
+    margin: 0px 5px 0px;
+    color: #004849;
+    font-size: 16px;
 }
 
 #shell-close-button {
     float: left;
-    height: 16px;
-    width: 16px;
-    margin: 5px 5px 0 12px;
-}
-
-div.close-normal {
-    background: transparent url(../images/iconClose.png) no-repeat left;
-}
-
-div.close-hover {
-    background: transparent url(../images/iconClose.png) no-repeat right;
+    color: #004849;
+    font-size: 16px;
 }
 
 #shell {
     position: absolute;
-    top: 30px;
-    left: 10px;
-    bottom: 10px;
-    right: 10px;
-    overflow: hidden;
-}
-
-#shell-iframe {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    bottom: 0px;
+    top: 48px;
     right: 0px;
+    bottom: 0px;
+    left: 0px;
+    overflow: hidden;
 }

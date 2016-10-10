@@ -29,10 +29,12 @@
         <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery.form.min.js"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
@@ -58,7 +60,5 @@
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/yes-no-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/templates/templates-content.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
     </body>
 </html>

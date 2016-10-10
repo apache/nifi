@@ -27,7 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -62,7 +62,7 @@ import java.util.Set;
         + "the index to insert into and the type of the document. If the cluster has been configured for authorization "
         + "and/or secure transport (SSL/TLS) and the Shield plugin is available, secure connections can be made. This processor "
         + "supports Elasticsearch 2.x clusters.")
-public class PutElasticsearch extends AbstractElasticsearchProcessor {
+public class PutElasticsearch extends AbstractElasticsearchTransportClientProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to Elasticsearch are routed to this relationship").build();
@@ -100,6 +100,16 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
                     AttributeExpression.ResultType.STRING, true))
             .build();
 
+    public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
+            .name("Index Operation")
+            .description("The type of the operation used to index (index, update, upsert)")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
+                    AttributeExpression.ResultType.STRING, true))
+            .defaultValue("index")
+            .build();
+
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
             .description("The preferred number of FlowFiles to put to the database in a single transaction")
@@ -134,6 +144,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
         descriptors.add(TYPE);
         descriptors.add(CHARSET);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(INDEX_OP);
 
         return Collections.unmodifiableList(descriptors);
     }
@@ -154,7 +165,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         // Keep track of the list of flow files that need to be transferred. As they are transferred, remove them from the list.
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
         try {
@@ -166,6 +177,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
             for (FlowFile file : flowFiles) {
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
+                final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
 
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
@@ -178,8 +190,20 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
                         public void process(final InputStream in) throws IOException {
                             String json = IOUtils.toString(in, charset)
                                     .replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
-                            bulk.add(esClient.get().prepareIndex(index, docType, id)
-                                    .setSource(json.getBytes(charset)));
+
+                            if (indexOp.equalsIgnoreCase("index")) {
+                                bulk.add(esClient.get().prepareIndex(index, docType, id)
+                                        .setSource(json.getBytes(charset)));
+                            } else if (indexOp.equalsIgnoreCase("upsert")) {
+                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
+                                        .setDoc(json.getBytes(charset))
+                                        .setDocAsUpsert(true));
+                            } else if (indexOp.equalsIgnoreCase("update")) {
+                                bulk.add(esClient.get().prepareUpdate(index, docType, id)
+                                        .setDoc(json.getBytes(charset)));
+                            } else {
+                                throw new IOException("Index operation: " + indexOp + " not supported.");
+                            }
                         }
                     });
                 }

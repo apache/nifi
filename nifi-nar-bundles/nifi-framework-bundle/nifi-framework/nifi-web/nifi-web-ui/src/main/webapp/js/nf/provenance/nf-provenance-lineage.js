@@ -17,7 +17,8 @@
 
 /* global nf, d3 */
 
-nf.ProvenanceLineage = (function () {
+nf.ng.ProvenanceLineage = function () {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -25,8 +26,8 @@ nf.ProvenanceLineage = (function () {
     var config = {
         sliderTickCount: 75,
         urls: {
-            lineage: '../nifi-api/controller/provenance/lineage',
-            events: '../nifi-api/controller/provenance/events/'
+            lineage: '../nifi-api/provenance/lineage',
+            events: '../nifi-api/provenance-events/'
         }
     };
 
@@ -34,32 +35,40 @@ nf.ProvenanceLineage = (function () {
      * Initializes the lineage query dialog.
      */
     var initLineageQueryDialog = function () {
-        // initialize the progress bar
-        $('#lineage-percent-complete').progressbar();
-
         // initialize the dialog
         $('#lineage-query-dialog').modal({
-            headerText: 'Computing FlowFile lineage...',
-            overlayBackground: false,
-            handler: {
-                close: function () {
-                    // reset the progress bar
-                    var lineageProgressBar = $('#lineage-percent-complete');
-                    lineageProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    lineageProgressBar.progressbar('value', 0).append(label);
-                }
-            }
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Computing FlowFile lineage...'
         });
+    };
+
+    var downloadSvgFile = function(svgString){
+        var link = document.getElementById("image-download-link");
+        var downloadSupported = typeof link.download != 'undefined';
+        var fileName ='lineage.svg';
+
+        if (downloadSupported) {
+            var DOMURL = self.URL || self.webkitURL || self;
+            var svg = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+
+            if (window.navigator.msSaveOrOpenBlob) {
+                window.navigator.msSaveOrOpenBlob(svg, fileName);
+            } else {
+                var url = DOMURL.createObjectURL(svg);
+                link.href = url;
+                link.download = fileName;
+                link.click();
+            }
+        } else {
+            window.open('data:image/svg+xml;charset=utf-8,' + encodeURI(svgString));
+        }
     };
 
     /**
      * Appends the items to the context menu.
-     * 
+     *
      * items = [{class: ..., text: ..., click: function() {...}}, ...]
-     * 
+     *
      * @param {array} items
      */
     var addContextMenuItems = function (items) {
@@ -67,15 +76,15 @@ nf.ProvenanceLineage = (function () {
 
         $.each(items, function (_, item) {
             if (typeof item.click === 'function') {
-                var menuItem = $('<div class="provenance-lineage-menu-item"></div>').on('click', item.click).on('mouseenter', function () {
+                var menuItem = $('<div class="context-menu-item"></div>').on('click', item.click).on('mouseenter', function () {
                     $(this).addClass('hover');
                 }).on('mouseleave', function () {
                     $(this).removeClass('hover');
                 }).appendTo(contextMenu);
 
                 // add the img and the text
-                $('<div class="provenance-lineage-menu-item-img"></div>').addClass(item['class']).appendTo(menuItem);
-                $('<div class="provenance-lineage-menu-item-text"></div>').text(item['text']).appendTo(menuItem);
+                $('<div class="context-menu-item-img"></div>').addClass(item['class']).appendTo(menuItem);
+                $('<div class="context-menu-item-text"></div>').text(item['text']).appendTo(menuItem);
                 $('<div class="clear"></div>').appendTo(menuItem);
             }
         });
@@ -83,19 +92,19 @@ nf.ProvenanceLineage = (function () {
 
     /**
      * Shows the details for the specified event.
-     * 
+     *
      * @param {string} eventId
      * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
      */
-    var showEventDetails = function (eventId, clusterNodeId) {
+    var showEventDetails = function (eventId, clusterNodeId, provenanceTableCtrl) {
         getEventDetails(eventId, clusterNodeId).done(function (response) {
-            nf.ProvenanceTable.showEventDetails(response.provenanceEvent);
+            provenanceTableCtrl.showEventDetails(response.provenanceEvent);
         });
     };
 
     /**
      * Gets the details for the specified event.
-     * 
+     *
      * @param {string} eventId
      * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
      */
@@ -103,8 +112,8 @@ nf.ProvenanceLineage = (function () {
         var url;
         if (nf.Common.isDefinedAndNotNull(clusterNodeId)) {
             url = config.urls.events + encodeURIComponent(eventId) + '?' + $.param({
-                clusterNodeId: clusterNodeId
-            });
+                    clusterNodeId: clusterNodeId
+                });
         } else {
             url = config.urls.events + encodeURIComponent(eventId);
         }
@@ -118,31 +127,38 @@ nf.ProvenanceLineage = (function () {
 
     /**
      * Submits the specified lineage request.
-     * 
+     *
      * @param {type} lineageRequest
      * @returns {deferred}
      */
     var submitLineage = function (lineageRequest) {
+        var lineageEntity = {
+            'lineage': {
+                'request': lineageRequest
+            }
+        };
+
         return $.ajax({
             type: 'POST',
             url: config.urls.lineage,
-            data: lineageRequest,
-            dataType: 'json'
+            data: JSON.stringify(lineageEntity),
+            dataType: 'json',
+            contentType: 'application/json'
         }).fail(nf.Common.handleAjaxError);
     };
 
     /**
      * Gets the specified lineage.
-     * 
+     *
      * @param {type} lineage
      * @returns {deferred}
      */
     var getLineage = function (lineage) {
         var url = lineage.uri;
-        if (nf.Common.isDefinedAndNotNull(lineage.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
             url += '?' + $.param({
-                clusterNodeId: lineage.clusterNodeId
-            });
+                    clusterNodeId: lineage.request.clusterNodeId
+                });
         }
 
         return $.ajax({
@@ -154,16 +170,16 @@ nf.ProvenanceLineage = (function () {
 
     /**
      * Cancels the specified lineage.
-     * 
+     *
      * @param {type} lineage
      * @returns {deferred}
      */
     var cancelLineage = function (lineage) {
         var url = lineage.uri;
-        if (nf.Common.isDefinedAndNotNull(lineage.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
             url += '?' + $.param({
-                clusterNodeId: lineage.clusterNodeId
-            });
+                    clusterNodeId: lineage.request.clusterNodeId
+                });
         }
 
         return $.ajax({
@@ -178,12 +194,12 @@ nf.ProvenanceLineage = (function () {
 
     /**
      * Renders the lineage in the specified results.
-     * 
+     *
      * @param {object} lineageResults
      * @param {integer} eventId
      * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
      */
-    var renderLineage = function (lineageResults, eventId, clusterNodeId) {
+    var renderLineage = function (lineageResults, eventId, clusterNodeId, provenanceTableCtrl) {
         // get the container
         var lineageContainer = $('#provenance-lineage');
         var width = lineageContainer.width();
@@ -234,7 +250,7 @@ nf.ProvenanceLineage = (function () {
                 immediateSet.remove(d);
             });
 
-            // convert the children to an array to ensure consistent 
+            // convert the children to an array to ensure consistent
             // order when performing index of checks below
             var children = childSet.values().sort(d3.descending);
 
@@ -382,7 +398,7 @@ nf.ProvenanceLineage = (function () {
             });
 
             // adjust the x positioning if necessary to avoid positioning on top
-            // of one another, only need to consider the x coordinate since the 
+            // of one another, only need to consider the x coordinate since the
             // y coordinate will be the same for each node on this row
             for (var i = 0; i < sortedImmediate.length - 1; i++) {
                 var first = nodeLookup.get(sortedImmediate[i]);
@@ -429,7 +445,7 @@ nf.ProvenanceLineage = (function () {
             }
         };
 
-        var addLineage = function (nodes, links) {
+        var addLineage = function (nodes, links, provenanceTableCtrl) {
             // add the new nodes
             $.each(nodes, function (_, node) {
                 if (nodeLookup.has(node.id)) {
@@ -462,10 +478,10 @@ nf.ProvenanceLineage = (function () {
                 linkLookup.set(linkObj.id, linkObj);
             });
 
-            refresh();
+            refresh(provenanceTableCtrl);
         };
 
-        var refresh = function () {
+        var refresh = function (provenanceTableCtrl) {
             // consider all nodes as starting points
             var startNodes = d3.set(nodeLookup.keys());
 
@@ -502,14 +518,14 @@ nf.ProvenanceLineage = (function () {
             slider.slider('option', 'min', minMillis).slider('option', 'max', maxMillis).slider('option', 'step', step).slider('value', maxMillis);
 
             // populate the event timeline
-            $('#event-time').text(formatEventTime(maxMillis));
+            $('#event-time').text(formatEventTime(maxMillis, provenanceTableCtrl));
 
             // update the layout
-            update();
+            update(provenanceTableCtrl);
         };
 
         // formats the specified millis
-        var formatEventTime = function (millis) {
+        var formatEventTime = function (millis, provenanceTableCtrl) {
             // get the current user time to properly convert the server time
             var now = new Date();
 
@@ -517,7 +533,7 @@ nf.ProvenanceLineage = (function () {
             var userTimeOffset = now.getTimezoneOffset() * 60 * 1000;
 
             // create the proper date by adjusting by the offsets
-            var date = new Date(millis + userTimeOffset + nf.ProvenanceTable.serverTimeOffset);
+            var date = new Date(millis + userTimeOffset + provenanceTableCtrl.serverTimeOffset);
             return nf.Common.formatDateTime(date);
         };
 
@@ -528,90 +544,86 @@ nf.ProvenanceLineage = (function () {
 
         // handle zoom behavior
         var lineageZoom = d3.behavior.zoom()
-                .scaleExtent([0.2, 8])
-                .on('zoom', function () {
-                    d3.select('g.lineage').attr('transform', function () {
-                        return 'translate(' + d3.event.translate + ') scale(' + d3.event.scale + ')';
-                    });
+            .scaleExtent([0.2, 8])
+            .on('zoom', function () {
+                d3.select('g.lineage').attr('transform', function () {
+                    return 'translate(' + d3.event.translate + ') scale(' + d3.event.scale + ')';
                 });
+            });
 
         // build the svg img
         var svg = d3.select('#provenance-lineage-container').append('svg:svg')
-                .attr('width', width)
-                .attr('height', height)
-                .style({
-                    'font-family': 'Verdana, Arial, sans-serif',
-                    'font-size': '10px'
-                })
-                .call(lineageZoom)
-                .on('dblclick.zoom', null)
-                .on('mousedown', function (d) {
-                    // hide the context menu if necessary
-                    d3.selectAll('circle.context').classed('context', false);
-                    $('#provenance-lineage-context-menu').hide().empty();
-                })
-                .on('contextmenu', function () {
-                    var contextMenu = $('#provenance-lineage-context-menu');
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .call(lineageZoom)
+            .on('dblclick.zoom', null)
+            .on('mousedown', function (d) {
+                // hide the context menu if necessary
+                d3.selectAll('circle.context').classed('context', false);
+                $('#provenance-lineage-context-menu').hide().empty();
+            })
+            .on('contextmenu', function () {
+                var contextMenu = $('#provenance-lineage-context-menu');
 
-                    // if there is something to show in the context menu
-                    if (!contextMenu.is(':empty')) {
-                        var position = d3.mouse(this);
+                // if there is something to show in the context menu
+                if (!contextMenu.is(':empty')) {
+                    var position = d3.mouse(this);
 
-                        // show the context menu
-                        contextMenu.css({
-                            'left': position[0] + 'px',
-                            'top': position[1] + 'px'
-                        }).show();
-                    }
+                    // show the context menu
+                    contextMenu.css({
+                        'left': position[0] + 'px',
+                        'top': position[1] + 'px'
+                    }).show();
+                }
 
-                    // prevent the native default context menu
-                    d3.event.preventDefault();
-                });
+                // prevent the native default context menu
+                d3.event.preventDefault();
+            });
 
         svg.append('rect')
-                .attr({
-                    'width': '100%',
-                    'height': '100%',
-                    'fill': '#fff'
-                });
+            .attr({
+                'width': '100%',
+                'height': '100%',
+                'fill': '#f9fafb'
+            });
 
         svg.append('defs').selectAll('marker')
-                .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
-                .enter().append('marker')
-                .attr({
-                    'id': function (d) {
-                        return d;
-                    },
-                    'viewBox': '0 -3 6 6',
-                    'refX': function (d) {
-                        if (d.indexOf('FLOWFILE') >= 0) {
-                            return 16;
-                        } else {
-                            return 11;
-                        }
-                    },
-                    'refY': 0,
-                    'markerWidth': 6,
-                    'markerHeight': 6,
-                    'orient': 'auto',
-                    'fill': function (d) {
-                        if (d.indexOf('SELECTED') >= 0) {
-                            return '#FFCC00';
-                        } else {
-                            return '#000000';
-                        }
+            .data(['FLOWFILE', 'FLOWFILE-SELECTED', 'EVENT', 'EVENT-SELECTED'])
+            .enter().append('marker')
+            .attr({
+                'id': function (d) {
+                    return d;
+                },
+                'viewBox': '0 -3 6 6',
+                'refX': function (d) {
+                    if (d.indexOf('FLOWFILE') >= 0) {
+                        return 16;
+                    } else {
+                        return 11;
                     }
-                })
-                .append('path')
-                .attr('d', 'M0,-3 L6,0 L0,3');
+                },
+                'refY': 0,
+                'markerWidth': 6,
+                'markerHeight': 6,
+                'orient': 'auto',
+                'fill': function (d) {
+                    if (d.indexOf('SELECTED') >= 0) {
+                        return '#ba554a';
+                    } else {
+                        return '#000000';
+                    }
+                }
+            })
+            .append('path')
+            .attr('d', 'M0,-3 L6,0 L0,3');
 
         // group everything together
         var lineageContainer = svg.append('g')
-                .attr({
-                    'transform': 'translate(0, 0) scale(1)',
-                    'pointer-events': 'all',
-                    'class': 'lineage'
-                });
+            .attr({
+                'transform': 'translate(0, 0) scale(1)',
+                'pointer-events': 'all',
+                'class': 'lineage'
+            });
 
         // select the nodes and links
         var nodes = lineageContainer.selectAll('g.node');
@@ -650,7 +662,7 @@ nf.ProvenanceLineage = (function () {
             }
 
             // update the event time
-            $('#event-time').text(formatEventTime(ui.value));
+            $('#event-time').text(formatEventTime(ui.value, provenanceTableCtrl));
 
             // update the previous value
             previousMillis = ui.value;
@@ -672,449 +684,414 @@ nf.ProvenanceLineage = (function () {
 
             // node
             flowfiles.append('circle')
-                    .attr({
-                        'r': 16,
-                        'fill': '#D4E0E5',
-                        'stroke': '#000',
-                        'stroke-width': 1.0
-                    })
-                    .on('mousedown', function (d) {
-                        // empty context menu if necessary
-                        $('#provenance-lineage-context-menu').hide().empty();
+                .attr({
+                    'r': 16,
+                    'fill': '#fff',
+                    'stroke': '#000',
+                    'stroke-width': 1.0
+                })
+                .on('mousedown', function (d) {
+                    // empty context menu if necessary
+                    $('#provenance-lineage-context-menu').hide().empty();
 
-                        // prevents the drag event when something other than the
-                        // left button is clicked
-                        if (d3.event.button !== 0) {
-                            d3.event.stopPropagation();
-                        }
-                    }, true)
-                    .on('mouseover', function (d) {
-                        links.filter(function (linkDatum) {
-                            return d.id === linkDatum.flowFileUuid;
-                        })
-                                .classed('selected', true)
-                                .attr('marker-end', function (d) {
-                                    return 'url(#' + d.target.type + '-SELECTED)';
-                                });
+                    // prevents the drag event when something other than the
+                    // left button is clicked
+                    if (d3.event.button !== 0) {
+                        d3.event.stopPropagation();
+                    }
+                }, true)
+                .on('mouseover', function (d) {
+                    links.filter(function (linkDatum) {
+                        return d.id === linkDatum.flowFileUuid;
                     })
-                    .on('mouseout', function (d) {
-                        links.filter(function (linkDatum) {
-                            return d.id === linkDatum.flowFileUuid;
-                        }).classed('selected', false)
-                                .attr('marker-end', function (d) {
-                                    return 'url(#' + d.target.type + ')';
-                                });
-                    });
+                        .classed('selected', true)
+                        .attr('marker-end', function (d) {
+                            return 'url(#' + d.target.type + '-SELECTED)';
+                        });
+                })
+                .on('mouseout', function (d) {
+                    links.filter(function (linkDatum) {
+                        return d.id === linkDatum.flowFileUuid;
+                    }).classed('selected', false)
+                        .attr('marker-end', function (d) {
+                            return 'url(#' + d.target.type + ')';
+                        });
+                });
 
             var icon = flowfiles.append('g')
-                    .attr({
-                        'class': 'flowfile-icon',
-                        'transform': function (d) {
-                            return 'translate(-9,-9)';
-                        }
-                    });
+                .attr({
+                    'class': 'flowfile-icon',
+                    'transform': function (d) {
+                        return 'translate(-9,-9)';
+                    }
+                }).append('text')
+                .attr({
+                    'font-family': 'flowfont',
+                    'font-size': '18px',
+                    'fill': '#ad9897',
+                    'transform': function (d) {
+                        return 'translate(0,15)';
+                    }
+                })
+                .on('mousedown', function (d) {
+                    // empty context menu if necessary
+                    $('#provenance-lineage-context-menu').hide().empty();
 
-            // flowfile icon
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M0, 2 l8, 0 l0, 8 l8, 0 l0, 8 l-16, 0 z';
-                        },
-                        'class': 'flowfile-icon-base',
-                        'stroke-width': 0,
-                        'fill': '#93b2b1'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M2, 18 a15, 15 0 0 0 13, -8 l1, 0 l0, 8 z';
-                        },
-                        'class': 'flowfile-icon-arc',
-                        'stroke': '#69878a',
-                        'stroke-width': .5,
-                        'fill': '#69878a'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M0, 2 l8, 0 l0, 8 l8, 0 l0, 8 l-16, 0 z';
-                        },
-                        'class': 'flowfile-icon-base-outline',
-                        'stroke': '#4f6769',
-                        'stroke-width': .5,
-                        'fill': 'none'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M9, 1 l4, 0 l0, 4 l4, 0 l0, 4 l-8, 0 z';
-                        },
-                        'class': 'flowfile-icon-mid',
-                        'stroke-width': 0,
-                        'fill': '#d2e0e5'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M15, 9 a15, 15 0 0 0 1, -4 l1, 0 l0, 4 z';
-                        },
-                        'class': 'flowfile-icon-arc',
-                        'stroke': '#69878a',
-                        'stroke-width': .5,
-                        'fill': '#69878a'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M9, 1 l4, 0 l0, 4 l4, 0 l0, 4 l-8, 0 z';
-                        },
-                        'class': 'flowfile-icon-mid-outline',
-                        'stroke': '#4f6769',
-                        'stroke-width': .5,
-                        'fill': 'none'
-                    });
-
-            icon.append('path')
-                    .attr({
-                        'd': function (d) {
-                            return 'M14, 0 l4, 0 l0, 4 l-4, 0 z';
-                        },
-                        'class': 'flowfile-icon-top',
-                        'stroke': '#4f6769',
-                        'stroke-width': .5,
-                        'fill': '#fff'
-                    });
+                    // prevents the drag event when something other than the
+                    // left button is clicked
+                    if (d3.event.button !== 0) {
+                        d3.event.stopPropagation();
+                    }
+                }, true)
+                .on('mouseover', function (d) {
+                    links.filter(function (linkDatum) {
+                        return d.id === linkDatum.flowFileUuid;
+                    })
+                        .classed('selected', true)
+                        .attr('marker-end', function (d) {
+                            return 'url(#' + d.target.type + '-SELECTED)';
+                        });
+                })
+                .on('mouseout', function (d) {
+                    links.filter(function (linkDatum) {
+                        return d.id === linkDatum.flowFileUuid;
+                    }).classed('selected', false)
+                        .attr('marker-end', function (d) {
+                            return 'url(#' + d.target.type + ')';
+                        });
+                })
+                .text(function(d) { return '\ue808' });
         };
 
         // renders event nodes
-        var renderEvent = function (events) {
+        var renderEvent = function (events, provenanceTableCtrl) {
             events
-                    .classed('event', true)
-                    .append('circle')
-                    .classed('selected', function (d) {
-                        return d.id === eventId;
-                    })
-                    .attr({
-                        'r': 8,
-                        'fill': '#527991',
-                        'stroke': '#000',
-                        'stroke-width': 1.0,
-                        'id': function (d) {
-                            return 'event-node-' + d.id;
+                .classed('event', true)
+                .append('circle')
+                .classed('selected', function (d) {
+                    return d.id === eventId;
+                })
+                .attr({
+                    'r': 8,
+                    'fill': '#aabbc3',
+                    'stroke': '#000',
+                    'stroke-width': 1.0,
+                    'id': function (d) {
+                        return 'event-node-' + d.id;
+                    }
+                })
+                .on('contextmenu', function (d) {
+                    // select the current node for a visible cue
+                    d3.select(this).classed('context', true);
+
+                    // empty an previous contents - in case they right click on the
+                    // node twice without closing the previous context menu
+                    $('#provenance-lineage-context-menu').hide().empty();
+
+                    var menuItems = [{
+                        'class': 'lineage-view-event',
+                        'text': 'View details',
+                        'click': function () {
+                            showEventDetails(d.id, clusterNodeId, provenanceTableCtrl);
                         }
-                    })
-                    .on('contextmenu', function (d) {
-                        // select the current node for a visible cue
-                        d3.select(this).classed('context', true);
+                    }];
 
-                        // empty an previous contents - in case they right click on the
-                        // node twice without closing the previous context menu
-                        $('#provenance-lineage-context-menu').hide().empty();
+                    // if this is a spawn event show appropriate actions
+                    if (d.eventType === 'SPAWN' || d.eventType === 'CLONE' || d.eventType === 'FORK' || d.eventType === 'JOIN' || d.eventType === 'REPLAY') {
+                        // starts the lineage expansion process
+                        var expandLineage = function (lineageRequest) {
+                            var lineageProgress = $('#lineage-percent-complete');
 
-                        var menuItems = [{
-                                'class': 'lineage-view-event',
-                                'text': 'View details',
-                                'click': function () {
-                                    showEventDetails(d.id, clusterNodeId);
+                            // add support to cancel outstanding requests - when the button is pressed we
+                            // could be in one of two stages, 1) waiting to GET the status or 2)
+                            // in the process of GETting the status. Handle both cases by cancelling
+                            // the setTimeout (1) and by setting a flag to indicate that a request has
+                            // been request so we can ignore the results (2).
+
+                            var cancelled = false;
+                            var lineage = null;
+                            var lineageTimer = null;
+
+                            // update the progress bar value
+                            provenanceTableCtrl.updateProgress(lineageProgress, 0);
+
+                            // show the 'searching...' dialog
+                            $('#lineage-query-dialog').modal('setButtonModel', [{
+                                buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        cancelled = true;
+
+                                        // we are waiting for the next poll attempt
+                                        if (lineageTimer !== null) {
+                                            // cancel it
+                                            clearTimeout(lineageTimer);
+
+                                            // cancel the provenance
+                                            closeDialog();
+                                        }
+                                    }
                                 }
-                            }];
-
-                        // if this is a spawn event show appropriate actions
-                        if (d.eventType === 'SPAWN' || d.eventType === 'CLONE' || d.eventType === 'FORK' || d.eventType === 'JOIN' || d.eventType === 'REPLAY') {
-                            // starts the lineage expansion process
-                            var expandLineage = function (lineageRequest) {
-                                var lineageProgress = $('#lineage-percent-complete');
-
-                                // add support to cancel outstanding requests - when the button is pressed we 
-                                // could be in one of two stages, 1) waiting to GET the status or 2)
-                                // in the process of GETting the status. Handle both cases by cancelling 
-                                // the setTimeout (1) and by setting a flag to indicate that a request has
-                                // been request so we can ignore the results (2).
-
-                                var cancelled = false;
-                                var lineage = null;
-                                var lineageTimer = null;
-
-                                // update the progress bar value
-                                nf.ProvenanceTable.updateProgress(lineageProgress, 0);
-
-                                // show the 'searching...' dialog
-                                $('#lineage-query-dialog').modal('setButtonModel', [{
-                                        buttonText: 'Cancel',
-                                        handler: {
-                                            click: function () {
-                                                cancelled = true;
-
-                                                // we are waiting for the next poll attempt
-                                                if (lineageTimer !== null) {
-                                                    // cancel it
-                                                    clearTimeout(lineageTimer);
-
-                                                    // cancel the provenance
-                                                    closeDialog();
-                                                }
-                                            }
-                                        }
-                                    }]).modal('show');
+                            }]).modal('show');
 
 
-                                // closes the searching dialog and cancels the query on the server
-                                var closeDialog = function () {
-                                    // cancel the provenance results since we've successfully processed the results
-                                    if (nf.Common.isDefinedAndNotNull(lineage)) {
-                                        cancelLineage(lineage);
-                                    }
+                            // closes the searching dialog and cancels the query on the server
+                            var closeDialog = function () {
+                                // cancel the provenance results since we've successfully processed the results
+                                if (nf.Common.isDefinedAndNotNull(lineage)) {
+                                    cancelLineage(lineage);
+                                }
 
-                                    // close the dialog
-                                    $('#lineage-query-dialog').modal('hide');
-                                };
+                                // close the dialog
+                                $('#lineage-query-dialog').modal('hide');
+                            };
 
-                                // polls for the event lineage
-                                var pollLineage = function (nextDelay) {
-                                    getLineage(lineage).done(function (response) {
-                                        lineage = response.lineage;
-
-                                        // process the lineage, if its not done computing wait delay seconds before checking again
-                                        processLineage(nextDelay);
-                                    }).fail(closeDialog);
-                                };
-
-                                // processes the event lineage
-                                var processLineage = function (delay) {
-                                    // if the request was cancelled just ignore the current response
-                                    if (cancelled === true) {
-                                        closeDialog();
-                                        return;
-                                    }
-
-                                    // close the dialog if the results contain an error
-                                    if (!nf.Common.isEmpty(lineage.results.errors)) {
-                                        var errors = lineage.results.errors;
-                                        nf.Dialog.showOkDialog({
-                                            dialogContent: nf.Common.formatUnorderedList(errors),
-                                            overlayBackground: false
-                                        });
-
-                                        closeDialog();
-                                        return;
-                                    }
-
-                                    // update the precent complete
-                                    nf.ProvenanceTable.updateProgress(lineageProgress, lineage.percentCompleted);
-
-                                    // process the results if they are finished
-                                    if (lineage.finished === true) {
-                                        var results = lineage.results;
-
-                                        // ensure the events haven't aged off
-                                        if (results.nodes.length > 0) {
-                                            // update the lineage graph
-                                            renderEventLineage(results);
-                                        } else {
-                                            // inform the user that no results were found
-                                            nf.Dialog.showOkDialog({
-                                                dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.',
-                                                overlayBackground: false
-                                            });
-                                        }
-
-                                        // close the searching.. dialog
-                                        closeDialog();
-                                    } else {
-                                        lineageTimer = setTimeout(function () {
-                                            // clear the timer since we've been invoked
-                                            lineageTimer = null;
-
-                                            // calculate the next delay (back off)
-                                            var backoff = delay * 2;
-                                            var nextDelay = backoff > nf.ProvenanceTable.MAX_DELAY ? nf.ProvenanceTable.MAX_DELAY : backoff;
-
-                                            // for the lineage
-                                            pollLineage(nextDelay);
-                                        }, delay * 1000);
-                                    }
-                                };
-
-                                // once the query is submitted wait until its finished
-                                submitLineage(lineageRequest).done(function (response) {
+                            // polls for the event lineage
+                            var pollLineage = function (nextDelay) {
+                                getLineage(lineage).done(function (response) {
                                     lineage = response.lineage;
 
-                                    // process the lineage, if its not done computing wait 1 second before checking again
-                                    processLineage(1);
+                                    // process the lineage, if its not done computing wait delay seconds before checking again
+                                    processLineage(nextDelay);
                                 }).fail(closeDialog);
                             };
 
-                            // handles updating the lineage graph
-                            var renderEventLineage = function (lineageResults) {
-                                addLineage(lineageResults.nodes, lineageResults.links);
+                            // processes the event lineage
+                            var processLineage = function (delay) {
+                                // if the request was cancelled just ignore the current response
+                                if (cancelled === true) {
+                                    closeDialog();
+                                    return;
+                                }
+
+                                // close the dialog if the results contain an error
+                                if (!nf.Common.isEmpty(lineage.results.errors)) {
+                                    var errors = lineage.results.errors;
+                                    nf.Dialog.showOkDialog({
+                                        headerText: 'Process Lineage',
+                                        dialogContent: nf.Common.formatUnorderedList(errors)
+                                    });
+
+                                    closeDialog();
+                                    return;
+                                }
+
+                                // update the precent complete
+                                provenanceTableCtrl.updateProgress(lineageProgress, lineage.percentCompleted);
+
+                                // process the results if they are finished
+                                if (lineage.finished === true) {
+                                    var results = lineage.results;
+
+                                    // ensure the events haven't aged off
+                                    if (results.nodes.length > 0) {
+                                        // update the lineage graph
+                                        renderEventLineage(results);
+                                    } else {
+                                        // inform the user that no results were found
+                                        nf.Dialog.showOkDialog({
+                                            headerText: 'Lineage Results',
+                                            dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.'
+                                        });
+                                    }
+
+                                    // close the searching.. dialog
+                                    closeDialog();
+                                } else {
+                                    lineageTimer = setTimeout(function () {
+                                        // clear the timer since we've been invoked
+                                        lineageTimer = null;
+
+                                        // calculate the next delay (back off)
+                                        var backoff = delay * 2;
+                                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
+
+                                        // for the lineage
+                                        pollLineage(nextDelay);
+                                    }, delay * 1000);
+                                }
                             };
 
-                            // collapses the lineage for the specified event in the specified direction
-                            var collapseLineage = function (eventId) {
-                                // get the event in question and collapse in the appropriate direction
-                                getEventDetails(eventId, clusterNodeId).done(function (response) {
-                                    var provenanceEvent = response.provenanceEvent;
-                                    var eventUuid = provenanceEvent.flowFileUuid;
-                                    var eventUuids = d3.set(provenanceEvent.childUuids);
+                            // once the query is submitted wait until its finished
+                            submitLineage(lineageRequest).done(function (response) {
+                                lineage = response.lineage;
 
-                                    // determines if the specified event should be removable based on if the collapsing is fanning in/out
-                                    var allowEventRemoval = function (fanIn, node) {
-                                        if (fanIn) {
-                                            return node.id !== eventId;
-                                        } else {
-                                            return node.flowFileUuid !== eventUuid && $.inArray(eventUuid, node.parentUuids) === -1;
-                                        }
-                                    };
+                                // process the lineage, if its not done computing wait 1 second before checking again
+                                processLineage(1);
+                            }).fail(closeDialog);
+                        };
 
-                                    // determines if the specified link should be removable based on if the collapsing is fanning in/out
-                                    var allowLinkRemoval = function (fanIn, link) {
-                                        if (fanIn) {
-                                            return true;
-                                        } else {
-                                            return link.flowFileUuid !== eventUuid;
-                                        }
-                                    };
+                        // handles updating the lineage graph
+                        var renderEventLineage = function (lineageResults) {
+                            addLineage(lineageResults.nodes, lineageResults.links, provenanceTableCtrl);
+                        };
 
-                                    // the event is fan in if the flowfile uuid is in the children
-                                    var fanIn = $.inArray(eventUuid, provenanceEvent.childUuids) >= 0;
+                        // collapses the lineage for the specified event in the specified direction
+                        var collapseLineage = function (eventId, provenanceTableCtrl) {
+                            // get the event in question and collapse in the appropriate direction
+                            getEventDetails(eventId, clusterNodeId).done(function (response) {
+                                var provenanceEvent = response.provenanceEvent;
+                                var eventUuid = provenanceEvent.flowFileUuid;
+                                var eventUuids = d3.set(provenanceEvent.childUuids);
 
-                                    // collapses the specified uuids
-                                    var collapse = function (uuids) {
-                                        var newUuids = false;
+                                // determines if the specified event should be removable based on if the collapsing is fanning in/out
+                                var allowEventRemoval = function (fanIn, node) {
+                                    if (fanIn) {
+                                        return node.id !== eventId;
+                                    } else {
+                                        return node.flowFileUuid !== eventUuid && $.inArray(eventUuid, node.parentUuids) === -1;
+                                    }
+                                };
 
-                                        // consider each node for being collapsed
-                                        $.each(nodeLookup.values(), function (_, node) {
-                                            // if this node is in the uuids remove it unless its the original event or is part of this and another lineage
-                                            if (uuids.has(node.flowFileUuid) && allowEventRemoval(fanIn, node)) {
-                                                // remove it from the look lookup
-                                                nodeLookup.remove(node.id);
+                                // determines if the specified link should be removable based on if the collapsing is fanning in/out
+                                var allowLinkRemoval = function (fanIn, link) {
+                                    if (fanIn) {
+                                        return true;
+                                    } else {
+                                        return link.flowFileUuid !== eventUuid;
+                                    }
+                                };
 
-                                                // include all related outgoing flow file uuids
-                                                $.each(node.outgoing, function (_, outgoing) {
-                                                    if (!uuids.has(outgoing.flowFileUuid)) {
-                                                        uuids.add(outgoing.flowFileUuid);
-                                                        newUuids = true;
-                                                    }
-                                                });
-                                            }
-                                        });
+                                // the event is fan in if the flowfile uuid is in the children
+                                var fanIn = $.inArray(eventUuid, provenanceEvent.childUuids) >= 0;
 
-                                        // update the link data
-                                        $.each(linkLookup.values(), function (_, link) {
-                                            // if this link is in the uuids remove it
-                                            if (uuids.has(link.flowFileUuid) && allowLinkRemoval(fanIn, link)) {
-                                                // remove it from the link lookup
-                                                linkLookup.remove(link.id);
+                                // collapses the specified uuids
+                                var collapse = function (uuids) {
+                                    var newUuids = false;
 
-                                                // add a related uuid that needs to be collapse
-                                                var next = link.target;
-                                                if (!uuids.has(next.flowFileUuid)) {
-                                                    uuids.add(next.flowFileUuid);
+                                    // consider each node for being collapsed
+                                    $.each(nodeLookup.values(), function (_, node) {
+                                        // if this node is in the uuids remove it unless its the original event or is part of this and another lineage
+                                        if (uuids.has(node.flowFileUuid) && allowEventRemoval(fanIn, node)) {
+                                            // remove it from the look lookup
+                                            nodeLookup.remove(node.id);
+
+                                            // include all related outgoing flow file uuids
+                                            $.each(node.outgoing, function (_, outgoing) {
+                                                if (!uuids.has(outgoing.flowFileUuid)) {
+                                                    uuids.add(outgoing.flowFileUuid);
                                                     newUuids = true;
                                                 }
-                                            }
-                                        });
-
-                                        // collapse any related uuids
-                                        if (newUuids) {
-                                            collapse(uuids);
+                                            });
                                         }
-                                    };
-
-                                    // collapse the specified uuids
-                                    collapse(eventUuids);
-
-                                    // update the layout
-                                    refresh();
-                                });
-                            };
-
-                            // add menu items
-                            menuItems.push({
-                                'class': 'lineage-view-parents',
-                                'text': 'Find parents',
-                                'click': function () {
-                                    expandLineage({
-                                        lineageRequestType: 'PARENTS',
-                                        eventId: d.id,
-                                        clusterNodeId: clusterNodeId
                                     });
-                                }
-                            }, {
-                                'class': 'lineage-view-children',
-                                'text': 'Expand',
-                                'click': function () {
-                                    expandLineage({
-                                        lineageRequestType: 'CHILDREN',
-                                        eventId: d.id,
-                                        clusterNodeId: clusterNodeId
+
+                                    // update the link data
+                                    $.each(linkLookup.values(), function (_, link) {
+                                        // if this link is in the uuids remove it
+                                        if (uuids.has(link.flowFileUuid) && allowLinkRemoval(fanIn, link)) {
+                                            // remove it from the link lookup
+                                            linkLookup.remove(link.id);
+
+                                            // add a related uuid that needs to be collapse
+                                            var next = link.target;
+                                            if (!uuids.has(next.flowFileUuid)) {
+                                                uuids.add(next.flowFileUuid);
+                                                newUuids = true;
+                                            }
+                                        }
                                     });
-                                }
-                            }, {
-                                'class': 'lineage-collapse-children',
-                                'text': 'Collapse',
-                                'click': function () {
-                                    // collapse the children lineage
-                                    collapseLineage(d.id);
-                                }
+
+                                    // collapse any related uuids
+                                    if (newUuids) {
+                                        collapse(uuids);
+                                    }
+                                };
+
+                                // collapse the specified uuids
+                                collapse(eventUuids);
+
+                                // update the layout
+                                refresh(provenanceTableCtrl);
                             });
-                        }
+                        };
 
-                        // show the context menu for an event
-                        addContextMenuItems(menuItems);
-                    });
+                        // add menu items
+                        menuItems.push({
+                            'class': 'lineage-view-parents',
+                            'text': 'Find parents',
+                            'click': function () {
+                                expandLineage({
+                                    lineageRequestType: 'PARENTS',
+                                    eventId: d.id,
+                                    clusterNodeId: clusterNodeId
+                                });
+                            }
+                        }, {
+                            'class': 'lineage-view-children',
+                            'text': 'Expand',
+                            'click': function () {
+                                expandLineage({
+                                    lineageRequestType: 'CHILDREN',
+                                    eventId: d.id,
+                                    clusterNodeId: clusterNodeId
+                                });
+                            }
+                        }, {
+                            'class': 'lineage-collapse-children',
+                            'text': 'Collapse',
+                            'click': function () {
+                                // collapse the children lineage
+                                collapseLineage(d.id, provenanceTableCtrl);
+                            }
+                        });
+                    }
+
+                    // show the context menu for an event
+                    addContextMenuItems(menuItems);
+                });
 
             events
-                    .append('text')
-                    .attr({
-                        'id': function (d) {
-                            return 'event-text-' + d.id;
-                        },
-                        'class': 'event-type'
-                    })
-                    .classed('expand-parents', function (d) {
-                        return d.eventType === 'SPAWN';
-                    })
-                    .classed('expand-children', function (d) {
-                        return d.eventType === 'SPAWN';
-                    })
-                    .each(function (d) {
-                        var label = d3.select(this);
-                        if (d.eventType === 'CONTENT_MODIFIED' || d.eventType === 'ATTRIBUTES_MODIFIED') {
-                            var lines = [];
-                            if (d.eventType === 'CONTENT_MODIFIED') {
-                                lines.push('CONTENT');
-                            } else {
-                                lines.push('ATTRIBUTES');
-                            }
-                            lines.push('MODIFIED');
-
-                            // append each line
-                            $.each(lines, function (i, line) {
-                                label.append('tspan')
-                                        .attr('x', '0')
-                                        .attr('dy', '1.2em')
-                                        .text(function () {
-                                            return line;
-                                        });
-                            });
-                            label.attr('transform', 'translate(10,-14)');
+                .append('text')
+                .attr({
+                    'id': function (d) {
+                        return 'event-text-' + d.id;
+                    },
+                    'class': 'event-type'
+                })
+                .classed('expand-parents', function (d) {
+                    return d.eventType === 'SPAWN';
+                })
+                .classed('expand-children', function (d) {
+                    return d.eventType === 'SPAWN';
+                })
+                .each(function (d) {
+                    var label = d3.select(this);
+                    if (d.eventType === 'CONTENT_MODIFIED' || d.eventType === 'ATTRIBUTES_MODIFIED') {
+                        var lines = [];
+                        if (d.eventType === 'CONTENT_MODIFIED') {
+                            lines.push('CONTENT');
                         } else {
-                            label.text(d.eventType).attr({
-                                'x': 10,
-                                'y': 4
-                            });
+                            lines.push('ATTRIBUTES');
                         }
-                    });
+                        lines.push('MODIFIED');
+
+                        // append each line
+                        $.each(lines, function (i, line) {
+                            label.append('tspan')
+                                .attr('x', '0')
+                                .attr('dy', '1.2em')
+                                .text(function () {
+                                    return line;
+                                });
+                        });
+                        label.attr('transform', 'translate(10,-14)');
+                    } else {
+                        label.text(d.eventType).attr({
+                            'x': 10,
+                            'y': 4
+                        });
+                    }
+                });
         };
 
         // updates the ui
-        var update = function () {
+        var update = function (provenanceTableCtrl) {
             // update the node data
             nodes = nodes.data(nodeLookup.values(), function (d) {
                 return d.id;
@@ -1122,19 +1099,19 @@ nf.ProvenanceLineage = (function () {
 
             // add new nodes
             var nodesEntered = nodes.enter()
-                    .append('g')
-                    .attr('id', function (d) {
-                        return 'lineage-group-' + d.id;
-                    })
-                    .classed('node', true)
-                    .attr('transform', function (d) {
-                        if (d.incoming.length === 0) {
-                            return 'translate(' + (width / 2) + ',50)';
-                        } else {
-                            return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
-                        }
-                    })
-                    .style('opacity', 0);
+                .append('g')
+                .attr('id', function (d) {
+                    return 'lineage-group-' + d.id;
+                })
+                .classed('node', true)
+                .attr('transform', function (d) {
+                    if (d.incoming.length === 0) {
+                        return 'translate(' + (width / 2) + ',50)';
+                    } else {
+                        return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
+                    }
+                })
+                .style('opacity', 0);
 
             // treat flowfiles and events differently
             nodesEntered.filter(function (d) {
@@ -1142,31 +1119,31 @@ nf.ProvenanceLineage = (function () {
             }).call(renderFlowFile);
             nodesEntered.filter(function (d) {
                 return d.type === 'EVENT';
-            }).call(renderEvent);
+            }).call(renderEvent, provenanceTableCtrl);
 
             // update the nodes
             nodes
-                    .transition()
-                    .duration(400)
-                    .attr('transform', function (d) {
-                        return 'translate(' + d.x + ', ' + d.y + ')';
-                    })
-                    .style('opacity', 1);
+                .transition()
+                .duration(400)
+                .attr('transform', function (d) {
+                    return 'translate(' + d.x + ', ' + d.y + ')';
+                })
+                .style('opacity', 1);
 
             // remove old nodes
             nodes.exit()
-                    .transition()
-                    .delay(200)
-                    .duration(400)
-                    .attr('transform', function (d) {
-                        if (d.incoming.length === 0) {
-                            return 'translate(' + (width / 2) + ',50)';
-                        } else {
-                            return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
-                        }
-                    })
-                    .style('opacity', 0)
-                    .remove();
+                .transition()
+                .delay(200)
+                .duration(400)
+                .attr('transform', function (d) {
+                    if (d.incoming.length === 0) {
+                        return 'translate(' + (width / 2) + ',50)';
+                    } else {
+                        return 'translate(' + d.incoming[0].source.x + ',' + d.incoming[0].source.y + ')';
+                    }
+                })
+                .style('opacity', 0)
+                .remove();
 
             // update the link data
             links = links.data(linkLookup.values(), function (d) {
@@ -1175,55 +1152,60 @@ nf.ProvenanceLineage = (function () {
 
             // add new links
             links.enter()
-                    .insert('path', '.node')
-                    .attr({
-                        'class': 'link',
-                        'stroke-width': 1.5,
-                        'stroke': '#000',
-                        'fill': 'none',
-                        'd': function (d) {
-                            return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
-                        }
-                    })
-                    .style('opacity', 0);
+                .insert('path', '.node')
+                .attr({
+                    'class': 'link',
+                    'stroke-width': 1.5,
+                    'stroke': '#000',
+                    'fill': 'none',
+                    'd': function (d) {
+                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
+                    }
+                })
+                .style('opacity', 0);
 
             // update the links
             links
-                    .attr('marker-end', '')
-                    .transition()
-                    .delay(200)
-                    .duration(400)
-                    .attr({
-                        'marker-end': function (d) {
-                            return 'url(#' + d.target.type + ')';
-                        },
-                        'd': function (d) {
-                            return 'M' + d.source.x + ',' + d.source.y + 'L' + d.target.x + ',' + d.target.y;
-                        }
-                    })
-                    .style('opacity', 1);
+                .attr('marker-end', '')
+                .transition()
+                .delay(200)
+                .duration(400)
+                .attr({
+                    'marker-end': function (d) {
+                        return 'url(#' + d.target.type + ')';
+                    },
+                    'd': function (d) {
+                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.target.x + ',' + d.target.y;
+                    }
+                })
+                .style('opacity', 1);
 
             // remove old links
             links.exit()
-                    .attr('marker-end', '')
-                    .transition()
-                    .duration(400)
-                    .attr('d', function (d) {
-                        return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
-                    })
-                    .style('opacity', 0)
-                    .remove();
+                .attr('marker-end', '')
+                .transition()
+                .duration(400)
+                .attr('d', function (d) {
+                    return 'M' + d.source.x + ',' + d.source.y + 'L' + d.source.x + ',' + d.source.y;
+                })
+                .style('opacity', 0)
+                .remove();
         };
 
         // show the lineage pane and hide the event search results
         $('#provenance-lineage').show();
-        $('#provenance-event-search, #provenance-filter-controls, #oldest-event-message').hide();
+        $('#provenance-event-search').hide();
 
         // add the initial lineage
-        addLineage(lineageResults.nodes, lineageResults.links);
+        addLineage(lineageResults.nodes, lineageResults.links, provenanceTableCtrl);
     };
-    
-    return {
+
+    function ProvenanceLineageCtrl() {
+    }
+
+    ProvenanceLineageCtrl.prototype = {
+        constructor: ProvenanceLineageCtrl,
+
         /**
          * Initializes the lineage graph.
          */
@@ -1236,87 +1218,106 @@ nf.ProvenanceLineage = (function () {
                 $('#provenance-lineage-slider').slider('destroy');
 
                 // view the appropriate panel
-                $('#provenance-event-search, #provenance-filter-controls, #oldest-event-message').show();
+                $('#provenance-event-search').show();
                 $('#provenance-lineage').hide();
+
+                //reset table size
+                $('#provenance-table').data('gridInstance').resizeCanvas();
             });
-            $('#provenance-lineage-downloader').on('click', function () {
-                var svg = $('#provenance-lineage-container').html();
 
-                // get the lineage to determine the actual dimensions
-                var lineage = $('g.lineage')[0];
-                var bbox = lineage.getBBox();
+             $('#provenance-lineage-downloader').on('click', function () {
+                 var svg = $('#provenance-lineage-container').html();
 
-                // adjust to provide some padding
-                var height = bbox.height + 30;
-                var width = bbox.width + 30;
-                var offsetX = bbox.x - 15;
-                var offsetY = bbox.y - 15;
+                 // get the lineage to determine the actual dimensions
+                 var lineage = $('g.lineage')[0];
+                 var bbox = lineage.getBBox();
 
-                // replace the svg height, width with the actual values
-                svg = svg.replace(/height=".*?"/, 'height="' + height + '"');
-                svg = svg.replace(/width=".*?"/, 'width="' + width + '"');
+                 // adjust to provide some padding
+                 var height = bbox.height + 60;
+                 var width = bbox.width + 60;
+                 var offsetX = bbox.x - 15;
+                 var offsetY = bbox.y - 15;
 
-                // remove any transform applied to the lineage
-                svg = svg.replace(/transform=".*?"/, '');
+                 // replace the svg height, width with the actual values
+                 svg = svg.replace(/height=".*?"/, 'height="' + height + '"');
+                 svg = svg.replace(/width=".*?"/, 'width="' + width + '"');
 
-                // adjust link positioning based on the offset of the bounding box
-                svg = svg.replace(/<path([^>]*?)d="M[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?L[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?"(.*?)>/g, function (match, before, rawMoveX, rawMoveY, rawLineX, rawLineY, after) {
-                    // this regex captures the content before and after the d attribute in order to ensure that it contains the link class.
-                    // within the svg image, there are other paths that are (within markers) that we do not want to offset
-                    if (before.indexOf('link') === -1 && after.indexOf('link') === -1) {
-                        return match;
-                    }
+                 // remove any transform applied to the lineage
+                 svg = svg.replace(/transform=".*?"/, '');
 
-                    var moveX = parseFloat(rawMoveX) - offsetX;
-                    var moveY = parseFloat(rawMoveY) - offsetY;
-                    var lineX = parseFloat(rawLineX) - offsetX;
-                    var lineY = parseFloat(rawLineY) - offsetY;
-                    return '<path' + before + 'd="M' + moveX + ',' + moveY + 'L' + lineX + ',' + lineY + '"' + after + '>';
-                });
+                 // adjust link positioning based on the offset of the bounding box
+                 svg = svg.replace(/<path([^>]*?)d="M[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?L[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?"(.*?)>/g, function (match, before, rawMoveX, rawMoveY, rawLineX, rawLineY, after) {
+                     // this regex captures the content before and after the d attribute in order to ensure that it contains the link class.
+                     // within the svg image, there are other paths that are (within markers) that we do not want to offset
+                     if (before.indexOf('link') === -1 && after.indexOf('link') === -1) {
+                         return match;
+                     }
 
-                // adjust node positioning based on the offset of the bounding box
-                svg = svg.replace(/<g([^>]*?)transform="translate\([\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?\)"(.*?)>/g, function (match, before, rawX, rawY, after) {
-                    // this regex captures the content before and after the transform attribute in order to ensure that it contains the 
-                    // node class. only node groups are translated with absolute coordinates since all other translated groups fall under 
-                    // a parent that is already positioned. this makes their translation relative and not appropriate for this adjustment
-                    if (before.indexOf('node') === -1 && after.indexOf('node') === -1) {
-                        return match;
-                    }
+                     var moveX = parseFloat(rawMoveX) - offsetX;
+                     var moveY = parseFloat(rawMoveY) - offsetY;
+                     var lineX = parseFloat(rawLineX) - offsetX;
+                     var lineY = parseFloat(rawLineY) - offsetY;
+                     return '<path' + before + 'd="M' + moveX + ',' + moveY + 'L' + lineX + ',' + lineY + '"' + after + '>';
+                 });
 
-                    var x = parseFloat(rawX) - offsetX;
-                    var y = parseFloat(rawY) - offsetY;
-                    return '<g' + before + 'transform="translate(' + x + ',' + y + ')"' + after + '>';
-                });
+                 // adjust node positioning based on the offset of the bounding box
+                 svg = svg.replace(/<g([^>]*?)transform="translate\([\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?\)"(.*?)>/g, function (match, before, rawX, rawY, after) {
+                     // this regex captures the content before and after the transform attribute in order to ensure that it contains the
+                     // node class. only node groups are translated with absolute coordinates since all other translated groups fall under
+                     // a parent that is already positioned. this makes their translation relative and not appropriate for this adjustment
+                     if (before.indexOf('node') === -1 && after.indexOf('node') === -1) {
+                         return match;
+                     }
 
-                // namespaces
-                svg = svg.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"');
+                     var x = parseFloat(rawX) - offsetX;
+                     var y = parseFloat(rawY) - offsetY;
+                     return '<g' + before + 'transform="translate(' + x + ',' + y + ')"' + after + '>';
+                 });
 
-                // doctype
-                svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
+                 // namespaces
+                 svg = svg.replace(/<svg ([^>]*)/, function (match) {
+                     var svgString = match;
+                     var nsSVG = ' xmlns="http://www.w3.org/2000/svg"';
+                     var nsXlink = ' xmlns:xlink="http://www.w3.org/1999/xlink"';
+                     var version = ' version="1.1"';
 
-                // send to server to initiate download... client side only support is too browser specific at this point
-                nf.Common.post('./download-svg', {
-                    'filename': 'provenance',
-                    'svg': svg
-                });
-            });
+                     if (svgString.indexOf(nsSVG) === -1) {
+                         svgString += nsSVG;
+                     }
+
+                     if (svgString.indexOf(nsXlink) === -1) {
+                         svgString += nsXlink;
+                     }
+
+                     if (svgString.indexOf(version) === -1) {
+                         svgString += version;
+                     }
+
+                     return svgString;
+                 });
+
+                 // doctype
+                 svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
+
+                 downloadSvgFile(svg);
+             });
 
             initLineageQueryDialog();
         },
-        
+
         /**
          * Shows the lineage for the specified flowfile uuid.
-         * 
+         *
          * @param {string} flowFileUuid     The flowfile uuid
          * @param {integer} eventId         The id of the event
          * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
          */
-        showLineage: function (flowFileUuid, eventId, clusterNodeId) {
+        showLineage: function (flowFileUuid, eventId, clusterNodeId, provenanceTableCtrl) {
             var lineageProgress = $('#lineage-percent-complete');
 
-            // add support to cancel outstanding requests - when the button is pressed we 
+            // add support to cancel outstanding requests - when the button is pressed we
             // could be in one of two stages, 1) waiting to GET the status or 2)
-            // in the process of GETting the status. Handle both cases by cancelling 
+            // in the process of GETting the status. Handle both cases by cancelling
             // the setTimeout (1) and by setting a flag to indicate that a request has
             // been request so we can ignore the results (2).
 
@@ -1328,30 +1329,36 @@ nf.ProvenanceLineage = (function () {
             var lineageRequest = {
                 lineageRequestType: 'FLOWFILE',
                 uuid: flowFileUuid,
-                clusterNodeId: clusterNodeId
+                clusterNodeId: clusterNodeId,
+                eventId: eventId
             };
 
             // update the progress bar value
-            nf.ProvenanceTable.updateProgress(lineageProgress, 0);
+            provenanceTableCtrl.updateProgress(lineageProgress, 0);
 
             // show the 'searching...' dialog
             $('#lineage-query-dialog').modal('setButtonModel', [{
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            cancelled = true;
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        cancelled = true;
 
-                            // we are waiting for the next poll attempt
-                            if (lineageTimer !== null) {
-                                // cancel it
-                                clearTimeout(lineageTimer);
+                        // we are waiting for the next poll attempt
+                        if (lineageTimer !== null) {
+                            // cancel it
+                            clearTimeout(lineageTimer);
 
-                                // cancel the provenance
-                                closeDialog();
-                            }
+                            // cancel the provenance
+                            closeDialog();
                         }
                     }
-                }]).modal('show');
+                }
+            }]).modal('show');
 
             // closes the searching dialog and cancels the query on the server
             var closeDialog = function () {
@@ -1366,16 +1373,16 @@ nf.ProvenanceLineage = (function () {
 
             // polls the server for the status of the lineage, if the lineage is not
             // done wait nextDelay seconds before trying again
-            var pollLineage = function (nextDelay) {
+            var pollLineage = function (nextDelay, provenanceTableCtrl) {
                 getLineage(lineage).done(function (response) {
                     lineage = response.lineage;
 
                     // process the lineage, if its not done computing wait delay seconds before checking again
-                    processLineage(nextDelay);
+                    processLineage(nextDelay, provenanceTableCtrl);
                 }).fail(closeDialog);
             };
 
-            var processLineage = function (delay) {
+            var processLineage = function (delay, provenanceTableCtrl) {
                 // if the request was cancelled just ignore the current response
                 if (cancelled === true) {
                     closeDialog();
@@ -1386,8 +1393,8 @@ nf.ProvenanceLineage = (function () {
                 if (!nf.Common.isEmpty(lineage.results.errors)) {
                     var errors = lineage.results.errors;
                     nf.Dialog.showOkDialog({
-                        dialogContent: nf.Common.formatUnorderedList(errors),
-                        overlayBackground: false
+                        headerText: 'Process Lineage',
+                        dialogContent: nf.Common.formatUnorderedList(errors)
                     });
 
                     closeDialog();
@@ -1395,12 +1402,12 @@ nf.ProvenanceLineage = (function () {
                 }
 
                 // update the precent complete
-                nf.ProvenanceTable.updateProgress(lineageProgress, lineage.percentCompleted);
+                provenanceTableCtrl.updateProgress(lineageProgress, lineage.percentCompleted);
 
                 // process the results if they are finished
                 if (lineage.finished === true) {
                     // render the graph
-                    renderLineage(lineage.results, eventId, clusterNodeId);
+                    renderLineage(lineage.results, eventId, clusterNodeId, provenanceTableCtrl);
 
                     // close the searching.. dialog
                     closeDialog();
@@ -1412,10 +1419,10 @@ nf.ProvenanceLineage = (function () {
 
                         // calculate the next delay (back off)
                         var backoff = delay * 2;
-                        var nextDelay = backoff > nf.ProvenanceTable.MAX_DELAY ? nf.ProvenanceTable.MAX_DELAY : backoff;
+                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
 
                         // poll lineage
-                        pollLineage(nextDelay);
+                        pollLineage(nextDelay, provenanceTableCtrl);
                     }, delay * 1000);
                 }
             };
@@ -1425,8 +1432,11 @@ nf.ProvenanceLineage = (function () {
                 lineage = response.lineage;
 
                 // process the results, if they are not done wait 1 second before trying again
-                processLineage(1);
+                processLineage(1, provenanceTableCtrl);
             }).fail(closeDialog);
         }
-    };
-}());
+    }
+
+    var provenanceLineageCtrl = new ProvenanceLineageCtrl();
+    return provenanceLineageCtrl;
+};

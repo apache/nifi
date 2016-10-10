@@ -37,7 +37,7 @@ public interface ControllerServiceLookup {
     boolean isControllerServiceEnabled(String serviceIdentifier);
 
     /**
-     * @param serviceIdentifier idenfitier of service to check
+     * @param serviceIdentifier identifier of service to check
      * @return <code>true</code> if the Controller Service with the given
      * identifier has been enabled but is still in the transitioning state,
      * otherwise returns <code>false</code>. If the given identifier is not
@@ -54,9 +54,11 @@ public interface ControllerServiceLookup {
     boolean isControllerServiceEnabled(ControllerService service);
 
     /**
+     *
      * @param serviceType type of service to get identifiers for
+     *
      * @return the set of all Controller Service Identifiers whose Controller
-     * Service is of the given type.
+     *         Service is of the given type.
      * @throws IllegalArgumentException if the given class is not an interface
      */
     Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) throws IllegalArgumentException;

@@ -22,25 +22,17 @@
     font-size: 10px;
     z-index: 1301;
     display: none;
-    padding: 10px;
-    cursor: move;
-}
-
-#label-configuration-contents {
-    margin-top: -50px;
 }
 
 #label-value {
-    width: 375px;
-    height: 210px;
-    resize: both;
+    width: 100%;
+    height: 189px;
+    resize: vertical;
     min-height: 100px;
     min-width: 100px;
-    font-weight: bold;
 }
 
 #label-font-size {
-    height: 24px;
     width: 100%;
     box-sizing: border-box;
     -moz-box-sizing: border-box;

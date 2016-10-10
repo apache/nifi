@@ -29,7 +29,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ENTRY_DATE_HEADER;
 import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.ID_HEADER;
 import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LAST_QUEUE_DATE_HEADER;
-import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LINEAGE_IDENTIFIERS_HEADER;
 import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.LINEAGE_START_DATE_HEADER;
 import static org.apache.nifi.processors.flume.util.FlowFileEventConstants.SIZE_HEADER;
 
@@ -65,11 +64,6 @@ public class FlowFileEvent implements Event {
         headers.put(ENTRY_DATE_HEADER, Long.toString(flowFile.getEntryDate()));
         headers.put(ID_HEADER, Long.toString(flowFile.getId()));
         headers.put(LAST_QUEUE_DATE_HEADER, Long.toString(flowFile.getLastQueueDate()));
-        int i = 0;
-        for (String lineageIdentifier : flowFile.getLineageIdentifiers()) {
-          headers.put(LINEAGE_IDENTIFIERS_HEADER + "." + i, lineageIdentifier);
-          i++;
-        }
         headers.put(LINEAGE_START_DATE_HEADER, Long.toString(flowFile.getLineageStartDate()));
         headers.put(SIZE_HEADER, Long.toString(flowFile.getSize()));
         headersLoaded = true;

@@ -25,6 +25,7 @@
     background-color: #fff;
     cursor: default;
     line-height: normal;
+    min-width: 210px;
 }
 
 .nfel-editor .CodeMirror-scroll {

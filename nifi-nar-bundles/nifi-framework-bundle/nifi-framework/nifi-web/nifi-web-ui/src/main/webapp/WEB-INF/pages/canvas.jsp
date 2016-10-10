@@ -37,7 +37,11 @@
         <link rel="stylesheet" href="js/jquery/minicolors/jquery.minicolors.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
+        <script type="text/javascript" src="js/d3/d3.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
@@ -45,6 +49,7 @@
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.tab.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.form.min.js"></script>
         <script type="text/javascript" src="js/jquery/tabbs/jquery.tabbs.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
@@ -62,14 +67,13 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
-        <script type="text/javascript" src="js/angular/angular.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-messages/angular-messages.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-resource/angular-resource.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-route/angular-route.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-aria/angular-aria.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-animate/angular-animate.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-material/angular-material.min.js"></script>
-        <script type="text/javascript" src="js/angular/angular-sanitize/angular-sanitize.min.js"></script>
+        <script type="text/javascript" src="assets/angular/angular.min.js"></script>
+        <script type="text/javascript" src="assets/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="assets/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="assets/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
         <script type="text/javascript" src="js/json2.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
@@ -80,15 +84,19 @@
     </head>
     <body ng-controller="ngCanvasAppCtrl" id="canvas-body">
         <div id="splash">
-            <img id="splash-img" src="images/loadAnimation.gif" alt="Loading..."/>
+            <div id="splash-img" layout="row" layout-align="center center">
+                <md-progress-circular md-mode="indeterminate" class="md-warn" md-diameter="150"></md-progress-circular>
+            </div>
         </div>
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-main.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/canvas-header.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/flow-status.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/about-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/yes-no-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/status-history-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/search-users-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/disable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/enable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
@@ -98,10 +106,10 @@
         <jsp:include page="/WEB-INF/partials/canvas/new-process-group-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-remote-process-group-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-template-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/upload-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/instantiate-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/flow-status.jsp"/>
         <div id="canvas-container" class="unselectable"></div>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>
@@ -117,7 +125,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/process-group-details.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-ports.jsp"/>
@@ -132,9 +140,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
-        <div id="context-menu" class="unselectable"></div>
+        <div id="context-menu" class="context-menu unselectable"></div>
         <span id="nifi-content-viewer-url" class="hidden"></span>
     </body>
 </html>

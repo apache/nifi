@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.SnippetDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a SnippetDTO.
@@ -32,6 +34,7 @@ public class SnippetEntity extends Entity {
      *
      * @return The SnippetDTO object
      */
+    @ApiModelProperty("The snippet.")
     public SnippetDTO getSnippet() {
         return snippet;
     }

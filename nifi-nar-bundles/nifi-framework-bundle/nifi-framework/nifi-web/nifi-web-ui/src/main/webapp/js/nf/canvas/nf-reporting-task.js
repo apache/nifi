@@ -18,15 +18,30 @@
 /* global nf */
 
 nf.ReportingTask = (function () {
-    
+
     var config = {
         edit: 'edit',
-        readOnly: 'read-only'
+        readOnly: 'read-only',
+        urls: {
+            api: '../nifi-api'
+        }
     };
 
+    // load the controller services
+    var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+
+    /**
+     * Gets the controller services table.
+     *
+     * @returns {*|jQuery|HTMLElement}
+     */
+    var getControllerServicesTable = function () {
+        return $('#controller-services-table');
+    };
+    
     /**
      * Handle any expected reporting task configuration errors.
-     * 
+     *
      * @argument {object} xhr       The XmlHttpRequest
      * @argument {string} status    The status of the request
      * @argument {string} error     The error
@@ -44,8 +59,7 @@ nf.ReportingTask = (function () {
 
             nf.Dialog.showOkDialog({
                 dialogContent: content,
-                overlayBackground: false,
-                headerText: 'Configuration Error'
+                headerText: 'Reporting Task'
             });
         } else {
             nf.Common.handleAjaxError(xhr, status, error);
@@ -57,28 +71,28 @@ nf.ReportingTask = (function () {
      * that needs to be saved.
      */
     var isSaveRequired = function () {
-        var details = $('#reporting-task-configuration').data('reportingTaskDetails');
+        var entity = $('#reporting-task-configuration').data('reportingTaskDetails');
 
         // determine if any reporting task settings have changed
 
-        if ($('#reporting-task-name').val() !== details.name) {
+        if ($('#reporting-task-name').val() !== entity.component['name']) {
             return true;
         }
-        if ($('#reporting-task-comments').val() !== details['comments']) {
+        if ($('#reporting-task-comments').val() !== entity.component['comments']) {
             return true;
         }
-        if ($('#reporting-task-enabled').hasClass('checkbox-checked') && details['state'] === 'DISABLED') {
+        if ($('#reporting-task-enabled').hasClass('checkbox-checked') && entity.component['state'] === 'DISABLED') {
             return true;
-        } else if ($('#reporting-task-enabled').hasClass('checkbox-unchecked') && (details['state'] === 'RUNNING' || details['state'] === 'STOPPED')) {
+        } else if ($('#reporting-task-enabled').hasClass('checkbox-unchecked') && (entity.component['state'] === 'RUNNING' || entity.component['state'] === 'STOPPED')) {
             return true;
         }
-        
+
         // consider the scheduling strategy
         var schedulingStrategy = $('#reporting-task-scheduling-strategy-combo').combo('getSelectedOption').value;
-        if (schedulingStrategy !== (details['schedulingStrategy'] + '')) {
+        if (schedulingStrategy !== (entity.component['schedulingStrategy'] + '')) {
             return true;
         }
-        
+
         // get the appropriate scheduling period field
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
@@ -86,12 +100,12 @@ nf.ReportingTask = (function () {
         } else {
             schedulingPeriod = $('#reporting-task-timer-driven-scheduling-period');
         }
-        
+
         // check the scheduling period
-        if (nf.Common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (details['schedulingPeriod'] + '')) {
+        if (nf.Common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (entity.component['schedulingPeriod'] + '')) {
             return true;
         }
-        
+
         // defer to the properties
         return $('#reporting-task-properties').propertytable('isSaveRequired');
     };
@@ -121,23 +135,22 @@ nf.ReportingTask = (function () {
         reportingTaskDto['schedulingStrategy'] = schedulingStrategy;
         reportingTaskDto['schedulingPeriod'] = schedulingPeriod.val();
         reportingTaskDto['comments'] = $('#reporting-task-comments').val();
-        
+
         // mark the processor disabled if appropriate
         if ($('#reporting-task-enabled').hasClass('checkbox-unchecked')) {
             reportingTaskDto['state'] = 'DISABLED';
         } else if ($('#reporting-task-enabled').hasClass('checkbox-checked')) {
             reportingTaskDto['state'] = 'STOPPED';
         }
-        
+
         // set the properties
         if ($.isEmptyObject(properties) === false) {
             reportingTaskDto['properties'] = properties;
         }
-        
+
         // create the reporting task entity
         var reportingTaskEntity = {};
-        reportingTaskEntity['revision'] = nf.Client.getRevision();
-        reportingTaskEntity['reportingTask'] = reportingTaskDto;
+        reportingTaskEntity['component'] = reportingTaskDto;
 
         // return the marshaled details
         return reportingTaskEntity;
@@ -145,74 +158,70 @@ nf.ReportingTask = (function () {
 
     /**
      * Validates the specified details.
-     * 
+     *
      * @argument {object} details       The details to validate
      */
     var validateDetails = function (details) {
         var errors = [];
-        var reportingTask = details['reportingTask'];
-        
+        var reportingTask = details['component'];
+
         if (nf.Common.isBlank(reportingTask['schedulingPeriod'])) {
             errors.push('Run schedule must be specified');
         }
-        
+
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
                 dialogContent: nf.Common.formatUnorderedList(errors),
-                overlayBackground: false,
-                headerText: 'Configuration Error'
+                headerText: 'Reporting Task'
             });
             return false;
         } else {
             return true;
         }
     };
-    
+
     /**
      * Renders the specified reporting task.
-     * 
+     *
      * @param {object} reportingTask
      */
-    var renderReportingTask = function (reportingTask) {
+    var renderReportingTask = function (reportingTaskEntity) {
         // get the table and update the row accordingly
         var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
         var reportingTaskData = reportingTaskGrid.getData();
-        var currentReportingTask = reportingTaskData.getItemById(reportingTask.id);
-        reportingTaskData.updateItem(reportingTask.id, $.extend({
+        var currentReportingTask = reportingTaskData.getItemById(reportingTaskEntity.id);
+        reportingTaskData.updateItem(reportingTaskEntity.id, $.extend({
             bulletins: currentReportingTask.bulletins
-        }, reportingTask));
+        }, reportingTaskEntity));
     };
-    
+
     /**
-     * 
-     * @param {object} reportingTask
+     *
+     * @param {object} reportingTaskEntity
      * @param {boolean} running
      */
-    var setRunning = function (reportingTask, running) {
+    var setRunning = function (reportingTaskEntity, running) {
         var entity = {
-            'revision': nf.Client.getRevision(),
-            'reportingTask': {
-                'id': reportingTask.id,
+            'revision': nf.Client.getRevision(reportingTaskEntity),
+            'component': {
+                'id': reportingTaskEntity.id,
                 'state': running === true ? 'RUNNING' : 'STOPPED'
             }
         };
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTask.uri,
+            url: reportingTaskEntity.uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            // update the revision
-            nf.Client.setRevision(response.revision);
-            
             // update the task
-            renderReportingTask(response.reportingTask);
-            nf.ControllerService.reloadReferencedServices(response.reportingTask);
+            renderReportingTask(response);
+            nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
         }).fail(nf.Common.handleAjaxError);
     };
-    
+
     /**
      * Goes to a service configuration from the property table.
      */
@@ -225,8 +234,8 @@ nf.ReportingTask = (function () {
             if (isSaveRequired()) {
                 // see if those changes should be saved
                 nf.Dialog.showYesNoDialog({
+                    headerText: 'Save',
                     dialogContent: 'Save changes before going to this Controller Service?',
-                    overlayBackground: false,
                     noHandler: function () {
                         deferred.resolve();
                     },
@@ -244,30 +253,30 @@ nf.ReportingTask = (function () {
             }
         }).promise();
     };
-    
+
     /**
      * Saves the specified reporting task.
-     * 
+     *
      * @param {type} reportingTask
      */
-    var saveReportingTask = function (reportingTask) {
+    var saveReportingTask = function (reportingTaskEntity) {
         // marshal the settings and properties and update the reporting task
         var updatedReportingTask = marshalDetails();
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedReportingTask)) {
+            updatedReportingTask['revision'] = nf.Client.getRevision(reportingTaskEntity);
+
             // update the selected component
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedReportingTask),
-                url: reportingTask.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-                }
+                // update the reporting task
+                renderReportingTask(response);
             }).fail(handleReportingTaskConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -275,10 +284,10 @@ nf.ReportingTask = (function () {
             }).promise();
         }
     };
-    
+
     /**
      * Gets a property descriptor for the controller service currently being configured.
-     * 
+     *
      * @param {type} propertyName
      */
     var getReportingTaskPropertyDescriptor = function (propertyName) {
@@ -292,7 +301,7 @@ nf.ReportingTask = (function () {
             dataType: 'json'
         }).fail(nf.Common.handleAjaxError);
     };
-    
+
     return {
         /**
          * Initializes the reporting task configuration dialog.
@@ -302,20 +311,21 @@ nf.ReportingTask = (function () {
             $('#reporting-task-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                        name: 'Settings',
-                        tabContentId: 'reporting-task-standard-settings-tab-content'
-                    }, {
-                        name: 'Properties',
-                        tabContentId: 'reporting-task-properties-tab-content'
-                    }, {
-                        name: 'Comments',
-                        tabContentId: 'reporting-task-comments-tab-content'
-                    }],
+                    name: 'Settings',
+                    tabContentId: 'reporting-task-standard-settings-tab-content'
+                }, {
+                    name: 'Properties',
+                    tabContentId: 'reporting-task-properties-tab-content'
+                }, {
+                    name: 'Comments',
+                    tabContentId: 'reporting-task-comments-tab-content'
+                }],
                 select: function () {
                     // remove all property detail dialogs
                     nf.UniversalCapture.removeAllPropertyDetailDialogs();
-                    
+
                     // update the property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#reporting-task-properties').propertytable('resetTableSize');
@@ -325,16 +335,11 @@ nf.ReportingTask = (function () {
                     $('#reporting-task-properties').propertytable('saveRow');
                 }
             });
-            
-            // we clustered we need to show the controls for editing the availability
-            if (nf.Canvas.isClustered()) {
-                $('#reporting-task-availability-setting-container').show();
-            }
 
             // initialize the reporting task configuration dialog
             $('#reporting-task-configuration').data('mode', config.edit).modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Reporting Task',
-                overlayBackground: false,
                 handler: {
                     close: function () {
                         // cancel any active edits
@@ -342,17 +347,17 @@ nf.ReportingTask = (function () {
 
                         // clear the tables
                         $('#reporting-task-properties').propertytable('clear');
-                        
+
                         // clear the comments
                         nf.Common.clearField('read-only-reporting-task-comments');
-                        
+
                         // removed the cached reporting task details
                         $('#reporting-task-configuration').removeData('reportingTaskDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // initialize the property table
@@ -360,65 +365,72 @@ nf.ReportingTask = (function () {
                 readOnly: false,
                 dialogContainer: '#new-reporting-task-property-container',
                 descriptorDeferred: getReportingTaskPropertyDescriptor,
+                controllerServiceCreatedDeferred: function(response){
+                    return nf.ControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                },
                 goToServiceDeferred: goToServiceFromProperty
             });
         },
-        
+
         /**
          * Shows the configuration dialog for the specified reporting task.
-         * 
-         * @argument {reportingTask} reportingTask      The reporting task
+         *
+         * @argument {reportingTask} reportingTaskEntity      The reporting task
          */
-        showConfiguration: function (reportingTask) {
+        showConfiguration: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
             if (reportingTaskDialog.data('mode') === config.readOnly) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').hide();
                 $('#reporting-task-configuration .reporting-task-editable').show();
-                
+
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
                     dialogContainer: '#new-reporting-task-property-container',
                     descriptorDeferred: getReportingTaskPropertyDescriptor,
+                    controllerServiceCreatedDeferred: function(response){
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, $('#controller-services-table'));
+                    },
                     goToServiceDeferred: goToServiceFromProperty
                 });
-                
+
                 // update the mode
                 reportingTaskDialog.data('mode', config.edit);
             }
-            
+
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
-            
+
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
-            
+
             // once everything is loaded, show the dialog
             $.when(reloadTask, loadHistory).done(function (taskResponse, historyResponse) {
                 // get the updated reporting task
-                reportingTask = taskResponse[0].reportingTask;
-                
+                reportingTaskEntity = taskResponse[0];
+                var reportingTask = reportingTaskEntity.component;
+
                 // get the reporting task history
                 var reportingTaskHistory = historyResponse[0].componentHistory;
-                
+
                 // record the reporting task details
-                $('#reporting-task-configuration').data('reportingTaskDetails', reportingTask);
+                $('#reporting-task-configuration').data('reportingTaskDetails', reportingTaskEntity);
 
                 // determine if the enabled checkbox is checked or not
                 var reportingTaskEnableStyle = 'checkbox-checked';
                 if (reportingTask['state'] === 'DISABLED') {
                     reportingTaskEnableStyle = 'checkbox-unchecked';
                 }
-                
+
                 // populate the reporting task settings
                 nf.Common.populateField('reporting-task-id', reportingTask['id']);
                 nf.Common.populateField('reporting-task-type', nf.Common.substringAfterLast(reportingTask['type'], '.'));
@@ -426,30 +438,21 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(reportingTaskEnableStyle);
                 $('#reporting-task-comments').val(reportingTask['comments']);
 
-                // select the availability when appropriate
-                if (nf.Canvas.isClustered()) {
-                    if (reportingTask['availability'] === 'node') {
-                        $('#reporting-task-availability').text('Node');
-                    } else {
-                        $('#reporting-task-availability').text('Cluster Manager');
-                    }
-                }
-                
                 // get the default schedule period
                 var defaultSchedulingPeriod = reportingTask['defaultSchedulingPeriod'];
                 var cronSchedulingPeriod = $('#reporting-task-cron-driven-scheduling-period').val(defaultSchedulingPeriod['CRON_DRIVEN']);
                 var timerSchedulingPeriod = $('#reporting-task-timer-driven-scheduling-period').val(defaultSchedulingPeriod['TIMER_DRIVEN']);
-                
+
                 // set the scheduling period as appropriate
                 if (reportingTask['schedulingStrategy'] === 'CRON_DRIVEN') {
                     cronSchedulingPeriod.val(reportingTask['schedulingPeriod']);
                 } else {
                     timerSchedulingPeriod.val(reportingTask['schedulingPeriod']);
                 }
-                
+
                 // initialize the scheduling strategy
                 $('#reporting-task-scheduling-strategy-combo').combo({
-                        options: [{
+                    options: [{
                         text: 'Timer driven',
                         value: 'TIMER_DRIVEN',
                         description: 'Reporting task will be scheduled to run on an interval defined by the run schedule.'
@@ -471,27 +474,37 @@ nf.ReportingTask = (function () {
                         }
                     }
                 });
-                
+
                 var buttons = [{
-                        buttonText: 'Apply',
-                        handler: {
-                            click: function () {
-                                // close all fields currently being edited
-                                $('#reporting-task-properties').propertytable('saveRow');
+                    buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            // close all fields currently being edited
+                            $('#reporting-task-properties').propertytable('saveRow');
 
                                 // save the reporting task
-                                saveReportingTask(reportingTask).done(function (response) {
+                                saveReportingTask(reportingTaskEntity).done(function (response) {
                                     // reload the reporting task
-                                    renderReportingTask(response.reportingTask);
-                                    nf.ControllerService.reloadReferencedServices(response.reportingTask);
+                                    nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
 
-                                    // close the details panel
-                                    $('#reporting-task-configuration').modal('hide');
-                                });
-                            }
+                                // close the details panel
+                                $('#reporting-task-configuration').modal('hide');
+                            });
                         }
-                    }, {
+                    }
+                },
+                    {
                         buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 $('#reporting-task-configuration').modal('hide');
@@ -503,6 +516,12 @@ nf.ReportingTask = (function () {
                 if (nf.Common.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 var openCustomUi = function () {
@@ -513,12 +532,12 @@ nf.ReportingTask = (function () {
                                     $('#shell-close-button').click();
 
                                     // show the custom ui
-                                    nf.CustomUi.showCustomUi($('#reporting-task-id').text(), reportingTask.customUiUrl, true).done(function () {
+                                    nf.CustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the reporting task
-                                        nf.ReportingTask.reload(reportingTask.id).done(function (response) {
-                                            nf.ControllerService.reloadReferencedServices(response.reportingTask);
+                                        nf.ReportingTask.reload(reportingTaskEntity.id).done(function (response) {
+                                            nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.reportingTask);
                                         });
-                                        
+
                                         // show the settings
                                         nf.Settings.showSettings();
                                     });
@@ -531,11 +550,11 @@ nf.ReportingTask = (function () {
                                 if (isSaveRequired()) {
                                     // see if those changes should be saved
                                     nf.Dialog.showYesNoDialog({
+                                        headerText: 'Save',
                                         dialogContent: 'Save changes before opening the advanced configuration?',
-                                        overlayBackground: false,
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
-                                            saveReportingTask(reportingTask).done(function () {
+                                            saveReportingTask(reportingTaskEntity).done(function () {
                                                 // open the custom ui
                                                 openCustomUi();
                                             });
@@ -552,73 +571,69 @@ nf.ReportingTask = (function () {
 
                 // set the button model
                 $('#reporting-task-configuration').modal('setButtonModel', buttons);
-                
+
                 // load the property table
-                $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                $('#reporting-task-properties')
+                    .propertytable('setGroupId', reportingTask.parentGroupId)
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
                 $('#reporting-task-configuration').modal('show');
+
+                $('#reporting-task-properties').propertytable('resetTableSize');
             }).fail(nf.Common.handleAjaxError);
-        }, 
-        
+        },
+
         /**
          * Shows the reporting task details in a read only dialog.
-         * 
-         * @param {object} reportingTask
+         *
+         * @param {object} reportingTaskEntity
          */
-        showDetails: function(reportingTask) {
+        showDetails: function (reportingTaskEntity) {
             var reportingTaskDialog = $('#reporting-task-configuration');
             if (reportingTaskDialog.data('mode') === config.edit) {
                 // update the visibility
                 $('#reporting-task-configuration .reporting-task-read-only').show();
                 $('#reporting-task-configuration .reporting-task-editable').hide();
-                
+
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: true
                 });
-                
+
                 // update the mode
                 reportingTaskDialog.data('mode', config.readOnly);
             }
-            
+
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
-            
+
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTask.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
-            
+
             // once everything is loaded, show the dialog
             $.when(reloadTask, loadHistory).done(function (taskResponse, historyResponse) {
                 // get the updated reporting task
-                reportingTask = taskResponse[0].reportingTask;
-                
+                reportingTaskEntity = taskResponse[0];
+                var reportingTask = reportingTaskEntity.component;
+
                 // get the reporting task history
                 var reportingTaskHistory = historyResponse[0].componentHistory;
-                
+
                 // populate the reporting task settings
                 nf.Common.populateField('reporting-task-id', reportingTask['id']);
                 nf.Common.populateField('reporting-task-type', nf.Common.substringAfterLast(reportingTask['type'], '.'));
                 nf.Common.populateField('read-only-reporting-task-name', reportingTask['name']);
                 nf.Common.populateField('read-only-reporting-task-comments', reportingTask['comments']);
 
-                // select the availability when appropriate
-                if (nf.Canvas.isClustered()) {
-                    if (reportingTask['availability'] === 'node') {
-                        $('#reporting-task-availability').text('Node');
-                    } else {
-                        $('#reporting-task-availability').text('Cluster Manager');
-                    }
-                }
-                
                 // make the scheduling strategy human readable
                 var schedulingStrategy = reportingTask['schedulingStrategy'];
                 if (schedulingStrategy === 'CRON_DRIVEN') {
@@ -628,21 +643,32 @@ nf.ReportingTask = (function () {
                 }
                 nf.Common.populateField('read-only-reporting-task-scheduling-strategy', schedulingStrategy);
                 nf.Common.populateField('read-only-reporting-task-scheduling-period', reportingTask['schedulingPeriod']);
-                
+
                 var buttons = [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                // hide the dialog
-                                reportingTaskDialog.modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            // hide the dialog
+                            reportingTaskDialog.modal('hide');
                         }
-                    }];
+                    }
+                }];
 
                 // determine if we should show the advanced button
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 // reset state and close the dialog manually to avoid hiding the faded background
@@ -652,86 +678,85 @@ nf.ReportingTask = (function () {
                                 $('#shell-close-button').click();
 
                                 // show the custom ui
-                                nf.CustomUi.showCustomUi(reportingTask.id, reportingTask.customUiUrl, false).done(function() {
+                                nf.CustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, false).done(function() {
                                     nf.Settings.showSettings();
                                 });
                             }
                         }
                     });
                 }
-                
+
                 // show the dialog
                 reportingTaskDialog.modal('setButtonModel', buttons).modal('show');
-                
+
                 // load the property table
                 $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
-                
+
                 // show the details
                 reportingTaskDialog.modal('show');
+
+                $('#reporting-task-properties').propertytable('resetTableSize');
             });
         },
-        
+
         /**
          * Starts the specified reporting task.
-         * 
-         * @param {object} reportingTask
+         *
+         * @param {object} reportingTaskEntity
          */
-        start: function(reportingTask) {
-            setRunning(reportingTask, true);
+        start: function (reportingTaskEntity) {
+            setRunning(reportingTaskEntity, true);
         },
-        
+
         /**
          * Stops the specified reporting task.
-         * 
-         * @param {object} reportingTask
+         *
+         * @param {object} reportingTaskEntity
          */
-        stop: function(reportingTask) {
-            setRunning(reportingTask, false);
+        stop: function (reportingTaskEntity) {
+            setRunning(reportingTaskEntity, false);
         },
-        
+
         /**
          * Reloads the specified reporting task.
-         * 
+         *
          * @param {string} id
          */
         reload: function (id) {
             var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
             var reportingTaskData = reportingTaskGrid.getData();
-            var reportingTask = reportingTaskData.getItemById(id);
-        
+            var reportingTaskEntity = reportingTaskData.getItemById(id);
+
             return $.ajax({
                 type: 'GET',
-                url: reportingTask.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             }).done(function (response) {
-                renderReportingTask(response.reportingTask);
+                renderReportingTask(response);
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Deletes the specified reporting task.
-         * 
-         * @param {object} reportingTask
+         *
+         * @param {object} reportingTaskEntity
          */
-        remove: function(reportingTask) {
+        remove: function (reportingTaskEntity) {
             // prompt for removal?
-                    
-            var revision = nf.Client.getRevision();
+
+            var revision = nf.Client.getRevision(reportingTaskEntity);
             $.ajax({
                 type: 'DELETE',
-                url: reportingTask.uri + '?' + $.param({
+                url: reportingTaskEntity.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),
                 dataType: 'json'
             }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-
                 // remove the task
                 var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
                 var reportingTaskData = reportingTaskGrid.getData();
-                reportingTaskData.deleteItem(reportingTask.id);
+                reportingTaskData.deleteItem(reportingTaskEntity.id);
             }).fail(nf.Common.handleAjaxError);
         }
     };

@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="node-details-dialog">
+<div id="node-details-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Address</div>

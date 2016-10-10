@@ -1,0 +1,10 @@
+ {
+   "RatingRange" : 5,
+   "rating": {
+     "*": {
+        "MaxLabel": "High",
+        "MinLabel": "Low",
+        "DisplayType": "NORMAL"
+     }
+   }
+ }

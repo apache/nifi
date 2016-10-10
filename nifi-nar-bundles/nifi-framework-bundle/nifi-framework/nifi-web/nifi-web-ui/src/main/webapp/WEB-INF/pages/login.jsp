@@ -22,10 +22,15 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <link rel="shortcut icon" href="images/nifi16.ico"/>
         <link rel="stylesheet" href="css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         ${nf.login.style.tags}
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
         <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.count.js"></script>
@@ -40,7 +45,7 @@
         <div id="login-user-links-container">
             <ul id="login-user-links" class="links">
                 <li id="user-logout-container" style="display: none;">
-                    <span id="user-logout" class="link">logout</span>
+                    <span id="user-logout" class="link">log out</span>
                 </li>
                 <li>
                     <span id="user-home" class="link">home</span>
@@ -51,12 +56,9 @@
         <div id="login-contents-container">
             <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
-            <jsp:include page="/WEB-INF/partials/login/nifi-registration-form.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-submission.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-progress.jsp"/>
         </div>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
     </body>
 </html>

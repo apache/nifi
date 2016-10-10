@@ -23,7 +23,7 @@ import java.util.Date;
  */
 public class HistoryQuery {
 
-    private String userName;
+    private String userIdentity;
     private String sourceId;
     private Date startDate;
     private Date endDate;
@@ -56,12 +56,12 @@ public class HistoryQuery {
         this.startDate = startDate;
     }
 
-    public String getUserName() {
-        return userName;
+    public String getUserIdentity() {
+        return userIdentity;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUserIdentity(String userIdentity) {
+        this.userIdentity = userIdentity;
     }
 
     public Integer getOffset() {

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.manager.exception;
 
+import org.apache.nifi.cluster.exception.ClusterException;
+
 /**
  * Represents the exceptional case when a request is made for a node that does not exist.
  *

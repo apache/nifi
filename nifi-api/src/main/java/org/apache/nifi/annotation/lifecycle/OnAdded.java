@@ -37,12 +37,6 @@ import java.lang.annotation.Target;
  * Methods with this annotation are called without any arguments, as all
  * settings and properties can be assumed to be the defaults.
  * </p>
- *
- * <p>
- * If any method annotated with this annotation throws a Throwable, the
- * component will not be added to the flow.
- * </p>
- *
  */
 @Documented
 @Target({ElementType.METHOD})

@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.cluster.manager.exception;
 
+import org.apache.nifi.cluster.exception.ClusterException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
  *
  */
 public class BlockedByFirewallException extends ClusterException {
-
+    private static final long serialVersionUID = 1L;
     private final NodeIdentifier nodeId;
     private final boolean isExistingNode;
 

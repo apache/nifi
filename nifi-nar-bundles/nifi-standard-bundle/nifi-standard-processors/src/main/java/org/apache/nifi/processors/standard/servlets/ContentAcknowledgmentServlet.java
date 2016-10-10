@@ -31,7 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.standard.ListenHTTP;
@@ -46,7 +46,7 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
 
     private Processor processor;
     private Pattern authorizedPattern;
-    private ProcessorLog logger;
+    private ComponentLog logger;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
 
     @SuppressWarnings("unchecked")
@@ -54,7 +54,7 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     public void init(final ServletConfig config) throws ServletException {
         final ServletContext context = config.getServletContext();
         this.processor = (Processor) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESSOR);
-        this.logger = (ProcessorLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
+        this.logger = (ComponentLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
     }

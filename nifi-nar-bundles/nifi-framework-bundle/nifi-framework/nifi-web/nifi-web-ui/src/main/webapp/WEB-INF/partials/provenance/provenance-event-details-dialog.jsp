@@ -15,9 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="event-details-dialog">
-    <div id="event-details-dialog-content">
-        <div id="event-details-tabs"></div>
+<div id="event-details-dialog" class="hidden large-dialog">
+    <div id="event-details-dialog-content"class="dialog-content">
+        <div id="event-details-tabs" class="tab-container"></div>
         <div id="event-details-tabs-content">
             <div id="event-details-tab-content" class="details-tab">
                 <span id="provenance-event-id" class="hidden"></span>
@@ -94,8 +94,8 @@
                 <div id="attributes-details">
                     <div id="attributes-header" class="event-header">Attribute Values</div>
                     <div id="modified-attribute-toggle-container">
-                        <div id="modified-attribute-toggle-label">Only show modified</div>
                         <div id="modified-attribute-toggle" class="nf-checkbox checkbox-unchecked"></div>
+                        <div id="modified-attribute-toggle-label">Show modified attributes only</div>
                         <div class="clear"></div>
                     </div>
                     <div class="clear"></div>
@@ -133,8 +133,8 @@
                             <div class="clear"></div>
                         </div>
                         <div class="event-detail">
-                            <div id="input-content-download" class="button hidden">Download</div>
-                            <div id="input-content-view" class="button hidden">View</div>
+                            <div id="input-content-download" class="secondary-button hidden fa fa-download button-icon"><span>Download</span></div>
+                            <div id="input-content-view" class="secondary-button fa fa-eye button-icon hidden"><span>View</span></div>
                             <div class="clear"></div>
                         </div>
                     </div>
@@ -170,8 +170,8 @@
                             <div class="clear"></div>
                         </div>
                         <div class="event-detail">
-                            <div id="output-content-download" class="button hidden">Download</div>
-                            <div id="output-content-view" class="button hidden">View</div>
+                            <div id="output-content-download" class="secondary-button fa fa-download button-icon hidden"><span>Download</span></div>
+                            <div id="output-content-view" class="secondary-button fa fa-eye button-icon hidden"><span>View</span></div>
                             <div class="clear"></div>
                         </div>
                     </div>
@@ -186,7 +186,7 @@
                     </div>
                     <div id="replay-content-message" class="hidden"></div>
                     <div class="event-detail">
-                        <div id="replay-content" class="button">Submit</div>
+                        <div id="replay-content" class="secondary-button fa fa-repeat button-icon"><span>Replay</span></div>
                         <div class="clear"></div>
                     </div>
                 </div>

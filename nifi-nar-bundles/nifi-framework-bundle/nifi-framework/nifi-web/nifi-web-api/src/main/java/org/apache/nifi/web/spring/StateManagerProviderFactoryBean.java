@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.web.spring;
 
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -28,25 +26,17 @@ import org.springframework.context.ApplicationContextAware;
 /**
  *
  */
-public class StateManagerProviderFactoryBean implements FactoryBean, ApplicationContextAware {
+public class StateManagerProviderFactoryBean implements FactoryBean<StateManagerProvider>, ApplicationContextAware {
 
     private ApplicationContext context;
     private StateManagerProvider stateManagerProvider;
-    private NiFiProperties properties;
 
     @Override
-    public Object getObject() throws Exception {
+    public StateManagerProvider getObject() throws Exception {
         if (stateManagerProvider == null) {
-            if (properties.isClusterManager()) {
-                final WebClusterManager webClusterManager = context.getBean("clusterManager", WebClusterManager.class);
-                if (webClusterManager != null) {
-                    stateManagerProvider = webClusterManager.getStateManagerProvider();
-                }
-            } else {
-                final FlowController flowController = context.getBean("flowController", FlowController.class);
-                if (flowController != null) {
-                    stateManagerProvider = flowController.getStateManagerProvider();
-                }
+            final FlowController flowController = context.getBean("flowController", FlowController.class);
+            if (flowController != null) {
+                stateManagerProvider = flowController.getStateManagerProvider();
             }
         }
 
@@ -54,17 +44,13 @@ public class StateManagerProviderFactoryBean implements FactoryBean, Application
     }
 
     @Override
-    public Class getObjectType() {
+    public Class<StateManagerProvider> getObjectType() {
         return StateManagerProvider.class;
     }
 
     @Override
     public boolean isSingleton() {
         return true;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     @Override

@@ -20,7 +20,7 @@ import java.nio.channels.Channel;
 
 import javax.jms.Connection;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.springframework.jms.core.JmsTemplate;
 
 
@@ -34,7 +34,7 @@ abstract class JMSWorker {
 
     protected final JmsTemplate jmsTemplate;
 
-    protected final ProcessorLog processLog;
+    protected final ComponentLog processLog;
 
     /**
      * Creates an instance of this worker initializing it with JMS
@@ -42,9 +42,9 @@ abstract class JMSWorker {
      * sub-classes to interact with JMS systems
      *
      * @param jmsTemplate the instance of {@link JmsTemplate}
-     * @param processLog the instance of {@link ProcessorLog}
+     * @param processLog the instance of {@link ComponentLog}
      */
-    public JMSWorker(JmsTemplate jmsTemplate, ProcessorLog processLog) {
+    public JMSWorker(JmsTemplate jmsTemplate, ComponentLog processLog) {
         this.jmsTemplate = jmsTemplate;
         this.processLog = processLog;
     }

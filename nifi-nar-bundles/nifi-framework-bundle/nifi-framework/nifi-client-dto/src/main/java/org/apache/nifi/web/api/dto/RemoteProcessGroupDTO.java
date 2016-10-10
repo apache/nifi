@@ -17,17 +17,18 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import java.util.List;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * Details of a remote process group in this NiFi.
  */
 @XmlType(name = "remoteProcessGroup")
-public class RemoteProcessGroupDTO extends NiFiComponentDTO {
+public class RemoteProcessGroupDTO extends ComponentDTO {
 
     private String targetUri;
     private Boolean targetSecure;
@@ -36,8 +37,13 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     private String comments;
     private String communicationsTimeout;
     private String yieldDuration;
+    private String transportProtocol;
+    private String proxyHost;
+    private Integer proxyPort;
+    private String proxyUser;
+    private String proxyPassword;
 
-    private List<String> authorizationIssues;
+    private Collection<String> authorizationIssues;
     private Boolean transmitting;
 
     private Integer inputPortCount;
@@ -111,11 +117,11 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     @ApiModelProperty(
             value = "Any remote authorization issues for the remote process group."
     )
-    public List<String> getAuthorizationIssues() {
+    public Collection<String> getAuthorizationIssues() {
         return authorizationIssues;
     }
 
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
+    public void setAuthorizationIssues(Collection<String> authorizationIssues) {
         this.authorizationIssues = authorizationIssues;
     }
 
@@ -151,7 +157,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
      * @return the time period used for the timeout when communicating with this RemoteProcessGroup
      */
     @ApiModelProperty(
-            value = "The time period used for the timeout when commicating with the target."
+            value = "The time period used for the timeout when communicating with the target."
     )
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
@@ -207,7 +213,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
      * @return number of active remote output ports
      */
     @ApiModelProperty(
-            value = "The number of acitve remote output ports."
+            value = "The number of active remote output ports."
     )
     public Integer getActiveRemoteOutputPortCount() {
         return activeRemoteOutputPortCount;
@@ -288,4 +294,44 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
         this.flowRefreshed = flowRefreshed;
     }
 
+    public String getTransportProtocol() {
+        return transportProtocol;
+    }
+
+    public void setTransportProtocol(String transportProtocol) {
+        this.transportProtocol = transportProtocol;
+    }
+
+
+    public String getProxyHost() {
+        return proxyHost;
+    }
+
+    public void setProxyHost(String proxyHost) {
+        this.proxyHost = proxyHost;
+    }
+
+    public Integer getProxyPort() {
+        return proxyPort;
+    }
+
+    public void setProxyPort(Integer proxyPort) {
+        this.proxyPort = proxyPort;
+    }
+
+    public String getProxyUser() {
+        return proxyUser;
+    }
+
+    public void setProxyUser(String proxyUser) {
+        this.proxyUser = proxyUser;
+    }
+
+    public String getProxyPassword() {
+        return proxyPassword;
+    }
+
+    public void setProxyPassword(String proxyPassword) {
+        this.proxyPassword = proxyPassword;
+    }
 }

@@ -33,5 +33,5 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface DynamicProperties {
 
-    public DynamicProperty[] value();
+    DynamicProperty[] value();
 }

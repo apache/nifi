@@ -15,38 +15,41 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-reporting-task-dialog">
+<div id="new-reporting-task-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
-        <div id="reporting-task-type-filter-controls">
-            <div id="controller-service-type-filter-container">
-                <input type="text" id="reporting-task-type-filter"/>
+        <div layout="row" style="padding-bottom:0">
+            <div flex="25" layout="row" layout-align="start center">
+                <div class="setting-name">Tag Cloud:</div>
             </div>
-            <div id="reporting-task-type-filter-status">
-                Displaying&nbsp;<span id="displayed-reporting-task-types"></span>&nbsp;of&nbsp;<span id="total-reporting-task-types"></span>
-            </div>
-        </div>
-        <div id="reporting-task-tag-cloud-container">
-            <div class="setting">
-                <div class="setting-name">Tags</div>
-                <div class="setting-field">
-                    <div id="reporting-task-tag-cloud"></div>
+            <div flex layout="row" layout-align="space-between center" id="reporting-task-type-filter-controls" class="filter-status">
+                <div id="reporting-task-type-filter-status">
+                    Displaying&nbsp;<span id="displayed-reporting-task-types"></span>&nbsp;of&nbsp;<span id="total-reporting-task-types"></span>
+                </div>
+                <div id="controller-service-type-filter-container">
+                    <input type="text" id="reporting-task-type-filter" placeholder="Filter"/>
                 </div>
             </div>
         </div>
-        <div id="reporting-task-types-container">
-            <div id="reporting-task-types-table" class="unselectable"></div>
-            <div id="reporting-task-description-container" class="hidden">
+        <div flex layout="row" style="padding-top:0;height: 90%;">
+            <div flex="25" id="reporting-task-tag-cloud-container">
+                <div class="setting">
+                    <div class="setting-name">Tags</div>
+                    <div class="setting-field">
+                        <div id="reporting-task-tag-cloud"></div>
+                    </div>
+                </div>
+            </div>
+            <div layout="column" flex id="reporting-task-types-container">
+                <div id="reporting-task-types-table" class="unselectable"></div>
+                <div id="reporting-task-type-name-title" class="ellipsis">Selected Reporting Task:</div>
                 <div id="reporting-task-type-name" class="ellipsis"></div>
-                <div id="reporting-task-type-description" class="ellipsis multiline"></div>
-                <span class="hidden" id="selected-reporting-task-name"></span>
-                <span class="hidden" id="selected-reporting-task-type"></span>
+                <div id="reporting-task-description-container" class="hidden">
+                    <div id="reporting-task-type-description" class="ellipsis multiline"></div>
+                    <span class="hidden" id="selected-reporting-task-name"></span>
+                    <span class="hidden" id="selected-reporting-task-type"></span>
+                </div>
             </div>
         </div>
         <div class="clear"></div>
-        <div id="reporting-task-availability-container" class="hidden">
-            <div class="setting-name availability-label">Available on</div>
-            <div id="reporting-task-availability-combo"></div>
-            <div class="clear"></div>
-        </div>
     </div>
 </div>

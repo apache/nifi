@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -47,7 +46,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.LongHolder;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetRecordException;
@@ -59,11 +57,12 @@ import org.kitesdk.data.spi.filesystem.CSVProperties;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({"kite", "csv", "avro"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Converts CSV files to Avro according to an Avro Schema")
-public class ConvertCSVToAvro extends AbstractKiteProcessor {
+public class ConvertCSVToAvro extends AbstractKiteConvertProcessor {
 
     private static final CSVProperties DEFAULTS = new CSVProperties.Builder().build();
 
@@ -164,6 +163,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .add(ESCAPE)
         .add(HAS_HEADER)
         .add(LINES_TO_SKIP)
+        .add(COMPRESSION_TYPE)
         .build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet.<Relationship> builder()
@@ -221,10 +221,10 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         }
 
         try (final DataFileWriter<Record> writer = new DataFileWriter<>(AvroUtil.newDatumWriter(schema, Record.class))) {
-            writer.setCodec(CodecFactory.snappyCodec());
+            writer.setCodec(getCodecFactory(context.getProperty(COMPRESSION_TYPE).getValue()));
 
             try {
-                final LongHolder written = new LongHolder(0L);
+                final AtomicLong written = new AtomicLong(0L);
                 final FailureTracker failures = new FailureTracker();
 
                 FlowFile badRecords = session.clone(incomingCSV);

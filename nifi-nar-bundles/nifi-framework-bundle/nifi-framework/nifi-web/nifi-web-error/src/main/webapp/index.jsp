@@ -20,10 +20,14 @@
     <% String contextPath = "/".equals(request.getContextPath()) ? "" : request.getContextPath(); %>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
+        <link rel="shortcut icon" href="<%= contextPath %>/nifi/images/nifi16.ico"/>
         <title>NiFi</title>
-        <link href="<%= contextPath %>/nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
-        <link href="<%= contextPath %>/nifi/css/message-page.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/common-ui.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-pane.css" type="text/css" />
+        <link rel="stylesheet" href="<%= contextPath %>/nifi/css/message-page.css" type="text/css" />
     </head>
 
     <body class="message-pane">

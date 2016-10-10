@@ -18,7 +18,6 @@ package org.apache.nifi.web.api;
 
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import io.jsonwebtoken.JwtException;
@@ -29,72 +28,69 @@ import org.apache.nifi.authentication.LoginCredentials;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.security.token.OtpAuthenticationToken;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
+import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * RESTful endpoint for managing a cluster.
+ * RESTful endpoint for managing access.
  */
 @Path("/access")
 @Api(
         value = "/access",
-        description = "Endpoints for obtaining an access token or checking access status"
+        description = "Endpoints for obtaining an access token or checking access status."
 )
 public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
 
-    private NiFiProperties properties;
+    private X509CertificateExtractor certificateExtractor;
+    private X509AuthenticationProvider x509AuthenticationProvider;
+    private X509PrincipalExtractor principalExtractor;
 
     private LoginIdentityProvider loginIdentityProvider;
-    private X509CertificateExtractor certificateExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
+    private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtService jwtService;
     private OtpService otpService;
 
@@ -104,38 +100,25 @@ public class AccessResource extends ApplicationResource {
      * Retrieves the access configuration for this NiFi.
      *
      * @param httpServletRequest the servlet request
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A accessConfigurationEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/config")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("config")
     @ApiOperation(
             value = "Retrieves the access configuration for this NiFi",
             response = AccessConfigurationEntity.class
     )
-    public Response getLoginConfig(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getLoginConfig(@Context HttpServletRequest httpServletRequest) {
 
         final AccessConfigurationDTO accessConfiguration = new AccessConfigurationDTO();
 
         // specify whether login should be supported and only support for secure requests
         accessConfiguration.setSupportsLogin(loginIdentityProvider != null && httpServletRequest.isSecure());
-        accessConfiguration.setSupportsAnonymous(false);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
 
         // create the response entity
         final AccessConfigurationEntity entity = new AccessConfigurationEntity();
-        entity.setRevision(revision);
         entity.setConfig(accessConfiguration);
 
         // generate the response
@@ -146,15 +129,15 @@ public class AccessResource extends ApplicationResource {
      * Gets the status the client's access.
      *
      * @param httpServletRequest the servlet request
-     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A accessStatusEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("")
     @ApiOperation(
             value = "Gets the status the client's access",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = AccessStatusEntity.class
     )
     @ApiResponses(
@@ -166,13 +149,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to determine access status because an unexpected error occurred.")
             }
     )
-    public Response getAccessStatus(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest) {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
@@ -197,69 +174,47 @@ public class AccessResource extends ApplicationResource {
                     try {
                         // Extract the Base64 encoded token from the Authorization header
                         final String token = StringUtils.substringAfterLast(authorization, " ");
-                        final String principal = jwtService.getAuthenticationFromToken(token);
+
+                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token, httpServletRequest.getRemoteAddr());
+                        final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
+                        final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
                         // set the user identity
-                        accessStatus.setIdentity(principal);
-                        accessStatus.setUsername(CertificateUtils.extractUsername(principal));
+                        accessStatus.setIdentity(nifiUser.getIdentity());
 
-                        // without a certificate, this is not a proxied request
-                        final List<String> chain = Arrays.asList(principal);
-
-                        // TODO - ensure the proxy chain is authorized
-//                        final UserDetails userDetails = checkAuthorization(chain);
-
-                        // no issues with authorization... verify authorities
+                        // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("Your account is active and you are already logged in.");
+                        accessStatus.setMessage("You are already logged in.");
                     } catch (JwtException e) {
                         throw new InvalidAuthenticationException(e.getMessage(), e);
                     }
                 }
             } else {
                 try {
-                    final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
+                    final X509AuthenticationRequestToken x509Request = new X509AuthenticationRequestToken(
+                            httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates, httpServletRequest.getRemoteAddr());
 
-                    // get the proxy chain and ensure its populated
-                    final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
-                    if (proxyChain.isEmpty()) {
-                        logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
-                        throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
-                    }
+                    final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(x509Request);
+                    final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
                     // set the user identity
-                    accessStatus.setIdentity(proxyChain.get(0));
-                    accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
+                    accessStatus.setIdentity(nifiUser.getIdentity());
 
-                    // TODO - ensure the proxy chain is authorized
-//                    final UserDetails userDetails = checkAuthorization(proxyChain);
-
-                    // no issues with authorization... verify authorities
+                    // attempt authorize to /flow
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("Your account is active and you are already logged in.");
+                    accessStatus.setMessage("You are already logged in.");
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
             }
-        } catch (final UsernameNotFoundException unfe) {
-            accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
-            accessStatus.setMessage("This NiFi does not support new account requests.");
-        } catch (final AccountStatusException ase) {
-            accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
-            accessStatus.setMessage(ase.getMessage());
         } catch (final UntrustedProxyException upe) {
             throw new AccessDeniedException(upe.getMessage(), upe);
         } catch (final AuthenticationServiceException ase) {
             throw new AdministrationException(ase.getMessage(), ase);
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the entity
         final AccessStatusEntity entity = new AccessStatusEntity();
-        entity.setRevision(revision);
         entity.setAccessStatus(accessStatus);
 
         return generateOkResponse(entity).build();
@@ -378,13 +333,11 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "NiFi was unable to complete the request because it did not contain a valid Kerberos " +
                             "ticket in the Authorization header. Retry this request after initializing a ticket with kinit and " +
                             "ensuring your browser is configured to support SPNEGO."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 409, message = "Unable to create access token because NiFi is not in the appropriate state. (i.e. may not be configured to support Kerberos login."),
                     @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }
     )
-    public Response createAccessTokenFromTicket(
-            @Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenFromTicket(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -392,7 +345,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         // If Kerberos Service Principal and keytab location not configured, throws exception
-        if (!properties.isKerberosServiceSupportEnabled() || kerberosService == null) {
+        if (!properties.isKerberosSpnegoSupportEnabled() || kerberosService == null) {
             throw new IllegalStateException("Kerberos ticket login not supported by this NiFi.");
         }
 
@@ -417,7 +370,6 @@ public class AccessResource extends ApplicationResource {
 
                 // create the authentication token
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, expiration, "KerberosService");
-
 
                 // generate JWT for response
                 final String token = jwtService.generateSignedToken(loginAuthenticationToken);
@@ -475,43 +427,22 @@ public class AccessResource extends ApplicationResource {
 
         final LoginAuthenticationToken loginAuthenticationToken;
 
-        final X509Certificate[] certificates = certificateExtractor.extractClientCertificate(httpServletRequest);
+        // ensure we have login credentials
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            throw new IllegalArgumentException("The username and password must be specified.");
+        }
 
-        // if there is not certificate, consider login credentials
-        if (certificates == null) {
-            // ensure we have login credentials
-            if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
-                throw new IllegalArgumentException("The username and password must be specified.");
-            }
-
-            try {
-                // attempt to authenticate
-                final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
-                long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
-
-                // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
-            } catch (final InvalidLoginCredentialsException ilce) {
-                throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
-            } catch (final IdentityAccessException iae) {
-                throw new AdministrationException(iae.getMessage(), iae);
-            }
-        } else {
-            // consider a certificate
-            final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
-
-            // get the proxy chain and ensure its populated
-            final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
-            if (proxyChain.isEmpty()) {
-                logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
-                throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
-            }
-
-            // TODO - authorize the proxy if necessary
-//            authorizeProxyIfNecessary(proxyChain);
+        try {
+            // attempt to authenticate
+            final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
+            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
+        } catch (final InvalidLoginCredentialsException ilce) {
+            throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
+        } catch (final IdentityAccessException iae) {
+            throw new AdministrationException(iae.getMessage(), iae);
         }
 
         // generate JWT for response
@@ -540,9 +471,6 @@ public class AccessResource extends ApplicationResource {
     }
 
     // setters
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
 
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
@@ -552,19 +480,28 @@ public class AccessResource extends ApplicationResource {
         this.jwtService = jwtService;
     }
 
+    public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
+        this.jwtAuthenticationProvider = jwtAuthenticationProvider;
+    }
+
     public void setKerberosService(KerberosService kerberosService) {
         this.kerberosService = kerberosService;
     }
 
-    public void setOtpService(OtpService otpService) {
-        this.otpService = otpService;
+    public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {
+        this.x509AuthenticationProvider = x509AuthenticationProvider;
+    }
+
+    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+        this.principalExtractor = principalExtractor;
     }
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
     }
 
-    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
-        this.certificateIdentityProvider = certificateIdentityProvider;
+    public void setOtpService(OtpService otpService) {
+        this.otpService = otpService;
     }
+
 }

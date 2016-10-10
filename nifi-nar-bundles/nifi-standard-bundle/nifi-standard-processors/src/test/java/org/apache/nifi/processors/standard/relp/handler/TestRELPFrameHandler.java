@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard.relp.handler;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
@@ -46,7 +46,7 @@ public class TestRELPFrameHandler {
     private BlockingQueue<RELPEvent> events;
     private SelectionKey key;
     private AsyncChannelDispatcher dispatcher;
-    private ProcessorLog logger;
+    private ComponentLog logger;
 
     private RELPFrameHandler<RELPEvent> frameHandler;
 
@@ -57,7 +57,7 @@ public class TestRELPFrameHandler {
         this.events = new LinkedBlockingQueue<>();
         this.key = Mockito.mock(SelectionKey.class);
         this.dispatcher = Mockito.mock(AsyncChannelDispatcher.class);
-        this.logger = Mockito.mock(ProcessorLog.class);
+        this.logger = Mockito.mock(ComponentLog.class);
 
         this.frameHandler = new RELPFrameHandler<>(key, charset, eventFactory, events, dispatcher, logger);
     }

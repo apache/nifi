@@ -21,13 +21,8 @@ package org.apache.nifi.cluster.protocol.jaxb.message;
 public class AdaptedDataFlow {
 
     private byte[] flow;
-    private byte[] templates;
     private byte[] snippets;
-
-    private boolean autoStartProcessors;
-
-    public AdaptedDataFlow() {
-    }
+    private byte[] authorizerFingerprint;
 
     public byte[] getFlow() {
         return flow;
@@ -35,14 +30,6 @@ public class AdaptedDataFlow {
 
     public void setFlow(byte[] flow) {
         this.flow = flow;
-    }
-
-    public byte[] getTemplates() {
-        return templates;
-    }
-
-    public void setTemplates(byte[] templates) {
-        this.templates = templates;
     }
 
     public byte[] getSnippets() {
@@ -53,12 +40,12 @@ public class AdaptedDataFlow {
         this.snippets = snippets;
     }
 
-    public boolean isAutoStartProcessors() {
-        return autoStartProcessors;
+    public byte[] getAuthorizerFingerprint() {
+        return authorizerFingerprint;
     }
 
-    public void setAutoStartProcessors(boolean runningAllProcessors) {
-        this.autoStartProcessors = runningAllProcessors;
+    public void setAuthorizerFingerprint(byte[] authorizerFingerprint) {
+        this.authorizerFingerprint = authorizerFingerprint;
     }
 
 }

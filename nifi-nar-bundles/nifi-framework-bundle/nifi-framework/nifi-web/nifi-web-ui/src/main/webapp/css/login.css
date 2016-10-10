@@ -26,7 +26,6 @@
     bottom: 0px;
     right: 0px;
     background: #fff url(../images/bg-error.png) left top no-repeat;
-    font-family: Verdana, Geneva, sans-serif;
     padding-top: 100px;
     padding-left: 100px;
 }
@@ -42,10 +41,11 @@
 }
 
 .login-title {
-    font-size: 12px;
+    font-size: 18px;
     font-weight: bold;
+    font-family: Roboto Slab;
     margin-bottom: 10px;
-    color: #000;
+    color: #728e9b;
 }
 
 #login-user-links-container {
@@ -54,7 +54,6 @@
     left: 0px;
     padding-top: 100px;
     padding-left: 100px;
-    font-family: Verdana, Geneva, sans-serif;
     z-index: 1300;
     width: 412px;
 }
@@ -68,27 +67,11 @@
 */
 
 body.login-body input, body.login-body textarea {
-    width: 400px;
+    width: 412px;
 }
 
 div.login-container {
     width: 412px;
-}
-
-/*
-    NiFi Registration
-*/
-
-#nifi-user-submit-justification-container {
-    margin-bottom: 10px;
-}
-
-#nifi-user-submit-justification {
-    font-weight: bold;
-}
-
-#nifi-registration-justification {
-    height: 200px;
 }
 
 /*

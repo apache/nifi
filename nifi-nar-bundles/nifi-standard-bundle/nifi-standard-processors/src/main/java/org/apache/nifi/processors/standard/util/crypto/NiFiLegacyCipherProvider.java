@@ -46,22 +46,6 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.processors.standard.util.crypto
-     * .OpenSSLPKCS5CipherProvider#getCipher(java.lang.String, java.lang.String, java.lang.String, boolean) [essentially {@code MD5(password || salt) * 1000 }].
-     *
-     * @param encryptionMethod the {@link EncryptionMethod}
-     * @param password         the secret input
-     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
-     * @param encryptMode      true for encrypt, false for decrypt
-     * @return the initialized cipher
-     * @throws Exception if there is a problem initializing the cipher
-     */
-    @Override
-    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
-        return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);
-    }
-
-    /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the NiFi legacy code, based on @see org.apache.nifi.processors.standard.util.crypto
      * .OpenSSLPKCS5CipherProvider#getCipher(java.lang.String, java.lang.String, java.lang.String, byte[], boolean) [essentially {@code MD5(password || salt) * 1000 }].
      *
      * @param encryptionMethod the {@link EncryptionMethod}
@@ -145,6 +129,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
         out.write(salt);
     }
 
+    @Override
     protected int getIterationCount() {
         return ITERATION_COUNT;
     }

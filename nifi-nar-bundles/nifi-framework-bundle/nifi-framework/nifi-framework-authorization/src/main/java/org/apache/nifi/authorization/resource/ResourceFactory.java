@@ -22,46 +22,10 @@ import java.util.Objects;
 
 public final class ResourceFactory {
 
-    private final static Resource FLOW_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return "/flow";
-        }
-
-        @Override
-        public String getName() {
-            return "NiFi Flow";
-        }
-    };
-
-    private final static Resource RESOURCE_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return "/resources";
-        }
-
-        @Override
-        public String getName() {
-            return "NiFi Resources";
-        }
-    };
-
-    private final static Resource SYSTEM_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return "/system";
-        }
-
-        @Override
-        public String getName() {
-            return "System";
-        }
-    };
-
     private final static Resource CONTROLLER_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return "/controller";
+            return ResourceType.Controller.getValue();
         }
 
         @Override
@@ -70,10 +34,46 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource FLOW_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Flow.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "NiFi Flow";
+        }
+    };
+
+    private final static Resource POLICY_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Policy.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Policy";
+        }
+    };
+
+    private final static Resource COUNTERS_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Counters.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Counters";
+        }
+    };
+
     private final static Resource PROVENANCE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return "/provenance";
+            return ResourceType.Provenance.getValue();
         }
 
         @Override
@@ -82,22 +82,46 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource TOKEN_RESOURCE = new Resource() {
+    private final static Resource DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return "/token";
+            return ResourceType.Data.getValue();
         }
 
         @Override
         public String getName() {
-            return "API access token";
+            return "Data";
+        }
+    };
+
+    private final static Resource PROXY_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Proxy.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Proxy User Requests";
+        }
+    };
+
+    private final static Resource RESOURCE_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Resource.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "NiFi Resources";
         }
     };
 
     private final static Resource SITE_TO_SITE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return "/site-to-site";
+            return ResourceType.SiteToSite.getValue();
         }
 
         @Override
@@ -106,17 +130,51 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROXY_RESOURCE = new Resource() {
+    private final static Resource SYSTEM_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return "/proxy";
+            return ResourceType.System.getValue();
         }
 
         @Override
         public String getName() {
-            return "Proxy User Requests";
+            return "System";
         }
     };
+
+    private final static Resource TENANT_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Tenant.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Tenant";
+        }
+    };
+
+    private final static Resource POLICIES_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return "/policies";
+        }
+
+        @Override
+        public String getName() {
+            return "Access Policies";
+        }
+    };
+
+    /**
+     * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
+     *
+     * @return  The resource for accessing the Controller
+     */
+    public static Resource getControllerResource() {
+        return CONTROLLER_RESOURCE;
+    }
 
     /**
      * Gets the Resource for accessing the NiFi flow. This includes the data flow structure, component status, search results, and banner/about text.
@@ -128,30 +186,12 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for detailing all available NiFi Resources.
-     *
-     * @return  The Resource resource
-     */
-    public static Resource getResourceResource() {
-        return RESOURCE_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing details of the System NiFi is running on.
-     *
-     * @return  The System resource
-     */
-    public static Resource getSystemResource() {
-        return SYSTEM_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
+     * Gets the Resource for accessing the Counters..
      *
      * @return  The resource for accessing the Controller
      */
-    public static Resource getControllerResource() {
-        return CONTROLLER_RESOURCE;
+    public static Resource getCountersResource() {
+        return COUNTERS_RESOURCE;
     }
 
     /**
@@ -165,12 +205,21 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for creating API access tokens.
+     * Gets the Resource for proxying a user request.
      *
-     * @return  The token request resource
+     * @return  The resource for proxying a user request
      */
-    public static Resource getTokenResource() {
-        return TOKEN_RESOURCE;
+    public static Resource getProxyResource() {
+        return PROXY_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for detailing all available NiFi Resources.
+     *
+     * @return  The Resource resource
+     */
+    public static Resource getResourceResource() {
+        return RESOURCE_RESOURCE;
     }
 
     /**
@@ -184,12 +233,97 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for proxying a user request.
+     * Gets the Resource for accessing details of the System NiFi is running on.
      *
-     * @return  The resource for proxying a user request
+     * @return  The System resource
      */
-    public static Resource getProxyResource() {
-        return PROXY_RESOURCE;
+    public static Resource getSystemResource() {
+        return SYSTEM_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for accessing Tenants which includes creating, modifying, and deleting Users and UserGroups.
+     *
+     * @return The Resource for accessing Tenants
+     */
+    public static Resource getTenantResource() {
+        return TENANT_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for performing transferring data to a port.
+     *
+     * @param isInputPort   Whether this port is an input port or an output port
+     * @param identifier    The identifier of the component being accessed
+     * @param name          The name of the component being accessed
+     * @return              The resource
+     */
+    public static Resource getDataTransferResource(final boolean isInputPort, final String identifier, final String name) {
+        Objects.requireNonNull(identifier, "The component identifier must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s/%s/%s", ResourceType.DataTransfer.getValue(), isInputPort ? "input-ports" : "output-ports", identifier);
+            }
+
+            @Override
+            public String getName() {
+                return name;
+            }
+        };
+    }
+
+    /**
+     * Gets a Resource for performing transferring data to a port.
+     *
+     * @param resource      The resource to transfer data to
+     * @return              The resource
+     */
+    public static Resource getDataTransferResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s%s", ResourceType.DataTransfer.getValue(), resource.getIdentifier());
+            }
+
+            @Override
+            public String getName() {
+                return "Transfer data to " + resource.getName();
+            }
+        };
+    }
+
+    /**
+     * Gets the {@link Resource} for accessing access policies.
+     * @return The policies resource
+     */
+    public static Resource getPoliciesResource() {
+        return POLICIES_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for accessing a resources's policies.
+     *
+     * @param resource      The resource being accessed
+     * @return              The resource
+     */
+    public static Resource getPolicyResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource type must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s%s", POLICY_RESOURCE.getIdentifier(), resource.getIdentifier());
+            }
+
+            @Override
+            public String getName() {
+                return "Policies for " + resource.getName();
+            }
+        };
     }
 
     /**
@@ -203,7 +337,6 @@ public final class ResourceFactory {
     public static Resource getComponentResource(final ResourceType resourceType, final String identifier, final String name) {
         Objects.requireNonNull(resourceType, "The resource must be specified.");
         Objects.requireNonNull(identifier, "The component identifier must be specified.");
-        Objects.requireNonNull(name, "The component name must be specified.");
 
         return new Resource() {
             @Override
@@ -221,46 +354,19 @@ public final class ResourceFactory {
     /**
      * Gets a Resource for accessing a component's provenance events.
      *
-     * @param resourceType  The type of resource being accessed
-     * @param identifier    The identifier of the component being accessed
-     * @param name          The name of the component being accessed
-     * @return              The resource
+     * @param resource The resource for the component being accessed
+     * @return The resource for the provenance of the component being accessed
      */
-    public static Resource getComponentProvenanceResource(final ResourceType resourceType, final String identifier, final String name) {
-        final Resource componentResource = getComponentResource(resourceType, identifier, name);
+    public static Resource getDataResource(final Resource resource) {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", componentResource.getIdentifier(), "provenance");
+                return String.format("%s%s", DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
             }
 
             @Override
             public String getName() {
-                return componentResource.getName() + " provenance";
-            }
-        };
-    }
-
-    /**
-     * Gets a Resource fo accessing a flowfile queue for the specified connection.
-     *
-     * @param connectionIdentifier  The identifier of the connection
-     * @param connectionName        The name of the connection
-     * @return                      The resource
-     */
-    public static Resource getFlowFileQueueResource(final String connectionIdentifier, final String connectionName) {
-        Objects.requireNonNull(connectionIdentifier, "The connection identifier must be specified.");
-        Objects.requireNonNull(connectionName, "The connection name must be specified.");
-
-        return new Resource() {
-            @Override
-            public String getIdentifier() {
-                return String.format("/flowfile-queue/%s", connectionIdentifier);
-            }
-
-            @Override
-            public String getName() {
-                return connectionName + " queue";
+                return "Data for " + resource.getName();
             }
         };
     }

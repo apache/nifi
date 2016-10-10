@@ -21,7 +21,7 @@ import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 
 public class WrappedMessageProducer {
 
@@ -49,7 +49,7 @@ public class WrappedMessageProducer {
         return producer;
     }
 
-    public void close(final ProcessorLog logger) {
+    public void close(final ComponentLog logger) {
         closed = true;
 
         try {

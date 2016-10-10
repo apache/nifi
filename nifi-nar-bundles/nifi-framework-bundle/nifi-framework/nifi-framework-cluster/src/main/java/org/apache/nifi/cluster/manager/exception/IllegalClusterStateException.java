@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.manager.exception;
 
+import org.apache.nifi.cluster.exception.ClusterException;
+
 /**
  * Signals that an operation to be performed on a cluster has been invoked at an illegal or inappropriate time.
  *

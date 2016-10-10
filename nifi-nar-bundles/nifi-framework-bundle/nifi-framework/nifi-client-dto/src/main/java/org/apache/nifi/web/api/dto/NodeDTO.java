@@ -17,11 +17,13 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import java.util.List;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Details of a node within this NiFi.
@@ -35,7 +37,7 @@ public class NodeDTO {
     private String status;
     private Date heartbeat;
     private Date connectionRequested;
-    private Boolean primary;
+    private Set<String> roles;
     private Integer activeThreadCount;
     private String queued;
     private List<NodeEventDTO> events;
@@ -46,7 +48,8 @@ public class NodeDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "the time of the nodes's last heartbeat."
+            value = "the time of the nodes's last heartbeat.",
+            readOnly = true
     )
     public Date getHeartbeat() {
         return heartbeat;
@@ -61,7 +64,8 @@ public class NodeDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The time of the node's last connection request."
+            value = "The time of the node's last connection request.",
+            readOnly = true
     )
     public Date getConnectionRequested() {
         return connectionRequested;
@@ -77,7 +81,8 @@ public class NodeDTO {
      * @return The active thread count
      */
     @ApiModelProperty(
-            value = "The active threads for the NiFi on the node."
+            value = "The active threads for the NiFi on the node.",
+            readOnly = true
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -91,7 +96,8 @@ public class NodeDTO {
      * @return queue for the controller
      */
     @ApiModelProperty(
-            value = "The queue the NiFi on the node."
+            value = "The queue the NiFi on the node.",
+            readOnly = true
     )
     public String getQueued() {
         return queued;
@@ -105,7 +111,8 @@ public class NodeDTO {
      * @return node's host/IP address
      */
     @ApiModelProperty(
-            value = "The node's host/ip address."
+            value = "The node's host/ip address.",
+            readOnly = true
     )
     public String getAddress() {
         return address;
@@ -119,7 +126,8 @@ public class NodeDTO {
      * @return node ID
      */
     @ApiModelProperty(
-            value = "The id of the node."
+            value = "The id of the node.",
+            readOnly = true
     )
     public String getNodeId() {
         return nodeId;
@@ -133,7 +141,8 @@ public class NodeDTO {
      * @return port the node is listening for API requests
      */
     @ApiModelProperty(
-            value = "The port the node is listening for API requests."
+            value = "The port the node is listening for API requests.",
+            readOnly = true
     )
     public Integer getApiPort() {
         return apiPort;
@@ -161,7 +170,8 @@ public class NodeDTO {
      * @return node's events
      */
     @ApiModelProperty(
-            value = "The node's events."
+            value = "The node's events.",
+            readOnly = true
     )
     public List<NodeEventDTO> getEvents() {
         return events;
@@ -172,17 +182,18 @@ public class NodeDTO {
     }
 
     /**
-     * @return whether this node is the primary node within the cluster
+     * @return the roles of the node
      */
     @ApiModelProperty(
-            value = "Whether the node is the primary node within the cluster."
+            value = "The roles of this node.",
+            readOnly = true
     )
-    public Boolean isPrimary() {
-        return primary;
+    public Set<String> getRoles() {
+        return roles;
     }
 
-    public void setPrimary(Boolean primary) {
-        this.primary = primary;
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
 
     /**
@@ -190,7 +201,8 @@ public class NodeDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The time at which this Node was last refreshed."
+            value = "The time at which this Node was last refreshed.",
+            readOnly = true
     )
     public Date getNodeStartTime() {
         return nodeStartTime;

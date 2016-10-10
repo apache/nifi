@@ -30,6 +30,10 @@
         <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <script type="text/javascript" src="js/d3/d3.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
@@ -50,10 +54,18 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="assets/angular/angular.min.js"></script>
+        <script type="text/javascript" src="assets/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="assets/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="assets/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.provenance.script.tags}
     </head>
-    <body>
+    <body ng-controller="ngProvenanceAppCtrl">
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-utility.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
@@ -63,7 +75,5 @@
         <jsp:include page="/WEB-INF/partials/provenance/provenance-search-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/provenance/provenance-query-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/provenance/lineage-query-dialog.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
     </body>
 </html>

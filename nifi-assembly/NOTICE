@@ -17,7 +17,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
       Apache Commons IO
-      Copyright 2002-2012 The Apache Software Foundation
+      Copyright 2002-2016 The Apache Software Foundation
 
   (ASLv2) Apache Commons Net
     The following NOTICE information applies:
@@ -44,6 +44,25 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
          Copyright 2006 Envoi Solutions LLC
 
+  (ASLv2) Jets3t
+    The following NOTICE information applies:
+
+         This product includes software developed by:
+
+         The Apache Software Foundation (http://www.apache.org/).
+
+         The ExoLab Project (http://www.exolab.org/)
+
+         Sun Microsystems (http://www.sun.com/)
+
+         Codehaus (http://castor.codehaus.org)
+
+         Tatu Saloranta (http://wiki.fasterxml.com/TatuSaloranta)
+
+  (ASLv2) Dropwizard Metrics
+    The following NOTICE information applies:
+	Copyright (c) 2010-2013 Coda Hale, Yammer.com
+
   (ASLv2) Jasypt
     The following NOTICE information applies:    
 	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
@@ -69,7 +88,7 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache HttpClient
       Copyright 1999-2015 The Apache Software Foundation
-      
+
       Apache HttpCore
       Copyright 2005-2015 The Apache Software Foundation
 
@@ -88,6 +107,96 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Commons Logging
       Copyright 2003-2014 The Apache Software Foundation
+
+    (ASLv2) Apache Commons VFS
+      The following NOTICE information applies:
+        Apache Commons VFS
+        Copyright 2002-2010 The Apache Software Foundation
+
+    (ASLv2) Apache Commons CSV
+      The following NOTICE information applies:
+        Apache Commons CSV
+        Copyright 2005-2016 The Apache Software Foundation
+
+    (ASLv2) Apache JAMES Mime4j
+      The following NOTICE information applies:
+       Apache JAMES Mime4j
+       Copyright 2004-2010 The Apache Software Foundation
+
+       This product test suite includes data (mimetools-testmsgs folder) developed
+       by Eryq and ZeeGee Software Inc as part of the "MIME-tools" Perl5 toolkit
+       and licensed under the Artistic License
+
+    (ASLv2) Apache PDFBox
+      The following NOTICE information applies:
+       Apache PDFBox
+       Copyright 2014 The Apache Software Foundation
+
+       Based on source code originally developed in the PDFBox, JempBox and
+       FontBox projects.
+       Copyright (c) 2002-2007, www.pdfbox.org
+       Copyright (c) 2006-2007, www.jempbox.org
+
+       Based on source code originally developed in the PaDaF project.
+       Copyright (c) 2010 Atos Worldline SAS
+
+    (ASLv2) Apache XMLBeans
+      The following NOTICE information applies:
+        Portions of this software were originally based on the following:
+        - software copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+        Aside from contributions to the Apache XMLBeans project, this
+        software also includes:
+
+        - one or more source files from the Apache Xerces-J and Apache Axis
+        products, Copyright (c) 1999-2003 Apache Software Foundation
+
+        - W3C XML Schema documents Copyright 2001-2003 (c) World Wide Web
+        Consortium (Massachusetts Institute of Technology, European Research
+        Consortium for Informatics and Mathematics, Keio University)
+
+        - resolver.jar from Apache Xml Commons project,
+        Copyright (c) 2001-2003 Apache Software Foundation
+
+        - Piccolo XML Parser for Java from http://piccolo.sourceforge.net/,
+        Copyright 2002 Yuval Oren under the terms of the Apache Software License 2.0
+
+        - JSR-173 Streaming API for XML from http://sourceforge.net/projects/xmlpullparser/,
+        Copyright 2005 BEA under the terms of the Apache Software License 2.0
+
+    (ASLv2) Vorbis Java
+      The following NOTICE information applies:
+        Ogg and Vorbis Tools for Java
+        Copyright 2012 Nick Burch
+
+        The Apache Tika Plugin includes developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+    (ASLv2) Quartz
+      The following NOTICE information applies:
+        Copyright Declaration:
+        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
+
+        Trademark and Patent declaration
+        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
+        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
+
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+
+        Third Party declaration
+        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
+        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
+        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
+        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+
+        Confidentiality Disclaimer:
+        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
+        Contact GitHub API Training Shop Blog About
+
+    (ASLv2) JCommander
+      The following NOTICE information applies:
+        JCommander Copyright Notices
+        Copyright 2010 Cedric Beust cedric@beust.com
 
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
@@ -286,8 +395,23 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Apache Tika
     The following NOTICE information applies:
-      Apache Tika Core
-      Copyright 2007-2015 The Apache Software Foundation
+      Apache Tika
+      Copyright 2015 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      Copyright 1993-2010 University Corporation for Atmospheric Research/Unidata
+      This software contains code derived from UCAR/Unidata's NetCDF library.
+
+      Tika-server component uses CDDL-licensed dependencies: jersey (http://jersey.java.net/) and
+      Grizzly (http://grizzly.java.net/)
+
+      Tika-parsers component uses CDDL/LGPL dual-licensed dependency: jhighlight (https://github.com/codelibs/jhighlight)
+
+      OpenCSV: Copyright 2005 Bytecode Pty Ltd. Licensed under the Apache License, Version 2.0
+
+      IPTC Photo Metadata descriptions Copyright 2010 International Press Telecommunications Council.
 
   (ASLv2) Apache Jakarta Commons Digester
     The following NOTICE information applies:
@@ -570,6 +694,11 @@ The following binary components are provided under the Apache Software License v
       from and not be held liable to the user for any such damages as noted
       above as far as the program is concerned.
 
+  (ASLv2) Apache Solr
+    The following NOTICE information applies:
+      Apache Solrj
+      Copyright 2006-2014 The Apache Software Foundation
+
   (ASLv2) Joda Time
     The following NOTICE information applies:
       This product includes software developed by
@@ -756,6 +885,11 @@ The following binary components are provided under the Apache Software License v
 
         Licensed under the Apache License, Version 2.0
 
+    (ASLv2) Java Native Access
+      The following NOTICE information applies:
+         Java Native Access
+         Copyright 2015 Java Native Access
+
     (ASLv2) HTrace Core
       The following NOTICE information applies:
         In addition, this product includes software dependencies. See
@@ -766,11 +900,7 @@ The following binary components are provided under the Apache Software License v
         is a distributed tracing system that is Apache 2.0 Licensed.
         Copyright 2012 Twitter, Inc.
 
-    (ASLv2) Apache Qpid AMQP 1.0 Client
-      The following NOTICE information applies:
-        Copyright 2006-2015 The Apache Software Foundation
 
-    (ASLv2) EventHubs Client (com.microsoft.eventhubs.client:eventhubs-client:0.9.1 - https://github.com/hdinsight/eventhubs-client/)
 
     (ASLv2) Groovy (org.codehaus.groovy:groovy:jar:2.4.5 - http://www.groovy-lang.org)
       The following NOTICE information applies:
@@ -781,6 +911,29 @@ The following binary components are provided under the Apache Software License v
 
              This product includes software developed by
              The Groovy community (http://groovy.codehaus.org/).
+
+    (ASLv2) Apache Ignite
+      The following NOTICE information applies:
+        Apache Ignite
+        Copyright 2015 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+
+        This software includes code from IntelliJ IDEA Community Edition
+        Copyright (C) JetBrains s.r.o.
+        https://www.jetbrains.com/idea/
+        Licensed under Apache License, Version 2.0.
+        http://search.maven.org/#artifactdetails%7Corg.jetbrains%7Cannotations%7C13.0%7Cjar
+
+    (ASLv2) Apache Geronimo JSR-107 JCache Spec API
+      The following NOTICE information applies:
+        Apache Geronimo JSR-107 JCache Spec API
+        Copyright 2009-2014 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
 
 (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
@@ -797,6 +950,86 @@ The following binary components are provided under the Apache Software License v
        The following NOTICE information applies:
        The code for the t-digest was originally authored by Ted Dunning
        A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
+
+    (ASLv2) subethasmtp
+       The following NOTICE information applies:
+
+       Copyright (C) 2006-2007 SubEthaMail.org
+
+    (ASLv2) Apache Commons Email
+       The following NOTICE information applies:
+       Apache Commons Email
+       Copyright 2002-2015 The Apache Software Foundation
+
+    (ASLv2) Apache Hive
+       The following NOTICE information applies:
+       Apache Hive
+       Copyright 2008-2015 The Apache Software Foundation
+
+       This product includes software developed by The Apache Software Foundation (http://www.apache.org/).
+
+       This product includes Jersey (https://jersey.java.net/)
+       Copyright (c) 2010-2014 Oracle and/or its affiliates.
+
+       This project includes software copyrighted by Microsoft Corporation and
+       licensed under the Apache License, Version 2.0.
+
+       This project includes software copyrighted by Dell SecureWorks and
+       licensed under the Apache License, Version 2.0.
+
+    (ASLv2) BoneCP
+       The following NOTICE information applies:
+       BoneCP
+       Copyright 2010 Wallace Wadge
+
+  (ASLv2) Apache Hadoop
+    The following NOTICE information applies:
+      The binary distribution of this product bundles binaries of
+      org.iq80.leveldb:leveldb-api (https://github.com/dain/leveldb), which has the
+      following notices:
+      * Copyright 2011 Dain Sundstrom <dain@iq80.com>
+      * Copyright 2011 FuseSource Corp. http://fusesource.com
+
+      The binary distribution of this product bundles binaries of
+      org.fusesource.hawtjni:hawtjni-runtime (https://github.com/fusesource/hawtjni),
+      which has the following notices:
+      * This product includes software developed by FuseSource Corp.
+        http://fusesource.com
+      * This product includes software developed at
+        Progress Software Corporation and/or its  subsidiaries or affiliates.
+      * This product includes software developed by IBM Corporation and others.
+
+  (ASLv2) Metrics
+    The following NOTICE information applies:
+      Metrics
+      Copyright 2010-2012 Coda Hale and Yammer, Inc.
+
+      This product includes software developed by Coda Hale and Yammer, Inc.
+
+      This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
+      with the following comments:
+
+          Written by Doug Lea with assistance from members of JCP JSR-166
+          Expert Group and released to the public domain, as explained at
+          http://creativecommons.org/publicdomain/zero/1.0/
+
+This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+while at Mandiant http://www.mandiant.com
+The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
+
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+Copyright 2015 The Apache Software Foundation
+The derived work is adapted from
+  org/apache/storm/hive/common/HiveWriter.java
+  org/apache/storm/hive/common/HiveOptions.java
+and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+Copyright 2008-2016 The Apache Software Foundation
+The derived work is adapted from
+  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
 ************************
 Common Development and Distribution License 1.1
@@ -848,6 +1081,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
+    (CDDL 1.0) JHighlight (org.codelibs:jhighlight:1.0.2 - https://github.com/codelibs/jhighlight)
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0
@@ -863,7 +1097,8 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.aspectj.org)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.3 - http://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.3 - http://logback.qos.ch/)
@@ -873,6 +1108,10 @@ The following binary components are provided under the Eclipse Public License 1.
 
         The following NOTICE information applies:
             Copyright (c) 2007-2015 The JRuby project
+    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
+    (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
+    (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
+    (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
 
 *****************
 Mozilla Public License v2.0
@@ -890,6 +1129,7 @@ The following binary components are provided under the Mozilla Public License v1
 
     (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://hl7api.sourceforge.net/)
     (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://hl7api.sourceforge.net/)
+    (MPL 1.1) Java port of universalchardet (com.googlecode.juniversalchardet:juniversalchardet:1.0.3 - https://code.google.com/archive/p/juniversalchardet/)
 
 ******************
 Python Software Foundation License v2
@@ -899,17 +1139,8 @@ The following binary components are provided under the Python Software Foundatio
 
   (PSFLv2) Jython (org.python:jython-standalone:2.7.0 - http://www.jython.org/)
     The following NOTICE information applies:
-        Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007 Jython Developers All rights reserved.
-
-******************
-MIT License
-******************
-
-The following binary components are provided under an MIT-style license
-
-  (MIT) Luaj (org.luaj:luaj-jse:3.0.1 - http://www.luaj.org/luaj/3.0/README.html)
-    The following NOTICE information applies:
-        Copyright (c) 2009-2011 Luaj.org. All rights reserved.
+        This product includes software developed by:
+            o The Apache Software Foundation (http://www.apache.org/)
 
 *****************
 Public Domain
@@ -924,3 +1155,9 @@ The following binary components are provided under the Creative Commons Zero lic
 
     (CC0v1.0) JSR166e for Twitter (com.twitter:jsr166e:jar:1.1.0 - https://github.com/twitter/jsr166e)
 
+******************
+SIL OFL 1.1
+******************
+
+The following binary components are provided under the SIL Open Font License 1.1
+  (SIL OFL 1.1) FontAwesome (4.6.1 - http://fortawesome.github.io/Font-Awesome/license/)

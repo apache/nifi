@@ -82,6 +82,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.util.VersionInfo;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -94,7 +95,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -117,7 +118,6 @@ import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -195,6 +195,7 @@ public class PostHTTP extends AbstractProcessor {
             .description("What to report as the User Agent when we connect to the remote server")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue(VersionInfo.getUserAgent("Apache-HttpClient", "org.apache.http.client", HttpClientBuilder.class))
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -351,6 +352,15 @@ public class PostHTTP extends AbstractProcessor {
         }
 
         configMap.clear();
+
+        final StreamThrottler throttler = throttlerRef.getAndSet(null);
+        if (throttler != null) {
+            try {
+                throttler.close();
+            } catch (IOException e) {
+                getLogger().error("Failed to close StreamThrottler", e);
+            }
+        }
     }
 
     @OnScheduled
@@ -383,12 +393,12 @@ public class PostHTTP extends AbstractProcessor {
             final SSLContext sslContext;
             try {
                 sslContext = createSSLContext(sslContextService);
+                getLogger().info("PostHTTP supports protocol: " + sslContext.getProtocol());
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
 
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
             // Also use a plain socket factory for regular http connections (especially proxies)
             final Registry<ConnectionSocketFactory> socketFactoryRegistry =
                     RegistryBuilder.<ConnectionSocketFactory>create()
@@ -428,6 +438,8 @@ public class PostHTTP extends AbstractProcessor {
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
+        builder = builder.useProtocol(service.getSslAlgorithm());
+
         final SSLContext sslContext = builder.build();
         return sslContext;
     }
@@ -446,7 +458,7 @@ public class PostHTTP extends AbstractProcessor {
         final RequestConfig requestConfig = requestConfigBuilder.build();
 
         final StreamThrottler throttler = throttlerRef.get();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Double maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B);
         String lastUrl = null;
@@ -457,7 +469,7 @@ public class PostHTTP extends AbstractProcessor {
         CloseableHttpClient client = null;
         final String transactionId = UUID.randomUUID().toString();
 
-        final ObjectHolder<String> dnHolder = new ObjectHolder<>("none");
+        final AtomicReference<String> dnHolder = new AtomicReference<>("none");
         while (true) {
             FlowFile flowFile = session.get();
             if (flowFile == null) {
@@ -868,7 +880,7 @@ public class PostHTTP extends AbstractProcessor {
     }
 
     private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final HttpClient client, final String uri,
-                                                        final ProcessorLog logger, final String transactionId) throws IOException {
+                                                        final ComponentLog logger, final String transactionId) throws IOException {
         final HttpHead head = new HttpHead(uri);
         if (sendAsFlowFile) {
             head.addHeader(TRANSACTION_ID_HEADER, transactionId);

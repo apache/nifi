@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -33,6 +34,9 @@ public class ComponentStateEntity extends Entity {
      *
      * @return The ComponentStateDTO object
      */
+    @ApiModelProperty(
+        value = "The component state."
+    )
     public ComponentStateDTO getComponentState() {
         return componentState;
     }

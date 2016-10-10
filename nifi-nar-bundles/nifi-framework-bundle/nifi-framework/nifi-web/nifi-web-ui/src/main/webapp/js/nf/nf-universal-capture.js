@@ -19,7 +19,7 @@
  * Captures keydown on the window to ensure certain keystrokes are handled in a consistent manner, particularly those
  * that can lead to browser navigation/reload.
  */
-$(document).ready(function () {
+$(document).ready(function ($) {
     // setup a listener to ensure keystrokes are being overridden in a consistent manner
     $(window).on('keydown', function (evt) {
         // consider escape, before checking dialogs

@@ -18,6 +18,8 @@ package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.util.MockFlowFile;
@@ -68,7 +70,7 @@ public class TestCreateHadoopSequenceFile {
     public void setUp() {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+        kerberosProperties = new KerberosProperties(null);
 
         CreateHadoopSequenceFile proc = new TestableCreateHadoopSequenceFile(kerberosProperties);
         controller = TestRunners.newTestRunner(proc);
@@ -77,6 +79,15 @@ public class TestCreateHadoopSequenceFile {
     @After
     public void tearDown() {
         controller.clearTransferState();
+    }
+
+    @Test
+    public void validateAllowableValuesForCompressionType() {
+        PropertyDescriptor pd = CreateHadoopSequenceFile.COMPRESSION_TYPE;
+        List<AllowableValue> allowableValues = pd.getAllowableValues();
+        assertEquals("NONE", allowableValues.get(0).getValue());
+        assertEquals("RECORD", allowableValues.get(1).getValue());
+        assertEquals("BLOCK", allowableValues.get(2).getValue());
     }
 
     @Test
@@ -202,7 +213,7 @@ public class TestCreateHadoopSequenceFile {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerbersProperties;
         }
     }

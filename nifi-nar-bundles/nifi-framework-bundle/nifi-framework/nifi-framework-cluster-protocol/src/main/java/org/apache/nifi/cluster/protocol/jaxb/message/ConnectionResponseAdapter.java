@@ -31,10 +31,9 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
             aCr.setNodeIdentifier(cr.getNodeIdentifier());
             aCr.setTryLaterSeconds(cr.getTryLaterSeconds());
             aCr.setRejectionReason(cr.getRejectionReason());
-            aCr.setPrimary(cr.isPrimary());
-            aCr.setManagerRemoteInputPort(cr.getManagerRemoteInputPort());
-            aCr.setManagerRemoteCommsSecure(cr.isManagerRemoteCommsSecure());
             aCr.setInstanceId(cr.getInstanceId());
+            aCr.setNodeConnectionStatuses(cr.getNodeConnectionStatuses());
+            aCr.setComponentRevisions(cr.getComponentRevisions());
         }
         return aCr;
     }
@@ -42,12 +41,12 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
     @Override
     public ConnectionResponse unmarshal(final AdaptedConnectionResponse aCr) {
         if (aCr.shouldTryLater()) {
-            return new ConnectionResponse(aCr.getTryLaterSeconds());
+            return new ConnectionResponse(aCr.getTryLaterSeconds(), aCr.getRejectionReason());
         } else if (aCr.getRejectionReason() != null) {
             return ConnectionResponse.createRejectionResponse(aCr.getRejectionReason());
         } else {
-            return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(), aCr.isPrimary(),
-                aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
+            return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(),
+                aCr.getInstanceId(), aCr.getNodeConnectionStatuses(), aCr.getComponentRevisions());
         }
     }
 

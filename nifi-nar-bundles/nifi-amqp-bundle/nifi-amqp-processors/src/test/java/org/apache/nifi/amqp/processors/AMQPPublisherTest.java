@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.util.MockProcessorLog;
+import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -101,7 +101,7 @@ public class AMQPPublisherTest {
         connection.createChannel().addReturnListener(retListener);
 
         try (AMQPPublisher sender = new AMQPPublisher(connection, "myExchange", "key2",
-                new MockProcessorLog("foo", ""))) {
+                new MockComponentLog("foo", ""))) {
             sender.publish("hello".getBytes());
             Thread.sleep(1000);
         }

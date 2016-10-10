@@ -18,11 +18,14 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
@@ -33,6 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
+
+import static org.apache.nifi.util.StringUtils.isEmpty;
 
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
@@ -78,11 +83,8 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         // create the remote process group
         RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), rawTargetUri);
 
-        // update the remote process group
-        if (isNotNull(remoteProcessGroupDTO.getPosition())) {
-            remoteProcessGroup.setPosition(new Position(remoteProcessGroupDTO.getPosition().getX(), remoteProcessGroupDTO.getPosition().getY()));
-        }
-        remoteProcessGroup.setComments(remoteProcessGroupDTO.getComments());
+        // set other properties
+        updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
 
         // get the group to add the remote process group to
         group.addRemoteProcessGroup(remoteProcessGroup);
@@ -134,10 +136,19 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // validate the proposed configuration
-        validateProposedRemoteProcessGroupConfiguration(remoteProcessGroupDto);
+        final List<String> requestValidation = validateProposedRemoteProcessGroupConfiguration(remoteProcessGroupDto);
+        // ensure there was no validation errors
+        if (!requestValidation.isEmpty()) {
+            throw new ValidationException(requestValidation);
+        }
 
         // if any remote group properties are changing, verify update
-        if (isAnyNotNull(remoteProcessGroupDto.getYieldDuration(), remoteProcessGroupDto.getCommunicationsTimeout())) {
+        if (isAnyNotNull(remoteProcessGroupDto.getYieldDuration(),
+                remoteProcessGroupDto.getCommunicationsTimeout(),
+                remoteProcessGroupDto.getProxyHost(),
+                remoteProcessGroupDto.getProxyPort(),
+                remoteProcessGroupDto.getProxyUser(),
+                remoteProcessGroupDto.getProxyPassword())) {
             remoteProcessGroup.verifyCanUpdate();
         }
     }
@@ -182,7 +193,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // validate the proposed configuration
-        validateProposedRemoteProcessGroupPortConfiguration(port, remoteProcessGroupPortDto);
+        final List<String> requestValidation = validateProposedRemoteProcessGroupPortConfiguration(port, remoteProcessGroupPortDto);
+        // ensure there was no validation errors
+        if (!requestValidation.isEmpty()) {
+            throw new ValidationException(requestValidation);
+        }
+
 
         // verify update when appropriate
         if (isAnyNotNull(remoteProcessGroupPortDto.getConcurrentlySchedulableTaskCount(), remoteProcessGroupPortDto.getUseCompression())) {
@@ -222,7 +238,33 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
                 validationErrors.add("Yield duration is not a valid time duration (ie 30 sec, 5 min)");
             }
         }
+        String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
+        String proxyUser = remoteProcessGroupDTO.getProxyUser();
+        String proxyHost = remoteProcessGroupDTO.getProxyHost();
 
+        if (isNotNull(remoteProcessGroupDTO.getProxyPort())) {
+            if (isEmpty(proxyHost)) {
+                validationErrors.add("Proxy port was specified, but proxy host was empty.");
+            }
+        }
+
+        if (!isEmpty(proxyUser)) {
+            if (isEmpty(proxyHost)) {
+                validationErrors.add("Proxy user name was specified, but proxy host was empty.");
+            }
+            if (isEmpty(proxyPassword)) {
+                validationErrors.add("User password should be specified if Proxy server needs user authentication.");
+            }
+        }
+
+        if (!isEmpty(proxyPassword)) {
+            if (isEmpty(proxyHost)) {
+                validationErrors.add("Proxy user password was specified, but proxy host was empty.");
+            }
+            if (isEmpty(proxyPassword)) {
+                validationErrors.add("User name should be specified if Proxy server needs user authentication.");
+            }
+        }
         return validationErrors;
     }
 
@@ -297,7 +339,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     @Override
     public RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupDTO.getId());
+        return updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
 
+
+    }
+
+    private RemoteProcessGroup updateRemoteProcessGroup(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDTO) {
         // verify the update request
         verifyUpdate(remoteProcessGroup, remoteProcessGroupDTO);
 
@@ -306,6 +353,12 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         final String comments = remoteProcessGroupDTO.getComments();
         final String communicationsTimeout = remoteProcessGroupDTO.getCommunicationsTimeout();
         final String yieldDuration = remoteProcessGroupDTO.getYieldDuration();
+        final String proxyHost = remoteProcessGroupDTO.getProxyHost();
+        final Integer proxyPort = remoteProcessGroupDTO.getProxyPort();
+        final String proxyUser = remoteProcessGroupDTO.getProxyUser();
+        final String proxyPassword = remoteProcessGroupDTO.getProxyPassword();
+
+        final String transportProtocol = remoteProcessGroupDTO.getTransportProtocol();
 
         if (isNotNull(name)) {
             remoteProcessGroup.setName(name);
@@ -321,6 +374,22 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
         if (isNotNull(remoteProcessGroupDTO.getPosition())) {
             remoteProcessGroup.setPosition(new Position(remoteProcessGroupDTO.getPosition().getX(), remoteProcessGroupDTO.getPosition().getY()));
+        }
+        if (isNotNull(transportProtocol)) {
+            remoteProcessGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
+            // No null check because these proxy settings have to be clear if not specified.
+            // But when user Enable/Disable transmission, only isTransmitting is sent.
+            // To prevent clearing these values in that case, set these only if transportProtocol is sent,
+            // assuming UI sends transportProtocol always for update.
+            remoteProcessGroup.setProxyHost(proxyHost);
+            remoteProcessGroup.setProxyPort(proxyPort);
+            remoteProcessGroup.setProxyUser(proxyUser);
+            // Keep using current password when null or "********" was sent.
+            // Passing other values updates the password,
+            // specify empty String to clear password.
+            if (isNotNull(proxyPassword) && !DtoFactory.SENSITIVE_VALUE_MASK.equals(proxyPassword)) {
+                remoteProcessGroup.setProxyPassword(proxyPassword);
+            }
         }
 
         final Boolean isTransmitting = remoteProcessGroupDTO.isTransmitting();

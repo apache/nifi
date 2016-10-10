@@ -349,19 +349,8 @@ public class ScryptCipherProviderGroovyTest {
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
         logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}");
 
-        // Two different errors -- one explaining the no-salt method is not supported, and the other for an empty byte[] passed
-
         // Act
-        def msg = shouldFail(UnsupportedOperationException) {
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, DEFAULT_KEY_LENGTH, true);
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "The cipher cannot be initialized without a valid salt\\. Use ScryptCipherProvider#generateSalt\\(\\) to generate a valid salt"
-
-        // Act
-        msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail(IllegalArgumentException) {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true);
         }
         logger.expected(msg)
@@ -530,7 +519,7 @@ public class ScryptCipherProviderGroovyTest {
         // Arrange
         ScryptCipherProvider testCipherProvider = new ScryptCipherProvider()
 
-        /** See this Stack Overflow answer for a good visualization of the interplay between N, r, p {@link http://stackoverflow.com/a/30308723} */
+        /** See this Stack Overflow answer for a good visualization of the interplay between N, r, p <a href="http://stackoverflow.com/a/30308723" rel="noopener">http://stackoverflow.com/a/30308723</a> */
 
         // Act
         int n = testCipherProvider.getN()

@@ -103,7 +103,7 @@ public class FetchFile extends AbstractProcessor {
         .build();
     static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
         .name("Log level when file not found")
-        .description("Log level to use in case the file does not exist when the processor is trigerred")
+        .description("Log level to use in case the file does not exist when the processor is triggered")
         .allowableValues(LogLevel.values())
         .defaultValue(LogLevel.ERROR.toString())
         .required(true)

@@ -183,4 +183,29 @@ public class StandardLogRepository implements LogRepository {
     public ComponentLog getLogger() {
         return componentLogger;
     }
+
+    private boolean hasObserver(final LogLevel logLevel) {
+        final Collection<LogObserver> logLevelObservers = observers.get(logLevel);
+        return (logLevelObservers != null && !logLevelObservers.isEmpty());
+    }
+
+    @Override
+    public boolean isDebugEnabled() {
+        return hasObserver(LogLevel.DEBUG);
+    }
+
+    @Override
+    public boolean isInfoEnabled() {
+        return hasObserver(LogLevel.INFO);
+    }
+
+    @Override
+    public boolean isWarnEnabled() {
+        return hasObserver(LogLevel.WARN);
+    }
+
+    @Override
+    public boolean isErrorEnabled() {
+        return hasObserver(LogLevel.ERROR);
+    }
 }

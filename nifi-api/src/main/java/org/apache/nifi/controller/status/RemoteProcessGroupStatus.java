@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.controller.status;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,7 +37,6 @@ public class RemoteProcessGroupStatus implements Cloneable {
     private Integer inactiveRemotePortCount;
 
     private long averageLineageDuration;
-    private List<String> authorizationIssues = new ArrayList<>();
 
     public String getTargetUri() {
         return uri;
@@ -138,14 +134,6 @@ public class RemoteProcessGroupStatus implements Cloneable {
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    public List<String> getAuthorizationIssues() {
-        return new ArrayList<>(authorizationIssues);
-    }
-
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
-        this.authorizationIssues = new ArrayList<>(Objects.requireNonNull(authorizationIssues));
-    }
-
     public long getAverageLineageDuration() {
         return averageLineageDuration;
     }
@@ -178,7 +166,6 @@ public class RemoteProcessGroupStatus implements Cloneable {
         clonedObj.activeRemotePortCount = activeRemotePortCount;
         clonedObj.inactiveRemotePortCount = inactiveRemotePortCount;
         clonedObj.averageLineageDuration = averageLineageDuration;
-        clonedObj.authorizationIssues = getAuthorizationIssues();
         return clonedObj;
     }
 
@@ -209,8 +196,6 @@ public class RemoteProcessGroupStatus implements Cloneable {
         builder.append(activeRemotePortCount);
         builder.append(", inactiveRemotePortCount=");
         builder.append(inactiveRemotePortCount);
-        builder.append(", authenticationIssues=");
-        builder.append(authorizationIssues);
         builder.append("]");
         return builder.toString();
     }

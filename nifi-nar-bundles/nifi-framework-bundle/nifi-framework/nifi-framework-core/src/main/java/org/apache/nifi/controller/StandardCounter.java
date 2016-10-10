@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.controller.Counter;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class StandardCounter implements Counter {
@@ -33,33 +32,39 @@ public class StandardCounter implements Counter {
         this.value = new AtomicLong(0L);
     }
 
+    @Override
     public void adjust(final long delta) {
         this.value.addAndGet(delta);
     }
 
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public long getValue() {
         return this.value.get();
     }
 
+    @Override
     public String getContext() {
         return context;
     }
 
+    @Override
     public String getIdentifier() {
         return identifier;
     }
 
+    @Override
     public void reset() {
         this.value.set(0);
     }
 
     @Override
     public String toString() {
-        return "Counter[identifier=" + identifier + ", context=" + context + ", name=" + name + ", value=" + value + ']';
+        return "Counter[identifier=" + identifier + ']';
     }
 
     public static UnmodifiableCounter unmodifiableCounter(final Counter counter) {

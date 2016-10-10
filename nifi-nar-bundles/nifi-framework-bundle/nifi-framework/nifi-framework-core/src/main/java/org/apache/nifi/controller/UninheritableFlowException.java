@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.cluster.ConnectionException;
+
 /**
  * Represents the exceptional case when a controller is to be loaded with a flow that is fundamentally different than its existing flow.
  *
  */
-public class UninheritableFlowException extends RuntimeException {
+public class UninheritableFlowException extends ConnectionException {
 
     private static final long serialVersionUID = 198234798234794L;
 

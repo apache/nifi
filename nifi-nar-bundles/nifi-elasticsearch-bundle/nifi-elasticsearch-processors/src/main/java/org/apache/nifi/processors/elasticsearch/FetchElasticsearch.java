@@ -27,7 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -64,7 +64,7 @@ import java.util.Set;
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type")
 })
-public class FetchElasticsearch extends AbstractElasticsearchProcessor {
+public class FetchElasticsearch extends AbstractElasticsearchTransportClientProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are read from Elasticsearch are routed to this relationship").build();
@@ -153,7 +153,7 @@ public class FetchElasticsearch extends AbstractElasticsearchProcessor {
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         try {
 
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});

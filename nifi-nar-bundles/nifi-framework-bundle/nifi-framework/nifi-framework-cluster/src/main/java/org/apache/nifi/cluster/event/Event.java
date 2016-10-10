@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.event;
 import java.util.Date;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.reporting.Severity;
 
 /**
  * Events describe the occurrence of something noteworthy. They record the event's source, a timestamp, a description, and a category.
@@ -26,21 +27,11 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @Immutable
  */
-public class Event {
-
-    public static enum Category {
-
-        DEBUG,
-        INFO,
-        WARN
-    }
+public class Event implements NodeEvent {
 
     private final String source;
-
     private final long timestamp;
-
-    private final Category category;
-
+    private final Severity severity;
     private final String message;
 
     /**
@@ -50,7 +41,7 @@ public class Event {
      * @param message the description
      */
     public Event(final String source, final String message) {
-        this(source, message, Category.INFO);
+        this(source, message, Severity.INFO);
     }
 
     /**
@@ -58,10 +49,10 @@ public class Event {
      *
      * @param source the source
      * @param message the description
-     * @param category the event category
+     * @param severity the event severity
      */
-    public Event(final String source, final String message, final Category category) {
-        this(source, message, category, new Date().getTime());
+    public Event(final String source, final String message, final Severity severity) {
+        this(source, message, severity, new Date().getTime());
     }
 
     /**
@@ -72,7 +63,7 @@ public class Event {
      * @param timestamp the time of occurrence
      */
     public Event(final String source, final String message, final long timestamp) {
-        this(source, message, Category.INFO, timestamp);
+        this(source, message, Severity.INFO, timestamp);
     }
 
     /**
@@ -80,16 +71,15 @@ public class Event {
      *
      * @param source the source
      * @param message the description
-     * @param category the event category
+     * @param severity the event category
      * @param timestamp the time of occurrence
      */
-    public Event(final String source, final String message, final Category category, final long timestamp) {
-
+    public Event(final String source, final String message, final Severity severity, final long timestamp) {
         if (StringUtils.isBlank(source)) {
             throw new IllegalArgumentException("Source may not be empty or null.");
         } else if (StringUtils.isBlank(message)) {
             throw new IllegalArgumentException("Event message may not be empty or null.");
-        } else if (category == null) {
+        } else if (severity == null) {
             throw new IllegalArgumentException("Event category may not be null.");
         } else if (timestamp < 0) {
             throw new IllegalArgumentException("Timestamp may not be negative: " + timestamp);
@@ -97,24 +87,27 @@ public class Event {
 
         this.source = source;
         this.message = message;
-        this.category = category;
+        this.severity = severity;
         this.timestamp = timestamp;
     }
 
-    public Category getCategory() {
-        return category;
+    @Override
+    public Severity getSeverity() {
+        return severity;
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
 
+    @Override
     public String getSource() {
         return source;
     }
 
+    @Override
     public long getTimestamp() {
         return timestamp;
     }
-
 }

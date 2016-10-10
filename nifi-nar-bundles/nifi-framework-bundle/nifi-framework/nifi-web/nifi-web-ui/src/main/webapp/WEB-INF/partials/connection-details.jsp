@@ -16,8 +16,8 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="connection-details">
-    <div class="connection-details-tab-container">
-        <div id="connection-details-tabs"></div>
+    <div class="connection-details-tab-container dialog-content">
+        <div id="connection-details-tabs" class="tab-container"></div>
         <div id="connection-details-tabs-content">
             <div id="read-only-connection-details-tab-content" class="configuration-tab">
                 <div class="settings-left">
@@ -36,7 +36,7 @@
                     <div id="read-only-relationship-names-container" class="setting">
                         <div class="setting-name">
                             Relationships
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Selected relationships are in bold."/>
+                            <div class="fa fa-question-circle" alt="Info" title="Selected relationships are in bold."></div>
                         </div>
                         <div class="setting-field">
                             <div id="read-only-relationship-names"></div>
@@ -76,7 +76,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             FlowFile expiration
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-flow-file-expiration"></span>
@@ -86,7 +86,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Back pressure object threshold
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-back-pressure-object-threshold"></span>
@@ -96,7 +96,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Back pressure data size threshold
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
                         </div>
                         <div class="setting-field">
                             <span id="read-only-back-pressure-data-size-threshold"></span>
@@ -109,7 +109,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Prioritizers
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Prioritizers that have been selected to reprioritize FlowFiles in this processors work queue."/>
+                            <div class="fa fa-question-circle" alt="Info" title="Prioritizers that have been selected to reprioritize FlowFiles in this processors work queue."></div>
                         </div>
                         <div class="setting-field">
                             <div id="read-only-prioritizers"></div>

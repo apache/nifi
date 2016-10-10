@@ -74,7 +74,7 @@ public class IndexingAction {
         }
 
         for (final SearchableField searchableField : attributeSearchableFields) {
-            addField(doc, searchableField, attributes.get(searchableField.getSearchableFieldName()), Store.NO);
+            addField(doc, searchableField, LuceneUtil.truncateIndexField(attributes.get(searchableField.getSearchableFieldName())), Store.NO);
         }
 
         final String storageFilename = LuceneUtil.substringBefore(record.getStorageFilename(), ".");
@@ -91,10 +91,6 @@ public class IndexingAction {
             } else {
                 doc.add(new IntField(FieldNames.BLOCK_INDEX, blockIndex, Store.YES));
                 doc.add(new LongField(SearchableFields.Identifier.getSearchableFieldName(), record.getEventId(), Store.YES));
-            }
-
-            for (final String lineageIdentifier : record.getLineageIdentifiers()) {
-                addField(doc, SearchableFields.LineageIdentifier, lineageIdentifier, Store.NO);
             }
 
             // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.

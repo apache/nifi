@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.util;
 
+import java.io.File;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 public class MockProcessorInitializationContext implements ProcessorInitializationContext, ControllerServiceLookup {
 
-    private final MockProcessorLog logger;
+    private final MockComponentLog logger;
     private final String processorId;
     private final MockProcessContext context;
 
     public MockProcessorInitializationContext(final Processor processor, final MockProcessContext context) {
         processorId = UUID.randomUUID().toString();
-        logger = new MockProcessorLog(processorId, processor);
+        logger = new MockComponentLog(processorId, processor);
         this.context = context;
     }
 
@@ -42,7 +44,7 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public MockProcessorLog getLogger() {
+    public MockComponentLog getLogger() {
         return logger;
     }
 
@@ -62,22 +64,42 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public String getControllerServiceName(String serviceIdentifier) {
+    public String getControllerServiceName(final String serviceIdentifier) {
         return context.getControllerServiceName(serviceIdentifier);
     }
 
     @Override
-    public boolean isControllerServiceEnabled(String serviceIdentifier) {
+    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         return context.isControllerServiceEnabled(serviceIdentifier);
     }
 
     @Override
-    public boolean isControllerServiceEnabled(ControllerService service) {
+    public boolean isControllerServiceEnabled(final ControllerService service) {
         return context.isControllerServiceEnabled(service);
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return context;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null; //this needs to be wired in.
     }
 }

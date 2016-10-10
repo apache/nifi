@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -33,14 +34,13 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
@@ -116,8 +116,8 @@ public class IdentifyMimeType extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
-        final ObjectHolder<String> mimeTypeRef = new ObjectHolder<>(null);
+        final ComponentLog logger = getLogger();
+        final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         session.read(flowFile, new InputStreamCallback() {

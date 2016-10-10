@@ -28,16 +28,22 @@ import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionRequestAdapter;
 public class ConnectionRequest {
 
     private final NodeIdentifier proposedNodeIdentifier;
+    private final DataFlow dataFlow;
 
-    public ConnectionRequest(final NodeIdentifier proposedNodeIdentifier) {
+    public ConnectionRequest(final NodeIdentifier proposedNodeIdentifier, final DataFlow dataFlow) {
         if (proposedNodeIdentifier == null) {
             throw new IllegalArgumentException("Proposed node identifier may not be null.");
         }
+
         this.proposedNodeIdentifier = proposedNodeIdentifier;
+        this.dataFlow = dataFlow;
     }
 
     public NodeIdentifier getProposedNodeIdentifier() {
         return proposedNodeIdentifier;
     }
 
+    public DataFlow getDataFlow() {
+        return dataFlow;
+    }
 }

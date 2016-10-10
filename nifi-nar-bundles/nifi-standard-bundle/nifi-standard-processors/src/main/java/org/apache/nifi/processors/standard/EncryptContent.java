@@ -32,7 +32,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -454,7 +454,7 @@ public class EncryptContent extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final String method = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(method);
         final String providerName = encryptionMethod.getProvider();
@@ -511,7 +511,6 @@ public class EncryptContent extends AbstractProcessor {
         } catch (final ProcessException e) {
             logger.error("Cannot {}crypt {} - ", new Object[]{encrypt ? "en" : "de", flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 

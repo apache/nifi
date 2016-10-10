@@ -18,6 +18,26 @@
 /* global nf */
 
 $(document).ready(function () {
+    //Create Angular App
+    var app = angular.module('ngSummaryApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
+    nf.ng.ServiceProvider.$inject = [];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngSummaryAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('serviceProvider', nf.ng.ServiceProvider);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngSummaryApp'], { strictDi: true });
+
     // initialize the summary page
     nf.Summary.init();
 });
@@ -29,9 +49,9 @@ nf.Summary = (function () {
      */
     var config = {
         urls: {
-            banners: '../nifi-api/controller/banners',
-            controllerAbout: '../nifi-api/controller/about',
-            cluster: '../nifi-api/cluster'
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
+            clusterSummary: '../nifi-api/flow/cluster/summary'
         }
     };
 
@@ -41,26 +61,15 @@ nf.Summary = (function () {
     var initializeSummaryTable = function () {
         return $.Deferred(function (deferred) {
             $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                nf.SummaryTable.init(true).done(function () {
+                type: 'GET',
+                url: config.urls.clusterSummary
+            }).done(function (response) {
+                nf.SummaryTable.init(response.clusterSummary.connectedToCluster).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
                 });
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    nf.SummaryTable.init(false).done(function () {
-                        deferred.resolve();
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
+            }).fail(nf.Common.handleAjaxError);
         }).promise();
     };
 
@@ -69,7 +78,7 @@ nf.Summary = (function () {
      */
     var initializeSummaryPage = function () {
         // define mouse over event for the refresh buttons
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.SummaryTable.loadSummaryTable();
         });
 
@@ -136,13 +145,31 @@ nf.Summary = (function () {
                 nf.SummaryTable.loadSummaryTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeSummaryPage().done(function () {
-                        // configure the initial grid height
-                        nf.SummaryTable.resetTableSize();
+
+                        var setBodySize = function () {
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+                                
+                                $('#summary').css('margin', 40);
+                                $('div.summary-table').css('bottom', 127);
+                                $('#flow-summary-refresh-container').css({
+                                    "position": "absolute",
+                                    "bottom": "0px",
+                                    "margin": "40px"
+                                });
+                            }
+
+                            nf.SummaryTable.resetTableSize();
+                        };
 
                         // get the about details
                         $.ajax({
                             type: 'GET',
-                            url: config.urls.controllerAbout,
+                            url: config.urls.about,
                             dataType: 'json'
                         }).done(function (response) {
                             var aboutDetails = response.about;
@@ -151,20 +178,45 @@ nf.Summary = (function () {
                             // set the document title and the about title
                             document.title = statusTitle;
                             $('#status-header-text').text(statusTitle);
+
+                            // set the initial size
+                            setBodySize();
                         }).fail(nf.Common.handleAjaxError);
 
-                        var setBodySize = function () {
-                            $('body').css({
-                                'height': $(window).height() + 'px',
-                                'width': $(window).width() + 'px'
+                        $(window).on('resize', function (e) {
+                            setBodySize();
+                            // resize dialogs when appropriate
+                            var dialogs = $('.dialog');
+                            for (var i = 0, len = dialogs.length; i < len; i++) {
+                                if ($(dialogs[i]).is(':visible')){
+                                    setTimeout(function(dialog){
+                                        dialog.modal('resize');
+                                    }, 50, $(dialogs[i]));
+                                }
+                            }
+
+                            // resize grids when appropriate
+                            var gridElements = $('*[class*="slickgrid_"]');
+                            for (var j = 0, len = gridElements.length; j < len; j++) {
+                                if ($(gridElements[j]).is(':visible')){
+                                    setTimeout(function(gridElement){
+                                        gridElement.data('gridInstance').resizeCanvas();
+                                    }, 50, $(gridElements[j]));
+                                }
+                            }
+
+                            // toggle tabs .scrollable when appropriate
+                            var tabsContainers = $('.tab-container');
+                            var tabsContents = [];
+                            for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                                if ($(tabsContainers[k]).is(':visible')){
+                                    tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                                }
+                            }
+                            $.each(tabsContents, function (index, tabsContent) {
+                                nf.Common.toggleScrollable(tabsContent.get(0));
                             });
-                        };
-
-                        // listen for browser resize events to reset the body size
-                        $(window).resize(setBodySize);
-
-                        // set the initial size
-                        setBodySize();
+                        });
                     });
                 });
             });

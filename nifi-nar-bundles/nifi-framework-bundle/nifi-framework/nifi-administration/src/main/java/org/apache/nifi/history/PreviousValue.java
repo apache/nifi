@@ -25,7 +25,7 @@ public class PreviousValue {
 
     private String previousValue;
     private Date timestamp;
-    private String userName;
+    private String userIdentity;
 
     public String getPreviousValue() {
         return previousValue;
@@ -43,12 +43,12 @@ public class PreviousValue {
         this.timestamp = timestamp;
     }
 
-    public String getUserName() {
-        return userName;
+    public String getUserIdentity() {
+        return userIdentity;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUserIdentity(String userIdentity) {
+        this.userIdentity = userIdentity;
     }
 
 }

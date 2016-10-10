@@ -14,16 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.controller.state.providers.zookeeper;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
@@ -36,11 +30,6 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.ZooDefs.Perms;
-import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Stat;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,8 +37,8 @@ import org.testng.Assert;
 
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
-    private StateProvider provider;
-    private TestingServer zkServer;
+    private volatile StateProvider provider;
+    private volatile TestingServer zkServer;
 
     private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
 
@@ -58,7 +47,6 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         defaultProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
         defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
     }
-
 
     @Before
     public void setup() throws Exception {
@@ -109,9 +97,11 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
     @After
     public void clear() throws IOException {
         try {
-            getProvider().onComponentRemoved(componentId);
-            getProvider().disable();
-            getProvider().shutdown();
+            if (provider != null) {
+                provider.onComponentRemoved(componentId);
+                provider.disable();
+                provider.shutdown();
+            }
         } finally {
             if (zkServer != null) {
                 zkServer.stop();
@@ -120,92 +110,13 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         }
     }
 
-
     @Override
     protected StateProvider getProvider() {
         return provider;
     }
 
-    @Test
-    public void testWithUsernameAndPasswordCreatorOnly() throws Exception {
-        final Map<PropertyDescriptor, String> properties = new HashMap<>(defaultProperties);
-        properties.put(ZooKeeperStateProvider.CONNECTION_STRING, zkServer.getConnectString());
-        properties.put(ZooKeeperStateProvider.USERNAME, "nifi");
-        properties.put(ZooKeeperStateProvider.PASSWORD, "nifi");
-        properties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.CREATOR_ONLY.getValue());
-
-        final ZooKeeperStateProvider authorizedProvider = createProvider(properties);
-
-        try {
-            final Map<String, String> state = new HashMap<>();
-            state.put("testWithUsernameAndPasswordCreatorOnly", "my value");
-            authorizedProvider.setState(state, componentId);
-
-            final List<ACL> acls = authorizedProvider.getZooKeeper().getACL(properties.get(ZooKeeperStateProvider.ROOT_NODE) + "/components/" + componentId, new Stat());
-            assertNotNull(acls);
-            assertEquals(1, acls.size());
-            final ACL acl = acls.get(0);
-            assertEquals(Perms.ALL, acl.getPerms());
-            // ID is our username:<SHA1 hash>
-            assertEquals("nifi:RuSeH3tpzgba3p9WrG/UpiSIsGg=", acl.getId().getId());
-
-            final Map<String, String> stateValues = authorizedProvider.getState(componentId).toMap();
-            assertEquals(state, stateValues);
-
-            // ensure that our default provider cannot access the data, since it has not authenticated
-            try {
-                this.provider.getState(componentId);
-                Assert.fail("Expected an IOException but it wasn't thrown");
-            } catch (final IOException ioe) {
-                final Throwable cause = ioe.getCause();
-                assertTrue(cause instanceof KeeperException);
-                final KeeperException ke = (KeeperException) cause;
-                assertEquals(Code.NOAUTH, ke.code());
-            }
-        } finally {
-            authorizedProvider.onComponentRemoved(componentId);
-            authorizedProvider.disable();
-            authorizedProvider.shutdown();
-        }
-    }
-
-    @Test
-    public void testWithUsernameAndPasswordOpen() throws Exception {
-        final Map<PropertyDescriptor, String> properties = new HashMap<>(defaultProperties);
-        properties.put(ZooKeeperStateProvider.CONNECTION_STRING, zkServer.getConnectString());
-        properties.put(ZooKeeperStateProvider.USERNAME, "nifi");
-        properties.put(ZooKeeperStateProvider.PASSWORD, "nifi");
-        properties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
-
-        final ZooKeeperStateProvider authorizedProvider = createProvider(properties);
-
-        try {
-            final Map<String, String> state = new HashMap<>();
-            state.put("testWithUsernameAndPasswordOpen", "my value");
-            authorizedProvider.setState(state, componentId);
-
-            final List<ACL> acls = authorizedProvider.getZooKeeper().getACL(properties.get(ZooKeeperStateProvider.ROOT_NODE) + "/components/" + componentId, new Stat());
-            assertNotNull(acls);
-            assertEquals(1, acls.size());
-            final ACL acl = acls.get(0);
-            assertEquals(Perms.ALL, acl.getPerms());
-            assertEquals("anyone", acl.getId().getId());
-
-            final Map<String, String> stateValues = authorizedProvider.getState(componentId).toMap();
-            assertEquals(state, stateValues);
-
-            // ensure that our default provider can also access the data, since it has not authenticated
-            final Map<String, String> unauthStateValues = this.provider.getState(componentId).toMap();
-            assertEquals(state, unauthStateValues);
-        } finally {
-            authorizedProvider.onComponentRemoved(componentId);
-            authorizedProvider.disable();
-            authorizedProvider.shutdown();
-        }
-    }
-
-    @Test
-    public void testStateTooLargeExceptionThrown() {
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -219,13 +130,55 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             state.put("numbers." + i, sb.toString());
         }
 
-        try {
-            getProvider().setState(state, componentId);
-            Assert.fail("Expected StateTooLargeException");
-        } catch (final StateTooLargeException stle) {
-            // expected behavior.
-        } catch (final Exception e) {
-            Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+        while (true) {
+            try {
+                getProvider().setState(state, componentId);
+                Assert.fail("Expected StateTooLargeException");
+            } catch (final StateTooLargeException stle) {
+                // expected behavior.
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+            }
+        }
+    }
+
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {
+        final Map<String, String> state = new HashMap<>();
+        final StringBuilder sb = new StringBuilder();
+
+        // Build a string that is a little less than 64 KB, because that's
+        // the largest value available for DataOutputStream.writeUTF
+        for (int i = 0; i < 6500; i++) {
+            sb.append("0123456789");
+        }
+
+        for (int i = 0; i < 20; i++) {
+            state.put("numbers." + i, sb.toString());
+        }
+
+        final Map<String, String> smallState = new HashMap<>();
+        smallState.put("abc", "xyz");
+
+        while (true) {
+            try {
+                getProvider().setState(smallState, componentId);
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            }
         }
 
         try {
@@ -234,7 +187,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
-            Assert.fail("Expected StateTooLargeException");
+            e.printStackTrace();
+            Assert.fail("Expected StateTooLargeException", e);
         }
 
     }

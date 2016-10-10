@@ -47,4 +47,9 @@ public class NiFiAuthenticationToken extends AbstractAuthenticationToken {
     public final void setAuthenticated(boolean authenticated) {
         throw new IllegalArgumentException("Cannot change the authenticated state.");
     }
+
+    @Override
+    public String toString() {
+        return nifiUserDetails.getUsername();
+    }
 }

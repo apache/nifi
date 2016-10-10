@@ -31,6 +31,7 @@ import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.junit.Test;
 
+
 public class TestStandardPropertyValue {
 
     private final ControllerServiceLookup lookup = new TestControllerServiceLookup();
@@ -121,19 +122,6 @@ public class TestStandardPropertyValue {
         assertEquals(year, val);
     }
 
-    @Test
-    public void testSystemProperty() {
-        System.setProperty("Prop1", "Foo");
-        System.setProperty("Prop2", "Bar");
-        final PropertyValue value = new StandardPropertyValue("${Prop1}${Prop2}${abc}", lookup);
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "Baz");
-        final FlowFile flowFile = createFlowFile(attributes);
-        final String val = value.evaluateAttributeExpressions(flowFile).getValue();
-        assertEquals("FooBarBaz", val);
-
-    }
-
     private FlowFile createFlowFile(final Map<String, String> attributes) {
         return new StandardFlowFileRecord.Builder().addAttributes(attributes).build();
     }
@@ -153,23 +141,24 @@ public class TestStandardPropertyValue {
         }
 
         @Override
-        public boolean isControllerServiceEnabled(String serviceIdentifier) {
+        public boolean isControllerServiceEnabled(final String serviceIdentifier) {
             return true;
         }
 
         @Override
-        public boolean isControllerServiceEnabled(ControllerService service) {
+        public boolean isControllerServiceEnabled(final ControllerService service) {
             return true;
         }
 
         @Override
-        public String getControllerServiceName(String serviceIdentifier) {
+        public String getControllerServiceName(final String serviceIdentifier) {
             return null;
         }
 
         @Override
-        public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        public boolean isControllerServiceEnabling(final String serviceIdentifier) {
             return false;
         }
+
     }
 }

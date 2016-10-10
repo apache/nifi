@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.util;
 
+import java.util.Collection;
+
 /**
  * String Utils based on the Apache Commons Lang String Utils.
  * These simple util methods here allow us to avoid a dependency in the core
@@ -62,5 +64,39 @@ public class StringUtils {
             return EMPTY;
         }
         return str.substring(pos + separator.length());
+    }
+
+    public static String join(final Collection collection, String delimiter) {
+        if (collection == null || collection.size() == 0) {
+            return EMPTY;
+        }
+        final StringBuilder sb = new StringBuilder(collection.size() * 16);
+        for (Object element : collection) {
+            sb.append((String) element);
+            sb.append(delimiter);
+        }
+        return sb.toString().substring(0, sb.lastIndexOf(delimiter));
+    }
+
+    public static String padLeft(final String source, int length, char padding) {
+        if (source != null) {
+            StringBuilder sb = new StringBuilder(source).reverse();
+            while (sb.length() < length) {
+                sb.append(padding);
+            }
+            return sb.reverse().toString();
+        }
+        return null;
+    }
+
+    public static String padRight(final String source, int length, char padding) {
+        if (source != null) {
+            StringBuilder sb = new StringBuilder(source);
+            while (sb.length() < length) {
+                sb.append(padding);
+            }
+            return sb.toString();
+        }
+        return null;
     }
 }

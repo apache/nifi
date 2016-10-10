@@ -18,107 +18,22 @@
     Specific dialog settings.
 */
 
-#new-port-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 150px;
-}
-
-#new-port-name {
-    width: 320px;
-}
-
-#new-process-group-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 150px;
-}
-
-#new-process-group-name {
-    width: 320px;
-}
-
-#new-remote-process-group-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 150px;
-}
-
-#new-remote-process-group-uri {
-    width: 320px;
-}
-
-#new-template-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 300px;
-}
-
-.new-template-field {
-    width: 320px;
-}
-
-#alias-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 195px;
+#new-remote-process-group-transport-protocol-combo {
+    width: 160px;
 }
 
 #fill-color-dialog {
-    z-index: 1301;
     display: none;
-    width: 195px;
-    height: 400px;
+    width: 240px;
+    height: 470px;
 }
 
 #fill-color-value {
-    width: 165px;
+    width: 175px;
 }
 
 #fill-color-processor-preview {
-    width: 173px;
-    height: 56px;
-    font-weight: bold;
-    border-width: 1px;
-    border-style: solid;
-}
-
-#fill-color-processor-preview-name {
-    margin-left: 5px;
-    margin-top: 5px;
-    float: left;
-}
-
-#fill-color-processor-preview-icon {
-    margin-top: 5px;
-    margin-right: 5px;
-    float: right;
-    background-image: url(../images/iconSmallProcessor.png);
-    width: 14px;
-    height: 14px;
-}
-
-#fill-color-processor-preview-stats {
-    margin-top: 1px;
-    margin-left: 5px;
-    float: left;
-    border: 1px solid #6f97ac;
-    background-color: #ffffff;
-    height: 30px;
-    width: 161px;
-}
-
-#fill-color-processor-preview-stats-label {
-    float: left;
-    background: linear-gradient(to bottom, #30505c, #6f97ac);
-    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#30505c, endColorstr=#6f97ac);
-    height: 30px;
-    width: 30px;
+    font-size: 64px;
 }
 
 #fill-color-label-preview {
@@ -135,13 +50,6 @@
     float: left;
 }
 
-#connections-dialog {
-    z-index: 1301;
-    display: none;
-    height: 365px;
-    width: 646px;
-}
-
 div.connections-component-name {
     float: left;
     width: 390px;
@@ -150,19 +58,26 @@ div.connections-component-name {
     text-overflow: ellipsis;
 }
 
+#connections-dialog {
+    height: 400px;
+    width: 680px;
+}
+
+#connections-context {
+    padding: 5px;
+}
+
 #connections-source {
     float: left;
 }
 
 #connections-destination {
     float: left;
-    margin-left: 370px;
+    margin-left: 360px;
 }
 
 #connections-container {
     width: 612px;
-    height: 190px;
-    border: 1px solid #aaa;
     padding: 5px;
     overflow-y: auto;
 }
@@ -242,43 +157,8 @@ div.go-to-link {
     cursor: pointer;
 }
 
-#system-diagnostics-dialog {
-    z-index: 1301;
-    display: none;
-    height: 450px;
-    width: 420px;
-}
-
-#instantiate-template-dialog {
-    z-index: 1301;
-    display: none;
-    width: 355px;
-    height: 120px;
-}
-
-#available-templates {
-    width: 325px;
-    height: 18px;
-    line-height: 18px;
-}
-
-#remote-port-configuration {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 195px;
-}
-
-#drop-request-status-dialog {
-    display: none;
-    width: 400px;
-    height: 125px;
-    z-index: 1301;
-}
-
 #drop-request-percent-complete {
     margin-top: 10px;
-    width: 378px;
     border-radius: 0;
 }
 
@@ -286,16 +166,8 @@ div.go-to-link {
     border-radius: 0;
 }
 
-#listing-request-status-dialog {
-    display: none;
-    width: 400px;
-    height: 125px;
-    z-index: 1301;
-}
-
 #listing-request-percent-complete {
     margin-top: 10px;
-    width: 378px;
     border-radius: 0;
 }
 
@@ -308,35 +180,7 @@ div.progress-label {
     display: block;
     font-weight: bold;
     text-align: center;
-    width: 378px;
     margin-top: 4px;
-}
-
-#nf-ok-dialog {
-    z-index: 1302;
-    display: none;
-    height: 225px;
-    width: 375px;
-}
-
-#nf-ok-dialog-content {
-    width: 355px;
-    height: 130px;
-    overflow: auto;
-}
-
-#nf-yes-no-dialog {
-    z-index: 1302;
-    display: none;
-    height: 175px;
-    width: 350px;
-}
-
-#nf-yes-no-dialog-content {
-    width: 330px;
-    height: 180px;
-    overflow: auto;
-    margin-top: -10px;
 }
 
 /*
@@ -352,24 +196,17 @@ ul.result li {
     padding: 3px 0px;
 }
 
-.setting {
-    margin-bottom: 15px;
+.dialog-content div.settings-left {
+    float: left;
+    width: 49%;
 }
 
-.setting-name {
-    font-size: 10px;
-    font-weight: bold;
-    padding-bottom: 4px;
-    color: #527991;
+.dialog-content div.settings-right {
+    float: left;
+    width: 49%;
 }
 
-.setting-field {
-    overflow: hidden;
-    line-height: normal;
-}
-
-img.icon-info {
-    position: relative;
-    left: 3px;
-    top: 1px;
+.dialog-content div.spacer {
+    float: left;
+    width: 2%;
 }

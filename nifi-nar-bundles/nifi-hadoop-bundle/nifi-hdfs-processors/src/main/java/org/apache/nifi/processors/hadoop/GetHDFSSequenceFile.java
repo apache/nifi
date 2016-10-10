@@ -19,19 +19,21 @@ package org.apache.nifi.processors.hadoop;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
 
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +84,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
             int bufferSize = bufferSizeProp.intValue();
             conf.setInt(BUFFER_SIZE_KEY, bufferSize);
         }
-        ProcessorLog logger = getLogger();
+        ComponentLog logger = getLogger();
         final SequenceFileReader<Set<FlowFile>> reader;
         if (flowFileContentValue.equalsIgnoreCase(VALUE_ONLY)) {
             reader = new ValueReader(session);
@@ -102,7 +104,7 @@ public class GetHDFSSequenceFile extends GetHDFS {
                     continue; // If file is no longer here move on.
                 }
                 logger.debug("Reading file");
-                flowFiles = reader.readSequenceFile(file, conf, hdfs);
+                flowFiles = getFlowFiles(conf, hdfs, reader, file);
                 if (!keepSourceFiles && !hdfs.delete(file, false)) {
                     logger.warn("Unable to delete path " + file.toString() + " from HDFS.  Will likely be picked up over and over...");
                 }
@@ -127,7 +129,20 @@ public class GetHDFSSequenceFile extends GetHDFS {
                 }
             }
         }
-
     }
 
+    protected Set<FlowFile> getFlowFiles(final Configuration conf, final FileSystem hdfs, final SequenceFileReader<Set<FlowFile>> reader, final Path file) throws Exception {
+        PrivilegedExceptionAction<Set<FlowFile>> privilegedExceptionAction = new PrivilegedExceptionAction<Set<FlowFile>>() {
+            @Override
+            public Set<FlowFile> run() throws Exception {
+                return reader.readSequenceFile(file, conf, hdfs);
+            }
+        };
+        UserGroupInformation userGroupInformation = getUserGroupInformation();
+        if (userGroupInformation == null) {
+            return privilegedExceptionAction.run();
+        } else {
+            return userGroupInformation.doAs(privilegedExceptionAction);
+        }
+    }
 }

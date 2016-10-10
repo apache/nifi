@@ -58,15 +58,18 @@ nf.Graph = (function () {
             // load the graph
             return nf.CanvasUtils.enterGroup(nf.Canvas.getGroupId());
         },
-        
+
         /**
          * Populates the graph with the resources defined in the response.
-         * 
+         *
          * @argument {object} processGroupContents      The contents of the process group
          * @argument {boolean} selectAll                Whether or not to select the new contents
          */
-        add: function (processGroupContents, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (processGroupContents, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
             // if we are going to select the new components, deselect the previous selection
             if (selectAll) {
@@ -77,32 +80,73 @@ nf.Graph = (function () {
             var ports = combinePorts(processGroupContents);
 
             // add the components to the responsible object
-            if (!nf.Common.isEmpty(processGroupContents.labels)) {
-                nf.Label.add(processGroupContents.labels, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.funnels)) {
-                nf.Funnel.add(processGroupContents.funnels, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.remoteProcessGroups)) {
-                nf.RemoteProcessGroup.add(processGroupContents.remoteProcessGroups, selectAll);
-            }
-            if (!nf.Common.isEmpty(ports)) {
-                nf.Port.add(ports, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processGroups)) {
-                nf.ProcessGroup.add(processGroupContents.processGroups, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processors)) {
-                nf.Processor.add(processGroupContents.processors, selectAll);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.connections)) {
-                nf.Connection.add(processGroupContents.connections, selectAll);
-            }
-            
-            // trigger the toolbar to refresh if the selection is changing
+            nf.Label.add(processGroupContents.labels, options);
+            nf.Funnel.add(processGroupContents.funnels, options);
+            nf.RemoteProcessGroup.add(processGroupContents.remoteProcessGroups, options);
+            nf.Port.add(ports, options);
+            nf.ProcessGroup.add(processGroupContents.processGroups, options);
+            nf.Processor.add(processGroupContents.processors, options);
+            nf.Connection.add(processGroupContents.connections, options);
+
+            // inform Angular app if the selection is changing
             if (selectAll) {
-                nf.CanvasToolbar.refresh();
+                nf.ng.Bridge.digest();
             }
+        },
+        
+        /**
+         * Populates the graph with the resources defined in the response.
+         * 
+         * @argument {object} processGroupContents      The contents of the process group
+         * @argument {object} options                   Configuration options
+         */
+        set: function (processGroupContents, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
+
+            // if we are going to select the new components, deselect the previous selection
+            if (selectAll) {
+                nf.CanvasUtils.getSelection().classed('selected', false);
+            }
+
+            // merge the ports together
+            var ports = combinePorts(processGroupContents);
+
+            // add the components to the responsible object
+            nf.Label.set(processGroupContents.labels, options);
+            nf.Funnel.set(processGroupContents.funnels, options);
+            nf.RemoteProcessGroup.set(processGroupContents.remoteProcessGroups, options);
+            nf.Port.set(ports, options);
+            nf.ProcessGroup.set(processGroupContents.processGroups, options);
+            nf.Processor.set(processGroupContents.processors, options);
+            nf.Connection.set(processGroupContents.connections, options);
+
+            // inform Angular app if the selection is changing
+            if (selectAll) {
+                nf.ng.Bridge.digest();
+            }
+        },
+
+        /**
+         * Expires any caches prior to setting updated components via .set(...) above. This is necessary
+         * if an ajax request returns out of order. The caches will ensure that added/removed components
+         * will not be removed/added due to process group refreshes. Whether or not a component is present
+         * is ambiguous whether the request is from before the component was added/removed or if another
+         * client has legitimately removed/added it. Once a request is initiated after the component is
+         * added/removed we can remove the entry from the cache.
+         *
+         * @param timestamp expire caches before
+         */
+        expireCaches: function (timestamp) {
+            nf.Label.expireCaches(timestamp);
+            nf.Funnel.expireCaches(timestamp);
+            nf.RemoteProcessGroup.expireCaches(timestamp);
+            nf.Port.expireCaches(timestamp);
+            nf.ProcessGroup.expireCaches(timestamp);
+            nf.Processor.expireCaches(timestamp);
+            nf.Connection.expireCaches(timestamp);
         },
         
         /**
@@ -118,58 +162,6 @@ nf.Graph = (function () {
                 processors: nf.Processor.get(),
                 connections: nf.Connection.get()
             };
-        },
-        
-        /**
-         * Sets the components contained within the specified process group.
-         * 
-         * @param {type} processGroupContents
-         */
-        set: function (processGroupContents) {
-            // merge the ports together
-            var ports = combinePorts(processGroupContents);
-
-            // set the components
-            if (!nf.Common.isEmpty(processGroupContents.labels)) {
-                nf.Label.set(processGroupContents.labels);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.funnels)) {
-                nf.Funnel.set(processGroupContents.funnels);
-            }
-            if (!nf.Common.isEmpty(ports)) {
-                nf.Port.set(ports);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.remoteProcessGroups)) {
-                nf.RemoteProcessGroup.set(processGroupContents.remoteProcessGroups);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processGroups)) {
-                nf.ProcessGroup.set(processGroupContents.processGroups);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.processors)) {
-                nf.Processor.set(processGroupContents.processors);
-            }
-            if (!nf.Common.isEmpty(processGroupContents.connections)) {
-                nf.Connection.set(processGroupContents.connections);
-            }
-        },
-        
-        /**
-         * Populates the status for the components specified. This will update the content 
-         * of the existing components on the graph and will not cause them to be repainted. 
-         * This operation must be very inexpensive due to the frequency it is called.
-         * 
-         * @argument {object} aggregateSnapshot    The status of the process group aggregated accross the cluster
-         */
-        setStatus: function (aggregateSnapshot) {
-            // merge the port status together
-            var portStatus = combinePortStatus(aggregateSnapshot);
-
-            // set the component status
-            nf.Port.setStatus(portStatus);
-            nf.RemoteProcessGroup.setStatus(aggregateSnapshot.remoteProcessGroupStatusSnapshots);
-            nf.ProcessGroup.setStatus(aggregateSnapshot.processGroupStatusSnapshots);
-            nf.Processor.setStatus(aggregateSnapshot.processorStatusSnapshots);
-            nf.Connection.setStatus(aggregateSnapshot.connectionStatusSnapshots);
         },
         
         /**

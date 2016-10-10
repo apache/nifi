@@ -21,7 +21,7 @@ nf.Snippet = (function () {
 
     var config = {
         urls: {
-            snippets: '../nifi-api/controller/snippets',
+            snippets: '../nifi-api/snippets',
             processGroups: '../nifi-api/process-groups'
         }
     };
@@ -31,20 +31,18 @@ nf.Snippet = (function () {
          * Marshals snippet from the specified selection.
          * 
          * @argument {selection} selection      The selection to marshal
-         * @argument {boolean} linked   Whether this snippet should be linked to the flow
          */
-        marshal: function (selection, linked) {
+        marshal: function (selection) {
             var snippet = {
                 parentGroupId: nf.Canvas.getGroupId(),
-                linked: nf.Common.isDefinedAndNotNull(linked) ? linked : false,
-                processorIds: [],
-                funnelIds: [],
-                inputPortIds: [],
-                outputPortIds: [],
-                remoteProcessGroupIds: [],
-                processGroupIds: [],
-                connectionIds: [],
-                labelIds: []
+                processors: {},
+                funnels: {},
+                inputPorts: {},
+                outputPorts: {},
+                remoteProcessGroups: {},
+                processGroups: {},
+                connections: {},
+                labels: {}
             };
 
             // go through each component and identify its type
@@ -52,21 +50,21 @@ nf.Snippet = (function () {
                 var selected = d3.select(this);
 
                 if (nf.CanvasUtils.isProcessor(selected)) {
-                    snippet.processorIds.push(d.component.id);
+                    snippet.processors[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isFunnel(selected)) {
-                    snippet.funnelIds.push(d.component.id);
+                    snippet.funnels[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isLabel(selected)) {
-                    snippet.labelIds.push(d.component.id);
+                    snippet.labels[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isInputPort(selected)) {
-                    snippet.inputPortIds.push(d.component.id);
+                    snippet.inputPorts[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isOutputPort(selected)) {
-                    snippet.outputPortIds.push(d.component.id);
+                    snippet.outputPorts[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isProcessGroup(selected)) {
-                    snippet.processGroupIds.push(d.component.id);
+                    snippet.processGroups[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selected)) {
-                    snippet.remoteProcessGroupIds.push(d.component.id);
+                    snippet.remoteProcessGroups[d.id] = nf.Client.getRevision(selected.datum());
                 } else if (nf.CanvasUtils.isConnection(selected)) {
-                    snippet.connectionIds.push(d.component.id);
+                    snippet.connections[d.id] = nf.Client.getRevision(selected.datum());
                 }
             });
 
@@ -79,19 +77,16 @@ nf.Snippet = (function () {
          * @argument {object} snippet       The snippet
          */
         create: function (snippet) {
-            var revision = nf.Client.getRevision();
+            var snippetEntity = {
+                'snippet': snippet
+            };
 
             return $.ajax({
                 type: 'POST',
                 url: config.urls.snippets,
-                data: $.extend({
-                    version: revision.version,
-                    clientId: revision.clientId
-                }, snippet),
-                dataType: 'json'
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
+                data: JSON.stringify(snippetEntity),
+                dataType: 'json',
+                contentType: 'application/json'
             });
         },
         
@@ -99,26 +94,21 @@ nf.Snippet = (function () {
          * Copies the snippet to the specified group and origin.
          * 
          * @argument {string} snippetId         The snippet id
-         * @argument {string} groupId           The group id
          * @argument {object} origin            The origin
          */
-        copy: function (snippetId, groupId, origin) {
-            var revision = nf.Client.getRevision();
+        copy: function (snippetId, origin) {
+            var copySnippetRequestEntity = {
+                'snippetId': snippetId,
+                'originX': origin.x,
+                'originY': origin.y
+            };
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(groupId) + '/snippet-instance',
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    snippetId: snippetId,
-                    originX: origin.x,
-                    originY: origin.y
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
+                url: config.urls.processGroups + '/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/snippet-instance',
+                data: JSON.stringify(copySnippetRequestEntity),
+                dataType: 'json',
+                contentType: 'application/json'
             });
         },
         
@@ -128,17 +118,9 @@ nf.Snippet = (function () {
          * @argument {string} snippetId         The snippet id
          */
         remove: function (snippetId) {
-            var revision = nf.Client.getRevision();
-
             return $.ajax({
                 type: 'DELETE',
-                url: config.urls.snippets + '/' + encodeURIComponent(snippetId) + '?' + $.param({
-                    version: revision.version,
-                    clientId: revision.clientId
-                })
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
+                url: config.urls.snippets + '/' + encodeURIComponent(snippetId)
             });
         },
         
@@ -149,66 +131,19 @@ nf.Snippet = (function () {
          * @argument {string} newGroupId        The new group id
          */
         move: function (snippetId, newGroupId) {
-            var revision = nf.Client.getRevision();
+            var moveSnippetEntity = {
+                'snippet': {
+                    'id': snippetId,
+                    'parentGroupId': newGroupId
+                }
+            };
 
             return $.ajax({
                 type: 'PUT',
                 url: config.urls.snippets + '/' + encodeURIComponent(snippetId),
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    parentGroupId: newGroupId
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-            });
-        },
-        
-        /**
-         * Unlinks the snippet from the actual data flow.
-         * 
-         * @argument {string} snippetId         The snippet id
-         */
-        unlink: function (snippetId) {
-            var revision = nf.Client.getRevision();
-
-            return $.ajax({
-                type: 'PUT',
-                url: config.urls.snippets + '/' + encodeURIComponent(snippetId),
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    linked: false
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
-            });
-        },
-        
-        /**
-         * Links the snippet from the actual data flow.
-         * 
-         * @argument {string} snippetId         The snippet id
-         */
-        link: function (snippetId) {
-            var revision = nf.Client.getRevision();
-
-            return $.ajax({
-                type: 'PUT',
-                url: config.urls.snippets + '/' + encodeURIComponent(snippetId),
-                data: {
-                    version: revision.version,
-                    clientId: revision.clientId,
-                    linked: true
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // update the revision
-                nf.Client.setRevision(response.revision);
+                data: JSON.stringify(moveSnippetEntity),
+                dataType: 'json',
+                contentType: 'application/json'
             });
         }
     };

@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.admin;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.h2.jdbcx.JdbcConnectionPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.FactoryBean;
+
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import org.apache.commons.lang3.StringUtils;
-import org.h2.jdbcx.JdbcConnectionPool;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.FactoryBean;
 
 /**
  *
@@ -38,7 +39,7 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
     private static final int MAX_CONNECTIONS = 5;
 
     // database file name
-    private static final String AUDIT_DATABASE_FILE_NAME = "nifi-audit";
+    private static final String AUDIT_DATABASE_FILE_NAME = "nifi-flow-audit";
 
     // ------------
     // action table
@@ -46,7 +47,6 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
     private static final String CREATE_ACTION_TABLE = "CREATE TABLE ACTION ("
             + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
             + "IDENTITY VARCHAR2(4096) NOT NULL, "
-            + "USER_NAME VARCHAR2(4096) NOT NULL, "
             + "SOURCE_ID VARCHAR2(100) NOT NULL, "
             + "SOURCE_NAME VARCHAR2(1000) NOT NULL, "
             + "SOURCE_TYPE VARCHAR2(1000) NOT NULL, "
@@ -106,10 +106,6 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
             + "END_DATE TIMESTAMP NOT NULL, "
             + "FOREIGN KEY (ACTION_ID) REFERENCES ACTION(ID)"
             + ")";
-
-    private static final String RENAME_DN_COLUMN = "ALTER TABLE ACTION ALTER COLUMN USER_DN RENAME TO IDENTITY";
-    private static final String RESIZE_IDENTITY_COLUMN = "ALTER TABLE ACTION MODIFY IDENTITY VARCHAR(4096)";
-    private static final String RESIZE_USER_NAME_COLUMN = "ALTER TABLE ACTION MODIFY USER_NAME VARCHAR(4096)";
 
     private JdbcConnectionPool connectionPool;
 
@@ -173,17 +169,6 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
                     statement.execute(CREATE_CONFIGURE_DETAILS_TABLE);
                     statement.execute(CREATE_CONNECT_DETAILS_TABLE);
                     statement.execute(CREATE_PURGE_DETAILS_TABLE);
-                } else {
-                    logger.info("Existing database found and connected to at: " + databaseUrl);
-                    RepositoryUtils.closeQuietly(rs);
-
-                    // check if the DN column exists to see if we need to transform the table
-                    rs = connection.getMetaData().getColumns(null, null, "ACTION", "USER_DN");
-                    if (rs.next()) {
-                        statement.execute(RENAME_DN_COLUMN);
-                        statement.execute(RESIZE_IDENTITY_COLUMN);
-                        statement.execute(RESIZE_USER_NAME_COLUMN);
-                    }
                 }
 
                 // commit any changes

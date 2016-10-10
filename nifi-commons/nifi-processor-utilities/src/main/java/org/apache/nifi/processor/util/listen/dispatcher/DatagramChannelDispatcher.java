@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.listen.dispatcher;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.event.Event;
 import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
@@ -45,7 +45,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     private final EventFactory<E> eventFactory;
     private final BlockingQueue<ByteBuffer> bufferPool;
     private final EventQueue<E> events;
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
     private final String sendingHost;
     private final Integer sendingPort;
 
@@ -56,14 +56,14 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
     public DatagramChannelDispatcher(final EventFactory<E> eventFactory,
                                      final BlockingQueue<ByteBuffer> bufferPool,
                                      final BlockingQueue<E> events,
-                                     final ProcessorLog logger) {
+                                     final ComponentLog logger) {
         this(eventFactory, bufferPool, events, logger, null, null);
     }
 
     public DatagramChannelDispatcher(final EventFactory<E> eventFactory,
                                      final BlockingQueue<ByteBuffer> bufferPool,
                                      final BlockingQueue<E> events,
-                                     final ProcessorLog logger,
+                                     final ComponentLog logger,
                                      final String sendingHost,
                                      final Integer sendingPort) {
         this.eventFactory = eventFactory;

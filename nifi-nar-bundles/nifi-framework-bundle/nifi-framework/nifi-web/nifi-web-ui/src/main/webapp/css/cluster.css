@@ -22,38 +22,32 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
 }
 
-#cluster-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+#cluster-filter-controls {
+    z-index: 1;
 }
 
 #cluster-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
+}
+
+#cluster-tabs-content {
+    top: 80px;
 }
 
 #cluster-refresh-container {
-    height: 26px;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#cluster-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
 }
 
 #cluster-loading-container {
@@ -73,64 +67,25 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
+/* cluster table */
 
-/* filter controls */
-
-#cluster-filter-controls {
-    float: right;
-}
-
-#cluster-filter-container {
-    height: 24px;
-    width: 318px;
-}
-
-#cluster-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
-    width: 173px;
-    border: 1px solid #ccc;
-    margin-right: 3px;
-    float: left;
-}
-
-input.cluster-filter-list {
-    color: #888;
-}
-
-#cluster-filter-type {
-    width: 127px;
-    height: 18px;
-    line-height: 18px;
-    float: left;
-}
-
-#cluster-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
-}
-
-/* counters table */
-
-#cluster-table {
+.cluster-tabbed-table {
     position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
-    overflow: hidden;
+    top: 70px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#cluster-tabs-content .slick-cell.cell-right {
+    text-align: right;
+    padding-right: 16px;
+    padding-left: 2px;
+}
+
+#cluster-tabs-content .slick-header-column.header-right {
+    text-align: right;
 }
 
 span.sorted {
@@ -139,14 +94,6 @@ span.sorted {
 
 /* user details dialog */
 
-#node-details-dialog {
-    display: none;
-    width: 600px;
-    height: 400px;
-    z-index: 1301;
-}
-
 #node-events {
     max-height: 200px;
-    overflow-y: auto;
 }

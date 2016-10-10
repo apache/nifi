@@ -23,8 +23,8 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
-import org.apache.nifi.controller.FlowSerializationException;
 import org.apache.nifi.controller.StandardSnippet;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
 
 public final class StandardSnippetSerializer {
 

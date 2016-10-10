@@ -17,7 +17,11 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimezoneAdapter;
+
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 
 /**
  * Contains details about this NiFi including the title and version.
@@ -27,6 +31,10 @@ public class AboutDTO {
 
     private String title;
     private String version;
+
+    private String uri;
+    private String contentViewerUrl;
+    private Date timezone;
 
     /* getters / setters */
     /**
@@ -61,4 +69,47 @@ public class AboutDTO {
         this.version = version;
     }
 
+    /**
+     * @return URI for this NiFi controller
+     */
+    @ApiModelProperty(
+        value = "The URI for the NiFi."
+    )
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
+    }
+
+    /**
+     * @return the URL for the content viewer if configured
+     */
+    @ApiModelProperty(
+        value = "The URL for the content viewer if configured."
+    )
+    public String getContentViewerUrl() {
+        return contentViewerUrl;
+    }
+
+    public void setContentViewerUrl(String contentViewerUrl) {
+        this.contentViewerUrl = contentViewerUrl;
+    }
+
+    /**
+     * @return the timezone of the NiFi instance
+     */
+    @XmlJavaTypeAdapter(TimezoneAdapter.class)
+    @ApiModelProperty(
+            value = "The timezone of the NiFi instance.",
+            readOnly = true
+    )
+    public Date getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(Date timezone) {
+        this.timezone = timezone;
+    }
 }

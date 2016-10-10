@@ -79,7 +79,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -160,7 +160,7 @@ public class PutJMS extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).asInteger().intValue());
         if (flowFiles.isEmpty()) {
             return;
@@ -335,7 +335,7 @@ public class PutJMS extends AbstractProcessor {
      * @throws JMSException ex
      */
     private void copyAttributesToJmsProps(final FlowFile flowFile, final Message message) throws JMSException {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Map<String, String> attributes = flowFile.getAttributes();
         for (final Entry<String, String> entry : attributes.entrySet()) {

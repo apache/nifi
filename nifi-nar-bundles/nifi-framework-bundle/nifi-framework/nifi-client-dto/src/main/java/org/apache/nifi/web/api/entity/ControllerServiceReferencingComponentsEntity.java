@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import java.util.Set;
+
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of controller services referencing
@@ -27,16 +27,16 @@ import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 @XmlRootElement(name = "controllerServiceReferencingComponentsEntity")
 public class ControllerServiceReferencingComponentsEntity extends Entity {
 
-    private Set<ControllerServiceReferencingComponentDTO> controllerServiceReferencingComponents;
+    private Set<ControllerServiceReferencingComponentEntity> controllerServiceReferencingComponents;
 
     /**
-     * @return list of controller service referencing components that are being serialized
+     * @return set of controller service referencing components that are being serialized
      */
-    public Set<ControllerServiceReferencingComponentDTO> getControllerServiceReferencingComponents() {
+    public Set<ControllerServiceReferencingComponentEntity> getControllerServiceReferencingComponents() {
         return controllerServiceReferencingComponents;
     }
 
-    public void setControllerServiceReferencingComponents(Set<ControllerServiceReferencingComponentDTO> controllerServiceReferencingComponents) {
+    public void setControllerServiceReferencingComponents(Set<ControllerServiceReferencingComponentEntity> controllerServiceReferencingComponents) {
         this.controllerServiceReferencingComponents = controllerServiceReferencingComponents;
     }
 

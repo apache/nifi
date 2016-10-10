@@ -67,8 +67,9 @@ public interface Processor extends ConfigurableComponent {
     /**
      * <p>
      * The method called when this processor is triggered to operate by the
-     * controller. This method may be called concurrently from different
-     * threads. When this method is called depends on how this processor is
+     * controller. In the absence of the {@link org.apache.nifi.annotation.behavior.TriggerSerially} annotation,
+     * this method may be called concurrently from different threads.
+     * When this method is called depends on how this processor is
      * configured within a controller to be triggered (timing or event
      * based).</p>
      *

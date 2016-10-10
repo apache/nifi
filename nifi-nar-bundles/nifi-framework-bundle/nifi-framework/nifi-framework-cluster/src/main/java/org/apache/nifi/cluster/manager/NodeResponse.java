@@ -131,9 +131,6 @@ public class NodeResponse {
         return requestUri;
     }
 
-    /**
-     * @return the HTTP response status code
-     */
     public int getStatus() {
         if (hasThrowable()) {
             /*
@@ -151,49 +148,25 @@ public class NodeResponse {
         }
     }
 
-    /**
-     * @return true if the response status is 2xx, false otherwise.
-     */
     public boolean is2xx() {
         final int statusCode = getStatus();
         return (200 <= statusCode && statusCode <= 299);
     }
 
-    /**
-     * @return true if the response status is 5xx, false otherwise.
-     */
     public boolean is5xx() {
         final int statusCode = getStatus();
         return (500 <= statusCode && statusCode <= 599);
     }
 
-    /**
-     * Returns null if hasThrowable() is true; otherwise the client's response is returned.
-     *
-     * The ClientResponse's input stream can only be read once.
-     *
-     * @return the client's response
-     */
     public ClientResponse getClientResponse() {
         return clientResponse;
     }
 
-    /**
-     * If this node response has been merged returns the updated entity, otherwise null. Also returns null if hasThrowable() is true. The intent of this method is to support getting the response
-     * entity when it was already consumed during the merge operation. In this case the client response rom getClientResponse() will not support a getEntity(...) or getEntityInputStream() call.
-     *
-     * @return If this node response has been merged returns the updated entity, otherwise null. Also returns null if hasThrowable() is true
-     */
+
     public Entity getUpdatedEntity() {
         return updatedEntity;
     }
 
-    /**
-     * Creates a Response by mapping the ClientResponse values to it. Since the ClientResponse's input stream can only be read once, this method should only be called once. Furthermore, the caller
-     * should not have already read the ClientResponse's input stream.
-     *
-     * @return the response
-     */
     public Response getResponse() {
         // if the response encapsulates a throwable, then the input stream is never read and the below warning is irrelevant
         if (hasCreatedResponse && !hasThrowable()) {
@@ -203,20 +176,11 @@ public class NodeResponse {
         return createResponse();
     }
 
-    /**
-     * Returns the throwable or null if no throwable exists.
-     *
-     * @return the throwable or null if no throwable exists
-     */
+
     public Throwable getThrowable() {
         return throwable;
     }
 
-    /**
-     * Returns true if a throwable was thrown and a response was not able to be created; false otherwise.
-     *
-     * @return true if a throwable was thrown and a response was not able to be created; false otherwise
-     */
     public boolean hasThrowable() {
         return getThrowable() != null;
     }
@@ -313,10 +277,10 @@ public class NodeResponse {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("NodeResponse[nodeUri=").append(nodeId.getApiAddress()).append(":").append(nodeId.getApiPort()).append(",")
-                .append("method=").append(httpMethod)
-                .append(",URI=").append(requestUri)
-                .append(",ResponseCode=").append(getStatus())
-                .append(",Duration=").append(TimeUnit.MILLISECONDS.convert(requestDurationNanos, TimeUnit.NANOSECONDS)).append(" ms]");
+            .append("method=").append(httpMethod)
+            .append(",URI=").append(requestUri)
+            .append(",ResponseCode=").append(getStatus())
+            .append(",Duration=").append(TimeUnit.MILLISECONDS.convert(requestDurationNanos, TimeUnit.NANOSECONDS)).append(" ms]");
         return sb.toString();
     }
 }

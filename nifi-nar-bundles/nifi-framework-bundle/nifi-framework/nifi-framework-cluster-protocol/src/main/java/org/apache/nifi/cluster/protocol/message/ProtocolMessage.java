@@ -23,17 +23,21 @@ public abstract class ProtocolMessage {
     public static enum MessageType {
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
-        CONTROLLER_STARTUP_FAILURE,
-        RECONNECTION_FAILURE,
         DISCONNECTION_REQUEST,
         EXCEPTION,
         FLOW_REQUEST,
         FLOW_RESPONSE,
-        HEARTBEAT,
         PING,
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
+        HEARTBEAT,
+        HEARTBEAT_RESPONSE,
+        NODE_CONNECTION_STATUS_REQUEST,
+        NODE_CONNECTION_STATUS_RESPONSE,
+        NODE_STATUS_CHANGE,
+        CLUSTER_WORKLOAD_REQUEST,
+        CLUSTER_WORKLOAD_RESPONSE
     }
 
     public abstract MessageType getType();

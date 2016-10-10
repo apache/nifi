@@ -16,39 +16,37 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.Availability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,50 +66,64 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Controller Service.
  */
-@Path("controller-services")
+@Path("/controller-services")
+@Api(
+        value = "/controller-services",
+        description = "Endpoint for managing a Controller Service."
+)
 public class ControllerServiceResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ServletContext servletContext;
 
     /**
-     * Populates the uri for the specified controller service.
+     * Populate the uri's for the specified controller services.
      *
-     * @param controllerServices services
+     * @param controllerServiceEntities controller services
      * @return dtos
      */
-    public Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final String availability, final Set<ControllerServiceDTO> controllerServices) {
-        for (ControllerServiceDTO controllerService : controllerServices) {
-            populateRemainingControllerServiceContent(availability, controllerService);
+    public Set<ControllerServiceEntity> populateRemainingControllerServiceEntitiesContent(final Set<ControllerServiceEntity> controllerServiceEntities) {
+        for (ControllerServiceEntity controllerServiceEntity : controllerServiceEntities) {
+            populateRemainingControllerServiceEntityContent(controllerServiceEntity);
         }
-        return controllerServices;
+        return controllerServiceEntities;
+    }
+
+    /**
+     * Populate the uri's for the specified controller service.
+     *
+     * @param controllerServiceEntity controller service
+     * @return dtos
+     */
+    public ControllerServiceEntity populateRemainingControllerServiceEntityContent(final ControllerServiceEntity controllerServiceEntity) {
+        // populate the controller service href
+        controllerServiceEntity.setUri(generateResourceUri("controller-services", controllerServiceEntity.getId()));
+
+        // populate the remaining content
+        if (controllerServiceEntity.getComponent() != null) {
+            populateRemainingControllerServiceContent(controllerServiceEntity.getComponent());
+        }
+        return controllerServiceEntity;
     }
 
     /**
      * Populates the uri for the specified controller service.
      */
-    public ControllerServiceDTO populateRemainingControllerServiceContent(final String availability, final ControllerServiceDTO controllerService) {
-        // populate the controller service href
-        controllerService.setUri(generateResourceUri("controller-services", availability, controllerService.getId()));
-        controllerService.setAvailability(availability);
-
+    public ControllerServiceDTO populateRemainingControllerServiceContent(final ControllerServiceDTO controllerService) {
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
@@ -127,269 +139,51 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes
-     * sense for the given NiFi instance.
-     *
-     * @param availability avail
-     * @return avail
-     */
-    private Availability parseAvailability(final String availability) {
-        final Availability avail;
-        try {
-            avail = Availability.valueOf(availability.toUpperCase());
-        } catch (IllegalArgumentException iae) {
-            throw new IllegalArgumentException(String.format("Availability: Value must be one of [%s]", StringUtils.join(Availability.values(), ", ")));
-        }
-
-        // ensure this nifi is an NCM is specifying NCM availability
-        if (!properties.isClusterManager() && Availability.NCM.equals(avail)) {
-            throw new IllegalArgumentException("Availability of NCM is only applicable when the NiFi instance is the cluster manager.");
-        }
-
-        return avail;
-    }
-
-    /**
-     * Retrieves all the of controller services in this NiFi.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @return A controllerServicesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets all controller services",
-            response = ControllerServicesEntity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getControllerServices(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability) {
-
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
-        // get all the controller services
-        final Set<ControllerServiceDTO> controllerServices = populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ControllerServicesEntity entity = new ControllerServicesEntity();
-        entity.setRevision(revision);
-        entity.setControllerServices(controllerServices);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Creates a new Controller Service.
-     *
-     * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param controllerServiceEntity A controllerServiceEntity.
-     * @return A controllerServiceEntity.
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
-    @ApiOperation(
-            value = "Creates a new controller service",
-            response = ControllerServiceEntity.class,
-            authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response createControllerService(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
-                    value = "The controller service configuration details.",
-                    required = true
-            ) ControllerServiceEntity controllerServiceEntity) {
-
-        final Availability avail = parseAvailability(availability);
-
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
-            throw new IllegalArgumentException("Controller service details must be specified.");
-        }
-
-        if (controllerServiceEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (controllerServiceEntity.getControllerService().getId() != null) {
-            throw new IllegalArgumentException("Controller service ID cannot be specified.");
-        }
-
-        if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
-            throw new IllegalArgumentException("The type of controller service to create must be specified.");
-        }
-
-        // get the revision
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
-
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders()).getResponse();
-        }
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        // set the processor id as appropriate
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            controllerServiceEntity.getControllerService().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
-        } else {
-            controllerServiceEntity.getControllerService().setId(UUID.randomUUID().toString());
-        }
-
-        // create the controller service and generate the json
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.createControllerService(
-                new Revision(revision.getVersion(), revision.getClientId()), controllerServiceEntity.getControllerService());
-        final ControllerServiceDTO controllerService = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(updatedRevision);
-        entity.setControllerService(populateRemainingControllerServiceContent(availability, controllerService));
-
-        // build the response
-        return clusterContext(generateCreatedResponse(URI.create(controllerService.getUri()), entity)).build();
-    }
-
-    /**
      * Retrieves the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("{id}")
     @ApiOperation(
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getControllerService(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+            controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
         // get the controller service
-        final ControllerServiceDTO controllerService = serviceFacade.getControllerService(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(revision);
-        entity.setControllerService(populateRemainingControllerServiceContent(availability, controllerService));
+        final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
+        populateRemainingControllerServiceEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -397,82 +191,62 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability avail
-     * @param id The id of the controller service.
+     * @param id           The id of the controller service.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}/descriptors")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("{id}/descriptors")
     @ApiOperation(
             value = "Gets a controller service property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getPropertyDescriptor(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The property name to return the descriptor for.",
                     required = true
             )
-            @QueryParam("propertyName") String propertyName) {
-
-        final Availability avail = parseAvailability(availability);
+            @QueryParam("propertyName") final String propertyName) {
 
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
 
-        // replicate if cluster manager and service is on node
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+            controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
-        entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
@@ -482,69 +256,51 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Gets the state for a controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
      * @param id The id of the controller service
      * @return a componentStateEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}/state")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Path("{id}/state")
     @ApiOperation(
-        value = "Gets the state for a controller service",
-        response = ComponentStateDTO.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Gets the state for a controller service",
+            response = ComponentStateDTO.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getState(
-        @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability,
-        @ApiParam(
-            value = "The controller service id.",
-            required = true
-        )
-        @PathParam("id") String id) {
+            @ApiParam(
+                    value = "The controller service id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
 
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+            controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
 
         // get the component state
         final ComponentStateDTO state = serviceFacade.getControllerServiceState(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revision);
         entity.setComponentState(state);
 
         // generate the response
@@ -554,155 +310,111 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Clears the state for a controller service.
      *
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param id The id of the controller service
+     * @param httpServletRequest servlet request
+     * @param id                 The id of the controller service
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}/state/clear-requests")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @Path("{id}/state/clear-requests")
     @ApiOperation(
-        value = "Clears the state for a controller service",
-        response = ComponentStateDTO.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Clears the state for a controller service",
+            response = ComponentStateDTO.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response clearState(
-        @Context HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The revision used to verify the client is working with the latest version of the flow.",
-            required = true
-        )
-        Entity revisionEntity,
-        @ApiParam(
-            value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability,
-        @ApiParam(
-            value = "The controller service id.",
-            required = true
-        )
-        @PathParam("id") String id) {
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The controller service id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
 
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyCanClearControllerServiceState(id);
-            return generateContinueResponse().build();
-        }
+        final ControllerServiceEntity requestControllerServiceEntity = new ControllerServiceEntity();
+        requestControllerServiceEntity.setId(id);
 
-        // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearControllerServiceState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
+        return withWriteLock(
+                serviceFacade,
+                requestControllerServiceEntity,
+                lookup -> {
+                    final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+                    controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearControllerServiceState(id),
+                (controllerServiceEntity) -> {
+                    // get the component state
+                    serviceFacade.clearControllerServiceState(controllerServiceEntity.getId());
 
-        // create the revision
-        final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
-        responseRevision.setVersion(snapshot.getVersion());
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
 
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(responseRevision);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
      * Retrieves the references of the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}/references")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("{id}/references")
     @ApiOperation(
             value = "Gets a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getControllerServiceReferences(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+            controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
         // get the controller service
-        final Set<ControllerServiceReferencingComponentDTO> controllerServiceReferences = serviceFacade.getControllerServiceReferencingComponents(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
-        entity.setRevision(revision);
-        entity.setControllerServiceReferencingComponents(controllerServiceReferences);
+        final ControllerServiceReferencingComponentsEntity entity = serviceFacade.getControllerServiceReferencingComponents(id);
 
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -710,257 +422,254 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Updates the references of the specified controller service.
      *
-     * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param updateReferenceRequest The update request
+     * @param httpServletRequest     request
+     * @param requestUpdateReferenceRequest The update request
      * @return A controllerServiceReferencingComponentsEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}/references")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @Path("{id}/references")
     @ApiOperation(
             value = "Updates a controller services references",
             response = ControllerServiceReferencingComponentsEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each referencing component specified", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateControllerServiceReferences(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                allowableValues = "NCM, NODE",
-                required = true
+                    value = "The controller service id.",
+                    required = true
             )
-            @PathParam("availability") String availability,
+            @PathParam("id") final String id,
             @ApiParam(
-                value = "The controller service request update request.",
-                required = true
-            ) UpdateControllerServiceReferenceRequestEntity updateReferenceRequest) {
+                    value = "The controller service request update request.",
+                    required = true
+            ) final UpdateControllerServiceReferenceRequestEntity requestUpdateReferenceRequest) {
 
-        if (updateReferenceRequest.getId() == null) {
+        if (requestUpdateReferenceRequest.getId() == null) {
             throw new IllegalArgumentException("The controller service identifier must be specified.");
+        }
+
+        if (requestUpdateReferenceRequest.getReferencingComponentRevisions() == null) {
+            throw new IllegalArgumentException("The controller service referencing components revisions must be specified.");
         }
 
         // parse the state to determine the desired action
         // need to consider controller service state first as it shares a state with
         // scheduled state (disabled) which is applicable for referencing services
         // but not referencing schedulable components
-        ControllerServiceState controllerServiceState = null;
+        ControllerServiceState requestControllerServiceState = null;
         try {
-            controllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
+            requestControllerServiceState = ControllerServiceState.valueOf(requestUpdateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
 
-        ScheduledState scheduledState = null;
+        ScheduledState requestScheduledState = null;
         try {
-            scheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
+            requestScheduledState = ScheduledState.valueOf(requestUpdateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
 
         // ensure an action has been specified
-        if (scheduledState == null && controllerServiceState == null) {
+        if (requestScheduledState == null && requestControllerServiceState == null) {
             throw new IllegalArgumentException("Must specify the updated state. To update referencing Processors "
                     + "and Reporting Tasks the state should be RUNNING or STOPPED. To update the referencing Controller Services the "
                     + "state should be ENABLED or DISABLED.");
         }
 
         // ensure the controller service state is not ENABLING or DISABLING
-        if (controllerServiceState != null && (ControllerServiceState.ENABLING.equals(controllerServiceState) || ControllerServiceState.DISABLING.equals(controllerServiceState))) {
+        if (requestControllerServiceState != null
+                && (ControllerServiceState.ENABLING.equals(requestControllerServiceState) || ControllerServiceState.DISABLING.equals(requestControllerServiceState))) {
+
             throw new IllegalArgumentException("Cannot set the referencing services to ENABLING or DISABLING");
         }
 
-        // determine the availability
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestUpdateReferenceRequest);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyUpdateControllerServiceReferencingComponents(updateReferenceRequest.getId(), scheduledState, controllerServiceState);
-            return generateContinueResponse().build();
-        }
+        // convert the referencing revisions
+        final Map<String, Revision> requestReferencingRevisions = requestUpdateReferenceRequest.getReferencingComponentRevisions().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> {
+                    final RevisionDTO rev = e.getValue();
+                    return new Revision(rev.getVersion(), rev.getClientId(), e.getKey());
+                }));
+        final Set<Revision> requestRevisions = new HashSet<>(requestReferencingRevisions.values());
 
-        // get the controller service
-        final RevisionDTO requestRevision = updateReferenceRequest.getRevision();
-        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response = serviceFacade.updateControllerServiceReferencingComponents(
-            new Revision(requestRevision.getVersion(), requestRevision.getClientId()), updateReferenceRequest.getId(), scheduledState, controllerServiceState);
+        final ScheduledState verifyScheduledState = requestScheduledState;
+        final ControllerServiceState verifyControllerServiceState = requestControllerServiceState;
+        return withWriteLock(
+                serviceFacade,
+                requestUpdateReferenceRequest,
+                requestRevisions,
+                lookup -> {
+                    requestReferencingRevisions.entrySet().stream().forEach(e -> {
+                        final Authorizable controllerService = lookup.getControllerServiceReferencingComponent(id, e.getKey());
+                        controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    });
+                },
+                () -> serviceFacade.verifyUpdateControllerServiceReferencingComponents(requestUpdateReferenceRequest.getId(), verifyScheduledState, verifyControllerServiceState),
+                (revisions, updateReferenceRequest) -> {
+                    ScheduledState scheduledState = null;
+                    try {
+                        scheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
+                    } catch (final IllegalArgumentException e) {
+                        // ignore
+                    }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(requestRevision.getClientId());
-        revision.setVersion(response.getVersion());
+                    ControllerServiceState controllerServiceState = null;
+                    try {
+                        controllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
+                    } catch (final IllegalArgumentException iae) {
+                        // ignore
+                    }
 
-        // create the response entity
-        final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
-        entity.setRevision(revision);
-        entity.setControllerServiceReferencingComponents(response.getConfiguration());
+                    final Map<String, Revision> referencingRevisions = updateReferenceRequest.getReferencingComponentRevisions().entrySet().stream()
+                            .collect(Collectors.toMap(Map.Entry::getKey, e -> {
+                                final RevisionDTO rev = e.getValue();
+                                return new Revision(rev.getVersion(), rev.getClientId(), e.getKey());
+                            }));
 
-        return clusterContext(generateOkResponse(entity)).build();
+                    // update the controller service references
+                    final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
+                            referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
+
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
      * Updates the specified a new Controller Service.
      *
-     * @param httpServletRequest request
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param id The id of the controller service to update.
-     * @param controllerServiceEntity A controllerServiceEntity.
+     * @param httpServletRequest      request
+     * @param id                      The id of the controller service to update.
+     * @param requestControllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @Path("{id}")
     @ApiOperation(
             value = "Updates a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateControllerService(
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
-            @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The controller service configuration details.",
                     required = true
-            ) ControllerServiceEntity controllerServiceEntity) {
+            ) final ControllerServiceEntity requestControllerServiceEntity) {
 
-        final Availability avail = parseAvailability(availability);
-
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
+        if (requestControllerServiceEntity == null || requestControllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
-        if (controllerServiceEntity.getRevision() == null) {
+        if (requestControllerServiceEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final ControllerServiceDTO requestControllerServiceDTO = controllerServiceEntity.getControllerService();
+        final ControllerServiceDTO requestControllerServiceDTO = requestControllerServiceEntity.getComponent();
         if (!id.equals(requestControllerServiceDTO.getId())) {
             throw new IllegalArgumentException(String.format("The controller service id (%s) in the request body does not equal the "
                     + "controller service id of the requested resource (%s).", requestControllerServiceDTO.getId(), id));
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders(headersToOverride)).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestControllerServiceEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO);
-            return generateContinueResponse().build();
-        }
+        final Revision requestRevision = getRevision(requestControllerServiceEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestControllerServiceEntity,
+                requestRevision,
+                lookup -> {
+                    // authorize the service
+                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerService(id);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-        // update the controller service
-        final RevisionDTO revision = controllerServiceEntity.getRevision();
-        final ConfigurationSnapshot<ControllerServiceDTO> controllerResponse = serviceFacade.updateControllerService(
-                new Revision(revision.getVersion(), revision.getClientId()), requestControllerServiceDTO);
+                    // authorize any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
+                },
+                () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
+                (revision, controllerServiceEntity) -> {
+                    final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
 
-        // get the results
-        final ControllerServiceDTO responseControllerServiceDTO = controllerResponse.getConfiguration();
+                    // update the controller service
+                    final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerService);
+                    populateRemainingControllerServiceEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(updatedRevision);
-        entity.setControllerService(populateRemainingControllerServiceContent(availability, responseControllerServiceDTO));
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseControllerServiceDTO.getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
      * Removes the specified controller service.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
-     * @param id The id of the controller service to remove.
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the controller service to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{availability}/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @Path("{id}")
     @ApiOperation(
             value = "Deletes a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeControllerService(
@@ -969,57 +678,42 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
-                    value = "Whether the controller service is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-                    allowableValues = "NCM, NODE",
-                    required = true
-            )
-            @PathParam("availability") String availability,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        final Availability avail = parseAvailability(availability);
-
-        // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
+
+        final ControllerServiceEntity requestControllerServiceEntity = new ControllerServiceEntity();
+        requestControllerServiceEntity.setId(id);
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyDeleteControllerService(id);
-            return generateContinueResponse().build();
-        }
-
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        // delete the specified controller service
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteControllerService(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ControllerServiceEntity entity = new ControllerServiceEntity();
-        entity.setRevision(revision);
-
-        return clusterContext(generateOkResponse(entity)).build();
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestControllerServiceEntity,
+                requestRevision,
+                lookup -> {
+                    final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
+                    controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyDeleteControllerService(id),
+                (revision, controllerServiceEntity) -> {
+                    // delete the specified controller service
+                    final ControllerServiceEntity entity = serviceFacade.deleteControllerService(revision, controllerServiceEntity.getId());
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     // setters
@@ -1027,11 +721,7 @@ public class ControllerServiceResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

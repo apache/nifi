@@ -24,97 +24,98 @@ nf.PortConfiguration = (function () {
      */
     var initPortConfigurationDialog = function () {
         $('#port-configuration').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Configure Port',
-            overlayBackground: true,
             buttons: [{
-                    buttonText: 'Apply',
-                    handler: {
-                        click: function () {
-                            // get the port data to reference the uri
-                            var portId = $('#port-id').text();
-                            var portData = d3.select('#id-' + portId).datum();
+                buttonText: 'Apply',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        // get the port data to reference the uri
+                        var portId = $('#port-id').text();
+                        var portData = d3.select('#id-' + portId).datum();
 
-                            // build the updated port
-                            var port = {
-                                'id': portId,
-                                'name': $('#port-name').val(),
-                                'comments': $('#port-comments').val()
-                            };
+                        // build the updated port
+                        var port = {
+                            'id': portId,
+                            'name': $('#port-name').val(),
+                            'comments': $('#port-comments').val()
+                        };
 
-                            // include the concurrent tasks if appropriate
-                            if ($('#port-concurrent-task-container').is(':visible')) {
-                                port['concurrentlySchedulableTaskCount'] = $('#port-concurrent-tasks').val();
-                            }
+                        // include the concurrent tasks if appropriate
+                        if ($('#port-concurrent-task-container').is(':visible')) {
+                            port['concurrentlySchedulableTaskCount'] = $('#port-concurrent-tasks').val();
+                        }
 
-                            // mark the processor disabled if appropriate
-                            if ($('#port-enabled').hasClass('checkbox-unchecked')) {
-                                port['state'] = 'DISABLED';
-                            } else if ($('#port-enabled').hasClass('checkbox-checked')) {
-                                port['state'] = 'STOPPED';
-                            }
+                        // mark the processor disabled if appropriate
+                        if ($('#port-enabled').hasClass('checkbox-unchecked')) {
+                            port['state'] = 'DISABLED';
+                        } else if ($('#port-enabled').hasClass('checkbox-checked')) {
+                            port['state'] = 'STOPPED';
+                        }
+
+                        // build the port entity
+                        var portEntity = {
+                            'revision': nf.Client.getRevision(portData),
+                            'component': port
+                        };
+
+                        // update the selected component
+                        $.ajax({
+                            type: 'PUT',
+                            data: JSON.stringify(portEntity),
+                            url: portData.uri,
+                            dataType: 'json',
+                            contentType: 'application/json'
+                        }).done(function (response) {
+                            // refresh the port component
+                            nf.Port.set(response);
+
+                            // inform Angular app values have changed
+                            nf.ng.Bridge.digest();
                             
-                            // build the port entity
-                            var portEntity = {
-                                'revision': nf.Client.getRevision()
-                            };
+                            // close the details panel
+                            $('#port-configuration').modal('hide');
+                        }).fail(function (xhr, status, error) {
+                            // handle bad request locally to keep the dialog open, allowing the user
+                            // to make changes. if the request fails for another reason, the dialog
+                            // should be closed so the issue can be addressed (stale flow for instance)
+                            if (xhr.status === 400) {
+                                var errors = xhr.responseText.split('\n');
 
-                            // use bracket notation to set the key based on the type
-                            portEntity[nf[portData.type].getEntityKey(portData)] = port;
-                            
-                            // update the selected component
-                            $.ajax({
-                                type: 'PUT',
-                                data: JSON.stringify(portEntity),
-                                url: portData.component.uri,
-                                dataType: 'json',
-                                contentType: 'application/json'
-                            }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
-                                var port;
-                                if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
-                                    port = response.inputPort;
+                                var content;
+                                if (errors.length === 1) {
+                                    content = $('<span></span>').text(errors[0]);
                                 } else {
-                                    port = response.outputPort;
+                                    content = nf.Common.formatUnorderedList(errors);
                                 }
 
-                                // refresh the port component
-                                nf.Port.set(port);
-
+                                nf.Dialog.showOkDialog({
+                                    dialogContent: content,
+                                    headerText: 'Port Configuration'
+                                });
+                            } else {
                                 // close the details panel
                                 $('#port-configuration').modal('hide');
-                            }).fail(function (xhr, status, error) {
-                                // handle bad request locally to keep the dialog open, allowing the user
-                                // to make changes. if the request fails for another reason, the dialog
-                                // should be closed so the issue can be addressed (stale flow for instance)
-                                if (xhr.status === 400) {
-                                    var errors = xhr.responseText.split('\n');
 
-                                    var content;
-                                    if (errors.length === 1) {
-                                        content = $('<span></span>').text(errors[0]);
-                                    } else {
-                                        content = nf.Common.formatUnorderedList(errors);
-                                    }
-
-                                    nf.Dialog.showOkDialog({
-                                        dialogContent: content,
-                                        overlayBackground: false,
-                                        headerText: 'Configuration Error'
-                                    });
-                                } else {
-                                    // close the details panel
-                                    $('#port-configuration').modal('hide');
-
-                                    // handle the error
-                                    nf.Common.handleAjaxError(xhr, status, error);
-                                }
-                            });
-                        }
+                                // handle the error
+                                nf.Common.handleAjaxError(xhr, status, error);
+                            }
+                        });
                     }
-                }, {
+                }
+            },
+                {
                     buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             $('#port-configuration').modal('hide');
@@ -131,9 +132,6 @@ nf.PortConfiguration = (function () {
                     $('#port-comments').val('');
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -141,10 +139,10 @@ nf.PortConfiguration = (function () {
         init: function () {
             initPortConfigurationDialog();
         },
-        
+
         /**
          * Shows the details for the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
@@ -166,7 +164,7 @@ nf.PortConfiguration = (function () {
                 }
 
                 // populate the port settings
-                $('#port-id').text(selectionData.component.id);
+                $('#port-id').text(selectionData.id);
                 $('#port-name').val(selectionData.component.name);
                 $('#port-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(portEnableStyle);
                 $('#port-concurrent-tasks').val(selectionData.component.concurrentlySchedulableTaskCount);

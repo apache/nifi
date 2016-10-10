@@ -21,9 +21,7 @@ nf.ClusterSearch = (function () {
     var config = {
         search: 'Search nodes',
         urls: {
-            clusterSearch: '../nifi-api/cluster/search-results',
-            status: '../nifi-api/process-groups/root/status',
-            systemDiagnostics: '../nifi-api/system-diagnostics'
+            clusterSearch: '../nifi-api/flow/cluster/search-results'
         }
     };
 
@@ -34,56 +32,87 @@ nf.ClusterSearch = (function () {
         init: function () {
             // configure the view single node dialog
             $('#view-single-node-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Select node',
-                overlayBackground: false,
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                var clusterSearchTerm = $('#cluster-search-field').val();
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            var clusterSearchTerm = $('#cluster-search-field').val();
 
-                                // create the search request
-                                $.ajax({
-                                    type: 'GET',
-                                    data: {
-                                        q: clusterSearchTerm
-                                    },
-                                    dataType: 'json',
-                                    url: config.urls.clusterSearch
-                                }).done(function (response) {
-                                    var searchResults = response.nodeResults;
+                            // create the search request
+                            $.ajax({
+                                type: 'GET',
+                                data: {
+                                    q: clusterSearchTerm
+                                },
+                                dataType: 'json',
+                                url: config.urls.clusterSearch
+                            }).done(function (response) {
+                                var searchResults = response.nodeResults;
 
-                                    // ensure the search found some results
-                                    if (!$.isArray(searchResults) || searchResults.length === 0) {
-                                        nf.Dialog.showOkDialog({
-                                            dialogContent: 'No nodes match \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.',
-                                            overlayBackground: false
-                                        });
-                                    } else if (searchResults.length > 1) {
-                                        nf.Dialog.showOkDialog({
-                                            dialogContent: 'More than one node matches \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.',
-                                            overlayBackground: false
-                                        });
-                                    } else if (searchResults.length === 1) {
-                                        var node = searchResults[0];
+                                // selects the specified node
+                                var selectNode = function (node) {
+                                    // update the urls to point to this specific node of the cluster
+                                    nf.SummaryTable.setClusterNodeId(node.id);
 
-                                        // update the urls to point to this specific node of the cluster
-                                        nf.SummaryTable.setClusterNodeId(node.id);
+                                    // load the summary for the selected node
+                                    nf.SummaryTable.loadSummaryTable();
 
-                                        // load the summary for the selected node
-                                        nf.SummaryTable.loadSummaryTable();
+                                    // update the header
+                                    $('#summary-header-text').text(node.address + ' Summary');
+                                };
 
-                                        // update the header
-                                        $('#summary-header-text').text(node.address + ' Summary');
+                                // ensure the search found some results
+                                if (!$.isArray(searchResults) || searchResults.length === 0) {
+                                    nf.Dialog.showOkDialog({
+                                        headerText: 'Cluster Search',
+                                        dialogContent: 'No nodes match \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                    });
+                                } else if (searchResults.length > 1) {
+                                    var exactMatch = false;
 
+                                    // look for an exact match
+                                    $.each(searchResults, function (_, result) {
+                                        if (result.address === clusterSearchTerm) {
+                                            selectNode(result);
+                                            exactMatch = true;
+                                            return false;
+                                        }
+                                    });
+
+                                    // if there is an exact match, use it
+                                    if (exactMatch) {
                                         // close the dialog
                                         $('#view-single-node-dialog').modal('hide');
+                                    } else {
+                                        nf.Dialog.showOkDialog({
+                                            headerText: 'Cluster Search',
+                                            dialogContent: 'More than one node matches \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                        });
                                     }
-                                });
-                            }
+                                } else if (searchResults.length === 1) {
+                                    selectNode(searchResults[0]);
+
+                                    // close the dialog
+                                    $('#view-single-node-dialog').modal('hide');
+                                }
+                            });
                         }
-                    }, {
+                    }
+                },
+                    {
                         buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 // close the dialog
@@ -94,30 +123,33 @@ nf.ClusterSearch = (function () {
                 handler: {
                     close: function () {
                         // reset the search field
-                        $('#cluster-search-field').val(config.search).addClass('search-nodes');
+                        $('#cluster-search-field').val(config.search).addClass('search-nodes').clusterSearchAutocomplete('reset');
                     }
                 }
             });
 
             // configure the cluster auto complete
             $.widget('nf.clusterSearchAutocomplete', $.ui.autocomplete, {
-                _normalize: function(searchResults) {
+                reset: function () {
+                    this.term = null;
+                },
+                _normalize: function (searchResults) {
                     var items = [];
                     items.push(searchResults);
                     return items;
                 },
-                _renderMenu: function(ul, items) {
+                _renderMenu: function (ul, items) {
                     // results are normalized into a single element array
                     var searchResults = items[0];
-                    
+
                     var self = this;
-                    $.each(searchResults.nodeResults, function(_, node) {
+                    $.each(searchResults.nodeResults, function (_, node) {
                         self._renderItemData(ul, {
                             label: node.address,
                             value: node.address
                         });
                     });
-                    
+
                     // ensure there were some results
                     if (ul.children().length === 0) {
                         ul.append('<li class="unset search-no-matches">No nodes matched the search terms</li>');
@@ -125,7 +157,7 @@ nf.ClusterSearch = (function () {
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
-                    ul.width(299);
+                    ul.width($('#cluster-search-field').width() + 6);
                 }
             });
 
@@ -162,6 +194,7 @@ nf.ClusterSearch = (function () {
             $('#view-single-node-link').click(function () {
                 // hold the search nodes dialog
                 $('#view-single-node-dialog').modal('show');
+                $('#cluster-search-field').focus();
             });
 
             // handle the view cluster click event

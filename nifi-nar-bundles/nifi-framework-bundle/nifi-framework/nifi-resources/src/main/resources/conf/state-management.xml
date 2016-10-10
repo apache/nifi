@@ -46,23 +46,13 @@
                             - Open  : ZNodes will be open to any ZooKeeper client.
                             - CreatorOnly  : ZNodes will be accessible only by the creator. The creator will have full access to create children, read, write, delete, and administer the ZNodes.
                                              This option is available only if access to ZooKeeper is secured via Kerberos or if a Username and Password are set.
-
-        Username - An optional username that can be used to assign Access Controls to ZNodes. ZooKeeper allows users to assign arbitrary usernames and passwords to ZNodes. These usernames
-                   and passwords are not explicitly defined elsewhere but are simply associated with ZNodes, so it is important that all NiFi nodes in a cluster have the same value for the
-                   Username and Password properties.
-
-        Password - An optional password that can be used to assign Access Controls to ZNodes. This property must be set if the Username property is set. NOTE: ZooKeeper transmits passwords
-                   in plain text. As a result, a Username and Password should be used only if communicate with a ZooKeeper on a localhost or over encrypted comms (such as configuring SSL
-                   communications with ZooKeeper).
     -->
     <cluster-provider>
         <id>zk-provider</id>
         <class>org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider</class>
         <property name="Connect String"></property>
         <property name="Root Node">/nifi</property>
-        <property name="Session Timeout">30 seconds</property>
-        <property name="Access Control">CreatorOnly</property>
-        <property name="Username">nifi</property>
-        <property name="Password">nifi</property>
+        <property name="Session Timeout">10 seconds</property>
+        <property name="Access Control">Open</property>
     </cluster-provider>
 </stateManagement>

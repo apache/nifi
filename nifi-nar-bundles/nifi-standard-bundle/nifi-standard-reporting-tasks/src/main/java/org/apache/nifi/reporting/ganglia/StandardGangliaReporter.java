@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.reporting.ganglia;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.yammer.metrics.core.Gauge;
+import com.yammer.metrics.core.MetricName;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.GangliaReporter;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -33,13 +31,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.yammer.metrics.core.Gauge;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.GangliaReporter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Configuration of this reporting task requires a "host" property that points
@@ -76,7 +73,6 @@ public class StandardGangliaReporter extends AbstractReportingTask {
             .build();
 
     public static final String METRICS_GROUP = "NiFi";
-    private static final Logger logger = LoggerFactory.getLogger(StandardGangliaReporter.class);
 
     private MetricsRegistry metricsRegistry;
     private GangliaReporter gangliaReporter;
@@ -245,7 +241,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
         this.latestStatus.set(rootGroupStatus);
         gangliaReporter.run();
 
-        logger.info("{} Sent metrics to Ganglia", this);
+        getLogger().info("{} Sent metrics to Ganglia", new Object[] {this});
     }
 
     private long calculateProcessingNanos(final ProcessGroupStatus status) {

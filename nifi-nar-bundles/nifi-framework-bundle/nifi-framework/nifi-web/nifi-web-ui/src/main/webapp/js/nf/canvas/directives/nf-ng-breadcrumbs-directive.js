@@ -17,26 +17,18 @@
 
 /* global nf, d3 */
 
-nf.ng.BreadcrumbsDirective = (function () {
-
-    function BreadcrumbsDirective(BreadcrumbsCtrl) {
-        return {
-            restrict: 'E',
-            templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
-            scope: {
-                'breadcrumbs': '=',
-                'clickFunc': '=',
-                'highlightCrumbId': '=',
-                'separatorFunc': '='
-            },
-            link: function (scope, element, attrs) {
-                BreadcrumbsCtrl.registerMouseWheelEvent(element);
-                scope.BreadcrumbsCtrl = BreadcrumbsCtrl;
-            }
-        };
-    }
-
-    BreadcrumbsDirective.$inject = ['BreadcrumbsCtrl'];
-
-    return BreadcrumbsDirective;
-}());
+nf.ng.BreadcrumbsDirective = function (breadcrumbsCtrl) {
+    return {
+        restrict: 'E',
+        templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
+        scope: {
+            'breadcrumbs': '=',
+            'clickFunc': '=',
+            'highlightCrumbId': '=',
+            'separatorFunc': '='
+        },
+        link: function (scope, element, attrs) {
+            breadcrumbsCtrl.registerMouseWheelEvent(element);
+        }
+    };
+};

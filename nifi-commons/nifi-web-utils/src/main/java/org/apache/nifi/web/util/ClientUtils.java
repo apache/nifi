@@ -95,7 +95,7 @@ public class ClientUtils {
      *
      * @param uri the uri to post to
      * @param formData the data to post
-     * @return the client reponse of the post
+     * @return the client response of the post
      */
     public ClientResponse post(URI uri, Map<String, String> formData) throws ClientHandlerException, UniformInterfaceException {
         // convert the form data

@@ -17,32 +17,35 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
+import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Date;
 
 /**
  * Defines a template.
  */
 @XmlRootElement(name = "template")
 public class TemplateDTO {
+    public static final String MAX_ENCODING_VERSION = "1.0";
 
     private String uri;
 
     private String id;
+    private String groupId;
     private String name;
     private String description;
     private Date timestamp;
+    private String encodingVersion;
 
     private FlowSnippetDTO snippet;
 
     /**
      * @return id for this template
      */
-    @ApiModelProperty(
-            value = "The id of the template."
-    )
+    @ApiModelProperty("The id of the template.")
     public String getId() {
         return id;
     }
@@ -50,6 +53,16 @@ public class TemplateDTO {
     public void setId(String id) {
         this.id = id;
     }
+
+    @ApiModelProperty("The id of the Process Group that the template belongs to.")
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
 
     /**
      * @return uri for this template
@@ -106,6 +119,22 @@ public class TemplateDTO {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    /**
+     * encodingVersion needs to be updated if the {@link TemplateDTO} changes.
+     * @return encoding version of this template.
+     */
+    @XmlAttribute(name= "encoding-version")
+    @ApiModelProperty(
+            value = "The encoding version of this template."
+    )
+    public String getEncodingVersion() {
+        return encodingVersion;
+    }
+
+    public void setEncodingVersion(String encodingVersion) {
+        this.encodingVersion = encodingVersion;
     }
 
     /**

@@ -31,16 +31,24 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.registry.VariableRegistry;
+
 
 public class MockValidationContext implements ValidationContext, ControllerServiceLookup {
 
     private final MockProcessContext context;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final StateManager stateManager;
+    private final VariableRegistry variableRegistry;
 
-    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager) {
+    public MockValidationContext(final MockProcessContext processContext) {
+        this(processContext, null, VariableRegistry.EMPTY_REGISTRY);
+    }
+
+    public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.context = processContext;
         this.stateManager = stateManager;
+        this.variableRegistry = variableRegistry;
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -56,18 +64,18 @@ public class MockValidationContext implements ValidationContext, ControllerServi
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this);
+        return new MockPropertyValue(rawValue, this, variableRegistry);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler();
+        return new StandardExpressionLanguageCompiler(variableRegistry);
     }
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
-        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager);
-        return new MockValidationContext(serviceProcessContext, stateManager);
+        final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, variableRegistry);
+        return new MockValidationContext(serviceProcessContext, stateManager, variableRegistry);
     }
 
     @Override
@@ -86,7 +94,7 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         return context.getControllerServiceIdentifiers(serviceType);
     }
 
@@ -117,7 +125,7 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
 
@@ -136,4 +144,10 @@ public class MockValidationContext implements ValidationContext, ControllerServi
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
     }
+
+    @Override
+    public String getProcessGroupIdentifier() {
+        return "unit test";
+    }
+
 }

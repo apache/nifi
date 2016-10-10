@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.Field;
-import java.util.List;
-
-import javax.jms.BytesMessage;
-import javax.jms.MapMessage;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
-import javax.jms.ObjectMessage;
-import javax.jms.Session;
-import javax.jms.StreamMessage;
-
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProperties;
@@ -43,6 +27,21 @@ import org.apache.nifi.web.Revision;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 import org.slf4j.impl.SimpleLogger;
+
+import javax.jms.BytesMessage;
+import javax.jms.MapMessage;
+import javax.jms.Message;
+import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
+import javax.jms.Session;
+import javax.jms.StreamMessage;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestGetJMSQueue {
 
@@ -264,7 +263,7 @@ public class TestGetJMSQueue {
         final MessageProducer producer = wrappedProducer.getProducer();
 
         // Revision class is used because test just needs any Serializable class in core NiFi
-        final ObjectMessage message = jmsSession.createObjectMessage(new Revision(1L, "ID"));
+        final ObjectMessage message = jmsSession.createObjectMessage(new Revision(1L, "ID", "COMP_ID"));
 
         producer.send(message);
         jmsSession.commit();

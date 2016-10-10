@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.apache.tika.detect.DefaultDetector;
@@ -39,7 +40,6 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Controller servlet for viewing content. This is responsible for generating
@@ -108,7 +108,7 @@ public class ContentViewerController extends HttpServlet {
             viewerContext.getRequestDispatcher("/message").forward(request, response);
             return;
         } catch (final AccessDeniedException ade) {
-            request.setAttribute("title", "Acess Denied");
+            request.setAttribute("title", "Access Denied");
             request.setAttribute("messages", "Unable to approve access to the specified content: " + ade.getMessage());
 
             // forward to the error page
@@ -117,7 +117,7 @@ public class ContentViewerController extends HttpServlet {
             return;
         } catch (final Exception e) {
             request.setAttribute("title", "Error");
-            request.setAttribute("messages", "An unexcepted error has occurred: " + e.getMessage());
+            request.setAttribute("messages", "An unexpected error has occurred: " + e.getMessage());
 
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
@@ -147,7 +147,7 @@ public class ContentViewerController extends HttpServlet {
             return;
         }
 
-        // buffer the content to support reseting in case we need to detect the content type or char encoding
+        // buffer the content to support resetting in case we need to detect the content type or char encoding
         try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
             final String mimeType;
             final String normalizedMimeType;

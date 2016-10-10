@@ -35,9 +35,13 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.util.DiskUtils;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -51,6 +55,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestFileSystemRepository {
 
@@ -59,16 +65,20 @@ public class TestFileSystemRepository {
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
 
     private FileSystemRepository repository = null;
+    private StandardResourceClaimManager claimManager = null;
     private final File rootFile = new File("target/content_repository");
+    private NiFiProperties nifiProperties;
 
     @Before
     public void setup() throws IOException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
         if (rootFile.exists()) {
             DiskUtils.deleteRecursively(rootFile);
         }
-        repository = new FileSystemRepository();
-        repository.initialize(new StandardResourceClaimManager());
+        repository = new FileSystemRepository(nifiProperties);
+        claimManager = new StandardResourceClaimManager();
+        repository.initialize(claimManager);
         repository.purge();
     }
 
@@ -79,16 +89,21 @@ public class TestFileSystemRepository {
 
     @Test
     public void testMinimalArchiveCleanupIntervalHonoredAndLogged() throws Exception {
+        // We are going to construct our own repository using different properties, so
+        // we need to shutdown the existing one.
+        shutdown();
+
         Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         ListAppender<ILoggingEvent> testAppender = new ListAppender<>();
         testAppender.setName("Test");
         testAppender.start();
         root.addAppender(testAppender);
-        NiFiProperties.getInstance().setProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
-        repository = new FileSystemRepository();
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
+        final NiFiProperties localProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        repository = new FileSystemRepository(localProps);
         repository.initialize(new StandardResourceClaimManager());
         repository.purge();
-
 
         boolean messageFound = false;
         String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
@@ -108,14 +123,14 @@ public class TestFileSystemRepository {
     @Test
     public void testBogusFile() throws IOException {
         repository.shutdown();
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
 
         File bogus = new File(rootFile, "bogus");
         try {
             bogus.mkdir();
             bogus.setReadable(false);
 
-            repository = new FileSystemRepository();
+            repository = new FileSystemRepository(nifiProperties);
             repository.initialize(new StandardResourceClaimManager());
         } finally {
             bogus.setReadable(true);
@@ -177,14 +192,13 @@ public class TestFileSystemRepository {
         repository.shutdown();
         Thread.sleep(1000L);
 
-        repository = new FileSystemRepository();
+        repository = new FileSystemRepository(nifiProperties);
         repository.initialize(new StandardResourceClaimManager());
         repository.purge();
 
         final ContentClaim claim2 = repository.create(false);
         assertNotSame(claim1.getResourceClaim(), claim2.getResourceClaim());
     }
-
 
     @Test
     public void testWriteWithNoContent() throws IOException {
@@ -236,8 +250,8 @@ public class TestFileSystemRepository {
         final Path claimPath = getPath(claim);
 
         // Create the file.
-        try (final OutputStream out = Files.newOutputStream(claimPath, StandardOpenOption.CREATE)) {
-            out.write("Hello".getBytes());
+        try (final OutputStream out = repository.write(claim)) {
+            out.write(new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH]);
         }
 
         int count = repository.decrementClaimantCount(claim);
@@ -293,7 +307,6 @@ public class TestFileSystemRepository {
         assertTrue(Arrays.equals(expected, baos.toByteArray()));
     }
 
-
     @Test
     public void testImportFromStream() throws IOException {
         final ContentClaim claim = repository.create(false);
@@ -308,10 +321,11 @@ public class TestFileSystemRepository {
     @Test
     public void testExportToOutputStream() throws IOException {
         final ContentClaim claim = repository.create(true);
-        final Path path = getPath(claim);
 
-        Files.createDirectories(path.getParent());
-        Files.copy(helloWorldFile.toPath(), path, StandardCopyOption.REPLACE_EXISTING);
+        try (final OutputStream out = repository.write(claim)) {
+            Files.copy(helloWorldFile.toPath(), out);
+        }
+
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         repository.exportTo(claim, baos);
         final byte[] data = baos.toByteArray();
@@ -321,10 +335,10 @@ public class TestFileSystemRepository {
     @Test
     public void testExportToFile() throws IOException {
         final ContentClaim claim = repository.create(true);
-        final Path path = getPath(claim);
+        try (final OutputStream out = repository.write(claim)) {
+            Files.copy(helloWorldFile.toPath(), out);
+        }
 
-        Files.createDirectories(path.getParent());
-        Files.copy(helloWorldFile.toPath(), path, StandardCopyOption.REPLACE_EXISTING);
         final File outFile = new File("target/testExportToFile");
         final Path outPath = outFile.toPath();
         Files.deleteIfExists(outPath);
@@ -357,13 +371,13 @@ public class TestFileSystemRepository {
 
     @Test(expected = ContentNotFoundException.class)
     public void testSizeWithNoContent() throws IOException {
-        final ContentClaim claim = repository.create(true);
+        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
         assertEquals(0L, repository.size(claim));
     }
 
     @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContent() throws IOException {
-        final ContentClaim claim = repository.create(true);
+        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
         final InputStream in = repository.read(claim);
         in.close();
     }
@@ -405,12 +419,12 @@ public class TestFileSystemRepository {
 
         // write at least 1 MB to the output stream so that when we close the output stream
         // the repo won't keep the stream open.
-        final byte[] buff = new byte[1024 * 1024];
+        final byte[] buff = new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH];
         out.write(buff);
         out.write(buff);
 
-        // true because claimant count is still 1.
-        assertTrue(repository.remove(claim));
+        // false because claimant count is still 1, so the resource claim was not removed
+        assertFalse(repository.remove(claim));
 
         assertEquals(0, repository.decrementClaimantCount(claim));
 
@@ -419,6 +433,190 @@ public class TestFileSystemRepository {
 
         out.close();
         assertTrue(repository.remove(claim));
+    }
+
+    @Test
+    public void testMarkDestructableDoesNotArchiveIfStreamOpenAndWrittenTo() throws IOException, InterruptedException {
+        FileSystemRepository repository = null;
+        try {
+            final List<Path> archivedPaths = Collections.synchronizedList(new ArrayList<Path>());
+
+            // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
+            shutdown();
+
+            repository = new FileSystemRepository(nifiProperties) {
+                @Override
+                protected boolean archive(Path curPath) throws IOException {
+                    archivedPaths.add(curPath);
+                    return true;
+                }
+            };
+
+            final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repository.initialize(claimManager);
+            repository.purge();
+
+            final ContentClaim claim = repository.create(false);
+
+            // Create a stream and write a bit to it, then close it. This will cause the
+            // claim to be put back onto the 'writableClaimsQueue'
+            try (final OutputStream out = repository.write(claim)) {
+                assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
+                out.write("1\n".getBytes());
+            }
+
+            assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
+
+            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            assertEquals(0, claimantCount);
+            assertTrue(archivedPaths.isEmpty());
+
+            claimManager.markDestructable(claim.getResourceClaim());
+
+            // Wait for the archive thread to have a chance to run
+            Thread.sleep(2000L);
+
+            // Should still be empty because we have a stream open to the file.
+            assertTrue(archivedPaths.isEmpty());
+            assertEquals(0, claimManager.getClaimantCount(claim.getResourceClaim()));
+        } finally {
+            if (repository != null) {
+                repository.shutdown();
+            }
+        }
+    }
+
+    @Test
+    public void testWriteCannotProvideNullOutput() throws IOException {
+        FileSystemRepository repository = null;
+        try {
+            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<Path>());
+
+            // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
+            shutdown();
+
+            repository = new FileSystemRepository(nifiProperties) {
+                @Override
+                protected boolean archive(Path curPath) throws IOException {
+                    if (getOpenStreamCount() > 0) {
+                        archivedPathsWithOpenStream.add(curPath);
+                    }
+
+                    return true;
+                }
+            };
+
+            final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repository.initialize(claimManager);
+            repository.purge();
+
+            final ContentClaim claim = repository.create(false);
+
+            assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
+
+            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            assertEquals(0, claimantCount);
+            assertTrue(archivedPathsWithOpenStream.isEmpty());
+
+            OutputStream out = repository.write(claim);
+            out.close();
+            repository.decrementClaimantCount(claim);
+
+            ContentClaim claim2 = repository.create(false);
+            assertEquals(claim.getResourceClaim(), claim2.getResourceClaim());
+            out = repository.write(claim2);
+
+            final boolean archived = repository.archive(claim.getResourceClaim());
+            assertFalse(archived);
+        } finally {
+            if (repository != null) {
+                repository.shutdown();
+            }
+        }
+    }
+
+    /**
+     * We have encountered a situation where the File System Repo is moving
+     * files to archive and then eventually aging them off while there is still
+     * an open file handle. This test is meant to replicate the conditions under
+     * which this would happen and verify that it is fixed.
+     *
+     * The condition that caused this appears to be that a Process Session
+     * created a Content Claim and then did not write to it. It then decremented
+     * the claimant count (which reduced the count to 0). This was likely due to
+     * creating the claim in ProcessSession.write(FlowFile, StreamCallback) and
+     * then having an Exception thrown when the Process Session attempts to read
+     * the current Content Claim. In this case, it would not ever get to the
+     * point of calling FileSystemRepository.write().
+     *
+     * The above sequence of events is problematic because calling
+     * FileSystemRepository.create() will remove the Resource Claim from the
+     * 'writable claims queue' and expects that we will write to it. When we
+     * call FileSystemRepository.write() with that Resource Claim, we return an
+     * OutputStream that, when closed, will take care of adding the Resource
+     * Claim back to the 'writable claims queue' or otherwise close the
+     * FileOutputStream that is open for that Resource Claim. If
+     * FileSystemRepository.write() is never called, or if the OutputStream
+     * returned by that method is never closed, but the Content Claim is then
+     * decremented to 0, we can get into a situation where we do archive the
+     * content (because the claimant count is 0 and it is not in the 'writable
+     * claims queue') and then eventually age it off, without ever closing the
+     * OutputStream. We need to ensure that we do always close that Output
+     * Stream.
+     */
+    @Test
+    public void testMarkDestructableDoesNotArchiveIfStreamOpenAndNotWrittenTo() throws IOException, InterruptedException {
+        FileSystemRepository repository = null;
+        try {
+            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<Path>());
+
+            // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
+            shutdown();
+
+            repository = new FileSystemRepository(nifiProperties) {
+                @Override
+                protected boolean archive(Path curPath) throws IOException {
+                    if (getOpenStreamCount() > 0) {
+                        archivedPathsWithOpenStream.add(curPath);
+                    }
+
+                    return true;
+                }
+            };
+
+            final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repository.initialize(claimManager);
+            repository.purge();
+
+            final ContentClaim claim = repository.create(false);
+
+            assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
+
+            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            assertEquals(0, claimantCount);
+            assertTrue(archivedPathsWithOpenStream.isEmpty());
+
+            // This would happen when FlowFile repo is checkpointed, if Resource Claim has claimant count of 0.
+            // Since the Resource Claim of interest is still 'writable', we should not archive it.
+            claimManager.markDestructable(claim.getResourceClaim());
+
+            // Wait for the archive thread to have a chance to run
+            long totalSleepMillis = 0;
+            final long startTime = System.nanoTime();
+            while (archivedPathsWithOpenStream.isEmpty() && totalSleepMillis < 5000) {
+                Thread.sleep(100L);
+                totalSleepMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
+            }
+
+            // Should still be empty because we have a stream open to the file so we should
+            // not actually try to archive the data.
+            assertTrue(archivedPathsWithOpenStream.isEmpty());
+            assertEquals(0, claimManager.getClaimantCount(claim.getResourceClaim()));
+        } finally {
+            if (repository != null) {
+                repository.shutdown();
+            }
+        }
     }
 
     @Test

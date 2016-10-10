@@ -37,6 +37,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -98,9 +99,10 @@ public class GetSQS extends AbstractSQSProcessor {
             .defaultValue("10")
             .build();
 
-    public static final PropertyDescriptor STATIC_QUEUE_URL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DYNAMIC_QUEUE_URL = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(QUEUE_URL)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
             .build();
 
     public static final PropertyDescriptor RECEIVE_MSG_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -114,7 +116,7 @@ public class GetSQS extends AbstractSQSProcessor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(STATIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
+            Arrays.asList(DYNAMIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                 AWS_CREDENTIALS_PROVIDER_SERVICE, REGION, BATCH_SIZE, TIMEOUT, CHARSET, VISIBILITY_TIMEOUT, RECEIVE_MSG_WAIT_TIME, PROXY_HOST, PROXY_HOST_PORT));
 
     @Override
@@ -129,7 +131,8 @@ public class GetSQS extends AbstractSQSProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final String queueUrl = context.getProperty(STATIC_QUEUE_URL).getValue();
+        final String queueUrl = context.getProperty(DYNAMIC_QUEUE_URL).evaluateAttributeExpressions()
+                .getValue();
 
         final AmazonSQSClient client = getClient();
 

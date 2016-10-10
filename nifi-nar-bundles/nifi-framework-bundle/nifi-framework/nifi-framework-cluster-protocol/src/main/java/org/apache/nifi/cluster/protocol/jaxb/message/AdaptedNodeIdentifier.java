@@ -27,6 +27,8 @@ public class AdaptedNodeIdentifier {
     private int socketPort;
     private String siteToSiteAddress;
     private Integer siteToSitePort;
+    private Integer siteToSiteHttpApiPort;
+
     private boolean siteToSiteSecure;
 
     public AdaptedNodeIdentifier() {
@@ -96,4 +98,13 @@ public class AdaptedNodeIdentifier {
     public void setSiteToSiteSecure(boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
     }
+
+    public Integer getSiteToSiteHttpApiPort() {
+        return siteToSiteHttpApiPort;
+    }
+
+    public void setSiteToSiteHttpApiPort(Integer siteToSiteHttpApiPort) {
+        this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
+    }
+
 }

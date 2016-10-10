@@ -22,46 +22,29 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
-}
-
-div.provenance-panel {
-    bottom: 20px;
     left: 20px;
-    overflow: hidden;
-    position: absolute;
     right: 20px;
-    top: 55px;
+    overflow: auto;
 }
 
-#provenance-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+#provenance-header-and-filter{
+    height: 111px;
 }
 
 #provenance-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    line-height: normal;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 15px;
+    height: 118px;
 }
 
 #provenance-refresh-container {
-    height: 26px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#provenance-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    left: 0px;
 }
 
 #provenance-loading-container {
@@ -74,126 +57,74 @@ div.provenance-panel {
 }
 
 #provenance-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 #provenance-header {
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
+div.provenance-panel {
+    bottom: 0px;
+    left: 0px;
+    overflow: hidden;
+    position: absolute;
+    right: 0px;
+    top: 40px;
 }
 
 /* filter controls */
 
-#provenance-filter-controls {
-    float: right;
-}
-
 #provenance-filter-container {
     height: 24px;
-    width: 326px;
+    width: 100%;
 }
 
 #provenance-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
     width: 173px;
-    border: 1px solid #ccc;
     margin-right: 3px;
     float: left;
 }
 
-input.provenance-filter-list {
-    color: #888;
-}
-
 #provenance-filter-type {
-    width: 135px;
-    height: 18px;
-    line-height: 18px;
     float: left;
-}
-
-#provenance-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
 }
 
 #oldest-event-message {
-    display: none;
-    color: #9F6000;
-    font-weight: bold;
-    line-height: normal;
-    float: left;
-    clear: left;
-    margin-top: 4px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
 }
 
 /* provenance search controls */
 
 #provenance-search-container {
     position: absolute;
-    right: 0px;
-    top: 20px;
+    right: 0;
+    top: 38px;
 }
 
 #provenance-search-button {
-    height: 20px;
-    line-height: 20px;
-    width: 55px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #AAAAAA;
-    color: #525252;
-    float: left;
-    margin-right: 0;
-    padding: 0;
+    float: right;
 }
 
 #provenance-search-overview {
-    float: left;
-    color: #9F6000;
-    font-size: 9px;
-    font-weight: bold;
-    line-height: normal;
-    float: left;
-    margin-top: 6px;
-    margin-right: 8px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
 }
 
 #clear-provenance-search {
-    cursor: pointer;
-    color:#31849B;
-    text-decoration: underline;
-    margin-left: 5px;
     display: none;
 }
 
 /* provenance search dialog */
 
-#provenance-search-dialog {
-    display: none;
-    width: 454px;
-    height: 515px;
-    z-index: 1301;
-}
-
 #searchable-fields-container {
-    width: 426px;
-    height: 220px;
-    border: 1px solid #aaa;
+    min-height: 185px;
     padding: 5px;
-    padding-right: 0px;
     overflow: auto;
 }
 
@@ -202,25 +133,24 @@ div.searchable-field {
 }
 
 div.searchable-field-name {
-    width: 150px;
+    width: 25%;
     float: left;
     line-height: 26px;
 }
 
 div.searchable-field-value {
     float: left;
-}
-
-input.searchable-field-input {
-    width: 245px;
+    width: 75%;
 }
 
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
     float: left;
+    width: 49%;
 }
 
 .start-date-setting, .end-date-setting {
-    margin-right: 15px;
+    margin-right: 2%;
+    width: 49%;
 }
 
 .provenance-small-input {
@@ -235,124 +165,71 @@ input.searchable-field-input {
     display: none;
 }
 
-#provenance-search-location {
-    height: 18px;
-    line-height: 18px;
-    width: 424px;
-}
-
 /* event details dialog */
-
-#event-details-dialog {
-    display: none;
-    width: 800px;
-    height: 450px;
-    z-index: 1301;
-}
-
-#event-details-dialog-content {
-    margin-top: -10px;
-    padding: 5px 11px
-}
-
-#event-details-tabs {
-    background-color: transparent;
-    border-bottom: 3px solid #666666;
-    height: 21px;
-    width: 778px;
-}
-
-#event-details-dialog div.details-tab {
-    background: url("../images/bgTabContainer.png") repeat-x scroll 0 0 #EEEEEE;
-    display: none;
-    height: 330px;
-    padding: 10px;
-}
-
-#event-details-tab-content div.settings-left {
-    float: left;
-    width: 420px;
-}
-
-#event-details-tab-content div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#event-details-tab-content div.settings-right {
-    float: left;
-    width: 292px;
-}
 
 div.flowfile-container {
     width: 282px;
-    height: 120px;
     overflow: auto;
-    border: 1px solid #aaa;
-    padding: 5px;
-    font-family: monospace;
-    font-size: 12px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    line-height:1.4
 }
 
 #child-flowfiles {
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 div.event-header {
-    color: #264C58;
-    font-size: 11px;
+    color: #728e9b;
+    font-size: 15px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
     font-weight: bold;
-    margin-bottom: 5px;
-}
-
-#attributes-container {
-    height: 290px;
-    overflow: auto;
-    border: 1px solid #aaa;
-    padding: 5px;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
 }
 
 div.detail-name {
-    float: left;
-    width: 145px;
-    color: #527991;
-    font-size: 10px;
-    font-weight: bold;
-    overflow: hidden;
-    white-space: nowrap;
-    line-height: normal;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.detail-value {
-    float: left;
-    width: 270px;
-    overflow: hidden;
-    white-space: nowrap;
     line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 div.attribute-detail {
-    margin-bottom: 5px;
+    margin-bottom: 15px;
 }
 
 div.attribute-name {
-    float: left;
-    width: 225px;
-    color: #527991;
-    font-size: 10px;
-    font-weight: bold;
-    overflow: hidden;
-    white-space: nowrap;
-    line-height: normal;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.attribute-value {
-    float: left;
-    width: 490px;
-    margin-left: 10px;
-    overflow: hidden;
-    white-space: nowrap;
     line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #attributes-header {
@@ -365,12 +242,15 @@ div.attribute-value {
 
 #modified-attribute-toggle-label {
     float: left;
+    font-size:13px;
+    line-height: 20px;
 }
 
 #modified-attribute-toggle {
     float: left;
-    margin-left: 5px;
-    margin-right: 0;
+    margin-right: 5px;
+    margin-left: 0;
+    margin-top: 3px;
 }
 
 div.modified-attribute-label {
@@ -384,15 +264,18 @@ div.modified-attribute-label {
 
 div.modified-attribute-value {
     float: left;
-    width: 490px;
-    margin-left: 175px;
+    width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;
+    color: #ad9897;
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 div.event-detail {
-    margin-bottom: 4px;
+    margin-bottom: 15px;
 }
 
 #input-content-download, #output-content-download, #replay-content {
@@ -400,43 +283,32 @@ div.event-detail {
     margin: 0;
 }
 
+#replay-content-message {
+    font-size: 13px;
+}
+
 #input-content-view, #output-content-view {
     float: left;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 div.content-detail-name {
-    color: #527991;
-    float: left;
-    font-size: 10px;
-    font-weight: bold;
-    line-height: normal;
-    overflow: hidden;
-    white-space: nowrap;
-    width: 90px;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.content-detail-value {
-    width: 265px;
-    float: left;
     line-height: normal;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-#content-tab-content div.settings-left {
-    float: left;
-    width: 356px;
-}
-
-#content-tab-content div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#content-tab-content div.settings-right {
-    float: left;
-    width: 356px;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #replay-details {
@@ -445,15 +317,7 @@ div.content-detail-value {
 
 /* provenance/lineage query dialog */
 
-#provenance-query-dialog, #lineage-query-dialog {
-    display: none;
-    width: 400px;
-    height: 135px;
-    z-index: 1301;
-}
-
 #provenance-percent-complete, #lineage-percent-complete {
-    width: 378px;
     border-radius: 0;
 }
 
@@ -461,31 +325,24 @@ div.content-detail-value {
     border-radius: 0;
 }
 
-div.progress-label {
-    color: #000000;
-    display: block;
-    font-weight: bold;
-    text-align: center;
-    width: 378px;
-    margin-top: 4px;
-}
-
 /* provenance table */
 
 #provenance-table {
     position: absolute;
-    top: 45px;
+    top: 88px;
     left: 0px;
-    bottom: 0px;
+    bottom: 47px;
     right: 0px;
-    border: 1px solid #666;
     overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 /* provenance lineage */
 
 #provenance-lineage {
-    border: 1px solid #aaa;
+    border: 1px solid #e5ebed;
+    background-color: #f9fafb;
 }
 
 #provenance-lineage-loading-container {
@@ -500,6 +357,11 @@ div.progress-label {
     width: 16px;
 }
 
+#provenance-lineage-container {
+    height: 100%;
+    width: 100%;
+}
+
 #provenance-lineage-close-container {
     position: absolute;
     right: 1px;
@@ -510,17 +372,22 @@ div.progress-label {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconExportLineage.png") no-repeat scroll left center transparent;
+    font-size: 16px;
+    color: #004849;
     cursor: pointer;
-    margin-right: 2px;
+    margin-right: 4px;
+    margin-top: 2px;
 }
 
 #provenance-lineage-closer {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconClose.png") no-repeat scroll left center transparent;
+    font-size: 16px;
+    color: #004849;
     cursor: pointer;
+    margin-right: 5px;
+    margin-top: 2px;
 }
 
 #provenance-lineage-slider-container {
@@ -546,10 +413,13 @@ div.progress-label {
 }
 
 #event-timeline {
-    margin-top: 8px;
-    color: #9F6000;
-    font-weight: bold;
+    margin-top: 4px;
+    color: #775351;
     line-height: normal;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 13px;
 }
 
 #event-time {
@@ -560,101 +430,80 @@ div.progress-label {
     float: left;
 }
 
-#provenance-lineage-context-menu {
-    display: none;
-    border: 1px solid #000;
-    width: 140px;
-    position: absolute;
-    background-color: #fff;
-    padding: 3px 0;
+div.lineage-view-event:before {
+    font-family: FontAwesome;
+    content: "\f05a";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-event {
-    background: url("../images/iconDetails.png") no-repeat scroll center center transparent;
+div.lineage-view-parents:before {
+    font-family: FontAwesome;
+    content: "\f1e5";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-parents {
-    background: url("../images/iconExpandParents.png") no-repeat scroll center center transparent;
+div.lineage-collapse-parents:before {
+    font-family: FontAwesome;
+    content: "\f147";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-collapse-parents {
-    background: url("../images/iconCollapseParents.png") no-repeat scroll center center transparent;
+div.lineage-view-children:before {
+    font-family: FontAwesome;
+    content: "\f0fe";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-children {
-    background: url("../images/iconExpandChildren.png") no-repeat scroll center center transparent;
-}
-
-div.lineage-collapse-children {
-    background: url("../images/iconCollapseChildren.png") no-repeat scroll center center transparent;
-}
-
-div.provenance-lineage-menu-item {
-    padding: 3px 6px;
-    cursor: pointer;
-}
-
-div.provenance-lineage-menu-item.hover {
-    color: #027fd2;
-}
-
-div.provenance-lineage-menu-item-img {
-    float: left;
-    width: 16px;
-    height: 16px;
-}
-
-div.provenance-lineage-menu-item-text {
-    width: 106px;
-    margin-left: 6px;
-    line-height: 16px;
-    float: left;
-    font-family: Verdana;
-    font-size: 8pt;
+div.lineage-collapse-children:before {
+    font-family: FontAwesome;
+    content: "\f146";
+    font-size: 16px;
+    color: #004849;
 }
 
 path.link.selected {
-    stroke: #FFCC00;
+    stroke: #ba554a;
 }
 
 g.event circle.selected {
-    fill: #FFCC00;
+    fill: #ba554a;
 }
 
 text.event-type {
     cursor: pointer;
+    font-family: Roboto;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: normal;
 }
 
 text.event-type.expand-parents, text.event-type.expand-children {
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-size: 13px;
 }
 
 g.flowfile circle.context, g.event circle.context {
-    stroke: #b70303;
+    stroke: #004849;
     stroke-width: 1.5px;
 }
 
-path.flowfile-icon-base {
-    pointer-events: none;
+.flowfile-icon {
+    font-family: flowfont;
+    content: "\e808";
+    font-size: 16px;
+    color: #ad9897;
 }
 
-path.flowfile-icon-base-outline {
-    pointer-events: none;
+#child-flowfile-count {
+    font-weight: normal;
 }
 
-path.flowfile-icon-mid {
-    pointer-events: none;
-}
-
-path.flowfile-icon-mid-outline {
-    pointer-events: none;
-}
-
-path.flowfile-icon-arc {
-    pointer-events: none;
-}
-
-path.flowfile-icon-top {
-    pointer-events: none;
+#parent-flowfile-count {
+    font-weight: normal;
 }

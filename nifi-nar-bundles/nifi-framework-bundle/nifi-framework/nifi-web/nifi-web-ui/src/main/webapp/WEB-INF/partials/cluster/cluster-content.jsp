@@ -18,22 +18,39 @@
 <div id="cluster">
     <div id="cluster-header-and-filter">
         <div id="cluster-header-text">NiFi Cluster</div>
-        <div id="cluster-filter-controls">
-            <div id="cluster-filter-container">
-                <input type="text" id="cluster-filter"/>
-                <div id="cluster-filter-type"></div>
+    </div>
+    <div id="cluster-tabs" class="tab-container"></div>
+    <div id="cluster-tabs-content">
+        <div id="cluster-filter-controls" class="filter-controls">
+            <div id="cluster-filter-stats" class="filter-status">
+                Displaying&nbsp;<span id="displayed-rows"></span>&nbsp;of&nbsp;<span id="total-rows"></span>
             </div>
-            <div id="cluster-filter-stats">
-                Displaying&nbsp;<span id="displayed-nodes"></span>&nbsp;of&nbsp;<span id="total-nodes"></span>
+            <div id="cluster-filter-container" class="filter-container">
+                <input type="text" id="cluster-filter" class="filter" placeholder="Filter"/>
+                <div id="cluster-filter-type" class="filter-type"></div>
             </div>
         </div>
-    </div>
-    <div id="cluster-refresh-container">
-        <div id="refresh-button" class="cluster-refresh pointer" title="Refresh"></div>
-        <div id="cluster-last-refreshed-container">
-            Last updated:&nbsp;<span id="cluster-last-refreshed"></span>
+        <div id="cluster-nodes-tab-content" class="configuration-tab">
+            <div id="cluster-nodes-table" class="cluster-tabbed-table"></div>
         </div>
-        <div id="cluster-loading-container" class="loading-container"></div>
+        <div id="cluster-system-tab-content" class="configuration-tab">
+            <div id="cluster-system-table" class="cluster-tabbed-table"></div>
+        </div>
+        <div id="cluster-jvm-tab-content" class="configuration-tab">
+            <div id="cluster-jvm-table" class="cluster-tabbed-table"></div>
+        </div>
+        <div id="cluster-flowfile-tab-content" class="configuration-tab">
+            <div id="cluster-flowfile-table" class="cluster-tabbed-table"></div>
+        </div>
+        <div id="cluster-content-tab-content" class="configuration-tab">
+            <div id="cluster-content-table" class="cluster-tabbed-table"></div>
+        </div>
     </div>
-    <div id="cluster-table"></div>
+</div>
+<div id="cluster-refresh-container">
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="cluster-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="cluster-last-refreshed"></span>
+    </div>
+    <div id="cluster-loading-container" class="loading-container"></div>
 </div>

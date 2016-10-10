@@ -16,22 +16,23 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * Audits configuration changes to the controller.
@@ -40,112 +41,6 @@ import org.slf4j.LoggerFactory;
 public class ControllerAuditor extends NiFiAuditor {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerAuditor.class);
-
-    /**
-     * Audits updating the name of the controller.
-     *
-     * @param proceedingJoinPoint join point
-     * @param name name
-     * @param controllerFacade facade
-     * @throws java.lang.Throwable ex
-     */
-    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
-            + "execution(void setName(java.lang.String)) && "
-            + "args(name) && "
-            + "target(controllerFacade)")
-    public void updateControllerNameAdvice(ProceedingJoinPoint proceedingJoinPoint, String name, ControllerFacade controllerFacade) throws Throwable {
-        // get the previous name
-        String previousName = controllerFacade.getName();
-
-        // update the configuraion
-        proceedingJoinPoint.proceed();
-
-        // if no exception were thrown, add the configuration action...
-        // ensure the name changed
-        if (!name.equals(previousName)) {
-            // get the current user
-            NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-            // ensure the user was found
-            if (user != null) {
-                Collection<Action> actions = new ArrayList<>();
-
-                // create the configuration details
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                configDetails.setName("Controller Name");
-                configDetails.setValue(name);
-                configDetails.setPreviousValue(previousName);
-
-                // create the config action
-                FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getIdentity());
-                configAction.setUserName(user.getUserName());
-                configAction.setOperation(Operation.Configure);
-                configAction.setTimestamp(new Date());
-                configAction.setSourceId("Flow Controller");
-                configAction.setSourceName(controllerFacade.getName());
-                configAction.setSourceType(Component.Controller);
-                configAction.setActionDetails(configDetails);
-                actions.add(configAction);
-
-                // record the action
-                saveActions(actions, logger);
-            }
-        }
-    }
-
-    /**
-     * Audits updating the comments of the controller.
-     *
-     * @param proceedingJoinPoint join point
-     * @param comments comments
-     * @param controllerFacade facade
-     * @throws java.lang.Throwable ex
-     */
-    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
-            + "execution(void setComments(java.lang.String)) && "
-            + "args(comments) && "
-            + "target(controllerFacade)")
-    public void updateControllerCommentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String comments, ControllerFacade controllerFacade) throws Throwable {
-        // get the previous name
-        String previousComments = controllerFacade.getComments();
-
-        // update the configuraion
-        proceedingJoinPoint.proceed();
-
-        // if no exception were thrown, add the configuration action...
-        // ensure the name changed
-        if (!comments.equals(previousComments)) {
-            // get the current user
-            NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-            // ensure the user was found
-            if (user != null) {
-                Collection<Action> actions = new ArrayList<>();
-
-                // create the configuration details
-                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                configDetails.setName("Controller Comments");
-                configDetails.setValue(comments);
-                configDetails.setPreviousValue(previousComments);
-
-                // create the config action
-                FlowChangeAction configAction = new FlowChangeAction();
-                configAction.setUserIdentity(user.getIdentity());
-                configAction.setUserName(user.getUserName());
-                configAction.setOperation(Operation.Configure);
-                configAction.setTimestamp(new Date());
-                configAction.setSourceId("Flow Controller");
-                configAction.setSourceName(controllerFacade.getName());
-                configAction.setSourceType(Component.Controller);
-                configAction.setActionDetails(configDetails);
-                actions.add(configAction);
-
-                // record the action
-                saveActions(actions, logger);
-            }
-        }
-    }
 
     /**
      * Audits updating the max number of timer driven threads for the controller.
@@ -185,11 +80,10 @@ public class ControllerAuditor extends NiFiAuditor {
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
                 configAction.setUserIdentity(user.getIdentity());
-                configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
                 configAction.setSourceId("Flow Controller");
-                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceName("Flow Controller");
                 configAction.setSourceType(Component.Controller);
                 configAction.setActionDetails(configDetails);
                 actions.add(configAction);
@@ -238,11 +132,10 @@ public class ControllerAuditor extends NiFiAuditor {
                 // create the config action
                 FlowChangeAction configAction = new FlowChangeAction();
                 configAction.setUserIdentity(user.getIdentity());
-                configAction.setUserName(user.getUserName());
                 configAction.setOperation(Operation.Configure);
                 configAction.setTimestamp(new Date());
                 configAction.setSourceId("Flow Controller");
-                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceName("Flow Controller");
                 configAction.setSourceType(Component.Controller);
                 configAction.setActionDetails(configDetails);
                 actions.add(configAction);

@@ -16,31 +16,36 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
+
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
     private ControllerServiceProvider serviceProvider;
     private ComponentStateDAO componentStateDAO;
+    private FlowController flowController;
 
     private ControllerServiceNode locateControllerService(final String controllerServiceId) {
         // get the controller service
@@ -71,6 +76,24 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             // perform the update
             configureControllerService(controllerService, controllerServiceDTO);
 
+            final String groupId = controllerServiceDTO.getParentGroupId();
+            if (groupId == null) {
+                flowController.addRootControllerService(controllerService);
+            } else {
+                final ProcessGroup group;
+                if (groupId.equals(ROOT_GROUP_ID_ALIAS)) {
+                    group = flowController.getGroup(flowController.getRootGroupId());
+                } else {
+                    group = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(groupId);
+                }
+
+                if (group == null) {
+                    throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
+                }
+
+                group.addControllerService(controllerService);
+            }
+
             return controllerService;
         } catch (final ControllerServiceInstantiationException csie) {
             throw new NiFiCoreException(csie.getMessage(), csie);
@@ -88,8 +111,18 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public Set<ControllerServiceNode> getControllerServices() {
-        return serviceProvider.getAllControllerServices();
+    public Set<ControllerServiceNode> getControllerServices(final String groupId) {
+        if (groupId == null) {
+            return flowController.getRootControllerServices();
+        } else {
+            final String searchId = groupId.equals(ROOT_GROUP_ID_ALIAS) ? flowController.getRootGroupId() : groupId;
+            final ProcessGroup procGroup = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(searchId);
+            if (procGroup == null) {
+                throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
+            }
+
+            return procGroup.getControllerServices(true);
+        }
     }
 
     @Override
@@ -121,27 +154,27 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public ControllerServiceReference updateControllerServiceReferencingComponents(
+    public Set<ConfiguredComponent> updateControllerServiceReferencingComponents(
             final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
 
-        // this request is either acting upon referncing services or schedulable components
+        // this request is either acting upon referencing services or schedulable components
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
-                serviceProvider.enableReferencingServices(controllerService);
+                return serviceProvider.enableReferencingServices(controllerService);
             } else {
-                serviceProvider.disableReferencingServices(controllerService);
+                return serviceProvider.disableReferencingServices(controllerService);
             }
         } else if (scheduledState != null) {
             if (ScheduledState.RUNNING.equals(scheduledState)) {
-                serviceProvider.scheduleReferencingComponents(controllerService);
+                return serviceProvider.scheduleReferencingComponents(controllerService);
             } else {
-                serviceProvider.unscheduleReferencingComponents(controllerService);
+                return serviceProvider.unscheduleReferencingComponents(controllerService);
             }
         }
 
-        return controllerService.getReferences();
+        return Collections.emptySet();
     }
 
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
@@ -162,7 +195,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public void verifyUpdateReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState) {
+    public void verifyUpdateReferencingComponents(final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
 
         if (controllerServiceState != null) {
@@ -200,7 +233,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                         controllerService.verifyCanDisable();
                     }
                 }
-            } catch (IllegalArgumentException iae) {
+            } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException("Controller Service state: Value must be one of [ENABLED, DISABLED]");
             }
         }
@@ -255,35 +288,39 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public void deleteControllerService(String controllerServiceId) {
+    public void deleteControllerService(final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
         serviceProvider.removeControllerService(controllerService);
     }
 
     @Override
-    public StateMap getState(String controllerServiceId, Scope scope) {
+    public StateMap getState(final String controllerServiceId, final Scope scope) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
         return componentStateDAO.getState(controllerService, scope);
     }
 
     @Override
-    public void verifyClearState(String controllerServiceId) {
+    public void verifyClearState(final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
         controllerService.verifyCanClearState();
     }
 
     @Override
-    public void clearState(String controllerServiceId) {
+    public void clearState(final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
         componentStateDAO.clearState(controllerService);
     }
 
     /* setters */
-    public void setServiceProvider(ControllerServiceProvider serviceProvider) {
+    public void setServiceProvider(final ControllerServiceProvider serviceProvider) {
         this.serviceProvider = serviceProvider;
     }
 
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
         this.componentStateDAO = componentStateDAO;
+    }
+
+    public void setFlowController(final FlowController flowController) {
+        this.flowController = flowController;
     }
 }

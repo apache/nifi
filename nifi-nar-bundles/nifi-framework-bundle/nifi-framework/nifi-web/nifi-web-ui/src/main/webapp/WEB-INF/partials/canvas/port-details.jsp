@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="port-details">
+<div id="port-details" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="port-setting">
             <div class="setting-name">Port name</div>

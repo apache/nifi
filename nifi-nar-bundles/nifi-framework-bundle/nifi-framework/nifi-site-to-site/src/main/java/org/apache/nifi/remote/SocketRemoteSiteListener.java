@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.remote.cluster.NodeInformant;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
+import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.RequestType;
+import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -30,23 +43,11 @@ import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.remote.cluster.NodeInformant;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.RequestType;
-import org.apache.nifi.remote.protocol.ServerProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
+import org.apache.nifi.util.NiFiProperties;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
@@ -56,18 +57,20 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     private final SSLContext sslContext;
     private final NodeInformant nodeInformant;
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
+    private final NiFiProperties nifiProperties;
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private static final Logger LOG = LoggerFactory.getLogger(SocketRemoteSiteListener.class);
 
-    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext) {
-        this(socketPort, sslContext, null);
+    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NiFiProperties nifiProperties) {
+        this(socketPort, sslContext, nifiProperties, null);
     }
 
-    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NodeInformant nodeInformant) {
+    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NiFiProperties nifiProperties, final NodeInformant nodeInformant) {
         this.socketPort = socketPort;
         this.sslContext = sslContext;
+        this.nifiProperties = nifiProperties;
         this.nodeInformant = nodeInformant;
     }
 
@@ -155,12 +158,12 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     sslSocketChannel.connect();
                                     LOG.trace("Channel connected");
 
-                                    commsSession = new SSLSocketChannelCommunicationsSession(sslSocketChannel, peerUri);
+                                    commsSession = new SSLSocketChannelCommunicationsSession(sslSocketChannel);
                                     dn = sslSocketChannel.getDn();
                                     commsSession.setUserDn(dn);
                                 } else {
                                     LOG.trace("{} Channel is not secure", this);
-                                    commsSession = new SocketChannelCommunicationsSession(socketChannel, peerUri);
+                                    commsSession = new SocketChannelCommunicationsSession(socketChannel);
                                     dn = null;
                                 }
                             } catch (final Exception e) {
@@ -261,14 +264,21 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                                 break;
                                             case RECEIVE_FLOWFILES:
                                                 // peer wants to receive FlowFiles, so we will transfer FlowFiles.
-                                                protocol.getPort().transferFlowFiles(peer, protocol, new HashMap<String, String>());
+                                                protocol.getPort().transferFlowFiles(peer, protocol);
                                                 break;
                                             case SEND_FLOWFILES:
                                                 // Peer wants to send FlowFiles, so we will receive.
-                                                protocol.getPort().receiveFlowFiles(peer, protocol, new HashMap<String, String>());
+                                                protocol.getPort().receiveFlowFiles(peer, protocol);
                                                 break;
                                             case REQUEST_PEER_LIST:
-                                                protocol.sendPeerList(peer);
+                                                final Optional<ClusterNodeInformation> nodeInfo = (nodeInformant == null) ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation());
+                                                protocol.sendPeerList(
+                                                        peer,
+                                                        nodeInfo,
+                                                        nifiProperties.getRemoteInputHost(),
+                                                        nifiProperties.getRemoteInputPort(),
+                                                        nifiProperties.getRemoteInputHttpPort(),
+                                                        nifiProperties.isSiteToSiteSecure());
                                                 break;
                                             case SHUTDOWN:
                                                 protocol.shutdown(peer);
@@ -323,8 +333,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.start();
     }
 
-    @Override
-    public int getPort() {
+    private int getPort() {
         return socketPort;
     }
 

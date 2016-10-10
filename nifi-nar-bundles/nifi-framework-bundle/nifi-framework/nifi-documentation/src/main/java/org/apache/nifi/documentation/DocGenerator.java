@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
@@ -82,7 +81,7 @@ public class DocGenerator {
     }
 
     /**
-     * Generates the documentation for a particular configurable comopnent. Will
+     * Generates the documentation for a particular configurable component. Will
      * check to see if an "additionalDetails.html" file exists and will link
      * that from the generated documentation.
      *
@@ -106,12 +105,12 @@ public class DocGenerator {
         final File directory = new File(docsDir, componentClass.getCanonicalName());
         directory.mkdirs();
 
-        final File baseDocumenationFile = new File(directory, "index.html");
-        if (baseDocumenationFile.exists()) {
-            logger.warn(baseDocumenationFile + " already exists, overwriting!");
+        final File baseDocumentationFile = new File(directory, "index.html");
+        if (baseDocumentationFile.exists()) {
+            logger.warn(baseDocumentationFile + " already exists, overwriting!");
         }
 
-        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
+        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
             writer.write(component, output, hasAdditionalInfo(directory));
         }
 

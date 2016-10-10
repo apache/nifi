@@ -36,6 +36,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.Connectables;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
@@ -45,12 +46,15 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final StringEncryptor encryptor;
     private final StateManager stateManager;
+    private final VariableRegistry variableRegistry;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor, final StateManager stateManager) {
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor, final StateManager stateManager,
+                                  final VariableRegistry variableRegistry) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManager = stateManager;
+        this.variableRegistry = variableRegistry;
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
@@ -86,12 +90,12 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         final String setPropertyValue = procNode.getProperty(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
-        return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor));
+        return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor), variableRegistry);
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, this, Query.prepare(rawValue));
+        return new StandardPropertyValue(rawValue, this, Query.prepare(rawValue), variableRegistry);
     }
 
     @Override
@@ -101,7 +105,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
     @Override
     public ControllerService getControllerService(final String serviceIdentifier) {
-        return controllerServiceProvider.getControllerService(serviceIdentifier);
+        return controllerServiceProvider.getControllerServiceForComponent(serviceIdentifier, procNode.getIdentifier());
     }
 
     @Override
@@ -134,7 +138,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         if (!serviceType.isInterface()) {
             throw new IllegalArgumentException("ControllerServices may be referenced only via their interfaces; " + serviceType + " is not an interface");
         }
-        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, procNode.getProcessGroup().getIdentifier());
     }
 
     @Override
@@ -197,8 +201,8 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
-    public boolean hasConnection(Relationship relationship) {
-        Set<Connection> connections = procNode.getConnections(relationship);
+    public boolean hasConnection(final Relationship relationship) {
+        final Set<Connection> connections = procNode.getConnections(relationship);
         return connections != null && !connections.isEmpty();
     }
 
@@ -221,4 +225,5 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public String getName() {
         return procNode.getName();
     }
+
 }

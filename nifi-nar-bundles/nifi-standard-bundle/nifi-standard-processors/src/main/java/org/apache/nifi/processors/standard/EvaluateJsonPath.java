@@ -44,7 +44,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -52,12 +52,12 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SideEffectFree
@@ -238,7 +238,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
         final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
@@ -277,7 +277,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             final JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
             final String pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
 
-            final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
+            final AtomicReference<Object> resultHolder = new AtomicReference<>(null);
             try {
                 final Object result = documentContext.read(jsonPathExp);
                 if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(result)) {

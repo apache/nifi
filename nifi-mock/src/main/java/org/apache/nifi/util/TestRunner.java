@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -33,7 +34,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 
@@ -273,6 +273,39 @@ public interface TestRunner {
     void assertAllFlowFilesTransferred(Relationship relationship, int count);
 
     /**
+     * Asserts that all FlowFiles that were transferred contain the given
+     * attribute.
+     *
+     * @param attributeName attribute to look for
+     */
+    void assertAllFlowFilesContainAttribute(String attributeName);
+
+    /**
+     * Asserts that all FlowFiles that were transferred to the given
+     * relationship contain the given attribute.
+     *
+     * @param relationship relationship to check
+     * @param attributeName attribute to look for
+     */
+    void assertAllFlowFilesContainAttribute(Relationship relationship, String attributeName);
+
+    /**
+     * Asserts that all FlowFiles that were transferred are compliant with the
+     * given validator.
+     *
+     * @param validator validator to use
+     */
+    void assertAllFlowFiles(FlowFileValidator validator);
+
+    /**
+     * Asserts that all FlowFiles that were transferred in the given relationship
+     * are compliant with the given validator.
+     *
+     * @param validator validator to use
+     */
+    void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator);
+
+    /**
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
@@ -350,7 +383,7 @@ public interface TestRunner {
      * @param path to read content from
      * @throws IOException if unable to read content
      */
-    void enqueue(Path path) throws IOException;
+    MockFlowFile enqueue(Path path) throws IOException;
 
     /**
      * Reads the content from the given {@link Path} into memory and creates a
@@ -361,7 +394,7 @@ public interface TestRunner {
      * @param attributes attributes to use for new flow file
      * @throws IOException if unable to read content
      */
-    void enqueue(Path path, Map<String, String> attributes) throws IOException;
+    MockFlowFile enqueue(Path path, Map<String, String> attributes) throws IOException;
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -370,7 +403,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    void enqueue(byte[] data);
+    MockFlowFile enqueue(byte[] data);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with no attributes,
@@ -378,7 +411,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    void enqueue(String data);
+    MockFlowFile enqueue(String data);
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -388,7 +421,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    void enqueue(byte[] data, Map<String, String> attributes);
+    MockFlowFile enqueue(byte[] data, Map<String, String> attributes);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with the given attributes,
@@ -397,7 +430,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    void enqueue(String data, Map<String, String> attributes);
+    MockFlowFile enqueue(String data, Map<String, String> attributes);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -406,7 +439,7 @@ public interface TestRunner {
      *
      * @param data to source data from
      */
-    void enqueue(InputStream data);
+    MockFlowFile enqueue(InputStream data);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -416,7 +449,7 @@ public interface TestRunner {
      * @param data source of data
      * @param attributes to use for flow files
      */
-    void enqueue(InputStream data, Map<String, String> attributes);
+    MockFlowFile enqueue(InputStream data, Map<String, String> attributes);
 
     /**
      * Copies the contents of the given {@link MockFlowFile} into a byte array
@@ -432,7 +465,7 @@ public interface TestRunner {
      * to the given relationship
      *
      * @param relationship to get flowfiles for
-     * @return flowfiles transfered to given relationship
+     * @return flowfiles transferred to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(String relationship);
 
@@ -441,7 +474,7 @@ public interface TestRunner {
      * to the given relationship
      *
      * @param relationship to get flowfiles for
-     * @return flowfiles transfered to given relationship
+     * @return flowfiles transferred to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(Relationship relationship);
 
@@ -451,12 +484,6 @@ public interface TestRunner {
      * @return flowfiles that were penalized
      */
     List<MockFlowFile> getPenalizedFlowFiles();
-
-    /**
-     * @return the {@link ProvenanceReporter} that will be used by the
-     *         configured {@link Processor} for reporting Provenance Events
-     */
-    ProvenanceReporter getProvenanceReporter();
 
     /**
      * @return the current size of the Processor's Input Queue
@@ -730,7 +757,7 @@ public interface TestRunner {
     ValidationResult setProperty(ControllerService service, String propertyName, String value);
 
     /**
-     * Sets the annontation data of the given service to the provided annotation
+     * Sets the annotation data of the given service to the provided annotation
      * data.
      *
      * @param service to modify
@@ -842,18 +869,18 @@ public interface TestRunner {
     void clearProvenanceEvents();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the Processor under test.
+     * Returns the {@link MockComponentLog} that is used by the Processor under test.
      * @return the logger
      */
-    public MockProcessorLog getLogger();
+    public MockComponentLog getLogger();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the specified controller service.
+     * Returns the {@link MockComponentLog} that is used by the specified controller service.
      *
      * @param identifier a controller service identifier
      * @return the logger
      */
-    public MockProcessorLog getControllerServiceLogger(final String identifier);
+    public MockComponentLog getControllerServiceLogger(final String identifier);
 
     /**
      * @return the State Manager that is used to stored and retrieve state
@@ -865,4 +892,61 @@ public interface TestRunner {
      * @return the State Manager that is used to store and retrieve state for the given controller service
      */
     MockStateManager getStateManager(ControllerService service);
+
+    /**
+     * @param clustered Specify if this test emulates running in a clustered environment
+     */
+    void setClustered(boolean clustered);
+
+    /**
+     * @param primaryNode Specify if this test emulates running as a primary node
+     */
+    void setPrimaryNode(boolean primaryNode);
+
+    /**
+     * Sets the value of the variable with the given name to be the given value. This exposes the variable
+     * for use by the Expression Language.
+     *
+     * @param name the name of the variable to set
+     * @param value the value of the variable
+     *
+     * @throws NullPointerException if either the name or the value is null
+     */
+    void setVariable(String name, String value);
+
+    /**
+     * Returns the current value of the variable with the given name
+     *
+     * @param name the name of the variable whose value should be returned.
+     * @return the current value of the variable with the given name or <code>null</code> if no value is currently set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String getVariableValue(String name);
+
+    /**
+     * Removes the variable with the given name from this Test Runner, if it is set.
+     *
+     * @param name the name of the variable to remove
+     * @return the value that was set for the variable, or <code>null</code> if the variable was not set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String removeVariable(String name);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate);
 }

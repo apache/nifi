@@ -46,17 +46,22 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
+    private final String componentType;
+    private final String componentCanonicalClass;
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
 
     public AbstractConfiguredComponent(final ConfigurableComponent component, final String id,
-            final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+        final String componentType, final String componentCanonicalClass) {
         this.id = id;
         this.component = component;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
         this.name = new AtomicReference<>(component.getClass().getSimpleName());
+        this.componentType = componentType;
+        this.componentCanonicalClass = componentCanonicalClass;
     }
 
     @Override
@@ -94,7 +99,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
 
                 final String oldValue = properties.put(descriptor, value);
@@ -146,7 +151,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
                 String value = null;
                 if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
@@ -177,7 +182,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -221,42 +226,44 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.toString();
         }
     }
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.validate(context);
         }
     }
 
     @Override
     public PropertyDescriptor getPropertyDescriptor(final String name) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.getPropertyDescriptor(name);
         }
     }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             component.onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
     @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.getPropertyDescriptors();
         }
     }
 
     @Override
     public boolean isValid() {
-        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(getProperties(), getAnnotationData()));
+        final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
+            getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier()));
+
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
                 return false;
@@ -275,10 +282,11 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(serviceIdentifiersNotToValidate, getProperties(), getAnnotationData());
+            final ValidationContext validationContext = validationContextFactory.newValidationContext(
+                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 validationResults = component.validate(validationContext);
             }
 
@@ -297,10 +305,26 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     public abstract void verifyModifiable() throws IllegalStateException;
 
+    protected abstract String getProcessGroupIdentifier();
+
     /**
      *
      */
     ControllerServiceProvider getControllerServiceProvider() {
         return this.serviceProvider;
+    }
+
+    @Override
+    public String getCanonicalClassName() {
+        return componentCanonicalClass;
+    }
+
+    @Override
+    public String getComponentType() {
+        return componentType;
+    }
+
+    protected ValidationContextFactory getValidationContextFactory() {
+        return this.validationContextFactory;
     }
 }

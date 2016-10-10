@@ -15,9 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="flowfile-details-dialog">
-    <div id="flowfile-details-dialog-content">
-        <div id="flowfile-details-tabs"></div>
+<div id="flowfile-details-dialog" layout="column" class="hidden large-dialog">
+    <div id="flowfile-details-dialog-content" class="dialog-content">
+        <div id="flowfile-details-tabs" class="tab-container"></div>
         <div id="flowfile-details-tabs-content">
             <div id="flowfile-details-tab-content" class="details-tab">
                 <span id="flowfile-uri" class="hidden"></span>
@@ -94,8 +94,8 @@
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div id="content-download" class="button">Download</div>
-                            <div id="content-view" class="button hidden">View</div>
+                            <div id="content-download" class="secondary-button fa fa-download button-icon"><span>Download</span></div>
+                            <div id="content-view" class="secondary-button fa fa-eye button-icon hidden"><span>View</span></div>
                             <div class="clear"></div>
                         </div>
                     </div>

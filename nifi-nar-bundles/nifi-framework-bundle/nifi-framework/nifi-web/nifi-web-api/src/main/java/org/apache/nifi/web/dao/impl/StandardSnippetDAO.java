@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -30,15 +27,21 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
-import org.apache.commons.lang3.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class StandardSnippetDAO implements SnippetDAO {
 
@@ -56,7 +59,7 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY) {
+    public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY, final String idGenerationSeed) {
         try {
             // ensure the parent group exist
             final ProcessGroup processGroup = flowController.getGroup(groupId);
@@ -76,27 +79,47 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
 
             // generate the snippet contents
-            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false);
+            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false, false);
 
             // resolve sensitive properties
             lookupSensitiveProperties(snippetContents);
 
             // copy snippet
-            snippetContents = snippetUtils.copy(snippetContents, processGroup);
+            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed, true);
 
             // move the snippet if necessary
             if (originX != null && originY != null) {
                 org.apache.nifi.util.SnippetUtils.moveSnippet(snippetContents, originX, originY);
             }
 
-            // instantiate the snippet
-            flowController.instantiateSnippet(processGroup, snippetContents);
+            try {
+                // instantiate the snippet and return the contents
+                flowController.instantiateSnippet(processGroup, snippetContents);
+                return snippetContents;
+            } catch (IllegalStateException ise) {
+                // illegal state will be thrown from instantiateSnippet when there is an issue with the snippet _before_ any of the
+                // components are actually created. if we've received this exception we want to attempt to roll back any of the
+                // policies that we've already cloned for this request
+                snippetUtils.rollbackClonedPolicies(snippetContents);
 
-            return snippetContents;
+                // rethrow the same exception
+                throw ise;
+            }
         } catch (ProcessorInstantiationException pie) {
             throw new NiFiCoreException(String.format("Unable to copy snippet because processor type '%s' is unknown to this NiFi.",
                     StringUtils.substringAfterLast(pie.getMessage(), ".")));
         }
+    }
+
+    private Map<String, Revision> mapDtoToRevision(final Map<String, RevisionDTO> revisionMap) {
+        final Map<String, Revision> revisions = new HashMap<>(revisionMap.size());
+        for (final Map.Entry<String, RevisionDTO> entry : revisionMap.entrySet()) {
+            final RevisionDTO revisionDto = entry.getValue();
+            final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), entry.getKey());
+
+            revisions.put(entry.getKey(), revision);
+        }
+        return revisions;
     }
 
     @Override
@@ -105,15 +128,14 @@ public class StandardSnippetDAO implements SnippetDAO {
         final StandardSnippet snippet = new StandardSnippet();
         snippet.setId(snippetDTO.getId());
         snippet.setParentGroupId(snippetDTO.getParentGroupId());
-        snippet.setLinked(snippetDTO.isLinked());
-        snippet.addProcessors(snippetDTO.getProcessors());
-        snippet.addProcessGroups(snippetDTO.getProcessGroups());
-        snippet.addRemoteProcessGroups(snippetDTO.getRemoteProcessGroups());
-        snippet.addInputPorts(snippetDTO.getInputPorts());
-        snippet.addOutputPorts(snippetDTO.getOutputPorts());
-        snippet.addConnections(snippetDTO.getConnections());
-        snippet.addLabels(snippetDTO.getLabels());
-        snippet.addFunnels(snippetDTO.getFunnels());
+        snippet.addProcessors(mapDtoToRevision(snippetDTO.getProcessors()));
+        snippet.addProcessGroups(mapDtoToRevision(snippetDTO.getProcessGroups()));
+        snippet.addRemoteProcessGroups(mapDtoToRevision(snippetDTO.getRemoteProcessGroups()));
+        snippet.addInputPorts(mapDtoToRevision(snippetDTO.getInputPorts()));
+        snippet.addOutputPorts(mapDtoToRevision(snippetDTO.getOutputPorts()));
+        snippet.addConnections(mapDtoToRevision(snippetDTO.getConnections()));
+        snippet.addLabels(mapDtoToRevision(snippetDTO.getLabels()));
+        snippet.addFunnels(mapDtoToRevision(snippetDTO.getFunnels()));
 
         // ensure this snippet isn't empty
         if (snippet.isEmpty()) {
@@ -132,39 +154,35 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public void verifyDelete(String snippetId) {
-        final StandardSnippet snippet = locateSnippet(snippetId);
+    public void verifyDeleteSnippetComponents(String snippetId) {
+        final Snippet snippet = locateSnippet(snippetId);
 
-        // only need to check if the snippet is linked
-        if (snippet.isLinked()) {
-            // ensure the parent group exist
-            final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
-            if (processGroup == null) {
-                throw new IllegalArgumentException("The specified parent process group could not be found.");
-            }
-
-            // verify the processGroup can remove the snippet
-            processGroup.verifyCanDelete(snippet);
+        // ensure the parent group exist
+        final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+        if (processGroup == null) {
+            throw new IllegalArgumentException("The specified parent process group could not be found.");
         }
+
+        // verify the processGroup can remove the snippet
+        processGroup.verifyCanDelete(snippet);
     }
 
     @Override
-    public void deleteSnippet(String snippetId) {
-        final StandardSnippet snippet = locateSnippet(snippetId);
+    public void deleteSnippetComponents(String snippetId) {
+        // verify the action
+        verifyDeleteSnippetComponents(snippetId);
 
-        // if the snippet is linked, remove the contents
-        if (snippet.isLinked()) {
-            final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
-            if (processGroup == null) {
-                throw new IllegalArgumentException("The specified parent process group could not be found.");
-            }
+        // locate the snippet in question
+        final Snippet snippet = locateSnippet(snippetId);
 
-            // remove the underlying components
-            processGroup.remove(snippet);
+        // remove the contents
+        final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
+        if (processGroup == null) {
+            throw new IllegalArgumentException("The specified parent process group could not be found.");
         }
 
-        // delete the snippet itself
-        flowController.getSnippetManager().removeSnippet(snippet);
+        // remove the underlying components
+        processGroup.remove(snippet);
     }
 
     @Override
@@ -178,11 +196,18 @@ public class StandardSnippetDAO implements SnippetDAO {
     }
 
     @Override
-    public void verifyUpdate(SnippetDTO snippetDTO) {
-        final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
+    public void dropSnippet(String snippetId) {
+        // drop the snippet itself
+        final StandardSnippet snippet = locateSnippet(snippetId);
+        flowController.getSnippetManager().removeSnippet(snippet);
+    }
 
-        // if attempting to move the snippet contents
-        if (snippetDTO.getParentGroupId() != null) {
+    @Override
+    public void verifyUpdateSnippetComponent(SnippetDTO snippetDTO) {
+        final Snippet snippet = locateSnippet(snippetDTO.getId());
+
+        // if the group is changing move it
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             // get the current process group
             final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
             if (processGroup == null) {
@@ -195,35 +220,21 @@ public class StandardSnippetDAO implements SnippetDAO {
                 throw new IllegalArgumentException("The new process group could not be found.");
             }
 
-            boolean verificationRequired = false;
-
-            // verify if necessary
-            if (snippetDTO.isLinked() != null) {
-                if (snippetDTO.isLinked()) {
-                    verificationRequired = true;
-                }
-            } else if (snippet.isLinked()) {
-                verificationRequired = true;
-            }
-
-            // perform the verification if necessary
-            if (verificationRequired) {
-                processGroup.verifyCanMove(snippet, newProcessGroup);
-            }
+            // perform the verification
+            processGroup.verifyCanMove(snippet, newProcessGroup);
         }
     }
 
     @Override
-    public Snippet updateSnippet(final SnippetDTO snippetDTO) {
+    public Snippet updateSnippetComponents(final SnippetDTO snippetDTO) {
+        // verify the action
+        verifyUpdateSnippetComponent(snippetDTO);
+
+        // find the snippet in question
         final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
 
-        // update whether this snippet is linked to the data flow
-        if (snippetDTO.isLinked() != null) {
-            snippet.setLinked(snippetDTO.isLinked());
-        }
-
-        // if the group is changing and its linked to the data flow move it
-        if (snippetDTO.getParentGroupId() != null && snippet.isLinked()) {
+        // if the group is changing move it
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             final ProcessGroup currentProcessGroup = flowController.getGroup(snippet.getParentGroupId());
             if (currentProcessGroup == null) {
                 throw new IllegalArgumentException("The current process group could not be found.");

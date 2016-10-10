@@ -21,6 +21,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -38,7 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -54,6 +55,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +69,7 @@ import java.util.regex.Pattern;
 @Tags({"cassandra", "cql", "put", "insert", "update", "set"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x or 2.x cluster. "
+@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x, 2.x, or 3.0.x cluster. "
         + "The content of an incoming FlowFile is expected to be the CQL command to execute. The CQL command may use "
         + "the ? to escape parameters. In this case, the parameters to use must exist as FlowFile attributes with the "
         + "naming convention cql.args.N.type and cql.args.N.value, where N is a positive integer. The cql.args.N.type "
@@ -119,7 +121,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     // Matches on top-level type (primitive types like text,int) and also for collections (like list<boolean> and map<float,double>)
     private static final Pattern CQL_TYPE_PATTERN = Pattern.compile("([^<]+)(<([^,>]+)(,([^,>]+))*>)?");
 
-
     /*
      * Will ensure that the list of property descriptors is build only once.
      * Will also create a Set of relationships
@@ -150,7 +151,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
         try {
             connectToCassandra(context);
         } catch (final NoHostAvailableException nhae) {
@@ -169,7 +170,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        ProcessorLog logger = getLogger();
+        ComponentLog logger = getLogger();
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -310,15 +311,14 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             // If the matcher doesn't match, this should fall through to the exception at the bottom
             if (matcher.find() && matcher.groupCount() > 1) {
                 String mainTypeString = matcher.group(1).toLowerCase();
-                DataType.Name mainTypeName = DataType.Name.valueOf(mainTypeString.toUpperCase());
-                if (!mainTypeName.isCollection()) {
-                    DataType mainType = getPrimitiveDataTypeFromString(mainTypeString);
+                DataType mainType = getPrimitiveDataTypeFromString(mainTypeString);
+                if (mainType != null) {
+                    TypeCodec typeCodec = codecRegistry.codecFor(mainType);
 
                     // Need the right statement.setXYZ() method
                     if (mainType.equals(DataType.ascii())
                             || mainType.equals(DataType.text())
                             || mainType.equals(DataType.varchar())
-                            || mainType.equals(DataType.timestamp())
                             || mainType.equals(DataType.timeuuid())
                             || mainType.equals(DataType.uuid())
                             || mainType.equals(DataType.inet())
@@ -327,24 +327,26 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                         statement.setString(paramIndex, paramValue);
 
                     } else if (mainType.equals(DataType.cboolean())) {
-                        statement.setBool(paramIndex, (boolean) mainType.parse(paramValue));
+                        statement.setBool(paramIndex, (boolean) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cint())) {
-                        statement.setInt(paramIndex, (int) mainType.parse(paramValue));
+                        statement.setInt(paramIndex, (int) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.bigint())
                             || mainType.equals(DataType.counter())) {
-                        statement.setLong(paramIndex, (long) mainType.parse(paramValue));
+                        statement.setLong(paramIndex, (long) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cfloat())) {
-                        statement.setFloat(paramIndex, (float) mainType.parse(paramValue));
+                        statement.setFloat(paramIndex, (float) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cdouble())) {
-                        statement.setDouble(paramIndex, (double) mainType.parse(paramValue));
+                        statement.setDouble(paramIndex, (double) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.blob())) {
-                        statement.setBytes(paramIndex, (ByteBuffer) mainType.parse(paramValue));
+                        statement.setBytes(paramIndex, (ByteBuffer) typeCodec.parse(paramValue));
 
+                    } else if (mainType.equals(DataType.timestamp())) {
+                        statement.setTimestamp(paramIndex, (Date) typeCodec.parse(paramValue));
                     }
                     return;
                 } else {
@@ -352,22 +354,28 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     if (matcher.groupCount() > 2) {
                         String firstParamTypeName = matcher.group(3);
                         DataType firstParamType = getPrimitiveDataTypeFromString(firstParamTypeName);
+                        if (firstParamType == null) {
+                            throw new IllegalArgumentException("Nested collections are not supported");
+                        }
 
                         // Check for map type
                         if (DataType.Name.MAP.toString().equalsIgnoreCase(mainTypeString)) {
                             if (matcher.groupCount() > 4) {
                                 String secondParamTypeName = matcher.group(5);
                                 DataType secondParamType = getPrimitiveDataTypeFromString(secondParamTypeName);
-                                statement.setMap(paramIndex, (Map) DataType.map(firstParamType, secondParamType).parse(paramValue));
+                                DataType mapType = DataType.map(firstParamType, secondParamType);
+                                statement.setMap(paramIndex, (Map) codecRegistry.codecFor(mapType).parse(paramValue));
                                 return;
                             }
                         } else {
                             // Must be set or list
                             if (DataType.Name.SET.toString().equalsIgnoreCase(mainTypeString)) {
-                                statement.setSet(paramIndex, (Set) DataType.set(firstParamType).parse(paramValue));
+                                DataType setType = DataType.set(firstParamType);
+                                statement.setSet(paramIndex, (Set) codecRegistry.codecFor(setType).parse(paramValue));
                                 return;
                             } else if (DataType.Name.LIST.toString().equalsIgnoreCase(mainTypeString)) {
-                                statement.setList(paramIndex, (List) DataType.list(firstParamType).parse(paramValue));
+                                DataType listType = DataType.list(firstParamType);
+                                statement.setList(paramIndex, (List) codecRegistry.codecFor(listType).parse(paramValue));
                                 return;
                             }
                         }

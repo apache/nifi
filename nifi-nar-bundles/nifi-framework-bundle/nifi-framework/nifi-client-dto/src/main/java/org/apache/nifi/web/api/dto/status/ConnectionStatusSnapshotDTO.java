@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -249,7 +250,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     public void setBytesQueued(Long bytesQueued) {
         this.bytesQueued = bytesQueued;
     }
-
 
     @Override
     public ConnectionStatusSnapshotDTO clone() {

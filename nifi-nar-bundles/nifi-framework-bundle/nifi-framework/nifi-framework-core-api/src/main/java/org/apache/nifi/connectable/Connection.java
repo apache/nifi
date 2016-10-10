@@ -20,13 +20,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 
-public interface Connection {
+public interface Connection extends Authorizable {
 
     void enqueue(FlowFileRecord flowFile);
 

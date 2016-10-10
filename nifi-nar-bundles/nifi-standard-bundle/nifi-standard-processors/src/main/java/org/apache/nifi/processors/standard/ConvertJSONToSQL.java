@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -57,7 +59,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.ObjectHolder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
@@ -85,10 +86,10 @@ import org.codehaus.jackson.node.JsonNodeFactory;
         @WritesAttribute(attribute="fragment.index", description="The position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same incoming FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier and fragment.count attributes to know which FlowFiles originated from the same incoming FlowFile and in what order the SQL "
                 + "FlowFiles were produced"),
-        @WritesAttribute(attribute="sql.args.N.type", description="The output SQL statements are parameterized in order to avoid SQL Injection Attacks. The types of the Parameters "
+        @WritesAttribute(attribute="sql.args.N.type", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The types of the Parameters "
                 + "to use are stored in attributes named sql.args.1.type, sql.args.2.type, sql.args.3.type, and so on. The type is a number representing a JDBC Type constant. "
                 + "Generally, this is useful only for software to read and interpret but is added so that a processor such as PutSQL can understand how to interpret the values."),
-        @WritesAttribute(attribute="sql.args.N.value", description="The output SQL statements are parameterized in order to avoid SQL Injection Attacks. The values of the Parameters "
+        @WritesAttribute(attribute="sql.args.N.value", description="The output SQL statements are parametrized in order to avoid SQL Injection Attacks. The values of the Parameters "
                 + "to use are stored in the attributes named sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. Each of these attributes has a corresponding "
                 + "sql.args.N.type attribute that indicates how the value should be interpreted when inserting it into the database.")
 })
@@ -276,7 +277,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
-        final ObjectHolder<JsonNode> rootNodeRef = new ObjectHolder<>(null);
+        final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
@@ -668,6 +669,13 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         }
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
+            final ResultSetMetaData md = resultSet.getMetaData();
+            List<String> columns = new ArrayList<>();
+
+            for (int i = 1; i < md.getColumnCount() + 1; i++) {
+                columns.add(md.getColumnName(i));
+            }
+
             final String columnName = resultSet.getString("COLUMN_NAME");
             final int dataType = resultSet.getInt("DATA_TYPE");
             final int colSize = resultSet.getInt("COLUMN_SIZE");
@@ -675,7 +683,12 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             final String nullableValue = resultSet.getString("IS_NULLABLE");
             final boolean isNullable = "YES".equalsIgnoreCase(nullableValue) || nullableValue.isEmpty();
             final String defaultValue = resultSet.getString("COLUMN_DEF");
-            final String autoIncrementValue = resultSet.getString("IS_AUTOINCREMENT");
+            String autoIncrementValue = "NO";
+
+            if(columns.contains("IS_AUTOINCREMENT")){
+                autoIncrementValue = resultSet.getString("IS_AUTOINCREMENT");
+            }
+
             final boolean isAutoIncrement = "YES".equalsIgnoreCase(autoIncrementValue);
             final boolean required = !isNullable && !isAutoIncrement && defaultValue == null;
 

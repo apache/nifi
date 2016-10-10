@@ -27,6 +27,8 @@ public class ConnectionStatus implements Cloneable {
     private String sourceName;
     private String destinationId;
     private String destinationName;
+    private String backPressureDataSizeThreshold;
+    private long backPressureObjectThreshold;
     private int inputCount;
     private long inputBytes;
     private int queuedCount;
@@ -106,6 +108,22 @@ public class ConnectionStatus implements Cloneable {
         this.destinationName = destinationName;
     }
 
+    public String getBackPressureDataSizeThreshold() {
+        return backPressureDataSizeThreshold;
+    }
+
+    public void setBackPressureDataSizeThreshold(String backPressureDataSizeThreshold) {
+        this.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
+    }
+
+    public long getBackPressureObjectThreshold() {
+        return backPressureObjectThreshold;
+    }
+
+    public void setBackPressureObjectThreshold(long backPressureObjectThreshold) {
+        this.backPressureObjectThreshold = backPressureObjectThreshold;
+    }
+
     public long getInputBytes() {
         return inputBytes;
     }
@@ -154,6 +172,8 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.sourceName = sourceName;
         clonedObj.destinationId = destinationId;
         clonedObj.destinationName = destinationName;
+        clonedObj.backPressureDataSizeThreshold = backPressureDataSizeThreshold;
+        clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         return clonedObj;
     }
 
@@ -174,6 +194,10 @@ public class ConnectionStatus implements Cloneable {
         builder.append(destinationId);
         builder.append(", destinationName=");
         builder.append(destinationName);
+        builder.append(", backPressureDataSizeThreshold=");
+        builder.append(backPressureDataSizeThreshold);
+        builder.append(", backPressureObjectThreshold=");
+        builder.append(backPressureObjectThreshold);
         builder.append(", inputCount=");
         builder.append(inputCount);
         builder.append(", inputBytes=");

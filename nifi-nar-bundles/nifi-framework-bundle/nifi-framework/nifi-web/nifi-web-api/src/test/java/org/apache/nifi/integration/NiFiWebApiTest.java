@@ -19,27 +19,28 @@ package org.apache.nifi.integration;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
-import java.util.HashSet;
-import java.util.Set;
 import org.apache.nifi.connectable.ConnectableType;
-import org.apache.nifi.integration.accesscontrol.DfmAccessControlTest;
 import org.apache.nifi.integration.util.NiFiTestUser;
 import org.apache.nifi.integration.util.SourceTestProcessor;
 import org.apache.nifi.integration.util.TerminationTestProcessor;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
-import org.apache.nifi.web.api.entity.InputPortEntity;
+import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
-import org.apache.nifi.web.api.entity.OutputPortEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Ignore;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *
@@ -47,12 +48,12 @@ import org.junit.Ignore;
 @Ignore
 public class NiFiWebApiTest {
 
-    public static void populateFlow(Client client, String baseUrl, String clientId) throws Exception {
-        NiFiTestUser dfm = new NiFiTestUser(client, DfmAccessControlTest.DFM_USER_DN);
+    public static void populateFlow(Client client, String baseUrl, NiFiTestUser user, String clientId) throws Exception {
 
         // -----------------------------------------------
-        // Create a local selection processor
+        // Create a source processor
         // -----------------------------------------------
+
         // create the local selection processor
         ProcessorDTO processorDTO = new ProcessorDTO();
         processorDTO.setName("Pick up");
@@ -61,15 +62,15 @@ public class NiFiWebApiTest {
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId);
-        revision.setVersion(NiFiTestUser.REVISION);
+        revision.setVersion(0l);
 
         // create the local selection processor entity
         ProcessorEntity processorEntity = new ProcessorEntity();
         processorEntity.setRevision(revision);
-        processorEntity.setProcessor(processorDTO);
+        processorEntity.setComponent(processorDTO);
 
         // add the processor
-        ClientResponse response = dfm.testPost(baseUrl + "/controller/process-groups/root/processors", processorEntity);
+        ClientResponse response = user.testPost(baseUrl + "/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -81,12 +82,13 @@ public class NiFiWebApiTest {
 
         // get the processors id
         processorEntity = response.getEntity(ProcessorEntity.class);
-        processorDTO = processorEntity.getProcessor();
+        processorDTO = processorEntity.getComponent();
         String localSelectionId = processorDTO.getId();
 
         // -----------------------------------------------
         // Create a termination processor
         // -----------------------------------------------
+
         // create the termination processor
         processorDTO = new ProcessorDTO();
         processorDTO.setName("End");
@@ -95,10 +97,10 @@ public class NiFiWebApiTest {
         // create the termination processor entity
         processorEntity = new ProcessorEntity();
         processorEntity.setRevision(revision);
-        processorEntity.setProcessor(processorDTO);
+        processorEntity.setComponent(processorDTO);
 
         // add the processor
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/processors", processorEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -110,12 +112,13 @@ public class NiFiWebApiTest {
 
         // get the processors id
         processorEntity = response.getEntity(ProcessorEntity.class);
-        processorDTO = processorEntity.getProcessor();
+        processorDTO = processorEntity.getComponent();
         String terminationId = processorDTO.getId();
 
         // -----------------------------------------------
         // Connect the two processors
         // -----------------------------------------------
+
         ConnectableDTO source = new ConnectableDTO();
         source.setId(localSelectionId);
         source.setType(ConnectableType.PROCESSOR.name());
@@ -137,10 +140,10 @@ public class NiFiWebApiTest {
         // create the connection entity
         ConnectionEntity connectionEntity = new ConnectionEntity();
         connectionEntity.setRevision(revision);
-        connectionEntity.setConnection(connectionDTO);
+        connectionEntity.setComponent(connectionDTO);
 
         // add the processor
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/connections", connectionEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/connections", connectionEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -153,6 +156,7 @@ public class NiFiWebApiTest {
         // -----------------------------------------------
         // Create a label
         // -----------------------------------------------
+
         // create the label
         LabelDTO labelDTO = new LabelDTO();
         labelDTO.setLabel("Test label");
@@ -160,10 +164,33 @@ public class NiFiWebApiTest {
         // create the label entity
         LabelEntity labelEntity = new LabelEntity();
         labelEntity.setRevision(revision);
-        labelEntity.setLabel(labelDTO);
+        labelEntity.setComponent(labelDTO);
 
         // add the label
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/labels", labelEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/labels", labelEntity);
+
+        // ensure a successful response
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
+            // since it was unable to create the component attempt to extract an
+            // error message from the response body
+            final String responseEntity = response.getEntity(String.class);
+            throw new Exception("Unable to populate initial flow: " + responseEntity);
+        }
+
+        // -----------------------------------------------
+        // Create a funnel
+        // -----------------------------------------------
+
+        // create the funnel
+        FunnelDTO funnelDTO = new FunnelDTO();
+
+        // create the funnel entity
+        FunnelEntity funnelEntity = new FunnelEntity();
+        funnelEntity.setRevision(revision);
+        funnelEntity.setComponent(funnelDTO);
+
+        // add the funnel
+        response = user.testPost(baseUrl + "/process-groups/root/funnels", funnelEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -176,6 +203,7 @@ public class NiFiWebApiTest {
         // -----------------------------------------------
         // Create a process group
         // -----------------------------------------------
+
         // create the process group
         ProcessGroupDTO processGroup = new ProcessGroupDTO();
         processGroup.setName("group name");
@@ -183,10 +211,10 @@ public class NiFiWebApiTest {
         // create the process group entity
         ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
         processGroupEntity.setRevision(revision);
-        processGroupEntity.setProcessGroup(processGroup);
+        processGroupEntity.setComponent(processGroup);
 
         // add the process group
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/process-group-references", processGroupEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/process-groups", processGroupEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -199,17 +227,18 @@ public class NiFiWebApiTest {
         // -----------------------------------------------
         // Create an input port
         // -----------------------------------------------
+
         // create the input port
         PortDTO inputPort = new PortDTO();
         inputPort.setName("input");
 
         // create the input port entity
-        InputPortEntity inputPortEntity = new InputPortEntity();
+        PortEntity inputPortEntity = new PortEntity();
         inputPortEntity.setRevision(revision);
-        inputPortEntity.setInputPort(inputPort);
+        inputPortEntity.setComponent(inputPort);
 
         // add the input port
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/input-ports", inputPortEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/input-ports", inputPortEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
@@ -222,17 +251,18 @@ public class NiFiWebApiTest {
         // -----------------------------------------------
         // Create a output ports
         // -----------------------------------------------
+
         // create the process group
         PortDTO outputPort = new PortDTO();
         outputPort.setName("output");
 
         // create the process group entity
-        OutputPortEntity outputPortEntity = new OutputPortEntity();
+        PortEntity outputPortEntity = new PortEntity();
         outputPortEntity.setRevision(revision);
-        outputPortEntity.setOutputPort(outputPort);
+        outputPortEntity.setComponent(outputPort);
 
         // add the output port
-        response = dfm.testPost(baseUrl + "/controller/process-groups/root/output-ports", outputPortEntity);
+        response = user.testPost(baseUrl + "/process-groups/root/output-ports", outputPortEntity);
 
         // ensure a successful response
         if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {

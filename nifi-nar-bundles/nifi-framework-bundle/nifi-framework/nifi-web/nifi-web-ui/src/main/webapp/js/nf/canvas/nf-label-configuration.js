@@ -28,9 +28,15 @@ nf.LabelConfiguration = (function () {
         init: function () {
             // make the new property dialog draggable
             $('#label-configuration').modal({
-                overlayBackground: true,
+                scrollableContentStyle: 'scrollable',
+                headerText: 'Configure Label',
                 buttons: [{
                     buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             // get the label data
@@ -42,8 +48,8 @@ nf.LabelConfiguration = (function () {
 
                             // build the label entity
                             var labelEntity = {
-                                'revision': nf.Client.getRevision(),
-                                'label': {
+                                'revision': nf.Client.getRevision(labelData),
+                                'component': {
                                     'id': labelId,
                                     'label': labelValue,
                                     'style': {
@@ -55,38 +61,41 @@ nf.LabelConfiguration = (function () {
                             // save the new label value
                             $.ajax({
                                 type: 'PUT',
-                                url: labelData.component.uri,
+                                url: labelData.uri,
                                 data: JSON.stringify(labelEntity),
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
                                 // get the label out of the response
-                                nf.Label.set(response.label);
+                                nf.Label.set(response);
+
+                                // inform Angular app values have changed
+                                nf.ng.Bridge.digest();
                             }).fail(nf.Common.handleAjaxError);
 
                             // reset and hide the dialog
                             this.modal('hide');
                         }
                     }
-                }, {
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            this.modal('hide');
+                },
+                    {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                this.modal('hide');
+                            }
                         }
-                    }
-                }],
+                    }],
                 handler: {
                     close: function () {
                         labelId = '';
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                cancel: 'textarea, .button, .combo'
             });
 
             // create the available sizes
@@ -116,10 +125,10 @@ nf.LabelConfiguration = (function () {
                 }
             });
         },
-        
+
         /**
          * Shows the configuration for the specified label.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
@@ -139,7 +148,7 @@ nf.LabelConfiguration = (function () {
                 }
 
                 // store the label uri
-                labelId = selectionData.component.id;
+                labelId = selectionData.id;
 
                 // populate the dialog
                 $('#label-value').val(labelValue);

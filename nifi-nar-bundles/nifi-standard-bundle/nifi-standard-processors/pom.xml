@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -190,6 +190,10 @@ language governing permissions and limitations under the License. -->
             <version>0.4.1</version>
         </dependency>
         <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
@@ -225,6 +229,31 @@ language governing permissions and limitations under the License. -->
             <version>1.4.187</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.bazaarvoice.jolt</groupId>
+            <artifactId>jolt-core</artifactId>
+            <version>0.0.21</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bazaarvoice.jolt</groupId>
+            <artifactId>json-utils</artifactId>
+            <version>0.0.21</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-utils</artifactId>
+            <version>1.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.supercsv</groupId>
+            <artifactId>super-csv</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.everit.json</groupId>
+            <artifactId>org.everit.json.schema</artifactId>
+            <version>1.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -250,6 +279,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-sample-schema.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-object-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/json-object-sample-schema.json</exclude>
                         <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
@@ -299,6 +331,21 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestSplitText/4.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/5.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/input.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/customChainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/sortrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>

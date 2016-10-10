@@ -28,7 +28,7 @@ import javax.jms.Session;
 import javax.jms.Topic;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -50,9 +50,9 @@ final class JMSPublisher extends JMSWorker {
      * @param jmsTemplate
      *            instance of {@link JmsTemplate}
      * @param processLog
-     *            instance of {@link ProcessorLog}
+     *            instance of {@link ComponentLog}
      */
-    JMSPublisher(JmsTemplate jmsTemplate, ProcessorLog processLog) {
+    JMSPublisher(JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(jmsTemplate, processLog);
         if (logger.isInfoEnabled()) {
             logger.info("Created Message Publisher for '" + jmsTemplate.toString() + "'.");
@@ -63,8 +63,8 @@ final class JMSPublisher extends JMSWorker {
      *
      * @param messageBytes byte array representing contents of the message
      */
-    void publish(byte[] messageBytes) {
-        this.publish(messageBytes, null);
+    void publish(String destinationName, byte[] messageBytes) {
+        this.publish(destinationName, messageBytes, null);
     }
 
     /**
@@ -74,8 +74,8 @@ final class JMSPublisher extends JMSWorker {
      * @param flowFileAttributes
      *            Map representing {@link FlowFile} attributes.
      */
-    void publish(final byte[] messageBytes, final Map<String, String> flowFileAttributes) {
-        this.jmsTemplate.send(new MessageCreator() {
+    void publish(final String destinationName, final byte[] messageBytes, Map<String, String> flowFileAttributes) {
+        this.jmsTemplate.send(destinationName, new MessageCreator() {
             @Override
             public Message createMessage(Session session) throws JMSException {
                 BytesMessage message = session.createBytesMessage();
@@ -83,7 +83,7 @@ final class JMSPublisher extends JMSWorker {
                 if (flowFileAttributes != null && !flowFileAttributes.isEmpty()) {
                     // set message headers and properties
                     for (Entry<String, String> entry : flowFileAttributes.entrySet()) {
-                        if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-")) {// '-' is illegal char in JMS prop names
+                        if (!entry.getKey().startsWith(JmsHeaders.PREFIX) && !entry.getKey().contains("-") && !entry.getKey().contains(".")) {// '-' and '.' are illegal char in JMS prop names
                             message.setStringProperty(entry.getKey(), entry.getValue());
                         } else if (entry.getKey().equals(JmsHeaders.DELIVERY_MODE)) {
                             message.setJMSDeliveryMode(Integer.parseInt(entry.getValue()));
@@ -125,9 +125,8 @@ final class JMSPublisher extends JMSWorker {
      *
      */
     private void logUnbuildableDestination(String destinationName, String headerName) {
-        logger.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
-                + headerName + "' will not be set.");
-        processLog.warn("Failed to determine destination type from destination name '" + destinationName + "'. The '"
+        this.processLog.warn("Failed to determine destination type from destination name '" + destinationName
+                + "'. The '"
                 + headerName + "' will not be set.");
     }
 

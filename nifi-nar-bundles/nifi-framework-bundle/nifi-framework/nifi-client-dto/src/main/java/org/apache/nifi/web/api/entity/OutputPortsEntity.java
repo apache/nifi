@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.PortDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of output PortDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of output OutputPortEntitys.
  */
 @XmlRootElement(name = "outputPortsEntity")
 public class OutputPortsEntity extends Entity {
 
-    private Set<PortDTO> outputPorts;
+    private Set<PortEntity> outputPorts;
 
     /**
-     * @return collection of output PortDTOs that are being serialized
+     * @return collection of output OutputPortEntitys that are being serialized
      */
-    public Set<PortDTO> getOutputPorts() {
+    public Set<PortEntity> getOutputPorts() {
         return outputPorts;
     }
 
-    public void setOutputPorts(Set<PortDTO> outputPorts) {
+    public void setOutputPorts(Set<PortEntity> outputPorts) {
         this.outputPorts = outputPorts;
     }
 

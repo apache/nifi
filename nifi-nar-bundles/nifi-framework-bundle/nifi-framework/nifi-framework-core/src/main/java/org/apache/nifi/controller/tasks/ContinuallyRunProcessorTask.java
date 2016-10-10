@@ -31,7 +31,7 @@ import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.controller.scheduling.ScheduleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -70,8 +70,8 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         this.processContext = processContext;
     }
 
-    static boolean isRunOnCluster(final ProcessorNode procNode, final boolean isClustered, final boolean isPrimary) {
-        return !procNode.isIsolated() || !isClustered || isPrimary;
+    static boolean isRunOnCluster(final ProcessorNode procNode, FlowController flowController) {
+        return !procNode.isIsolated() || !flowController.isConfiguredForClustering() || flowController.isPrimary();
     }
 
     static boolean isYielded(final ProcessorNode procNode) {
@@ -90,7 +90,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
-        if (!isRunOnCluster(procNode, flowController.isClustered(), flowController.isPrimary())) {
+        if (!isRunOnCluster(procNode, flowController)) {
             return false;
         }
 
@@ -130,7 +130,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         final long finishNanos = startNanos + batchNanos;
         int invocationCount = 0;
         try {
-            try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
+            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
                 boolean shouldRun = true;
                 while (shouldRun) {
                     procNode.onTrigger(processContext, sessionFactory);
@@ -157,11 +157,11 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                     }
                 }
             } catch (final ProcessException pe) {
-                final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+                final ComponentLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
                 procLog.error("Failed to process session due to {}", new Object[]{pe});
             } catch (final Throwable t) {
-                // Use ProcessorLog to log the event so that a bulletin will be created for this processor
-                final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+                // Use ComponentLog to log the event so that a bulletin will be created for this processor
+                final ComponentLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
                 procLog.error("{} failed to process session due to {}", new Object[]{procNode.getProcessor(), t});
                 procLog.warn("Processor Administratively Yielded for {} due to processing failure", new Object[]{schedulingAgent.getAdministrativeYieldDuration()});
                 logger.warn("Administratively Yielding {} due to uncaught Exception: {}", procNode.getProcessor(), t.toString());
@@ -175,7 +175,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                     try {
                         rawSession.commit();
                     } catch (final Exception e) {
-                        final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+                        final ComponentLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
                         procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, e.toString() }, e);
 
                         try {

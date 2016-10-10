@@ -17,12 +17,14 @@
 package org.apache.nifi.processors.cassandra;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.CodecRegistry;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.JdkSSLOptions;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.Row;
-import com.datastax.driver.core.SSLOptions;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TypeCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +34,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -167,6 +169,8 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     protected final AtomicReference<Cluster> cluster = new AtomicReference<>(null);
     protected final AtomicReference<Session> cassandraSession = new AtomicReference<>(null);
 
+    protected static final CodecRegistry codecRegistry = new CodecRegistry();
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Set<ValidationResult> results = new HashSet<>();
@@ -183,7 +187,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     protected void connectToCassandra(ProcessContext context) {
         if (cluster.get() == null) {
-            ProcessorLog log = getLogger();
+            ComponentLog log = getLogger();
             final String contactPointList = context.getProperty(CONTACT_POINTS).getValue();
             final String consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
@@ -253,7 +257,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                                     String username, String password) {
         Cluster.Builder builder = Cluster.builder().addContactPointsWithPorts(contactPoints);
         if (sslContext != null) {
-            builder = builder.withSSL(new SSLOptions(sslContext, SSLOptions.DEFAULT_SSL_CIPHER_SUITES));
+            JdkSSLOptions sslOptions = JdkSSLOptions.builder()
+                    .withSSLContext(sslContext)
+                    .build();
+            builder = builder.withSSL(sslOptions);
         }
         if (username != null && password != null) {
             builder = builder.withCredentials(username, password);
@@ -304,7 +311,13 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             return row.getDouble(i);
 
         } else if (dataType.equals(DataType.timestamp())) {
+            return row.getTimestamp(i);
+
+        } else if (dataType.equals(DataType.date())) {
             return row.getDate(i);
+
+        } else if (dataType.equals(DataType.time())) {
+            return row.getTime(i);
 
         } else if (dataType.isCollection()) {
 
@@ -315,15 +328,17 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             }
             // Get the first type argument, to be used for lists and sets (and the first in a map)
             DataType firstArg = typeArguments.get(0);
+            TypeCodec firstCodec = codecRegistry.codecFor(firstArg);
             if (dataType.equals(DataType.set(firstArg))) {
-                return row.getSet(i, firstArg.asJavaClass());
+                return row.getSet(i, firstCodec.getJavaType());
             } else if (dataType.equals(DataType.list(firstArg))) {
-                return row.getList(i, firstArg.asJavaClass());
+                return row.getList(i, firstCodec.getJavaType());
             } else {
                 // Must be an n-arg collection like map
                 DataType secondArg = typeArguments.get(1);
+                TypeCodec secondCodec = codecRegistry.codecFor(secondArg);
                 if (dataType.equals(DataType.map(firstArg, secondArg))) {
-                    return row.getMap(i, firstArg.asJavaClass(), secondArg.asJavaClass());
+                    return row.getMap(i, firstCodec.getJavaType(), secondCodec.getJavaType());
                 }
             }
 
@@ -427,7 +442,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                 return primitiveType;
             }
         }
-        throw new IllegalArgumentException("Not a primitive Cassandra type: " + dataTypeName);
+        return null;
     }
 
     /**

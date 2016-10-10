@@ -18,107 +18,67 @@
 #settings {
     position: absolute;
     top: 0px;
-    right: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+div.settings-header-text {
+    height: 28px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    margin-bottom: 30px;
+}
+
+div.settings-container {
+    position: absolute;
+    top: 58px;
     bottom: 0px;
     left: 0px;
-    display: none;
-    padding: 20px;
-}
-
-#settings-header-text {
-    height: 35px;
-    font-size: 16px;
-    font-weight: bold;
-}
-
-#settings-container {
-    margin-top: 18px;
+    right: 0px;
 }
 
 #new-service-or-task {
     float: right;
-    width: 19px;
-    height: 19px;
-    margin-top: 4px;
-    cursor: pointer;
+}
+
+#settings-refresh-container {
+    position: absolute;
+    bottom: 20px;
+    right: 0px;
+    left: 0px;
 }
 
 /* settings tabs */
 
-#settings-tabs-container {
-    border-bottom: 2px solid #666;
-}
-
-#settings-tabs {
+div.settings-tabs {
     float: left;
 }
 
-.settings-tab {
-    display: block;
-    padding: 0 5px;
-    height: 26px;
-    float: left;
-    color: #666;
-    background-color: #ccc;
-    border-left: 1px solid #b5b5b5;
-    border-top: 1px solid #b5b5b5;
-    border-right: 1px solid #b5b5b5;
-    margin-right: 5px;
-    text-align: center;
-    cursor: pointer;
-    line-height: 26px;
-    font-weight: bold;
-}
-
-.settings-selected-tab {
-    color: #fff;
-    background-color: #666;
-    border-left: 1px solid #666;
-    border-top: 1px solid #666;
-    border-right: 1px solid #666;
-}
-
-#settings-tab-background {
-    height: 200px;
-    margin-top: 1px;
-    background-color: transparent;
-    background: linear-gradient(to bottom, #dddddd, #ffffff);
-    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#dddddd, endColorstr=#ffffff);
-}
-
-#settings div.configuration-tab {
-    display: none;
+#settings-tabs-content {
+    top: 43px;
+    bottom: 48px;
 }
 
 div.settings-table {
     position: absolute;
-    top: 115px;
-    left: 25px;
+    top: 0px;
+    left: 0px;
     bottom: 20px;
-    right: 25px;
-    border: 1px solid #666;
-    overflow: hidden;
-    background-color: #fff;
+    right: 0px;
+    min-height: 150px;
 }
 
 span.sorted {
     text-decoration: underline;
 }
 
-#settings-refresh-button {
+div.settings-refresh-button {
     height: 24px;
     width: 26px;
     float: left;
-}
-
-#settings-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
 }
 
 #settings-loading-container {
@@ -131,45 +91,28 @@ span.sorted {
 }
 
 #settings-last-refreshed {
-    font-weight: bold;
-}
-
-#settings-refresh-required-icon {
-    float: left;
-    margin-top: 4px;
-    margin-left: 3px;
-    width: 18px;
-    height: 16px;
-    background-image: url(../images/iconAlert.png);
+    font-weight: 500;
 }
 
 /* general */
 
-#general-settings {
-    margin-top: -190px;
-    margin-left: 10px;
-}
-
-#general-settings input, #general-settings textarea {
-    font-size: 11px !important;
-    font-family: Verdana;
+#general-settings input {
     width: 350px;
     vertical-align: middle;
 }
 
-#data-flow-comments-field {
-    height: 100px;
+div.settings-buttons {
+    float: right;
 }
 
-#settings-buttons {
-    margin-left: 304px;
-    margin-top: 10px;
-}
-
-#settings-save {
+.editable.settings-buttons {
     float: left;
 }
 
-#archive-flow-link {
-    margin-left: 10px;
+div.settings-buttons div.button {
+    float: left;
+}
+
+div.controller-settings-table {
+    top: 32px;
 }

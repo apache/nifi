@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation.mock;
 
+import java.io.File;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -41,7 +42,7 @@ public class MockControllerServiceInitializationContext implements ControllerSer
 
     @Override
     public ComponentLog getLogger() {
-        return new MockProcessorLogger();
+        return new MockComponentLogger();
     }
 
     @Override
@@ -49,4 +50,18 @@ public class MockControllerServiceInitializationContext implements ControllerSer
         return null;
     }
 
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null;
+    }
 }

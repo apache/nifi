@@ -28,13 +28,14 @@ public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionReques
         final AdaptedConnectionRequest aCr = new AdaptedConnectionRequest();
         if (cr != null) {
             aCr.setNodeIdentifier(cr.getProposedNodeIdentifier());
+            aCr.setDataFlow(cr.getDataFlow());
         }
         return aCr;
     }
 
     @Override
     public ConnectionRequest unmarshal(final AdaptedConnectionRequest aCr) {
-        return new ConnectionRequest(aCr.getNodeIdentifier());
+        return new ConnectionRequest(aCr.getNodeIdentifier(), aCr.getDataFlow());
     }
 
 }

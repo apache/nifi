@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -54,7 +55,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -66,7 +67,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
@@ -227,7 +227,7 @@ public class EvaluateXQuery extends AbstractProcessor {
         if (flowFileBatch.isEmpty()) {
             return;
         }
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Map<String, XQueryExecutable> attributeToXQueryMap = new HashMap<>();
 
         final Processor proc = new Processor(false);
@@ -264,8 +264,8 @@ public class EvaluateXQuery extends AbstractProcessor {
                 return;
             }
 
-            final ObjectHolder<Throwable> error = new ObjectHolder<>(null);
-            final ObjectHolder<XdmNode> sourceRef = new ObjectHolder<>(null);
+            final AtomicReference<Throwable> error = new AtomicReference<>(null);
+            final AtomicReference<XdmNode> sourceRef = new AtomicReference<>(null);
 
             session.read(flowFile, new InputStreamCallback() {
                 @Override

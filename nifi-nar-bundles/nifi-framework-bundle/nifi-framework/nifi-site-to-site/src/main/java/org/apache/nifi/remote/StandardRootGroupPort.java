@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.remote;
 
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -41,6 +50,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +60,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -72,7 +82,10 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private final AtomicReference<Set<String>> userAccessControl = new AtomicReference<Set<String>>(new HashSet<String>());
     private final ProcessScheduler processScheduler;
     private final boolean secure;
-    private final KeyService keyService;
+    private final Authorizer authorizer;
+    private final NiFiProperties nifiProperties;
+    private final List<IdentityMapping> identityMappings;
+
     @SuppressWarnings("unused")
     private final BulletinRepository bulletinRepository;
     private final EventReporter eventReporter;
@@ -86,14 +99,17 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     private boolean shutdown = false;   // guarded by requestLock
 
     public StandardRootGroupPort(final String id, final String name, final ProcessGroup processGroup,
-            final TransferDirection direction, final ConnectableType type, final KeyService keyService,
-            final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure) {
+            final TransferDirection direction, final ConnectableType type, final Authorizer authorizer,
+            final BulletinRepository bulletinRepository, final ProcessScheduler scheduler, final boolean secure,
+            final NiFiProperties nifiProperties) {
         super(id, name, processGroup, type, scheduler);
 
         this.processScheduler = scheduler;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
-        this.keyService = keyService;
+        this.authorizer = authorizer;
         this.secure = secure;
+        this.nifiProperties = nifiProperties;
+        this.identityMappings = IdentityMappingUtil.getIdentityMappings(nifiProperties);
         this.bulletinRepository = bulletinRepository;
         this.scheduler = scheduler;
         setYieldPeriod("100 millis");
@@ -236,7 +252,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return;
         }
 
-        session.commit();
+        // TODO: Comfirm this. Session.commit here is not required since it has been committed inside receiveFlowFiles/transferFlowFiles.
+        // session.commit();
         responseQueue.add(new ProcessingResult(transferCount));
     }
 
@@ -349,7 +366,35 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
-        // TODO - Replace with call to Authorizer to authorize site to site data transfer
+        final String identity = IdentityMappingUtil.mapIdentity(dn, identityMappings);
+
+        return checkUserAuthorization(new StandardNiFiUser(identity));
+    }
+
+    @Override
+    public PortAuthorizationResult checkUserAuthorization(NiFiUser user) {
+        if (!secure) {
+            return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
+        }
+
+        if (user == null) {
+            final String message = String.format("%s authorization failed because the user is unknown", this, user);
+            logger.warn(message);
+            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
+            return new StandardPortAuthorizationResult(false, "User is not known");
+        }
+
+        // perform the authorization
+        final Authorizable dataTransferAuthorizable = new DataTransferAuthorizable(this);
+        final AuthorizationResult result = dataTransferAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user);
+
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = String.format("%s authorization failed for user %s because %s", this, user.getIdentity(), result.getExplanation());
+            logger.warn(message);
+            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
+            return new StandardPortAuthorizationResult(false, message);
+        }
+
         return new StandardPortAuthorizationResult(true, "User is Authorized");
     }
 
@@ -451,7 +496,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     }
 
     @Override
-    public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol, final Map<String, String> requestHeaders)
+    public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
         if (getConnectableType() != ConnectableType.INPUT_PORT) {
             throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
@@ -505,7 +550,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     }
 
     @Override
-    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol, final Map<String, String> requestHeaders)
+    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
         if (getConnectableType() != ConnectableType.OUTPUT_PORT) {
             throw new IllegalStateException("Cannot send FlowFiles because this port is not an Output Port");
@@ -566,5 +611,10 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     @Override
     public boolean isSideEffectFree() {
         return false;
+    }
+
+    @Override
+    public String getComponentType() {
+        return "RootGroupPort";
     }
 }

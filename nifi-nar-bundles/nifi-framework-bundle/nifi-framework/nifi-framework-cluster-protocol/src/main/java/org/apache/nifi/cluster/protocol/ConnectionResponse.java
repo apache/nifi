@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionResponseAdapter;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The cluster manager's response to a node's connection request. If the manager
@@ -34,43 +38,39 @@ public class ConnectionResponse {
     private final String rejectionReason;
     private final int tryLaterSeconds;
     private final NodeIdentifier nodeIdentifier;
-    private final StandardDataFlow dataFlow;
-    private final boolean primary;
-    private final Integer managerRemoteInputPort;
-    private final Boolean managerRemoteCommsSecure;
+    private final DataFlow dataFlow;
     private final String instanceId;
+    private final List<NodeConnectionStatus> nodeStatuses;
+    private final List<ComponentRevision> componentRevisions;
 
-    private volatile String clusterManagerDN;
 
-    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow, final boolean primary,
-        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
+    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
+        final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
+
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
-        } else if (dataFlow == null) {
-            throw new IllegalArgumentException("DataFlow may not be null.");
         }
+
         this.nodeIdentifier = nodeIdentifier;
         this.dataFlow = dataFlow;
         this.tryLaterSeconds = 0;
         this.rejectionReason = null;
-        this.primary = primary;
-        this.managerRemoteInputPort = managerRemoteInputPort;
-        this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
+        this.nodeStatuses = Collections.unmodifiableList(new ArrayList<>(nodeStatuses));
+        this.componentRevisions = componentRevisions == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(componentRevisions));
     }
 
-    public ConnectionResponse(final int tryLaterSeconds) {
+    public ConnectionResponse(final int tryLaterSeconds, final String explanation) {
         if (tryLaterSeconds <= 0) {
-            throw new IllegalArgumentException("Try-Later seconds may not be nonnegative: " + tryLaterSeconds);
+            throw new IllegalArgumentException("Try-Later seconds must be nonnegative: " + tryLaterSeconds);
         }
         this.dataFlow = null;
         this.nodeIdentifier = null;
         this.tryLaterSeconds = tryLaterSeconds;
-        this.rejectionReason = null;
-        this.primary = false;
-        this.managerRemoteInputPort = null;
-        this.managerRemoteCommsSecure = null;
+        this.rejectionReason = explanation;
         this.instanceId = null;
+        this.nodeStatuses = null;
+        this.componentRevisions = null;
     }
 
     private ConnectionResponse(final String rejectionReason) {
@@ -78,10 +78,9 @@ public class ConnectionResponse {
         this.nodeIdentifier = null;
         this.tryLaterSeconds = 0;
         this.rejectionReason = rejectionReason;
-        this.primary = false;
-        this.managerRemoteInputPort = null;
-        this.managerRemoteCommsSecure = null;
         this.instanceId = null;
+        this.nodeStatuses = null;
+        this.componentRevisions = null;
     }
 
     public static ConnectionResponse createBlockedByFirewallResponse() {
@@ -96,10 +95,6 @@ public class ConnectionResponse {
         return new ConnectionResponse(explanation);
     }
 
-    public boolean isPrimary() {
-        return primary;
-    }
-
     public boolean shouldTryLater() {
         return tryLaterSeconds > 0;
     }
@@ -112,7 +107,7 @@ public class ConnectionResponse {
         return tryLaterSeconds;
     }
 
-    public StandardDataFlow getDataFlow() {
+    public DataFlow getDataFlow() {
         return dataFlow;
     }
 
@@ -120,27 +115,15 @@ public class ConnectionResponse {
         return nodeIdentifier;
     }
 
-    public Integer getManagerRemoteInputPort() {
-        return managerRemoteInputPort;
-    }
-
-    public Boolean isManagerRemoteCommsSecure() {
-        return managerRemoteCommsSecure;
-    }
-
     public String getInstanceId() {
         return instanceId;
     }
 
-    public void setClusterManagerDN(final String dn) {
-        this.clusterManagerDN = dn;
+    public List<NodeConnectionStatus> getNodeConnectionStatuses() {
+        return nodeStatuses;
     }
 
-    /**
-     * @return the DN of the NCM, if it is available or <code>null</code>
-     * otherwise
-     */
-    public String getClusterManagerDN() {
-        return clusterManagerDN;
+    public List<ComponentRevision> getComponentRevisions() {
+        return componentRevisions;
     }
 }

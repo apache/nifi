@@ -43,7 +43,6 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -53,6 +52,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -62,7 +62,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Responsible for scheduling Processors, Ports, and Funnels to run at regular intervals
+ * Responsible for scheduling Processors, Ports, and Funnels to run at regular
+ * intervals
  */
 public final class StandardProcessScheduler implements ProcessScheduler {
 
@@ -82,14 +83,21 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
 
     private final StringEncryptor encryptor;
+    private final VariableRegistry variableRegistry;
 
-    public StandardProcessScheduler(final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
-        final StateManagerProvider stateManagerProvider) {
+    public StandardProcessScheduler(
+            final ControllerServiceProvider controllerServiceProvider,
+            final StringEncryptor encryptor,
+            final StateManagerProvider stateManagerProvider,
+            final VariableRegistry variableRegistry,
+            final NiFiProperties nifiProperties
+    ) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
+        this.variableRegistry = variableRegistry;
 
-        administrativeYieldDuration = NiFiProperties.getInstance().getAdministrativeYieldDuration();
+        administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
 
         frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
@@ -120,8 +128,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      *
      * @param task the task to perform
      */
-    public void submitFrameworkTask(final Runnable task) {
-        frameworkTaskExecutor.submit(task);
+    public Future<?> submitFrameworkTask(final Runnable task) {
+        return frameworkTaskExecutor.submit(task);
     }
 
     @Override
@@ -182,7 +190,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         scheduleState.setScheduled(true);
 
         final Runnable startReportingTaskRunnable = new Runnable() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 final long lastStopTime = scheduleState.getLastStopTime();
@@ -202,8 +209,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 return;
                             }
 
-                            try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
+                            try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass())) {
+                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                             }
 
                             agent.schedule(taskNode, scheduleState);
@@ -215,8 +222,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
 
                         LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
-                            + "ReportingTask and will attempt to schedule it again after {}",
-                            new Object[] { reportingTask, e.toString(), administrativeYieldDuration }, e);
+                                + "ReportingTask and will attempt to schedule it again after {}",
+                                new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
 
                         try {
                             Thread.sleep(administrativeYieldMillis);
@@ -244,7 +254,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         taskNode.setScheduledState(ScheduledState.STOPPED);
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
@@ -253,8 +262,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     scheduleState.setScheduled(false);
 
                     try {
-                        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTask.getClass())) {
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
                         }
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
@@ -262,7 +271,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
 
                         LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                            reportingTask, cause.toString(), administrativeYieldDuration);
+                                reportingTask, cause.toString(), administrativeYieldDuration);
                         LOG.error("", cause);
 
                         try {
@@ -274,7 +283,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     agent.unschedule(taskNode, scheduleState);
 
                     if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
                     }
                 }
             }
@@ -286,14 +295,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     /**
      * Starts the given {@link Processor} by invoking its
      * {@link ProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)}
-     * .
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long,
-     *      org.apache.nifi.processor.ProcessContext, Runnable).
+     * method.
+     *
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable).
      */
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
 
         SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -319,26 +328,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Stops the given {@link Processor} by invoking its
-     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, Callable)}
-     * .
-     * @see StandardProcessorNode#stop(ScheduledExecutorService,
-     *      org.apache.nifi.processor.ProcessContext, Callable)
+     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)}
+     * method.
+     *
+     * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)
      */
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState state = getScheduleState(procNode);
 
-        procNode.stop(this.componentLifeCycleThreadPool, processContext, new Callable<Boolean>() {
-            @Override
-            public Boolean call() {
-                if (state.isScheduled()) {
-                    getSchedulingAgent(procNode).unschedule(procNode, state);
-                }
-                return state.getActiveThreadCount() == 0;
-            }
-        });
+        procNode.stop(this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), state);
     }
 
     @Override
@@ -380,7 +381,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void startPort(final Port port) {
         if (!port.isValid()) {
-            throw new IllegalStateException("Port " + port.getName() + " is not in a valid state");
+            throw new IllegalStateException("Port " + port.getIdentifier() + " is not in a valid state");
         }
 
         port.onSchedulingStart();
@@ -407,7 +408,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     private synchronized void startConnectable(final Connectable connectable) {
         if (connectable.getScheduledState() == ScheduledState.DISABLED) {
-            throw new IllegalStateException(connectable + " is disabled, so it cannot be started");
+            throw new IllegalStateException(connectable.getIdentifier() + " is disabled, so it cannot be started");
         }
 
         final ScheduleState scheduleState = getScheduleState(requireNonNull(connectable));
@@ -435,7 +436,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
             final ConnectableProcessContext processContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
-            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(connectable.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
             }
         }
@@ -521,8 +522,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
      * no ScheduleState current is registered, one is created and registered
      * atomically, and then that value is returned.
      *
-     * @param schedulable
-     *            schedulable
+     * @param schedulable schedulable
      * @return scheduled state
      */
     private ScheduleState getScheduleState(final Object schedulable) {

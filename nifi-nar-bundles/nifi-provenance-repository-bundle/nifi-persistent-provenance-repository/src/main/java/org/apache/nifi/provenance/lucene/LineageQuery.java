@@ -36,6 +36,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.authorization.AuthorizationCheck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class LineageQuery {
     private static final Logger logger = LoggerFactory.getLogger(LineageQuery.class);
 
     public static Set<ProvenanceEventRecord> computeLineageForFlowFiles(final PersistentProvenanceRepository repo, final IndexManager indexManager, final File indexDirectory,
-        final String lineageIdentifier, final Collection<String> flowFileUuids, final int maxAttributeChars) throws IOException {
+            final String lineageIdentifier, final Collection<String> flowFileUuids, final int maxAttributeChars) throws IOException {
         if (requireNonNull(flowFileUuids).size() > MAX_LINEAGE_UUIDS) {
             throw new IllegalArgumentException(String.format("Cannot compute lineage for more than %s FlowFiles. This lineage contains %s.", MAX_LINEAGE_UUIDS, flowFileUuids.size()));
         }
@@ -72,30 +73,18 @@ public class LineageQuery {
                     flowFileIdQuery.setMinimumNumberShouldMatch(1);
                 }
 
-                BooleanQuery query;
-                if (lineageIdentifier == null) {
-                    query = flowFileIdQuery;
-                } else {
-                    final BooleanQuery lineageIdQuery = new BooleanQuery();
-                    lineageIdQuery.add(new TermQuery(new Term(SearchableFields.LineageIdentifier.getSearchableFieldName(), lineageIdentifier)), Occur.MUST);
-
-                    if (flowFileIdQuery == null) {
-                        query = lineageIdQuery;
-                    } else {
-                        query = new BooleanQuery();
-                        query.add(flowFileIdQuery, Occur.SHOULD);
-                        query.add(lineageIdQuery, Occur.SHOULD);
-                        query.setMinimumNumberShouldMatch(1);
-                    }
-                }
-
                 final long searchStart = System.nanoTime();
-                final TopDocs uuidQueryTopDocs = searcher.search(query, MAX_QUERY_RESULTS);
+                logger.debug("Searching {} for {}", indexDirectory, flowFileIdQuery);
+                final TopDocs uuidQueryTopDocs = searcher.search(flowFileIdQuery, MAX_QUERY_RESULTS);
                 final long searchEnd = System.nanoTime();
 
+                // Always authorized. We do this because we need to pull back the event, regardless of whether or not
+                // the user is truly authorized, because instead of ignoring unauthorized events, we want to replace them.
+                final AuthorizationCheck authCheck = event -> true;
+
                 final DocsReader docsReader = new DocsReader();
-                final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, searcher.getIndexReader(), repo.getAllLogFiles(),
-                    new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
+                final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, authCheck, searcher.getIndexReader(), repo.getAllLogFiles(),
+                        new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
 
                 final long readDocsEnd = System.nanoTime();
                 logger.debug("Finished Lineage Query against {}; Lucene search took {} millis, reading records took {} millis",
@@ -108,7 +97,7 @@ public class LineageQuery {
         } catch (final FileNotFoundException fnfe) {
             // nothing has been indexed yet, or the data has already aged off
             logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, fnfe);
-            if ( logger.isDebugEnabled() ) {
+            if (logger.isDebugEnabled()) {
                 logger.warn("", fnfe);
             }
 

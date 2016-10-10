@@ -47,7 +47,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -73,6 +73,8 @@ import org.apache.nifi.util.StopWatch;
     + "the content that matches the Regular Expression with some alternate value.")
 public class ReplaceText extends AbstractProcessor {
 
+    private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");
+
     // Constants
     public static final String LINE_BY_LINE = "Line-by-Line";
     public static final String ENTIRE_TEXT = "Entire text";
@@ -82,7 +84,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
     private static final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
-    private static final String DEFAULT_REGEX = "(?s:^.*$)";
+    private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
 
     // Prepend and Append will just insert the replacement value at the beginning or end
@@ -91,7 +93,7 @@ public class ReplaceText extends AbstractProcessor {
         "Insert the Replacement Value at the beginning of the FlowFile or the beginning of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
             + "the value will be prepended to each line. For \"Entire Text\" evaluation mode, the value will be prepended to the entire text.");
     static final AllowableValue APPEND = new AllowableValue(appendValue, appendValue,
-        "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evluation Mode). For \"Line-by-Line\" Evaluation Mode, "
+        "Insert the Replacement Value at the end of the FlowFile or the end of each line (depending on the Evaluation Mode). For \"Line-by-Line\" Evaluation Mode, "
             + "the value will be appended to each line. For \"Entire Text\" evaluation mode, the value will be appended to the entire text.");
     static final AllowableValue LITERAL_REPLACE = new AllowableValue(literalReplaceValue, literalReplaceValue,
         "Search for all instances of the Search Value and replace the matches with the Replacement Value.");
@@ -206,18 +208,11 @@ public class ReplaceText extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final String unsubstitutedRegex = context.getProperty(SEARCH_VALUE).getValue();
         String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).getValue();
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
-
-        if (replacementStrategy.equalsIgnoreCase(regexReplaceValue) && unsubstitutedRegex.equals(DEFAULT_REGEX) && unsubstitutedReplacement.equals(DEFAULT_REPLACEMENT_VALUE)) {
-            // This pattern says replace content with itself. We can highly optimize this process by simply transferring
-            // all FlowFiles to the 'success' relationship
-            session.transfer(flowFiles, REL_SUCCESS);
-            return;
-        }
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
@@ -520,8 +515,7 @@ public class ReplaceText extends AbstractProcessor {
                     String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
 
-                    // If we have a $ followed by anything other than a number, then escape it. E.g., $d becomes \$d so that it can be used as a literal in a regex.
-                    final String replacementFinal = replacement.replaceAll("(\\$\\D)", "\\\\$1");
+                    String replacementFinal = normalizeReplacementString(replacement);
 
                     final String updatedValue = contentString.replaceAll(searchRegex, replacementFinal);
                     updatedFlowFile = session.write(flowFile, new OutputStreamCallback() {
@@ -553,8 +547,7 @@ public class ReplaceText extends AbstractProcessor {
                                     String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
 
-                                    // If we have a $ followed by anything other than a number, then escape it. E.g., $d becomes \$d so that it can be used as a literal in a regex.
-                                    final String replacementFinal = replacement.replaceAll("(\\$\\D)", "\\\\$1");
+                                    String replacementFinal = normalizeReplacementString(replacement);
 
                                     final String updatedValue = oneLine.replaceAll(searchRegex, replacementFinal);
                                     bw.write(updatedValue);
@@ -633,6 +626,19 @@ public class ReplaceText extends AbstractProcessor {
         public boolean isAllDataBufferedForEntireText() {
             return true;
         }
+    }
+
+    /**
+     * If we have a '$' followed by anything other than a number, then escape
+     * it. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
+     * regex.
+     */
+    private static String normalizeReplacementString(String replacement) {
+        String replacementFinal = replacement;
+        if (REPLACEMENT_NORMALIZATION_PATTERN.matcher(replacement).find()) {
+            replacementFinal = Matcher.quoteReplacement(replacement);
+        }
+        return replacementFinal;
     }
 
     private interface ReplacementStrategyExecutor {

@@ -33,13 +33,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -65,7 +62,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles to/from local disk
+ * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles
+ * to/from local disk
  * </p>
  */
 public class FileSystemSwapManager implements FlowFileSwapManager {
@@ -74,7 +72,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 8;
+    public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
@@ -85,16 +83,21 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private EventReporter eventReporter;
     private ResourceClaimManager claimManager;
 
+    /**
+     * Default no args constructor for service loading only.
+     */
     public FileSystemSwapManager() {
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final Path flowFileRepoPath = properties.getFlowFileRepositoryPath();
+        storageDirectory = null;
+    }
+
+    public FileSystemSwapManager(final NiFiProperties nifiProperties) {
+        final Path flowFileRepoPath = nifiProperties.getFlowFileRepositoryPath();
 
         this.storageDirectory = flowFileRepoPath.resolve("swap").toFile();
         if (!storageDirectory.exists() && !storageDirectory.mkdirs()) {
             throw new RuntimeException("Cannot create Swap Storage directory " + storageDirectory.getAbsolutePath());
         }
     }
-
 
     @Override
     public synchronized void initialize(final SwapManagerInitializationContext initializationContext) {
@@ -131,7 +134,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return swapLocation;
     }
 
-
     @Override
     public SwapContents swapIn(final String swapLocation, final FlowFileQueue flowFileQueue) throws IOException {
         final File swapFile = new File(swapLocation);
@@ -154,14 +156,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         final SwapContents swapContents;
         try (final InputStream fis = new FileInputStream(swapFile);
-            final InputStream bis = new BufferedInputStream(fis);
-            final DataInputStream in = new DataInputStream(bis)) {
+                final InputStream bis = new BufferedInputStream(fis);
+                final DataInputStream in = new DataInputStream(bis)) {
             swapContents = deserializeFlowFiles(in, swapLocation, flowFileQueue, claimManager);
         }
 
         return swapContents;
     }
-
 
     @Override
     public void purge() {
@@ -178,7 +179,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         }
     }
-
 
     @Override
     public List<String> recoverSwapLocations(final FlowFileQueue flowFileQueue) throws IOException {
@@ -219,13 +219,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
             // Read the queue identifier from the swap file to check if the swap file is for this queue
             try (final InputStream fis = new FileInputStream(swapFile);
-                final InputStream bufferedIn = new BufferedInputStream(fis);
-                final DataInputStream in = new DataInputStream(bufferedIn)) {
+                    final InputStream bufferedIn = new BufferedInputStream(fis);
+                    final DataInputStream in = new DataInputStream(bufferedIn)) {
 
                 final int swapEncodingVersion = in.readInt();
                 if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
                     final String errMsg = "Cannot swap FlowFiles in from " + swapFile + " because the encoding version is "
-                        + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)";
+                            + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)";
 
                     eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, errMsg);
                     throw new IOException(errMsg);
@@ -248,13 +248,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
         // read record from disk via the swap file
         try (final InputStream fis = new FileInputStream(swapFile);
-            final InputStream bufferedIn = new BufferedInputStream(fis);
-            final DataInputStream in = new DataInputStream(bufferedIn)) {
+                final InputStream bufferedIn = new BufferedInputStream(fis);
+                final DataInputStream in = new DataInputStream(bufferedIn)) {
 
             final int swapEncodingVersion = in.readInt();
             if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
                 final String errMsg = "Cannot swap FlowFiles in from " + swapFile + " because the encoding version is "
-                    + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)";
+                        + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)";
 
                 eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, errMsg);
                 throw new IOException(errMsg);
@@ -286,8 +286,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-
-    @SuppressWarnings("deprecation")
     public static int serializeFlowFiles(final List<FlowFileRecord> toSwap, final FlowFileQueue queue, final String swapLocation, final OutputStream destination) throws IOException {
         if (toSwap == null || toSwap.isEmpty()) {
             return 0;
@@ -320,15 +318,10 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             for (final FlowFileRecord flowFile : toSwap) {
                 out.writeLong(flowFile.getId());
                 out.writeLong(flowFile.getEntryDate());
-
-                final Set<String> lineageIdentifiers = flowFile.getLineageIdentifiers();
-                out.writeInt(lineageIdentifiers.size());
-                for (final String lineageId : lineageIdentifiers) {
-                    out.writeUTF(lineageId);
-                }
-
                 out.writeLong(flowFile.getLineageStartDate());
+                out.writeLong(flowFile.getLineageStartIndex());
                 out.writeLong(flowFile.getLastQueueDate());
+                out.writeLong(flowFile.getQueueDateIndex());
                 out.writeLong(flowFile.getSize());
 
                 final ContentClaim claim = flowFile.getContentClaim();
@@ -357,7 +350,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             out.flush();
         }
 
-        logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[] {toSwap.size(), queue, swapLocation});
+        logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", toSwap.size(), queue, swapLocation);
 
         return toSwap.size();
     }
@@ -385,13 +378,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final int swapEncodingVersion = in.readInt();
         if (swapEncodingVersion > SWAP_ENCODING_VERSION) {
             throw new IOException("Cannot swap FlowFiles in from SwapFile because the encoding version is "
-                + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)");
+                    + swapEncodingVersion + ", which is too new (expecting " + SWAP_ENCODING_VERSION + " or less)");
         }
 
         final String connectionId = in.readUTF(); // Connection ID
         if (!connectionId.equals(queue.getIdentifier())) {
-            throw new IllegalArgumentException("Cannot deserialize FlowFiles from Swap File at location " + swapLocation +
-                " because those FlowFiles belong to Connection with ID " + connectionId + " and an attempt was made to swap them into a Connection with ID " + queue.getIdentifier());
+            throw new IllegalArgumentException("Cannot deserialize FlowFiles from Swap File at location " + swapLocation
+                    + " because those FlowFiles belong to Connection with ID " + connectionId + " and an attempt was made to swap them into a Connection with ID " + queue.getIdentifier());
         }
 
         int numRecords = 0;
@@ -405,8 +398,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         } catch (final EOFException eof) {
             final QueueSize queueSize = new QueueSize(numRecords, contentSize);
-            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.<ResourceClaim> emptyList());
-            final SwapContents partialContents = new StandardSwapContents(summary, Collections.<FlowFileRecord> emptyList());
+            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.emptyList());
+            final SwapContents partialContents = new StandardSwapContents(summary, Collections.emptyList());
             throw new IncompleteSwapFileException(swapLocation, partialContents);
         }
 
@@ -415,7 +408,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     private static SwapContents deserializeFlowFiles(final DataInputStream in, final QueueSize queueSize, final Long maxRecordId,
-        final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager, final String location) throws IOException {
+            final int serializationVersion, final boolean incrementContentClaims, final ResourceClaimManager claimManager, final String location) throws IOException {
         final List<FlowFileRecord> flowFiles = new ArrayList<>(queueSize.getObjectCount());
         final List<ResourceClaim> resourceClaims = new ArrayList<>(queueSize.getObjectCount());
         Long maxId = maxRecordId;
@@ -441,16 +434,35 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
                 if (serializationVersion > 1) {
                     // Lineage information was added in version 2
-                    final int numLineageIdentifiers = in.readInt();
-                    final Set<String> lineageIdentifiers = new HashSet<>(numLineageIdentifiers);
-                    for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
-                        lineageIdentifiers.add(in.readUTF());
+                    if (serializationVersion < 10) {
+                        final int numLineageIdentifiers = in.readInt();
+                        for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
+                            in.readUTF(); //skip each identifier
+                        }
                     }
-                    ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                    ffBuilder.lineageStartDate(in.readLong());
+
+                    // version 9 adds in a 'lineage start index'
+                    final long lineageStartDate = in.readLong();
+                    final long lineageStartIndex;
+                    if (serializationVersion > 8) {
+                        lineageStartIndex = in.readLong();
+                    } else {
+                        lineageStartIndex = 0L;
+                    }
+
+                    ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                     if (serializationVersion > 5) {
-                        ffBuilder.lastQueueDate(in.readLong());
+                        // Version 9 adds in a 'queue date index'
+                        final long lastQueueDate = in.readLong();
+                        final long queueDateIndex;
+                        if (serializationVersion > 8) {
+                            queueDateIndex = in.readLong();
+                        } else {
+                            queueDateIndex = 0L;
+                        }
+
+                        ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                     }
                 }
 
@@ -580,7 +592,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-
     private void error(final String error) {
         logger.error(error);
         if (eventReporter != null) {
@@ -595,9 +606,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-
-
     private static class SwapFileComparator implements Comparator<String> {
+
         @Override
         public int compare(final String o1, final String o2) {
             if (o1 == o2) {

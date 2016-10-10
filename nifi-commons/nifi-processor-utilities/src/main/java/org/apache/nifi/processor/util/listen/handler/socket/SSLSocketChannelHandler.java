@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.listen.handler.socket;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelAttachment;
 import org.apache.nifi.processor.util.listen.event.Event;
@@ -51,7 +51,7 @@ public class SSLSocketChannelHandler<E extends Event<SocketChannel>> extends Soc
                                    final Charset charset,
                                    final EventFactory<E> eventFactory,
                                    final BlockingQueue<E> events,
-                                   final ProcessorLog logger) {
+                                   final ComponentLog logger) {
         super(key, dispatcher, charset, eventFactory, events, logger);
     }
 

@@ -54,7 +54,6 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Boolean call() {
         if (!scheduleState.isScheduled()) {
             return false;
@@ -77,7 +76,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         if (shouldRun) {
             scheduleState.incrementActiveThreadCount();
             try {
-                try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
+                try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(connectable.getClass())) {
                     connectable.onTrigger(processContext, sessionFactory);
                 } catch (final ProcessException pe) {
                     logger.error("{} failed to process session due to {}", connectable, pe.toString());
@@ -94,8 +93,8 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
                 }
             } finally {
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, connectable, processContext);
+                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(connectable.getClass())) {
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
                     }
                 }
 

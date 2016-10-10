@@ -237,7 +237,9 @@ public class ProcessorConfigDTO {
      * @return the names of all processor relationships that cause a flow file to be terminated if the relationship is not connected to anything
      */
     @ApiModelProperty(
-            value = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere."
+        value = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere. This property differs "
+            + "from the 'isAutoTerminate' property of the RelationshipDTO in that the RelationshipDTO is meant to depict the current configuration, whereas this "
+            + "property can be set in a DTO when updating a Processor in order to change which Relationships should be auto-terminated."
     )
     public Set<String> getAutoTerminatedRelationships() {
         return autoTerminatedRelationships;

@@ -17,13 +17,24 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
+import java.util.Date;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an ActionDTO.
  */
 @XmlRootElement(name = "actionEntity")
-public class ActionEntity extends Entity {
+public class ActionEntity extends Entity implements ReadablePermission {
+
+    private Integer id;
+    private Date timestamp;
+    private String sourceId;
+    private Boolean canRead;
 
     private ActionDTO action;
 
@@ -40,4 +51,47 @@ public class ActionEntity extends Entity {
         this.action = action;
     }
 
+    /**
+     * @return The action ID.
+     */
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    /**
+     * @return The timestamp of the action.
+     */
+    @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * @return The id of the source component.
+     */
+    public String getSourceId() {
+        return sourceId;
+    }
+
+    public void setSourceId(String sourceId) {
+        this.sourceId = sourceId;
+    }
+
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 }

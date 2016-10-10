@@ -37,5 +37,4 @@ public final class JaxbProtocolUtils {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }
-
 }

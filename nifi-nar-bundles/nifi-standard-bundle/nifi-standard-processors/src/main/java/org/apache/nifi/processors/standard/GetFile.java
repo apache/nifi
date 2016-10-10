@@ -61,7 +61,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -363,7 +363,7 @@ public class GetFile extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final File directory = new File(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         if (fileQueue.size() < 100) {
             final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);

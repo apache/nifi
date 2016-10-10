@@ -19,7 +19,6 @@ package org.apache.nifi.controller.status;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -445,6 +444,7 @@ public class ProcessGroupStatus implements Cloneable {
             merged.setOutputBytes(merged.getOutputBytes() + statusToMerge.getOutputBytes());
             merged.setOutputCount(merged.getOutputCount() + statusToMerge.getOutputCount());
             merged.setProcessingNanos(merged.getProcessingNanos() + statusToMerge.getProcessingNanos());
+            merged.setFlowFilesRemoved(merged.getFlowFilesRemoved() + statusToMerge.getFlowFilesRemoved());
 
             // if the status to merge is invalid allow it to take precedence. whether the
             // processor run status is disabled/stopped/running is part of the flow configuration
@@ -553,18 +553,6 @@ public class ProcessGroupStatus implements Cloneable {
             merged.setSentContentSize(merged.getSentContentSize() + statusToMerge.getSentContentSize());
             merged.setSentCount(merged.getSentCount() + statusToMerge.getSentCount());
             merged.setActiveThreadCount(merged.getActiveThreadCount() + statusToMerge.getActiveThreadCount());
-
-            List<String> mergedAuthenticationIssues = merged.getAuthorizationIssues();
-            if (mergedAuthenticationIssues == null) {
-                mergedAuthenticationIssues = new ArrayList<>();
-            }
-
-            final List<String> nodeAuthorizationIssues = statusToMerge.getAuthorizationIssues();
-            if (nodeAuthorizationIssues != null && !nodeAuthorizationIssues.isEmpty()) {
-                mergedAuthenticationIssues.addAll(nodeAuthorizationIssues);
-            }
-
-            merged.setAuthorizationIssues(mergedAuthenticationIssues);
         }
 
         target.setRemoteProcessGroupStatus(mergedRemoteGroupMap.values());

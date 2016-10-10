@@ -17,13 +17,17 @@
 package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -38,43 +42,50 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ApplicationContext applicationContext;
     private FlowController flowController;
     private NiFiProperties properties;
-    private KeyService keyService;
+    private Authorizer authorizer;
     private AuditService auditService;
     private StringEncryptor encryptor;
+    private BulletinRepository bulletinRepository;
+    private ClusterCoordinator clusterCoordinator;
+    private VariableRegistry variableRegistry;
+    private LeaderElectionManager leaderElectionManager;
 
     @Override
     public Object getObject() throws Exception {
-        /*
-         * If configured for the cluster manager, then the flow controller is never used.
-         */
-        if (properties.isClusterManager()) {
-            return null;
-        } else if (flowController == null) {
-
+        if (flowController == null) {
             final FlowFileEventRepository flowFileEventRepository = applicationContext.getBean("flowFileEventRepository", FlowFileEventRepository.class);
 
             if (properties.isNode()) {
                 final NodeProtocolSender nodeProtocolSender = applicationContext.getBean("nodeProtocolSender", NodeProtocolSender.class);
+                final HeartbeatMonitor heartbeatMonitor = applicationContext.getBean("heartbeatMonitor", HeartbeatMonitor.class);
                 flowController = FlowController.createClusteredInstance(
-                        flowFileEventRepository,
-                        properties,
-                    keyService,
-                        auditService,
-                        encryptor,
-                        nodeProtocolSender);
+                    flowFileEventRepository,
+                    properties,
+                    authorizer,
+                    auditService,
+                    encryptor,
+                    nodeProtocolSender,
+                    bulletinRepository,
+                    clusterCoordinator,
+                    heartbeatMonitor,
+                    leaderElectionManager,
+                    variableRegistry);
             } else {
                 flowController = FlowController.createStandaloneInstance(
-                        flowFileEventRepository,
-                        properties,
-                    keyService,
-                        auditService,
-                        encryptor);
+                    flowFileEventRepository,
+                    properties,
+                    authorizer,
+                    auditService,
+                    encryptor,
+                    bulletinRepository, variableRegistry);
             }
 
         }
 
         return flowController;
     }
+
+
 
     @Override
     public Class getObjectType() {
@@ -95,8 +106,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.properties = properties;
     }
 
-    public void setKeyService(final KeyService keyService) {
-        this.keyService = keyService;
+    public void setAuthorizer(final Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setEncryptor(final StringEncryptor encryptor) {
@@ -105,5 +116,21 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setAuditService(final AuditService auditService) {
         this.auditService = auditService;
+    }
+
+    public void setBulletinRepository(final BulletinRepository bulletinRepository) {
+        this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setVariableRegistry(VariableRegistry variableRegistry) {
+        this.variableRegistry = variableRegistry;
+    }
+
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
+    }
+
+    public void setLeaderElectionManager(final LeaderElectionManager leaderElectionManager) {
+        this.leaderElectionManager = leaderElectionManager;
     }
 }

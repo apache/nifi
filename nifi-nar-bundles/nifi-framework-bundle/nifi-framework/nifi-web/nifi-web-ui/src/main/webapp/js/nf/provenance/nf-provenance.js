@@ -18,22 +18,46 @@
 /* global nf, top */
 
 $(document).ready(function () {
+    //Create Angular App
+    var app = angular.module('ngProvenanceApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope'];
+    nf.ng.Provenance.$inject = ['provenanceTableCtrl'];
+    nf.ng.ProvenanceLineage.$inject = [];
+    nf.ng.ProvenanceTable.$inject = ['provenanceLineageCtrl'];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngProvenanceAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('provenanceCtrl', nf.ng.Provenance);
+    app.service('provenanceLineageCtrl', nf.ng.ProvenanceLineage);
+    app.service('provenanceTableCtrl', nf.ng.ProvenanceTable);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], { strictDi: true });
+
     // initialize the status page
-    nf.Provenance.init();
+    nf.ng.Bridge.injector.get('provenanceCtrl').init();
 });
 
-nf.Provenance = (function () {
+nf.ng.Provenance = function (provenanceTableCtrl) {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
         urls: {
-            cluster: '../nifi-api/cluster',
-            banners: '../nifi-api/controller/banners',
-            config: '../nifi-api/controller/config',
-            controllerAbout: '../nifi-api/controller/about',
-            authorities: '../nifi-api/controller/authorities'
+            clusterSummary: '../nifi-api/flow/cluster/summary',
+            banners: '../nifi-api/flow/banners',
+            about: '../nifi-api/flow/about',
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -46,68 +70,55 @@ nf.Provenance = (function () {
      * Determines if this NiFi is clustered.
      */
     var detectedCluster = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                isClustered = true;
-                deferred.resolve();
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    isClustered = false;
-                    deferred.resolve();
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
-        }).promise();
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.clusterSummary
+        }).done(function (response) {
+            isClustered = response.clusterSummary.connectedToCluster;
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
      * Loads the controller configuration.
      */
-    var loadControllerConfig = function () {
-        return $.ajax({
+    var loadAbout = function () {
+        // get the about details
+        $.ajax({
             type: 'GET',
-            url: config.urls.config,
+            url: config.urls.about,
             dataType: 'json'
         }).done(function (response) {
-            var config = response.config;
+            var aboutDetails = response.about;
+            var provenanceTitle = aboutDetails.title + ' Data Provenance';
 
             // store the controller name
-            $('#nifi-controller-uri').text(config.uri);
+            $('#nifi-controller-uri').text(aboutDetails.uri);
+
+            // set the timezone for the start and end time
+            $('.timezone').text(aboutDetails.timezone);
 
             // store the content viewer url if available
-            if (!nf.Common.isBlank(config.contentViewerUrl)) {
-                $('#nifi-content-viewer-url').text(config.contentViewerUrl);
+            if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
+                $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
             }
+
+            // set the document title and the about title
+            document.title = provenanceTitle;
+            $('#provenance-header-text').text(provenanceTitle);
         }).fail(nf.Common.handleAjaxError);
     };
 
     /**
-     * Loads the current users authorities.
+     * Loads the current user.
      */
-    var loadAuthorities = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve(response);
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -115,8 +126,8 @@ nf.Provenance = (function () {
      */
     var initializeProvenancePage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            nf.ProvenanceTable.loadProvenanceTable();
+        $('#refresh-button').click(function () {
+            provenanceTableCtrl.loadProvenanceTable();
         });
 
         // return a deferred for page initialization
@@ -169,67 +180,120 @@ nf.Provenance = (function () {
         }).promise();
     };
 
-    return {
+    function ProvenanceCtrl() {
+    }
+
+    ProvenanceCtrl.prototype = {
+        constructor: ProvenanceCtrl,
+
         /**
          * Initializes the status page.
          */
         init: function () {
             nf.Storage.init();
-            
-            // load the users authorities and detect if the NiFi is clustered
-            $.when(loadControllerConfig(), loadAuthorities(), detectedCluster()).done(function () {
+
+            // load the user and detect if the NiFi is clustered
+            $.when(loadAbout(), loadCurrentUser(), detectedCluster()).done(function () {
                 // create the provenance table
-                nf.ProvenanceTable.init(isClustered).done(function () {
-                    var search = {};
-                    
+                provenanceTableCtrl.init(isClustered).done(function () {
+                    var searchTerms = {};
+
                     // look for a processor id in the query search
-                    var initialComponentId = $('#intial-component-query').text();
+                    var initialComponentId = $('#initial-component-query').text();
                     if ($.trim(initialComponentId) !== '') {
                         // populate initial search component
                         $('input.searchable-component-id').val(initialComponentId);
-                        
+
                         // build the search criteria
-                        search = $.extend(search, {
-                            'search[ProcessorID]': initialComponentId
-                        });
+                        searchTerms['ProcessorID'] = initialComponentId;
                     }
 
                     // look for a flowfile uuid in the query search
-                    var initialFlowFileUuid = $('#intial-flowfile-query').text();
+                    var initialFlowFileUuid = $('#initial-flowfile-query').text();
                     if ($.trim(initialFlowFileUuid) !== '') {
                         // populate initial search component
                         $('input.searchable-flowfile-uuid').val(initialFlowFileUuid);
 
                         // build the search criteria
-                        search = $.extend(search, {
-                            'search[FlowFileUUID]': initialFlowFileUuid
-                        });
+                        searchTerms['FlowFileUUID'] = initialFlowFileUuid;
                     }
 
                     // load the provenance table
-                    nf.ProvenanceTable.loadProvenanceTable(search);
+                    if ($.isEmptyObject(searchTerms)) {
+                        // load the provenance table
+                        provenanceTableCtrl.loadProvenanceTable();
+                    } else {
+                        // load the provenance table
+                        provenanceTableCtrl.loadProvenanceTable({
+                            'searchTerms': searchTerms
+                        });
+                    }
+
+                    var setBodySize = function () {
+                        //alter styles if we're not in the shell
+                        if (top === window) {
+                            $('body').css({
+                                'height': $(window).height() + 'px',
+                                'width': $(window).width() + 'px'
+                            });
+
+                            $('#provenance').css('margin', 40);
+                            $('#provenance-refresh-container').css({
+                                'bottom': '0px',
+                                'left': '0px',
+                                'right': '0px'
+                            });
+                        }
+
+                        // configure the initial grid height
+                        provenanceTableCtrl.resetTableSize();
+                    };
 
                     // once the table is initialized, finish initializing the page
                     initializeProvenancePage().done(function () {
-                        // configure the initial grid height
-                        nf.ProvenanceTable.resetTableSize();
+                        // set the initial size
+                        setBodySize();
+                    });
 
-                        // get the about details
-                        $.ajax({
-                            type: 'GET',
-                            url: config.urls.controllerAbout,
-                            dataType: 'json'
-                        }).done(function (response) {
-                            var aboutDetails = response.about;
-                            var provenanceTitle = aboutDetails.title + ' Data Provenance';
+                    $(window).on('resize', function (e) {
+                        setBodySize();
+                        // resize dialogs when appropriate
+                        var dialogs = $('.dialog');
+                        for (var i = 0, len = dialogs.length; i < len; i++) {
+                            if ($(dialogs[i]).is(':visible')){
+                                setTimeout(function(dialog){
+                                    dialog.modal('resize');
+                                }, 50, $(dialogs[i]));
+                            }
+                        }
 
-                            // set the document title and the about title
-                            document.title = provenanceTitle;
-                            $('#provenance-header-text').text(provenanceTitle);
-                        }).fail(nf.Common.handleAjaxError);
+                        // resize grids when appropriate
+                        var gridElements = $('*[class*="slickgrid_"]');
+                        for (var j = 0, len = gridElements.length; j < len; j++) {
+                            if ($(gridElements[j]).is(':visible')){
+                                setTimeout(function(gridElement){
+                                    gridElement.data('gridInstance').resizeCanvas();
+                                }, 50, $(gridElements[j]));
+                            }
+                        }
+
+                        // toggle tabs .scrollable when appropriate
+                        var tabsContainers = $('.tab-container');
+                        var tabsContents = [];
+                        for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                            if ($(tabsContainers[k]).is(':visible')){
+                                tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                            }
+                        }
+                        $.each(tabsContents, function (index, tabsContent) {
+                            nf.Common.toggleScrollable(tabsContent.get(0));
+                        });
                     });
                 });
             });
         }
-    };
-}());
+    }
+
+    var provenanceCtrl = new ProvenanceCtrl();
+    return provenanceCtrl;
+};

@@ -28,10 +28,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -49,6 +53,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 
 @SideEffectFree
 @SupportsBatching
@@ -81,6 +86,12 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .defaultValue("false")
         .required(true)
         .build();
+    static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
+        .name("Avro schema")
+        .description("If the Avro records do not contain the schema (datum only), it must be specified here.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .required(false)
+        .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -92,6 +103,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .build();
 
     private List<PropertyDescriptor> properties;
+    private volatile Schema schema = null;
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -100,6 +112,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(CONTAINER_OPTIONS);
         properties.add(WRAP_SINGLE_RECORD);
+        properties.add(SCHEMA);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -128,49 +141,77 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         // Wrap a single record (inclusive of no records) only when a container is being used
         final boolean wrapSingleRecord = context.getProperty(WRAP_SINGLE_RECORD).asBoolean() && useContainer;
 
+        final String stringSchema = context.getProperty(SCHEMA).getValue();
+        final boolean schemaLess = stringSchema != null;
+
         try {
             flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn);
-                         final OutputStream out = new BufferedOutputStream(rawOut);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                    final GenericData genericData = GenericData.get();
 
-                        final GenericData genericData = GenericData.get();
-
-                        int recordCount = 0;
-                        GenericRecord currRecord = null;
-                        if (reader.hasNext()) {
-                            currRecord = reader.next();
-                            recordCount++;
+                    if (schemaLess) {
+                        if (schema == null) {
+                            schema = new Schema.Parser().parse(stringSchema);
                         }
+                        try (final InputStream in = new BufferedInputStream(rawIn);
+                             final OutputStream out = new BufferedOutputStream(rawOut)) {
+                            final DatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>(schema);
+                            final BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(in, null);
+                            final GenericRecord record = reader.read(null, decoder);
 
-                        // Open container if desired output is an array format and there are are multiple records or
-                        // if configured to wrap single record
-                        if (reader.hasNext() && useContainer || wrapSingleRecord) {
-                            out.write('[');
-                        }
-
-                        // Determine the initial output record, inclusive if we should have an empty set of Avro records
-                        final byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8);
-                        out.write(outputBytes);
-
-                        while (reader.hasNext()) {
-                            if (useContainer) {
-                                out.write(',');
-                            } else {
-                                out.write('\n');
+                            // Schemaless records are singletons, so both useContainer and wrapSingleRecord
+                            // need to be true before we wrap it with an array
+                            if (useContainer && wrapSingleRecord) {
+                                out.write('[');
                             }
 
-                            currRecord = reader.next(currRecord);
-                            out.write(genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
-                            recordCount++;
-                        }
+                            final byte[] outputBytes = (record == null) ? EMPTY_JSON_OBJECT : genericData.toString(record).getBytes(StandardCharsets.UTF_8);
+                            out.write(outputBytes);
 
-                        // Close container if desired output is an array format and there are multiple records or if
-                        // configured to wrap a single record
-                        if (recordCount > 1 && useContainer || wrapSingleRecord) {
-                            out.write(']');
+                            if (useContainer && wrapSingleRecord) {
+                                out.write(']');
+                            }
+                        }
+                    } else {
+                        try (final InputStream in = new BufferedInputStream(rawIn);
+                             final OutputStream out = new BufferedOutputStream(rawOut);
+                             final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+
+                            int recordCount = 0;
+                            GenericRecord currRecord = null;
+                            if (reader.hasNext()) {
+                                currRecord = reader.next();
+                                recordCount++;
+                            }
+
+                            // Open container if desired output is an array format and there are are multiple records or
+                            // if configured to wrap single record
+                            if (reader.hasNext() && useContainer || wrapSingleRecord) {
+                                out.write('[');
+                            }
+
+                            // Determine the initial output record, inclusive if we should have an empty set of Avro records
+                            final byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8);
+                            out.write(outputBytes);
+
+                            while (reader.hasNext()) {
+                                if (useContainer) {
+                                    out.write(',');
+                                } else {
+                                    out.write('\n');
+                                }
+
+                                currRecord = reader.next(currRecord);
+                                out.write(genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
+                                recordCount++;
+                            }
+
+                            // Close container if desired output is an array format and there are multiple records or if
+                            // configured to wrap a single record
+                            if (recordCount > 1 && useContainer || wrapSingleRecord) {
+                                out.write(']');
+                            }
                         }
                     }
                 }

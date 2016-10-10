@@ -43,7 +43,7 @@ class GroovyProcessor implements Processor {
         }
         flowFile = session.putAttribute(flowFile, "from-content", "test content")
         // transfer
-        session.transfer(flowFile, InvokeScriptedProcessor.REL_SUCCESS)
+        session.transfer(flowFile, REL_TEST)
         session.commit()
     }
 

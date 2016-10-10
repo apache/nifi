@@ -22,7 +22,7 @@ package org.apache.nifi.ldap;
 public enum ReferralStrategy {
 
     FOLLOW("follow"),
-    INGORE("ignore"),
+    IGNORE("ignore"),
     THROW("throw");
 
     private final String value;

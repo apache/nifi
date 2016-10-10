@@ -16,18 +16,29 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.nifi.controller.FlowSerializationException;
-import org.apache.nifi.web.api.dto.TemplateDTO;
+import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 public final class TemplateSerializer {
 
+    /**
+     * This method when called assumes the Framework Nar ClassLoader is in the
+     * classloader hierarchy of the current context class loader.
+     * @param dto the template dto to serialize
+     * @return serialized representation of the DTO
+     */
     public static byte[] serialize(final TemplateDTO dto) {
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -35,13 +46,15 @@ public final class TemplateSerializer {
 
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
             Marshaller marshaller = context.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-            marshaller.marshal(dto, bos);
+            XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
+            XMLStreamWriter writer = new IndentingXMLStreamWriter(xmlof.createXMLStreamWriter(bos));
+            marshaller.marshal(dto, writer);
 
             bos.flush();
-            return baos.toByteArray();
-        } catch (final IOException | JAXBException e) {
+            return baos.toByteArray(); //Note: For really large templates this could use a lot of heap space
+        } catch (final IOException | JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         }
     }
+
 }

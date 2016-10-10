@@ -36,8 +36,8 @@ public class SslServerSocketFactory extends SSLServerSocketFactory {
 
     private SSLServerSocketFactory sslServerSocketFactory;
 
-    public SslServerSocketFactory() {
-        final SSLContext sslCtx = SslContextFactory.createSslContext(NiFiProperties.getInstance());
+    public SslServerSocketFactory(final NiFiProperties nifiProperties) {
+        final SSLContext sslCtx = SslContextFactory.createSslContext(nifiProperties);
         if (sslCtx == null) {
             try {
                 sslServerSocketFactory = SSLContext.getDefault().getServerSocketFactory();

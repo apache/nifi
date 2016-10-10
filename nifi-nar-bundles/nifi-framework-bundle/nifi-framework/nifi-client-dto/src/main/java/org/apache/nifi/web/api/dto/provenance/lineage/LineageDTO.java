@@ -30,7 +30,6 @@ public class LineageDTO {
 
     private String id;
     private String uri;
-    private String clusterNodeId;
 
     private Date submissionTime;
     private Date expiration;
@@ -66,20 +65,6 @@ public class LineageDTO {
 
     public void setUri(String uri) {
         this.uri = uri;
-    }
-
-    /**
-     * @return id of the node in the cluster where this lineage originated
-     */
-    @ApiModelProperty(
-            value = "The id of the node where this lineage originated if clustered."
-    )
-    public String getClusterNodeId() {
-        return clusterNodeId;
-    }
-
-    public void setClusterNodeId(String clusterNodeId) {
-        this.clusterNodeId = clusterNodeId;
     }
 
     /**

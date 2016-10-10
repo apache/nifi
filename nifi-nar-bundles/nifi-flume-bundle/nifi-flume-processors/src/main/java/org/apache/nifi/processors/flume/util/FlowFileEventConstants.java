@@ -28,9 +28,6 @@ public class FlowFileEventConstants {
   // FlowFile#getLastQueueDate();
   public static final String LAST_QUEUE_DATE_HEADER = "nifi.last.queue.date";
 
-  // FlowFile#getLineageIdentifiers();
-  public static final String LINEAGE_IDENTIFIERS_HEADER = "nifi.lineage.identifiers";
-
   // FlowFile#getLineageStartDate();
   public static final String LINEAGE_START_DATE_HEADER = "nifi.lineage.start.date";
 

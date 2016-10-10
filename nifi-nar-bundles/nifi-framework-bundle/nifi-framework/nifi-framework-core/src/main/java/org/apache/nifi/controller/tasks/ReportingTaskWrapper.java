@@ -34,11 +34,10 @@ public class ReportingTaskWrapper implements Runnable {
         this.scheduleState = scheduleState;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public synchronized void run() {
         scheduleState.incrementActiveThreadCount();
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
             final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask());
@@ -51,10 +50,8 @@ public class ReportingTaskWrapper implements Runnable {
                 // if the reporting task is no longer scheduled to run and this is the last thread,
                 // invoke the OnStopped methods
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(
-                                OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class,
-                                taskNode.getReportingTask(), taskNode.getConfigurationContext());
+                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
                     }
                 }
             } finally {

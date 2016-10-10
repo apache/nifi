@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.Marker;
+import org.slf4j.helpers.MessageFormatter;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -215,25 +216,23 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void info(String msg) {
-        infoMessages.add(new LogMessage(null, msg, null));
-        logger.info(msg);
+        this.info(msg, (Object) null);
     }
 
     @Override
     public void info(String format, Object arg) {
-        infoMessages.add(new LogMessage(null, format, null, arg));
-        logger.info(format, arg);
+        this.info(format, arg, null);
     }
 
     @Override
     public void info(String format, Object arg1, Object arg2) {
-        infoMessages.add(new LogMessage(null, format, null, arg1, arg2));
-        logger.info(format, arg1, arg2);
+        this.info(format, new Object[] { arg1, arg2 });
     }
 
     @Override
     public void info(String format, Object... arguments) {
-        infoMessages.add(new LogMessage(null, format, null, arguments));
+        String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
+        infoMessages.add(new LogMessage(null, message, null, arguments));
         logger.info(format, arguments);
     }
 
@@ -287,25 +286,23 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void warn(String msg) {
-        warnMessages.add(new LogMessage(null, msg, null));
-        logger.warn(msg);
+        this.warn(msg, (Object) null);
     }
 
     @Override
     public void warn(String format, Object arg) {
-        warnMessages.add(new LogMessage(null, format, null, arg));
-        logger.warn(format, arg);
+        this.warn(format, arg, null);
     }
 
     @Override
     public void warn(String format, Object arg1, Object arg2) {
-        warnMessages.add(new LogMessage(null, format, null, arg1, arg2));
-        logger.warn(format, arg1, arg2);
+        this.warn(format, new Object[] { arg1, arg2 });
     }
 
     @Override
     public void warn(String format, Object... arguments) {
-        warnMessages.add(new LogMessage(null, format, null, arguments));
+        String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
+        warnMessages.add(new LogMessage(null, message, null, arguments));
         logger.warn(format, arguments);
     }
 

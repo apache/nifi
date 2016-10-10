@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.web.spring;
 
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -28,37 +26,28 @@ import org.springframework.context.ApplicationContextAware;
 /**
  *
  */
-public class ControllerServiceProviderFactoryBean implements FactoryBean, ApplicationContextAware {
+public class ControllerServiceProviderFactoryBean implements FactoryBean<ControllerServiceProvider>, ApplicationContextAware {
 
     private ApplicationContext context;
     private ControllerServiceProvider controllerServiceProvider;
-    private NiFiProperties properties;
 
     @Override
-    public Object getObject() throws Exception {
+    public ControllerServiceProvider getObject() throws Exception {
         if (controllerServiceProvider == null) {
-            if (properties.isClusterManager()) {
-                controllerServiceProvider = context.getBean("clusterManager", WebClusterManager.class);
-            } else {
-                controllerServiceProvider = context.getBean("flowController", FlowController.class);
-            }
+            controllerServiceProvider = context.getBean("flowController", FlowController.class);
         }
 
         return controllerServiceProvider;
     }
 
     @Override
-    public Class getObjectType() {
+    public Class<ControllerServiceProvider> getObjectType() {
         return ControllerServiceProvider.class;
     }
 
     @Override
     public boolean isSingleton() {
         return true;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     @Override

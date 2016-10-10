@@ -23,13 +23,10 @@ import javax.xml.bind.annotation.XmlType;
  * The details for a process group within this NiFi flow.
  */
 @XmlType(name = "processGroup")
-public class ProcessGroupDTO extends NiFiComponentDTO {
+public class ProcessGroupDTO extends ComponentDTO {
 
     private String name;
     private String comments;
-    private Boolean running;
-
-    private ProcessGroupDTO parent;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -64,22 +61,6 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * This Process Group's parent
-     *
-     * @return This Process Group's parent
-     */
-    @ApiModelProperty(
-            value = "The part of the process group."
-    )
-    public ProcessGroupDTO getParent() {
-        return parent;
-    }
-
-    public void setParent(ProcessGroupDTO parent) {
-        this.parent = parent;
-    }
-
-    /**
      * @return comments for this process group
      */
     @ApiModelProperty(
@@ -94,10 +75,10 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return contents of this process group. This field will be populated if the request is marked verbose
+     * @return contents of this process group.
      */
     @ApiModelProperty(
-            value = "The contents of this process group. This field will be populated if the request is marked verbose."
+            value = "The contents of this process group."
     )
     public FlowSnippetDTO getContents() {
         return contents;
@@ -150,24 +131,10 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return Used in requests, indicates whether this process group should be running
-     */
-    @ApiModelProperty(
-            value = "Used in requests, indicates whether the process group should be running."
-    )
-    public Boolean isRunning() {
-        return running;
-    }
-
-    public void setRunning(Boolean running) {
-        this.running = running;
-    }
-
-    /**
      * @return number of running component in this process group
      */
     @ApiModelProperty(
-            value = "The number of running componetns in this process group."
+            value = "The number of running components in this process group."
     )
     public Integer getRunningCount() {
         return runningCount;

@@ -18,13 +18,14 @@ package org.apache.nifi.controller.repository.io;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ByteCountingOutputStream extends OutputStream {
 
-    private final LongHolder bytesWrittenHolder;
+    private final AtomicLong bytesWrittenHolder;
     private final OutputStream out;
 
-    public ByteCountingOutputStream(final OutputStream out, final LongHolder longHolder) {
+    public ByteCountingOutputStream(final OutputStream out, final AtomicLong longHolder) {
         this.out = out;
         this.bytesWrittenHolder = longHolder;
     }
@@ -32,7 +33,7 @@ public class ByteCountingOutputStream extends OutputStream {
     @Override
     public void write(int b) throws IOException {
         out.write(b);
-        bytesWrittenHolder.increment(1);
+        bytesWrittenHolder.getAndIncrement();
     }
 
     @Override
@@ -43,11 +44,11 @@ public class ByteCountingOutputStream extends OutputStream {
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         out.write(b, off, len);
-        bytesWrittenHolder.increment(len);
+        bytesWrittenHolder.getAndAdd(len);
     }
 
     public long getBytesWritten() {
-        return bytesWrittenHolder.getValue();
+        return bytesWrittenHolder.get();
     }
 
     @Override

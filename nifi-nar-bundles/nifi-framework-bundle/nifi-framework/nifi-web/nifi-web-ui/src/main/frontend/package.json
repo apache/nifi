@@ -1,0 +1,14 @@
+{
+  "name": "apache-nifi",
+  "dependencies": {
+    "font-awesome": "4.6.1",
+    "angular-material": "1.0.8",
+    "angular-resource": "1.5.5",
+    "angular-route": "1.5.5"
+  },
+  "description": "Apache NiFi 3rd party client side resources.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/nifi"
+  }
+}

@@ -20,7 +20,13 @@
 $(document).ready(function () {
     // configure the dialog
     $('#shell-dialog').modal({
-        overlayBackground: true
+        scrollableContentStyle: 'scrollable',
+        header: false,
+        footer: false,
+        responsive: {
+            x: false,
+            y: false
+        }
     });
 
     // register a listener when the frame is closed
@@ -40,15 +46,34 @@ $(document).ready(function () {
             $('#shell-dialog').modal('hide');
         }
     });
-
-    // add hover effects
-    nf.Common.addHoverEffect('#shell-undock-button', 'undock-normal', 'undock-hover');
-    nf.Common.addHoverEffect('#shell-close-button', 'close-normal', 'close-hover');
 });
 
 nf.Shell = (function () {
 
+    var showPageResize = null;
+    var showContentResize = null;
+
     return {
+        
+        resizeContent: function (shell) {
+            var contentContainer = shell.find('.shell-content-container');
+            contentContainer.css({
+                width: shell.width(),
+                height: shell.height() - 28 - 40 //subtract shell-close-container and padding
+            });
+            shell.trigger("shell:content:resize");
+        },
+
+        // handle resize
+        resizeIframe: function (shell) {
+            var shellIframe = shell.find('#shell-iframe');
+            shellIframe.css({
+                width: shell.width(),
+                height: shell.height() - 28 - 40 //subtract shell-close-container and padding
+            });
+            shell.trigger("shell:iframe:resize");
+        },
+        
         /**
          * Shows a page in the shell.
          * 
@@ -69,14 +94,16 @@ nf.Shell = (function () {
                     canUndock = true;
                 }
 
-                // remove the previous contents of the shell
-                shell.empty();
-
                 // register a new close handler
-                $('#shell-dialog').modal('setHandler', {
-                    close: function () {
-                        deferred.resolve();
-                    }
+                $('#shell-dialog').modal('setCloseHandler', function () {
+                    // remove the previous contents of the shell
+                    shell.empty();
+                    deferred.resolve();
+                });
+
+                // register a new open handler
+                $('#shell-dialog').modal('setOpenHandler', function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 });
 
                 // show the custom processor ui
@@ -96,16 +123,8 @@ nf.Shell = (function () {
                     src: uri
                 }).css({
                     width: shell.width(),
-                    height: shell.height()
+                    height: shell.height() - 28 //subtract shell-close-container
                 }).appendTo(shell);
-
-                // add a window resize listener
-                $(window).resize(function () {
-                    shellIframe.css({
-                        width: shell.width(),
-                        height: shell.height()
-                    });
-                });
             }).promise();
         },
         
@@ -126,43 +145,43 @@ nf.Shell = (function () {
                 if (content.length) {
                     var shell = $('#shell');
 
-                    // remove the previous contents of the shell
-                    shell.empty();
-
                     // get the parent of the content and detach it
                     var parent = content.parent();
                     content.detach();
 
                     // register a new close handler
-                    $('#shell-dialog').modal('setHandler', {
-                        close: function () {
-                            deferred.resolve();
-
-                            // detach the content and add it back to the parent
-                            content.hide().detach().appendTo(parent);
+                    $('#shell-dialog').modal('setCloseHandler', function () {
+                        // close any open combos
+                        var combos = $('.combo');
+                        for (var i = 0, len = combos.length; i < len; i++) {
+                            if ($(combos[i]).is(':visible')){
+                                $(combos[i]).combo('close');
+                            }
                         }
+
+                        deferred.resolve();
+
+                        // detach the content and add it back to the parent
+                        content.hide().detach().appendTo(parent);
+
+                        // remove the previous contents of the shell
+                        shell.empty();
                     });
 
                     // hide the undock button
                     $('#shell-undock-button').hide();
 
+                    // open the shell dialog
+                    $('#shell-dialog').modal('show');
+
                     // create the content container
-                    var contentContainer = $('<div>').css({
+                    var contentContainer = $('<div>').addClass('shell-content-container').css({
                         width: shell.width(),
                         height: shell.height()
                     }).append(content).appendTo(shell);
-
+                    
                     // show the content
-                    $('#shell-dialog').modal('show');
                     content.show();
-
-                    // add a window resize listener
-                    $(window).resize(function () {
-                        contentContainer.css({
-                            width: shell.width(),
-                            height: shell.height()
-                        });
-                    });
                 }
             }).promise();
         }

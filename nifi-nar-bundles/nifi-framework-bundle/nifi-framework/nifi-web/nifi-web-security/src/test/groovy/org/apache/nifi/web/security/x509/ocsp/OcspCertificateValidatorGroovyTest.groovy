@@ -65,7 +65,17 @@ public class OcspCertificateValidatorGroovyTest {
 
     @Before
     public void setUp() throws Exception {
-        mockProperties = [getProperty: { String propertyName -> return "value_for_${propertyName}" }] as NiFiProperties
+        mockProperties = new NiFiProperties() {
+            @Override
+            String getProperty(String key) {
+                return 'value_for_' + key
+            }
+
+            @Override
+            Set<String> getPropertyKeys() {
+                return ["A", "set"]
+            }
+        }
     }
 
     @After

@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -50,10 +49,9 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testBackwardCompatible() throws IOException {
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
-            final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
+                final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
@@ -70,7 +68,6 @@ public class TestFileSystemSwapManager {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void testRoundTripSerializeDeserialize() throws IOException {
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
         final Map<String, String> attrs = new HashMap<>();
@@ -93,7 +90,7 @@ public class TestFileSystemSwapManager {
 
         final SwapContents swappedIn;
         try (final FileInputStream fis = new FileInputStream(swapFile);
-            final DataInputStream dis = new DataInputStream(fis)) {
+                final DataInputStream dis = new DataInputStream(fis)) {
             swappedIn = FileSystemSwapManager.deserializeFlowFiles(dis, swapLocation, flowFileQueue, Mockito.mock(ResourceClaimManager.class));
         }
 
@@ -110,12 +107,10 @@ public class TestFileSystemSwapManager {
             assertEquals(pre.getContentClaimOffset(), post.getContentClaimOffset());
             assertEquals(pre.getEntryDate(), post.getEntryDate());
             assertEquals(pre.getLastQueueDate(), post.getLastQueueDate());
-            assertEquals(pre.getLineageIdentifiers(), post.getLineageIdentifiers());
             assertEquals(pre.getLineageStartDate(), post.getLineageStartDate());
             assertEquals(pre.getPenaltyExpirationMillis(), post.getPenaltyExpirationMillis());
         }
     }
-
 
     public class NopResourceClaimManager implements ResourceClaimManager {
 
@@ -159,10 +154,14 @@ public class TestFileSystemSwapManager {
         @Override
         public void purge() {
         }
+
+        @Override
+        public void freeze(ResourceClaim claim) {
+        }
     }
 
-
     private static class TestFlowFile implements FlowFileRecord {
+
         private static final AtomicLong idGenerator = new AtomicLong(0L);
 
         private final long id = idGenerator.getAndIncrement();
@@ -171,12 +170,10 @@ public class TestFileSystemSwapManager {
         private final Map<String, String> attributes;
         private final long size;
 
-
         public TestFlowFile(final Map<String, String> attributes, final long size) {
             this.attributes = attributes;
             this.size = size;
         }
-
 
         @Override
         public long getId() {
@@ -196,11 +193,6 @@ public class TestFileSystemSwapManager {
         @Override
         public Long getLastQueueDate() {
             return lastQueueDate;
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return Collections.emptySet();
         }
 
         @Override
@@ -240,6 +232,16 @@ public class TestFileSystemSwapManager {
 
         @Override
         public long getContentClaimOffset() {
+            return 0;
+        }
+
+        @Override
+        public long getLineageStartIndex() {
+            return 0;
+        }
+
+        @Override
+        public long getQueueDateIndex() {
             return 0;
         }
     }

@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="nf-ok-dialog">
+<div id="nf-ok-dialog" class="hidden small-dialog">
     <div class="dialog-content">
         <div id="nf-ok-dialog-content"></div>
     </div>

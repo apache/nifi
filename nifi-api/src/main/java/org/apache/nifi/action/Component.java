@@ -30,5 +30,8 @@ public enum Component {
     Funnel,
     Connection,
     ControllerService,
-    ReportingTask;
+    ReportingTask,
+    AccessPolicy,
+    User,
+    UserGroup;
 }

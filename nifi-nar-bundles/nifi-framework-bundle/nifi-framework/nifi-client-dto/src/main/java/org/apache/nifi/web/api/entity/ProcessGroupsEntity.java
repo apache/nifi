@@ -16,28 +16,27 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Set;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import java.util.Set;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a set of ProcessGroupDTOs.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a set of ProcessGroupEntitys.
  */
 @XmlRootElement(name = "processGroupsEntity")
 public class ProcessGroupsEntity extends Entity {
 
-    private Set<ProcessGroupDTO> processGroups;
+    private Set<ProcessGroupEntity> processGroups;
 
     /**
-     * The ProcessGroupDTO that is being serialized.
+     * The ProcessGroupEntity that is being serialized.
      *
-     * @return The ProcessGroupDTOs
+     * @return The ProcessGroupEntitys
      */
-    public Set<ProcessGroupDTO> getProcessGroups() {
+    public Set<ProcessGroupEntity> getProcessGroups() {
         return processGroups;
     }
 
-    public void setProcessGroups(Set<ProcessGroupDTO> processGroups) {
+    public void setProcessGroups(Set<ProcessGroupEntity> processGroups) {
         this.processGroups = processGroups;
     }
 

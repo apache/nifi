@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.io.File;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -34,7 +35,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final StateManager stateManager) {
-        this(controllerService, identifier, new MockProcessorLog(identifier, controllerService), stateManager);
+        this(controllerService, identifier, new MockComponentLog(identifier, controllerService), stateManager);
     }
 
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger, final StateManager stateManager) {
@@ -67,5 +68,20 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     @Override
     public StateManager getStateManager() {
         return stateManager;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null; //this needs to be wired in.
     }
 }

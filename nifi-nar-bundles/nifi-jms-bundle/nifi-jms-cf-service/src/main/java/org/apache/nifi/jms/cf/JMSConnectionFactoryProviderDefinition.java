@@ -44,6 +44,7 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
                        + "class (i.e., org.apache.activemq.ActiveMQConnectionFactory)")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CLIENT_LIB_DIR_PATH = new PropertyDescriptor.Builder()
             .name(CF_LIB)
@@ -53,6 +54,7 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
                        + "ConnectionFactory implementation.")
             .addValidator(new ClientLibValidator())
             .required(true)
+            .expressionLanguageSupported(true)
             .build();
 
     // ConnectionFactory specific properties
@@ -63,6 +65,7 @@ public interface JMSConnectionFactoryProviderDefinition extends ControllerServic
                       + "'tcp://myhost:61616' for ActiveMQ or 'myhost:1414' for IBM MQ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

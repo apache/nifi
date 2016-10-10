@@ -58,22 +58,6 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
-     * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
-     * @param encryptMode      true for encrypt, false for decrypt
-     * @return the initialized cipher
-     * @throws Exception if there is a problem initializing the cipher
-     */
-    @Override
-    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
-        return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);
-    }
-
-    /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived using the
-     * <a href="https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html">OpenSSL EVP_BytesToKey proprietary KDF</a> [essentially {@code MD5(password || salt) }].
-     *
-     * @param encryptionMethod the {@link EncryptionMethod}
-     * @param password         the secret input
      * @param salt             the salt
      * @param keyLength        the desired key length in bits (ignored because OpenSSL ciphers provide key length in algorithm name)
      * @param encryptMode      true for encrypt, false for decrypt

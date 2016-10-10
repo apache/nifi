@@ -28,8 +28,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,7 +45,6 @@ public class MockFlowFile implements FlowFileRecord {
 
     private final long id;
     private final long entryDate;
-    private final Set<String> lineageIdentifiers = new HashSet<>();
     private final long creationTime;
     private boolean penalized = false;
 
@@ -60,7 +59,6 @@ public class MockFlowFile implements FlowFileRecord {
 
         final String uuid = UUID.randomUUID().toString();
         attributes.put(CoreAttributes.UUID.key(), uuid);
-        lineageIdentifiers.add(uuid);
     }
 
     public MockFlowFile(final long id, final FlowFile toCopy) {
@@ -69,8 +67,6 @@ public class MockFlowFile implements FlowFileRecord {
         final byte[] dataToCopy = ((MockFlowFile) toCopy).data;
         this.data = new byte[dataToCopy.length];
         System.arraycopy(dataToCopy, 0, this.data, 0, dataToCopy.length);
-
-        lineageIdentifiers.addAll(toCopy.getLineageIdentifiers());
     }
 
     void setPenalized() {
@@ -79,11 +75,6 @@ public class MockFlowFile implements FlowFileRecord {
 
     public long getCreationTime() {
         return creationTime;
-    }
-
-    @Override
-    public Set<String> getLineageIdentifiers() {
-        return lineageIdentifiers;
     }
 
     @Override
@@ -289,5 +280,36 @@ public class MockFlowFile implements FlowFileRecord {
     @Override
     public long getContentClaimOffset() {
         return 0;
+    }
+
+    @Override
+    public long getLineageStartIndex() {
+        return 0;
+    }
+
+    @Override
+    public long getQueueDateIndex() {
+        return 0;
+    }
+    public boolean isAttributeEqual(final String attributeName, final String expectedValue) {
+        // unknown attribute name, so cannot be equal.
+        if (attributes.containsKey(attributeName) == false)
+            return false;
+
+        String value = attributes.get(attributeName);
+        return Objects.equals(expectedValue, value);
+    }
+
+    public boolean isContentEqual(String expected) {
+        return isContentEqual(expected, Charset.forName("UTF-8"));
+    }
+
+    public boolean isContentEqual(String expected, final Charset charset) {
+        final String value = new String(this.data, charset);
+        return Objects.equals(expected, value);
+    }
+
+    public boolean isContentEqual(final byte[] expected) {
+        return Arrays.equals(expected, this.data);
     }
 }

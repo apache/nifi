@@ -16,24 +16,50 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="process-group-configuration">
-    <div class="dialog-content">
-        <div class="setting">
-            <div class="setting-name">Name</div>
-            <div class="setting-field">
-                <input type="text" id="process-group-name" name="process-group-name" class="process-group-field"/>
+    <div id="process-group-configuration-header-text" class="settings-header-text">Process Group Configuration</div>
+    <div class="settings-container">
+        <div>
+            <div id="process-group-configuration-tabs" class="settings-tabs tab-container"></div>
+            <div class="clear"></div>
+        </div>
+        <div id="process-group-configuration-tabs-content">
+            <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus" title="Create a new controller service"></button>
+            <div id="general-process-group-configuration-tab-content" class="configuration-tab">
+                <div id="general-process-group-configuration">
+                    <div class="setting">
+                        <div class="setting-name">Process group name</div>
+                        <div class="editable setting-field">
+                            <input type="text" id="process-group-name" class="setting-input"/>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-name"></span>
+                        </div>
+                    </div>
+                    <div class="setting">
+                        <div class="setting-name">Process group comments</div>
+                        <div class="editable setting-field">
+                            <textarea id="process-group-comments" class="setting-input"></textarea>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-comments"></span>
+                        </div>
+                    </div>
+                    <div class="editable settings-buttons">
+                        <div id="process-group-configuration-save" class="button">Apply</div>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="process-group-controller-services-tab-content" class="configuration-tab">
+                <div id="process-group-controller-services-table" class="settings-table"></div>
             </div>
         </div>
-        <div class="setting">
-            <div class="setting-name">Id</div>
-            <div class="setting-field">
-                <span id="process-group-id"></span>
-            </div>
+    </div>
+    <div id="process-group-refresh-container">
+        <button id="process-group-configuration-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <div class="last-refreshed-container">
+            Last updated:&nbsp;<span id="process-group-configuration-last-refreshed" class="last-refreshed"></span>
         </div>
-        <div class="setting">
-            <div class="setting-name">Comments</div>
-            <div class="setting-field">
-                <textarea cols="30" rows="4" id="process-group-comments" name="process-group-comments" class="process-group-field"></textarea>
-            </div>
-        </div>
+        <div id="process-group-configuration-loading-container" class="loading-container"></div>
     </div>
 </div>

@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -43,7 +44,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -58,6 +59,7 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
 @SeeAlso({FetchFile.class, GetFile.class})
+@ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to disk.")
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";
@@ -183,7 +185,7 @@ public class PutFile extends AbstractProcessor {
         final Path configuredRootDirPath = Paths.get(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
         final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
         final Integer maxDestinationFiles = context.getProperty(MAX_DESTINATION_FILES).asInteger();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         Path tempDotCopyFile = null;
         try {
@@ -213,7 +215,7 @@ public class PutFile extends AbstractProcessor {
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
-                    logger.info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
+                    logger.warn("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
                             + "configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
@@ -232,7 +234,7 @@ public class PutFile extends AbstractProcessor {
                         return;
                     case FAIL_RESOLUTION:
                         flowFile = session.penalize(flowFile);
-                        logger.info("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
+                        logger.warn("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
                         session.transfer(flowFile, REL_FAILURE);
                         return;
                     default:

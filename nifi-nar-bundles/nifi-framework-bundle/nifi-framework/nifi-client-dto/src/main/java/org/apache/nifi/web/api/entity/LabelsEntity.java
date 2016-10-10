@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.LabelDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of LabelDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of LabelEntity's.
  */
 @XmlRootElement(name = "labelsEntity")
 public class LabelsEntity extends Entity {
 
-    private Set<LabelDTO> labels;
+    private Set<LabelEntity> labels;
 
     /**
-     * @return collection of LabelDTOs that are being serialized
+     * @return collection of LabelEntity's that are being serialized
      */
-    public Set<LabelDTO> getLabels() {
+    public Set<LabelEntity> getLabels() {
         return labels;
     }
 
-    public void setLabels(Set<LabelDTO> labels) {
+    public void setLabels(Set<LabelEntity> labels) {
         this.labels = labels;
     }
 

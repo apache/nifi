@@ -42,4 +42,9 @@ public class LogMessage {
     public Object[] getArgs() {
         return args;
     }
+
+    @Override
+    public String toString() {
+        return this.msg;
+    }
 }

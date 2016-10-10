@@ -21,12 +21,12 @@ import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.user.NiFiUser;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -68,12 +68,11 @@ public class ComponentStateAuditor extends NiFiAuditor {
 
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(processor.getIdentifier());
@@ -115,12 +114,11 @@ public class ComponentStateAuditor extends NiFiAuditor {
 
             // create the controller service details
             FlowChangeExtensionDetails controllerServiceDetails = new FlowChangeExtensionDetails();
-            controllerServiceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
+            controllerServiceDetails.setType(controllerService.getComponentType());
 
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(controllerService.getIdentifier());
@@ -167,7 +165,6 @@ public class ComponentStateAuditor extends NiFiAuditor {
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(reportingTask.getIdentifier());

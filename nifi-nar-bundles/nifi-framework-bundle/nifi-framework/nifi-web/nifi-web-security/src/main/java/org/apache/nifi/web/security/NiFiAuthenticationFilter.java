@@ -25,8 +25,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -48,8 +48,9 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
 
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain) throws IOException, ServletException {
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (log.isDebugEnabled()) {
-            log.debug("Checking secure context token: " + SecurityContextHolder.getContext().getAuthentication());
+            log.debug("Checking secure context token: " + authentication);
         }
 
         if (requiresAuthentication((HttpServletRequest) request)) {

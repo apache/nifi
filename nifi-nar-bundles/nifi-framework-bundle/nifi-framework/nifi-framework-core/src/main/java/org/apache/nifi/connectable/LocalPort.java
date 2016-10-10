@@ -166,4 +166,9 @@ public class LocalPort extends AbstractPort {
     public boolean isSideEffectFree() {
         return true;
     }
+
+    @Override
+    public String getComponentType() {
+        return "Local Port";
+    }
 }

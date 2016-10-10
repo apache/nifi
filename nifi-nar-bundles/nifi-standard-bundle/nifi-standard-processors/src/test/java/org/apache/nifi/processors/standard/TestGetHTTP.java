@@ -31,6 +31,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -395,6 +396,76 @@ public class TestGetHTTP {
             mff.assertContentEquals("Hello, World!");
         } finally {
             server.shutdownServer();
+        }
+    }
+
+    @Test
+    public final void testCookiePolicy() throws Exception {
+        // set up web services
+        ServletHandler handler1 = new ServletHandler();
+        handler1.addServletWithMapping(CookieTestingServlet.class, "/*");
+
+        ServletHandler handler2 = new ServletHandler();
+        handler2.addServletWithMapping(CookieVerificationTestingServlet.class, "/*");
+
+        // create the services
+        TestServer server1 = new TestServer();
+        server1.addHandler(handler1);
+
+        TestServer server2 = new TestServer();
+        server2.addHandler(handler2);
+
+        try {
+            server1.startServer();
+            server2.startServer();
+
+            // this is the base urls with the random ports
+            String destination1 = server1.getUrl();
+            String destination2 = server2.getUrl();
+
+            // set up NiFi mock controller
+            controller = TestRunners.newTestRunner(GetHTTP.class);
+            controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
+            controller.setProperty(GetHTTP.URL, destination1 + "/?redirect=" + URLEncoder.encode(destination2, "UTF-8")
+                    + "&datemode=" + CookieTestingServlet.DATEMODE_COOKIE_DEFAULT);
+            controller.setProperty(GetHTTP.FILENAME, "testFile");
+            controller.setProperty(GetHTTP.FOLLOW_REDIRECTS, "true");
+
+            controller.run(1);
+
+            // verify default cookie data does successful redirect
+            controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1);
+            MockFlowFile ff = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
+            ff.assertContentEquals("Hello, World!");
+
+            controller.clearTransferState();
+
+            // verify NON-standard cookie data fails with default redirect_cookie_policy
+            controller.setProperty(GetHTTP.URL, destination1 + "/?redirect=" + URLEncoder.encode(destination2, "UTF-8")
+                    + "&datemode=" + CookieTestingServlet.DATEMODE_COOKIE_NOT_TYPICAL);
+
+            controller.run(1);
+
+            controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 0);
+
+            controller.clearTransferState();
+
+            // change GetHTTP to place it in STANDARD cookie policy mode
+            controller.setProperty(GetHTTP.REDIRECT_COOKIE_POLICY, GetHTTP.STANDARD_COOKIE_POLICY_STR);
+            controller.setProperty(GetHTTP.URL, destination1 + "/?redirect=" + URLEncoder.encode(destination2, "UTF-8")
+                    + "&datemode=" + CookieTestingServlet.DATEMODE_COOKIE_NOT_TYPICAL);
+
+            controller.run(1);
+
+            // verify NON-standard cookie data does successful redirect
+            controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1);
+            ff = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
+            ff.assertContentEquals("Hello, World!");
+
+        } finally {
+            // shutdown web services
+            server1.shutdownServer();
+            server2.shutdownServer();
         }
     }
 

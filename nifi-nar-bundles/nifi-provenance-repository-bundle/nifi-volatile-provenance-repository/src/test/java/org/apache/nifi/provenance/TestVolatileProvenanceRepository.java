@@ -16,24 +16,22 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -41,12 +39,12 @@ public class TestVolatileProvenanceRepository {
 
     @BeforeClass
     public static void setup() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestVolatileProvenanceRepository.class.getResource("/nifi.properties").getFile());
     }
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-        repo = new VolatileProvenanceRepository();
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -70,7 +68,7 @@ public class TestVolatileProvenanceRepository {
         assertEquals(10, retrieved.size());
         for (int i = 0; i < 10; i++) {
             final ProvenanceEventRecord recovered = retrieved.get(i);
-            assertEquals((long) i, recovered.getEventId());
+            assertEquals(i, recovered.getEventId());
             assertEquals("nifi://unit-test", recovered.getTransitUri());
             assertEquals(ProvenanceEventType.RECEIVE, recovered.getEventType());
             assertEquals(attributes, recovered.getAttributes());
@@ -79,7 +77,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository();
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();
@@ -108,7 +106,7 @@ public class TestVolatileProvenanceRepository {
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
         query.setMaxResults(100);
 
-        final QuerySubmission submission = repo.submitQuery(query);
+        final QuerySubmission submission = repo.submitQuery(query, createUser());
         while (!submission.getResult().isFinished()) {
             Thread.sleep(100L);
         }
@@ -131,11 +129,6 @@ public class TestVolatileProvenanceRepository {
             @Override
             public long getEntryDate() {
                 return System.currentTimeMillis();
-            }
-
-            @Override
-            public Set<String> getLineageIdentifiers() {
-                return new HashSet<String>();
             }
 
             @Override
@@ -172,7 +165,40 @@ public class TestVolatileProvenanceRepository {
             public Long getLastQueueDate() {
                 return System.currentTimeMillis();
             }
+
+            @Override
+            public long getLineageStartIndex() {
+                return 0;
+            }
+
+            @Override
+            public long getQueueDateIndex() {
+                return 0;
+            }
         };
     }
 
+    private NiFiUser createUser() {
+        return new NiFiUser() {
+            @Override
+            public String getIdentity() {
+                return "unit-test";
+            }
+
+            @Override
+            public NiFiUser getChain() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+
+            @Override
+            public String getClientAddress() {
+                return null;
+            }
+        };
+    }
 }

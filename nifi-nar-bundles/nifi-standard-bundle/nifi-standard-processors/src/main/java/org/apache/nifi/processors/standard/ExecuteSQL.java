@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -28,25 +29,29 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
-import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 @EventDriven
@@ -57,6 +62,7 @@ import org.apache.nifi.util.StopWatch;
         + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
         + "select query. FlowFile attribute 'executesql.row.count' indicates how many rows were selected.")
+@WritesAttribute(attribute="executesql.row.count", description = "Contains the number of rows returned in the select query")
 public class ExecuteSQL extends AbstractProcessor {
 
     public static final String RESULT_ROW_COUNT = "executesql.row.count";
@@ -81,8 +87,12 @@ public class ExecuteSQL extends AbstractProcessor {
 
     public static final PropertyDescriptor SQL_SELECT_QUERY = new PropertyDescriptor.Builder()
             .name("SQL select query")
-            .description("SQL select query")
-            .required(true)
+            .description("The SQL select query to execute. The query can be empty, a constant value, or built from attributes "
+                    + "using Expression Language. If this property is specified, it will be used regardless of the content of "
+                    + "incoming flowfiles. If this property is empty, the content of the incoming flow file is expected "
+                    + "to contain a valid SQL select query, to be issued by the processor to the database. Note that Expression "
+                    + "Language is not evaluated for flow file contents.")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
@@ -97,6 +107,16 @@ public class ExecuteSQL extends AbstractProcessor {
             .sensitive(false)
             .build();
 
+    public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
+            .name("dbf-normalize")
+            .displayName("Normalize Table/Column Names")
+            .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
+                    + "will be changed to underscores in order to build a valid Avro record.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
@@ -109,6 +129,7 @@ public class ExecuteSQL extends AbstractProcessor {
         pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
         pds.add(QUERY_TIMEOUT);
+        pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -120,6 +141,17 @@ public class ExecuteSQL extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
+    }
+
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        // If the query is not set, then an incoming flow file is needed. Otherwise fail the initialization
+        if (!context.getProperty(SQL_SELECT_QUERY).isSet() && !context.hasIncomingConnection()) {
+            final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
+                    + "providing flowfile(s) containing a SQL select query";
+            getLogger().error(errorString);
+            throw new ProcessException(errorString);
+        }
     }
 
     @Override
@@ -136,16 +168,31 @@ public class ExecuteSQL extends AbstractProcessor {
             }
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final StopWatch stopWatch = new StopWatch(true);
+        final String selectQuery;
+        if (context.getProperty(SQL_SELECT_QUERY).isSet()) {
+            selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+        } else {
+            // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
+            // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
+            final StringBuilder queryContents = new StringBuilder();
+            session.read(fileToProcess, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    queryContents.append(IOUtils.toString(in));
+                }
+            });
+            selectQuery = queryContents.toString();
+        }
 
         try (final Connection con = dbcpService.getConnection();
             final Statement st = con.createStatement()) {
             st.setQueryTimeout(queryTimeout); // timeout in seconds
-            final LongHolder nrOfRows = new LongHolder(0L);
+            final AtomicLong nrOfRows = new AtomicLong(0L);
             if (fileToProcess == null) {
                 fileToProcess = session.create();
             }
@@ -155,7 +202,7 @@ public class ExecuteSQL extends AbstractProcessor {
                     try {
                         logger.debug("Executing query {}", new Object[]{selectQuery});
                         final ResultSet resultSet = st.executeQuery(selectQuery);
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out));
+                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, convertNamesForAvro));
                     } catch (final SQLException e) {
                         throw new ProcessException(e);
                     }
@@ -163,7 +210,7 @@ public class ExecuteSQL extends AbstractProcessor {
             });
 
             // set attribute how many rows were selected
-            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, nrOfRows.get().toString());
+            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
 
             logger.info("{} contains {} Avro records; transferring to 'success'",
                     new Object[]{fileToProcess, nrOfRows.get()});

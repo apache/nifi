@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="remote-port-configuration">
+<div id="remote-port-configuration" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Name</div>
@@ -28,7 +28,7 @@
         <div class="setting">
             <div class="setting-name">
                 Concurrent tasks
-                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The number of tasks that should be concurrently scheduled for this port."/>
+                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this port."></div>
             </div>
             <div class="setting-field">
                 <input id="remote-port-concurrent-tasks" type="text"/>

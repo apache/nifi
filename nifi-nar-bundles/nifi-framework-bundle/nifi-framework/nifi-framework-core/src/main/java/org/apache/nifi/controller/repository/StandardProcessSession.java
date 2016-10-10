@@ -54,7 +54,6 @@ import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.controller.repository.io.LongHolder;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -92,6 +91,7 @@ import org.slf4j.LoggerFactory;
 public final class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
+    private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
@@ -99,6 +99,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessSession.class);
     private static final Logger claimLog = LoggerFactory.getLogger(StandardProcessSession.class.getSimpleName() + ".claims");
+    private static final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
 
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
@@ -118,14 +119,17 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private int removedCount = 0; // number of flowfiles removed in this session
     private long removedBytes = 0L; // size of all flowfiles removed in this session
-    private final LongHolder bytesRead = new LongHolder(0L);
-    private final LongHolder bytesWritten = new LongHolder(0L);
+    private final AtomicLong bytesRead = new AtomicLong(0L);
+    private final AtomicLong bytesWritten = new AtomicLong(0L);
     private int flowFilesIn = 0, flowFilesOut = 0;
     private long contentSizeIn = 0L, contentSizeOut = 0L;
 
     private ContentClaim currentReadClaim = null;
     private ByteCountingInputStream currentReadClaimStream = null;
     private long processingStartTime;
+
+    // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
+    private final List<InputStream> openInputStreams = new ArrayList<>();
 
     // maps a FlowFile to all Provenance Events that were generated for that FlowFile.
     // we do this so that if we generate a Fork event, for example, and then remove the event in the same
@@ -148,7 +152,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         switch (connectable.getConnectableType()) {
             case PROCESSOR:
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                componentType = procNode.getProcessor().getClass().getSimpleName();
+                componentType = procNode.getComponentType();
                 description = procNode.getProcessor().toString();
                 break;
             case INPUT_PORT:
@@ -181,6 +185,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     public void checkpoint() {
         resetWriteClaims(false);
+
+        final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final InputStream openStream : openStreamCopy) {
+            LOG.warn("{} closing {} for {} because the session was committed without the stream being closed.", this, openStream, this.connectableDescription);
+
+            try {
+                openStream.close();
+            } catch (final Exception e) {
+                LOG.warn("{} Attempted to close {} for {} due to session commit but close failed", this, openStream, this.connectableDescription);
+                LOG.warn("", e);
+            }
+        }
 
         if (!recursionSet.isEmpty()) {
             throw new IllegalStateException();
@@ -314,13 +330,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (record.isMarkedForDelete()) {
                     // if the working claim is not the same as the original claim, we can immediately destroy the working claim
                     // because it was created in this session and is to be deleted. We don't need to wait for the FlowFile Repo to sync.
-                    removeContent(record.getWorkingClaim());
+                    decrementClaimCount(record.getWorkingClaim());
 
                     if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getWorkingClaim())) {
                         // if working & original claim are same, don't remove twice; we only want to remove the original
                         // if it's different from the working. Otherwise, we remove two claimant counts. This causes
                         // an issue if we only updated the FlowFile attributes.
-                        removeContent(record.getOriginalClaim());
+                        decrementClaimCount(record.getOriginalClaim());
                     }
                     final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                     final Connectable connectable = context.getConnectable();
@@ -328,7 +344,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
                 } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
                     // records which have been updated - remove original if exists
-                    removeContent(record.getOriginalClaim());
+                    decrementClaimCount(record.getOriginalClaim());
                 }
             }
 
@@ -861,7 +877,23 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} session rollback called, FlowFile records are {} {}",
+                    this, loggableFlowfileInfo(), new Throwable("Stack Trace on rollback"));
+        }
+
         deleteOnCommit.clear();
+
+        final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final InputStream openStream : openStreamCopy) {
+            LOG.debug("{} closing {} for {} due to session rollback", this, openStream, this.connectableDescription);
+            try {
+                openStream.close();
+            } catch (final Exception e) {
+                LOG.warn("{} Attempted to close {} for {} due to session rollback but close failed", this, openStream, this.connectableDescription);
+                LOG.warn("", e);
+            }
+        }
 
         final Set<StandardRepositoryRecord> recordsToHandle = new HashSet<>();
         recordsToHandle.addAll(records.values());
@@ -891,12 +923,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final Set<StandardRepositoryRecord> transferRecords = new HashSet<>();
         for (final StandardRepositoryRecord record : recordsToHandle) {
             if (record.isMarkedForAbort()) {
-                removeContent(record.getWorkingClaim());
+                decrementClaimCount(record.getWorkingClaim());
                 if (record.getCurrentClaim() != null && !record.getCurrentClaim().equals(record.getWorkingClaim())) {
                     // if working & original claim are same, don't remove twice; we only want to remove the original
                     // if it's different from the working. Otherwise, we remove two claimant counts. This causes
                     // an issue if we only updated the flowfile attributes.
-                    removeContent(record.getCurrentClaim());
+                    decrementClaimCount(record.getCurrentClaim());
                 }
                 abortedRecords.add(record);
             } else {
@@ -933,8 +965,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final Connectable connectable = context.getConnectable();
         final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
-        flowFileEvent.setBytesRead(bytesRead.getValue());
-        flowFileEvent.setBytesWritten(bytesWritten.getValue());
+        flowFileEvent.setBytesRead(bytesRead.get());
+        flowFileEvent.setBytesWritten(bytesWritten.get());
 
         // update event repository
         try {
@@ -950,7 +982,45 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         resetState();
     }
 
-    private void removeContent(final ContentClaim claim) {
+    private String loggableFlowfileInfo() {
+        final StringBuilder details = new StringBuilder(1024).append("[");
+        final int initLen = details.length();
+        int filesListed = 0;
+        for (Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
+            if (filesListed >= MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+                break;
+            }
+            filesListed++;
+            final FlowFileRecord entryKey = entry.getKey();
+            final StandardRepositoryRecord entryValue = entry.getValue();
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            if (entryValue.getOriginalQueue() != null && entryValue.getOriginalQueue().getIdentifier() != null) {
+                details.append("queue=")
+                        .append(entryValue.getOriginalQueue().getIdentifier())
+                        .append("/");
+            }
+            details.append("filename=")
+                    .append(entryKey.getAttribute(CoreAttributes.FILENAME.key()))
+                    .append("/uuid=")
+                    .append(entryKey.getAttribute(CoreAttributes.UUID.key()));
+        }
+        if (records.entrySet().size() > MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            details.append(records.entrySet().size() - MAX_ROLLBACK_FLOWFILES_TO_LOG)
+                    .append(" additional Flowfiles not listed");
+        } else if (filesListed == 0) {
+            details.append("none");
+        }
+        details.append("]");
+        return details.toString();
+    }
+
+
+    private void decrementClaimCount(final ContentClaim claim) {
         if (claim == null) {
             return;
         }
@@ -984,8 +1054,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         flowFilesOut = 0;
         removedCount = 0;
         removedBytes = 0L;
-        bytesRead.setValue(0L);
-        bytesWritten.setValue(0L);
+        bytesRead.set(0L);
+        bytesWritten.set(0L);
         connectionCounts.clear();
         createdFlowFiles.clear();
         removedFlowFiles.clear();
@@ -1343,19 +1413,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             eventBuilder.setEventType(ProvenanceEventType.FORK);
 
             eventBuilder.setFlowFileEntryDate(parent.getEntryDate());
-            eventBuilder.setLineageIdentifiers(parent.getLineageIdentifiers());
             eventBuilder.setLineageStartDate(parent.getLineageStartDate());
             eventBuilder.setFlowFileUUID(parent.getAttribute(CoreAttributes.UUID.key()));
 
             eventBuilder.setComponentId(context.getConnectable().getIdentifier());
 
             final Connectable connectable = context.getConnectable();
-            final String processorType;
-            if (connectable instanceof ProcessorNode) {
-                processorType = ((ProcessorNode) connectable).getProcessor().getClass().getSimpleName();
-            } else {
-                processorType = connectable.getClass().getSimpleName();
-            }
+            final String processorType = connectable.getComponentType();
             eventBuilder.setComponentType(processorType);
             eventBuilder.addParentFlowFile(parent);
 
@@ -1487,11 +1551,15 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return newFile;
     }
 
+    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent())
+            .lastQueued(System.currentTimeMillis(), enqueuedIndex.getAndIncrement()).build();
+        record.setWorking(newFile);
+    }
+
     @Override
     public void transfer(final FlowFile flowFile, final Relationship relationship) {
         validateRecordState(flowFile);
-        final StandardRepositoryRecord record = records.get(flowFile);
-        record.setTransferRelationship(relationship);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -1502,7 +1570,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
+        final StandardRepositoryRecord record = records.get(flowFile);
+        record.setTransferRelationship(relationship);
+        updateLastQueuedDate(record);
 
         if (autoTerminated) {
             removedCount += multiplier;
@@ -1521,6 +1595,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
         }
         record.setTransferRelationship(Relationship.SELF);
+        updateLastQueuedDate(record);
     }
 
     @Override
@@ -1542,6 +1617,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
 
         final int multiplier = Math.max(1, numDestinations);
@@ -1550,6 +1628,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = records.get(flowFile);
             record.setTransferRelationship(relationship);
+            updateLastQueuedDate(record);
+
             contentSize += flowFile.getSize() * multiplier;
         }
 
@@ -1640,15 +1720,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         LOG.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, flowFiles.size()});
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
-        final String processorType;
         final Connectable connectable = context.getConnectable();
-        if (connectable instanceof ProcessorNode) {
-            final ProcessorNode procNode = (ProcessorNode) connectable;
-            processorType = procNode.getProcessor().getClass().getSimpleName();
-        } else {
-            processorType = connectable.getClass().getSimpleName();
-        }
-
+        final String processorType = connectable.getComponentType();
         final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(),
             processorType, context.getProvenanceRepository(), this);
 
@@ -1660,7 +1733,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             record.markForDelete();
             expiredRecords.add(record);
             expiredReporter.expire(flowFile, "Expiration Threshold = " + connection.getFlowFileQueue().getFlowFileExpiration());
-            removeContent(flowFile.getContentClaim());
+            decrementClaimCount(flowFile.getContentClaim());
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
@@ -1718,7 +1791,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     }
 
-    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset) throws ContentNotFoundException {
+    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset, final boolean allowCachingOfStream) throws ContentNotFoundException {
         // If there's no content, don't bother going to the Content Repository because it is generally expensive and we know
         // that there is no actual content.
         if (flowFile.getSize() == 0L) {
@@ -1729,7 +1802,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             // If the recursion set is empty, we can use the same input stream that we already have open. However, if
             // the recursion set is NOT empty, we can't do this because we may be reading the input of FlowFile 1 while in the
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
-            if (recursionSet.isEmpty()) {
+            if (allowCachingOfStream && recursionSet.isEmpty()) {
                 if (currentReadClaim == claim) {
                     if (currentReadClaimStream != null && currentReadClaimStream.getStreamLocation() <= offset) {
                         final long bytesToSkip = offset - currentReadClaimStream.getStreamLocation();
@@ -1748,7 +1821,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
 
                 currentReadClaim = claim;
-                currentReadClaimStream = new ByteCountingInputStream(rawInStream, new LongHolder(0L));
+                currentReadClaimStream = new ByteCountingInputStream(rawInStream, new AtomicLong(0L));
                 StreamUtils.skip(currentReadClaimStream, offset);
 
                 // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
@@ -1789,7 +1862,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }
 
-        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
             final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
             final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
             final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
@@ -1828,6 +1901,102 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         } catch (final IOException ex) {
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
         }
+    }
+
+    @Override
+    public InputStream read(final FlowFile source) {
+        validateRecordState(source);
+        final StandardRepositoryRecord record = records.get(source);
+
+        try {
+            ensureNotAppending(record.getCurrentClaim());
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+        }
+
+        final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), false);
+        final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+        final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn, this.bytesRead);
+        final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
+
+        final InputStream errorHandlingStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                try {
+                    return ffais.read();
+                } catch (final ContentNotFoundException cnfe) {
+                    handleContentNotFound(cnfe, record);
+                    close();
+                    throw cnfe;
+                } catch (final FlowFileAccessException ffae) {
+                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    rollback(true);
+                    close();
+                    throw ffae;
+                }
+            }
+
+            @Override
+            public int read(final byte[] b) throws IOException {
+                return read(b, 0, b.length);
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) throws IOException {
+                try {
+                    return ffais.read(b, off, len);
+                } catch (final ContentNotFoundException cnfe) {
+                    handleContentNotFound(cnfe, record);
+                    close();
+                    throw cnfe;
+                } catch (final FlowFileAccessException ffae) {
+                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    rollback(true);
+                    close();
+                    throw ffae;
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                ffais.close();
+                openInputStreams.remove(this);
+            }
+
+            @Override
+            public int available() throws IOException {
+                return ffais.available();
+            }
+
+            @Override
+            public long skip(long n) throws IOException {
+                return ffais.skip(n);
+            }
+
+            @Override
+            public boolean markSupported() {
+                return ffais.markSupported();
+            }
+
+            @Override
+            public synchronized void mark(int readlimit) {
+                ffais.mark(readlimit);
+            }
+
+            @Override
+            public synchronized void reset() throws IOException {
+                ffais.reset();
+            }
+
+            @Override
+            public String toString() {
+                return "ErrorHandlingInputStream[FlowFile=" + source + "]";
+            }
+        };
+
+        openInputStreams.add(errorHandlingStream);
+        return errorHandlingStream;
     }
 
     @Override
@@ -1899,8 +2068,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     writtenCount += footer.length;
                 }
             } finally {
-                bytesWritten.increment(writtenCount);
-                bytesRead.increment(readCount);
+                bytesWritten.getAndAdd(writtenCount);
+                bytesRead.getAndAdd(readCount);
             }
         } catch (final ContentNotFoundException nfe) {
             destroyContent(newClaim);
@@ -1941,7 +2110,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final StandardRepositoryRecord record = records.get(source);
 
         ContentClaim newClaim = null;
-        final LongHolder writtenHolder = new LongHolder(0L);
+        final AtomicLong writtenHolder = new AtomicLong(0L);
         try {
             newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
@@ -1972,7 +2141,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             destroyContent(newClaim);
             throw t;
         } finally {
-            bytesWritten.increment(writtenHolder.getValue());
+            bytesWritten.getAndAdd(writtenHolder.get());
         }
 
         removeTemporaryClaim(record);
@@ -1980,7 +2149,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             .fromFlowFile(record.getCurrent())
             .contentClaim(newClaim)
             .contentClaimOffset(0)
-            .size(writtenHolder.getValue())
+            .size(writtenHolder.get())
             .build();
 
         record.setWorking(newFile);
@@ -2008,7 +2177,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     final OutputStream rawOutStream = context.getContentRepository().write(newClaim);
                     final OutputStream bufferedOutStream = new BufferedOutputStream(rawOutStream);
-                    outStream = new ByteCountingOutputStream(bufferedOutStream, new LongHolder(0L));
+                    outStream = new ByteCountingOutputStream(bufferedOutStream, new AtomicLong(0L));
                     originalByteWrittenCount = 0;
 
                     appendableStreams.put(newClaim, outStream);
@@ -2029,9 +2198,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 originalByteWrittenCount = outStream.getBytesWritten();
 
                 // wrap our OutputStreams so that the processor cannot close it
-                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream)) {
+                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream);
+                    final OutputStream flowFileAccessOutStream = new FlowFileAccessOutputStream(disableOnClose, source)) {
                     recursionSet.add(source);
-                    writer.process(disableOnClose);
+                    writer.process(flowFileAccessOutStream);
                 } finally {
                     recursionSet.remove(source);
                 }
@@ -2041,23 +2211,49 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newSize = outStream.getBytesWritten();
         } catch (final ContentNotFoundException nfe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+
+            // If the content claim changed, then we should destroy the new one. We do this
+            // because the new content claim will never get set as the 'working claim' for the FlowFile
+            // record since we will throw an Exception. As a result, we need to ensure that we have
+            // appropriately decremented the claimant count and can destroy the content if it is no
+            // longer in use. However, it is critical that we do this ONLY if the content claim has
+            // changed. Otherwise, the FlowFile already has a reference to this Content Claim and
+            // whenever the FlowFile is removed, the claim count will be decremented; if we decremented
+            // it here also, we would be decrementing the claimant count twice!
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
             handleContentNotFound(nfe, record);
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
-            throw new FlowFileAccessException("Exception in callback: " + ioe.toString(), ioe);
+
+            // See above explanation for why this is done only if newClaim != oldClaim
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+
+            // See above explanation for why this is done only if newClaim != oldClaim
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
             throw t;
         } finally {
             if (outStream != null) {
                 final long bytesWrittenThisIteration = outStream.getBytesWritten() - originalByteWrittenCount;
-                bytesWritten.increment(bytesWrittenThisIteration);
+                bytesWritten.getAndAdd(bytesWrittenThisIteration);
             }
         }
 
+        // If the record already has a working claim, and this is the first time that we are appending to the FlowFile,
+        // destroy the current working claim because it is a temporary claim that
+        // is no longer going to be used, as we are about to set a new working claim. This would happen, for instance, if
+        // the FlowFile was written to, via #write() and then append() was called.
         if (newClaim != oldClaim) {
             removeTemporaryClaim(record);
         }
@@ -2082,24 +2278,26 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final boolean contentModified = record.getWorkingClaim() != null && record.getWorkingClaim() != record.getOriginalClaim();
 
         // If the working claim is not the same as the original claim, we have modified the content of
-        // the FlowFile, and we need to remove the newly created file (the working claim). However, if
+        // the FlowFile, and we need to remove the newly created content (the working claim). However, if
         // they are the same, we cannot just remove the claim because record.getWorkingClaim() will return
         // the original claim if the record is "working" but the content has not been modified
         // (e.g., in the case of attributes only were updated)
+        //
         // In other words:
         // If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
         // return the same claim as record.getOriginalClaim(). So we cannot just remove the working claim because
         // that may decrement the original claim (because the 2 claims are the same), and that's NOT what we want to do
-        // because we will do that later, in the session.commit() and that would result in removing the original claim twice.
+        // because we will do that later, in the session.commit() and that would result in decrementing the count for
+        // the original claim twice.
         if (contentModified) {
-            // In this case, it's ok to go ahead and destroy the content because we know that the working claim is going to be
+            // In this case, it's ok to decrement the claimant count for the content because we know that the working claim is going to be
             // updated and the given working claim is referenced only by FlowFiles in this session (because it's the Working Claim).
-            // Therefore, if this is the only record that refers to that Content Claim, we can destroy the claim. This happens,
-            // for instance, if a Processor modifies the content of a FlowFile more than once before committing the session.
-            final int claimantCount = context.getContentRepository().decrementClaimantCount(record.getWorkingClaim());
-            if (claimantCount == 0) {
-                context.getContentRepository().remove(record.getWorkingClaim());
-            }
+            // Therefore, we need to decrement the claimant count, and since the Working Claim is being changed, that means that
+            // the Working Claim is a transient claim (the content need not be persisted because no FlowFile refers to it). We cannot simply
+            // remove the content because there may be other FlowFiles that reference the same Resource Claim. Marking the Content Claim as
+            // transient, though, will result in the FlowFile Repository cleaning up as appropriate.
+            context.getContentRepository().decrementClaimantCount(record.getWorkingClaim());
+            record.addTransientClaim(record.getWorkingClaim());
         }
     }
 
@@ -2143,14 +2341,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final ContentClaim currClaim = record.getCurrentClaim();
 
         ContentClaim newClaim = null;
-        final LongHolder writtenHolder = new LongHolder(0L);
+        final AtomicLong writtenHolder = new AtomicLong(0L);
         try {
             newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
 
             ensureNotAppending(newClaim);
 
-            try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset());
+            try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset(), true);
                 final InputStream limitedIn = new LimitedInputStream(is, source.getSize());
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
                 final InputStream countingIn = new ByteCountingInputStream(disableOnCloseIn, bytesRead);
@@ -2195,7 +2393,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             destroyContent(newClaim);
             throw t;
         } finally {
-            bytesWritten.increment(writtenHolder.getValue());
+            bytesWritten.getAndAdd(writtenHolder.get());
         }
 
         removeTemporaryClaim(record);
@@ -2203,7 +2401,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             .fromFlowFile(record.getCurrent())
             .contentClaim(newClaim)
             .contentClaimOffset(0L)
-            .size(writtenHolder.getValue())
+            .size(writtenHolder.get())
             .build();
 
         record.setWorking(newFile);
@@ -2235,8 +2433,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         long newSize = 0L;
         try {
             newSize = context.getContentRepository().importFrom(source, newClaim);
-            bytesWritten.increment(newSize);
-            bytesRead.increment(newSize);
+            bytesWritten.getAndAdd(newSize);
+            bytesRead.getAndAdd(newSize);
         } catch (final Throwable t) {
             destroyContent(newClaim);
             throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
@@ -2269,7 +2467,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
 
                 newSize = context.getContentRepository().importFrom(source, newClaim);
-                bytesWritten.increment(newSize);
+                bytesWritten.getAndAdd(newSize);
             } catch (final IOException e) {
                 throw new FlowFileAccessException("Unable to create ContentClaim due to " + e.toString(), e);
             }
@@ -2295,8 +2493,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             ensureNotAppending(record.getCurrentClaim());
 
             final long copyCount = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, append, record.getCurrentClaimOffset(), source.getSize());
-            bytesRead.increment(copyCount);
-            bytesWritten.increment(copyCount);
+            bytesRead.getAndAdd(copyCount);
+            bytesWritten.getAndAdd(copyCount);
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final Throwable t) {
@@ -2308,18 +2506,49 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     public void exportTo(final FlowFile source, final OutputStream destination) {
         validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
+
+        if(record.getCurrentClaim() == null) {
+            return;
+        }
+
         try {
-            if (record.getCurrentClaim() == null) {
-                return;
+            ensureNotAppending(record.getCurrentClaim());
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+        }
+
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
+                final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
+
+            // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
+            // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
+            // and translates into either FlowFileAccessException or ContentNotFoundException. We keep track of any
+            // ContentNotFoundException because if it is thrown, the Processor code may catch it and do something else with it
+            // but in reality, if it is thrown, we want to know about it and handle it, even if the Processor code catches it.
+            final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
+            boolean cnfeThrown = false;
+
+            try {
+                recursionSet.add(source);
+                StreamUtils.copy(ffais, destination, source.getSize());
+            } catch (final ContentNotFoundException cnfe) {
+                cnfeThrown = true;
+                throw cnfe;
+            } finally {
+                recursionSet.remove(source);
+                IOUtils.closeQuietly(ffais);
+                // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
+                if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
+                    throw ffais.getContentNotFoundException();
+                }
             }
 
-            ensureNotAppending(record.getCurrentClaim());
-            final long size = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, record.getCurrentClaimOffset(), source.getSize());
-            bytesRead.increment(size);
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
-        } catch (final Throwable t) {
-            throw new FlowFileAccessException("Failed to export " + source + " to " + destination + " due to " + t.toString(), t);
+        } catch (final IOException ex) {
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
         }
     }
 
@@ -2354,7 +2583,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private void validateRecordState(final FlowFile... flowFiles) {
         for (final FlowFile file : flowFiles) {
             if (recursionSet.contains(file)) {
-                throw new IllegalStateException(file + " already in use for an active callback");
+                throw new IllegalStateException(file + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
             }
             final StandardRepositoryRecord record = records.get(file);
             if (record == null) {
@@ -2416,10 +2645,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newAttributes.put(key, value);
         }
 
-        final Set<String> lineageIdentifiers = new HashSet<>(parent.getLineageIdentifiers());
-        lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
-        fFileBuilder.lineageIdentifiers(lineageIdentifiers);
-        fFileBuilder.lineageStartDate(parent.getLineageStartDate());
+        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
         fFileBuilder.addAttributes(newAttributes);
 
         final FlowFileRecord fFile = fFileBuilder.build();
@@ -2442,14 +2668,19 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
         // and use the earliest lineage start date
         long lineageStartDate = 0L;
-        final Set<String> lineageIdentifiers = new HashSet<>();
         for (final FlowFile parent : parents) {
-            lineageIdentifiers.addAll(parent.getLineageIdentifiers());
-            lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
 
             final long parentLineageStartDate = parent.getLineageStartDate();
             if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
                 lineageStartDate = parentLineageStartDate;
+            }
+        }
+
+        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
+        long lineageStartIndex = 0L;
+        for (final FlowFile parent : parents) {
+            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
+                lineageStartIndex = parent.getLineageStartIndex();
             }
         }
 
@@ -2459,8 +2690,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
             .addAttributes(newAttributes)
-            .lineageIdentifiers(lineageIdentifiers)
-            .lineageStartDate(lineageStartDate)
+            .lineageStart(lineageStartDate, lineageStartIndex)
             .build();
 
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
@@ -2582,8 +2812,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             this.removedCount += session.removedCount;
             this.removedBytes += session.removedBytes;
-            this.bytesRead += session.bytesRead.getValue();
-            this.bytesWritten += session.bytesWritten.getValue();
+            this.bytesRead += session.bytesRead.get();
+            this.bytesWritten += session.bytesWritten.get();
             this.flowFilesIn += session.flowFilesIn;
             this.flowFilesOut += session.flowFilesOut;
             this.contentSizeIn += session.contentSizeIn;

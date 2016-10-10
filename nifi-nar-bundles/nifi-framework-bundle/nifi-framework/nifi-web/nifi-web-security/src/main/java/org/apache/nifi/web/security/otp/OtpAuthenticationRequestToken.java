@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.security.otp;
 
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.apache.nifi.web.security.NiFiAuthenticationRequestToken;
 
 /**
  * This is an authentication request with a given OTP token.
  */
-public class OtpAuthenticationRequestToken extends AbstractAuthenticationToken {
+public class OtpAuthenticationRequestToken extends NiFiAuthenticationRequestToken {
 
     private final String token;
     private final boolean isDownloadToken;
@@ -30,9 +30,11 @@ public class OtpAuthenticationRequestToken extends AbstractAuthenticationToken {
      * Creates a representation of the otp authentication request for a user.
      *
      * @param token   The unique token for this user
+     * @param isDownloadToken Whether or not this represents a download token
+     * @param clientAddress the address of the client making the request
      */
-    public OtpAuthenticationRequestToken(final String token, final boolean isDownloadToken) {
-        super(null);
+    public OtpAuthenticationRequestToken(final String token, final boolean isDownloadToken, final String clientAddress) {
+        super(clientAddress);
         setAuthenticated(false);
         this.token = token;
         this.isDownloadToken = isDownloadToken;

@@ -16,20 +16,30 @@
  */
 package org.apache.nifi.processor;
 
+import java.io.File;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardProcessorInitializationContext implements ProcessorInitializationContext {
 
     private final String identifier;
-    private final ProcessorLog logger;
+    private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
+    private final NodeTypeProvider nodeTypeProvider;
+    private final NiFiProperties nifiProperties;
 
-    public StandardProcessorInitializationContext(final String identifier, final ProcessorLog processorLog, final ControllerServiceProvider serviceProvider) {
+    public StandardProcessorInitializationContext(
+            final String identifier, final ComponentLog componentLog,
+            final ControllerServiceProvider serviceProvider, final NodeTypeProvider nodeTypeProvider,
+            final NiFiProperties nifiProperties) {
         this.identifier = identifier;
-        this.logger = processorLog;
+        this.logger = componentLog;
         this.serviceProvider = serviceProvider;
+        this.nodeTypeProvider = nodeTypeProvider;
+        this.nifiProperties = nifiProperties;
     }
 
     @Override
@@ -38,12 +48,32 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     }
 
     @Override
-    public ProcessorLog getLogger() {
+    public ComponentLog getLogger() {
         return logger;
     }
 
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return serviceProvider;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return nifiProperties.getKerberosServicePrincipal();
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return nifiProperties.getKerberosServiceKeytabLocation() == null ? null : new File(nifiProperties.getKerberosServiceKeytabLocation());
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return nifiProperties.getKerberosConfigurationFile();
     }
 }

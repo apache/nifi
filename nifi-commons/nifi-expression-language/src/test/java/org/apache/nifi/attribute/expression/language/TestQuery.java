@@ -19,7 +19,13 @@ package org.apache.nifi.attribute.expression.language;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
@@ -37,9 +43,13 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.antlr.runtime.tree.Tree;
+
+import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Assert;
+
 import org.junit.Ignore;
 import org.junit.Test;
+
 import org.mockito.Mockito;
 
 public class TestQuery {
@@ -56,6 +66,7 @@ public class TestQuery {
         assertValid("${attr:toNumber():multiply(3)}");
         assertValid("${hostname()}");
         assertValid("${literal(3)}");
+        assertValid("${random()}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -91,9 +102,9 @@ public class TestQuery {
         Query.validateExpression("$${attr}", true);
 
         Query.validateExpression("${filename:startsWith('T8MTXBC')\n"
-            + ":or( ${filename:startsWith('C4QXABC')} )\n"
-            + ":or( ${filename:startsWith('U6CXEBC')} )"
-            + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
+                + ":or( ${filename:startsWith('C4QXABC')} )\n"
+                + ":or( ${filename:startsWith('U6CXEBC')} )"
+                + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
     }
 
     @Test
@@ -166,7 +177,6 @@ public class TestQuery {
     public void testWithTicksOutside() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
-
         assertEquals(1, Query.extractExpressionRanges("\"${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}'").size());
@@ -219,6 +229,49 @@ public class TestQuery {
 
     @Test
     public void testEmbeddedExpressionsAndQuotes() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("x", "abc");
+        attributes.put("a", "abc");
+
+        verifyEquals("${x:equals(${a})}", attributes, true);
+
+        Query.validateExpression("${x:equals('${a}')}", false);
+        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", attributes, null));
+
+        Query.validateExpression("${x:equals(\"${a}\")}", false);
+        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
+    }
+
+    @Test
+    public void testJsonPath() throws IOException {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("json", getResourceAsString("/json/address-book.json"));
+        verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
+        verifyEquals("${json:jsonPath('$.address.postalCode')}", attributes, "10021-3100");
+        verifyEquals("${json:jsonPath(\"$.phoneNumbers[?(@.type=='home')].number\")}", attributes, "212 555-1234");
+        verifyEquals("${json:jsonPath('$.phoneNumbers')}", attributes,
+                "[{\"type\":\"home\",\"number\":\"212 555-1234\"},{\"type\":\"office\",\"number\":\"646 555-4567\"}]");
+        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+        try {
+            verifyEquals("${json:jsonPath('$..')}", attributes, "");
+            Assert.fail("Did not detect bad JSON path expression");
+        } catch (final AttributeExpressionLanguageException e) {
+        }
+        try {
+            verifyEquals("${missing:jsonPath('$.firstName')}", attributes, "");
+            Assert.fail("Did not detect empty JSON document");
+        } catch (AttributeExpressionLanguageException e) {
+        }
+        attributes.put("invalid", "[}");
+        try {
+            verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John");
+            Assert.fail("Did not detect invalid JSON document");
+        } catch (AttributeExpressionLanguageException e) {
+        }
+    }
+
+    @Test
+    public void testEmbeddedExpressionsAndQuotesWithProperties() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "abc");
         attributes.put("a", "abc");
@@ -305,9 +358,10 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getId()).thenReturn(1L);
         Mockito.when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
         Mockito.when(mockFlowFile.getSize()).thenReturn(1L);
-        Mockito.when(mockFlowFile.getLineageIdentifiers()).thenReturn(new HashSet<String>());
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
-        return Query.evaluateExpressions(queryString, mockFlowFile);
+
+        final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
+        return Query.evaluateExpressions(queryString, lookup);
     }
 
     @Test
@@ -580,7 +634,7 @@ public class TestQuery {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         Query.validateExpression(query, false);
-        assertEquals("true", Query.evaluateExpressions(query));
+        assertEquals("true", Query.evaluateExpressions(query, Collections.EMPTY_MAP));
     }
 
     @Test
@@ -596,15 +650,14 @@ public class TestQuery {
     public void testComments() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
-
         final String expression
-        = "# hello, world\n"
-            + "${# ref attr\n"
-            + "\t"
-            + "abc"
-            + "\t"
-            + "#end ref attr\n"
-            + "}";
+                = "# hello, world\n"
+                + "${# ref attr\n"
+                + "\t"
+                + "abc"
+                + "\t"
+                + "#end ref attr\n"
+                + "}";
 
         Query query = Query.compile(expression);
         QueryResult<?> result = query.evaluate(attributes);
@@ -751,13 +804,6 @@ public class TestQuery {
         assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
-    }
-
-    @Test
-    public void testSystemProperty() {
-        System.setProperty("hello", "good-bye");
-        assertEquals("good-bye", Query.evaluateExpressions("${hello}"));
-        assertEquals("good-bye", Query.compile("${hello}").evaluate().getValue());
     }
 
     @Test
@@ -914,6 +960,7 @@ public class TestQuery {
         assertEquals("true", evaluated);
 
         attributes.put("end", "888");
+
         final String secondEvaluation = Query.evaluateExpressions("${abc:find('${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
 
@@ -971,6 +1018,22 @@ public class TestQuery {
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16):toUpper()}", attributes, "FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16, 4):toUpper()}", attributes, "00FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(36, 3):toUpper()}", attributes, "073");
+    }
+
+    @Test
+    public void testBase64Encode(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("userpass", "admin:admin");
+        verifyEquals("${userpass:base64Encode()}", attributes, "YWRtaW46YWRtaW4=");
+
+    }
+
+    @Test
+    public void testBase64Decode(){
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("userpassbase64", "YWRtaW46YWRtaW4=");
+        verifyEquals("${userpassbase64:base64Decode()}", attributes, "admin:admin");
+
     }
 
     @Test
@@ -1036,16 +1099,22 @@ public class TestQuery {
         attributes.put("filename 3", "abcxy");
 
         final String query
-        = "${"
-            + "     'non-existing':notNull():not():and(" + // true AND (
-            "     ${filename1:startsWith('y')" + // false
-            "     :or(" + // or
-            "       ${ filename1:startsWith('x'):and(false) }" + // false
-            "     ):or(" + // or
-            "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
-            "     )}"
-            + "     )"
-            + "}";
+                = "${"
+                + "     'non-existing':notNull():not():and("
+                + // true AND (
+                "     ${filename1:startsWith('y')"
+                + // false
+                "     :or("
+                + // or
+                "       ${ filename1:startsWith('x'):and(false) }"
+                + // false
+                "     ):or("
+                + // or
+                "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }"
+                + // true )
+                "     )}"
+                + "     )"
+                + "}";
 
         System.out.println(query);
         verifyEquals(query, attributes, true);
@@ -1079,6 +1148,17 @@ public class TestQuery {
     }
 
     @Test
+    public void testIn() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("myEnum", "JOHN");
+        verifyEquals("${ myEnum:in('PAUL', 'JOHN', 'MIKE') }", attributes, true);
+        verifyEquals("${ myEnum:in('RED', 'BLUE', 'GREEN') }", attributes, false);
+
+        attributes.put("toReplace", "BLUE");
+        verifyEquals("${ myEnum:in('RED', ${ toReplace:replace('BLUE', 'JOHN') }, 'GREEN') }", attributes, true);
+    }
+
+    @Test
     public void testSubjectAsEmbeddedExpressionWithSurroundChars() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("b", "x");
@@ -1091,6 +1171,11 @@ public class TestQuery {
     @Test
     public void testToNumberFunctionReturnsNumberType() {
         assertEquals(ResultType.NUMBER, Query.getResultType("${header.size:toNumber()}"));
+    }
+
+    @Test
+    public void testRandomFunctionReturnsNumberType() {
+        assertEquals(ResultType.NUMBER, Query.getResultType("${random()}"));
     }
 
     @Test
@@ -1118,9 +1203,27 @@ public class TestQuery {
 
     @Test
     public void testLiteralFunction() {
-        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
+    }
+
+    @Test
+    public void testRandomFunction() {
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
+        final Long negOne = Long.valueOf(-1L);
+        final HashSet<Long> results = new HashSet<>(100);
+        for (int i = 0; i < results.size(); i++) {
+            long result = (Long) getResult("${random()}", attrs).getValue();
+            assertThat("random", result, greaterThan(negOne));
+            assertEquals("duplicate random", true, results.add(result));
+        }
+    }
+
+    QueryResult<?> getResult(String expr, Map<String, String> attrs) {
+        final Query query = Query.compile(expr);
+        final QueryResult<?> result = query.evaluate(attrs);
+        return result;
     }
 
     @Test
@@ -1227,6 +1330,46 @@ public class TestQuery {
         verifyEquals("${line:getDelimitedField(2)}", attributes, " 32");
     }
 
+    @Test
+    public void testEscapeFunctions() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("string", "making air \"QUOTES\".");
+        verifyEquals("${string:escapeJson()}", attributes, "making air \\\"QUOTES\\\".");
+
+        attributes.put("string", "M & M");
+        verifyEquals("${string:escapeXml()}", attributes, "M &amp; M");
+
+        attributes.put("string", "making air \"QUOTES\".");
+        verifyEquals("${string:escapeCsv()}", attributes, "\"making air \"\"QUOTES\"\".\"");
+
+        attributes.put("string", "special ¡");
+        verifyEquals("${string:escapeHtml3()}", attributes, "special &iexcl;");
+
+        attributes.put("string", "special ♣");
+        verifyEquals("${string:escapeHtml4()}", attributes, "special &clubs;");
+      }
+
+      @Test
+      public void testUnescapeFunctions() {
+          final Map<String, String> attributes = new HashMap<>();
+
+          attributes.put("string", "making air \\\"QUOTES\\\".");
+          verifyEquals("${string:unescapeJson()}", attributes, "making air \"QUOTES\".");
+
+          attributes.put("string", "M &amp; M");
+          verifyEquals("${string:unescapeXml()}", attributes, "M & M");
+
+          attributes.put("string", "\"making air \"\"QUOTES\"\".\"");
+          verifyEquals("${string:unescapeCsv()}", attributes, "making air \"QUOTES\".");
+
+          attributes.put("string", "special &iexcl;");
+          verifyEquals("${string:unescapeHtml3()}", attributes, "special ¡");
+
+          attributes.put("string", "special &clubs;");
+          verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
+        }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
@@ -1243,5 +1386,24 @@ public class TestQuery {
         }
 
         assertEquals(expectedResult, result.getValue());
+    }
+
+    private String getResourceAsString(String resourceName) throws IOException {
+        try (final Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)))) {
+            int n = 0;
+            char[] buf = new char[1024];
+            StringBuilder sb = new StringBuilder();
+            while (n != -1) {
+                try {
+                    n = reader.read(buf, 0, buf.length);
+                } catch (IOException e) {
+                    throw new RuntimeException("failed to read resource", e);
+                }
+                if (n > 0) {
+                    sb.append(buf, 0, n);
+                }
+            }
+            return sb.toString();
+        }
     }
 }

@@ -49,7 +49,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -245,7 +245,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         ATTRIBUTE_RELATIONSHIP_SET = Collections.unmodifiableSet(attributeRelationships);
     }
 
-    private ProcessorLog logger;
+    private ComponentLog logger;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -408,7 +408,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final boolean ignoreStdin;
         final OutputStream stdinWritable;
         final InputStream stdoutReadable;
-        final ProcessorLog logger;
+        final ComponentLog logger;
         final ProcessSession session;
         final Process process;
         FlowFile outputFlowFile;
@@ -420,7 +420,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         byte[] outputBuffer;
         int size;
 
-        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,ProcessorLog logger, String attributeName,
+        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,ComponentLog logger, String attributeName,
                                            ProcessSession session, FlowFile outputFlowFile, Process process, boolean putToAttribute, int attributeSize) {
             this.ignoreStdin = ignoreStdin;
             this.stdinWritable = stdinWritable;
@@ -477,7 +477,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     private static void readStdoutReadable(final boolean ignoreStdin, final OutputStream stdinWritable,
-                                           final ProcessorLog logger, final InputStream incomingFlowFileIS) throws IOException {
+                                           final ComponentLog logger, final InputStream incomingFlowFileIS) throws IOException {
         Thread writerThread = new Thread(new Runnable() {
 
             @Override

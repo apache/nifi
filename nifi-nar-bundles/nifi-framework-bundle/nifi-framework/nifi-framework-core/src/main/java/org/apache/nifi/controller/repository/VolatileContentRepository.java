@@ -56,24 +56,33 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * An in-memory implementation of the {@link ContentRepository} interface. This implementation stores FlowFile content in the Java heap and keeps track of the number of bytes used. If the number of
- * bytes used by FlowFile content exceeds some threshold (configured via the <code>nifi.volatile.content.repository.max.size</code> property in the NiFi properties with a default of 100 MB), one of
- * two situations will occur:
+ * An in-memory implementation of the {@link ContentRepository} interface. This
+ * implementation stores FlowFile content in the Java heap and keeps track of
+ * the number of bytes used. If the number of bytes used by FlowFile content
+ * exceeds some threshold (configured via the
+ * <code>nifi.volatile.content.repository.max.size</code> property in the NiFi
+ * properties with a default of 100 MB), one of two situations will occur:
  * </p>
  *
  * <ul>
- * <li><b>Backup Repository:</b> If a Backup Repository has been specified (via the {@link #setBackupRepository(ContentRepository)} method), the content will be stored in the backup repository and all
- * access to the FlowFile content will automatically and transparently be proxied to the backup repository.
+ * <li><b>Backup Repository:</b> If a Backup Repository has been specified (via
+ * the {@link #setBackupRepository(ContentRepository)} method), the content will
+ * be stored in the backup repository and all access to the FlowFile content
+ * will automatically and transparently be proxied to the backup repository.
  * </li>
  * <li>
- * <b>Without Backup Repository:</b> If no Backup Repository has been specified, when the threshold is exceeded, an IOException will be thrown.
+ * <b>Without Backup Repository:</b> If no Backup Repository has been specified,
+ * when the threshold is exceeded, an IOException will be thrown.
  * </li>
  * </ul>
  *
  * <p>
- * When a Content Claim is created via the {@link #create(boolean)} method, if the <code>lossTolerant</code> flag is set to <code>false</code>, the Backup Repository will be used to create the Content
- * Claim and any accesses to the ContentClaim will be proxied to the Backup Repository. If the Backup Repository has not been specified, attempting to create a non-loss-tolerant ContentClaim will
- * result in an {@link IllegalStateException} being thrown.
+ * When a Content Claim is created via the {@link #create(boolean)} method, if
+ * the <code>lossTolerant</code> flag is set to <code>false</code>, the Backup
+ * Repository will be used to create the Content Claim and any accesses to the
+ * ContentClaim will be proxied to the Backup Repository. If the Backup
+ * Repository has not been specified, attempting to create a non-loss-tolerant
+ * ContentClaim will result in an {@link IllegalStateException} being thrown.
  * </p>
  */
 public class VolatileContentRepository implements ContentRepository {
@@ -98,13 +107,17 @@ public class VolatileContentRepository implements ContentRepository {
 
     private ResourceClaimManager claimManager; // effectively final
 
+    /**
+     * Default no args constructor for service loading only
+     */
     public VolatileContentRepository() {
-        this(NiFiProperties.getInstance());
+        maxBytes = 0;
+        memoryManager = null;
     }
 
-    public VolatileContentRepository(final NiFiProperties properties) {
-        final String maxSize = properties.getProperty(MAX_SIZE_PROPERTY);
-        final String blockSizeVal = properties.getProperty(BLOCK_SIZE_PROPERTY);
+    public VolatileContentRepository(final NiFiProperties nifiProperties) {
+        final String maxSize = nifiProperties.getProperty(MAX_SIZE_PROPERTY);
+        final String blockSizeVal = nifiProperties.getProperty(BLOCK_SIZE_PROPERTY);
 
         if (maxSize == null) {
             maxBytes = (long) DataUnit.B.convert(100D, DataUnit.MB);
@@ -137,7 +150,8 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     /**
-     * Specifies a Backup Repository where data should be written if this Repository fills up
+     * Specifies a Backup Repository where data should be written if this
+     * Repository fills up
      *
      * @param backup repo backup
      */
@@ -388,7 +402,7 @@ public class VolatileContentRepository implements ContentRepository {
 
         final StandardOpenOption openOption = append ? StandardOpenOption.APPEND : StandardOpenOption.CREATE;
         try (final InputStream in = read(claim);
-            final OutputStream destinationStream = Files.newOutputStream(destination, openOption)) {
+                final OutputStream destinationStream = Files.newOutputStream(destination, openOption)) {
 
             if (offset > 0) {
                 StreamUtils.skip(in, offset);

@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -34,6 +35,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
@@ -82,6 +84,16 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
             .defaultValue("${s3.permissions.writeacl.users}")
             .build();
+    public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
+            .name("canned-acl")
+            .displayName("Canned ACL")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
+                    "will be ignored if any other ACL/permission/owner property is specified")
+            .defaultValue("${s3.permissions.cannedacl}")
+            .build();
     public static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
             .required(false)
@@ -103,13 +115,24 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .expressionLanguageSupported(true)
             .defaultValue("${filename}")
             .build();
-
+    public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
+            .name("Signer Override")
+            .description("The AWS libraries use the default signer but this property allows you to specify a custom signer to support older S3-compatible services.")
+            .required(false)
+            .allowableValues(
+                    new AllowableValue("Default Signature", "Default Signature"),
+                    new AllowableValue("AWSS3V4Signer", "Signature v4"),
+                    new AllowableValue("S3SignerType", "Signature v2"))
+            .defaultValue("Default Signature")
+            .build();
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
      */
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client with credentials provider");
+
+        initializeSignerOverride(context, config);
 
         final AmazonS3Client s3 = new AmazonS3Client(credentialsProvider, config);
 
@@ -127,6 +150,14 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
+        String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
+
+        if (signer != null && !signer.equals(SIGNER_OVERRIDE.getDefaultValue())) {
+            config.setSignerOverride(signer);
+        }
+    }
+
     /**
      * Create client using AWSCredentials
      *
@@ -135,6 +166,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client with AWS credentials");
+
+        initializeSignerOverride(context, config);
 
         final AmazonS3Client s3 = new AmazonS3Client(credentials, config);
 
@@ -183,36 +216,80 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    /**
+     * Create AccessControlList if appropriate properties are configured.
+     *
+     * @param context ProcessContext
+     * @param flowFile FlowFile
+     * @return AccessControlList or null if no ACL properties were specified
+     */
     protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {
-        final AccessControlList acl = new AccessControlList();
+        // lazy-initialize ACL, as it should not be used if no properties were specified
+        AccessControlList acl = null;
 
         final String ownerId = context.getProperty(OWNER).evaluateAttributeExpressions(flowFile).getValue();
         if (!StringUtils.isEmpty(ownerId)) {
             final Owner owner = new Owner();
             owner.setId(ownerId);
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.setOwner(owner);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(FULL_CONTROL_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.grantPermission(grantee, Permission.FullControl);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.grantPermission(grantee, Permission.Read);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.grantPermission(grantee, Permission.Write);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.grantPermission(grantee, Permission.ReadAcp);
         }
 
         for (final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+            if (acl == null) {
+                acl = new AccessControlList();
+            }
             acl.grantPermission(grantee, Permission.WriteAcp);
         }
 
         return acl;
+    }
+
+    /**
+     * Create CannedAccessControlList if {@link #CANNED_ACL} property specified.
+     *
+     * @param context ProcessContext
+     * @param flowFile FlowFile
+     * @return CannedAccessControlList or null if not specified
+     */
+    protected final CannedAccessControlList createCannedACL(final ProcessContext context, final FlowFile flowFile) {
+        CannedAccessControlList cannedAcl = null;
+
+        final String cannedAclString = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
+        if (!StringUtils.isEmpty(cannedAclString)) {
+            cannedAcl = CannedAccessControlList.valueOf(cannedAclString);
+        }
+
+        return cannedAcl;
     }
 }

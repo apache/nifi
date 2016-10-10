@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         } else {
             // Extract the Base64 encoded token from the Authorization header
             final String token = StringUtils.substringAfterLast(authorization, " ");
-            return new JwtAuthenticationRequestToken(token);
+            return new JwtAuthenticationRequestToken(token, request.getRemoteAddr());
         }
     }
 }

@@ -28,8 +28,6 @@ public class AccessStatusDTO {
     public static enum Status {
 
         UNKNOWN,
-        UNREGISTERED,
-        NOT_ACTIVE,
         ACTIVE
     }
 
@@ -51,21 +49,6 @@ public class AccessStatusDTO {
 
     public void setIdentity(String identity) {
         this.identity = identity;
-    }
-
-    /**
-     * @return the username
-     */
-    @ApiModelProperty(
-            value = "The username.",
-            readOnly = true
-    )
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     /**

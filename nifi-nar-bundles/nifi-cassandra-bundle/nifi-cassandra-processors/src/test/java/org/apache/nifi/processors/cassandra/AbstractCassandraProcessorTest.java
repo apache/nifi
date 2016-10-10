@@ -270,7 +270,7 @@ public class AbstractCassandraProcessorTest {
             Metadata mockMetadata = mock(Metadata.class);
             when(mockMetadata.getClusterName()).thenReturn("cluster1");
             when(mockCluster.getMetadata()).thenReturn(mockMetadata);
-            Configuration config = new Configuration();
+            Configuration config = Configuration.builder().build();
             when(mockCluster.getConfiguration()).thenReturn(config);
             return mockCluster;
         }

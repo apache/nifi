@@ -45,10 +45,13 @@ import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -68,18 +71,25 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class JdbcCommon {
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream) throws SQLException, IOException {
-        return convertToAvroStream(rs, outStream, null, null);
+    private static final int MAX_DIGITS_IN_BIGINT = 19;
+
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, boolean convertNames) throws SQLException, IOException {
+        return convertToAvroStream(rs, outStream, null, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, boolean convertNames)
             throws SQLException, IOException {
-        return convertToAvroStream(rs, outStream, recordName, null);
+        return convertToAvroStream(rs, outStream, recordName, null, convertNames);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, boolean convertNames)
+            throws IOException, SQLException {
+        return convertToAvroStream(rs, outStream, recordName, callback, 0, convertNames);
+    }
+
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows, boolean convertNames)
             throws SQLException, IOException {
-        final Schema schema = createSchema(rs, recordName);
+        final Schema schema = createSchema(rs, recordName, convertNames);
         final GenericRecord rec = new GenericData.Record(schema);
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -95,12 +105,55 @@ public class JdbcCommon {
                 }
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final int javaSqlType = meta.getColumnType(i);
+
+                    // Need to handle CLOB and BLOB before getObject() is called, due to ResultSet's maximum portability statement
+                    if (javaSqlType == CLOB) {
+                        Clob clob = rs.getClob(i);
+                        if (clob != null) {
+                            long numChars = clob.length();
+                            char[] buffer = new char[(int) numChars];
+                            InputStream is = clob.getAsciiStream();
+                            int index = 0;
+                            int c = is.read();
+                            while (c > 0) {
+                                buffer[index++] = (char) c;
+                                c = is.read();
+                            }
+                            rec.put(i - 1, new String(buffer));
+                            clob.free();
+                        } else {
+                            rec.put(i - 1, null);
+                        }
+                        continue;
+                    }
+
+                    if (javaSqlType == BLOB) {
+                        Blob blob = rs.getBlob(i);
+                        if (blob != null) {
+                            long numChars = blob.length();
+                            byte[] buffer = new byte[(int) numChars];
+                            InputStream is = blob.getBinaryStream();
+                            int index = 0;
+                            int c = is.read();
+                            while (c > 0) {
+                                buffer[index++] = (byte) c;
+                                c = is.read();
+                            }
+                            ByteBuffer bb = ByteBuffer.wrap(buffer);
+                            rec.put(i - 1, bb);
+                            blob.free();
+                        } else {
+                            rec.put(i - 1, null);
+                        }
+                        continue;
+                    }
+
                     final Object value = rs.getObject(i);
 
                     if (value == null) {
                         rec.put(i - 1, null);
 
-                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY || javaSqlType == BLOB || javaSqlType == CLOB) {
+                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY) {
                         // bytes requires little bit different handling
                         byte[] bytes = rs.getBytes(i);
                         ByteBuffer bb = ByteBuffer.wrap(bytes);
@@ -114,12 +167,43 @@ public class JdbcCommon {
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
 
-                    } else if (value instanceof BigDecimal || value instanceof BigInteger) {
-                        // Avro can't handle BigDecimal and BigInteger as numbers - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
+                    } else if (value instanceof BigDecimal) {
+                        // Avro can't handle BigDecimal as a number - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
                         rec.put(i - 1, value.toString());
 
+                    } else if (value instanceof BigInteger) {
+                        // Check the precision of the BIGINT. Some databases allow arbitrary precision (> 19), but Avro won't handle that.
+                        // It the SQL type is BIGINT and the precision is between 0 and 19 (inclusive); if so, the BigInteger is likely a
+                        // long (and the schema says it will be), so try to get its value as a long.
+                        // Otherwise, Avro can't handle BigInteger as a number - it will throw an AvroRuntimeException
+                        // such as: "Unknown datum type: java.math.BigInteger: 38". In this case the schema is expecting a string.
+                        if (javaSqlType == BIGINT) {
+                            int precision = meta.getPrecision(i);
+                            if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
+                                rec.put(i - 1, value.toString());
+                            } else {
+                                try {
+                                    rec.put(i - 1, ((BigInteger) value).longValueExact());
+                                } catch (ArithmeticException ae) {
+                                    // Since the value won't fit in a long, convert it to a string
+                                    rec.put(i - 1, value.toString());
+                                }
+                            }
+                        } else {
+                            rec.put(i - 1, value.toString());
+                        }
+
                     } else if (value instanceof Number || value instanceof Boolean) {
-                        rec.put(i - 1, value);
+                        if (javaSqlType == BIGINT) {
+                            int precision = meta.getPrecision(i);
+                            if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
+                                rec.put(i - 1, value.toString());
+                            } else {
+                                rec.put(i - 1, value);
+                            }
+                        } else {
+                            rec.put(i - 1, value);
+                        }
 
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
@@ -131,6 +215,9 @@ public class JdbcCommon {
                 }
                 dataFileWriter.append(rec);
                 nrOfRows += 1;
+
+                if (maxRows > 0 && nrOfRows == maxRows)
+                    break;
             }
 
             return nrOfRows;
@@ -138,7 +225,7 @@ public class JdbcCommon {
     }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
-        return createSchema(rs, null);
+        return createSchema(rs, null, false);
     }
 
     /**
@@ -150,7 +237,7 @@ public class JdbcCommon {
      * @return A Schema object representing the result set converted to an Avro record
      * @throws SQLException if any error occurs during conversion
      */
-    public static Schema createSchema(final ResultSet rs, String recordName) throws SQLException {
+    public static Schema createSchema(final ResultSet rs, String recordName, boolean convertNames) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         String tableName = StringUtils.isEmpty(recordName) ? "NiFi_ExecuteSQL_Record" : recordName;
@@ -161,12 +248,17 @@ public class JdbcCommon {
             }
         }
 
+        if (convertNames) {
+            tableName = normalizeNameForAvro(tableName);
+        }
+
         final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 
         /**
          * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
+            String columnName = convertNames ? normalizeNameForAvro(meta.getColumnName(i)) : meta.getColumnName(i);
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:
@@ -174,57 +266,66 @@ public class JdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                case CLOB:
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case BIT:
                 case BOOLEAN:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
                     break;
 
                 case INTEGER:
                     if (meta.isSigned(i)) {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     } else {
-                        builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
                     }
                     break;
 
                 case SMALLINT:
                 case TINYINT:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault();
                     break;
 
                 case BIGINT:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                    // Check the precision of the BIGINT. Some databases allow arbitrary precision (> 19), but Avro won't handle that.
+                    // If the precision > 19 (or is negative), use a string for the type, otherwise use a long. The object(s) will be converted
+                    // to strings as necessary
+                    int precision = meta.getPrecision(i);
+                    if (precision < 0 || precision > MAX_DIGITS_IN_BIGINT) {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    } else {
+                        builder.name(columnName).type().unionOf().nullBuilder().endNull().and().longType().endUnion().noDefault();
+                    }
                     break;
 
                 // java.sql.RowId is interface, is seems to be database
                 // implementation specific, let's convert to String
                 case ROWID:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case FLOAT:
                 case REAL:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().floatType().endUnion().noDefault();
                     break;
 
                 case DOUBLE:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DECIMAL:
                 case NUMERIC:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
                 case DATE:
                 case TIME:
                 case TIMESTAMP:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
                 case BINARY:
@@ -232,8 +333,7 @@ public class JdbcCommon {
                 case LONGVARBINARY:
                 case ARRAY:
                 case BLOB:
-                case CLOB:
-                    builder.name(meta.getColumnName(i)).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
                     break;
 
 
@@ -243,6 +343,14 @@ public class JdbcCommon {
         }
 
         return builder.endRecord();
+    }
+
+    public static String normalizeNameForAvro(String inputName) {
+        String normalizedName = inputName.replaceAll("[^A-Za-z0-9_]", "_");
+        if (Character.isDigit(normalizedName.charAt(0))) {
+            normalizedName = "_" + normalizedName;
+        }
+        return normalizedName;
     }
 
     /**

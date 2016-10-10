@@ -38,7 +38,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -92,7 +92,7 @@ public class GetCouchbaseKey extends AbstractCouchbaseProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         String docId = null;
         if (!StringUtils.isEmpty(context.getProperty(DOC_ID).getValue())) {
             docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(inFile).getValue();

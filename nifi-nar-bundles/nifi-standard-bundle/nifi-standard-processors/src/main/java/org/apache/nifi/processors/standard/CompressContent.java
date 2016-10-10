@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
@@ -44,7 +45,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -55,7 +56,6 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.GZIPOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 import org.tukaani.xz.LZMA2Options;
 import org.tukaani.xz.XZInputStream;
@@ -180,7 +180,7 @@ public class CompressContent extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final long sizeBeforeCompression = flowFile.getSize();
         final String compressionMode = context.getProperty(MODE).getValue();
 
@@ -203,7 +203,7 @@ public class CompressContent extends AbstractProcessor {
         }
 
         final String compressionFormat = compressionFormatValue;
-        final ObjectHolder<String> mimeTypeRef = new ObjectHolder<>(null);
+        final AtomicReference<String> mimeTypeRef = new AtomicReference<>(null);
         final StopWatch stopWatch = new StopWatch(true);
 
         final String fileExtension;

@@ -66,6 +66,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
@@ -82,7 +83,7 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
 
 @SupportsBatching
-@SeeAlso({FetchS3Object.class, DeleteS3Object.class})
+@SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket\n" +
@@ -110,6 +111,7 @@ import com.amazonaws.services.s3.model.UploadPartResult;
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
     @WritesAttribute(attribute = "s3.key", description = "The S3 key within where the Object was put in S3"),
+    @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
     @WritesAttribute(attribute = "s3.uploadId", description = "The uploadId used to upload the Object to S3"),
@@ -131,6 +133,20 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
         .name("Expiration Time Rule")
+        .required(false)
+        .expressionLanguageSupported(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+        .name("Content Type")
+        .displayName("Content Type")
+        .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
+                "object. The value of this header is a standard MIME type.\n" +
+                "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
+                " yet. Users are responsible for ensuring a suitable content type is set when uploading streams. If " +
+                "no content type is provided and cannot be determined by the filename, the default content type " +
+                "\"application/octet-stream\" will be used.")
         .required(false)
         .expressionLanguageSupported(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -212,13 +228,14 @@ public class PutS3Object extends AbstractS3Processor {
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, SSL_CONTEXT_SERVICE,
-            ENDPOINT_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, AWS_KMS_KEY,
-            ENABLE_S3V4_SIGNATURE, PROXY_HOST, PROXY_HOST_PORT));
+        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
+            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
+            ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE,
+            SERVER_SIDE_ENCRYPTION, AWS_KMS_KEY, ENABLE_S3V4_SIGNATURE, PROXY_HOST, PROXY_HOST_PORT));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
+    final static String S3_CONTENT_TYPE = "s3.contenttype";
     final static String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
     final static String S3_VERSION_ATTR_KEY = "s3.version";
     final static String S3_ETAG_ATTR_KEY = "s3.etag";
@@ -429,6 +446,12 @@ public class PutS3Object extends AbstractS3Processor {
                         objectMetadata.setContentDisposition(ff.getAttribute(CoreAttributes.FILENAME.key()));
                         objectMetadata.setContentLength(ff.getSize());
 
+                        final String contentType = context.getProperty(CONTENT_TYPE)
+                                .evaluateAttributeExpressions(ff).getValue();
+                        if (contentType != null) {
+                            objectMetadata.setContentType(contentType);
+                        }
+
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID)
                                 .evaluateAttributeExpressions(ff).getValue();
                         if (expirationRule != null) {
@@ -484,6 +507,10 @@ public class PutS3Object extends AbstractS3Processor {
                             final AccessControlList acl = createACL(context, ff);
                             if (acl != null) {
                                 request.setAccessControlList(acl);
+                            }
+                            final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
+                            if (cannedAcl != null) {
+                                request.withCannedAcl(cannedAcl);
                             }
 
                             try {
@@ -581,6 +608,10 @@ public class PutS3Object extends AbstractS3Processor {
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
                                     initiateRequest.setAccessControlList(acl);
+                                }
+                                final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
+                                if (cannedAcl != null) {
+                                    initiateRequest.withCannedACL(cannedAcl);
                                 }
                                 try {
                                     final InitiateMultipartUploadResult initiateResult =

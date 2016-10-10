@@ -18,14 +18,15 @@ package org.apache.nifi.controller.repository.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ByteCountingInputStream extends InputStream {
 
-    private final LongHolder bytesReadHolder;
+    private final AtomicLong bytesReadHolder;
     private final InputStream in;
     private long bytesSkipped = 0L;
 
-    public ByteCountingInputStream(final InputStream in, final LongHolder longHolder) {
+    public ByteCountingInputStream(final InputStream in, final AtomicLong longHolder) {
         this.in = in;
         this.bytesReadHolder = longHolder;
     }
@@ -34,7 +35,7 @@ public class ByteCountingInputStream extends InputStream {
     public int read() throws IOException {
         final int fromSuper = in.read();
         if (fromSuper >= 0) {
-            bytesReadHolder.increment(1);
+            bytesReadHolder.getAndIncrement();
         }
         return fromSuper;
     }
@@ -43,7 +44,7 @@ public class ByteCountingInputStream extends InputStream {
     public int read(byte[] b, int off, int len) throws IOException {
         final int fromSuper = in.read(b, off, len);
         if (fromSuper >= 0) {
-            bytesReadHolder.increment(fromSuper);
+            bytesReadHolder.getAndAdd(fromSuper);
         }
 
         return fromSuper;
@@ -87,7 +88,7 @@ public class ByteCountingInputStream extends InputStream {
     }
 
     public long getBytesRead() {
-        return bytesReadHolder.getValue();
+        return bytesReadHolder.get();
     }
 
     public long getBytesSkipped() {

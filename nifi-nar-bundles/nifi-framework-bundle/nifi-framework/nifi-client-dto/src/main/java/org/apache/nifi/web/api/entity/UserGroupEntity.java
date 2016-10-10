@@ -23,21 +23,21 @@ import org.apache.nifi.web.api.dto.UserGroupDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a UserGroupDTO.
  */
 @XmlRootElement(name = "userGroupEntity")
-public class UserGroupEntity extends Entity {
+public class UserGroupEntity extends ComponentEntity {
 
-    private UserGroupDTO userGroup;
+    private UserGroupDTO component;
 
     /**
      * The UserGroupDTO that is being serialized.
      *
      * @return The UserGroupDTO object
      */
-    public UserGroupDTO getUserGroup() {
-        return userGroup;
+    public UserGroupDTO getComponent() {
+        return component;
     }
 
-    public void setUserGroup(UserGroupDTO userGroup) {
-        this.userGroup = userGroup;
+    public void setComponent(UserGroupDTO component) {
+        this.component = component;
     }
 
 }

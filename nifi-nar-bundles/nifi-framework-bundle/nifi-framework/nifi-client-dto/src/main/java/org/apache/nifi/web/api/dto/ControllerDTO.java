@@ -41,6 +41,7 @@ public class ControllerDTO {
     private Integer outputPortCount;
 
     private Integer remoteSiteListeningPort;
+    private Integer remoteSiteHttpListeningPort;
     private Boolean siteToSiteSecure;
     private String instanceId;
     private Set<PortDTO> inputPorts;
@@ -150,6 +151,23 @@ public class ControllerDTO {
     }
 
     /**
+     * The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote instances, this will be null.
+     *
+     * @return a integer between 1 and 65535, or null, if not configured for remote transfer
+     */
+    @ApiModelProperty(
+            value = "The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+                    + "instances, this will be null."
+    )
+    public Integer getRemoteSiteHttpListeningPort() {
+        return remoteSiteHttpListeningPort;
+    }
+
+    public void setRemoteSiteHttpListeningPort(Integer remoteSiteHttpListeningPort) {
+        this.remoteSiteHttpListeningPort = remoteSiteHttpListeningPort;
+    }
+
+    /**
      * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication)
      */
     @ApiModelProperty(
@@ -209,7 +227,7 @@ public class ControllerDTO {
      * @return number of inactive remote ports contained in this process group
      */
     @ApiModelProperty(
-            value = "The number of inactive remote porst contained in the NiFi."
+            value = "The number of inactive remote ports contained in the NiFi."
     )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
@@ -274,4 +292,5 @@ public class ControllerDTO {
     public void setOutputPortCount(Integer outputPortCount) {
         this.outputPortCount = outputPortCount;
     }
+
 }

@@ -17,11 +17,13 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -30,69 +32,40 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
-import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.IntStream;
 
-import static java.sql.Types.ARRAY;
-import static java.sql.Types.BIGINT;
-import static java.sql.Types.BINARY;
-import static java.sql.Types.BIT;
-import static java.sql.Types.BLOB;
-import static java.sql.Types.BOOLEAN;
-import static java.sql.Types.CHAR;
-import static java.sql.Types.CLOB;
-import static java.sql.Types.DATE;
-import static java.sql.Types.DECIMAL;
-import static java.sql.Types.DOUBLE;
-import static java.sql.Types.FLOAT;
-import static java.sql.Types.INTEGER;
-import static java.sql.Types.LONGNVARCHAR;
-import static java.sql.Types.LONGVARBINARY;
-import static java.sql.Types.LONGVARCHAR;
-import static java.sql.Types.NCHAR;
-import static java.sql.Types.NUMERIC;
-import static java.sql.Types.NVARCHAR;
-import static java.sql.Types.REAL;
-import static java.sql.Types.ROWID;
-import static java.sql.Types.SMALLINT;
-import static java.sql.Types.TIME;
-import static java.sql.Types.TIMESTAMP;
-import static java.sql.Types.TINYINT;
-import static java.sql.Types.VARBINARY;
-import static java.sql.Types.VARCHAR;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -107,73 +80,26 @@ import static java.sql.Types.VARCHAR;
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
-@WritesAttribute(attribute = "querydbtable.row.count")
-public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
+@WritesAttributes({
+        @WritesAttribute(attribute = "querydbtable.row.count"),
+        @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+                + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+        @WritesAttribute(attribute="fragment.count", description="If 'Max Rows Per Flow File' is set then this is the total number of  "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
+        @WritesAttribute(attribute="fragment.index", description="If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+                + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+                + "FlowFiles were produced"),
+        @WritesAttribute(attribute = "maxvalue.*", description = "Each attribute contains the observed maximum value of a specified 'Maximum-value Column'. The "
+                + "suffix of the attribute is the name of the column")})
+@DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
+        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
+public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
+    public static final String INTIIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
 
-    public static final String SQL_PREPROCESS_STRATEGY_NONE = "None";
-    public static final String SQL_PREPROCESS_STRATEGY_ORACLE = "Oracle";
-
-    // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Successfully created FlowFile from SQL query result set.")
-            .build();
-
-    private final Set<Relationship> relationships;
-
-    public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
-            .name("Database Connection Pooling Service")
-            .description("The Controller Service that is used to obtain a connection to the database.")
-            .required(true)
-            .identifiesControllerService(DBCPService.class)
-            .build();
-
-    public static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("Table Name")
-            .description("The name of the database table to be queried.")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor COLUMN_NAMES = new PropertyDescriptor.Builder()
-            .name("Columns to Return")
-            .description("A comma-separated list of column names to be used in the query. If your database requires "
-                    + "special treatment of the names (quoting, e.g.), each name should include such treatment. If no "
-                    + "column names are supplied, all columns in the specified table will be returned.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor MAX_VALUE_COLUMN_NAMES = new PropertyDescriptor.Builder()
-            .name("Maximum-value Columns")
-            .description("A comma-separated list of column names. The processor will keep track of the maximum value "
-                    + "for each column that has been returned since the processor started running. This can be used to "
-                    + "retrieve only those rows that have been added/updated since the last retrieval. Note that some "
-                    + "JDBC types such as bit/boolean are not conducive to maintaining maximum value, so columns of these "
-                    + "types should not be listed in this property, and will result in error(s) during processing.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Max Wait Time")
-            .description("The maximum amount of time allowed for a running SQL select query "
-                    + ", zero means there is no limit. Max time less than 1 second will be equal to zero.")
-            .defaultValue("0 seconds")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor SQL_PREPROCESS_STRATEGY = new PropertyDescriptor.Builder()
-            .name("SQL Pre-processing Strategy")
-            .description("The strategy to employ when generating the SQL for querying the table. A strategy may include "
-                    + "custom or database-specific code, such as the treatment of time/date formats.")
-            .required(true)
-            .allowableValues(SQL_PREPROCESS_STRATEGY_NONE, SQL_PREPROCESS_STRATEGY_ORACLE)
-            .defaultValue("None")
-            .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
@@ -184,10 +110,15 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-
-    private final List<PropertyDescriptor> propDescriptors;
-
-    protected final Map<String, Integer> columnTypeMap = new HashMap<>();
+    public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
+            .name("qdbt-max-rows")
+            .displayName("Max Rows Per Flow File")
+            .description("The maximum number of result rows that will be included in a single FlowFile. " +
+                    "This will allow you to break up very large result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
 
     public QueryDatabaseTable() {
         final Set<Relationship> r = new HashSet<>();
@@ -196,12 +127,14 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
+        pds.add(DB_TYPE);
         pds.add(TABLE_NAME);
         pds.add(COLUMN_NAMES);
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
-        pds.add(SQL_PREPROCESS_STRATEGY);
         pds.add(FETCH_SIZE);
+        pds.add(MAX_ROWS_PER_FLOW_FILE);
+        pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -215,53 +148,40 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         return propDescriptors;
     }
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
+
     @OnScheduled
     public void setup(final ProcessContext context) {
-        // Try to fill the columnTypeMap with the types of the desired max-value columns
-        final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-
-        try (final Connection con = dbcpService.getConnection();
-             final Statement st = con.createStatement()) {
-
-            // Try a query that returns no rows, for the purposes of getting metadata about the columns. It is possible
-            // to use DatabaseMetaData.getColumns(), but not all drivers support this, notably the schema-on-read
-            // approach as in Apache Drill
-            String query = getSelectFromClause(tableName, maxValueColumnNames).append(" WHERE 1 = 0").toString();
-            ResultSet resultSet = st.executeQuery(query);
-            ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-            int numCols = resultSetMetaData.getColumnCount();
-            if (numCols > 0) {
-                columnTypeMap.clear();
-                for (int i = 1; i <= numCols; i++) {
-                    String colName = resultSetMetaData.getColumnName(i).toLowerCase();
-                    int colType = resultSetMetaData.getColumnType(i);
-                    columnTypeMap.put(colName, colType);
-                }
-
-            } else {
-                throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
-            }
-
-        } catch (SQLException e) {
-            throw new ProcessException("Unable to communicate with database in order to determine column types", e);
-        }
+        super.setup(context);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
-        FlowFile fileToProcess = null;
+        final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
+        final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
         final String tableName = context.getProperty(TABLE_NAME).getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final String preProcessStrategy = context.getProperty(SQL_PREPROCESS_STRATEGY).getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+        final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
+
+        final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -278,8 +198,19 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         // set as the current state map (after the session has been committed)
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
-        final String selectQuery = getQuery(tableName, columnNames, getColumns(maxValueColumnNames), stateMap, preProcessStrategy);
+        //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
+        for(final Map.Entry<String,String> maxProp : maxValueProperties.entrySet()){
+            if(!statePropertyMap.containsKey(maxProp.getKey())){
+                statePropertyMap.put(maxProp.getKey(), maxProp.getValue());
+            }
+        }
+
+        List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
+                ? null
+                : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
+        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, statePropertyMap);
         final StopWatch stopWatch = new StopWatch(true);
+        final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection();
              final Statement st = con.createStatement()) {
@@ -293,55 +224,90 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
                 }
             }
 
+            String jdbcURL = "DBCPService";
+            try {
+                DatabaseMetaData databaseMetaData = con.getMetaData();
+                if (databaseMetaData != null) {
+                    jdbcURL = databaseMetaData.getURL();
+                }
+            } catch (SQLException se) {
+                // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
+            }
+
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
+            try {
+                logger.debug("Executing query {}", new Object[]{selectQuery});
+                final ResultSet resultSet = st.executeQuery(selectQuery);
+                int fragmentIndex=0;
+                while(true) {
+                    final AtomicLong nrOfRows = new AtomicLong(0L);
 
-            final LongHolder nrOfRows = new LongHolder(0L);
+                    FlowFile fileToProcess = session.create();
 
-            fileToProcess = session.create();
-            fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
                     try {
-                        logger.debug("Executing query {}", new Object[]{selectQuery});
-                        final ResultSet resultSet = st.executeQuery(selectQuery);
-                        // Max values will be updated in the state property map by the callback
-                        final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, preProcessStrategy);
-                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector));
+                        fileToProcess = session.write(fileToProcess, out -> {
+                            // Max values will be updated in the state property map by the callback
+                            final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
+                            try {
+                                nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile, convertNamesForAvro));
+                            } catch (SQLException | RuntimeException e) {
+                                throw new ProcessException("Error during database query or conversion of records to Avro.", e);
+                            }
+                        });
+                    } catch (ProcessException e) {
+                        // Add flowfile to results before rethrowing so it will be removed from session in outer catch
+                        resultSetFlowFiles.add(fileToProcess);
+                        throw e;
+                    }
 
-                    } catch (final SQLException e) {
-                        throw new ProcessException("Error during database query or conversion of records to Avro", e);
+                    if (nrOfRows.get() > 0) {
+                        // set attribute how many rows were selected
+                        fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+
+                        if(maxRowsPerFlowFile > 0) {
+                            fileToProcess = session.putAttribute(fileToProcess, "fragment.identifier", fragmentIdentifier);
+                            fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
+                        }
+
+                        logger.info("{} contains {} Avro records; transferring to 'success'",
+                                new Object[]{fileToProcess, nrOfRows.get()});
+
+                        session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                        resultSetFlowFiles.add(fileToProcess);
+                    } else {
+                        // If there were no rows returned, don't send the flowfile
+                        session.remove(fileToProcess);
+                        context.yield();
+                        break;
+                    }
+
+                    fragmentIndex++;
+                }
+
+                for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                    // Add maximum values as attributes
+                    for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
+                        resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + entry.getKey(), entry.getValue()));
+                    }
+
+                    //set count on all FlowFiles
+                    if(maxRowsPerFlowFile > 0) {
+                        resultSetFlowFiles.set(i,
+                                session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
                     }
                 }
-            });
 
-            if (nrOfRows.get() > 0) {
-                // set attribute how many rows were selected
-                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, nrOfRows.get().toString());
-
-                logger.info("{} contains {} Avro records; transferring to 'success'",
-                        new Object[]{fileToProcess, nrOfRows.get()});
-                String jdbcURL = "DBCPService";
-                try {
-                    DatabaseMetaData databaseMetaData = con.getMetaData();
-                    if (databaseMetaData != null) {
-                        jdbcURL = databaseMetaData.getURL();
-                    }
-                } catch (SQLException se) {
-                    // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
-                }
-                session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-                session.transfer(fileToProcess, REL_SUCCESS);
-            } else {
-                // If there were no rows returned, don't send the flowfile
-                session.remove(fileToProcess);
-                context.yield();
+            } catch (final SQLException e) {
+                throw e;
             }
+
+            session.transfer(resultSetFlowFiles, REL_SUCCESS);
 
         } catch (final ProcessException | SQLException e) {
             logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
-            if (fileToProcess != null) {
-                session.remove(fileToProcess);
+            if (!resultSetFlowFiles.isEmpty()) {
+                session.remove(resultSetFlowFiles);
             }
             context.yield();
         } finally {
@@ -355,36 +321,19 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         }
     }
 
-    protected List<String> getColumns(String commaSeparatedColumnList) {
-        if (StringUtils.isEmpty(commaSeparatedColumnList)) {
-            return Collections.emptyList();
-        }
-        final String[] columns = commaSeparatedColumnList.split(",");
-        final List<String> columnList = new ArrayList<>(columns.length);
-        for (String column : columns) {
-            if (column != null) {
-                String trimmedColumn = column.trim();
-                if (!StringUtils.isEmpty(trimmedColumn)) {
-                    columnList.add(trimmedColumn);
-                }
-            }
-        }
-        return columnList;
-    }
-
-    protected String getQuery(String tableName, String columnNames, List<String> maxValColumnNames,
-                              StateMap stateMap, String preProcessStrategy) {
+    protected String getQuery(DatabaseAdapter dbAdapter, String tableName, String columnNames, List<String> maxValColumnNames,
+                              Map<String, String> stateMap) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name must be specified");
         }
-        final StringBuilder query = new StringBuilder(getSelectFromClause(tableName, columnNames));
+        final StringBuilder query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
 
         // Check state map for last max values
-        if (stateMap != null && stateMap.getVersion() != -1 && maxValColumnNames != null) {
-            Map<String, String> stateProperties = stateMap.toMap();
+        if (stateMap != null && !stateMap.isEmpty() && maxValColumnNames != null) {
             List<String> whereClauses = new ArrayList<>(maxValColumnNames.size());
-            for (String colName : maxValColumnNames) {
-                String maxValue = stateProperties.get(colName.toLowerCase());
+            IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
+                String colName = maxValColumnNames.get(index);
+                String maxValue = stateMap.get(colName.toLowerCase());
                 if (!StringUtils.isEmpty(maxValue)) {
                     Integer type = columnTypeMap.get(colName.toLowerCase());
                     if (type == null) {
@@ -392,9 +341,9 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
                         throw new IllegalArgumentException("No column type found for: " + colName);
                     }
                     // Add a condition for the WHERE clause
-                    whereClauses.add(colName + " > " + getLiteralByType(type, maxValue, preProcessStrategy));
+                    whereClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
-            }
+            });
             if (!whereClauses.isEmpty()) {
                 query.append(" WHERE ");
                 query.append(StringUtils.join(whereClauses, " AND "));
@@ -404,67 +353,29 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
         return query.toString();
     }
 
-    /**
-     * Returns a basic SELECT ... FROM clause with the given column names and table name. If no column names are found,
-     * the wildcard (*) is used to select all columns.
-     *
-     * @param tableName   The name of the table to select from
-     * @param columnNames A comma-separated list of column names to select from the table
-     * @return A SQL select statement representing a query of the given column names from the given table
-     */
-    protected StringBuilder getSelectFromClause(String tableName, String columnNames) {
-        final StringBuilder query = new StringBuilder("SELECT ");
-        if (StringUtils.isEmpty(columnNames) || columnNames.trim().equals("*")) {
-            query.append("*");
-        } else {
-            query.append(columnNames);
-        }
-        query.append(" FROM ");
-        query.append(tableName);
-        return query;
-    }
 
-    /**
-     * Returns a SQL literal for the given value based on its type. For example, values of character type need to be enclosed
-     * in single quotes, whereas values of numeric type should not be.
-     *
-     * @param type  The JDBC type for the desired literal
-     * @param value The value to be converted to a SQL literal
-     * @return A String representing the given value as a literal of the given type
-     */
-    protected String getLiteralByType(int type, String value, String preProcessStrategy) {
-        // Format value based on column type. For example, strings and timestamps need to be quoted
-        switch (type) {
-            // For string-represented values, put in single quotes
-            case CHAR:
-            case LONGNVARCHAR:
-            case LONGVARCHAR:
-            case NCHAR:
-            case NVARCHAR:
-            case VARCHAR:
-            case ROWID:
-            case DATE:
-            case TIME:
-                return "'" + value + "'";
-            case TIMESTAMP:
-                // Timestamp literals in Oracle need to be cast with TO_DATE
-                if (SQL_PREPROCESS_STRATEGY_ORACLE.equals(preProcessStrategy)) {
-                    return "to_date('" + value + "', 'yyyy-mm-dd HH24:MI:SS')";
-                } else {
-                    return "'" + value + "'";
-                }
-                // Else leave as is (numeric types, e.g.)
-            default:
-                return value;
+    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
+        final Map<String,String> defaultMaxValues = new HashMap<String, String>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final String key = entry.getKey().getName();
+
+            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) {
+                continue;
+            }
+
+            defaultMaxValues.put(key.substring(INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
         }
+
+        return defaultMaxValues;
     }
 
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
-        String preProcessStrategy;
+        DatabaseAdapter dbAdapter;
         Map<String, String> newColMap;
 
-        public MaxValueResultSetRowCollector(Map<String, String> stateMap, String preProcessStrategy) {
-            this.preProcessStrategy = preProcessStrategy;
+        public MaxValueResultSetRowCollector(Map<String, String> stateMap, DatabaseAdapter dbAdapter) {
+            this.dbAdapter = dbAdapter;
             newColMap = stateMap;
         }
 
@@ -486,137 +397,15 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
                             continue;
                         }
                         String maxValueString = newColMap.get(colName);
-                        switch (type) {
-                            case CHAR:
-                            case LONGNVARCHAR:
-                            case LONGVARCHAR:
-                            case NCHAR:
-                            case NVARCHAR:
-                            case VARCHAR:
-                            case ROWID:
-                                String colStringValue = resultSet.getString(i);
-                                if (maxValueString == null || colStringValue.compareTo(maxValueString) > 0) {
-                                    newColMap.put(colName, colStringValue);
-                                }
-                                break;
-
-                            case INTEGER:
-                            case SMALLINT:
-                            case TINYINT:
-                                Integer colIntValue = resultSet.getInt(i);
-                                Integer maxIntValue = null;
-                                if (maxValueString != null) {
-                                    maxIntValue = Integer.valueOf(maxValueString);
-                                }
-                                if (maxIntValue == null || colIntValue > maxIntValue) {
-                                    newColMap.put(colName, colIntValue.toString());
-                                }
-                                break;
-
-                            case BIGINT:
-                                Long colLongValue = resultSet.getLong(i);
-                                Long maxLongValue = null;
-                                if (maxValueString != null) {
-                                    maxLongValue = Long.valueOf(maxValueString);
-                                }
-                                if (maxLongValue == null || colLongValue > maxLongValue) {
-                                    newColMap.put(colName, colLongValue.toString());
-                                }
-                                break;
-
-                            case FLOAT:
-                            case REAL:
-                            case DOUBLE:
-                                Double colDoubleValue = resultSet.getDouble(i);
-                                Double maxDoubleValue = null;
-                                if (maxValueString != null) {
-                                    maxDoubleValue = Double.valueOf(maxValueString);
-                                }
-                                if (maxDoubleValue == null || colDoubleValue > maxDoubleValue) {
-                                    newColMap.put(colName, colDoubleValue.toString());
-                                }
-                                break;
-
-                            case DECIMAL:
-                            case NUMERIC:
-                                BigDecimal colBigDecimalValue = resultSet.getBigDecimal(i);
-                                BigDecimal maxBigDecimalValue = null;
-                                if (maxValueString != null) {
-                                    DecimalFormat df = new DecimalFormat();
-                                    df.setParseBigDecimal(true);
-                                    maxBigDecimalValue = (BigDecimal) df.parse(maxValueString);
-                                }
-                                if (maxBigDecimalValue == null || colBigDecimalValue.compareTo(maxBigDecimalValue) > 0) {
-                                    newColMap.put(colName, colBigDecimalValue.toString());
-                                }
-                                break;
-
-                            case DATE:
-                                Date rawColDateValue = resultSet.getDate(i);
-                                java.sql.Date colDateValue = new java.sql.Date(rawColDateValue.getTime());
-                                java.sql.Date maxDateValue = null;
-                                if (maxValueString != null) {
-                                    maxDateValue = java.sql.Date.valueOf(maxValueString);
-                                }
-                                if (maxDateValue == null || colDateValue.after(maxDateValue)) {
-                                    newColMap.put(colName, colDateValue.toString());
-                                }
-                                break;
-
-                            case TIME:
-                                Date rawColTimeValue = resultSet.getDate(i);
-                                java.sql.Time colTimeValue = new java.sql.Time(rawColTimeValue.getTime());
-                                java.sql.Time maxTimeValue = null;
-                                if (maxValueString != null) {
-                                    maxTimeValue = java.sql.Time.valueOf(maxValueString);
-                                }
-                                if (maxTimeValue == null || colTimeValue.after(maxTimeValue)) {
-                                    newColMap.put(colName, colTimeValue.toString());
-                                }
-                                break;
-
-                            case TIMESTAMP:
-                                // Oracle timestamp queries must use literals in java.sql.Date format
-                                if (SQL_PREPROCESS_STRATEGY_ORACLE.equals(preProcessStrategy)) {
-                                    Date rawColOracleTimestampValue = resultSet.getDate(i);
-                                    java.sql.Date oracleTimestampValue = new java.sql.Date(rawColOracleTimestampValue.getTime());
-                                    java.sql.Date maxOracleTimestampValue = null;
-                                    if (maxValueString != null) {
-                                        maxOracleTimestampValue = java.sql.Date.valueOf(maxValueString);
-                                    }
-                                    if (maxOracleTimestampValue == null || oracleTimestampValue.after(maxOracleTimestampValue)) {
-                                        newColMap.put(colName, oracleTimestampValue.toString());
-                                    }
-                                } else {
-                                    Timestamp rawColTimestampValue = resultSet.getTimestamp(i);
-                                    java.sql.Timestamp colTimestampValue = new java.sql.Timestamp(rawColTimestampValue.getTime());
-                                    java.sql.Timestamp maxTimestampValue = null;
-                                    if (maxValueString != null) {
-                                        maxTimestampValue = java.sql.Timestamp.valueOf(maxValueString);
-                                    }
-                                    if (maxTimestampValue == null || colTimestampValue.after(maxTimestampValue)) {
-                                        newColMap.put(colName, colTimestampValue.toString());
-                                    }
-                                }
-                                break;
-
-                            case BIT:
-                            case BOOLEAN:
-                            case BINARY:
-                            case VARBINARY:
-                            case LONGVARBINARY:
-                            case ARRAY:
-                            case BLOB:
-                            case CLOB:
-                            default:
-                                throw new IOException("Type " + meta.getColumnTypeName(i) + " is not valid for maintaining maximum value");
+                        String newMaxValueString = getMaxValueFromRow(resultSet, i, type, maxValueString, dbAdapter.getName());
+                        if (newMaxValueString != null) {
+                            newColMap.put(colName, newMaxValueString);
                         }
                     }
                 }
             } catch (ParseException | SQLException e) {
                 throw new IOException(e);
             }
-
         }
     }
 }

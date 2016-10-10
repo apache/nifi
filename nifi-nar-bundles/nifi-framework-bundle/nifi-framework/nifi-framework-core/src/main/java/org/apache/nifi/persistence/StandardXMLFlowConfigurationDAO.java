@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,12 +28,12 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationException;
-import org.apache.nifi.controller.FlowSynchronizationException;
-import org.apache.nifi.controller.FlowSynchronizer;
-import org.apache.nifi.controller.StandardFlowSerializer;
 import org.apache.nifi.controller.StandardFlowSynchronizer;
 import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -43,14 +42,15 @@ import org.slf4j.LoggerFactory;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
-    public static final String CONFIGURATION_ARCHIVE_DIR_KEY = "nifi.flow.configuration.archive.dir";
-
     private final Path flowXmlPath;
     private final StringEncryptor encryptor;
+    private final FlowConfigurationArchiveManager archiveManager;
+    private final NiFiProperties nifiProperties;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
-    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor) throws IOException {
+    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties) throws IOException {
+        this.nifiProperties = nifiProperties;
         final File flowXmlFile = flowXml.toFile();
         if (!flowXmlFile.exists()) {
             // createDirectories would throw an exception if the directory exists but is a symbolic link
@@ -65,22 +65,53 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         this.flowXmlPath = flowXml;
         this.encryptor = encryptor;
+
+        this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, nifiProperties);
+    }
+
+    @Override
+    public boolean isFlowPresent() {
+        final File flowXmlFile = flowXmlPath.toFile();
+        return flowXmlFile.exists() && flowXmlFile.length() > 0;
     }
 
     @Override
     public synchronized void load(final FlowController controller, final DataFlow dataFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
 
-        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor);
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties);
         controller.synchronize(flowSynchronizer, dataFlow);
-        save(new ByteArrayInputStream(dataFlow.getFlow()));
+
+        if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
+            // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
+            // dataflow, we need to ensure that the flow is consistent across all nodes in the cluster and that upon restart
+            // of NiFi, the root group ID does not change. However, we don't always want to save it, because if the flow is
+            // not empty, then we can get into a bad situation, since the Processors, etc. don't have the appropriate "Scheduled
+            // State" yet (since they haven't yet been scheduled). So if there are components in the flow and we save it, we
+            // may end up saving the flow in such a way that all components are stopped.
+            // We save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
+            save(controller);
+        }
     }
 
     @Override
     public synchronized void load(final OutputStream os) throws IOException {
+        if (!isFlowPresent()) {
+            return;
+        }
+
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
                 final InputStream gzipIn = new GZIPInputStream(inStream)) {
             FileUtils.copy(gzipIn, os);
+        }
+    }
+
+    @Override
+    public void load(final OutputStream os, final boolean compressed) throws IOException {
+        if (compressed) {
+            Files.copy(flowXmlPath, os);
+        } else {
+            load(os);
         }
     }
 
@@ -140,15 +171,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         if (archive) {
             try {
-                final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
-                final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? configFile.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-                Files.createDirectories(archiveDir);
-
-                if (!Files.isDirectory(archiveDir)) {
-                    throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
-                }
-                final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + configFile.toFile().getName());
-                Files.copy(configFile, archiveFile);
+                archiveManager.archive();
             } catch (final Exception ex) {
                 LOG.warn("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {

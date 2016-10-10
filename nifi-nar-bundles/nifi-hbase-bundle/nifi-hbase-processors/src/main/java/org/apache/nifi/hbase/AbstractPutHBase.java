@@ -17,7 +17,16 @@
 package org.apache.nifi.hbase;
 
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hbase.put.PutFlowFile;
@@ -27,12 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for processors that put data to HBase.
@@ -58,6 +61,28 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .required(false) // not all sub-classes will require this
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    static final String STRING_ENCODING_VALUE = "String";
+    static final String BYTES_ENCODING_VALUE = "Bytes";
+    static final String BINARY_ENCODING_VALUE = "Binary";
+
+
+    protected static final AllowableValue ROW_ID_ENCODING_STRING = new AllowableValue(STRING_ENCODING_VALUE, STRING_ENCODING_VALUE,
+            "Stores the value of row id as a UTF-8 String.");
+    protected static final AllowableValue ROW_ID_ENCODING_BINARY = new AllowableValue(BINARY_ENCODING_VALUE, BINARY_ENCODING_VALUE,
+            "Stores the value of the rows id as a binary byte array. It expects that the row id is a binary formatted string.");
+
+    static final PropertyDescriptor ROW_ID_ENCODING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Row Identifier Encoding Strategy")
+            .description("Specifies the data type of Row ID used when inserting data into HBase. The default behavior is" +
+                    " to convert the row id to a UTF-8 byte array. Choosing Binary will convert a binary formatted string" +
+                    " to the correct byte[] representation. The Binary option should be used if you are using Binary row" +
+                    " keys in HBase")
+            .required(false) // not all sub-classes will require this
+            .expressionLanguageSupported(false)
+            .defaultValue(ROW_ID_ENCODING_STRING.getValue())
+            .allowableValues(ROW_ID_ENCODING_STRING,ROW_ID_ENCODING_BINARY)
             .build();
     protected static final PropertyDescriptor COLUMN_FAMILY = new PropertyDescriptor.Builder()
             .name("Column Family")
@@ -91,6 +116,13 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if it cannot be sent to HBase")
             .build();
 
+    protected HBaseClientService clientService;
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -111,7 +143,7 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             } else if (!putFlowFile.isValid()) {
                 if (StringUtils.isBlank(putFlowFile.getTableName())) {
                     getLogger().error("Missing table name for FlowFile {}; routing to failure", new Object[]{flowFile});
-                } else if (StringUtils.isBlank(putFlowFile.getRow())) {
+                } else if (null == putFlowFile.getRow()) {
                     getLogger().error("Missing row id for FlowFile {}; routing to failure", new Object[]{flowFile});
                 } else if (putFlowFile.getColumns() == null || putFlowFile.getColumns().isEmpty()) {
                     getLogger().error("No columns provided for FlowFile {}; routing to failure", new Object[]{flowFile});
@@ -134,11 +166,10 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
 
         final long start = System.nanoTime();
         final List<PutFlowFile> successes = new ArrayList<>();
-        final HBaseClientService hBaseClientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
 
         for (Map.Entry<String, List<PutFlowFile>> entry : tablePuts.entrySet()) {
             try {
-                hBaseClientService.put(entry.getKey(), entry.getValue());
+                clientService.put(entry.getKey(), entry.getValue());
                 successes.addAll(entry.getValue());
             } catch (Exception e) {
                 getLogger().error(e.getMessage(), e);
@@ -163,9 +194,19 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     }
 
     protected String getTransitUri(PutFlowFile putFlowFile) {
-        return "hbase://" + putFlowFile.getTableName() + "/" + putFlowFile.getRow();
+        return "hbase://" + putFlowFile.getTableName() + "/" + new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
     }
 
+    protected byte[] getRow(final String row, final String encoding) {
+        //check to see if we need to modify the rowKey before we pass it down to the PutFlowFile
+        byte[] rowKeyBytes = null;
+        if(BINARY_ENCODING_VALUE.contentEquals(encoding)){
+            rowKeyBytes = clientService.toBytesBinary(row);
+        }else{
+            rowKeyBytes = row.getBytes(StandardCharsets.UTF_8);
+        }
+        return rowKeyBytes;
+    }
     /**
      * Sub-classes provide the implementation to create a put from a FlowFile.
      *

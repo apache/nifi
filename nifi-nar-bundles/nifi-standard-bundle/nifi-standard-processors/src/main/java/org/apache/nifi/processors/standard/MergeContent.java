@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -85,7 +86,6 @@ import org.apache.nifi.util.FlowFilePackager;
 import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
-import org.apache.nifi.util.ObjectHolder;
 
 @SideEffectFree
 @TriggerWhenEmpty
@@ -557,7 +557,7 @@ public class MergeContent extends BinFiles {
             }
 
             FlowFile bundle = session.create(parentFlowFiles);
-            final ObjectHolder<String> bundleMimeTypeRef = new ObjectHolder<>(null);
+            final AtomicReference<String> bundleMimeTypeRef = new AtomicReference<>(null);
             bundle = session.write(bundle, new OutputStreamCallback() {
                 @Override
                 public void process(final OutputStream out) throws IOException {
@@ -884,8 +884,8 @@ public class MergeContent extends BinFiles {
         public FlowFile merge(ProcessContext context, final ProcessSession session, final List<FlowFileSessionWrapper> wrappers) {
 
             final Map<String, byte[]> metadata = new TreeMap<>();
-            final ObjectHolder<Schema> schema = new ObjectHolder<>(null);
-            final ObjectHolder<String> inputCodec = new ObjectHolder<>(null);
+            final AtomicReference<Schema> schema = new AtomicReference<>(null);
+            final AtomicReference<String> inputCodec = new AtomicReference<>(null);
             final DataFileWriter<GenericRecord> writer = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
 
             // we don't pass the parents to the #create method because the parents belong to different sessions

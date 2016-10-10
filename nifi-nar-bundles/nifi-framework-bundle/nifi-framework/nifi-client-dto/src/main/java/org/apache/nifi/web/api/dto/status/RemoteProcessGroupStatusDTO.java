@@ -17,14 +17,13 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import java.util.Date;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Date;
+import java.util.List;
 
 @XmlType(name = "remoteProcessGroupStatus")
 public class RemoteProcessGroupStatusDTO {
@@ -34,8 +33,6 @@ public class RemoteProcessGroupStatusDTO {
     private String targetUri;
     private String transmissionStatus;
     private Date statsLastRefreshed;
-
-    private List<String> authorizationIssues;
 
     private RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots;
@@ -74,16 +71,6 @@ public class RemoteProcessGroupStatusDTO {
 
     public void setTransmissionStatus(String transmissionStatus) {
         this.transmissionStatus = transmissionStatus;
-    }
-
-
-    @ApiModelProperty("Any remote authorization issues for the remote process group.")
-    public List<String> getAuthorizationIssues() {
-        return authorizationIssues;
-    }
-
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
-        this.authorizationIssues = authorizationIssues;
     }
 
     @ApiModelProperty("The URI of the target system.")

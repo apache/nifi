@@ -63,7 +63,7 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
         final SequenceFile.Reader reader;
 
         Set<FlowFile> flowFiles = new HashSet<>();
-        reader = new SequenceFile.Reader(fileSystem, file, configuration);
+        reader = new SequenceFile.Reader(configuration, Reader.file(fileSystem.makeQualified(file)));
         final Text key = new Text();
         final KeyValueWriterCallback callback = new KeyValueWriterCallback(reader);
         final String inputfileName = file.getName() + "." + System.nanoTime() + ".";

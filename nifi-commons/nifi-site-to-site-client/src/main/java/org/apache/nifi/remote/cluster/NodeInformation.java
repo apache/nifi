@@ -20,14 +20,16 @@ public class NodeInformation {
 
     private final String siteToSiteHostname;
     private final Integer siteToSitePort;
+    private final Integer siteToSiteHttpApiPort;
     private final int apiPort;
     private final boolean isSiteToSiteSecure;
     private final int totalFlowFiles;
 
-    public NodeInformation(final String siteToSiteHostname, final Integer siteToSitePort, final int apiPort,
-            final boolean isSiteToSiteSecure, final int totalFlowFiles) {
+    public NodeInformation(final String siteToSiteHostname, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort,
+            final int apiPort, final boolean isSiteToSiteSecure, final int totalFlowFiles) {
         this.siteToSiteHostname = siteToSiteHostname;
         this.siteToSitePort = siteToSitePort;
+        this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
         this.apiPort = apiPort;
         this.isSiteToSiteSecure = isSiteToSiteSecure;
         this.totalFlowFiles = totalFlowFiles;
@@ -43,6 +45,10 @@ public class NodeInformation {
 
     public Integer getSiteToSitePort() {
         return siteToSitePort;
+    }
+
+    public Integer getSiteToSiteHttpApiPort() {
+        return siteToSiteHttpApiPort;
     }
 
     public boolean isSiteToSiteSecure() {
@@ -77,6 +83,16 @@ public class NodeInformation {
         } else if (siteToSitePort != null && siteToSitePort.intValue() != other.siteToSitePort.intValue()) {
             return false;
         }
+
+        if (siteToSiteHttpApiPort == null && other.siteToSiteHttpApiPort != null) {
+            return false;
+        }
+        if (siteToSiteHttpApiPort != null && other.siteToSiteHttpApiPort == null) {
+            return false;
+        } else if (siteToSiteHttpApiPort != null && siteToSiteHttpApiPort.intValue() != other.siteToSiteHttpApiPort.intValue()) {
+            return false;
+        }
+
         if (apiPort != other.apiPort) {
             return false;
         }

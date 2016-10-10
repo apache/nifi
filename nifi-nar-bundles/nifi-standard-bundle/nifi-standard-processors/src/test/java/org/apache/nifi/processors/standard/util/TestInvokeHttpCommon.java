@@ -132,7 +132,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
 
         final List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
         assertEquals(2, provEvents.size());
@@ -185,7 +185,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -225,7 +225,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -266,8 +266,8 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
-        bundle1.assertAttributeEquals("mime.type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+        bundle1.assertAttributeEquals("mime.type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -311,7 +311,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "404");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "Not Found");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
 
@@ -349,7 +349,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("double", "1, 2");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -378,7 +378,7 @@ public abstract class TestInvokeHttpCommon {
         bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle.assertAttributeEquals("Foo", "Bar");
         bundle.assertAttributeEquals("double", "1, 2");
-        bundle.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
 
         // expected in response
         // status code, status message, all headers from server response --> ff attributes
@@ -389,7 +389,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("double", "1, 2");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -445,7 +445,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -547,7 +547,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
 
         final List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
         assertEquals(2, provEvents.size());
@@ -641,7 +641,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -683,7 +683,7 @@ public abstract class TestInvokeHttpCommon {
                 "<h2>HTTP ERROR: 401</h2>\n" +
                 "<p>Problem accessing /status/200. Reason:\n" +
                 "<pre>    Unauthorized</pre></p>\n" +
-                "<hr /><i><small>Powered by Jetty://</small></i>\n" +
+                "<hr /><a href=\"http://eclipse.org/jetty\">Powered by Jetty:// 9.3.9.v20160517</a><hr/>\n" +
                 "</body>\n" +
                 "</html>\n", response);
     }
@@ -752,6 +752,7 @@ public abstract class TestInvokeHttpCommon {
 
         createFlowFiles(runner);
 
+        //assertTrue(server.jetty.isRunning());
         runner.run();
         runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
@@ -885,7 +886,6 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain");
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
         Assert.assertEquals(expected1, actual1);
@@ -971,6 +971,26 @@ public abstract class TestInvokeHttpCommon {
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPostWithEmptyBodySet() throws Exception {
+        final String suppliedMimeType = "";
+        addHandler(new MutativeMethodHandler(MutativeMethod.POST, suppliedMimeType));
+
+        runner.setNonLoopConnection(false);
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "POST");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/post");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, "false");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
         runner.enqueue("Hello".getBytes(), attrs);
 
         runner.run(1);
@@ -1164,7 +1184,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("dynamicHeader","yes!");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     @Test
@@ -1279,7 +1299,7 @@ public abstract class TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "/status/200";
         Assert.assertEquals(expected1, actual1);
@@ -1385,10 +1405,20 @@ public abstract class TestInvokeHttpCommon {
             baseRequest.setHandled(true);
 
             if(method.name().equals(request.getMethod())) {
-                assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
+                if(this.expectedContentType.isEmpty()) {
+                    Assert.assertNull(request.getHeader("Content-Type"));
+                } else {
+                    assertEquals(this.expectedContentType,request.getHeader("Content-Type"));
+                }
+
                 final String body = request.getReader().readLine();
                 this.trackedHeaderValue = baseRequest.getHttpFields().get(headerToTrack);
-                assertEquals("Hello", body);
+
+                if(this.expectedContentType.isEmpty()) {
+                    Assert.assertNull(body);
+                } else {
+                    assertEquals("Hello", body);
+                }
             } else {
                 response.setStatus(404);
                 response.setContentType("text/plain");
@@ -1408,10 +1438,15 @@ public abstract class TestInvokeHttpCommon {
             final int status = Integer.valueOf(target.substring("/status".length() + 1));
             response.setStatus(status);
 
-            response.setContentType("text/plain");
-            response.setContentLength(target.length());
-
             if ("GET".equalsIgnoreCase(request.getMethod())) {
+                if (status == 304){
+                    // Status code 304 ("Not Modified") must not contain a message body
+                    return;
+                }
+
+                response.setContentType("text/plain");
+                response.setContentLength(target.length());
+
                 try (PrintWriter writer = response.getWriter()) {
                     writer.print(target);
                     writer.flush();

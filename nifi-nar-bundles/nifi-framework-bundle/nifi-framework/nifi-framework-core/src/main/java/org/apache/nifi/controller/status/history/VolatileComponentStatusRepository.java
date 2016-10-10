@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -33,6 +28,8 @@ import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
+
 public class VolatileComponentStatusRepository implements ComponentStatusRepository {
 
     public static final String NUM_DATA_POINTS_PROPERTY = "nifi.components.status.repository.buffer.size";
@@ -43,40 +40,15 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     private volatile long lastCaptureTime = 0L;
 
-    private static final List<MetricDescriptor<ProcessorStatus>> PROCESSOR_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<ConnectionStatus>> CONNECTION_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<ProcessGroupStatus>> PROCESS_GROUP_METRIC_DESCRIPTORS;
-    private static final List<MetricDescriptor<RemoteProcessGroupStatus>> REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS;
-
-    static {
-        final List<MetricDescriptor<ProcessorStatus>> procFields = new ArrayList<>();
-        for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
-            procFields.add(descriptor.getDescriptor());
-        }
-        PROCESSOR_METRIC_DESCRIPTORS = Collections.unmodifiableList(procFields);
-
-        final List<MetricDescriptor<ConnectionStatus>> connFields = new ArrayList<>();
-        for (final ConnectionStatusDescriptor descriptor : ConnectionStatusDescriptor.values()) {
-            connFields.add(descriptor.getDescriptor());
-        }
-        CONNECTION_METRIC_DESCRIPTORS = Collections.unmodifiableList(connFields);
-
-        final List<MetricDescriptor<ProcessGroupStatus>> groupFields = new ArrayList<>();
-        for (final ProcessGroupStatusDescriptor descriptor : ProcessGroupStatusDescriptor.values()) {
-            groupFields.add(descriptor.getDescriptor());
-        }
-        PROCESS_GROUP_METRIC_DESCRIPTORS = Collections.unmodifiableList(groupFields);
-
-        final List<MetricDescriptor<RemoteProcessGroupStatus>> remoteGroupFields = new ArrayList<>();
-        for (final RemoteProcessGroupStatusDescriptor descriptor : RemoteProcessGroupStatusDescriptor.values()) {
-            remoteGroupFields.add(descriptor.getDescriptor());
-        }
-        REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS = Collections.unmodifiableList(remoteGroupFields);
+    /**
+     * Default no args constructor for service loading only
+     */
+    public VolatileComponentStatusRepository(){
+        captures = null;
     }
 
-    public VolatileComponentStatusRepository() {
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final int numDataPoints = properties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
+    public VolatileComponentStatusRepository(final NiFiProperties nifiProperties) {
+        final int numDataPoints = nifiProperties.getIntegerProperty(NUM_DATA_POINTS_PROPERTY, DEFAULT_NUM_DATA_POINTS);
 
         captures = new RingBuffer<>(numDataPoints);
     }
@@ -102,7 +74,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", processorId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -113,9 +85,9 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Type", status.getType());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_TYPE, status.getType());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -135,7 +107,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getConnectionStatusHistory(final String connectionId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", connectionId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, connectionId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -146,10 +118,10 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Source Name", status.getSourceName());
-                history.setComponentDetail("Destination Name", status.getDestinationName());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_SOURCE_NAME, status.getSourceName());
+                history.setComponentDetail(COMPONENT_DETAIL_DESTINATION_NAME, status.getDestinationName());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -169,7 +141,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getProcessGroupStatusHistory(final String processGroupId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", processGroupId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, processGroupId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -180,7 +152,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Name", status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -200,7 +172,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", remoteGroupId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, remoteGroupId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -211,9 +183,9 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Uri", status.getTargetUri());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_URI, status.getTargetUri());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -248,27 +220,5 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         public ComponentStatusReport getStatusReport() {
             return statusReport;
         }
-    }
-
-
-
-    @Override
-    public List<MetricDescriptor<ConnectionStatus>> getConnectionMetricDescriptors() {
-        return CONNECTION_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<ProcessGroupStatus>> getProcessGroupMetricDescriptors() {
-        return PROCESS_GROUP_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<RemoteProcessGroupStatus>> getRemoteProcessGroupMetricDescriptors() {
-        return REMOTE_PROCESS_GROUP_METRIC_DESCRIPTORS;
-    }
-
-    @Override
-    public List<MetricDescriptor<ProcessorStatus>> getProcessorMetricDescriptors() {
-        return PROCESSOR_METRIC_DESCRIPTORS;
     }
 }

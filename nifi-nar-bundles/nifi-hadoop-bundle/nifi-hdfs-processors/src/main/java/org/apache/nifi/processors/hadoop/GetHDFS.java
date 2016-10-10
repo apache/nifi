@@ -64,7 +64,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
@@ -85,20 +85,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .description("All files retrieved from HDFS are transferred to this relationship")
     .build();
 
-    public static final Relationship REL_PASSTHROUGH = new Relationship.Builder()
-    .name("passthrough")
-    .description(
-            "If this processor has an input queue for some reason, then FlowFiles arriving on that input are transferred to this relationship")
-            .build();
-
     // properties
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-    .name(DIRECTORY_PROP_NAME)
-    .description("The HDFS directory from which files should be read")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build();
-
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
     .name("Recurse Subdirectories")
     .description("Indicates whether to pull files from subdirectories of the HDFS directory")
@@ -180,10 +167,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     private static final Set<Relationship> relationships;
 
     static {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_PASSTHROUGH);
-        relationships = Collections.unmodifiableSet(rels);
+        relationships = Collections.singleton(REL_SUCCESS);
     }
 
     protected ProcessorConfiguration processorConfig;
@@ -232,6 +216,16 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     .explanation(MIN_AGE.getName() + " cannot be greater than " + MAX_AGE.getName()).build());
         }
 
+        try {
+            new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+        } catch (Exception e) {
+            problems.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Directory")
+                    .explanation(e.getMessage())
+                    .build());
+        }
+
         return problems;
     }
 
@@ -241,7 +235,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
         final FileSystem fs = getFileSystem();
-        final Path dir = new Path(context.getProperty(DIRECTORY).getValue());
+        final Path dir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         if (!fs.exists(dir)) {
             throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
         }
@@ -258,13 +252,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final List<Path> files = new ArrayList<>(batchSize);
-        List<FlowFile> inputFlowFiles = session.get(10);
-        for (FlowFile ff : inputFlowFiles) {
-            session.transfer(ff, REL_PASSTHROUGH);
-        }
 
         // retrieve new file names from HDFS and place them into work queue
         if (filePathQueue.size() < MAX_WORKING_QUEUE_SIZE / 2) {
@@ -341,7 +330,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
-        final Path rootDir = new Path(context.getProperty(DIRECTORY).getValue());
+        final Path rootDir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
 
         final CompressionType compressionType = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
         final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
@@ -501,7 +490,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final private PathFilter pathFilter;
 
         ProcessorConfiguration(final ProcessContext context) {
-            configuredRootDirPath = new Path(context.getProperty(DIRECTORY).getValue());
+            configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
             ignoreDottedFiles = context.getProperty(IGNORE_DOTTED_FILES).asBoolean();
             final String fileFilterRegex = context.getProperty(FILE_FILTER_REGEX).getValue();
             fileFilterPattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);

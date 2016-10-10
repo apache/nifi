@@ -17,13 +17,14 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupPortDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupPortEntity")
-public class RemoteProcessGroupPortEntity extends Entity {
+public class RemoteProcessGroupPortEntity extends ComponentEntity {
 
     private RemoteProcessGroupPortDTO remoteProcessGroupPort;
 

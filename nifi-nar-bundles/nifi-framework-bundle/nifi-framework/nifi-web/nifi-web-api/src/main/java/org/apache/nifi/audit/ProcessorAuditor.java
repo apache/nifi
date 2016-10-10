@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.audit;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.Component;
+import org.apache.nifi.action.FlowChangeAction;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
+import org.apache.nifi.action.details.ActionDetails;
+import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.dao.ProcessorDAO;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,29 +49,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.Component;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
-import org.apache.nifi.action.details.ActionDetails;
-import org.apache.nifi.action.details.FlowChangeConfigureDetails;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.user.NiFiUser;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.dao.ProcessorDAO;
-import org.apache.commons.lang3.StringUtils;
-import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Audits processor creation/removal and configuration changes.
@@ -110,7 +110,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             + "args(processorDTO) && "
             + "target(processorDAO)")
     public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
         final ScheduledState scheduledState = processor.getScheduledState();
@@ -119,7 +119,6 @@ public class ProcessorAuditor extends NiFiAuditor {
         final ProcessorNode updatedProcessor = (ProcessorNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the processor action...
-        // get the updated verbose state
         processor = processorDAO.getProcessor(updatedProcessor.getIdentifier());
 
         // get the current user
@@ -132,7 +131,7 @@ public class ProcessorAuditor extends NiFiAuditor {
 
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create a processor action
             Date actionTimestamp = new Date();
@@ -177,7 +176,6 @@ public class ProcessorAuditor extends NiFiAuditor {
                     // create a configuration action
                     FlowChangeAction configurationAction = new FlowChangeAction();
                     configurationAction.setUserIdentity(user.getIdentity());
-                    configurationAction.setUserName(user.getUserName());
                     configurationAction.setOperation(operation);
                     configurationAction.setTimestamp(actionTimestamp);
                     configurationAction.setSourceId(processor.getIdentifier());
@@ -197,7 +195,6 @@ public class ProcessorAuditor extends NiFiAuditor {
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
                 processorAction.setUserIdentity(user.getIdentity());
-                processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(processor.getIdentifier());
                 processorAction.setSourceName(processor.getName());
@@ -288,12 +285,11 @@ public class ProcessorAuditor extends NiFiAuditor {
         if (user != null) {
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create the processor action for adding this processor
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(processor.getIdentifier());

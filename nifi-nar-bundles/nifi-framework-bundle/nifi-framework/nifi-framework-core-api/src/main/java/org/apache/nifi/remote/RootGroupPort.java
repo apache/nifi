@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.remote;
 
-import java.util.Map;
-import java.util.Set;
-
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.protocol.ServerProtocol;
+
+import java.util.Set;
 
 public interface RootGroupPort extends Port {
 
@@ -42,30 +42,41 @@ public interface RootGroupPort extends Port {
      * and returns a {@link PortAuthorizationResult} indicating why the user is
      * unauthorized if this assumption fails
      *
+     * {@link #checkUserAuthorization(NiFiUser)} should be used if applicable
+     * because NiFiUser has additional context such as chained user.
+     *
      * @param dn dn of user
      * @return result
      */
     PortAuthorizationResult checkUserAuthorization(String dn);
 
     /**
+     * Verifies that the specified user is authorized to interact with this port
+     * and returns a {@link PortAuthorizationResult} indicating why the user is
+     * unauthorized if this assumption fails
+     *
+     * @param user to authorize
+     * @return result
+     */
+    PortAuthorizationResult checkUserAuthorization(NiFiUser user);
+
+    /**
      * Receives data from the given stream
      *
      * @param peer peer
      * @param serverProtocol protocol
-     * @param requestHeaders headers
      *
      * @return the number of FlowFiles received
      * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
      * @throws org.apache.nifi.remote.exception.BadRequestException bre
      * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
-    int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+    int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
     /**
      * Transfers data to the given stream
      *
      * @param peer peer
-     * @param requestHeaders headers
      * @param serverProtocol protocol
      *
      * @return the number of FlowFiles transferred
@@ -73,6 +84,6 @@ public interface RootGroupPort extends Port {
      * @throws org.apache.nifi.remote.exception.BadRequestException bre
      * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
-    int transferFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
+    int transferFlowFiles(Peer peer, ServerProtocol serverProtocol) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
 }

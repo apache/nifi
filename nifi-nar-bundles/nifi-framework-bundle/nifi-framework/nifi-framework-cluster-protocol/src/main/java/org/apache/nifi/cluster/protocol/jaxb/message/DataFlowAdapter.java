@@ -18,31 +18,29 @@ package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
+import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
  */
-public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlow> {
+public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, DataFlow> {
 
     @Override
-    public AdaptedDataFlow marshal(final StandardDataFlow df) {
-
+    public AdaptedDataFlow marshal(final DataFlow df) {
         final AdaptedDataFlow aDf = new AdaptedDataFlow();
 
         if (df != null) {
             aDf.setFlow(df.getFlow());
-            aDf.setTemplates(df.getTemplates());
             aDf.setSnippets(df.getSnippets());
-            aDf.setAutoStartProcessors(df.isAutoStartProcessors());
+            aDf.setAuthorizerFingerprint(df.getAuthorizerFingerprint());
         }
 
         return aDf;
     }
 
     @Override
-    public StandardDataFlow unmarshal(final AdaptedDataFlow aDf) {
-        final StandardDataFlow dataFlow = new StandardDataFlow(aDf.getFlow(), aDf.getTemplates(), aDf.getSnippets());
-        dataFlow.setAutoStartProcessors(aDf.isAutoStartProcessors());
+    public DataFlow unmarshal(final AdaptedDataFlow aDf) {
+        final StandardDataFlow dataFlow = new StandardDataFlow(aDf.getFlow(), aDf.getSnippets(), aDf.getAuthorizerFingerprint());
         return dataFlow;
     }
 

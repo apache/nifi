@@ -340,7 +340,7 @@ public class QueryCassandraTest {
                 Session mockSession = mock(Session.class);
                 when(mockCluster.connect()).thenReturn(mockSession);
                 when(mockCluster.connect(anyString())).thenReturn(mockSession);
-                Configuration config = new Configuration();
+                Configuration config = Configuration.builder().build();
                 when(mockCluster.getConfiguration()).thenReturn(config);
                 ResultSetFuture future = mock(ResultSetFuture.class);
                 ResultSet rs = CassandraQueryTestUtil.createMockResultSet();

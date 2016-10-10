@@ -42,7 +42,7 @@ public class LocationUtil {
     static final Pattern LOCATION_PATTERN = Pattern.compile(LOCATION);
 
     /**
-     * One or more locations separated by a comma, exampple: lon,lat,lon,lat,lon,lat,lon,lat
+     * One or more locations separated by a comma, example: lon,lat,lon,lat,lon,lat,lon,lat
      */
     static final Pattern LOCATIONS_PATTERN = Pattern.compile("(?:" + LOCATION + ")(?:,\\s*" + LOCATION + ")*");
 

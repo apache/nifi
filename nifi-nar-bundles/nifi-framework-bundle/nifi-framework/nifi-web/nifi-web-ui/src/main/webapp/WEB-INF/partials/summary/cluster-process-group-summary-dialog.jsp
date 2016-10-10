@@ -15,11 +15,11 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="cluster-process-group-summary-dialog">
+<div id="cluster-process-group-summary-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="cluster-process-group-summary-header">
-            <div id="cluster-process-group-refresh-button" class="summary-refresh pointer" title="Refresh"></div>
-            <div id="cluster-process-group-summary-last-refreshed-container">
+            <button id="cluster-process-group-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+            <div id="cluster-process-group-summary-last-refreshed-container" class="last-refreshed-container">
                 Last updated:&nbsp;<span id="cluster-process-group-summary-last-refreshed"></span>
             </div>
             <div id="cluster-process-group-summary-loading-container" class="loading-container"></div>

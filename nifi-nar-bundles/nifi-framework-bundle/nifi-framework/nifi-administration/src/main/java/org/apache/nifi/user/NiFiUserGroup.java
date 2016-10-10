@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.user;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+
 import java.util.Set;
 
 /**

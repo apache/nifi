@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
@@ -53,7 +52,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.kite.AvroRecordConverter.AvroConversionException;
-import org.apache.nifi.util.LongHolder;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -63,6 +61,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({ "avro", "convert", "kite" })
 @CapabilityDescription("Convert records from one Avro schema to another, including support for flattening and simple type conversions")
@@ -70,7 +69,7 @@ import com.google.common.collect.Lists;
 @DynamicProperty(name = "Field name from input schema",
 value = "Field name for output schema",
 description = "Explicit mappings from input schema to output schema, which supports renaming fields and stepping into nested records on the input schema using notation like parent.id")
-public class ConvertAvroSchema extends AbstractKiteProcessor {
+public class ConvertAvroSchema extends AbstractKiteConvertProcessor {
 
     private static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
@@ -135,12 +134,12 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             String reason = null;
-            if (value.equals(DEFAULT_LOCALE_VALUE) == false) {
+            if (!value.equals(DEFAULT_LOCALE_VALUE)) {
                 try {
                     final Locale locale = LocaleUtils.toLocale(value);
                     if (locale == null) {
                         reason = "null locale returned";
-                    } else if (LocaleUtils.isAvailableLocale(locale) == false) {
+                    } else if (!LocaleUtils.isAvailableLocale(locale)) {
                         reason = "locale not available";
                     }
                 } catch (final IllegalArgumentException e) {
@@ -153,15 +152,19 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
 
     @VisibleForTesting
     static final PropertyDescriptor INPUT_SCHEMA = new PropertyDescriptor.Builder()
-            .name("Input Schema").description("Avro Schema of Input Flowfiles")
-            .addValidator(SCHEMA_VALIDATOR).expressionLanguageSupported(true)
-            .required(true).build();
+            .name("Input Schema")
+            .description("Avro Schema of Input Flowfiles.  This can be a URI (dataset, view, or resource) or literal JSON schema.")
+            .addValidator(SCHEMA_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
 
     @VisibleForTesting
     static final PropertyDescriptor OUTPUT_SCHEMA = new PropertyDescriptor.Builder()
             .name("Output Schema")
-            .description("Avro Schema of Output Flowfiles")
-            .addValidator(MAPPED_SCHEMA_VALIDATOR).expressionLanguageSupported(true)
+            .description("Avro Schema of Output Flowfiles.  This can be a URI (dataset, view, or resource) or literal JSON schema.")
+            .addValidator(MAPPED_SCHEMA_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true).build();
 
     @VisibleForTesting
@@ -176,7 +179,9 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
             .<PropertyDescriptor> builder()
             .add(INPUT_SCHEMA)
             .add(OUTPUT_SCHEMA)
-            .add(LOCALE).build();
+            .add(LOCALE)
+            .add(COMPRESSION_TYPE)
+            .build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet
             .<Relationship> builder().add(SUCCESS).add(FAILURE).build();
@@ -274,20 +279,20 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         }
         // Set locale
         final String localeProperty = context.getProperty(LOCALE).getValue();
-        final Locale locale = (localeProperty == DEFAULT_LOCALE_VALUE)?Locale.getDefault():LocaleUtils.toLocale(localeProperty);
+        final Locale locale = localeProperty.equals(DEFAULT_LOCALE_VALUE) ? Locale.getDefault() : LocaleUtils.toLocale(localeProperty);
         final AvroRecordConverter converter = new AvroRecordConverter(
                 inputSchema, outputSchema, fieldMapping, locale);
 
         final DataFileWriter<Record> writer = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(outputSchema, Record.class));
-        writer.setCodec(CodecFactory.snappyCodec());
+        writer.setCodec(getCodecFactory(context.getProperty(COMPRESSION_TYPE).getValue()));
 
         final DataFileWriter<Record> failureWriter = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(outputSchema, Record.class));
-        failureWriter.setCodec(CodecFactory.snappyCodec());
+        failureWriter.setCodec(getCodecFactory(context.getProperty(COMPRESSION_TYPE).getValue()));
 
         try {
-            final LongHolder written = new LongHolder(0L);
+            final AtomicLong written = new AtomicLong(0L);
             final FailureTracker failures = new FailureTracker();
 
             final List<Record> badRecords = Lists.newLinkedList();
@@ -372,6 +377,17 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         } catch (DatasetException e) {
             getLogger().error("Failed to read FlowFile", e);
             session.transfer(incomingAvro, FAILURE);
+        } finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                getLogger().warn("Unable to close writer ressource", e);
+            }
+            try {
+                failureWriter.close();
+            } catch (IOException e) {
+                getLogger().warn("Unable to close writer ressource", e);
+            }
         }
     }
 }

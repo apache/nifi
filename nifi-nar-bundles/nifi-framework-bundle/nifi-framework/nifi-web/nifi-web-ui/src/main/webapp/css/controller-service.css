@@ -29,60 +29,15 @@
     display: none;
 }
 
-div.controller-service-configuration-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
 #controller-service-configuration-advanced {
     display: none;
 }
 
-#controller-service-configuration-tabs {
-    background-color: transparent;
-    width: 778px;
-    height: 21px;
-    border-bottom: 3px solid #666;
-}
-
-#controller-service-configuration div.configuration-tab {
-    height: 320px;
-    overflow: auto;
-    padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
-    display: none;
+.controller-service-editable {
+    height: 32px;
 }
 
 /* controller-service settings */
-
-#controller-service-configuration div.settings-left {
-    float: left;
-    width: 330px;
-}
-
-#controller-service-configuration div.settings-right {
-    float: left;
-    width: 382px;
-}
-
-#controller-service-configuration div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#controller-service-configuration .setting-input {
-    font-size: 11px !important;
-}
-
-#controller-service-name {
-    width: 250px;
-    float: left;
-}
-
-div.availability-setting {
-    float: left;
-    width: 140px;
-}
 
 /*
     Service references
@@ -90,10 +45,8 @@ div.availability-setting {
 
 #controller-service-referencing-components {
     border: 0 solid #CCCCCC;
-    height: 280px;
     overflow: auto;
     padding: 2px;
-    width: 376px;
 }
 
 div.referencing-component-block {
@@ -120,10 +73,6 @@ ul.referencing-component-listing li {
     white-space: nowrap;
 }
 
-div.referencing-component-state {
-    margin-top: -2px;
-}
-
 div.referencing-component-bulletins {
     float: left;
     margin-left: 5px;
@@ -133,10 +82,16 @@ div.referencing-component-bulletins {
     display: none;
 }
 
+div.referencing-component-bulletins:before {
+    font-family: FontAwesome;
+    content: "\f24a";
+    font-size: 16px;
+    color: #004849;
+}
+
 div.service.expansion-button {
     float: left;
     margin-right: 4px;
-    margin-top: 2px;
     width: 10px;
     height: 10px;
 }
@@ -172,37 +127,12 @@ div.controller-service-canceling {
 */
 
 #controller-service-comments {
-    height: 250px;
-    width: 748px !important;
-    margin-top: 10px;
+    height: 100%;
 }
 
 /*
     Disable dialog
 */
-
-#disable-controller-service-dialog {
-    z-index: 1301;
-    display: none;
-    width: 800px;
-    height: 450px;
-    line-height: normal;
-}
-
-#disable-controller-service-dialog div.settings-left {
-    float: left;
-    width: 300px;
-}
-
-#disable-controller-service-dialog div.settings-right {
-    float: left;
-    width: 435px;
-}
-
-#disable-controller-service-dialog div.spacer {
-    float: left;
-    margin-right: 40px;
-}
 
 #disable-controller-service-name {
     float: left;
@@ -222,8 +152,6 @@ div.controller-service-canceling {
 #disable-controller-service-referencing-components {
     border: 0 solid #CCCCCC;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }
@@ -232,27 +160,8 @@ div.controller-service-canceling {
     Enable dialog
 */
 
-#enable-controller-service-dialog {
-    z-index: 1301;
-    display: none;
-    width: 800px;
-    height: 450px;
-    line-height: normal;
-}
-
-#enable-controller-service-dialog div.settings-left {
-    float: left;
-    width: 300px;
-}
-
-#enable-controller-service-dialog div.settings-right {
-    float: left;
-    width: 435px;
-}
-
-#enable-controller-service-dialog div.spacer {
-    float: left;
-    margin-right: 40px;
+#enable-controller-service-scope-container {
+    height: 48px;
 }
 
 #enable-controller-service-name {
@@ -273,15 +182,11 @@ div.controller-service-canceling {
 #enable-controller-service-scope {
     float: left;
     width: 225px;
-    height: 18px;
-    line-height: 18px;
 }
 
 #enable-controller-service-referencing-components {
     border: 0 solid #ccc;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }
@@ -301,4 +206,33 @@ div.disable-referencing-components, div.enable-referencing-components {
 
 #enable-controller-service-progress li, #disable-controller-service-progress li {
     line-height: 16px;
+}
+
+/*
+    New inline controller service dialog
+*/
+
+div.new-inline-controller-service-combo {    width: 50%;
+    margin-bottom: 10px;
+}
+
+div.new-inline-controller-service-tags {
+    height: 18px;
+    width: 340px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.new-inline-controller-service-description {
+    height: 115px;
+    overflow: auto;
+}
+
+div.new-inline-controller-service-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 0 8px 10px;
 }

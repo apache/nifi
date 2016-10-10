@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
@@ -36,7 +36,20 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>create-jar</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <argLine>-Xms512m -Xmx512m</argLine>
                     <forkCount>1</forkCount>
@@ -65,7 +78,7 @@
                                         <description>
                                             The Rest Api provides programmatic access to command and control a NiFi instance in real time. Start and 
                                             stop processors, monitor queues, query provenance data, and more. Each endpoint below includes a description,
-                                            definitions of the expected input and output, potential response codes, and the authorities required
+                                            definitions of the expected input and output, potential response codes, and the authorizations required
                                             to invoke each service.
                                         </description>
                                         <contact>
@@ -141,12 +154,12 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-cluster-web</artifactId>
-            <scope>provided</scope>
+            <artifactId>nifi-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
+            <artifactId>nifi-framework-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -195,6 +208,16 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-framework-authorization</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-authorizer</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -336,6 +359,11 @@
             <artifactId>spring-security-kerberos-web</artifactId>
             <version>1.0.1.RELEASE</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

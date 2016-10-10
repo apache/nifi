@@ -23,14 +23,14 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.remote.RootGroupPort;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.dao.PortDAO;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -204,7 +204,6 @@ public class PortAuditor extends NiFiAuditor {
                     // create the port action for updating the name
                     FlowChangeAction portAction = new FlowChangeAction();
                     portAction.setUserIdentity(user.getIdentity());
-                    portAction.setUserName(user.getUserName());
                     portAction.setOperation(Operation.Configure);
                     portAction.setTimestamp(timestamp);
                     portAction.setSourceId(updatedPort.getIdentifier());
@@ -224,7 +223,6 @@ public class PortAuditor extends NiFiAuditor {
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
                 processorAction.setUserIdentity(user.getIdentity());
-                processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(updatedPort.getIdentifier());
                 processorAction.setSourceName(updatedPort.getName());
@@ -321,7 +319,6 @@ public class PortAuditor extends NiFiAuditor {
             // create the port action for adding this processor
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(port.getIdentifier());

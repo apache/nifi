@@ -1,0 +1,12 @@
+{
+  "name": "nifi-jolt-transform-json-ui",
+  "dependencies": {
+    "angular-ui-codemirror": "^0.3.0",
+    "angular-ui-router": "^0.2.18"
+  },
+  "description": "Apache NiFi Jolt Transform JSON UI 3rd party client side resources.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/nifi"
+  }
+}

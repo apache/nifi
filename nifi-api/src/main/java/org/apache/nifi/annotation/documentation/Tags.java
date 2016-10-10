@@ -38,5 +38,5 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface Tags {
 
-    public String[] value();
+    String[] value();
 }

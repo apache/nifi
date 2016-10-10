@@ -44,7 +44,7 @@ import org.apache.nifi.distributed.cache.client.exception.DeserializationExcepti
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -155,7 +155,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         // cache key is computed from attribute 'CACHE_ENTRY_IDENTIFIER' with expression language support
         final String cacheKey = context.getProperty(CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();

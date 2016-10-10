@@ -22,7 +22,6 @@ public class FlowFileNode implements LineageNode {
 
     private final String flowFileUuid;
     private final long creationTime;
-    private String clusterNodeIdentifier;
 
     public FlowFileNode(final String flowFileUuid, final long flowFileCreationTime) {
         this.flowFileUuid = requireNonNull(flowFileUuid);
@@ -37,12 +36,6 @@ public class FlowFileNode implements LineageNode {
     @Override
     public long getTimestamp() {
         return creationTime;
-    }
-
-    @Deprecated
-    @Override
-    public String getClusterNodeIdentifier() {
-        return clusterNodeIdentifier;
     }
 
     @Override

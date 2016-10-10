@@ -41,6 +41,7 @@ public class LineageRequestDTO {
     private LineageRequestType lineageRequestType;
 
     private String uuid;
+    private String clusterNodeId;
 
     /**
      * @return event id that was used to generate this lineage
@@ -71,6 +72,18 @@ public class LineageRequestDTO {
 
     public void setLineageRequestType(LineageRequestType lineageRequestType) {
         this.lineageRequestType = lineageRequestType;
+    }
+
+    /**
+     * @return id of the node in the cluster where this lineage originated
+     */
+    @ApiModelProperty(value = "The id of the node where this lineage originated if clustered.")
+    public String getClusterNodeId() {
+        return clusterNodeId;
+    }
+
+    public void setClusterNodeId(String clusterNodeId) {
+        this.clusterNodeId = clusterNodeId;
     }
 
     /**

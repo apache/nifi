@@ -16,12 +16,10 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
-import org.apache.nifi.web.security.node.NodeAuthorizedUserFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
@@ -54,9 +52,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private static final Logger logger = LoggerFactory.getLogger(NiFiWebApiSecurityConfiguration.class);
 
     private NiFiProperties properties;
-    private KeyService keyService;
-
-    private NodeAuthorizedUserFilter nodeAuthorizedUserFilter;
 
     private X509AuthenticationFilter x509AuthenticationFilter;
     private X509CertificateExtractor certificateExtractor;
@@ -96,9 +91,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .sessionManagement()
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        // cluster authorized user
-        http.addFilterBefore(nodeAuthorizedUserFilterBean(), AnonymousAuthenticationFilter.class);
-
         // x509
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
 
@@ -125,17 +117,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .authenticationProvider(x509AuthenticationProvider)
                 .authenticationProvider(jwtAuthenticationProvider)
                 .authenticationProvider(otpAuthenticationProvider);
-    }
-
-    @Bean
-    public NodeAuthorizedUserFilter nodeAuthorizedUserFilterBean() throws Exception {
-        if (nodeAuthorizedUserFilter == null) {
-            nodeAuthorizedUserFilter = new NodeAuthorizedUserFilter();
-            nodeAuthorizedUserFilter.setProperties(properties);
-            nodeAuthorizedUserFilter.setCertificateExtractor(certificateExtractor);
-            nodeAuthorizedUserFilter.setCertificateIdentityProvider(certificateIdentityProvider);
-        }
-        return nodeAuthorizedUserFilter;
     }
 
     @Bean
@@ -174,14 +155,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     public NiFiAnonymousUserFilter anonymousFilterBean() throws Exception {
         if (anonymousAuthenticationFilter == null) {
             anonymousAuthenticationFilter = new NiFiAnonymousUserFilter();
-            anonymousAuthenticationFilter.setKeyService(keyService);
         }
         return anonymousAuthenticationFilter;
-    }
-
-    @Autowired
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
     }
 
     @Autowired

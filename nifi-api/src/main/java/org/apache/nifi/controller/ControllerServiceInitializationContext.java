@@ -17,9 +17,10 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 
-public interface ControllerServiceInitializationContext {
+public interface ControllerServiceInitializationContext extends KerberosContext {
 
     /**
      * @return the identifier associated with the {@link ControllerService} with

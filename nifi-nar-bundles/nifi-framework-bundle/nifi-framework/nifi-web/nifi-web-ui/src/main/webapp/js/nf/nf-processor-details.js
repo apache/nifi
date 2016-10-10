@@ -21,7 +21,7 @@ nf.ProcessorDetails = (function () {
 
     /**
      * Creates an option for the specified relationship name.
-     * 
+     *
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
@@ -45,33 +45,30 @@ nf.ProcessorDetails = (function () {
     return {
         /**
          * Initializes the processor details dialog.
-         * 
-         * @param {boolean} overlayBackground       Whether to overlay the background
          */
-        init: function (overlayBackground) {
-            overlayBackground = nf.Common.isDefinedAndNotNull(overlayBackground) ? overlayBackground : true;
-
+        init: function () {
             // initialize the properties tabs
             $('#processor-details-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
-                        name: 'Settings',
-                        tabContentId: 'details-standard-settings-tab-content'
-                    }, {
-                        name: 'Scheduling',
-                        tabContentId: 'details-scheduling-tab-content'
-                    }, {
-                        name: 'Properties',
-                        tabContentId: 'details-processor-properties-tab-content'
-                    }, {
-                        name: 'Comments',
-                        tabContentId: 'details-processor-comments-tab-content'
-                    }],
+                    name: 'Settings',
+                    tabContentId: 'details-standard-settings-tab-content'
+                }, {
+                    name: 'Scheduling',
+                    tabContentId: 'details-scheduling-tab-content'
+                }, {
+                    name: 'Properties',
+                    tabContentId: 'details-processor-properties-tab-content'
+                }, {
+                    name: 'Comments',
+                    tabContentId: 'details-processor-comments-tab-content'
+                }],
                 select: function () {
                     // remove all property detail dialogs
                     nf.UniversalCapture.removeAllPropertyDetailDialogs();
-                    
+
                     // resize the property grid in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#read-only-processor-properties').propertytable('resetTableSize');
@@ -88,7 +85,7 @@ nf.ProcessorDetails = (function () {
             // configure the processor details dialog
             $('#processor-details').modal({
                 headerText: 'Processor Details',
-                overlayBackground: overlayBackground,
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         // empty the relationship list
@@ -96,7 +93,7 @@ nf.ProcessorDetails = (function () {
 
                         // clear the property grid
                         $('#read-only-processor-properties').propertytable('clear');
-            
+
                         // clear the processor details
                         nf.Common.clearField('read-only-processor-id');
                         nf.Common.clearField('read-only-processor-type');
@@ -113,26 +110,22 @@ nf.ProcessorDetails = (function () {
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
-            
-            if (overlayBackground) {
-                $('#processor-details').draggable({
-                    containment: 'parent',
-                    handle: '.dialog-header'
-                });
-            }
 
             // initialize the properties
             $('#read-only-processor-properties').propertytable({
                 readOnly: true
             });
         },
-        
+
         /**
          * Shows the details for the specified processor.
-         * 
+         *
          * @argument {string} groupId       The group id
          * @argument {string} processorId   The processor id
          */
@@ -143,9 +136,9 @@ nf.ProcessorDetails = (function () {
                 url: '../nifi-api/processors/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.processor)) {
+                if (nf.Common.isDefinedAndNotNull(response.component)) {
                     // get the processor details
-                    var details = response.processor;
+                    var details = response.component;
 
                     // record the processor details
                     $('#processor-details').data('processorDetails', details);
@@ -199,7 +192,7 @@ nf.ProcessorDetails = (function () {
             // get the processor history
             var getProcessorHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/processors/' + encodeURIComponent(processorId),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
                 var processorHistory = response.componentHistory;
@@ -209,36 +202,47 @@ nf.ProcessorDetails = (function () {
             });
 
             // show the dialog once we have the processor and its history
-            $.when(getProcessor, getProcessorHistory).done(function (processorResponse, historyResponse) {
-                var processorResponse = processorResponse[0];
-                var processor = processorResponse.processor;
-                var historyResponse = historyResponse[0];
+            $.when(getProcessor, getProcessorHistory).done(function (processorResult, historyResult) {
+                var processorResponse = processorResult[0];
+                var processor = processorResponse.component;
+                var historyResponse = historyResult[0];
                 var history = historyResponse.componentHistory;
 
                 // load the properties
                 $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                // hide the dialog
-                                $('#processor-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            // hide the dialog
+                            $('#processor-details').modal('hide');
                         }
-                    }];
+                    }
+                }];
 
                 // determine if we should show the advanced button
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
                         handler: {
                             click: function () {
                                 // reset state and close the dialog manually to avoid hiding the faded background
                                 $('#processor-details').modal('hide');
 
                                 // show the custom ui
-                                nf.CustomUi.showCustomUi(processor.id, processor.config.customUiUrl, false);
+                                nf.CustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, false);
                             }
                         }
                     });
@@ -258,8 +262,8 @@ nf.ProcessorDetails = (function () {
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
-                        dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                        overlayBackground: false
+                        headerText: 'Error',
+                        dialogContent: nf.Common.escapeHtml(xhr.responseText)
                     });
                 } else {
                     nf.Common.handleAjaxError(xhr, status, error);

@@ -34,16 +34,23 @@ public class AsyncLineageSubmission implements ComputeLineageSubmission {
     private final LineageComputationType computationType;
     private final Long eventId;
     private final Collection<String> lineageFlowFileUuids;
+    private final String submitterId;
 
     private volatile boolean canceled = false;
 
     private final StandardLineageResult result;
 
-    public AsyncLineageSubmission(final LineageComputationType computationType, final Long eventId, final Collection<String> lineageFlowFileUuids, final int numSteps) {
+    public AsyncLineageSubmission(final LineageComputationType computationType, final Long eventId, final Collection<String> lineageFlowFileUuids, final int numSteps, final String submitterId) {
         this.computationType = computationType;
         this.eventId = eventId;
         this.lineageFlowFileUuids = lineageFlowFileUuids;
+        this.submitterId = submitterId;
         this.result = new StandardLineageResult(numSteps, lineageFlowFileUuids);
+    }
+
+    @Override
+    public String getSubmitterIdentity() {
+        return submitterId;
     }
 
     @Override

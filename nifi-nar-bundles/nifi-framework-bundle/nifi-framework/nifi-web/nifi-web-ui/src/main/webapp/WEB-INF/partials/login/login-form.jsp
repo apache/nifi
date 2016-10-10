@@ -18,15 +18,15 @@
 <div id="login-container" class="hidden">
     <div class="login-title">Log In</div>
     <div class="setting">
-        <div class="setting-name">Username</div>
+        <div class="setting-name">User</div>
         <div class="setting-field">
-            <input type="text" id="username"/>
+            <input type="text" placeholder="user" id="username"/>
         </div>
     </div>
     <div class="setting">
         <div class="setting-name">Password</div>
         <div class="setting-field">
-            <input type="password" id="password"/>
+            <input type="password" placeholder="password" id="password"/>
         </div>
     </div>
 </div>

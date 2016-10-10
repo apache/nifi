@@ -108,23 +108,6 @@ public class PBKDF2CipherProvider extends RandomIVPBECipherProvider {
      *
      * @param encryptionMethod the {@link EncryptionMethod}
      * @param password         the secret input
-     * @param keyLength        the desired key length in bits
-     * @param encryptMode      true for encrypt, false for decrypt
-     * @return the initialized cipher
-     * @throws Exception if there is a problem initializing the cipher
-     */
-    @Override
-    public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
-        return getCipher(encryptionMethod, password, new byte[0], new byte[0], keyLength, encryptMode);
-    }
-
-    /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
-     * The IV can be retrieved by the calling method using {@link Cipher#getIV()}.
-     *
-     * @param encryptionMethod the {@link EncryptionMethod}
-     * @param password         the secret input
      * @param salt             the salt
      * @param keyLength        the desired key length in bits
      * @param encryptMode      true for encrypt, false for decrypt

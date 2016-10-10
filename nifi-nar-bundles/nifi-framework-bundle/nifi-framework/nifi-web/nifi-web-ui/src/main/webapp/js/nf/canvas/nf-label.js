@@ -33,6 +33,13 @@ nf.Label = (function () {
 
     var labelMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -54,13 +61,13 @@ nf.Label = (function () {
      */
     var select = function () {
         return labelContainer.selectAll('g.label').data(labelMap.values(), function (d) {
-            return d.component.id;
+            return d.id;
         });
     };
 
     /**
      * Renders the labels in the specified selection.
-     * 
+     *
      * @param {selection} entered           The selection of labels to be rendered
      * @param {boolean} selected            Whether the label should be selected
      */
@@ -70,73 +77,47 @@ nf.Label = (function () {
         }
 
         var label = entered.append('g')
-                .attr({
-                    'id': function (d) {
-                        return 'id-' + d.component.id;
-                    },
-                    'class': 'label component'
-                })
-                .classed('selected', selected)
-                .call(position);
+            .attr({
+                'id': function (d) {
+                    return 'id-' + d.id;
+                },
+                'class': 'label component'
+            })
+            .classed('selected', selected)
+            .call(nf.CanvasUtils.position);
 
         // label border
         label.append('rect')
-                .attr({
-                    'class': 'border',
-                    'fill': 'transparent',
-                    'stroke-opacity': 0.8,
-                    'stroke-width': 1
-                });
+            .attr({
+                'class': 'border',
+                'fill': 'transparent',
+                'stroke': 'transparent'
+            });
 
         // label 
         label.append('rect')
-                .attr({
-                    'class': 'body',
-                    'fill-opacity': 0.8,
-                    'stroke-opacity': 0.8,
-                    'stroke-width': 0
-                });
+            .attr({
+                'class': 'body',
+                'filter': 'url(#component-drop-shadow)',
+                'stroke-width': 0
+            });
 
         // label value
         label.append('text')
-                .attr({
-                    'xml:space': 'preserve',
-                    'font-weight': 'bold',
-                    'fill': 'black',
-                    'class': 'label-value'
-                });
+            .attr({
+                'xml:space': 'preserve',
+                'font-weight': 'bold',
+                'fill': 'black',
+                'class': 'label-value'
+            });
 
         // always support selecting
         label.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
-
-        // only support dragging when appropriate
-        if (nf.Common.isDFM()) {
-            label.call(nf.Draggable.activate);
-        }
-
-        // call update to trigger some rendering
-        label.call(updateLabels);
-    };
-
-    /**
-     * Position the component accordingly.
-     * 
-     * @param {selection} updated
-     */
-    var position = function (updated) {
-        if (updated.empty()) {
-            return;
-        }
-
-        // update the processors positioning
-        updated.attr('transform', function (d) {
-            return 'translate(' + d.component.position.x + ', ' + d.component.position.y + ')';
-        });
     };
 
     /**
      * Updates the labels in the specified selection.
-     * 
+     *
      * @param {selection} updated               The labels to be updated
      */
     var updateLabels = function (updated) {
@@ -144,116 +125,105 @@ nf.Label = (function () {
             return;
         }
 
-        // reset the colors
-        var colors = d3.set();
-        colors.add(nf.Common.substringAfterLast(nf.Label.defaultColor(), '#'));
-
-        // determine all unique colors
-        labelMap.forEach(function (id, d) {
-            var color = d.component.style['background-color'];
-            if (nf.Common.isDefinedAndNotNull(color)) {
-                colors.add(nf.Common.substringAfterLast(color, '#'));
-            }
-        });
-        nf.Canvas.defineLabelColors(colors.values());
-
         // update the border using the configured color
         updated.select('rect.border')
-                .attr({
-                    'stroke': function (d) {
-                        var color = nf.Label.defaultColor();
-
-                        // use the specified color if appropriate
-                        if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                            color = d.component.style['background-color'];
-                        }
-
-                        return color;
-                    },
-                    'width': function (d) {
-                        return d.dimensions.width;
-                    },
-                    'height': function (d) {
-                        return d.dimensions.height;
-                    }
-                });
+            .attr({
+                'width': function (d) {
+                    return d.dimensions.width;
+                },
+                'height': function (d) {
+                    return d.dimensions.height;
+                }
+            })
+            .classed('unauthorized', function (d) {
+                return d.permissions.canRead === false;
+            });
 
         // update the body fill using the configured color
         updated.select('rect.body')
-                .attr({
-                    'fill': function (d) {
-                        var color = nf.Label.defaultColor();
+            .attr({
+                'width': function (d) {
+                    return d.dimensions.width;
+                },
+                'height': function (d) {
+                    return d.dimensions.height;
+                }
+            })
+            .style('fill', function (d) {
+                if (!d.permissions.canRead) {
+                    return null;
+                }
 
-                        // use the specified color if appropriate
-                        if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                            color = d.component.style['background-color'];
-                        }
+                var color = nf.Label.defaultColor();
 
-                        // get just the color code part
-                        color = nf.Common.substringAfterLast(color, '#');
+                // use the specified color if appropriate
+                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                    color = d.component.style['background-color'];
+                }
 
-                        return 'url(#label-background-' + color + ')';
-                    },
-                    'width': function (d) {
-                        return d.dimensions.width;
-                    },
-                    'height': function (d) {
-                        return d.dimensions.height;
-                    }
-                });
+                return color;
+            })
+            .classed('unauthorized', function (d) {
+                return d.permissions.canRead === false;
+            });
 
         // go through each label being updated
         updated.each(function (d) {
-            var updatedLabel = d3.select(this);
+            var label = d3.select(this);
+
+            // update the component behavior as appropriate
+            nf.CanvasUtils.editable(label);
 
             // update the label
-            var label = updatedLabel.select('text.label-value');
+            var labelText = label.select('text.label-value');
+            var labelPoint = label.selectAll('rect.labelpoint');
+            if (d.permissions.canRead) {
+                // udpate the font size
+                labelText.attr('font-size', function () {
+                    var fontSize = '12px';
 
-            // udpate the font size
-            label.attr('font-size', function () {
-                var fontSize = '12px';
+                    // use the specified color if appropriate
+                    if (nf.Common.isDefinedAndNotNull(d.component.style['font-size'])) {
+                        fontSize = d.component.style['font-size'];
+                    }
 
-                // use the specified color if appropriate
-                if (nf.Common.isDefinedAndNotNull(d.component.style['font-size'])) {
-                    fontSize = d.component.style['font-size'];
+                    return fontSize;
+                });
+
+                // remove the previous label value
+                labelText.selectAll('tspan').remove();
+
+                // parse the lines in this label
+                var lines = [];
+                if (nf.Common.isDefinedAndNotNull(d.component.label)) {
+                    lines = d.component.label.split('\n');
+                } else {
+                    lines.push('');
                 }
 
-                return fontSize;
-            });
-
-            // remove the previous label value
-            label.selectAll('tspan').remove();
-
-            // parse the lines in this label
-            var lines = [];
-            if (nf.Common.isDefinedAndNotNull(d.component.label)) {
-                lines = d.component.label.split('\n');
-            } else {
-                lines.push('');
-            }
-
-            // add label value
-            $.each(lines, function (i, line) {
-                label.append('tspan')
+                // add label value
+                $.each(lines, function (i, line) {
+                    labelText.append('tspan')
                         .attr('x', '0.4em')
                         .attr('dy', '1.2em')
                         .text(function () {
                             return line;
                         });
-            });
+                });
 
-            // -----------
-            // labelpoints
-            // -----------
 
-            if (nf.Common.isDFM()) {
-                var pointData = [
-                    {x: d.dimensions.width, y: d.dimensions.height}
-                ];
-                var points = updatedLabel.selectAll('rect.labelpoint').data(pointData);
+                // -----------
+                // labelpoints
+                // -----------
 
-                // create a point for the end
-                points.enter().append('rect')
+                if (d.permissions.canWrite) {
+                    var pointData = [
+                        {x: d.dimensions.width, y: d.dimensions.height}
+                    ];
+                    var points = labelPoint.data(pointData);
+
+                    // create a point for the end
+                    points.enter().append('rect')
                         .attr({
                             'class': 'labelpoint',
                             'width': 10,
@@ -261,20 +231,27 @@ nf.Label = (function () {
                         })
                         .call(labelPointDrag);
 
-                // update the midpoints
-                points.attr('transform', function (p) {
-                    return 'translate(' + (p.x - 10) + ', ' + (p.y - 10) + ')';
-                });
+                    // update the midpoints
+                    points.attr('transform', function (p) {
+                        return 'translate(' + (p.x - 10) + ', ' + (p.y - 10) + ')';
+                    });
 
-                // remove old items
-                points.exit().remove();
+                    // remove old items
+                    points.exit().remove();
+                }
+            } else {
+                // remove the previous label value
+                labelText.selectAll('tspan').remove();
+                
+                // remove the label points
+                labelPoint.remove()
             }
         });
     };
 
     /**
      * Removes the labels in the specified selection.
-     * 
+     *
      * @param {selection} removed               The labels to be removed
      */
     var removeLabels = function (removed) {
@@ -286,151 +263,197 @@ nf.Label = (function () {
             width: dimensions.width,
             height: dimensions.height
         },
-        
+
         /**
          * Initializes of the Processor handler.
          */
         init: function () {
             labelMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the label container
             labelContainer = d3.select('#canvas').append('g')
-                    .attr({
-                        'pointer-events': 'all',
-                        'class': 'labels'
-                    });
+                .attr({
+                    'pointer-events': 'all',
+                    'class': 'labels'
+                });
 
             // handle bend point drag events
             labelPointDrag = d3.behavior.drag()
-                    .on('dragstart', function () {
-                        // stop further propagation
-                        d3.event.sourceEvent.stopPropagation();
-                    })
-                    .on('drag', function () {
-                        var label = d3.select(this.parentNode);
-                        var labelData = label.datum();
+                .on('dragstart', function () {
+                    // stop further propagation
+                    d3.event.sourceEvent.stopPropagation();
+                })
+                .on('drag', function () {
+                    var label = d3.select(this.parentNode);
+                    var labelData = label.datum();
 
-                        // update the dimensions and ensure they are still within bounds
-                        labelData.dimensions.width = Math.max(MIN_WIDTH, d3.event.x);
-                        labelData.dimensions.height = Math.max(MIN_HEIGHT, d3.event.y);
+                    // update the dimensions and ensure they are still within bounds
+                    labelData.dimensions.width = Math.max(MIN_WIDTH, d3.event.x);
+                    labelData.dimensions.height = Math.max(MIN_HEIGHT, d3.event.y);
 
-                        // redraw this connection
-                        updateLabels(label);
-                    })
-                    .on('dragend', function () {
-                        var label = d3.select(this.parentNode);
-                        var labelData = label.datum();
+                    // redraw this connection
+                    updateLabels(label);
+                })
+                .on('dragend', function () {
+                    var label = d3.select(this.parentNode);
+                    var labelData = label.datum();
 
-                        // determine if the width has changed
-                        var different = false;
-                        if (nf.Common.isDefinedAndNotNull(labelData.component.width) || labelData.dimensions.width !== labelData.component.width) {
-                            different = true;
+                    // determine if the width has changed
+                    var different = false;
+                    if (nf.Common.isDefinedAndNotNull(labelData.component.width) || labelData.dimensions.width !== labelData.component.width) {
+                        different = true;
+                    }
+
+                    // determine if the height has changed
+                    if (!different && nf.Common.isDefinedAndNotNull(labelData.component.height) || labelData.dimensions.height !== labelData.component.height) {
+                        different = true;
+                    }
+
+                    // only save the updated bends if necessary
+                    if (different) {
+                        var labelEntity = {
+                            'revision': nf.Client.getRevision(labelData),
+                            'component': {
+                                'id': labelData.id,
+                                'width': labelData.dimensions.width,
+                                'height': labelData.dimensions.height
+                            }
                         }
 
-                        // determine if the height has changed
-                        if (!different && nf.Common.isDefinedAndNotNull(labelData.component.height) || labelData.dimensions.height !== labelData.component.height) {
-                            different = true;
-                        }
+                        $.ajax({
+                            type: 'PUT',
+                            url: labelData.uri,
+                            data: JSON.stringify(labelEntity),
+                            dataType: 'json',
+                            contentType: 'application/json'
+                        }).done(function (response) {
+                            // request was successful, update the entry
+                            nf.Label.set(response);
+                        }).fail(function () {
+                            // determine the previous width
+                            var width = dimensions.width;
+                            if (nf.Common.isDefinedAndNotNull(labelData.component.width)) {
+                                width = labelData.component.width;
+                            }
 
-                        // only save the updated bends if necessary
-                        if (different) {
-                            var revision = nf.Client.getRevision();
+                            // determine the previous height
+                            var height = dimensions.height;
+                            if (nf.Common.isDefinedAndNotNull(labelData.component.height)) {
+                                height = labelData.component.height;
+                            }
 
-                            $.ajax({
-                                type: 'PUT',
-                                url: labelData.component.uri,
-                                data: {
-                                    'version': revision.version,
-                                    'clientId': revision.clientId,
-                                    'width': labelData.dimensions.width,
-                                    'height': labelData.dimensions.height
-                                },
-                                dataType: 'json'
-                            }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
+                            // restore the previous dimensions
+                            labelData.dimensions = {
+                                width: width,
+                                height: height
+                            };
 
-                                // request was successful, update the entry
-                                nf.Label.set(response.label);
-                            }).fail(function () {
-                                // determine the previous width
-                                var width = dimensions.width;
-                                if (nf.Common.isDefinedAndNotNull(labelData.component.width)) {
-                                    width = labelData.component.width;
-                                }
+                            // refresh the label
+                            label.call(updateLabels);
+                        });
+                    }
 
-                                // determine the previous height
-                                var height = dimensions.height;
-                                if (nf.Common.isDefinedAndNotNull(labelData.component.height)) {
-                                    height = labelData.component.height;
-                                }
-
-                                // restore the previous dimensions
-                                labelData.dimensions = {
-                                    width: width,
-                                    height: height
-                                };
-
-                                // refresh the label
-                                label.call(updateLabels);
-                            });
-                        }
-
-                        // stop further propagation
-                        d3.event.sourceEvent.stopPropagation();
-                    });
+                    // stop further propagation
+                    d3.event.sourceEvent.stopPropagation();
+                });
         },
-        
+
         /**
-         * Populates the graph with the specified labels.
-         * 
-         * @argument {object | array} labels                    The labels to add
-         * @argument {boolean} selectAll                Whether or not to select the new contents
+         * Adds the specified label entity.
+         *
+         * @param labelEntities       The label
+         * @param options           Configuration options
          */
-        add: function (labels, selectAll) {
-            selectAll = nf.Common.isDefinedAndNotNull(selectAll) ? selectAll : false;
+        add: function (labelEntities, options) {
+            var selectAll = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            }
 
-            var add = function (label) {
-                // determine the width
-                var width = dimensions.width;
-                if (nf.Common.isDefinedAndNotNull(label.width)) {
-                    width = label.width;
-                }
+            // get the current time
+            var now = new Date().getTime();
 
-                // determine the height
-                var height = dimensions.height;
-                if (nf.Common.isDefinedAndNotNull(label.height)) {
-                    height = label.height;
-                }
+            var add = function (labelEntity) {
+                addedCache.set(labelEntity.id, now);
 
                 // add the label
-                labelMap.set(label.id, {
-                    type: 'Label',
-                    component: label,
-                    dimensions: {
-                        width: width,
-                        height: height
-                    }
-                });
+                labelMap.set(labelEntity.id, $.extend({
+                    type: 'Label'
+                }, labelEntity));
             };
 
             // determine how to handle the specified label status
-            if ($.isArray(labels)) {
-                $.each(labels, function (_, label) {
-                    add(label);
+            if ($.isArray(labelEntities)) {
+                $.each(labelEntities, function (_, labelEntity) {
+                    add(labelEntity);
                 });
-            } else {
-                add(labels);
+            } else if (nf.Common.isDefinedAndNotNull(labelEntities)) {
+                add(labelEntities);
+            }
+
+            // apply the selection and handle new labels
+            var selection = select();
+            selection.enter().call(renderLabels, selectAll);
+            selection.call(updateLabels);
+        },
+
+        /**
+         * Populates the graph with the specified labels.
+         *
+         * @argument {object | array} labelEntities     The labels to add
+         * @argument {object} options                   Configuration options
+         */
+        set: function (labelEntities, options) {
+            var selectAll = false;
+            var transition = false;
+            if (nf.Common.isDefinedAndNotNull(options)) {
+                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            }
+
+            var set = function (proposedLabelEntity) {
+                var currentLabelEntity = labelMap.get(proposedLabelEntity.id);
+
+                // set the processor if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentLabelEntity, proposedLabelEntity) && !removedCache.has(proposedLabelEntity.id)) {
+                    labelMap.set(proposedLabelEntity.id, $.extend({
+                        type: 'Label'
+                    }, proposedLabelEntity));
+                }
+            };
+
+            if ($.isArray(labelEntities)) {
+                $.each(labelMap.keys(), function (_, key) {
+                    var currentLabelEntity = labelMap.get(key);
+                    var isPresent = $.grep(labelEntities, function (proposedLabelEntity) {
+                        return proposedLabelEntity.id === currentLabelEntity.id;
+                    });
+
+                    // if the current label is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
+                        labelMap.remove(key);
+                    }
+                });
+                $.each(labelEntities, function (_, labelEntity) {
+                    set(labelEntity);
+                });
+            } else if (nf.Common.isDefinedAndNotNull(labelEntities)) {
+                set(labelEntities);
             }
 
             // apply the selection and handle all new labels
-            select().enter().call(renderLabels, selectAll);
+            var selection = select();
+            selection.enter().call(renderLabels, selectAll);
+            selection.call(updateLabels).call(nf.CanvasUtils.position, transition);
+            selection.exit().call(removeLabels);
         },
-        
+
         /**
          * If the label id is specified it is returned. If no label id
          * specified, all labels are returned.
-         * 
+         *
          * @param {string} id
          */
         get: function (id) {
@@ -440,11 +463,11 @@ nf.Label = (function () {
                 return labelMap.get(id);
             }
         },
-        
+
         /**
-         * If the label id is specified it is refresh according to the current 
+         * If the label id is specified it is refresh according to the current
          * state. If not label id is specified, all labels are refreshed.
-         * 
+         *
          * @param {string} id      Optional
          */
         refresh: function (id) {
@@ -454,116 +477,87 @@ nf.Label = (function () {
                 d3.selectAll('g.label').call(updateLabels);
             }
         },
-        
+
         /**
          * Reloads the label state from the server and refreshes the UI.
          * If the label is currently unknown, this function just returns.
-         * 
-         * @param {object} label The label to reload
+         *
+         * @param {string} id The label id
          */
-        reload: function (label) {
-            if (labelMap.has(label.id)) {
+        reload: function (id) {
+            if (labelMap.has(id)) {
+                var labelEntity = labelMap.get(id);
                 return $.ajax({
                     type: 'GET',
-                    url: label.uri,
+                    url: labelEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.Label.set(response.label);
+                    nf.Label.set(response);
                 });
             }
         },
-        
+
         /**
          * Positions the component.
-         * 
+         *
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(position);
-        },
-        
-        /**
-         * Sets the specified label(s). If the is an array, it 
-         * will set each label. If it is not an array, it will 
-         * attempt to set the specified label.
-         * 
-         * @param {object | array} labels
-         */
-        set: function (labels) {
-            var set = function (label) {
-                if (labelMap.has(label.id)) {
-                    // determine the width
-                    var width = dimensions.width;
-                    if (nf.Common.isDefinedAndNotNull(label.width)) {
-                        width = label.width;
-                    }
-
-                    // determine the height
-                    var height = dimensions.height;
-                    if (nf.Common.isDefinedAndNotNull(label.height)) {
-                        height = label.height;
-                    }
-
-                    // update the current entry
-                    var labelEntry = labelMap.get(label.id);
-                    labelEntry.component = label;
-                    labelEntry.dimensions = {
-                        width: width,
-                        height: height
-                    };
-
-                    // update the connection in the UI
-                    d3.select('#id-' + label.id).call(updateLabels);
-                }
-            };
-
-            // determine how to handle the specified label status
-            if ($.isArray(labels)) {
-                $.each(labels, function (_, label) {
-                    set(label);
-                });
-            } else {
-                set(labels);
-            }
+            d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
 
-        /**
-         * Returns the entity key when marshalling an entity of this type.
-         */
-        getEntityKey: function (d) {
-            return 'label';
-        },
-        
         /**
          * Removes the specified label.
-         * 
-         * @param {array|string} labels      The label id(s)
+         *
+         * @param {array|string} labelIds      The label id(s)
          */
-        remove: function (labels) {
-            if ($.isArray(labels)) {
-                $.each(labels, function (_, label) {
-                    labelMap.remove(label);
+        remove: function (labelIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(labelIds)) {
+                $.each(labelIds, function (_, labelId) {
+                    removedCache.set(labelId, now);
+                    labelMap.remove(labelId);
                 });
             } else {
-                labelMap.remove(labels);
+                removedCache.set(labelIds, now);
+                labelMap.remove(labelIds);
             }
 
             // apply the selection and handle all removed labels
             select().exit().call(removeLabels);
         },
-        
+
         /**
          * Removes all label.
          */
         removeAll: function () {
             nf.Label.remove(labelMap.keys());
         },
-        
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
+        },
+
         /**
          * Returns the default color that should be used when drawing a label.
          */
         defaultColor: function () {
-            return '#ffde93';
+            return '#fff7d7';
         }
     };
 }());

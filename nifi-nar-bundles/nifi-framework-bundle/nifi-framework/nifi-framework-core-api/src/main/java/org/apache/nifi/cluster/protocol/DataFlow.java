@@ -24,18 +24,14 @@ public interface DataFlow {
     public byte[] getFlow();
 
     /**
-     * @return the raw byte array of the templates
-     */
-    public byte[] getTemplates();
-
-    /**
      * @return the raw byte array of the snippets
      */
     public byte[] getSnippets();
 
     /**
-     * @return true if processors should be automatically started at application
-     * startup; false otherwise
+     * @return the raw byte array of the Authorizer's fingerprint,
+     *              null when not using a sub-class of AbstractPolicyBasedAuthorizer
      */
-    public boolean isAutoStartProcessors();
+    public byte[] getAuthorizerFingerprint();
+
 }

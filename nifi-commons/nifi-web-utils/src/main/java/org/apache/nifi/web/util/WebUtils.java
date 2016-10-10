@@ -16,37 +16,26 @@
  */
 package org.apache.nifi.web.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.config.DefaultClientConfig;
+import com.sun.jersey.api.json.JSONConfiguration;
+import com.sun.jersey.client.urlconnection.HTTPSProperties;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-
-import org.apache.nifi.security.util.CertificateUtils;
-
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.api.json.JSONConfiguration;
-import com.sun.jersey.client.urlconnection.HTTPSProperties;
 
 /**
  * Common utilities related to web development.
@@ -139,59 +128,4 @@ public final class WebUtils {
 
     }
 
-    /**
-     * Serializes the given object to hexadecimal. Serialization uses Java's
-     * native serialization mechanism, the ObjectOutputStream.
-     *
-     * @param obj an object
-     * @return the serialized object as hex
-     */
-    public static String serializeObjectToHex(final Serializable obj) {
-
-        final ByteArrayOutputStream serializedObj = new ByteArrayOutputStream();
-
-        // IOException can never be thrown because we are serializing to an in memory byte array
-        try {
-            final ObjectOutputStream oos = new ObjectOutputStream(serializedObj);
-            oos.writeObject(obj);
-            oos.close();
-        } catch (final IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-
-        logger.debug(String.format("Serialized object '%s' size: %d", obj, serializedObj.size()));
-
-        // hex encode the binary
-        return new String(Hex.encodeHex(serializedObj.toByteArray(), /* tolowercase */ true));
-    }
-
-    /**
-     * Deserializes a Java serialized, hex-encoded string into a Java object.
-     * This method is the inverse of the serializeObjectToHex method in this
-     * class.
-     *
-     * @param hexEncodedObject a string
-     * @return the object
-     * @throws ClassNotFoundException if the class could not be found
-     */
-    public static Serializable deserializeHexToObject(final String hexEncodedObject) throws ClassNotFoundException {
-
-        // decode the hex encoded object
-        byte[] serializedObj;
-        try {
-            serializedObj = Hex.decodeHex(hexEncodedObject.toCharArray());
-        } catch (final DecoderException de) {
-            throw new IllegalArgumentException(de);
-        }
-
-        // IOException can never be thrown because we are deserializing from an in memory byte array
-        try {
-            // deserialize bytes into object
-            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(serializedObj));
-            return (Serializable) ois.readObject();
-        } catch (final IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-
-    }
 }

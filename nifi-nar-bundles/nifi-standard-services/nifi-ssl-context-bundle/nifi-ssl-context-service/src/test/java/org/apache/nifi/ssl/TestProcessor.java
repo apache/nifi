@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import org.apache.nifi.ssl.SSLContextService;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 public class TestProcessor extends AbstractProcessor {
 
@@ -39,7 +37,7 @@ public class TestProcessor extends AbstractProcessor {
         propDescs.add(new PropertyDescriptor.Builder()
                 .name("SSL Context Svc ID")
                 .description("ID of SSL Context Svc")
-                .addValidator(StandardValidators.createControllerServiceExistsValidator(SSLContextService.class))
+                .identifiesControllerService(SSLContextService.class)
                 .required(true)
                 .build());
         return propDescs;

@@ -31,7 +31,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
- * This processor reads files in as text according to the specified character set and it outputs another text file according to the given characeter set. The character sets supported depend on the
+ * This processor reads files in as text according to the specified character set and it outputs another text file according to the given character set. The character sets supported depend on the
  * version of the JRE and is platform specific. In addition, the JVM can be expanded with additional character sets to support. More information on which character sets are supported can be found in
  * the JDK documentation under the docs directory in the following path: ....\technotes\guides\intl\encoding.doc.html</p>
  *
@@ -136,7 +136,7 @@ public class ConvertCharacterSet extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Charset inputCharset = Charset.forName(context.getProperty(INPUT_CHARSET).evaluateAttributeExpressions(flowFile).getValue());
         final Charset outputCharset = Charset.forName(context.getProperty(OUTPUT_CHARSET).evaluateAttributeExpressions(flowFile).getValue());

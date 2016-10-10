@@ -44,7 +44,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,8 +72,9 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "\"abc(def)?(g)\" we would add an attribute \"regex.1\" with a value of \"def\" if the \"def\" matched. If "
         + "the \"def\" did not match, no attribute named \"regex.1\" would be added but an attribute named \"regex.2\" "
         + "with a value of \"g\" will be added regardless."
-        + "The value of the property must be a valid Regular Expressions with one or more capturing groups.  "
-        + "If the Regular Expression matches more than once, only the first match will be used.  "
+        + "The value of the property must be a valid Regular Expressions with one or more capturing groups. "
+        + "If the Regular Expression matches more than once, only the first match will be used unless the property "
+        + "enabling repeating capture group is set to true. "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' "
         + "and no attributes will be applied to the FlowFile.")
@@ -118,7 +119,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor CASE_INSENSITIVE = new PropertyDescriptor.Builder()
             .name("Enable Case-insensitive Matching")
-            .description("Indicates that two characters match even if they are in a different case.  Can also be specified via the embeded flag (?i).")
+            .description("Indicates that two characters match even if they are in a different case.  Can also be specified via the embedded flag (?i).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -126,7 +127,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor COMMENTS = new PropertyDescriptor.Builder()
             .name("Permit Whitespace and Comments in Pattern")
-            .description("In this mode, whitespace is ignored, and embedded comments starting with # are ignored until the end of a line.  Can also be specified via the embeded flag (?x).")
+            .description("In this mode, whitespace is ignored, and embedded comments starting with # are ignored until the end of a line.  Can also be specified via the embedded flag (?x).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -134,7 +135,7 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor DOTALL = new PropertyDescriptor.Builder()
             .name("Enable DOTALL Mode")
-            .description("Indicates that the expression '.' should match any character, including a line terminator.  Can also be specified via the embeded flag (?s).")
+            .description("Indicates that the expression '.' should match any character, including a line terminator.  Can also be specified via the embedded flag (?s).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -151,7 +152,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor MULTILINE = new PropertyDescriptor.Builder()
             .name("Enable Multiline Mode")
             .description("Indicates that '^' and '$' should match just after and just before a line terminator or end of sequence, instead of "
-                    + "only the begining or end of the entire input.  Can also be specified via the embeded flag (?m).")
+                    + "only the beginning or end of the entire input.  Can also be specified via the embeded flag (?m).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -160,7 +161,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNICODE_CASE = new PropertyDescriptor.Builder()
             .name("Enable Unicode-aware Case Folding")
             .description("When used with 'Enable Case-insensitive Matching', matches in a manner consistent with the Unicode Standard.  Can also "
-                    + "be specified via the embeded flag (?u).")
+                    + "be specified via the embedded flag (?u).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -169,7 +170,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNICODE_CHARACTER_CLASS = new PropertyDescriptor.Builder()
             .name("Enable Unicode Predefined Character Classes")
             .description("Specifies conformance with the Unicode Technical Standard #18: Unicode Regular Expression Annex C: Compatibility "
-                    + "Properties.  Can also be specified via the embeded flag (?U).")
+                    + "Properties.  Can also be specified via the embedded flag (?U).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -178,7 +179,7 @@ public class ExtractText extends AbstractProcessor {
     public static final PropertyDescriptor UNIX_LINES = new PropertyDescriptor.Builder()
             .name("Enable Unix Lines Mode")
             .description("Indicates that only the '\n' line terminator is recognized in the behavior of '.', '^', and '$'.  Can also be specified "
-                    + "via the embeded flag (?d).")
+                    + "via the embedded flag (?d).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -191,6 +192,16 @@ public class ExtractText extends AbstractProcessor {
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
+            .build();
+
+    public static final PropertyDescriptor ENABLE_REPEATING_CAPTURE_GROUP = new PropertyDescriptor.Builder()
+            .name("extract-text-enable-repeating-capture-group")
+            .displayName("Enable repeating capture group")
+            .description("If set to true, every string matching the capture groups will be extracted. Otherwise, "
+                    + "if the Regular Expression matches more than once, only the first match will be extracted.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -229,6 +240,7 @@ public class ExtractText extends AbstractProcessor {
         props.add(UNICODE_CHARACTER_CLASS);
         props.add(UNIX_LINES);
         props.add(INCLUDE_CAPTURE_GROUP_ZERO);
+        props.add(ENABLE_REPEATING_CAPTURE_GROUP);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -285,7 +297,7 @@ public class ExtractText extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final int maxCaptureGroupLength = context.getProperty(MAX_CAPTURE_GROUP_LENGTH).asInteger();
 
@@ -320,21 +332,27 @@ public class ExtractText extends AbstractProcessor {
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
 
             final Matcher matcher = entry.getValue().matcher(contentString);
+            int j = 0;
 
-            if (matcher.find()) {
+            while (matcher.find()) {
                 final String baseKey = entry.getKey();
-                for (int i = startGroupIdx; i <= matcher.groupCount(); i++) {
-                    final String key = new StringBuilder(baseKey).append(".").append(i).toString();
+                int start = j == 0 ? startGroupIdx : 1;
+                for (int i = start; i <= matcher.groupCount(); i++) {
+                    final String key = new StringBuilder(baseKey).append(".").append(i+j).toString();
                     String value = matcher.group(i);
-                    if (value != null) {
+                    if (value != null && !value.isEmpty()) {
                         if (value.length() > maxCaptureGroupLength) {
                             value = value.substring(0, maxCaptureGroupLength);
                         }
                         regexResults.put(key, value);
-                        if (i == 1) {
+                        if (i == 1 && j == 0) {
                             regexResults.put(baseKey, value);
                         }
                     }
+                }
+                j += matcher.groupCount();
+                if(!context.getProperty(ENABLE_REPEATING_CAPTURE_GROUP).asBoolean()) {
+                    break;
                 }
             }
         }

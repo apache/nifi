@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.web.util;
 
+
+
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,11 +27,17 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -43,6 +52,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.util.ComponentIdGenerator;
+import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -51,6 +63,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -58,14 +71,24 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Template utilities.
  */
 public final class SnippetUtils {
 
+    private static final Logger logger = LoggerFactory.getLogger(SnippetUtils.class);
+
+    private static final SecureRandom randomGenerator = new SecureRandom();
+
     private FlowController flowController;
     private DtoFactory dtoFactory;
+    private AccessPolicyDAO accessPolicyDAO;
+
 
     /**
      * Populates the specified snippet and returns the details.
@@ -75,8 +98,9 @@ public final class SnippetUtils {
      * @param includeControllerServices whether or not to include controller services in the flow snippet dto
      * @return snippet
      */
-    public FlowSnippetDTO populateFlowSnippet(Snippet snippet, boolean recurse, boolean includeControllerServices) {
-        final FlowSnippetDTO snippetDto = new FlowSnippetDTO();
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
+        final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
         final ProcessGroup processGroup = flowController.getGroup(groupId);
 
@@ -85,214 +109,192 @@ public final class SnippetUtils {
             throw new IllegalStateException("The parent process group for this snippet could not be found.");
         }
 
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
+
         // add any processors
+        final Set<ProcessorDTO> processors = new LinkedHashSet<>();
         if (!snippet.getProcessors().isEmpty()) {
-            final Set<ProcessorDTO> processors = new LinkedHashSet<>();
-            for (String processorId : snippet.getProcessors()) {
+            for (final String processorId : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = processGroup.getProcessor(processorId);
                 if (processor == null) {
                     throw new IllegalStateException("A processor in this snippet could not be found.");
                 }
                 processors.add(dtoFactory.createProcessorDto(processor));
+
+                if (includeControllerServices) {
+                    controllerServices.addAll(getControllerServices(processor.getProperties()));
+                }
             }
-            snippetDto.setProcessors(processors);
         }
 
         // add any connections
+        final Set<ConnectionDTO> connections = new LinkedHashSet<>();
         if (!snippet.getConnections().isEmpty()) {
-            final Set<ConnectionDTO> connections = new LinkedHashSet<>();
-            for (String connectionId : snippet.getConnections()) {
+            for (final String connectionId : snippet.getConnections().keySet()) {
                 final Connection connection = processGroup.getConnection(connectionId);
                 if (connection == null) {
                     throw new IllegalStateException("A connection in this snippet could not be found.");
                 }
                 connections.add(dtoFactory.createConnectionDto(connection));
             }
-            snippetDto.setConnections(connections);
         }
 
         // add any funnels
+        final Set<FunnelDTO> funnels = new LinkedHashSet<>();
         if (!snippet.getFunnels().isEmpty()) {
-            final Set<FunnelDTO> funnels = new LinkedHashSet<>();
-            for (String funnelId : snippet.getFunnels()) {
+            for (final String funnelId : snippet.getFunnels().keySet()) {
                 final Funnel funnel = processGroup.getFunnel(funnelId);
                 if (funnel == null) {
                     throw new IllegalStateException("A funnel in this snippet could not be found.");
                 }
                 funnels.add(dtoFactory.createFunnelDto(funnel));
             }
-            snippetDto.setFunnels(funnels);
         }
 
         // add any input ports
+        final Set<PortDTO> inputPorts = new LinkedHashSet<>();
         if (!snippet.getInputPorts().isEmpty()) {
-            final Set<PortDTO> inputPorts = new LinkedHashSet<>();
-            for (String inputPortId : snippet.getInputPorts()) {
+            for (final String inputPortId : snippet.getInputPorts().keySet()) {
                 final Port inputPort = processGroup.getInputPort(inputPortId);
                 if (inputPort == null) {
                     throw new IllegalStateException("An input port in this snippet could not be found.");
                 }
                 inputPorts.add(dtoFactory.createPortDto(inputPort));
             }
-            snippetDto.setInputPorts(inputPorts);
         }
 
         // add any labels
+        final Set<LabelDTO> labels = new LinkedHashSet<>();
         if (!snippet.getLabels().isEmpty()) {
-            final Set<LabelDTO> labels = new LinkedHashSet<>();
-            for (String labelId : snippet.getLabels()) {
+            for (final String labelId : snippet.getLabels().keySet()) {
                 final Label label = processGroup.getLabel(labelId);
                 if (label == null) {
                     throw new IllegalStateException("A label in this snippet could not be found.");
                 }
                 labels.add(dtoFactory.createLabelDto(label));
             }
-            snippetDto.setLabels(labels);
         }
 
         // add any output ports
+        final Set<PortDTO> outputPorts = new LinkedHashSet<>();
         if (!snippet.getOutputPorts().isEmpty()) {
-            final Set<PortDTO> outputPorts = new LinkedHashSet<>();
-            for (String outputPortId : snippet.getOutputPorts()) {
+            for (final String outputPortId : snippet.getOutputPorts().keySet()) {
                 final Port outputPort = processGroup.getOutputPort(outputPortId);
                 if (outputPort == null) {
                     throw new IllegalStateException("An output port in this snippet could not be found.");
                 }
                 outputPorts.add(dtoFactory.createPortDto(outputPort));
             }
-            snippetDto.setOutputPorts(outputPorts);
         }
 
         // add any process groups
+        final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
         if (!snippet.getProcessGroups().isEmpty()) {
-            final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
-            for (String childGroupId : snippet.getProcessGroups()) {
+            for (final String childGroupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
                     throw new IllegalStateException("A process group in this snippet could not be found.");
                 }
-                processGroups.add(dtoFactory.createProcessGroupDto(childGroup, recurse));
+
+                final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
+                processGroups.add(childGroupDto);
+
+                addControllerServices(childGroup, childGroupDto);
             }
-            snippetDto.setProcessGroups(processGroups);
         }
 
         // add any remote process groups
+        final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
         if (!snippet.getRemoteProcessGroups().isEmpty()) {
-            final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
-            for (String remoteProcessGroupId : snippet.getRemoteProcessGroups()) {
+            for (final String remoteProcessGroupId : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup remoteProcessGroup = processGroup.getRemoteProcessGroup(remoteProcessGroupId);
                 if (remoteProcessGroup == null) {
                     throw new IllegalStateException("A remote process group in this snippet could not be found.");
                 }
                 remoteProcessGroups.add(dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
             }
-            snippetDto.setRemoteProcessGroups(remoteProcessGroups);
         }
 
-        if (includeControllerServices) {
-            Set<ControllerServiceDTO> controllerServices = snippetDto.getControllerServices();
-            if (controllerServices == null) {
-                controllerServices = new HashSet<>();
-                snippetDto.setControllerServices(controllerServices);
-            }
+        // Normalize the coordinates based on the locations of the other components
+        final List<? extends ComponentDTO> components = new ArrayList<>();
+        components.addAll((Set) processors);
+        components.addAll((Set) connections);
+        components.addAll((Set) funnels);
+        components.addAll((Set) inputPorts);
+        components.addAll((Set) labels);
+        components.addAll((Set) outputPorts);
+        components.addAll((Set) processGroups);
+        components.addAll((Set) remoteProcessGroups);
+        normalizeCoordinates(components);
 
-            addControllerServicesToSnippet(snippetDto, controllerServices);
-        }
+        snippetDto.setProcessors(processors);
+        snippetDto.setConnections(connections);
+        snippetDto.setFunnels(funnels);
+        snippetDto.setInputPorts(inputPorts);
+        snippetDto.setLabels(labels);
+        snippetDto.setOutputPorts(outputPorts);
+        snippetDto.setProcessGroups(processGroups);
+        snippetDto.setRemoteProcessGroups(remoteProcessGroups);
+
+        snippetDto.setControllerServices(controllerServices);
 
         return snippetDto;
     }
 
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippetDto, final Set<ControllerServiceDTO> destinationSet) {
-        final Set<ProcessorDTO> processors = snippetDto.getProcessors();
-        if (processors != null) {
-            for (final ProcessorDTO processorDto : processors) {
-                addControllerServicesToSnippet(snippetDto, processorDto, destinationSet);
-            }
-        }
-
-        final Set<ProcessGroupDTO> childGroups = snippetDto.getProcessGroups();
-        if (childGroups != null) {
-            for (final ProcessGroupDTO processGroupDto : childGroups) {
-                final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
-                if (childGroupDto != null) {
-                    addControllerServicesToSnippet(childGroupDto, destinationSet);
-                }
-            }
-        }
-    }
-
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ProcessorDTO processorDto, final Set<ControllerServiceDTO> destinationSet) {
-        final ProcessorConfigDTO configDto = processorDto.getConfig();
-        if (configDto == null) {
+    private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto) {
+        final FlowSnippetDTO contents = dto.getContents();
+        if (contents == null) {
             return;
         }
 
-        final Map<String, PropertyDescriptorDTO> descriptors = configDto.getDescriptors();
-        final Map<String, String> properties = configDto.getProperties();
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
-        if (properties != null && descriptors != null) {
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                final String propName = entry.getKey();
-                final String propValue = entry.getValue();
-                if (propValue == null) {
-                    continue;
-                }
+        for (final ProcessorNode procNode : group.getProcessors()) {
+            final Set<ControllerServiceDTO> servicesForProcessor = getControllerServices(procNode.getProperties());
+            controllerServices.addAll(servicesForProcessor);
+        }
 
-                final PropertyDescriptorDTO propertyDescriptorDto = descriptors.get(propName);
-                if (propertyDescriptorDto != null && propertyDescriptorDto.getIdentifiesControllerService() != null) {
-                    final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(propValue);
+        contents.setControllerServices(controllerServices);
+
+        // Map child process group ID to the child process group for easy lookup
+        final Map<String, ProcessGroupDTO> childGroupMap = contents.getProcessGroups().stream()
+            .collect(Collectors.toMap(childGroupDto -> childGroupDto.getId(), childGroupDto -> childGroupDto));
+
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final ProcessGroupDTO childDto = childGroupMap.get(childGroup.getIdentifier());
+            if (childDto == null) {
+                continue;
+            }
+
+            addControllerServices(childGroup, childDto);
+        }
+    }
+
+    private Set<ControllerServiceDTO> getControllerServices(final Map<PropertyDescriptor, String> componentProperties) {
+        final Set<ControllerServiceDTO> serviceDtos = new HashSet<>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : componentProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String controllerServiceId = entry.getValue();
+                if (controllerServiceId != null) {
+                    final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(controllerServiceId);
                     if (serviceNode != null) {
-                        addControllerServicesToSnippet(snippet, serviceNode, destinationSet);
+                        serviceDtos.add(dtoFactory.createControllerServiceDto(serviceNode));
+
+                        final Set<ControllerServiceDTO> recursiveRefs = getControllerServices(serviceNode.getProperties());
+                        serviceDtos.addAll(recursiveRefs);
                     }
                 }
             }
         }
+
+        return serviceDtos;
     }
 
-    private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ControllerServiceNode serviceNode, final Set<ControllerServiceDTO> destinationSet) {
-        if (isServicePresent(serviceNode.getIdentifier(), snippet.getControllerServices())) {
-            return;
-        }
 
-        final ControllerServiceDTO serviceNodeDto = dtoFactory.createControllerServiceDto(serviceNode);
-        destinationSet.add(serviceNodeDto);
-
-        for (final Map.Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            final String propertyValue = entry.getValue();
-
-            if (descriptor.getControllerServiceDefinition() != null && propertyValue != null) {
-                final ControllerServiceNode referencedNode = flowController.getControllerServiceNode(propertyValue);
-                if (referencedNode == null) {
-                    throw new IllegalStateException("Controller Service with ID " + propertyValue + " is referenced in template but cannot be found");
-                }
-
-                final String referencedNodeId = referencedNode.getIdentifier();
-
-                final boolean alreadyPresent = isServicePresent(referencedNodeId, snippet.getControllerServices());
-                if (!alreadyPresent) {
-                    addControllerServicesToSnippet(snippet, referencedNode, destinationSet);
-                }
-            }
-        }
-    }
-
-    private boolean isServicePresent(final String serviceId, final Collection<ControllerServiceDTO> services) {
-        if (services == null) {
-            return false;
-        }
-
-        for (final ControllerServiceDTO existingService : services) {
-            if (serviceId.equals(existingService.getId())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group) {
-        final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null);
+    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed, boolean isCopy) {
+        final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);
         resolveNameConflicts(snippetCopy, group);
         return snippetCopy;
     }
@@ -347,24 +349,35 @@ public final class SnippetUtils {
         }
     }
 
-    private FlowSnippetDTO copyContentsForGroup(final FlowSnippetDTO snippetContents, final String groupId, final Map<String, ConnectableDTO> parentConnectableMap, Map<String, String> serviceIdMap) {
-        final FlowSnippetDTO snippetContentsCopy = new FlowSnippetDTO();
+    private FlowSnippetDTO copyContentsForGroup(final FlowSnippetDTO snippetContents, final String groupId, final Map<String, ConnectableDTO> parentConnectableMap,
+                                                Map<String, String> serviceIdMap, final String idGenerationSeed, boolean isCopy) {
 
-        //
-        // Copy the Controller Services
-        //
-        if (serviceIdMap == null) {
-            serviceIdMap = new HashMap<>();
+        final FlowSnippetDTO snippetContentsCopy = new FlowSnippetDTO();
+        try {
+            //
+            // Copy the Controller Services
+            //
+            if (serviceIdMap == null) {
+                serviceIdMap = new HashMap<>();
+            }
+
             final Set<ControllerServiceDTO> services = new HashSet<>();
             if (snippetContents.getControllerServices() != null) {
                 for (final ControllerServiceDTO serviceDTO : snippetContents.getControllerServices()) {
                     final ControllerServiceDTO service = dtoFactory.copy(serviceDTO);
-                    service.setId(generateId(serviceDTO.getId()));
+                    service.setId(generateId(serviceDTO.getId(), idGenerationSeed, isCopy));
                     service.setState(ControllerServiceState.DISABLED.name());
                     services.add(service);
 
                     // Map old service ID to new service ID so that we can make sure that we reference the new ones.
                     serviceIdMap.put(serviceDTO.getId(), service.getId());
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.ControllerService, serviceDTO.getId(), serviceDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.ControllerService, service.getId(), service.getName()), idGenerationSeed);
+                    }
                 }
             }
 
@@ -387,168 +400,353 @@ public final class SnippetUtils {
                 }
             }
             snippetContentsCopy.setControllerServices(services);
-        }
 
-        //
-        // Copy the labels
-        //
-        final Set<LabelDTO> labels = new HashSet<>();
-        if (snippetContents.getLabels() != null) {
-            for (final LabelDTO labelDTO : snippetContents.getLabels()) {
-                final LabelDTO label = dtoFactory.copy(labelDTO);
-                label.setId(generateId(labelDTO.getId()));
-                label.setParentGroupId(groupId);
-                labels.add(label);
-            }
-        }
-        snippetContentsCopy.setLabels(labels);
+            //
+            // Copy the labels
+            //
+            final Set<LabelDTO> labels = new HashSet<>();
+            if (snippetContents.getLabels() != null) {
+                for (final LabelDTO labelDTO : snippetContents.getLabels()) {
+                    final LabelDTO label = dtoFactory.copy(labelDTO);
+                    label.setId(generateId(labelDTO.getId(), idGenerationSeed, isCopy));
+                    label.setParentGroupId(groupId);
+                    labels.add(label);
 
-        //
-        // Copy connectable components
-        //
-        // maps a group ID-ID of a Connectable in the template to the new instance
-        final Map<String, ConnectableDTO> connectableMap = new HashMap<>();
-
-        //
-        // Copy the funnels
-        //
-        final Set<FunnelDTO> funnels = new HashSet<>();
-        if (snippetContents.getFunnels() != null) {
-            for (final FunnelDTO funnelDTO : snippetContents.getFunnels()) {
-                final FunnelDTO cp = dtoFactory.copy(funnelDTO);
-                cp.setId(generateId(funnelDTO.getId()));
-                cp.setParentGroupId(groupId);
-                funnels.add(cp);
-
-                connectableMap.put(funnelDTO.getParentGroupId() + "-" + funnelDTO.getId(), dtoFactory.createConnectableDto(cp));
-            }
-        }
-        snippetContentsCopy.setFunnels(funnels);
-
-        final Set<PortDTO> inputPorts = new HashSet<>();
-        if (snippetContents.getInputPorts() != null) {
-            for (final PortDTO portDTO : snippetContents.getInputPorts()) {
-                final PortDTO cp = dtoFactory.copy(portDTO);
-                cp.setId(generateId(portDTO.getId()));
-                cp.setParentGroupId(groupId);
-                cp.setState(ScheduledState.STOPPED.toString());
-                inputPorts.add(cp);
-
-                final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.INPUT_PORT);
-                connectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
-                if (parentConnectableMap != null) {
-                    parentConnectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
-                }
-            }
-        }
-        snippetContentsCopy.setInputPorts(inputPorts);
-
-        final Set<PortDTO> outputPorts = new HashSet<>();
-        if (snippetContents.getOutputPorts() != null) {
-            for (final PortDTO portDTO : snippetContents.getOutputPorts()) {
-                final PortDTO cp = dtoFactory.copy(portDTO);
-                cp.setId(generateId(portDTO.getId()));
-                cp.setParentGroupId(groupId);
-                cp.setState(ScheduledState.STOPPED.toString());
-                outputPorts.add(cp);
-
-                final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.OUTPUT_PORT);
-                connectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
-                if (parentConnectableMap != null) {
-                    parentConnectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
-                }
-            }
-        }
-        snippetContentsCopy.setOutputPorts(outputPorts);
-
-        //
-        // Copy the processors
-        //
-        final Set<ProcessorDTO> processors = new HashSet<>();
-        if (snippetContents.getProcessors() != null) {
-            for (final ProcessorDTO processorDTO : snippetContents.getProcessors()) {
-                final ProcessorDTO cp = dtoFactory.copy(processorDTO);
-                cp.setId(generateId(processorDTO.getId()));
-                cp.setParentGroupId(groupId);
-                cp.setState(ScheduledState.STOPPED.toString());
-                processors.add(cp);
-
-                connectableMap.put(processorDTO.getParentGroupId() + "-" + processorDTO.getId(), dtoFactory.createConnectableDto(cp));
-            }
-        }
-        snippetContentsCopy.setProcessors(processors);
-
-        // if there is any controller service that maps to another controller service, update the id's
-        updateControllerServiceIdentifiers(snippetContentsCopy, serviceIdMap);
-
-        //
-        // Copy ProcessGroups
-        //
-        // instantiate the process groups, renaming as necessary
-        final Set<ProcessGroupDTO> groups = new HashSet<>();
-        if (snippetContents.getProcessGroups() != null) {
-            for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
-                final ProcessGroupDTO cp = dtoFactory.copy(groupDTO, false);
-                cp.setId(generateId(groupDTO.getId()));
-                cp.setParentGroupId(groupId);
-
-                // copy the contents of this group - we do not copy via the dto factory since we want to specify new ids
-                final FlowSnippetDTO contentsCopy = copyContentsForGroup(groupDTO.getContents(), cp.getId(), connectableMap, serviceIdMap);
-                cp.setContents(contentsCopy);
-                groups.add(cp);
-            }
-        }
-        snippetContentsCopy.setProcessGroups(groups);
-
-        final Set<RemoteProcessGroupDTO> remoteGroups = new HashSet<>();
-        if (snippetContents.getRemoteProcessGroups() != null) {
-            for (final RemoteProcessGroupDTO remoteGroupDTO : snippetContents.getRemoteProcessGroups()) {
-                final RemoteProcessGroupDTO cp = dtoFactory.copy(remoteGroupDTO);
-                cp.setId(generateId(remoteGroupDTO.getId()));
-                cp.setParentGroupId(groupId);
-
-                final RemoteProcessGroupContentsDTO contents = cp.getContents();
-                if (contents != null && contents.getInputPorts() != null) {
-                    for (final RemoteProcessGroupPortDTO remotePort : contents.getInputPorts()) {
-                        remotePort.setGroupId(cp.getId());
-                        connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.Label, labelDTO.getId(), labelDTO.getLabel()),
+                                ResourceFactory.getComponentResource(ResourceType.Label, label.getId(), label.getLabel()), idGenerationSeed);
                     }
                 }
-                if (contents != null && contents.getOutputPorts() != null) {
-                    for (final RemoteProcessGroupPortDTO remotePort : contents.getOutputPorts()) {
-                        remotePort.setGroupId(cp.getId());
-                        connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
+            }
+            snippetContentsCopy.setLabels(labels);
+
+            //
+            // Copy connectable components
+            //
+            // maps a group ID-ID of a Connectable in the template to the new instance
+            final Map<String, ConnectableDTO> connectableMap = new HashMap<>();
+
+            //
+            // Copy the funnels
+            //
+            final Set<FunnelDTO> funnels = new HashSet<>();
+            if (snippetContents.getFunnels() != null) {
+                for (final FunnelDTO funnelDTO : snippetContents.getFunnels()) {
+                    final FunnelDTO cp = dtoFactory.copy(funnelDTO);
+                    cp.setId(generateId(funnelDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+                    funnels.add(cp);
+
+                    connectableMap.put(funnelDTO.getParentGroupId() + "-" + funnelDTO.getId(), dtoFactory.createConnectableDto(cp));
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.Funnel, funnelDTO.getId(), funnelDTO.getId()),
+                                ResourceFactory.getComponentResource(ResourceType.Funnel, cp.getId(), cp.getId()), idGenerationSeed);
                     }
                 }
-
-                remoteGroups.add(cp);
             }
-        }
-        snippetContentsCopy.setRemoteProcessGroups(remoteGroups);
+            snippetContentsCopy.setFunnels(funnels);
 
-        final Set<ConnectionDTO> connections = new HashSet<>();
-        if (snippetContents.getConnections() != null) {
-            for (final ConnectionDTO connectionDTO : snippetContents.getConnections()) {
-                final ConnectionDTO cp = dtoFactory.copy(connectionDTO);
+            final Set<PortDTO> inputPorts = new HashSet<>();
+            if (snippetContents.getInputPorts() != null) {
+                for (final PortDTO portDTO : snippetContents.getInputPorts()) {
+                    final PortDTO cp = dtoFactory.copy(portDTO);
+                    cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+                    cp.setState(ScheduledState.STOPPED.toString());
+                    inputPorts.add(cp);
 
-                final ConnectableDTO source = connectableMap.get(cp.getSource().getGroupId() + "-" + cp.getSource().getId());
-                final ConnectableDTO destination = connectableMap.get(cp.getDestination().getGroupId() + "-" + cp.getDestination().getId());
+                    final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.INPUT_PORT);
+                    connectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
+                    if (parentConnectableMap != null) {
+                        parentConnectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
+                    }
 
-                // ensure all referenced components are present
-                if (source == null || destination == null) {
-                    throw new IllegalArgumentException("The flow snippet contains a Connection that references a component that is not included.");
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.InputPort, portDTO.getId(), portDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.InputPort, cp.getId(), cp.getName()), idGenerationSeed);
+                    }
                 }
+            }
+            snippetContentsCopy.setInputPorts(inputPorts);
 
-                cp.setId(generateId(connectionDTO.getId()));
-                cp.setSource(source);
-                cp.setDestination(destination);
-                cp.setParentGroupId(groupId);
-                connections.add(cp);
+            final Set<PortDTO> outputPorts = new HashSet<>();
+            if (snippetContents.getOutputPorts() != null) {
+                for (final PortDTO portDTO : snippetContents.getOutputPorts()) {
+                    final PortDTO cp = dtoFactory.copy(portDTO);
+                    cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+                    cp.setState(ScheduledState.STOPPED.toString());
+                    outputPorts.add(cp);
+
+                    final ConnectableDTO portConnectable = dtoFactory.createConnectableDto(cp, ConnectableType.OUTPUT_PORT);
+                    connectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
+                    if (parentConnectableMap != null) {
+                        parentConnectableMap.put(portDTO.getParentGroupId() + "-" + portDTO.getId(), portConnectable);
+                    }
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.OutputPort, portDTO.getId(), portDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.OutputPort, cp.getId(), cp.getName()), idGenerationSeed);
+                    }
+                }
+            }
+            snippetContentsCopy.setOutputPorts(outputPorts);
+
+            //
+            // Copy the processors
+            //
+            final Set<ProcessorDTO> processors = new HashSet<>();
+            if (snippetContents.getProcessors() != null) {
+                for (final ProcessorDTO processorDTO : snippetContents.getProcessors()) {
+                    final ProcessorDTO cp = dtoFactory.copy(processorDTO);
+                    cp.setId(generateId(processorDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+                    cp.setState(ScheduledState.STOPPED.toString());
+                    processors.add(cp);
+
+                    connectableMap.put(processorDTO.getParentGroupId() + "-" + processorDTO.getId(), dtoFactory.createConnectableDto(cp));
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.Processor, processorDTO.getId(), processorDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.Processor, cp.getId(), cp.getName()), idGenerationSeed);
+                    }
+                }
+            }
+            snippetContentsCopy.setProcessors(processors);
+
+            // if there is any controller service that maps to another controller service, update the id's
+            updateControllerServiceIdentifiers(snippetContentsCopy, serviceIdMap);
+
+            //
+            // Copy ProcessGroups
+            //
+            // instantiate the process groups, renaming as necessary
+            final Set<ProcessGroupDTO> groups = new HashSet<>();
+            if (snippetContents.getProcessGroups() != null) {
+                for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
+                    final ProcessGroupDTO cp = dtoFactory.copy(groupDTO, false);
+                    cp.setId(generateId(groupDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+
+                    // copy the contents of this group - we do not copy via the dto factory since we want to specify new ids
+                    final FlowSnippetDTO contentsCopy = copyContentsForGroup(groupDTO.getContents(), cp.getId(), connectableMap, serviceIdMap, idGenerationSeed, isCopy);
+                    cp.setContents(contentsCopy);
+                    groups.add(cp);
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.ProcessGroup, groupDTO.getId(), groupDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.ProcessGroup, cp.getId(), cp.getName()), idGenerationSeed);
+                    }
+                }
+            }
+            snippetContentsCopy.setProcessGroups(groups);
+
+            final Set<RemoteProcessGroupDTO> remoteGroups = new HashSet<>();
+            if (snippetContents.getRemoteProcessGroups() != null) {
+                for (final RemoteProcessGroupDTO remoteGroupDTO : snippetContents.getRemoteProcessGroups()) {
+                    final RemoteProcessGroupDTO cp = dtoFactory.copy(remoteGroupDTO);
+                    cp.setId(generateId(remoteGroupDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setParentGroupId(groupId);
+
+                    final RemoteProcessGroupContentsDTO contents = cp.getContents();
+                    if (contents != null && contents.getInputPorts() != null) {
+                        for (final RemoteProcessGroupPortDTO remotePort : contents.getInputPorts()) {
+                            remotePort.setGroupId(cp.getId());
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_INPUT_PORT));
+                        }
+                    }
+                    if (contents != null && contents.getOutputPorts() != null) {
+                        for (final RemoteProcessGroupPortDTO remotePort : contents.getOutputPorts()) {
+                            remotePort.setGroupId(cp.getId());
+                            connectableMap.put(remoteGroupDTO.getId() + "-" + remotePort.getId(), dtoFactory.createConnectableDto(remotePort, ConnectableType.REMOTE_OUTPUT_PORT));
+                        }
+                    }
+
+                    remoteGroups.add(cp);
+
+                    // clone policies as appropriate
+                    if (isCopy) {
+                        cloneComponentSpecificPolicies(
+                                ResourceFactory.getComponentResource(ResourceType.RemoteProcessGroup, remoteGroupDTO.getId(), remoteGroupDTO.getName()),
+                                ResourceFactory.getComponentResource(ResourceType.RemoteProcessGroup, cp.getId(), cp.getName()), idGenerationSeed);
+                    }
+                }
+            }
+            snippetContentsCopy.setRemoteProcessGroups(remoteGroups);
+
+            final Set<ConnectionDTO> connections = new HashSet<>();
+            if (snippetContents.getConnections() != null) {
+                for (final ConnectionDTO connectionDTO : snippetContents.getConnections()) {
+                    final ConnectionDTO cp = dtoFactory.copy(connectionDTO);
+
+                    final ConnectableDTO source = connectableMap.get(cp.getSource().getGroupId() + "-" + cp.getSource().getId());
+                    final ConnectableDTO destination = connectableMap.get(cp.getDestination().getGroupId() + "-" + cp.getDestination().getId());
+
+                    // ensure all referenced components are present
+                    if (source == null || destination == null) {
+                        throw new IllegalArgumentException("The flow snippet contains a Connection that references a component that is not included.");
+                    }
+
+                    cp.setId(generateId(connectionDTO.getId(), idGenerationSeed, isCopy));
+                    cp.setSource(source);
+                    cp.setDestination(destination);
+                    cp.setParentGroupId(groupId);
+                    connections.add(cp);
+
+                    // note - no need to copy policies of a connection as their permissions are inferred through the source and destination
+                }
+            }
+            snippetContentsCopy.setConnections(connections);
+
+            return snippetContentsCopy;
+        } catch (Exception e) {
+            // attempt to role back any policies of the copies that were created in preparation for the clone
+            rollbackClonedPolicies(snippetContentsCopy);
+
+            // rethrow the original exception
+            throw e;
+        }
+    }
+
+    /**
+     * Clones all the component specified policies for the specified original component. This will include the component resource, data resource
+     * for the component, data transfer resource for the component, and policy resource for the component.
+     *
+     * @param originalComponentResource original component resource
+     * @param clonedComponentResource cloned component resource
+     * @param idGenerationSeed id generation seed
+     */
+    private void cloneComponentSpecificPolicies(final Resource originalComponentResource, final Resource clonedComponentResource, final String idGenerationSeed) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
+        final Map<Resource, Resource> resources = new HashMap<>();
+        resources.put(originalComponentResource, clonedComponentResource);
+        resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
+        resources.put(ResourceFactory.getDataTransferResource(originalComponentResource), ResourceFactory.getDataTransferResource(clonedComponentResource));
+        resources.put(ResourceFactory.getPolicyResource(originalComponentResource), ResourceFactory.getPolicyResource(clonedComponentResource));
+
+        for (final Entry<Resource, Resource> entry : resources.entrySet()) {
+            final Resource originalResource = entry.getKey();
+            final Resource cloneResource = entry.getValue();
+
+            for (final RequestAction action : RequestAction.values()) {
+                final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(action, originalResource.getIdentifier());
+
+                // if there is a component specific policy we want to clone it for the new component
+                if (accessPolicy != null) {
+                    final AccessPolicyDTO cloneAccessPolicy = new AccessPolicyDTO();
+                    cloneAccessPolicy.setId(generateId(accessPolicy.getIdentifier(), idGenerationSeed, true));
+                    cloneAccessPolicy.setAction(accessPolicy.getAction().toString());
+                    cloneAccessPolicy.setResource(cloneResource.getIdentifier());
+
+                    final Set<TenantEntity> users = new HashSet<>();
+                    accessPolicy.getUsers().forEach(userId -> {
+                        final TenantEntity entity = new TenantEntity();
+                        entity.setId(userId);
+                        users.add(entity);
+                    });
+                    cloneAccessPolicy.setUsers(users);
+
+                    final Set<TenantEntity> groups = new HashSet<>();
+                    accessPolicy.getGroups().forEach(groupId -> {
+                        final TenantEntity entity = new TenantEntity();
+                        entity.setId(groupId);
+                        groups.add(entity);
+                    });
+                    cloneAccessPolicy.setUserGroups(groups);
+
+                    // create the access policy for the cloned policy
+                    accessPolicyDAO.createAccessPolicy(cloneAccessPolicy);
+                }
             }
         }
-        snippetContentsCopy.setConnections(connections);
+    }
 
-        return snippetContentsCopy;
+    /**
+     * Attempts to roll back and in the specified snippet.
+     *
+     * @param snippet snippet
+     */
+    public void rollbackClonedPolicies(final FlowSnippetDTO snippet) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
+        snippet.getControllerServices().forEach(controllerServiceDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.ControllerService, controllerServiceDTO.getId(), controllerServiceDTO.getName()));
+        });
+        snippet.getFunnels().forEach(funnelDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.Funnel, funnelDTO.getId(), funnelDTO.getId()));
+        });
+        snippet.getInputPorts().forEach(inputPortDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.InputPort, inputPortDTO.getId(), inputPortDTO.getName()));
+        });
+        snippet.getLabels().forEach(labelDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.Label, labelDTO.getId(), labelDTO.getLabel()));
+        });
+        snippet.getOutputPorts().forEach(outputPortDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.OutputPort, outputPortDTO.getId(), outputPortDTO.getName()));
+        });
+        snippet.getProcessors().forEach(processorDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.Processor, processorDTO.getId(), processorDTO.getName()));
+        });
+        snippet.getRemoteProcessGroups().forEach(remoteProcessGroupDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.RemoteProcessGroup, remoteProcessGroupDTO.getId(), remoteProcessGroupDTO.getName()));
+        });
+        snippet.getProcessGroups().forEach(processGroupDTO -> {
+            rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.ProcessGroup, processGroupDTO.getId(), processGroupDTO.getName()));
+
+            // consider all descendant components
+            if (processGroupDTO.getContents() != null) {
+                rollbackClonedPolicies(processGroupDTO.getContents());
+            }
+        });
+    }
+
+    /**
+     * Attempts to roll back all policies for the specified component. This includes the component resource, data resource
+     * for the component, data transfer resource for the component, and policy resource for the component.
+     *
+     * @param componentResource component resource
+     */
+    private void rollbackClonedPolicy(final Resource componentResource) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
+        final List<Resource> resources = new ArrayList<>();
+        resources.add(componentResource);
+        resources.add(ResourceFactory.getDataResource(componentResource));
+        resources.add(ResourceFactory.getDataTransferResource(componentResource));
+        resources.add(ResourceFactory.getPolicyResource(componentResource));
+
+        for (final Resource resource : resources) {
+            for (final RequestAction action : RequestAction.values()) {
+                final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(action, resource.getIdentifier());
+                if (accessPolicy != null) {
+                    try {
+                        accessPolicyDAO.deleteAccessPolicy(accessPolicy.getIdentifier());
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to clean up cloned access policy for %s %s after failed copy/paste action.", action, componentResource.getIdentifier()), e);
+                    }
+                }
+            }
+        }
     }
 
     private void updateControllerServiceIdentifiers(final FlowSnippetDTO snippet, final Map<String, String> serviceIdMap) {
@@ -591,25 +789,98 @@ public final class SnippetUtils {
     }
 
     /**
-     * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
+     * Generates a new type 1 id (UUID) for the current id that is specified. If
+     * seed is provided, it will be incorporated into generation logic of the
+     * new ID.
+     * The contract of this method is as follows:
+     * - The 'currentId' must never be null and it must be String representation
+     *   of type-one UUID.
+     * - If seed is provided, the new ID will be generated from the 'msb' extracted from
+     *   the 'currentId' and the 'lsb' extracted from the UUID generated via
+     *   UUID.nameUUIDFromBytes(currentId + seed).
+     * - If seed is NOT provided and 'isCopy' flag is set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'. In this case
+     *   the new ID will always be > the previous ID essentially resulting in the new ID for
+     *   the component that being copied (e.g., copy/paste).
+     * - If seed is NOT provided and 'isCopy' flag is NOT set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'.
      */
-    private String generateId(final String currentId) {
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            final String seed = clusterContext.getIdGenerationSeed() + "-" + currentId;
-            return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
+    private String generateId(final String currentId, final String seed, boolean isCopy) {
+        long msb = UUID.fromString(currentId).getMostSignificantBits();
+
+        UUID uuid;
+        if (StringUtils.isBlank(seed)) {
+            long lsb = randomGenerator.nextLong();
+            if (isCopy) {
+                uuid = ComponentIdGenerator.generateId(msb, lsb, true); // will increment msb if necessary
+            } else {
+                // since msb is extracted from type-one UUID, the type-one semantics will be preserved
+                uuid = new UUID(msb, lsb);
+            }
         } else {
-            return UUID.randomUUID().toString();
+            UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
+            if (isCopy) {
+                // will ensure the type-one semantics for new UUID generated from msb extracted from seedId
+                uuid = ComponentIdGenerator.generateId(seedId.getMostSignificantBits(), seedId.getLeastSignificantBits(), false);
+            } else {
+                uuid = new UUID(msb, seedId.getLeastSignificantBits());
+            }
         }
+        return uuid.toString();
     }
 
     /* setters */
-    public void setDtoFactory(DtoFactory dtoFactory) {
+    public void setDtoFactory(final DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
     }
 
-    public void setFlowController(FlowController flowController) {
+    public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
+        this.accessPolicyDAO = accessPolicyDAO;
+    }
+
+    /**
+     * Will normalize the coordinates of the components to ensure their
+     * consistency across exports. It will do so by fist calculating the
+     * smallest X and smallest Y and then subtracting it from all X's and Y's of
+     * each component ensuring that coordinates are consistent across export
+     * while preserving relative locations set by the user.
+     */
+    private void normalizeCoordinates(Collection<? extends ComponentDTO> components) {
+        // determine the smallest x,y coordinates in the collection of components
+        double smallestX = Double.MAX_VALUE;
+        double smallestY = Double.MAX_VALUE;
+        for (ComponentDTO component : components) {
+            // Connections don't have positions themselves but their bendpoints do, so we need
+            // to check those bend points for the smallest x,y coordinates
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    smallestX = Math.min(smallestX, position.getX());
+                    smallestY = Math.min(smallestY, position.getY());
+                }
+            } else {
+                smallestX = Math.min(smallestX, component.getPosition().getX());
+                smallestY = Math.min(smallestY, component.getPosition().getY());
+            }
+        }
+
+        // position the components accordingly
+        for (ComponentDTO component : components) {
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    position.setX(position.getX() - smallestX);
+                    position.setY(position.getY() - smallestY);
+                }
+            } else {
+                component.getPosition().setX(component.getPosition().getX() - smallestX);
+                component.getPosition().setY(component.getPosition().getY() - smallestY);
+            }
+        }
     }
 
 }

@@ -32,7 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -106,36 +106,33 @@ public class PutMongo extends AbstractMongoProcessor {
         .defaultValue("UTF-8")
         .build();
 
-    private final List<PropertyDescriptor> descriptors;
+    private final static Set<Relationship> relationships;
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
-    private final Set<Relationship> relationships;
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.addAll(descriptors);
+        _propertyDescriptors.add(MODE);
+        _propertyDescriptors.add(UPSERT);
+        _propertyDescriptors.add(UPDATE_QUERY_KEY);
+        _propertyDescriptors.add(WRITE_CONCERN);
+        _propertyDescriptors.add(CHARACTER_SET);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
-    public PutMongo() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(URI);
-        descriptors.add(DATABASE_NAME);
-        descriptors.add(COLLECTION_NAME);
-        descriptors.add(MODE);
-        descriptors.add(UPSERT);
-        descriptors.add(UPDATE_QUERY_KEY);
-        descriptors.add(WRITE_CONCERN);
-        descriptors.add(CHARACTER_SET);
-        this.descriptors = Collections.unmodifiableList(descriptors);
-
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_FAILURE);
+        relationships = Collections.unmodifiableSet(_relationships);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return this.relationships;
+        return relationships;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return propertyDescriptors;
     }
 
     @Override
@@ -145,7 +142,7 @@ public class PutMongo extends AbstractMongoProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final String mode = context.getProperty(MODE).getValue();

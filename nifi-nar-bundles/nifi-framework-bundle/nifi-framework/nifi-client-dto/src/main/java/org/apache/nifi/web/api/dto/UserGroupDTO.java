@@ -17,73 +17,45 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Set;
+import org.apache.nifi.web.api.entity.AccessPolicyEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 /**
  * A user group in this NiFi.
  */
 @XmlType(name = "userGroup")
-public class UserGroupDTO {
+public class UserGroupDTO extends TenantDTO {
 
-    private String group;
-    private Set<String> userIds;
-    private Set<String> authorities;
-    private String status;
-
-    /**
-     * @return user group
-     */
-    @ApiModelProperty(
-            value = "The user group."
-    )
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        this.group = group;
-    }
+    private Set<TenantEntity> users;
+    private Set<AccessPolicyEntity> accessPolicies;
 
     /**
      * @return users in this group
      */
-    @ApiModelProperty(
-            value = "The users that belong to the group."
-    )
-    public Set<String> getUserIds() {
-        return userIds;
+    @ApiModelProperty(value = "The users that belong to the user group.")
+    public Set<TenantEntity> getUsers() {
+        return users;
     }
 
-    public void setUserIds(Set<String> userIds) {
-        this.userIds = userIds;
-    }
-
-    /**
-     * @return status of the users account
-     */
-    @ApiModelProperty(
-            value = "The status of the users accounts."
-    )
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
+    public void setUsers(Set<TenantEntity> users) {
+        this.users = users;
     }
 
     /**
-     * @return users authorities
+     * @return policies this user group is part of
      */
     @ApiModelProperty(
-            value = "The authorities of the users."
+            value = "The access policies this user group belongs to.",
+            readOnly = true
     )
-    public Set<String> getAuthorities() {
-        return authorities;
+    public Set<AccessPolicyEntity> getAccessPolicies() {
+        return accessPolicies;
     }
 
-    public void setAuthorities(Set<String> authorities) {
-        this.authorities = authorities;
+    public void setAccessPolicies(Set<AccessPolicyEntity> accessPolicies) {
+        this.accessPolicies = accessPolicies;
     }
 }

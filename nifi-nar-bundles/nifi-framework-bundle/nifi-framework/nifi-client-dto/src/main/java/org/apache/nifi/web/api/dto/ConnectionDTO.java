@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
  * A connection between two connectable components.
  */
 @XmlType(name = "connection")
-public class ConnectionDTO extends NiFiComponentDTO {
+public class ConnectionDTO extends ComponentDTO {
 
     private ConnectableDTO source;
     private ConnectableDTO destination;
@@ -149,7 +149,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
      * @return relationships that the source of the connection currently supports. This property is read only
      */
     @ApiModelProperty(
-            value = "The relationships that the source of the connection currently supports. This property is read only.",
+            value = "The relationships that the source of the connection currently supports.",
             readOnly = true
     )
     public Set<String> getAvailableRelationships() {
@@ -232,6 +232,6 @@ public class ConnectionDTO extends NiFiComponentDTO {
 
     @Override
     public String toString() {
-        return "ConnectionDTO [name: " + name + " from " + source + " to " + destination + "]";
+        return "ConnectionDTO [id: " + getId() + "]";
     }
 }

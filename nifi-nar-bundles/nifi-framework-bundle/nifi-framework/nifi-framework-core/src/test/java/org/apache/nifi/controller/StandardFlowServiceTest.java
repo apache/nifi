@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -37,14 +36,21 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.nifi.util.FileBasedVariableRegistry;
+
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  */
@@ -55,9 +61,11 @@ public class StandardFlowServiceTest {
     private FlowController flowController;
     private NiFiProperties properties;
     private FlowFileEventRepository mockFlowFileEventRepository;
-    private KeyService mockKeyService;
+    private Authorizer authorizer;
     private AuditService mockAuditService;
     private StringEncryptor mockEncryptor;
+    private RevisionManager revisionManager;
+    private VariableRegistry variableRegistry;
 
     @BeforeClass
     public static void setupSuite() {
@@ -66,12 +74,15 @@ public class StandardFlowServiceTest {
 
     @Before
     public void setup() throws Exception {
-        properties = NiFiProperties.getInstance();
+        properties = NiFiProperties.createBasicNiFiProperties(null, null);
+        variableRegistry = new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths());
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
-        mockKeyService = mock(KeyService.class);
+        authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
-        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockKeyService, mockAuditService, mockEncryptor);
-        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor);
+        revisionManager = mock(RevisionManager.class);
+        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
+                                        new VolatileBulletinRepository(), variableRegistry);
+        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
     }
 
     @Test
@@ -161,7 +172,6 @@ public class StandardFlowServiceTest {
             return;
         }
 
-        assertEquals(expected.getParent(), actual.getParent());
         Assert.assertEquals(expected.getComments(), actual.getComments());
         assertEquals(expected.getContents(), actual.getContents());
     }
@@ -232,7 +242,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getSelectedRelationships(), actual.getSelectedRelationships());
         assertEquals(expected.getSource(), actual.getSource());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(ConnectableDTO expected, ConnectableDTO actual) {
@@ -254,7 +263,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getId(), actual.getId());
         Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(LabelDTO expected, LabelDTO actual) {
@@ -266,7 +274,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getLabel(), actual.getLabel());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getStyle(), actual.getStyle());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(ProcessorDTO expected, ProcessorDTO actual) {
@@ -278,7 +285,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getStyle(), actual.getStyle());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
         Assert.assertEquals(expected.getType(), actual.getType());
         Assert.assertEquals(expected.getState(), actual.getState());
         Assert.assertEquals(expected.getRelationships(), actual.getRelationships());

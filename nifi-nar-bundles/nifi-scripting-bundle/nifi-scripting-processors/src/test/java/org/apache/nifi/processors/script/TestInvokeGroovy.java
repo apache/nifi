@@ -58,8 +58,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred("success", 1);
-        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred("test", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("test");
         result.get(0).assertAttributeEquals("from-content", "test content");
     }
 
@@ -81,7 +81,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
         List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
@@ -114,7 +114,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
         Set<Relationship> relationships = processor.getRelationships();
@@ -166,8 +166,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(InvokeScriptedProcessor.REL_FAILURE, 1);
-        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(InvokeScriptedProcessor.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred("FAILURE", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("FAILURE");
         assertFalse(result.isEmpty());
     }
 }

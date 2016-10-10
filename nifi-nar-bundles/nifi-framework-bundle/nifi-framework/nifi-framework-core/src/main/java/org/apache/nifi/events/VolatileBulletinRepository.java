@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.events;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 public class VolatileBulletinRepository implements BulletinRepository {
 
@@ -136,6 +136,11 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     @Override
+    public List<Bulletin> findBulletinsForSource(String sourceId) {
+        return findBulletins(new BulletinQuery.Builder().sourceIdMatches(sourceId).limit(COMPONENT_BUFFER_SIZE).build());
+    }
+
+    @Override
     public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
         return findBulletinsForGroupBySource(groupId, COMPONENT_BUFFER_SIZE);
     }
@@ -185,15 +190,6 @@ public class VolatileBulletinRepository implements BulletinRepository {
             final RingBuffer<Bulletin> buffer = controllerBulletinMap.get(CONTROLLER_BULLETIN_STORE_KEY);
             if (buffer != null) {
                 controllerBulletins.addAll(buffer.getSelectedElements(filter, max));
-            }
-        }
-
-        for (final String key : new String[] { SERVICE_BULLETIN_STORE_KEY, REPORTING_TASK_BULLETIN_STORE_KEY }) {
-            final ConcurrentMap<String, RingBuffer<Bulletin>> bulletinMap = bulletinStoreMap.get(key);
-            if (bulletinMap != null) {
-                for (final RingBuffer<Bulletin> buffer : bulletinMap.values()) {
-                    controllerBulletins.addAll(buffer.getSelectedElements(filter, max));
-                }
             }
         }
 

@@ -31,10 +31,8 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.FlowFile;
@@ -44,10 +42,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.hadoop.util.HDFSListing;
-import org.apache.nifi.processors.hadoop.util.HDFSListing.StateKeys;
-import org.apache.nifi.processors.hadoop.util.StringSerDe;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -93,19 +88,13 @@ import java.util.concurrent.TimeUnit;
     + "Node is selected, the new node can pick up where the previous node left off, without duplicating the data.")
 @SeeAlso({GetHDFS.class, FetchHDFS.class, PutHDFS.class})
 public class ListHDFS extends AbstractHadoopProcessor {
+
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
         .description("Specifies the Controller Service that should be used to maintain state about what has been pulled from HDFS so that if a new node "
                 + "begins pulling data, it won't duplicate all of the work that has been done.")
         .required(false)
         .identifiesControllerService(DistributedMapCacheClient.class)
-        .build();
-
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-        .name(DIRECTORY_PROP_NAME)
-        .description("The HDFS directory from which files should be read")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
@@ -124,7 +113,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     private volatile long latestTimestampListed = -1L;
     private volatile long latestTimestampEmitted = -1L;
-    private volatile boolean electedPrimaryNodeSinceLastIteration = false;
     private volatile long lastRunTimestamp = -1L;
 
     static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
@@ -163,6 +151,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
         if (isConfigurationRestored() && descriptor.equals(DIRECTORY)) {
             latestTimestampEmitted = -1L;
             latestTimestampListed = -1L;
@@ -174,80 +163,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         final JsonNode jsonNode = mapper.readTree(serializedState);
         return mapper.readValue(jsonNode, HDFSListing.class);
     }
-
-    /**
-     * Transitions state from the Distributed cache service to the state manager. This will be
-     * removed in NiFi 1.x
-     *
-     * @param context the ProcessContext
-     * @throws IOException if unable to communicate with state manager or controller service
-     */
-    @Deprecated
-    @OnScheduled
-    public void moveStateToStateManager(final ProcessContext context) throws IOException {
-        final StateManager stateManager = context.getStateManager();
-        final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
-
-        // Check if we have already stored state in the cluster state manager.
-        if (stateMap.getVersion() == -1L) {
-            final HDFSListing serviceListing = getListingFromService(context);
-            if (serviceListing != null) {
-                context.getStateManager().setState(serviceListing.toMap(), Scope.CLUSTER);
-            }
-        }
-    }
-
-    @Deprecated
-    private HDFSListing getListingFromService(final ProcessContext context) throws IOException {
-        final DistributedMapCacheClient client = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
-        if (client == null) {
-            return null;
-        }
-
-        final String directory = context.getProperty(DIRECTORY).getValue();
-        final String remoteValue = client.get(getKey(directory), new StringSerDe(), new StringSerDe());
-        if (remoteValue == null) {
-            return null;
-        }
-
-        try {
-            return deserialize(remoteValue);
-        } catch (final Exception e) {
-            getLogger().error("Failed to retrieve state from Distributed Map Cache because the content that was retrieved could not be understood", e);
-            return null;
-        }
-    }
-
-    /**
-     * Restores state information from the 'old' style of storing state. This is deprecated and will no longer be supported
-     * in the 1.x NiFi baseline
-     *
-     * @param directory the directory that the listing was performed against
-     * @param remoteListing the remote listing
-     * @return the minimum timestamp that should be used for new entries
-     */
-    @Deprecated
-    private Long restoreTimestampFromOldStateFormat(final String directory, final HDFSListing remoteListing) {
-        // No cluster-wide state has been recovered. Just use whatever values we already have.
-        if (remoteListing == null) {
-            return latestTimestampListed;
-        }
-
-        // If our local timestamp is already later than the remote listing's timestamp, use our local info.
-        Long minTimestamp = latestTimestampListed;
-        if (minTimestamp != null && minTimestamp > remoteListing.getLatestTimestamp().getTime()) {
-            return minTimestamp;
-        }
-
-        // Use the remote listing's information.
-        if (minTimestamp == null || electedPrimaryNodeSinceLastIteration) {
-            this.latestTimestampListed = remoteListing.getLatestTimestamp().getTime();
-            this.latestTimestampEmitted = this.latestTimestampListed;
-        }
-
-        return minTimestamp;
-    }
-
 
     /**
      * Determines which of the given FileStatus's describes a File that should be listed.
@@ -327,7 +242,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).getValue();
+        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
@@ -339,13 +254,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             } else {
                 // Determine if state is stored in the 'new' format or the 'old' format
                 final String emittedString = stateMap.get(EMITTED_TIMESTAMP_KEY);
-                if (emittedString == null && stateMap.get(StateKeys.TIMESTAMP) != null) {
-                    // state is stored in the old format with XML
-                    final Map<String, String> stateValues = stateMap.toMap();
-                    final HDFSListing stateListing = HDFSListing.fromMap(stateValues);
-                    getLogger().debug("Found old-style state stored");
-                    restoreTimestampFromOldStateFormat(directory, stateListing);
-                } else if (emittedString == null) {
+                if (emittedString == null) {
                     latestTimestampEmitted = -1L;
                     latestTimestampListed = -1L;
                     getLogger().debug("Found no recognized state keys; assuming no relevant state and resetting listing/emitted time to -1");
@@ -370,14 +279,14 @@ public class ListHDFS extends AbstractHadoopProcessor {
         // Pull in any file that is newer than the timestamp that we have.
         final FileSystem hdfs = getFileSystem();
         final boolean recursive = context.getProperty(RECURSE_SUBDIRS).asBoolean();
-        final Path rootPath = new Path(directory);
 
         final Set<FileStatus> statuses;
         try {
+            final Path rootPath = new Path(directory);
             statuses = getStatuses(rootPath, recursive, hdfs);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
-        } catch (final IOException ioe) {
-            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {ioe});
+        } catch (final IOException | IllegalArgumentException e) {
+            getLogger().error("Failed to perform listing of HDFS due to {}", new Object[] {e});
             return;
         }
 

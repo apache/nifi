@@ -17,25 +17,28 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a reporting task.
  */
 @XmlRootElement(name = "reportingTaskEntity")
-public class ReportingTaskEntity extends Entity {
+public class ReportingTaskEntity extends ComponentEntity implements Permissible<ReportingTaskDTO> {
 
-    private ReportingTaskDTO reportingTask;
+    private ReportingTaskDTO component;
 
     /**
      * @return reporting task that is being serialized
      */
-    public ReportingTaskDTO getReportingTask() {
-        return reportingTask;
+    @Override
+    public ReportingTaskDTO getComponent() {
+        return component;
     }
 
-    public void setReportingTask(ReportingTaskDTO reportingTask) {
-        this.reportingTask = reportingTask;
+    @Override
+    public void setComponent(ReportingTaskDTO component) {
+        this.component = component;
     }
 
 }

@@ -36,28 +36,16 @@ nf.QueueListing = (function () {
      * Initializes the listing request status dialog.
      */
     var initializeListingRequestStatusDialog = function () {
-        // initialize the listing request progress bar
-        var listingRequestProgressBar = $('#listing-request-percent-complete').progressbar();
-
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
-            overlayBackground: false,
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Queue Listing',
             handler: {
                 close: function () {
-                    // reset the progress bar
-                    listingRequestProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    listingRequestProgressBar.progressbar('value', 0).append(label);
-
                     // clear the current button model
                     $('#listing-request-status-dialog').modal('setButtonModel', []);
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -90,8 +78,8 @@ nf.QueueListing = (function () {
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
-                dialogContent: 'Unable to generate access token for downloading content.',
-                overlayBackground: false
+                headerText: 'Queue Listing',
+                dialogContent: 'Unable to generate access token for downloading content.'
             });
         });
     };
@@ -122,8 +110,8 @@ nf.QueueListing = (function () {
                     deferred.resolve(uiExtensionToken, downloadToken);
                 }).fail(function () {
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'Unable to generate access token for viewing content.',
-                        overlayBackground: false
+                        headerText: 'Queue Listing',
+                        dialogContent: 'Unable to generate access token for viewing content.'
                     });
                     deferred.reject();
                 });
@@ -179,55 +167,6 @@ nf.QueueListing = (function () {
     };
 
     /**
-     * Initializes the flowfile details dialog.
-     */
-    var initFlowFileDetailsDialog = function () {
-        $('#content-download').on('click', downloadContent);
-
-        // only show if content viewer is configured
-        if (nf.Common.isContentViewConfigured()) {
-            $('#content-view').show();
-            $('#content-view').on('click', viewContent);
-        }
-
-        $('#flowfile-details-tabs').tabbs({
-            tabStyle: 'tab',
-            selectedTabStyle: 'selected-tab',
-            tabs: [{
-                name: 'Details',
-                tabContentId: 'flowfile-details-tab-content'
-            }, {
-                name: 'Attributes',
-                tabContentId: 'flowfile-attributes-tab-content'
-            }]
-        });
-
-        $('#flowfile-details-dialog').modal({
-            headerText: 'FlowFile',
-            overlayBackground: false,
-            buttons: [{
-                buttonText: 'Ok',
-                handler: {
-                    click: function () {
-                        $('#flowfile-details-dialog').modal('hide');
-                    }
-                }
-            }],
-            handler: {
-                close: function () {
-                    // clear the details
-                    $('#flowfile-attributes-container').empty();
-                    $('#flowfile-cluster-node-id').text('');
-                    $('#additional-flowfile-details').empty();
-                }
-            }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
-        });
-    };
-
-    /**
      * Performs a listing on the specified connection.
      *
      * @param connection the connection
@@ -244,18 +183,23 @@ nf.QueueListing = (function () {
                 // remove existing labels
                 var progressBar = $('#listing-request-percent-complete');
                 progressBar.find('div.progress-label').remove();
+                progressBar.find('md-progress-linear').remove();
 
-                // update the progress bar
+                // update the progress
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                if (percentComplete > 0) {
-                    label.css('margin-top', '-19px');
-                }
-                progressBar.progressbar('value', percentComplete).append(label);
+                (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+                progressBar.append(label);
             };
 
             // update the button model of the drop request status dialog
             $('#listing-request-status-dialog').modal('setButtonModel', [{
+                headerText: 'Queue Listing',
                 buttonText: 'Stop',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: function () {
                         cancelled = true;
@@ -293,8 +237,8 @@ nf.QueueListing = (function () {
 
                             // show the dialog
                             nf.Dialog.showOkDialog({
-                                dialogContent: 'The queue has no FlowFiles.',
-                                overlayBackground: false
+                                headerText: 'Queue Listing',
+                                dialogContent: 'The queue has no FlowFiles.'
                             });
                         }
                     } else {
@@ -316,10 +260,8 @@ nf.QueueListing = (function () {
                             } else if (listingRequest.destinationRunning === true) {
                                 queueListingMessage.text('The destination of this queue is currently running. This listing may no longer be accurate.').show();
                             }
-                            queueListingTable.css('bottom', '35px');
                         } else {
                             queueListingMessage.text('').hide();
-                            queueListingTable.css('bottom', '20px');
                         }
 
                         // get the grid to load the data
@@ -371,7 +313,7 @@ nf.QueueListing = (function () {
                     type: 'GET',
                     url: listingRequest.uri,
                     dataType: 'json'
-                }).done(function(response) {
+                }).done(function (response) {
                     listingRequest = response.listingRequest;
                     processListingRequest(nextDelay);
                 }).fail(completeListingRequest).fail(nf.Common.handleAjaxError);
@@ -380,10 +322,10 @@ nf.QueueListing = (function () {
             // issue the request to list the flow files
             $.ajax({
                 type: 'POST',
-                url: connection.component.uri + '/listing-requests',
+                url: '../nifi-api/flowfile-queues/' + connection.id + '/listing-requests',
                 dataType: 'json',
                 contentType: 'application/json'
-            }).done(function(response) {
+            }).done(function (response) {
                 // initialize the progress bar value
                 updateProgress(0);
 
@@ -430,7 +372,7 @@ nf.QueueListing = (function () {
             url: flowFileSummary.uri,
             data: params,
             dataType: 'json'
-        }).done(function(response) {
+        }).done(function (response) {
             var flowFile = response.flowFile;
 
             // show the URI to this flowfile
@@ -497,35 +439,19 @@ nf.QueueListing = (function () {
         }).fail(nf.Common.handleAjaxError);
     };
 
-    /**
-     * Resets the table size.
-     */
-    var resetTableSize = function () {
-        var queueListingGrid = $('#queue-listing-table').data('gridInstance');
-        if (nf.Common.isDefinedAndNotNull(queueListingGrid)) {
-            queueListingGrid.resizeCanvas();
-        }
-    };
-
     return {
         init: function () {
             initializeListingRequestStatusDialog();
-            initFlowFileDetailsDialog();
-
-            // listen for browser resize events to update the page size
-            $(window).resize(function () {
-                resetTableSize();
-            });
 
             // define mouse over event for the refresh button
-            nf.Common.addHoverEffect('#queue-listing-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            $('#queue-listing-refresh-button').click(function () {
                 var connection = $('#queue-listing-table').data('connection');
                 performListing(connection);
             });
 
             // define a custom formatter for showing more processor details
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<img src="images/iconDetails.png" title="View Details" class="pointer show-flowfile-details" style="margin-top: 5px; float: left;"/>';
+                return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="margin-top: 5px; float: left;"></div>';
             };
 
             // function for formatting data sizes
@@ -551,29 +477,91 @@ nf.QueueListing = (function () {
 
             // initialize the queue listing table
             var queueListingColumns = [
-                {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-                {id: 'position', name: 'Position', field: 'position', sortable: false, resizable: false, width: 75, maxWidth: 75},
+                {
+                    id: 'moreDetails',
+                    field: 'moreDetails',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: moreDetailsFormatter,
+                    width: 50,
+                    maxWidth: 50
+                },
+                {
+                    id: 'position',
+                    name: 'Position',
+                    field: 'position',
+                    sortable: false,
+                    resizable: false,
+                    width: 75,
+                    maxWidth: 75
+                },
                 {id: 'uuid', name: 'UUID', field: 'uuid', sortable: false, resizable: true},
                 {id: 'filename', name: 'Filename', field: 'filename', sortable: false, resizable: true},
-                {id: 'size', name: 'File Size', field: 'size', sortable: false, resizable: true, defaultSortAsc: false, formatter: dataSizeFormatter},
-                {id: 'queuedDuration', name: 'Queued Duration', field: 'queuedDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'lineageDuration', name: 'Lineage Duration', field: 'lineageDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'penalized', name: 'Penalized', field: 'penalized', sortable: false, resizable: false, width: 100, maxWidth: 100, formatter: penalizedFormatter}
+                {
+                    id: 'size',
+                    name: 'File Size',
+                    field: 'size',
+                    sortable: false,
+                    resizable: true,
+                    defaultSortAsc: false,
+                    formatter: dataSizeFormatter
+                },
+                {
+                    id: 'queuedDuration',
+                    name: 'Queued Duration',
+                    field: 'queuedDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'lineageDuration',
+                    name: 'Lineage Duration',
+                    field: 'lineageDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'penalized',
+                    name: 'Penalized',
+                    field: 'penalized',
+                    sortable: false,
+                    resizable: false,
+                    width: 100,
+                    maxWidth: 100,
+                    formatter: penalizedFormatter
+                }
             ];
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                queueListingColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: false, resizable: true});
+                queueListingColumns.push({
+                    id: 'clusterNodeAddress',
+                    name: 'Node',
+                    field: 'clusterNodeAddress',
+                    sortable: false,
+                    resizable: true
+                });
             }
 
             // add an actions column when the user can access provenance
             if (nf.Common.canAccessProvenance()) {
                 // function for formatting actions
                 var actionsFormatter = function () {
-                    return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
+                    return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
                 };
 
-                queueListingColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: actionsFormatter, sortable: false, width: 50, maxWidth: 50});
+                queueListingColumns.push({
+                    id: 'actions',
+                    name: '&nbsp;',
+                    resizable: false,
+                    formatter: actionsFormatter,
+                    sortable: false,
+                    width: 50,
+                    maxWidth: 50
+                });
             }
 
             var queueListingOptions = {
@@ -581,7 +569,8 @@ nf.QueueListing = (function () {
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,
-                autoEdit: false
+                autoEdit: false,
+                rowHeight: 24
             };
 
             // initialize the dataview
@@ -614,8 +603,8 @@ nf.QueueListing = (function () {
 
                         // open the provenance page with the specified component
                         nf.Shell.showPage('provenance?' + $.param({
-                            flowFileUuid: item.uuid
-                        }));
+                                flowFileUuid: item.uuid
+                            }));
                     }
                 }
             });
@@ -641,6 +630,71 @@ nf.QueueListing = (function () {
         },
 
         /**
+         * Initializes the flowfile details dialog.
+         */
+        initFlowFileDetailsDialog: function () {
+            $('#content-download').on('click', downloadContent);
+
+            // only show if content viewer is configured
+            if (nf.Common.isContentViewConfigured()) {
+                $('#content-view').show();
+                $('#content-view').on('click', viewContent);
+            }
+
+            $('#flowfile-details-tabs').tabbs({
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
+                tabs: [{
+                    name: 'Details',
+                    tabContentId: 'flowfile-details-tab-content'
+                }, {
+                    name: 'Attributes',
+                    tabContentId: 'flowfile-attributes-tab-content'
+                }]
+            });
+
+            $('#flowfile-details-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                headerText: 'FlowFile',
+                buttons: [{
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#flowfile-details-dialog').modal('hide');
+                        }
+                    }
+                }],
+                handler: {
+                    close: function () {
+                        // clear the details
+                        $('#flowfile-attributes-container').empty();
+                        $('#flowfile-cluster-node-id').text('');
+                        $('#additional-flowfile-details').empty();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                    }
+                }
+            });
+        },
+
+        /**
+         * Update the size of the grid based on its container's current size.
+         */
+        resetTableSize: function () {
+            var queueListingGrid = $('#queue-listing-table').data('gridInstance');
+            if (nf.Common.isDefinedAndNotNull(queueListingGrid)) {
+                queueListingGrid.resizeCanvas();
+            }
+        },
+
+        /**
          * Shows the listing of the FlowFiles from a given connection.
          *
          * @param   {object}    The connection
@@ -649,7 +703,10 @@ nf.QueueListing = (function () {
             // perform the initial listing
             performListing(connection).done(function () {
                 // update the connection name
-                var connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                var connectionName = '';
+                if (connection.permissions.canRead) {
+                    connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                }
                 if (connectionName === '') {
                     connectionName = 'Connection';
                 }
@@ -674,7 +731,7 @@ nf.QueueListing = (function () {
                 });
 
                 // adjust the table size
-                resetTableSize();
+                nf.QueueListing.resetTableSize();
 
                 // store the connection for access later
                 $('#queue-listing-table').data('connection', connection);

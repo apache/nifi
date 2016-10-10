@@ -16,26 +16,6 @@
  */
 
 /*
-    Component state
-*/
-
-#component-state-dialog {
-    position: absolute;
-    overflow: hidden;
-    width: 600px;
-    font-size: 10px;
-    z-index: 1301;
-    display: none;
-}
-
-#component-state-description {
-    width: 580px;
-    height: 50px;
-    font-size: 10px;
-    line-height: 12px;
-}
-
-/*
     Component state filter
 */
 
@@ -49,29 +29,11 @@
 }
 
 #component-state-filter-controls {
-    float: right;
     margin-top: 10px;
-    margin-right: 2px;
-    margin-bottom: 7px;
-}
-
-#component-state-filter-status {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left;
-    line-height: normal;
-    margin-left: 5px;
 }
 
 #component-state-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
     width: 173px;
-    border: 1px solid #ccc;
-    float: left;
 }
 
 /*
@@ -79,9 +41,18 @@
 */
 
 #component-state-table {
-    width: 578px;
-    height: 235px;
-    border: 1px solid #666;
+    overflow: hidden;
+    position: absolute;
+    top: 202px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    min-height: 150px;
+}
+
+#component-state-description{
+    height: 75px;
+    overflow: auto;
 }
 
 /*
@@ -89,8 +60,9 @@
 */
 
 #clear-link-container {
-    margin-top: 16px;
-    margin-bottom: 18px;
+    position: absolute;
+    top: 180px;
+    right: 20px;
 }
 
 #clear-link.disabled {

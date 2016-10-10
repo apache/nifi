@@ -25,6 +25,9 @@ import java.util.List;
  */
 public interface BulletinRepository {
 
+    int MAX_BULLETINS_PER_COMPONENT = 5;
+    int MAX_BULLETINS_FOR_CONTROLLER = 10;
+
     /**
      * Adds a Bulletin to the repository.
      *
@@ -49,6 +52,14 @@ public interface BulletinRepository {
      * @return bulletins that met the query
      */
     List<Bulletin> findBulletins(BulletinQuery bulletinQuery);
+
+    /**
+     * Finds all bulletins for the specified source component.
+     *
+     * @param sourceId id of the source
+     * @return bulletins for the given source
+     */
+    List<Bulletin> findBulletinsForSource(String sourceId);
 
     /**
      * Finds all bulletins for the specified group.

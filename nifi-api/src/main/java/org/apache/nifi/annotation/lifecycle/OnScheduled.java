@@ -53,11 +53,22 @@ import java.lang.annotation.Target;
  * {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
  * </p>
  *
+ * <p>
  * If any method annotated with this annotation throws any Throwable, the
  * framework will wait a while and then attempt to invoke the method again. This
  * will continue until the method succeeds, and the component will then be
  * scheduled to run after this method return successfully.
+ * </p>
  *
+ * <p><b>Implementation Guidelines:</b>
+ * <ul>
+ *   <li>Methods with this annotation are expected to perform very quick, short-lived tasks. If the function is
+ *       expensive or long-lived, the logic should be performed in the {@code onTrigger} method instead.</li>
+ *   <li>If a method with this annotation does not return (exceptionally or otherwise) within a short period
+ *       of time (the duration is configurable in the properties file), the Thread may be interrupted.</li>
+ *   <li>Methods that make use of this interface should honor Java's Thread interruption mechanisms and not swallow
+ *       {@link InterruptedException}.</li>
+ * </ul>
  */
 @Documented
 @Target({ElementType.METHOD})

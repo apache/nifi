@@ -117,5 +117,11 @@ public enum ProvenanceEventType {
      * that is the UUID of the a newly created FlowFile that will be re-queued
      * for processing.
      */
-    REPLAY
+    REPLAY,
+
+    /**
+     * Indicates that the type of the provenance event is unknown because the user
+     * who is attempting to access the event is not authorize to know the type.
+     */
+    UNKNOWN;
 }

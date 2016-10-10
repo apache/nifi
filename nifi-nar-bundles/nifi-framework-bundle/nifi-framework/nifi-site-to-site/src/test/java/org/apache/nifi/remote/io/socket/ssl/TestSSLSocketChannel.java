@@ -67,7 +67,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //    public void testSendingToLocalInstance() throws IOException, InterruptedException, HandshakeException, UnknownPortException, PortNotRunningException, URISyntaxException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //
-//        final NiFiProperties properties = NiFiProperties.getInstance();
+//        final NiFiProperties properties;
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
 //
 //        final SSLSocketChannel channel = new SSLSocketChannel(sslContext, "localhost", 5000, true);
@@ -84,7 +84,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        dos.flush();
 //
 //        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
-//        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, NiFiProperties.getInstance());
+//        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, nifiProperties);
 //        final StandardSiteToSiteProtocol negotiatedProtocol = (StandardSiteToSiteProtocol) RemoteResourceFactory.initiateResourceNegotiation(proposedProtocol, dis, dos);
 //        System.out.println(negotiatedProtocol);
 //
@@ -104,7 +104,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //    public void testWithSimpleSSLSocket() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //
-//        final NiFiProperties properties = NiFiProperties.getInstance();
+//        final NiFiProperties properties;
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
 //
 //        final ServerThread server = new ServerThread(sslContext);
@@ -138,7 +138,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //    public void testDirectChannelComms() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //
-//        final NiFiProperties properties = NiFiProperties.getInstance();
+//        final NiFiProperties properties;
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
 //
 //        final ServerThread server = new ServerThread(sslContext);
@@ -193,7 +193,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //    public void testWriteTimesOut() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //
-//        final NiFiProperties properties = NiFiProperties.getInstance();
+//        final NiFiProperties properties;
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
 //
 //        final ServerThread server = new ServerThread(sslContext);
@@ -238,7 +238,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //    public void testInputOutputStreams() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //
-//        final NiFiProperties properties = NiFiProperties.getInstance();
+//        final NiFiProperties properties;
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
 //
 //        final ServerThread server = new ServerThread(sslContext);

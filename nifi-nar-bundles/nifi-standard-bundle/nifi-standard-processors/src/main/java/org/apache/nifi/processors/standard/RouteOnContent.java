@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -41,7 +42,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -51,7 +52,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.IntegerHolder;
 
 @EventDriven
 @SideEffectFree
@@ -64,7 +64,7 @@ import org.apache.nifi.util.IntegerHolder;
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
 @DynamicProperty(name = "Relationship Name", value = "A Regular Expression", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
-        + "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
+        + "content matches the regular expression defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 
@@ -174,7 +174,7 @@ public class RouteOnContent extends AbstractProcessor {
         };
 
         final Map<FlowFile, Set<Relationship>> flowFileDestinationMap = new HashMap<>();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final byte[] buffer = new byte[context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue()];
@@ -182,7 +182,7 @@ public class RouteOnContent extends AbstractProcessor {
             final Set<Relationship> destinations = new HashSet<>();
             flowFileDestinationMap.put(flowFile, destinations);
 
-            final IntegerHolder bufferedByteCount = new IntegerHolder(0);
+            final AtomicInteger bufferedByteCount = new AtomicInteger(0);
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {

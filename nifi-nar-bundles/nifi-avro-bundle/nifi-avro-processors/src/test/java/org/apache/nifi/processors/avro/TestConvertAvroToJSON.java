@@ -24,7 +24,9 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -119,6 +121,122 @@ public class TestConvertAvroToJSON {
         out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}");
     }
 
+    @Test
+    public void testSingleSchemalessAvroMessage() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
+        Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
+        String stringSchema = schema.toString();
+        runner.setProperty(ConvertAvroToJSON.SCHEMA, stringSchema);
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+
+        final ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+        final BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out1, null);
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        datumWriter.write(user1, encoder);
+
+        encoder.flush();
+        out1.flush();
+        byte[] test = out1.toByteArray();
+        runner.enqueue(test);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertAvroToJSON.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}");
+    }
+
+    @Test
+    public void testSingleSchemalessAvroMessage_noContainer() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
+        runner.setProperty(ConvertAvroToJSON.CONTAINER_OPTIONS, ConvertAvroToJSON.CONTAINER_NONE);
+        Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
+        String stringSchema = schema.toString();
+        runner.setProperty(ConvertAvroToJSON.SCHEMA, stringSchema);
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+
+        final ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+        final BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out1, null);
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        datumWriter.write(user1, encoder);
+
+        encoder.flush();
+        out1.flush();
+        byte[] test = out1.toByteArray();
+        runner.enqueue(test);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertAvroToJSON.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}");
+    }
+
+    @Test
+    public void testSingleSchemalessAvroMessage_wrapSingleMessage() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
+        runner.setProperty(ConvertAvroToJSON.CONTAINER_OPTIONS, ConvertAvroToJSON.CONTAINER_ARRAY);
+        runner.setProperty(ConvertAvroToJSON.WRAP_SINGLE_RECORD, Boolean.toString(true));
+        Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
+        String stringSchema = schema.toString();
+        runner.setProperty(ConvertAvroToJSON.SCHEMA, stringSchema);
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+
+        final ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+        final BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out1, null);
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        datumWriter.write(user1, encoder);
+
+        encoder.flush();
+        out1.flush();
+        byte[] test = out1.toByteArray();
+        runner.enqueue(test);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertAvroToJSON.REL_SUCCESS).get(0);
+        out.assertContentEquals("[{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}]");
+    }
+
+    @Test
+    public void testSingleSchemalessAvroMessage_wrapSingleMessage_noContainer() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
+        runner.setProperty(ConvertAvroToJSON.CONTAINER_OPTIONS, ConvertAvroToJSON.CONTAINER_NONE);
+        runner.setProperty(ConvertAvroToJSON.WRAP_SINGLE_RECORD, Boolean.toString(true));
+        Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
+        String stringSchema = schema.toString();
+        runner.setProperty(ConvertAvroToJSON.SCHEMA, stringSchema);
+
+        final GenericRecord user1 = new GenericData.Record(schema);
+        user1.put("name", "Alyssa");
+        user1.put("favorite_number", 256);
+
+        final ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+        final BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out1, null);
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        datumWriter.write(user1, encoder);
+
+        encoder.flush();
+        out1.flush();
+        byte[] test = out1.toByteArray();
+        runner.enqueue(test);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToJSON.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertAvroToJSON.REL_SUCCESS).get(0);
+        out.assertContentEquals("{\"name\": \"Alyssa\", \"favorite_number\": 256, \"favorite_color\": null}");
+    }
 
     @Test
     public void testMultipleAvroMessages() throws IOException {

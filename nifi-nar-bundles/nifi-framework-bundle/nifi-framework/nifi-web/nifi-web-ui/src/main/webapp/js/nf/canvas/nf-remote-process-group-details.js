@@ -22,15 +22,20 @@ nf.RemoteProcessGroupDetails = (function () {
         init: function () {
             $('#remote-process-group-details').modal({
                 headerText: 'Remote Process Group Details',
-                overlayBackground: true,
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                $('#remote-process-group-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#remote-process-group-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the remote process group details
@@ -39,17 +44,19 @@ nf.RemoteProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-remote-process-group-url');
                         nf.Common.clearField('read-only-remote-process-group-timeout');
                         nf.Common.clearField('read-only-remote-process-group-yield-duration');
+                        nf.Common.clearField('read-only-remote-process-group-transport-protocol');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-host');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-port');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-user');
+                        nf.Common.clearField('read-only-remote-process-group-proxy-password');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
-        
+
         /**
          * Shows the details for the remote process group in the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showDetails: function (selection) {
@@ -58,11 +65,16 @@ nf.RemoteProcessGroupDetails = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                nf.Common.populateField('read-only-remote-process-group-id', selectionData.component.id);
+                nf.Common.populateField('read-only-remote-process-group-id', selectionData.id);
                 nf.Common.populateField('read-only-remote-process-group-name', selectionData.component.name);
                 nf.Common.populateField('read-only-remote-process-group-url', selectionData.component.targetUri);
                 nf.Common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
                 nf.Common.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
+                nf.Common.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);
+                nf.Common.populateField('read-only-remote-process-group-proxy-host', selectionData.component.proxyHost);
+                nf.Common.populateField('read-only-remote-process-group-proxy-port', selectionData.component.proxyPort);
+                nf.Common.populateField('read-only-remote-process-group-proxy-user', selectionData.component.proxyUser);
+                nf.Common.populateField('read-only-remote-process-group-proxy-password', selectionData.component.proxyPassword);
 
                 // show the details
                 $('#remote-process-group-details').modal('show');

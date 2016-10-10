@@ -16,26 +16,21 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PortDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.entity.InputPortEntity;
-import org.apache.nifi.web.api.entity.PortStatusEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
@@ -53,48 +48,48 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
  * RESTful endpoint for managing an Input Port.
  */
-@Path("input-ports")
+@Path("/input-ports")
+@Api(
+        value = "/input-ports",
+        description = "Endpoint for managing an Input Port."
+)
 public class InputPortResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
+    private Authorizer authorizer;
 
     /**
      * Populates the uri for the specified input ports.
      *
-     * @param inputPorts ports
+     * @param inputPortEntites ports
      * @return ports
      */
-    public Set<PortDTO> populateRemainingInputPortsContent(Set<PortDTO> inputPorts) {
-        for (PortDTO inputPort : inputPorts) {
-            populateRemainingInputPortContent(inputPort);
+    public Set<PortEntity> populateRemainingInputPortEntitiesContent(Set<PortEntity> inputPortEntites) {
+        for (PortEntity inputPortEntity : inputPortEntites) {
+            populateRemainingInputPortEntityContent(inputPortEntity);
         }
-        return inputPorts;
+        return inputPortEntites;
     }
 
     /**
-     * Populates the uri for the specified input ports.
+     * Populates the uri for the specified input port.
+     *
+     * @param inputPortEntity port
+     * @return ports
      */
-    public PortDTO populateRemainingInputPortContent(PortDTO inputPort) {
-        // populate the input port uri
-        inputPort.setUri(generateResourceUri("input-ports", inputPort.getId()));
-        return inputPort;
+    public PortEntity populateRemainingInputPortEntityContent(PortEntity inputPortEntity) {
+        inputPortEntity.setUri(generateResourceUri("input-ports", inputPortEntity.getId()));
+        return inputPortEntity;
     }
 
     /**
      * Retrieves the specified input port.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the input port to retrieve
      * @return A inputPortEntity.
      */
@@ -102,154 +97,43 @@ public class InputPortResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getInputPort(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable inputPort = lookup.getInputPort(id);
+            inputPort.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
 
         // get the port
-        final PortDTO port = serviceFacade.getInputPort(id);
+        final PortEntity entity = serviceFacade.getInputPort(id);
+        populateRemainingInputPortEntityContent(entity);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(revision);
-        entity.setInputPort(populateRemainingInputPortContent(port));
-
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Retrieves the specified input port status.
-     *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the processor history to retrieve.
-     * @return A portStatusEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("/{id}/status")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-        value = "Gets status for an input port",
-        response = PortStatusEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response getInputPortStatus(
-        @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "Whether or not to include the breakdown per node. Optional, defaults to false",
-            required = false
-        )
-        @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
-        @ApiParam(
-            value = "The id of the node where to get the status.",
-            required = false
-        )
-        @QueryParam("clusterNodeId") String clusterNodeId,
-        @ApiParam(
-            value = "The input port id.",
-            required = true
-        )
-        @PathParam("id") String id) {
-
-        // ensure a valid request
-        if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
-            throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
-        }
-
-        if (properties.isClusterManager()) {
-            // determine where this request should be sent
-            if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders());
-                final PortStatusEntity entity = (PortStatusEntity) nodeResponse.getUpdatedEntity();
-
-                // ensure there is an updated entity (result of merging) and prune the response as necessary
-                if (entity != null && !nodewise) {
-                    entity.getPortStatus().setNodeSnapshots(null);
-                }
-
-                return nodeResponse.getResponse();
-            } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
-            }
-        }
-
-        // get the specified input port status
-        final PortStatusDTO portStatus = serviceFacade.getInputPortStatus(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // generate the response entity
-        final PortStatusEntity entity = new PortStatusEntity();
-        entity.setRevision(revision);
-        entity.setPortStatus(portStatus);
-
-        // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -257,29 +141,28 @@ public class InputPortResource extends ApplicationResource {
      * Updates the specified input port.
      *
      * @param httpServletRequest request
-     * @param id The id of the input port to update.
-     * @param portEntity A inputPortEntity.
+     * @param id                 The id of the input port to update.
+     * @param requestPortEntity         A inputPortEntity.
      * @return A inputPortEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateInputPort(
@@ -288,98 +171,81 @@ public class InputPortResource extends ApplicationResource {
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The input port configuration details.",
                     required = true
-            ) InputPortEntity portEntity) {
+            ) final PortEntity requestPortEntity) {
 
-        if (portEntity == null || portEntity.getInputPort() == null) {
+        if (requestPortEntity == null || requestPortEntity.getComponent() == null) {
             throw new IllegalArgumentException("Input port details must be specified.");
         }
 
-        if (portEntity.getRevision() == null) {
+        if (requestPortEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
         // ensure the ids are the same
-        final PortDTO requestPortDTO = portEntity.getInputPort();
+        final PortDTO requestPortDTO = requestPortEntity.getComponent();
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The input port id (%s) in the request body does not equal the "
                     + "input port id of the requested resource (%s).", requestPortDTO.getId(), id));
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(portEntity), getHeaders(headersToOverride)).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestPortEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyUpdateInputPort(requestPortDTO);
-            return generateContinueResponse().build();
-        }
+        final Revision requestRevision = getRevision(requestPortEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestPortEntity,
+                requestRevision,
+                lookup -> {
+                    Authorizable authorizable = lookup.getInputPort(id);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyUpdateInputPort(requestPortDTO),
+                (revision, portEntity) -> {
+                    final PortDTO portDTO = portEntity.getComponent();
 
-        // update the input port
-        final RevisionDTO revision = portEntity.getRevision();
-        final ConfigurationSnapshot<PortDTO> controllerResponse = serviceFacade.updateInputPort(
-                new Revision(revision.getVersion(), revision.getClientId()), requestPortDTO);
+                    // update the input port
+                    final PortEntity entity = serviceFacade.updateInputPort(revision, portDTO);
+                    populateRemainingInputPortEntityContent(entity);
 
-        // get the results
-        final PortDTO responsePortDTO = controllerResponse.getConfiguration();
-        populateRemainingInputPortContent(responsePortDTO);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(updatedRevision);
-        entity.setInputPort(responsePortDTO);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responsePortDTO.getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**
      * Removes the specified input port.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the input port to remove.
+     * @param version            The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id                 The id of the input port to remove.
      * @return A inputPortEntity.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes an input port",
-            response = InputPortEntity.class,
+            response = PortEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeInputPort(
@@ -388,61 +254,51 @@ public class InputPortResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The input port id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
+
+        final PortEntity requestPortEntity = new PortEntity();
+        requestPortEntity.setId(id);
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyDeleteInputPort(id);
-            return generateContinueResponse().build();
-        }
-
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        // delete the specified input port
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteInputPort(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final InputPortEntity entity = new InputPortEntity();
-        entity.setRevision(revision);
-
-        return clusterContext(generateOkResponse(entity)).build();
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestPortEntity,
+                requestRevision,
+                lookup -> {
+                    final Authorizable inputPort = lookup.getInputPort(id);
+                    inputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyDeleteInputPort(id),
+                (revision, portEntity) -> {
+                    // delete the specified input port
+                    final PortEntity entity = serviceFacade.deleteInputPort(revision, portEntity.getId());
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

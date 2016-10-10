@@ -116,16 +116,6 @@
         <url-pattern>/message</url-pattern>
     </servlet-mapping>
     
-    <!-- servlet to support image downloading -->
-    <servlet>
-        <servlet-name>DownloadSvg</servlet-name>
-        <servlet-class>org.apache.nifi.web.servlet.DownloadSvg</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>DownloadSvg</servlet-name>
-        <url-pattern>/download-svg</url-pattern>
-    </servlet-mapping>
-    
     <!-- servlet to login page -->
     <servlet>
         <servlet-name>Login</servlet-name>
@@ -135,15 +125,6 @@
         <servlet-name>Login</servlet-name>
         <url-pattern>/login</url-pattern>
     </servlet-mapping>
-    
-    <filter>
-        <filter-name>IeEdgeHeader</filter-name>
-        <filter-class>org.apache.nifi.web.filter.IeEdgeHeader</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>IeEdgeHeader</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
     
     <welcome-file-list>
         <welcome-file>canvas.jsp</welcome-file>

@@ -41,7 +41,7 @@ lexer grammar AttributeExpressionLexer;
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
   }
 
@@ -58,9 +58,9 @@ lexer grammar AttributeExpressionLexer;
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
-  } 
+  }
 }
 
 
@@ -116,6 +116,19 @@ URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
 COUNT : 'count';
+RANDOM : 'random';
+ESCAPE_JSON : 'escapeJson';
+ESCAPE_XML : 'escapeXml';
+ESCAPE_CSV : 'escapeCsv';
+ESCAPE_HTML3 : 'escapeHtml3';
+ESCAPE_HTML4 : 'escapeHtml4';
+UNESCAPE_JSON : 'unescapeJson';
+UNESCAPE_XML : 'unescapeXml';
+UNESCAPE_CSV : 'unescapeCsv';
+UNESCAPE_HTML3 : 'unescapeHtml3';
+UNESCAPE_HTML4 : 'unescapeHtml4';
+BASE64_ENCODE : 'base64Encode';
+BASE64_DECODE : 'base64Decode';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -151,14 +164,19 @@ OR : 'or';
 AND : 'and';
 JOIN : 'join';
 TO_LITERAL : 'literal';
+JSON_PATH : 'jsonPath';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
 REPLACE	: 'replace';
+REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';
+
+// unlimited arg functions
+IN : 'in';
 
 // STRINGS
 STRING_LITERAL
@@ -168,7 +186,7 @@ STRING_LITERAL
 			'"'
 				(
 					escaped=ESC {lBuf.append(getText());} |
-				  	normal = ~( '"' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);} 
+				  	normal = ~( '"' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);}
 				)*
 			'"'
 		)
@@ -180,7 +198,7 @@ STRING_LITERAL
 			'\''
 				(
 					escaped=ESC {lBuf.append(getText());} |
-				  	normal = ~( '\'' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);} 
+				  	normal = ~( '\'' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);}
 				)*
 			'\''
 		)
@@ -200,7 +218,7 @@ ESC
 			|	'n'		{ setText("\n"); }
 			|	't'		{ setText("\t"); }
 			|	'\\'	{ setText("\\\\"); }
-			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')		
+			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')
 				{
 					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\\\").appendCodePoint(nextChar); setText(lBuf.toString());
 				}

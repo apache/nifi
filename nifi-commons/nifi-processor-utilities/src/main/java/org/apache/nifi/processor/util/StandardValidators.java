@@ -17,18 +17,20 @@
 package org.apache.nifi.processor.util;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.Collection;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -127,10 +129,27 @@ public class StandardValidators {
 
     public static final Validator PORT_VALIDATOR = createLongValidator(1, 65535, true);
 
+    /**
+     * {@link Validator} that ensures that value's length > 0
+     */
     public static final Validator NON_EMPTY_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             return new ValidationResult.Builder().subject(subject).input(value).valid(value != null && !value.isEmpty()).explanation(subject + " cannot be empty").build();
+        }
+    };
+
+    /**
+     * {@link Validator} that ensures that value has 1+ non-whitespace
+     * characters
+     */
+    public static final Validator NON_BLANK_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            return new ValidationResult.Builder().subject(subject).input(value)
+                    .valid(value != null && !value.trim().isEmpty())
+                    .explanation(subject
+                            + " must contain at least one character that is not white space").build();
         }
     };
 
@@ -180,6 +199,19 @@ public class StandardValidators {
             }
 
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
+    public static final Validator ISO8061_INSTANT_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+
+            try {
+                Instant.parse(input);
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO8061 Instant Date").valid(true).build();
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO8061 Instant Date, please enter in UTC time").valid(false).build();
+            }
         }
     };
 
@@ -264,15 +296,17 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                try {
+                    final String result = context.newExpressionLanguageCompiler().validateExpression(input, true);
+                    if (!StringUtils.isEmpty(result)) {
+                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(result).build();
+                    }
+                } catch (final Exception e) {
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(e.getMessage()).build();
+                }
             }
 
-            try {
-                context.newExpressionLanguageCompiler().compile(input);
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(e.getMessage()).build();
-            }
+            return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
         }
 
     };
@@ -361,6 +395,68 @@ public class StandardValidators {
         };
     }
 
+    public static Validator createURLorFileValidator() {
+        return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
+            try {
+                PropertyValue propertyValue = context.newPropertyValue(input);
+                String evaluatedInput = (propertyValue == null) ? input : propertyValue.evaluateAttributeExpressions().getValue();
+
+                boolean validUrl = true;
+
+                // First check to see if it is a valid URL
+                try {
+                    new URL(evaluatedInput);
+                } catch (MalformedURLException mue) {
+                    validUrl = false;
+                }
+
+                boolean validFile = true;
+                if (!validUrl) {
+                    // Check to see if it is a file and it exists
+                    final File file = new File(evaluatedInput);
+                    validFile = file.exists();
+                }
+
+                final boolean valid = validUrl || validFile;
+                final String reason = valid ? "Valid URL or file" : "Not a valid URL or file";
+                return new ValidationResult.Builder().subject(subject).input(input).explanation(reason).valid(valid).build();
+
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid URL or file").valid(false).build();
+            }
+        };
+    }
+
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries, Validator validator) {
+        return (subject, input, context) -> {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+            try {
+                if (input == null) {
+                    return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
+                }
+                final String[] list = input.split(",");
+                for (String item : list) {
+                    String itemToValidate = trimEntries ? item.trim() : item;
+                    if(!StringUtils.isEmpty(itemToValidate) || !excludeEmptyEntries) {
+                        ValidationResult result = validator.validate(subject, itemToValidate, context);
+                        if (!result.isValid()) {
+                            return result;
+                        }
+                    }
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid List").valid(true).build();
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid list").valid(false).build();
+            }
+        };
+    }
+
     public static Validator createTimePeriodValidator(final long minTime, final TimeUnit minTimeUnit, final long maxTime, final TimeUnit maxTimeUnit) {
         return new TimePeriodValidator(minTime, minTimeUnit, maxTime, maxTimeUnit);
     }
@@ -425,10 +521,10 @@ public class StandardValidators {
      * Language will not support FlowFile Attributes but only System/JVM
      * Properties
      *
-     * @param minCapturingGroups minimum capturing groups allowed
-     * @param maxCapturingGroups maximum capturing groups allowed
+     * @param minCapturingGroups                 minimum capturing groups allowed
+     * @param maxCapturingGroups                 maximum capturing groups allowed
      * @param supportAttributeExpressionLanguage whether or not to support
-     * expression language
+     *                                           expression language
      * @return validator
      */
     public static Validator createRegexValidator(final int minCapturingGroups, final int maxCapturingGroups, final boolean supportAttributeExpressionLanguage) {
@@ -625,17 +721,17 @@ public class StandardValidators {
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             if (value.length() < minimum || value.length() > maximum) {
                 return new ValidationResult.Builder()
-                  .subject(subject)
-                  .valid(false)
-                  .input(value)
-                  .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
-                  .build();
+                        .subject(subject)
+                        .valid(false)
+                        .input(value)
+                        .explanation(String.format("String length invalid [min: %d, max: %d]", minimum, maximum))
+                        .build();
             } else {
                 return new ValidationResult.Builder()
-                  .valid(true)
-                  .input(value)
-                  .subject(subject)
-                  .build();
+                        .valid(true)
+                        .input(value)
+                        .subject(subject)
+                        .build();
             }
         }
     }
@@ -691,56 +787,5 @@ public class StandardValidators {
 
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
         }
-    }
-
-    /**
-     * Creates a validator based on existence of a {@link ControllerService}.
-     *
-     * @param serviceClass the controller service API your
-     * {@link ConfigurableComponent} depends on
-     * @return a Validator
-     * @deprecated As of release 0.1.0-incubating, replaced by
-     * {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesControllerService(Class)}
-     */
-    @Deprecated
-    public static Validator createControllerServiceExistsValidator(final Class<? extends ControllerService> serviceClass) {
-        return new Validator() {
-            @Override
-            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                }
-
-                final ControllerService svc = context.getControllerServiceLookup().getControllerService(input);
-
-                if (svc == null) {
-                    return new ValidationResult.Builder().valid(false).input(input).subject(subject).explanation("No Controller Service exists with this ID").build();
-                }
-
-                if (!serviceClass.isAssignableFrom(svc.getClass())) {
-                    return new ValidationResult.Builder()
-                            .valid(false)
-                            .input(input)
-                            .subject(subject)
-                            .explanation("Controller Service with this ID is of type " + svc.getClass().getName() + " but is expected to be of type " + serviceClass.getName())
-                            .build();
-                }
-
-                final ValidationContext serviceValidationContext = context.getControllerServiceValidationContext(svc);
-                final Collection<ValidationResult> serviceValidationResults = svc.validate(serviceValidationContext);
-                for (final ValidationResult result : serviceValidationResults) {
-                    if (!result.isValid()) {
-                        return new ValidationResult.Builder()
-                                .valid(false)
-                                .input(input)
-                                .subject(subject)
-                                .explanation("Controller Service " + input + " is not valid: " + result.getExplanation())
-                                .build();
-                    }
-                }
-
-                return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();
-            }
-        };
     }
 }
