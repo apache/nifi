@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis.firehose;
+package org.apache.nifi.processors.aws.kinesis.stream;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
@@ -24,47 +24,30 @@ import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
+import com.amazonaws.services.kinesis.AmazonKinesisClient;
 
 /**
- * This class provides processor the base class for kinesis firehose
+ * This class provides processor the base class for kinesis client
  */
-public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisFirehoseClient> {
+public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisClient> {
 
-    public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("Amazon Kinesis Firehose Delivery Stream Name")
-            .description("The name of kinesis firehose delivery stream")
+    public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
             .expressionLanguageSupported(false)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
-            .description("Batch size for messages (1-500).")
-            .defaultValue("250")
-            .required(false)
-            .addValidator(StandardValidators.createLongValidator(1, 500, true))
-            .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("Max message buffer size")
-            .description("Max message buffer")
-            .defaultValue("1 MB")
-            .required(false)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .sensitive(false)
             .build();
 
     /**
      * Create client using aws credentials provider. This is the preferred way for creating clients
      */
     @Override
-    protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
+    protected AmazonKinesisClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider");
 
-        return new AmazonKinesisFirehoseClient(credentialsProvider, config);
+        return new AmazonKinesisClient(credentialsProvider, config);
     }
 
     /**
@@ -73,9 +56,10 @@ public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKines
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */
     @Override
-    protected AmazonKinesisFirehoseClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
+    protected AmazonKinesisClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials");
 
-        return new AmazonKinesisFirehoseClient(credentials, config);
+        return new AmazonKinesisClient(credentials, config);
     }
+
 }

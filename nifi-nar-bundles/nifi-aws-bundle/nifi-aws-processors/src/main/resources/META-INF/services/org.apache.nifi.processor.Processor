@@ -25,3 +25,4 @@ org.apache.nifi.processors.aws.kinesis.firehose.PutKinesisFirehose
 org.apache.nifi.processors.aws.dynamodb.GetDynamoDB
 org.apache.nifi.processors.aws.dynamodb.PutDynamoDB
 org.apache.nifi.processors.aws.dynamodb.DeleteDynamoDB
+org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream
