@@ -62,17 +62,17 @@ import org.springframework.jms.core.JmsTemplate;
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
-            "AUTO_ACKNOWLEDGE",
+            "AUTO_ACKNOWLEDGE (" + String.valueOf(Session.AUTO_ACKNOWLEDGE) + ")",
             "Automatically acknowledges a client's receipt of a message, regardless if NiFi session has been commited. "
                     + "Can result in data loss in the event where NiFi abruptly stopped before session was commited.");
 
     static final AllowableValue CLIENT_ACK = new AllowableValue(String.valueOf(Session.CLIENT_ACKNOWLEDGE),
-            "CLIENT_ACKNOWLEDGE",
+            "CLIENT_ACKNOWLEDGE (" + String.valueOf(Session.CLIENT_ACKNOWLEDGE) + ")",
             "(DEFAULT) Manually acknowledges a client's receipt of a message after NiFi Session was commited, thus ensuring no data loss");
 
     static final AllowableValue DUPS_OK = new AllowableValue(String.valueOf(Session.DUPS_OK_ACKNOWLEDGE),
-            "DUPS_OK_ACKNOWLEDGE",
-            "This acknowledgment mode instructs the session to lazily acknowledge the delivery of messages. May result uin both data "
+            "DUPS_OK_ACKNOWLEDGE (" + String.valueOf(Session.DUPS_OK_ACKNOWLEDGE) + ")",
+            "This acknowledgment mode instructs the session to lazily acknowledge the delivery of messages. May result in both data "
                     + "duplication and data loss while achieving the best throughput.");
 
     public static final String JMS_SOURCE_DESTINATION_NAME = "jms.source.destination";
@@ -93,7 +93,14 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     private final static Set<Relationship> relationships;
 
+    private final static List<PropertyDescriptor> thisPropertyDescriptors;
+
     static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.addAll(propertyDescriptors);
+        _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
+        thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
@@ -158,9 +165,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> pd = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        pd.add(ACKNOWLEDGEMENT_MODE);
-        return pd;
+        return thisPropertyDescriptors;
     }
 
     /**
