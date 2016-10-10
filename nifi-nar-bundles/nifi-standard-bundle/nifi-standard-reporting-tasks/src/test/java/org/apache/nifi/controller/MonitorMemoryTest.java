@@ -62,7 +62,10 @@ public class MonitorMemoryTest {
     @Test(expected = IllegalStateException.class)
     public void validatevalidationKicksInOnWrongPoolNames() throws Exception {
         ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName());
-        reportingTask.setProperty(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "foo");
+
+        Map<String,String> props = new HashMap<>();
+        props.put(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "foo");
+        reportingTask.setProperties(props);
         ProcessScheduler ps = fc.getProcessScheduler();
         ps.schedule(reportingTask);
     }
@@ -91,9 +94,12 @@ public class MonitorMemoryTest {
         CapturingLogger capturingLogger = this.wrapAndReturnCapturingLogger();
         ReportingTaskNode reportingTask = fc.createReportingTask(MonitorMemory.class.getName());
         reportingTask.setSchedulingPeriod("1 sec");
-        reportingTask.setProperty(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "PS Old Gen");
-        reportingTask.setProperty(MonitorMemory.REPORTING_INTERVAL.getName(), "100 millis");
-        reportingTask.setProperty(MonitorMemory.THRESHOLD_PROPERTY.getName(), threshold);
+
+        Map<String,String> props = new HashMap<>();
+        props.put(MonitorMemory.MEMORY_POOL_PROPERTY.getName(), "PS Old Gen");
+        props.put(MonitorMemory.REPORTING_INTERVAL.getName(), "100 millis");
+        props.put(MonitorMemory.THRESHOLD_PROPERTY.getName(), threshold);
+        reportingTask.setProperties(props);
 
         ProcessScheduler ps = fc.getProcessScheduler();
         ps.schedule(reportingTask);

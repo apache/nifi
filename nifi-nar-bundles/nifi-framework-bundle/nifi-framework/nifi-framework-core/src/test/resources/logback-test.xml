@@ -30,9 +30,12 @@
     
     
     <logger name="org.apache.nifi" level="INFO"/>
+    <logger name="org.apache.nifi.controller.service.mock" level="ERROR"/>
+
+    <logger name="StandardProcessSession.claims" level="INFO" />
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
-    
-    <logger name="StandardProcessSession.claims" level="DEBUG" />
+
 </configuration>

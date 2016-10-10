@@ -16,10 +16,27 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,14 +46,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.nar.NarCloseable;
 
 public abstract class AbstractConfiguredComponent implements ConfigurableComponent, ConfiguredComponent {
 
@@ -48,13 +57,17 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final AtomicReference<String> annotationData = new AtomicReference<>();
     private final String componentType;
     private final String componentCanonicalClass;
+    private final VariableRegistry variableRegistry;
+    private final ComponentLog logger;
+
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
 
     public AbstractConfiguredComponent(final ConfigurableComponent component, final String id,
-        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-        final String componentType, final String componentCanonicalClass) {
+                                       final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+                                       final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
+                                       final ComponentLog logger) {
         this.id = id;
         this.component = component;
         this.validationContextFactory = validationContextFactory;
@@ -62,6 +75,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.name = new AtomicReference<>(component.getClass().getSimpleName());
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
+        this.variableRegistry = variableRegistry;
+        this.logger = logger;
     }
 
     @Override
@@ -90,44 +105,69 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void setProperty(final String name, final String value) {
-        if (null == name || null == value) {
-            throw new IllegalArgumentException();
+    public void setProperties(Map<String, String> properties) {
+        if (properties == null) {
+            return;
         }
 
         lock.lock();
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
-                final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), id)) {
+                final Set<String> modulePaths = new LinkedHashSet<>();
+                for (final Map.Entry<String, String> entry : properties.entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() == null) {
+                        removeProperty(entry.getKey());
+                    } else if (entry.getKey() != null) {
+                        setProperty(entry.getKey(), entry.getValue());
 
-                final String oldValue = properties.put(descriptor, value);
-                if (!value.equals(oldValue)) {
-
-                    if (descriptor.getControllerServiceDefinition() != null) {
-                        if (oldValue != null) {
-                            final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldValue);
-                            if (oldNode != null) {
-                                oldNode.removeReference(this);
-                            }
+                        // for any properties that dynamically modify the classpath, attempt to evaluate them for expression language
+                        final PropertyDescriptor descriptor = component.getPropertyDescriptor(entry.getKey());
+                        if (descriptor.isDynamicClasspathModifier() && !StringUtils.isEmpty(entry.getValue())) {
+                            final StandardPropertyValue propertyValue = new StandardPropertyValue(entry.getValue(), null, variableRegistry);
+                            modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
                         }
-
-                        final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(value);
-                        if (newNode != null) {
-                            newNode.addReference(this);
-                        }
-                    }
-
-                    try {
-                        component.onPropertyModified(descriptor, oldValue, value);
-                    } catch (final Exception e) {
-                        // nothing really to do here...
                     }
                 }
+
+                processClasspathModifiers(modulePaths);
             }
         } finally {
             lock.unlock();
+        }
+    }
+
+    // Keep setProperty/removeProperty private so that all calls go through setProperties
+    private void setProperty(final String name, final String value) {
+        if (null == name || null == value) {
+            throw new IllegalArgumentException("Name or Value can not be null");
+        }
+
+        final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
+
+        final String oldValue = properties.put(descriptor, value);
+        if (!value.equals(oldValue)) {
+
+            if (descriptor.getControllerServiceDefinition() != null) {
+                if (oldValue != null) {
+                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldValue);
+                    if (oldNode != null) {
+                        oldNode.removeReference(this);
+                    }
+                }
+
+                final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(value);
+                if (newNode != null) {
+                    newNode.addReference(this);
+                }
+            }
+
+            try {
+                component.onPropertyModified(descriptor, oldValue, value);
+            } catch (final Exception e) {
+                // nothing really to do here...
+            }
         }
     }
 
@@ -141,48 +181,74 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      * @return true if removed; false otherwise
      * @throws java.lang.IllegalArgumentException if the name is null
      */
-    @Override
-    public boolean removeProperty(final String name) {
+    private boolean removeProperty(final String name) {
         if (null == name) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Name can not be null");
         }
 
-        lock.lock();
-        try {
-            verifyModifiable();
+        final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
+        String value = null;
+        if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
 
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
-                final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
-                String value = null;
-                if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
-
-                    if (descriptor.getControllerServiceDefinition() != null) {
-                        if (value != null) {
-                            final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(value);
-                            if (oldNode != null) {
-                                oldNode.removeReference(this);
-                            }
-                        }
+            if (descriptor.getControllerServiceDefinition() != null) {
+                if (value != null) {
+                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(value);
+                    if (oldNode != null) {
+                        oldNode.removeReference(this);
                     }
-
-                    try {
-                        component.onPropertyModified(descriptor, value, null);
-                    } catch (final Exception e) {
-                        // nothing really to do here...
-                    }
-
-                    return true;
                 }
             }
-        } finally {
-            lock.unlock();
+
+            try {
+                component.onPropertyModified(descriptor, value, null);
+            } catch (final Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+
+            return true;
         }
+
         return false;
+    }
+
+    /**
+     * Adds all of the modules identified by the given module paths to the InstanceClassLoader for this component.
+     *
+     * @param modulePaths a list of module paths where each entry can be a comma-separated list of multiple module paths
+     */
+    private void processClasspathModifiers(final Set<String> modulePaths) {
+        try {
+            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Adding {} resources to the classpath for {}", new Object[] {urls.length, name});
+                for (URL url : urls) {
+                    logger.debug(url.getFile());
+                }
+            }
+
+            final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+
+            if (!(classLoader instanceof InstanceClassLoader)) {
+                // Really shouldn't happen, but if we somehow got here and don't have an InstanceClassLoader then log a warning and move on
+                final String classLoaderName = classLoader == null ? "null" : classLoader.getClass().getName();
+                if (logger.isWarnEnabled()) {
+                    logger.warn(String.format("Unable to modify the classpath for %s, expected InstanceClassLoader, but found %s", name, classLoaderName));
+                }
+                return;
+            }
+
+            final InstanceClassLoader instanceClassLoader = (InstanceClassLoader) classLoader;
+            instanceClassLoader.setInstanceResources(urls);
+        } catch (MalformedURLException e) {
+            // Shouldn't get here since we are suppressing errors
+            logger.warn("Error processing classpath resources", e);
+        }
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -226,35 +292,35 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             return component.toString();
         }
     }
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             return component.validate(context);
         }
     }
 
     @Override
     public PropertyDescriptor getPropertyDescriptor(final String name) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             return component.getPropertyDescriptor(name);
         }
     }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             component.onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
     @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             return component.getPropertyDescriptors();
         }
     }
@@ -286,7 +352,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
                 validationResults = component.validate(validationContext);
             }
 
@@ -327,4 +393,9 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     protected ValidationContextFactory getValidationContextFactory() {
         return this.validationContextFactory;
     }
+
+    protected VariableRegistry getVariableRegistry() {
+        return this.variableRegistry;
+    }
+
 }

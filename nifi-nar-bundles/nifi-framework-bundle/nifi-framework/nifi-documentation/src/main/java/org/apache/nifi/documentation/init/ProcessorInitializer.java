@@ -26,6 +26,7 @@ import org.apache.nifi.documentation.util.ReflectionUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 
 /**
  * Initializes a Procesor using a MockProcessorInitializationContext
@@ -37,15 +38,16 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
     @Override
     public void initialize(ConfigurableComponent component) {
         Processor processor = (Processor) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
-            processor.initialize(new MockProcessorInitializationContext());
+        ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), initializationContext.getIdentifier())) {
+            processor.initialize(initializationContext);
         }
     }
 
     @Override
     public void teardown(ConfigurableComponent component) {
         Processor processor = (Processor) component;
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
 
             final ComponentLog logger = new MockComponentLogger();
             final MockProcessContext context = new MockProcessContext();

@@ -21,7 +21,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -57,6 +59,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
@@ -95,7 +98,8 @@ public class TestStandardProcessScheduler {
         reportingTask.initialize(config);
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
-        taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory, variableRegistry);
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory, variableRegistry, logger);
 
         controller = Mockito.mock(FlowController.class);
         rootGroup = new MockProcessGroup();
@@ -129,18 +133,24 @@ public class TestStandardProcessScheduler {
 
     @Test(timeout = 60000)
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
+        final String uuid = UUID.randomUUID().toString();
         final Processor proc = new ServiceReferencingProcessor();
+        proc.initialize(new StandardProcessorInitializationContext(uuid, null, null, null, null));
 
         final StandardControllerServiceProvider serviceProvider =
                 new StandardControllerServiceProvider(controller, scheduler, null, Mockito.mock(StateManagerProvider.class), variableRegistry, nifiProperties);
         final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service", true);
         rootGroup.addControllerService(service);
 
-        final ProcessorNode procNode = new StandardProcessorNode(proc, UUID.randomUUID().toString(),
-                new StandardValidationContextFactory(serviceProvider, variableRegistry), scheduler, serviceProvider, nifiProperties);
+        final ProcessorNode procNode = new StandardProcessorNode(proc, uuid,
+                new StandardValidationContextFactory(serviceProvider, variableRegistry),
+                scheduler, serviceProvider, nifiProperties, VariableRegistry.EMPTY_REGISTRY,
+                Mockito.mock(ComponentLog.class));
         rootGroup.addProcessor(procNode);
 
-        procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
+        Map<String,String> procProps = new HashMap<>();
+        procProps.put(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
+        procNode.setProperties(procProps);
 
         scheduler.enableControllerService(service);
         scheduler.startProcessor(procNode);

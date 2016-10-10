@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hbase;
 
-import java.io.File;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -36,6 +35,7 @@ import org.apache.hadoop.hbase.filter.ParseFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -57,6 +57,7 @@ import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
@@ -68,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+@RequiresInstanceClassLoading
 @Tags({ "hbase", "client"})
 @CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
         "a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
@@ -109,6 +111,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_CLIENT_PORT);
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
+        props.add(PHOENIX_CLIENT_JAR_LOCATION);
         this.properties = Collections.unmodifiableList(props);
     }
 

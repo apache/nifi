@@ -131,7 +131,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader cl = ExtensionManager.getClassLoader(type);
+            final ClassLoader cl = ExtensionManager.getClassLoader(type, id);
             final Class<?> rawClass;
 
             try {
@@ -165,7 +165,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
                     if (disabled && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
-                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
+                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
                             throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
                                     + " because the Controller Service is disabled");
                         } catch (final Throwable e) {
@@ -173,7 +173,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         }
                     }
 
-                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass())) {
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
                         return method.invoke(originalService, args);
                     } catch (final InvocationTargetException e) {
                         // If the ControllerService throws an Exception, it'll be wrapped in an InvocationTargetException. We want
@@ -194,14 +194,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
             originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id), nifiProperties));
 
+            final ComponentLog logger = new SimpleProcessLogger(id, originalService);
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this, variableRegistry);
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this, variableRegistry, logger);
             serviceNodeHolder.set(serviceNode);
             serviceNode.setName(rawClass.getSimpleName());
 
             if (firstTimeAdded) {
-                try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass())) {
+                try (final NarCloseable x = NarCloseable.withComponentNarLoader(originalService.getClass(), originalService.getIdentifier())) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
                 } catch (final Exception e) {
                     throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
@@ -264,8 +265,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
 
+        final ComponentLog logger = new SimpleProcessLogger(id, proxiedService);
+
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, proxiedService, id,
-                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry);
+                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, logger);
         return serviceNode;
     }
 
@@ -585,6 +588,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         group.removeControllerService(serviceNode);
+        ExtensionManager.removeInstanceClassLoaderIfExists(serviceNode.getIdentifier());
     }
 
     @Override

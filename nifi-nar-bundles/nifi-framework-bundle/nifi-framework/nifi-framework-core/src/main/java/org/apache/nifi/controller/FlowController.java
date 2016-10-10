@@ -731,7 +731,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void notifyComponentsConfigurationRestored() {
         for (final ProcessorNode procNode : getGroup(getRootGroupId()).findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
             }
         }
@@ -739,7 +739,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -747,7 +747,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
             }
         }
@@ -1046,21 +1046,22 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             creationSuccessful = false;
         }
 
+        final ComponentLog logger = new SimpleProcessLogger(id, processor);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ProcessorNode procNode;
         if (creationSuccessful) {
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties);
+            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties, variableRegistry, logger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties);
+            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties, variableRegistry, logger);
         }
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
 
         if (firstTimeAdded) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
@@ -1068,7 +1069,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             if (firstTimeAdded) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), processor.getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
             }
@@ -1082,14 +1083,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type);
+            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type, identifier);
             final Class<?> rawClass;
             if (detectedClassLoaderForType == null) {
                 // try to find from the current class loader
                 rawClass = Class.forName(type);
             } else {
                 // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type));
+                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type, identifier));
             }
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
@@ -1328,7 +1329,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
                 }
@@ -1337,7 +1338,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
                 final ConfigurationContext configContext = taskNode.getConfigurationContext();
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
                 }
             }
@@ -1609,12 +1610,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final String serviceId = controllerServiceDTO.getId();
                 final ControllerServiceNode serviceNode = getControllerServiceNode(serviceId);
-
-                for (final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet()) {
-                    if (entry.getValue() != null) {
-                        serviceNode.setProperty(entry.getKey(), entry.getValue());
-                    }
-                }
+                serviceNode.setProperties(controllerServiceDTO.getProperties());
             }
 
             //
@@ -1728,11 +1724,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 if (config.getProperties() != null) {
-                    for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
-                        if (entry.getValue() != null) {
-                            procNode.setProperty(entry.getKey(), entry.getValue());
-                        }
-                    }
+                    procNode.setProperties(config.getProperties());
                 }
 
                 group.addProcessor(procNode);
@@ -2826,7 +2818,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         boolean creationSuccessful = true;
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type);
+            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type, id);
             final Class<?> rawClass;
             if (detectedClassLoader == null) {
                 rawClass = Class.forName(type);
@@ -2851,15 +2843,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
+        final ComponentLog logger = new SimpleProcessLogger(id, task);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry, logger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry, logger);
         }
 
         taskNode.setName(task.getClass().getSimpleName());
@@ -2875,7 +2868,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + type, ie);
             }
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getReportingTask().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
@@ -2929,7 +2922,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         reportingTaskNode.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getReportingTask().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
@@ -2947,6 +2940,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         reportingTasks.remove(reportingTaskNode.getIdentifier());
+        ExtensionManager.removeInstanceClassLoaderIfExists(reportingTaskNode.getIdentifier());
     }
 
     @Override
@@ -2966,7 +2960,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (firstTimeAdded) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -3085,7 +3079,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         service.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
@@ -3105,6 +3099,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         rootControllerServices.remove(service.getIdentifier());
         getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+        ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
 
         LOG.info("{} removed from Flow Controller", service, this);
     }
@@ -3451,17 +3447,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
         final ProcessGroup rootGroup = getGroup(getRootGroupId());
         for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
         }
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
         }
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
         }

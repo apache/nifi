@@ -35,25 +35,7 @@ public interface ConfiguredComponent extends Authorizable {
 
     public void setAnnotationData(String data);
 
-    /**
-     * Sets the property with the given name to the given value
-     *
-     * @param name the name of the property to update
-     * @param value the value to update the property to
-     */
-    public void setProperty(String name, String value);
-
-    /**
-     * Removes the property and value for the given property name if a
-     * descriptor and value exists for the given name. If the property is
-     * optional its value might be reset to default or will be removed entirely
-     * if was a dynamic property.
-     *
-     * @param name the property to remove
-     * @return true if removed; false otherwise
-     * @throws java.lang.IllegalArgumentException if the name is null
-     */
-    public boolean removeProperty(String name);
+    public void setProperties(Map<String, String> properties);
 
     public Map<PropertyDescriptor, String> getProperties();
 
@@ -75,4 +57,5 @@ public interface ConfiguredComponent extends Authorizable {
      * @return the Canonical Class Name of the component
      */
     String getCanonicalClassName();
+
 }

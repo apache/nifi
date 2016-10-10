@@ -83,10 +83,12 @@ public class TestProcessorLifecycle {
 
     private static final Logger logger = LoggerFactory.getLogger(TestProcessorLifecycle.class);
     private FlowController fc;
+    private Map<String,String> properties = new HashMap<>();
 
     @Before
     public void before() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestProcessorLifecycle.class.getResource("/nifi.properties").getFile());
+        properties.put("P", "hello");
     }
 
     @After
@@ -124,7 +126,7 @@ public class TestProcessorLifecycle {
         this.setControllerRootGroup(fc, testGroup);
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(),
                 UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         assertEquals(ScheduledState.STOPPED, testProcNode.getScheduledState());
         assertEquals(ScheduledState.STOPPED, testProcNode.getPhysicalScheduledState());
         // validates idempotency
@@ -149,7 +151,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -175,7 +177,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
         // sets the scenario for the processor to run
@@ -198,7 +200,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -241,7 +243,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         final ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -297,7 +299,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -333,7 +335,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -365,7 +367,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -396,7 +398,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         // sets the scenario for the processor to run
         this.blockingInterruptableOnUnschedule(testProcessor);
@@ -424,7 +426,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         // sets the scenario for the processor to run
         this.blockingUninterruptableOnUnschedule(testProcessor);
@@ -457,7 +459,7 @@ public class TestProcessorLifecycle {
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNode.setProperty("P", "hello");
+        testProcNode.setProperties(properties);
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
@@ -504,8 +506,8 @@ public class TestProcessorLifecycle {
         ControllerServiceNode testServiceNode = fc.createControllerService(TestService.class.getName(), "serv", true);
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
 
-        testProcNode.setProperty("P", "hello");
-        testProcNode.setProperty("S", testServiceNode.getIdentifier());
+        properties.put("S", testServiceNode.getIdentifier());
+        testProcNode.setProperties(properties);
 
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         testProcessor.withService = true;
@@ -529,8 +531,9 @@ public class TestProcessorLifecycle {
 
         ProcessorNode testProcNode = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
         testGroup.addProcessor(testProcNode);
-        testProcNode.setProperty("P", "hello");
-        testProcNode.setProperty("S", testServiceNode.getIdentifier());
+
+        properties.put("S", testServiceNode.getIdentifier());
+        testProcNode.setProperties(properties);
 
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
         testProcessor.withService = true;
@@ -556,11 +559,11 @@ public class TestProcessorLifecycle {
         this.setControllerRootGroup(fc, testGroup);
 
         ProcessorNode testProcNodeA = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNodeA.setProperty("P", "hello");
+        testProcNodeA.setProperties(properties);
         testGroup.addProcessor(testProcNodeA);
 
         ProcessorNode testProcNodeB = fc.createProcessor(TestProcessor.class.getName(), UUID.randomUUID().toString());
-        testProcNodeB.setProperty("P", "hello");
+        testProcNodeB.setProperties(properties);
         testGroup.addProcessor(testProcNodeB);
 
         Collection<String> relationNames = new ArrayList<String>();
