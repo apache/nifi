@@ -19,6 +19,7 @@ package org.apache.nifi.documentation.init;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.documentation.ConfigurableComponentInitializer;
 import org.apache.nifi.documentation.mock.MockConfigurationContext;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
@@ -38,15 +39,15 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
     @Override
     public void initialize(ConfigurableComponent component) throws InitializationException {
         ControllerService controllerService = (ControllerService) component;
-
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
-            controllerService.initialize(new MockControllerServiceInitializationContext());
+        ControllerServiceInitializationContext context = new MockControllerServiceInitializationContext();
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), context.getIdentifier())) {
+            controllerService.initialize(context);
         }
     }
 
     @Override
     public void teardown(ConfigurableComponent component) {
-        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), component.getIdentifier())) {
             ControllerService controllerService = (ControllerService) component;
 
             final ComponentLog logger = new MockComponentLogger();

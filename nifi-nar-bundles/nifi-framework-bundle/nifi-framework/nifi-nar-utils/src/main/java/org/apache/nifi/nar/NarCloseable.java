@@ -35,18 +35,20 @@ public class NarCloseable implements Closeable {
     }
 
     /**
-     * Sets the current thread context class loader to the specific appropriate
-     * Nar class loader for the given configurable component. Restores to the
-     * previous classloader once complete. If the given class is not assignable
-     * from ConfigurableComponent then the NarThreadContextClassLoader is used.
+     * Sets the current thread context class loader to the specific appropriate class loader for the given
+     * component. If the component requires per-instance class loading then the class loader will be the
+     * specific class loader for instance with the given identifier, otherwise the class loader will be
+     * the NARClassLoader.
      *
-     * @param componentClass componentClass
-     * @return NarCloseable with current thread context classloader jailed to
-     * the nar of the component
+     * @param componentClass the component class
+     * @param componentIdentifier the identifier of the component
+     * @return NarCloseable with the current thread context classloader jailed to the Nar
+     *              or instance class loader of the component
      */
-    public static NarCloseable withComponentNarLoader(final Class componentClass) {
+    public static NarCloseable withComponentNarLoader(final Class componentClass, final String componentIdentifier) {
         final ClassLoader current = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(componentClass.getClassLoader());
+        final ClassLoader instanceClassLoader = ExtensionManager.getClassLoader(componentClass.getName(), componentIdentifier);
+        Thread.currentThread().setContextClassLoader(instanceClassLoader);
         return new NarCloseable(current);
     }
 

@@ -166,11 +166,11 @@ public class ControllerServiceLoader {
         clone.setComments(controllerService.getComments());
 
         if (controllerService.getProperties() != null) {
+            Map<String,String> properties = new HashMap<>();
             for (Map.Entry<PropertyDescriptor, String> propEntry : controllerService.getProperties().entrySet()) {
-                if (propEntry.getValue() != null) {
-                    clone.setProperty(propEntry.getKey().getName(), propEntry.getValue());
-                }
+                properties.put(propEntry.getKey().getName(), propEntry.getValue());
             }
+            clone.setProperties(properties);
         }
 
         return clone;
@@ -188,14 +188,7 @@ public class ControllerServiceLoader {
     private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
         node.setAnnotationData(dto.getAnnotationData());
-
-        for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
-            if (entry.getValue() == null) {
-                node.removeProperty(entry.getKey());
-            } else {
-                node.setProperty(entry.getKey(), entry.getValue());
-            }
-        }
+        node.setProperties(dto.getProperties());
     }
 
 }

@@ -50,7 +50,7 @@ public class TestControllerService implements ControllerService {
 
     @Override
     public String getIdentifier() {
-        return null;
+        return "id";
     }
 
     @Override

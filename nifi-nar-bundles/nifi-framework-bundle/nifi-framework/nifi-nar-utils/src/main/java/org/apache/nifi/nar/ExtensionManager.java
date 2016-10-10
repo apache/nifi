@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.controller.ControllerService;
@@ -27,15 +28,20 @@ import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -51,6 +57,9 @@ public class ExtensionManager {
     private static final Map<Class, Set<Class>> definitionMap = new HashMap<>();
 
     private static final Map<String, ClassLoader> extensionClassloaderLookup = new HashMap<>();
+
+    private static final Set<String> requiresInstanceClassLoading = new HashSet<>();
+    private static final Map<String, ClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
     static {
         definitionMap.put(Processor.class, new HashSet<>());
@@ -126,6 +135,12 @@ public class ExtensionManager {
         if (registeredClassLoader == null) {
             classloaderMap.put(className, classLoader);
             classes.add(type);
+
+            // keep track of which classes require a class loader per component instance
+            if (type.isAnnotationPresent(RequiresInstanceClassLoading.class)) {
+                requiresInstanceClassLoading.add(className);
+            }
+
         } else {
             boolean loadedFromAncestor = false;
 
@@ -156,6 +171,73 @@ public class ExtensionManager {
      */
     public static ClassLoader getClassLoader(final String classType) {
         return extensionClassloaderLookup.get(classType);
+    }
+
+    /**
+     * Determines the effective ClassLoader for the instance of the given type.
+     *
+     * @param classType the type of class to lookup the ClassLoader for
+     * @param instanceIdentifier the identifier of the specific instance of the classType to look up the ClassLoader for
+     * @return the ClassLoader for the given instance of the given type, or null if the type is not a detected extension type
+     */
+    public static ClassLoader getClassLoader(final String classType, final String instanceIdentifier) {
+        if (StringUtils.isEmpty(classType) || StringUtils.isEmpty(instanceIdentifier)) {
+            throw new IllegalArgumentException("Class Type and Instance Identifier must be provided");
+        }
+
+        // Check if we already have a ClassLoader for this instance
+        ClassLoader instanceClassLoader = instanceClassloaderLookup.get(instanceIdentifier);
+
+        // If we don't then we'll create a new ClassLoader for this instance and add it to the map for future lookups
+        if (instanceClassLoader == null) {
+            final ClassLoader registeredClassLoader = getClassLoader(classType);
+            if (registeredClassLoader == null) {
+                return null;
+            }
+
+            // If the class is annotated with @RequiresInstanceClassLoading and the registered ClassLoader is a URLClassLoader
+            // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
+            // InstanceClassLoader that has the NAR ClassLoader as a parent
+            if (requiresInstanceClassLoading.contains(classType) && (registeredClassLoader instanceof URLClassLoader)) {
+                final URLClassLoader registeredUrlClassLoader = (URLClassLoader) registeredClassLoader;
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+            } else {
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, new URL[0], registeredClassLoader);
+            }
+
+            instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
+        }
+
+        return instanceClassLoader;
+    }
+
+    /**
+     * Removes the ClassLoader for the given instance and closes it if necessary.
+     *
+     * @param instanceIdentifier the identifier of a component to remove the ClassLoader for
+     * @return the removed ClassLoader for the given instance, or null if not found
+     */
+    public static ClassLoader removeInstanceClassLoaderIfExists(final String instanceIdentifier) {
+        ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        if (classLoader != null && (classLoader instanceof URLClassLoader)) {
+            final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
+            try {
+                urlClassLoader.close();
+            } catch (IOException e) {
+                logger.warn("Unable to class URLClassLoader for " + instanceIdentifier);
+            }
+        }
+        return classLoader;
+    }
+
+    /**
+     * Checks if the given class type requires per-instance class loading (i.e. contains the @RequiresInstanceClassLoading annotation)
+     *
+     * @param classType the class to check
+     * @return true if the class is found in the set of classes requiring instance level class loading, false otherwise
+     */
+    public static boolean requiresInstanceClassLoading(final String classType) {
+        return requiresInstanceClassLoading.contains(classType);
     }
 
     public static Set<Class> getExtensions(final Class<?> definition) {

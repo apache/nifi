@@ -2269,6 +2269,58 @@ API artifacts into the same NAR is often acceptable.
 
 
 
+[[per-instance-classloading]]
+== Per-Instance ClassLoading
+
+A component developer may wish to add additional resources to the component’s classpath at runtime.
+For example, you may want to provide the location of a JDBC driver to a processor that interacts with a
+relational database, thus allowing the processor to work with any driver rather than trying to bundle a
+driver into the NAR.
+
+This may be accomplished by declaring one or more PropertyDescriptor instances with
+`dynamicallyModifiesClasspath` set to true. For example:
+
+
+[source,java]
+----
+PropertyDescriptor EXTRA_RESOURCE = new PropertyDescriptor.Builder()
+   .name("Extra Resources")
+   .description("The path to one or more resources to add to the classpath.")
+   .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+   .expressionLanguageSupported(true)
+   .dynamicallyModifiesClasspath(true)
+   .build();
+----
+
+When these properties are set on a component, the framework identifies all properties where
+`dynamicallyModifiesClasspath` is set to true. For each of these properties, the framework
+attempts to resolve filesystem resources from the value of the property. The value may be a
+comma-separated list of one or more directories or files, where any paths that do not exist are
+skipped. If the resource represents a directory, the directory is listed, and all of the files
+in that directory are added to the classpath individually.
+
+Each property may impose further restrictions on the format of the value through the validators.
+For example, using StandardValidators.FILE_EXISTS_VALIDATOR restricts the property to accepting a
+single file. Using StandardValidators.NON_EMPTY_VALIDATOR allows any combination of comma-separated
+files or directories.
+
+Resources are added to the instance ClassLoader by adding them to an inner ClassLoader that is always
+checked first. Anytime the value of these properties change, the inner ClassLoader is closed and
+re-created with the new resources.
+
+NiFi provides the `@RequiresInstanceClassLoading` annotation to further expand and isolate the libraries
+available on a component’s classpath. You can annotate a component with `@RequiresInstanceClassLoading`
+to indicate that the instance ClassLoader for the component requires a copy of all the resources in the
+component's NAR ClassLoader. When `@RequiresInstanceClassLoading` is not present, the
+instance ClassLoader simply has it's parent ClassLoader set to the NAR ClassLoader, rather than
+copying resources.
+
+Because @RequiresInstanceClassLoading copies resources from the NAR ClassLoader for each instance of the
+component, use this capability judiciously. If ten instances of one component are created, all classes
+from the component's NAR ClassLoader are loaded into memory ten times. This could eventually increase the
+memory footprint significantly when enough instances of the component are created.
+
+
 
 == How to contribute to Apache NiFi
 

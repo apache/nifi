@@ -18,9 +18,13 @@ package org.apache.nifi.util.file.classloader;
 
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -77,6 +81,43 @@ public class TestClassLoaderUtils {
 
         jarFilePath = ",src/test/resources/TestClassLoaderUtils/TestSuccess.jar, ";
         assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+    }
+
+    @Test
+    public void testGetURLsForClasspathWithDirectory() throws MalformedURLException {
+        final String jarFilePath = "src/test/resources/TestClassLoaderUtils";
+        URL[] urls = ClassLoaderUtils.getURLsForClasspath(jarFilePath, null, false);
+        assertEquals(2, urls.length);
+    }
+
+    @Test
+    public void testGetURLsForClasspathWithSingleJAR() throws MalformedURLException {
+        final String jarFilePath = "src/test/resources/TestClassLoaderUtils/TestSuccess.jar";
+        URL[] urls = ClassLoaderUtils.getURLsForClasspath(jarFilePath, null, false);
+        assertEquals(1, urls.length);
+    }
+
+    @Test(expected = MalformedURLException.class)
+    public void testGetURLsForClasspathWithSomeNonExistentAndNoSuppression() throws MalformedURLException {
+        final String jarFilePath = "src/test/resources/TestClassLoaderUtils/TestSuccess.jar,src/test/resources/TestClassLoaderUtils/FakeTest.jar";
+        ClassLoaderUtils.getURLsForClasspath(jarFilePath, null, false);
+    }
+
+    @Test
+    public void testGetURLsForClasspathWithSomeNonExistentAndSuppression() throws MalformedURLException {
+        final String jarFilePath = "src/test/resources/TestClassLoaderUtils/TestSuccess.jar,src/test/resources/TestClassLoaderUtils/FakeTest.jar";
+        URL[] urls = ClassLoaderUtils.getURLsForClasspath(jarFilePath, null, true);
+        assertEquals(1, urls.length);
+    }
+
+    @Test
+    public void testGetURLsForClasspathWithSetAndSomeNonExistentAndSuppression() throws MalformedURLException {
+        final Set<String> modules = new HashSet<>();
+        modules.add("src/test/resources/TestClassLoaderUtils/TestSuccess.jar,src/test/resources/TestClassLoaderUtils/FakeTest1.jar");
+        modules.add("src/test/resources/TestClassLoaderUtils/FakeTest2.jar,src/test/resources/TestClassLoaderUtils/FakeTest3.jar");
+
+        URL[] urls = ClassLoaderUtils.getURLsForClasspath(modules, null, true);
+        assertEquals(1, urls.length);
     }
 
     protected FilenameFilter getJarFilenameFilter(){

@@ -161,15 +161,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 processor.setLossTolerant(config.isLossTolerant());
             }
             if (isNotNull(configProperties)) {
-                for (final Map.Entry<String, String> entry : configProperties.entrySet()) {
-                    final String propName = entry.getKey();
-                    final String propVal = entry.getValue();
-                    if (isNotNull(propName) && propVal == null) {
-                        processor.removeProperty(propName);
-                    } else if (isNotNull(propName)) {
-                        processor.setProperty(propName, propVal);
-                    }
-                }
+                processor.setProperties(configProperties);
             }
 
             if (isNotNull(undefinedRelationshipsToTerminate)) {

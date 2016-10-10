@@ -54,6 +54,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -135,19 +136,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                                    // ??????? NOT any more
 
     public StandardProcessorNode(final Processor processor, final String uuid,
-        final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-        final ControllerServiceProvider controllerServiceProvider, final NiFiProperties nifiProperties) {
+                                 final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
+                                 final ControllerServiceProvider controllerServiceProvider, final NiFiProperties nifiProperties,
+                                 final VariableRegistry variableRegistry, final ComponentLog logger) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider,
-            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName(), nifiProperties);
+            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName(), nifiProperties, variableRegistry, logger);
     }
 
     public StandardProcessorNode(final Processor processor, final String uuid,
-        final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-        final ControllerServiceProvider controllerServiceProvider,
-        final String componentType, final String componentCanonicalClass, final NiFiProperties nifiProperties) {
+                                 final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
+                                 final ControllerServiceProvider controllerServiceProvider,
+                                 final String componentType, final String componentCanonicalClass, final NiFiProperties nifiProperties,
+                                 final VariableRegistry variableRegistry, final ComponentLog logger) {
 
-        super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
+        super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, logger);
 
         this.processor = processor;
         identifier = new AtomicReference<>(uuid);
@@ -811,7 +814,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         Relationship returnRel = specRel;
 
         final Set<Relationship> relationships;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             relationships = processor.getRelationships();
         }
 
@@ -857,7 +860,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
         final Set<Relationship> relationships;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             relationships = processor.getRelationships();
         }
 
@@ -913,7 +916,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
                 validationResults = getProcessor().validate(validationContext);
             }
 
@@ -960,7 +963,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
                 validationResults = getProcessor().validate(validationContext);
             }
 
@@ -1036,14 +1039,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Collection<Relationship> getRelationships() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
             return getProcessor().getRelationships();
         }
     }
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
             return getProcessor().toString();
         }
     }
@@ -1060,7 +1063,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             processor.onTrigger(context, sessionFactory);
         }
     }
@@ -1240,7 +1243,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         invokeTaskAsCancelableFuture(schedulingAgentCallback, new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+                                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                     ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
                                     return null;
                                 }
@@ -1250,7 +1253,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
                             schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                         } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             }
                             scheduledState.set(ScheduledState.STOPPED);
@@ -1325,7 +1328,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try {
                         if (scheduleState.isScheduled()) {
                             schedulingAgent.unschedule(StandardProcessorNode.this, scheduleState);
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             }
                         }
@@ -1334,7 +1337,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         // performing the lifecycle actions counts as 1 thread.
                         final boolean allThreadsComplete = scheduleState.getActiveThreadCount() == 1;
                         if (allThreadsComplete) {
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
                             }
 

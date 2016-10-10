@@ -17,6 +17,8 @@
 package org.apache.nifi.util.file.classloader;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -24,23 +26,54 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 public class ClassLoaderUtils {
 
-    public static ClassLoader getCustomClassLoader(String modulePath, ClassLoader parentClassLoader, FilenameFilter filenameFilter) throws MalformedURLException {
-        // Split and trim the module path(s)
-        List<String> modules = (modulePath == null)
-                ? null
-                : Arrays.stream(modulePath.split(",")).filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toList());
+    static final Logger logger = LoggerFactory.getLogger(ClassLoaderUtils.class);
 
-        URL[] classpaths = getURLsForClasspath(modules, filenameFilter);
+    public static ClassLoader getCustomClassLoader(String modulePath, ClassLoader parentClassLoader, FilenameFilter filenameFilter) throws MalformedURLException {
+        URL[] classpaths = getURLsForClasspath(modulePath, filenameFilter, false);
         return createModuleClassLoader(classpaths, parentClassLoader);
     }
 
-    protected static URL[] getURLsForClasspath(List<String> modulePaths, FilenameFilter filenameFilter) throws MalformedURLException {
+    /**
+     *
+     * @param modulePath a module path to get URLs from, the module path may be a comma-separated list of paths
+     * @param filenameFilter a filter to apply when a module path is a directory and performs a listing, a null filter will return all matches
+     * @return an array of URL instances representing all of the modules resolved from processing modulePath
+     * @throws MalformedURLException if a module path does not exist
+     */
+    public static URL[] getURLsForClasspath(String modulePath, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
+        return getURLsForClasspath(modulePath == null ? Collections.emptySet() : Collections.singleton(modulePath), filenameFilter, suppressExceptions);
+    }
+
+    /**
+     *
+     * @param modulePaths one or modules paths to get URLs from, each module path may be a comma-separated list of paths
+     * @param filenameFilter a filter to apply when a module path is a directory and performs a listing, a null filter will return all matches
+     * @param suppressExceptions if true then all modules will attempt to be resolved even if some throw an exception, if false the first exception will be thrown
+     * @return an array of URL instances representing all of the modules resolved from processing modulePaths
+     * @throws MalformedURLException if a module path does not exist
+     */
+    public static URL[] getURLsForClasspath(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
+        // use LinkedHashSet to maintain the ordering that the incoming paths are processed
+        Set<String> modules = new LinkedHashSet<>();
+        if (modulePaths != null) {
+            modulePaths.stream()
+                .flatMap(path -> Arrays.stream(path.split(",")))
+                .filter(StringUtils::isNotBlank)
+                .map(String::trim)
+                .forEach(m -> modules.add(m));
+        }
+        return toURLs(modules, filenameFilter, suppressExceptions);
+    }
+
+    protected static URL[] toURLs(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
         List<URL> additionalClasspath = new LinkedList<>();
         if (modulePaths != null) {
             for (String modulePathString : modulePaths) {
@@ -52,23 +85,33 @@ public class ClassLoaderUtils {
                     isUrl = false;
                 }
                 if (!isUrl) {
-                    File modulePath = new File(modulePathString);
+                    try {
+                        File modulePath = new File(modulePathString);
 
-                    if (modulePath.exists()) {
+                        if (modulePath.exists()) {
 
-                        additionalClasspath.add(modulePath.toURI().toURL());
+                            additionalClasspath.add(modulePath.toURI().toURL());
 
-                        if (modulePath.isDirectory()) {
-                            File[] files = modulePath.listFiles(filenameFilter);
+                            if (modulePath.isDirectory()) {
+                                File[] files = modulePath.listFiles(filenameFilter);
 
-                            if (files != null) {
-                                for (File jarFile : files) {
-                                    additionalClasspath.add(jarFile.toURI().toURL());
+                                if (files != null) {
+                                    for (File classpathResource : files) {
+                                        if (classpathResource.isDirectory()) {
+                                            logger.warn("Recursive directories are not supported, skipping " + classpathResource.getAbsolutePath());
+                                        } else {
+                                            additionalClasspath.add(classpathResource.toURI().toURL());
+                                        }
+                                    }
                                 }
                             }
+                        } else {
+                            throw new MalformedURLException("Path specified does not exist");
                         }
-                    } else {
-                        throw new MalformedURLException("Path specified does not exist");
+                    } catch (MalformedURLException e) {
+                        if (!suppressExceptions) {
+                            throw e;
+                        }
                     }
                 }
             }

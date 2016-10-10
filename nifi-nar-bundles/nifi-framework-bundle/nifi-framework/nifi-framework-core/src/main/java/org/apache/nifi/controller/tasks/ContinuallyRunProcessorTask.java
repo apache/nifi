@@ -130,7 +130,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         final long finishNanos = startNanos + batchNanos;
         int invocationCount = 0;
         try {
-            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
+            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())) {
                 boolean shouldRun = true;
                 while (shouldRun) {
                     procNode.onTrigger(processContext, sessionFactory);

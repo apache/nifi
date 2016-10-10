@@ -53,6 +53,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.VariableRegistry;
@@ -349,7 +350,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(node.getProcessor().getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(node.getProcessor().getClass(), node.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
@@ -708,7 +709,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 conn.verifyCanDelete();
             }
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getProcessor().getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getProcessor().getClass(), processor.getIdentifier())) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
@@ -745,6 +746,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 removeConnection(conn);
             }
 
+            ExtensionManager.removeInstanceClassLoaderIfExists(id);
             LOG.info("{} removed from flow", processor);
         } finally {
             writeLock.unlock();
@@ -1847,7 +1849,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             service.verifyCanDelete();
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
                 final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
             }
