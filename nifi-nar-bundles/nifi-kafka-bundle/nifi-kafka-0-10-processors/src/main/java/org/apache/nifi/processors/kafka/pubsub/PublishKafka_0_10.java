@@ -56,13 +56,13 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 
-@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "0.9.x"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 0.9 producer. "
+@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "0.10.x"})
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 0.10.x Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
     + " Please note there are cases where the publisher can get into an indefinite stuck state.  We are closely monitoring"
-    + " how this evolves in the Kafka community and will take advantage of those fixes as soon as we can.  In the mean time"
-    + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on.")
+    + " how this evolves in the Kafka community and will take advantage of those fixes as soon as we can.  In the meantime"
+    + " it is possible to enter states where the only resolution will be to restart the JVM NiFi runs on. The complementary NiFi processor for fetching messages is ConsumeKafka_0_10.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
     description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
