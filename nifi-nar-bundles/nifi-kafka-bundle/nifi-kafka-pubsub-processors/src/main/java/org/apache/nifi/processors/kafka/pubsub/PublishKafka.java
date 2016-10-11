@@ -49,9 +49,9 @@ import org.apache.nifi.processors.kafka.pubsub.KafkaPublisher.KafkaPublisherResu
 import org.apache.nifi.processors.kafka.pubsub.Partitioners.RoundRobinPartitioner;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub" })
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka. The messages to send may be individual FlowFiles or may be delimited, using a "
-        + "user-specified delimiter, such as a new-line.")
+@Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub","0.9.x"})
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka, using the Kafka 0.9.x Producer. The messages to send may be individual FlowFiles or may be delimited, using a "
+        + "user-specified delimiter, such as a new-line.  The complementary NiFi processor for fetching messages is ConsumeKafka.")
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
                  description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."

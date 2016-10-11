@@ -55,8 +55,8 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Consumes messages from Apache Kafka")
-@Tags({ "Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume" })
+@CapabilityDescription("Consumes messages from Apache Kafka,specifically built against the Kafka 0.9.x Consumer API. The complementary NiFi processor for sending messages is PublishKafka.")
+@Tags({ "Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume", "0.9.x"})
 public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]>> {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
