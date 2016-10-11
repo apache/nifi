@@ -69,8 +69,8 @@ import kafka.message.MessageAndMetadata;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Fetches messages from Apache Kafka")
-@Tags({"Kafka", "Apache", "Get", "Ingest", "Ingress", "Topic", "PubSub"})
+@CapabilityDescription("Fetches messages from Apache Kafka, specifically for 0.8.x versions. The complementary NiFi processor for sending messages is PutKafka.")
+@Tags({"Kafka", "Apache", "Get", "Ingest", "Ingress", "Topic", "PubSub", "0.8.x"})
 @WritesAttributes({
         @WritesAttribute(attribute = "kafka.topic", description = "The name of the Kafka Topic from which the message was received"),
         @WritesAttribute(attribute = "kafka.key", description = "The key of the Kafka message, if it exists and batch size is 1. If"
@@ -80,7 +80,7 @@ import kafka.message.MessageAndMetadata;
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
             description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"
-        + " overriden with warning message describing the override."
+        + " overridden with warning message describing the override."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
 public class GetKafka extends AbstractProcessor {
 
