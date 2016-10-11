@@ -57,7 +57,7 @@ import com.amazonaws.services.kinesis.model.PutRecordsResultEntry;
     @WritesAttribute(attribute = "aws.kinesis.error.code", description = "Error code for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
-public class PutKinesis extends AbstractKinesisProcessor {
+public class PutKinesisStream extends AbstractKinesisStreamProcessor {
 
     /**
      * Kinesis put record response error code
@@ -115,7 +115,7 @@ public class PutKinesis extends AbstractKinesisProcessor {
                 session.exportTo(flowFile, baos);
                 PutRecordsRequestEntry record = new PutRecordsRequestEntry().withData(ByteBuffer.wrap(baos.toByteArray()));
 
-                String partitionKey = context.getProperty(PutKinesis.KINESIS_PARTITION_KEY)
+                String partitionKey = context.getProperty(PutKinesisStream.KINESIS_PARTITION_KEY)
                     .evaluateAttributeExpressions(flowFiles.get(i)).getValue();
 
                 if ( ! StringUtils.isBlank(partitionKey) ) {
@@ -165,7 +165,7 @@ public class PutKinesis extends AbstractKinesisProcessor {
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish to kinesis {} flowfiles {} with exception {}", new Object[]{streamName, flowFiles, exception});
+            getLogger().error("Failed to publish due to exception {} to kinesis {} flowfiles {} ", new Object[]{exception, streamName, flowFiles});
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

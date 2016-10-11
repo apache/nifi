@@ -20,7 +20,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
-import org.apache.nifi.processors.aws.kinesis.stream.PutKinesis;
+import org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,16 +28,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestPutKinesis {
+public class TestPutKinesisStream {
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @Before
     public void setUp() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.ACCESS_KEY, "abcd");
-        runner.setProperty(PutKinesis.SECRET_KEY, "secret key");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
+        runner = TestRunners.newTestRunner(PutKinesisStream.class);
+        runner.setProperty(PutKinesisStream.ACCESS_KEY, "abcd");
+        runner.setProperty(PutKinesisStream.SECRET_KEY, "secret key");
+        runner.setProperty(PutKinesisStream.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
     }
 
@@ -48,35 +48,35 @@ public class TestPutKinesis {
 
     @Test
     public void testCustomValidateBatchSize1Valid() {
-        runner.setProperty(PutKinesis.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
     }
 
     @Test
     public void testCustomValidateBatchSize500Valid() {
-        runner.setProperty(PutKinesis.BATCH_SIZE, "500");
+        runner.setProperty(PutKinesisStream.BATCH_SIZE, "500");
         runner.assertValid();
     }
     @Test
     public void testCustomValidateBatchSize501InValid() {
-        runner.setProperty(PutKinesis.BATCH_SIZE, "501");
+        runner.setProperty(PutKinesisStream.BATCH_SIZE, "501");
         runner.assertNotValid();
     }
 
     @Test
     public void testWithSizeGreaterThan1MB() {
-        runner.setProperty(PutKinesis.BATCH_SIZE, "1");
+        runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
-        byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE + 1)];
+        byte [] bytes = new byte[(PutKinesisStream.MAX_MESSAGE_SIZE + 1)];
         for (int i = 0; i < bytes.length; i++) {
             bytes[i] = 'a';
         }
         runner.enqueue(bytes);
         runner.run(1);
 
-        runner.assertAllFlowFilesTransferred(PutKinesis.REL_FAILURE, 1);
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesis.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(PutKinesisStream.REL_FAILURE, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisStream.REL_FAILURE);
 
-        assertNotNull(flowFiles.get(0).getAttribute(PutKinesis.AWS_KINESIS_ERROR_MESSAGE));
+        assertNotNull(flowFiles.get(0).getAttribute(PutKinesisStream.AWS_KINESIS_ERROR_MESSAGE));
     }
 }

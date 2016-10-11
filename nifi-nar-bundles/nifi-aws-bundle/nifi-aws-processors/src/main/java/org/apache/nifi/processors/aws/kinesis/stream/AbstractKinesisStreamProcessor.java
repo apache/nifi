@@ -29,7 +29,7 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 /**
  * This class provides processor the base class for kinesis client
  */
-public abstract class AbstractKinesisProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisClient> {
+public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisClient> {
 
     public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("kinesis-stream-name")
