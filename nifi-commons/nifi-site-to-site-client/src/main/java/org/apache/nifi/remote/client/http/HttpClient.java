@@ -107,7 +107,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         // Each node should has the same URL structure and network reach-ability with the proxy configuration.
         try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter())) {
             final String scheme = peerDescription.isSecure() ? "https" : "http";
-            final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
+            apiClient.setBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
 
             final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
             apiClient.setConnectTimeoutMillis(timeoutMillis);
@@ -115,7 +115,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
             final Collection<PeerDTO> peers = apiClient.getPeers();
             if(peers == null || peers.size() == 0){
-                throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUrl + " returned zero peers.");
+                throw new IOException("Couldn't get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
             }
 
             // Convert the PeerDTO's to PeerStatus objects. Use 'true' for the query-peer-for-peers flag because Site-to-Site over HTTP
