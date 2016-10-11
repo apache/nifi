@@ -216,7 +216,7 @@ public class TestCredentialsProviderFactory {
         assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
                 credentialsProvider.getClass());
     }
-    
+
     @Test
     public void testAssumeRoleMissingProxyHost() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
@@ -232,7 +232,7 @@ public class TestCredentialsProviderFactory {
         runner.setProperty(CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST, "proxy.company.com");
         runner.assertNotValid();
     }
-    
+
     @Test
     public void testAssumeRoleInvalidProxyPort() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(MockAWSProcessor.class);
