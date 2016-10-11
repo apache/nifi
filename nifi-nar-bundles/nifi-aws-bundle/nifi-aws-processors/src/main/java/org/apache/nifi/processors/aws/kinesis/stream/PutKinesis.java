@@ -159,13 +159,13 @@ public class PutKinesis extends AbstractKinesisProcessor {
                 }
                 if ( successfulFlowFiles.size() > 0 ) {
                     session.transfer(successfulFlowFiles, REL_SUCCESS);
-                    getLogger().info("Successfully published to kinesis {} records {}", new Object[]{streamName, successfulFlowFiles});
+                    getLogger().debug("Successfully published to kinesis {} records {}", new Object[]{streamName, successfulFlowFiles});
                 }
                 records.clear();
             }
 
         } catch (final Exception exception) {
-            getLogger().error("Failed to publish to kinesis {} with exception {}", new Object[]{flowFiles, exception});
+            getLogger().error("Failed to publish to kinesis {} flowfiles {} with exception {}", new Object[]{streamName, flowFiles, exception});
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }

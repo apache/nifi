@@ -39,7 +39,8 @@ public abstract class AbstractBaseKinesisProcessor<ClientType extends AmazonWebS
     public static final String AWS_KINESIS_ERROR_MESSAGE = "aws.kinesis.error.message";
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
+            .displayName("Message Batch Size")
+            .name("message-batch-size")
             .description("Batch size for messages (1-500).")
             .defaultValue("250")
             .required(false)
@@ -48,8 +49,9 @@ public abstract class AbstractBaseKinesisProcessor<ClientType extends AmazonWebS
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("Max message buffer size")
-            .description("Max message buffer")
+            .name("max-message-buffer-size")
+            .displayName("Max message buffer size (MB)")
+            .description("Max message buffer size in Mega-bytes")
             .defaultValue("1 MB")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis;
+package org.apache.nifi.processors.aws.kinesis.stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -32,7 +32,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * This test contains both unit and integration test (integration tests are ignored by default)
+ * This test contains both unit and integration test (integration tests are ignored by default).
+ * Running integration tests may result in failures due to provisioned capacity of Kinesis stream based on number of shards.
+ * The following integration tests run successfully with 10 shards.  If increasing shards is not a possiblity, please reduce the size and
+ * number of messages in the integration tests based AWS Kinesis provisioning pages calculations.
  */
 public class ITPutKinesis {
 
@@ -43,6 +46,7 @@ public class ITPutKinesis {
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutKinesis.class);
         runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
+        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.assertValid();
     }
 
@@ -56,9 +60,7 @@ public class ITPutKinesis {
      */
     @Test
     public void testIntegrationSuccess() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
         runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
 
         runner.enqueue("test".getBytes());
@@ -74,9 +76,6 @@ public class ITPutKinesis {
 
     @Test
     public void testIntegrationWithFixedPartitionSuccess() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.setProperty(PutKinesis.KINESIS_PARTITION_KEY, "pfixed");
         runner.assertValid();
 
@@ -93,9 +92,6 @@ public class ITPutKinesis {
 
     @Test
     public void testIntegrationWithDynamicPartitionSuccess() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.setProperty(PutKinesis.KINESIS_PARTITION_KEY, "${parition}");
         runner.assertValid();
         Map<String,String> properties = new HashMap<>();
@@ -116,8 +112,6 @@ public class ITPutKinesis {
      */
     @Test
     public void testIntegrationFailedBadStreamName() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "bad-kstream");
         runner.assertValid();
 
@@ -130,11 +124,8 @@ public class ITPutKinesis {
 
     @Test
     public void testOneMessageWithMaxBufferSizeGreaterThan1MBOneSuccess() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "2");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -150,11 +141,8 @@ public class ITPutKinesis {
 
     @Test
     public void testOneMessageWithMaxBufferSizeGreaterThan1MBOneWithParameterPartitionSuccess() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "2");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.setProperty(PutKinesis.KINESIS_PARTITION_KEY, "${partitionKey}");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
@@ -173,11 +161,8 @@ public class ITPutKinesis {
 
     @Test
     public void testTwoMessageBatch5WithMaxBufferSize1MBRunOnceTwoMessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "5");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "2 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -198,11 +183,8 @@ public class ITPutKinesis {
 
     @Test
     public void testThreeMessageWithBatch10MaxBufferSize1MBTRunOnceTwoMessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -224,11 +206,8 @@ public class ITPutKinesis {
 
     @Test
     public void testTwoMessageWithBatch10MaxBufferSize1MBTRunOnceTwoMessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -249,11 +228,8 @@ public class ITPutKinesis {
 
     @Test
     public void testThreeMessageWithBatch2MaxBufferSize1MBRunTwiceThreeMessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "2");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -275,11 +251,8 @@ public class ITPutKinesis {
 
     @Test
     public void testThreeMessageHello2MBThereWithBatch10MaxBufferSize1MBRunOnceTwoMessageSuccessOneFailed() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
@@ -306,11 +279,8 @@ public class ITPutKinesis {
 
     @Test
     public void testTwoMessageHello2MBWithBatch10MaxBufferSize1MBRunOnceOneSuccessOneFailed() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
@@ -337,11 +307,8 @@ public class ITPutKinesis {
 
     @Test
     public void testTwoMessage2MBHelloWorldWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE * 2)];
         for (int i = 0; i < bytes.length; i++) {
@@ -368,11 +335,8 @@ public class ITPutKinesis {
 
     @Test
     public void testTwoMessageHelloWorldWithBatch10MaxBufferSize1MBRunOnceTwoMessageSent() throws Exception {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         runner.enqueue("Hello".getBytes());
         runner.enqueue("World".getBytes());
@@ -393,11 +357,8 @@ public class ITPutKinesis {
 
     @Test
     public void testThreeMessageWithBatch5MaxBufferSize1MBRunOnceTwoMessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "5");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[(PutKinesis.MAX_MESSAGE_SIZE)];
         for (int i = 0; i < bytes.length; i++) {
@@ -419,11 +380,8 @@ public class ITPutKinesis {
 
     @Test
     public void test5MessageWithBatch10MaxBufferSize10MBRunOnce5MessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "10");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[10];
         for (int i = 0; i < bytes.length; i++) {
@@ -447,11 +405,8 @@ public class ITPutKinesis {
 
     @Test
     public void test5MessageWithBatch2MaxBufferSize10MBRunOnce2MessageSent() {
-        runner = TestRunners.newTestRunner(PutKinesis.class);
-        runner.setProperty(PutKinesis.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutKinesis.BATCH_SIZE, "2");
         runner.setProperty(PutKinesis.MAX_MESSAGE_BUFFER_SIZE_MB, "1 MB");
-        runner.setProperty(PutKinesis.KINESIS_STREAM_NAME, "kstream");
         runner.assertValid();
         byte [] bytes = new byte[10];
         for (int i = 0; i < bytes.length; i++) {

@@ -32,8 +32,9 @@ import com.amazonaws.services.kinesis.AmazonKinesisClient;
 public abstract class AbstractKinesisProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisClient> {
 
     public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
-            .name("Amazon Kinesis Stream Name")
-            .description("The name of kinesis stream")
+            .name("kinesis-stream-name")
+            .displayName("Amazon Kinesis Stream Name")
+            .description("The name of Kinesis Stream")
             .expressionLanguageSupported(false)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

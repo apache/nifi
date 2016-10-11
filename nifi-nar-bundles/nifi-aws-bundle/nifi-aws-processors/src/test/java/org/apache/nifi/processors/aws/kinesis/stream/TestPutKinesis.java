@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.kinesis;
+package org.apache.nifi.processors.aws.kinesis.stream;
 
 import static org.junit.Assert.assertNotNull;
 
