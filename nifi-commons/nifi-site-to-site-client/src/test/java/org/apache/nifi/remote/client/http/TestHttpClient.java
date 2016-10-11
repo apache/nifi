@@ -644,12 +644,14 @@ public class TestHttpClient {
     private SiteToSiteClient.Builder getDefaultBuilder() {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("http://localhost:" + httpConnector.getLocalPort() + "/nifi")
+                .timeout(3, TimeUnit.MINUTES)
                 ;
     }
 
     private SiteToSiteClient.Builder getDefaultBuilderHTTPS() {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
+                .timeout(3, TimeUnit.MINUTES)
                 .keystoreFilename("src/test/resources/certs/localhost-ks.jks")
                 .keystorePass("localtest")
                 .keystoreType(KeystoreType.JKS)
