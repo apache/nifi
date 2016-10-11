@@ -43,12 +43,14 @@ import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -141,6 +143,15 @@ public class TestHttpClient {
             controllerEntity.setController(controller);
 
             respondWithJson(resp, controllerEntity);
+        }
+    }
+
+    public static class WrongSiteInfoServlet extends HttpServlet {
+
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            // This response simulates when a Site-to-Site is given an URL which has wrong path.
+            respondWithText(resp, "<p class=\"message-pane-content\">You may have mistyped...</p>", 200);
         }
     }
 
@@ -420,27 +431,40 @@ public class TestHttpClient {
         // Create embedded Jetty server
         server = new Server(0);
 
-        ServletContextHandler contextHandler = new ServletContextHandler();
-        contextHandler.setContextPath("/nifi-api");
-        server.setHandler(contextHandler);
+        final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
 
-        ServletHandler servletHandler = new ServletHandler();
+        final ServletContextHandler contextHandler = new ServletContextHandler();
+        contextHandler.setContextPath("/nifi-api");
+
+        final ServletContextHandler wrongPathContextHandler = new ServletContextHandler();
+        wrongPathContextHandler.setContextPath("/wrong/nifi-api");
+
+        handlerCollection.setHandlers(new Handler[]{contextHandler, wrongPathContextHandler});
+
+        server.setHandler(handlerCollection);
+
+        final ServletHandler servletHandler = new ServletHandler();
         contextHandler.insertHandler(servletHandler);
 
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        final ServletHandler wrongPathServletHandler = new ServletHandler();
+        wrongPathContextHandler.insertHandler(wrongPathServletHandler);
+
+        final SslContextFactory sslContextFactory = new SslContextFactory();
         sslContextFactory.setKeyStorePath("src/test/resources/certs/localhost-ks.jks");
         sslContextFactory.setKeyStorePassword("localtest");
         sslContextFactory.setKeyStoreType("JKS");
 
         httpConnector = new ServerConnector(server);
 
-        HttpConfiguration https = new HttpConfiguration();
+        final HttpConfiguration https = new HttpConfiguration();
         https.addCustomizer(new SecureRequestCustomizer());
         sslConnector = new ServerConnector(server,
                 new SslConnectionFactory(sslContextFactory, "http/1.1"),
                 new HttpConnectionFactory(https));
 
         server.setConnectors(new Connector[] { httpConnector, sslConnector });
+
+        wrongPathServletHandler.addServletWithMapping(WrongSiteInfoServlet.class, "/site-to-site");
 
         servletHandler.addServletWithMapping(SiteInfoServlet.class, "/site-to-site");
         servletHandler.addServletWithMapping(PeersServlet.class, "/site-to-site/peers");
@@ -644,12 +668,14 @@ public class TestHttpClient {
     private SiteToSiteClient.Builder getDefaultBuilder() {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("http://localhost:" + httpConnector.getLocalPort() + "/nifi")
+                .timeout(3, TimeUnit.MINUTES)
                 ;
     }
 
     private SiteToSiteClient.Builder getDefaultBuilderHTTPS() {
         return new SiteToSiteClient.Builder().transportProtocol(SiteToSiteTransportProtocol.HTTP)
                 .url("https://localhost:" + sslConnector.getLocalPort() + "/nifi")
+                .timeout(3, TimeUnit.MINUTES)
                 .keystoreFilename("src/test/resources/certs/localhost-ks.jks")
                 .keystorePass("localtest")
                 .keystoreType(KeystoreType.JKS)
@@ -677,6 +703,25 @@ public class TestHttpClient {
                 .url("http://" + uri.getHost() + ":" + uri.getPort() + "/unkown")
                 .portName("input-running")
                 .build()
+        ) {
+            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+            assertNull(transaction);
+
+        }
+
+    }
+
+    @Test
+    public void testWrongPath() throws Exception {
+
+        final URI uri = server.getURI();
+
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .url("http://" + uri.getHost() + ":" + uri.getPort() + "/wrong")
+                        .portName("input-running")
+                        .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
 
