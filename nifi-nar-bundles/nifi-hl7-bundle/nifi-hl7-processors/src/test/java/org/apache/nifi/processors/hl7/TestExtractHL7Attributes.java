@@ -21,7 +21,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 import static org.junit.Assert.assertEquals;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -288,11 +287,11 @@ public class TestExtractHL7Attributes {
     @Test
     public void test1714219() {
         // Message from http://hl7api.sourceforge.net hapi-test/src/test/java/ca/uhn/hl7v2/parser/ParserTest.java
-    	final String message = "MSH|^~\\&|Send App|Send Fac|Rec App|Rec Fac|20070504141816||ORM^O01||P|2.2\r" +
-			"PID|||12345678||Lastname^^INI^^PREFIX||19340207|F|||Street 15^^S GRAVENHAGE^^2551HL^NEDERLAND|||||||||||||||NL\r" +
-			"ORC|NW|8100088345^ORDERNR||LN1||C|^^^20070504080000||20070504141816|||0^Doctor\r" +
-			"OBR|1|8100088345^ORDERNR||ADR^Something||||||||||||0^Doctor\r" +
-			"OBX|1|ST|ADR^Something||item1^item2^item3^^item5||||||F\r";
+        final String message = "MSH|^~\\&|Send App|Send Fac|Rec App|Rec Fac|20070504141816||ORM^O01||P|2.2\r" +
+            "PID|||12345678||Lastname^^INI^^PREFIX||19340207|F|||Street 15^^S GRAVENHAGE^^2551HL^NEDERLAND|||||||||||||||NL\r" +
+            "ORC|NW|8100088345^ORDERNR||LN1||C|^^^20070504080000||20070504141816|||0^Doctor\r" +
+            "OBR|1|8100088345^ORDERNR||ADR^Something||||||||||||0^Doctor\r" +
+            "OBX|1|ST|ADR^Something||item1^item2^item3^^item5||||||F\r";
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
 
@@ -449,7 +448,8 @@ public class TestExtractHL7Attributes {
         final String message = "MSH|^~\\&|IRIS|SANTER|AMB_R|SANTER|200803051508||ADT^A03|263206|P|2.5\r" +
             "EVN||200803051509||||200803031508\r" +
             "PID|||5520255^^^PK^PK~ZZZZZZ83M64Z148R^^^CF^CF~ZZZZZZ83M64Z148R^^^SSN^SSN^^20070103^99991231~^^^^TEAM||ZZZ^ZZZ||19830824|F||||||||||||||||||||||N\r" +
-            "PV1||I|6402DH^^^^^^^^MED. 1 - ONCOLOGIA^^OSPEDALE MAGGIORE DI LODI&LODI|||^^^^^^^^^^OSPEDALE MAGGIORE DI LODI&LODI|13936^TEST^TEST||||||||||5068^TEST2^TEST2||2008003369||||||||||||||||||||||||||200803031508\r" +
+            "PV1||I|6402DH^^^^^^^^MED. 1 - ONCOLOGIA^^OSPEDALE MAGGIORE DI LODI&LODI|||^^^^^^^^^^OSPEDALE MAGGIORE DI LODI&LODI|13936^TEST^TEST" +
+                "||||||||||5068^TEST2^TEST2||2008003369||||||||||||||||||||||||||200803031508\r" +
             "PR1|1||1111^Mastoplastica|Protesi|20090224|02|";
 
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
