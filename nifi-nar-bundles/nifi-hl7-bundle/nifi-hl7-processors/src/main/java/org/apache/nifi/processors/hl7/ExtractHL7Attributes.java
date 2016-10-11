@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -239,34 +241,32 @@ public class ExtractHL7Attributes extends AbstractProcessor {
 
     private static Map<String, Segment> getAllSegments(final Group group) throws HL7Exception {
         final Map<String, Segment> segments = new TreeMap<>();
-        addSegments(group, segments);
-        return segments;
+        addSegments(group, segments, new HashMap<String, Integer>());
+        return Collections.unmodifiableMap(segments);
     }
 
-    private static void addSegments(final Group group, final Map<String, Segment> segments) throws HL7Exception {
+    private static void addSegments(final Group group, final Map<String, Segment> segments, final Map<String, Integer> segmentIndexes) throws HL7Exception {
         if (!isEmpty(group)) {
             for (final String name : group.getNames()) {
                 for (final Structure structure : group.getAll(name)) {
                     if (group.isGroup(name) && structure instanceof Group) {
-                        addSegments((Group) structure, segments);
+                        addSegments((Group) structure, segments, segmentIndexes);
                     } else if (structure instanceof Segment) {
-                        addSegments((Segment) structure, segments);
+                        addSegments((Segment) structure, segments, segmentIndexes);
                     }
                 }
+                segmentIndexes.put(name, segmentIndexes.getOrDefault(name, 1) + 1);
             }
         }
     }
 
-    private static void addSegments(final Segment segment, final Map<String, Segment> segments) throws HL7Exception {
+    private static void addSegments(final Segment segment, final Map<String, Segment> segments, final Map<String, Integer> segmentIndexes) throws HL7Exception {
         if (!isEmpty(segment)) {
-            final StringBuilder sb = new StringBuilder().append(segment.getName());
+            final String segmentName = segment.getName();
+            final StringBuilder sb = new StringBuilder().append(segmentName);
             if (isRepeating(segment)) {
-                final Type field = segment.getField(1, 0);
-                if (!isEmpty(field)) {
-                    final String fieldValue = field.encode();
-                    final int segmentIndex = StringUtils.isEmpty(fieldValue) ? 1 : Integer.parseInt(fieldValue);
-                    sb.append("_").append(segmentIndex);
-                }
+                final int segmentIndex = segmentIndexes.getOrDefault(segmentName, 1);
+                sb.append("_").append(segmentIndex);
             }
             final String segmentKey = sb.toString();
             segments.put(segmentKey, segment);
