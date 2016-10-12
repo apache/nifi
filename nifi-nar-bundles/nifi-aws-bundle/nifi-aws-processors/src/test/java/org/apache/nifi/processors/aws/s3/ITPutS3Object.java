@@ -16,23 +16,17 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.Region;
+import com.amazonaws.services.s3.model.StorageClass;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -50,14 +44,19 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.Region;
-import com.amazonaws.services.s3.model.StorageClass;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link PutS3Object} and requires additional configuration and resources to work.
@@ -119,6 +118,31 @@ public class ITPutS3Object extends AbstractS3IT {
         }
     }
 
+    @Test
+    public void testSimplePutEncryptedKMS() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new PutS3Object());
+
+        runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(PutS3Object.REGION, REGION);
+        runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
+        runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, PutS3Object.KMS_MANAGED);
+
+        Assert.assertTrue(runner.setProperty("x-custom-prop", "hello").isValid());
+
+        for (int i = 0; i < 3; i++) {
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("filename", String.valueOf(i) + ".txt");
+            runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
+        }
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 3);
+        final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
+        for (MockFlowFile flowFile : ffs) {
+            flowFile.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, PutS3Object.KMS_MANAGED);
+        }
+    }
+
     private void testPutThenFetch(String sseAlgorithm) throws IOException {
 
         // Put
@@ -127,19 +151,21 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.setProperty(PutS3Object.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutS3Object.REGION, REGION);
         runner.setProperty(PutS3Object.BUCKET, BUCKET_NAME);
-        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+        if (!PutS3Object.NO_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)) {
             runner.setProperty(PutS3Object.SERVER_SIDE_ENCRYPTION, sseAlgorithm);
         }
 
         final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename",  "filename-on-s3.txt");
+        attrs.put("filename", "filename-on-s3.txt");
         runner.enqueue(getResourcePath(SAMPLE_FILE_RESOURCE_NAME), attrs);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
         List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutS3Object.REL_SUCCESS);
-        if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
+        if (ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)) {
             ffs.get(0).assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        } else if (PutS3Object.KMS_MANAGED.equals(sseAlgorithm)){
+            ffs.get(0).assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, PutS3Object.KMS_MANAGED);
         } else {
             ffs.get(0).assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
         }
@@ -162,6 +188,8 @@ public class ITPutS3Object extends AbstractS3IT {
 
         if(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION.equals(sseAlgorithm)){
             ff.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+        } else if (PutS3Object.KMS_MANAGED.equals(sseAlgorithm)){
+            ff.assertAttributeEquals(PutS3Object.S3_SSE_ALGORITHM, PutS3Object.KMS_MANAGED);
         } else {
             ff.assertAttributeNotExists(PutS3Object.S3_SSE_ALGORITHM);
         }
@@ -177,6 +205,11 @@ public class ITPutS3Object extends AbstractS3IT {
     @Test
     public void testPutThenFetchWithSSE() throws IOException {
         testPutThenFetch(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+    }
+
+    @Test
+    public void testPutThenFetchWithSSEKMS() throws IOException {
+        testPutThenFetch(PutS3Object.KMS_MANAGED);
     }
 
 
@@ -334,7 +367,7 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 27, pd.size());
+        assertEquals("size should be eq", 29, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
@@ -356,6 +389,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertTrue(pd.contains(PutS3Object.WRITE_ACL_LIST));
         assertTrue(pd.contains(PutS3Object.WRITE_USER_LIST));
         assertTrue(pd.contains(PutS3Object.SERVER_SIDE_ENCRYPTION));
+        assertTrue(pd.contains(PutS3Object.AWS_KMS_KEY));
     }
 
     @Test

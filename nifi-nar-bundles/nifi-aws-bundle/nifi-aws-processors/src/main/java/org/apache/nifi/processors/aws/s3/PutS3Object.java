@@ -16,6 +16,47 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
+import com.amazonaws.services.s3.model.MultipartUpload;
+import com.amazonaws.services.s3.model.MultipartUploadListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.model.UploadPartResult;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -38,47 +79,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ListMultipartUploadsRequest;
-import com.amazonaws.services.s3.model.MultipartUpload;
-import com.amazonaws.services.s3.model.MultipartUploadListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.StorageClass;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
 
 @SupportsBatching
 @SeeAlso({FetchS3Object.class, DeleteS3Object.class, ListS3.class})
@@ -125,6 +125,7 @@ public class PutS3Object extends AbstractS3Processor {
     public static final long MAX_S3_PUTOBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
     public static final String PERSISTENCE_ROOT = "conf/state/";
     public static final String NO_SERVER_SIDE_ENCRYPTION = "None";
+    public static final String KMS_MANAGED = "AWS:KMS";
 
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
         .name("Expiration Time Rule")
@@ -200,15 +201,24 @@ public class PutS3Object extends AbstractS3Processor {
             .displayName("Server Side Encryption")
             .description("Specifies the algorithm used for server side encryption.")
             .required(true)
-            .allowableValues(NO_SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION)
+            .allowableValues(NO_SERVER_SIDE_ENCRYPTION, ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, KMS_MANAGED)
             .defaultValue(NO_SERVER_SIDE_ENCRYPTION)
+            .build();
+
+    public static final PropertyDescriptor AWS_KMS_KEY = new PropertyDescriptor.Builder()
+            .name("aws-kms-key")
+            .displayName("Server Side Encryption using KMS")
+            .description("Specifies the Encryption Key used for server side encryption, select AWS:KMS as server side encryption type to use this feature.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .required(false)
             .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
         Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
             FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE,
-            SERVER_SIDE_ENCRYPTION, PROXY_HOST, PROXY_HOST_PORT));
+            SERVER_SIDE_ENCRYPTION, AWS_KMS_KEY, PROXY_HOST, PROXY_HOST_PORT));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
@@ -443,11 +453,14 @@ public class PutS3Object extends AbstractS3Processor {
                             }
                         }
 
+                        String keyId = null;
                         final String serverSideEncryption = context.getProperty(SERVER_SIDE_ENCRYPTION).getValue();
-                        if (!serverSideEncryption.equals(NO_SERVER_SIDE_ENCRYPTION)) {
-                            objectMetadata.setSSEAlgorithm(serverSideEncryption);
-                            attributes.put(S3_SSE_ALGORITHM, serverSideEncryption);
-                        }
+                        if (serverSideEncryption.equals(KMS_MANAGED)) {
+                                keyId = context.getProperty(AWS_KMS_KEY).getValue();
+                            } else {
+                                objectMetadata.setSSEAlgorithm(serverSideEncryption);
+                                attributes.put(S3_SSE_ALGORITHM, serverSideEncryption);
+                          }
 
                         if (!userMetadata.isEmpty()) {
                             objectMetadata.setUserMetadata(userMetadata);
@@ -458,6 +471,13 @@ public class PutS3Object extends AbstractS3Processor {
                             // single part upload
                             //----------------------------------------
                             final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
+                            if (keyId != null) {
+                                    if (!context.getProperty(SIGNER_OVERRIDE).getValue().equals("AWSS3V4Signer")) {
+                                            getLogger().error("Uploading with AWS:KMS requires S3V4 signature, please enable it");
+                                            return;
+                                       }
+                                    request.withSSEAwsKeyManagementParams(new SSEAwsKeyManagementParams(keyId));
+                                }
                             request.setStorageClass(
                                     StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                             final AccessControlList acl = createACL(context, ff);
@@ -551,6 +571,13 @@ public class PutS3Object extends AbstractS3Processor {
                             if (currentState.getUploadId().isEmpty()) {
                                 final InitiateMultipartUploadRequest initiateRequest =
                                         new InitiateMultipartUploadRequest(bucket, key, objectMetadata);
+                                if (keyId != null) {
+                                    if (!context.getProperty(SIGNER_OVERRIDE).getValue().equals("AWSS3V4Signer")) {
+                                            getLogger().error("Uploading with AWS:KMS requires S3V4 signature, please enable it");
+                                            return;
+                                        }
+                                    initiateRequest.withSSEAwsKeyManagementParams(new SSEAwsKeyManagementParams(keyId));
+                                 }
                                 initiateRequest.setStorageClass(currentState.getStorageClass());
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
