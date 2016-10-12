@@ -35,15 +35,17 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPro
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsProviderFactory;
 import org.apache.nifi.reporting.InitializationException;
 
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.USE_DEFAULT_CREDENTIALS;
+import com.amazonaws.auth.AWSCredentialsProvider;
+
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ACCESS_KEY;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.SECRET_KEY;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_PORT;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_PROXY_HOST;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.CREDENTIALS_FILE;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.PROFILE_NAME;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.SECRET_KEY;
 import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS;
-import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.ASSUME_ROLE_EXTERNAL_ID;
-
-import com.amazonaws.auth.AWSCredentialsProvider;
+import static org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors.USE_DEFAULT_CREDENTIALS;
 
 /**
  * Implementation of AWSCredentialsProviderService interface
@@ -75,6 +77,8 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_NAME);
         props.add(MAX_SESSION_TIME);
         props.add(ASSUME_ROLE_EXTERNAL_ID);
+        props.add(ASSUME_ROLE_PROXY_HOST);
+        props.add(ASSUME_ROLE_PROXY_PORT);
         properties = Collections.unmodifiableList(props);
     }
 
