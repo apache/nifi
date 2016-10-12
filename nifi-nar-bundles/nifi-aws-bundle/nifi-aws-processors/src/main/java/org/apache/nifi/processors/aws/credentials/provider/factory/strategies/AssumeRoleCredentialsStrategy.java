@@ -141,25 +141,21 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
         final Integer maxSessionTime = Integer.parseInt(rawMaxSessionTime.trim());
         final String assumeRoleExternalId = properties.get(ASSUME_ROLE_EXTERNAL_ID);
         STSAssumeRoleSessionCredentialsProvider.Builder builder;
+        ClientConfiguration config = new ClientConfiguration();
 
         // If proxy variables are set, then create Client Configuration with those values
         if (proxyVariablesValidForAssumeRole(properties)) {
             final String assumeRoleProxyHost = properties.get(ASSUME_ROLE_PROXY_HOST);
             final Integer assumeRoleProxyPort = Integer.parseInt(properties.get(ASSUME_ROLE_PROXY_PORT));
-            ClientConfiguration config = new ClientConfiguration();
             config.withProxyHost(assumeRoleProxyHost);
             config.withProxyPort(assumeRoleProxyPort);
-            AWSSecurityTokenService securityTokenService = new AWSSecurityTokenServiceClient(config);
-            builder = new STSAssumeRoleSessionCredentialsProvider
-                    .Builder(assumeRoleArn, assumeRoleName)
-                    .withStsClient(securityTokenService)
-                    .withRoleSessionDurationSeconds(maxSessionTime);
-        } else {
-            builder = new STSAssumeRoleSessionCredentialsProvider
-                    .Builder(assumeRoleArn, assumeRoleName)
-                    .withLongLivedCredentialsProvider(primaryCredentialsProvider)
-                    .withRoleSessionDurationSeconds(maxSessionTime);
         }
+
+        AWSSecurityTokenService securityTokenService = new AWSSecurityTokenServiceClient(primaryCredentialsProvider, config);
+        builder = new STSAssumeRoleSessionCredentialsProvider
+                .Builder(assumeRoleArn, assumeRoleName)
+                .withStsClient(securityTokenService)
+                .withRoleSessionDurationSeconds(maxSessionTime);
 
         if (assumeRoleExternalId != null && !assumeRoleExternalId.isEmpty()) {
             builder = builder.withExternalId(assumeRoleExternalId);
