@@ -937,6 +937,10 @@ nf.Actions = (function () {
 
                     // completes the drop request by removing it and showing how many flowfiles were deleted
                     var completeDropRequest = function () {
+                        // reload the connection status
+                        nf.Connection.reloadStatus(connection.id);
+
+                        // clean up as appropriate
                         if (nf.Common.isDefinedAndNotNull(dropRequest)) {
                             $.ajax({
                                 type: 'DELETE',
@@ -993,14 +997,7 @@ nf.Actions = (function () {
                         // update the status of the drop request
                         $('#drop-request-status-message').text(dropRequest.state);
 
-                        // update the current number of enqueued flowfiles
-                        if (nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
-                            connection.status.queued = dropRequest.current;
-                            connection.status.aggregateSnapshot.queued = dropRequest.current;
-                            nf.Connection.refresh(connection.id);
-                        }
-
-                        // close the dialog if the 
+                        // close the dialog if the
                         if (dropRequest.finished === true || cancelled === true) {
                             completeDropRequest();
                         } else {
