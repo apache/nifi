@@ -46,12 +46,8 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private String queued;
     private String queuedSize;
     private String queuedCount;
-    private int percentUseCount;
-    private int percentUseBytes;
-    private long backPressureDataSizeThresholdLong;
-    private long backPressureObjectThreshold;
-    private int maxQueuedCount;
-    private long maxQueuedBytes;
+    private Integer percentUseCount;
+    private Integer percentUseBytes;
 
     /* getters / setters */
     /**
@@ -257,60 +253,22 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
-    @ApiModelProperty("Connection percent use regarding queued flow files count and backpressure threshold.")
-    public int getPercentUseCount() {
+    @ApiModelProperty("Connection percent use regarding queued flow files count and backpressure threshold if configured.")
+    public Integer getPercentUseCount() {
         return percentUseCount;
     }
 
-    public void setPercentUseCount(int percentUseCount) {
+    public void setPercentUseCount(Integer percentUseCount) {
         this.percentUseCount = percentUseCount;
     }
 
-    @ApiModelProperty("Connection percent use regarding queued flow files size and backpressure threshold.")
-    public int getPercentUseBytes() {
+    @ApiModelProperty("Connection percent use regarding queued flow files size and backpressure threshold if configured.")
+    public Integer getPercentUseBytes() {
         return percentUseBytes;
     }
 
-    public void setPercentUseBytes(int percentUseBytes) {
+    public void setPercentUseBytes(Integer percentUseBytes) {
         this.percentUseBytes = percentUseBytes;
-    }
-
-    public long getBackPressureDataSizeThresholdLong() {
-        return backPressureDataSizeThresholdLong;
-    }
-
-    public void setBackPressureDataSizeThresholdLong(long backPressureDataSizeThresholdLong) {
-        this.backPressureDataSizeThresholdLong = backPressureDataSizeThresholdLong;
-    }
-
-    public long getBackPressureObjectThreshold() {
-        return backPressureObjectThreshold;
-    }
-
-    public void setBackPressureObjectThreshold(long backPressureObjectThreshold) {
-        this.backPressureObjectThreshold = backPressureObjectThreshold;
-    }
-
-    public int getMaxQueuedCount() {
-        return maxQueuedCount;
-    }
-
-    public void setMaxQueuedCount(int maxQueuedCount) {
-        this.maxQueuedCount = maxQueuedCount;
-        setPercentUseCount(backPressureObjectThreshold <= 0 ? 0 : getUtilization(maxQueuedCount, backPressureObjectThreshold));
-    }
-
-    public long getMaxQueuedBytes() {
-        return maxQueuedBytes;
-    }
-
-    public void setMaxQueuedBytes(long maxQueuedBytes) {
-        this.maxQueuedBytes = maxQueuedBytes;
-        setPercentUseBytes(backPressureDataSizeThresholdLong <= 0 ? 0 : getUtilization(maxQueuedBytes, backPressureDataSizeThresholdLong));
-    }
-
-    private int getUtilization(final double used, final double total) {
-        return Math.min((int) Math.round((used / total) * 100), 100);
     }
 
     @Override
@@ -337,10 +295,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setQueuedSize(getQueuedSize());
         other.setPercentUseBytes(getPercentUseBytes());
         other.setPercentUseCount(getPercentUseCount());
-        other.setBackPressureDataSizeThresholdLong(getBackPressureDataSizeThresholdLong());
-        other.setBackPressureObjectThreshold(getBackPressureObjectThreshold());
-        other.setMaxQueuedBytes(getMaxQueuedBytes());
-        other.setMaxQueuedCount(getMaxQueuedCount());
 
         return other;
     }
