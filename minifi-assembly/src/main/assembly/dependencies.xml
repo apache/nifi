@@ -68,6 +68,11 @@
                 <include>logback-classic</include>
                 <include>nifi-api</include>
                 <include>nifi-utils</include>
+                <include>jetty-server</include>
+                <include>jetty-util</include>
+                <include>jetty-http</include>
+                <include>jetty-io</include>
+                <include>javax.servlet-api</include>
             </includes>
         </dependencySet>
 
