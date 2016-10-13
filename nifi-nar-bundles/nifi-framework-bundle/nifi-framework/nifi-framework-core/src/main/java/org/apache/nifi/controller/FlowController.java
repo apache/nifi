@@ -1076,7 +1076,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
                 try {
-                    procNode.setBulletinLevel(ds.logLevel());
+                    procNode.setBulletinLevel(ds.bulletinLevel());
                 } catch (Throwable ex) {
                     LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
