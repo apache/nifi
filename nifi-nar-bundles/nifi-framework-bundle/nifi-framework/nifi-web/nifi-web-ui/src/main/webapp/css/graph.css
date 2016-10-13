@@ -197,6 +197,11 @@ g.connection rect.border.unauthorized {
     stroke-dasharray: 3,3;
 }
 
+g.connection rect.border.full {
+    stroke: rgba(186, 85, 74, 0.65);
+    stroke-width: 1;
+}
+
 g.connection.selected rect.border {
     /*stroke: #004849;*/
     stroke: #ffcc00;
@@ -225,6 +230,10 @@ g.connection path.connection-path {
     cursor: pointer;
 }
 
+g.connection path.connection-path.full {
+    stroke: #ba554a;
+}
+
 g.connection path.connection-path.unauthorized {
     stroke: #ba554a;
     stroke-dasharray: 3,3;
@@ -237,6 +246,35 @@ text.connection-from-run-status, text.connection-to-run-status, text.expiration-
 }
 
 text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
+    fill: #ba554a;
+}
+
+g.connection rect.backpressure-tick {
+    fill: #3e3e3e;
+}
+
+g.connection rect.backpressure-tick.not-configured {
+    fill: #acacac;
+}
+
+g.connection rect.backpressure-object, g.connection rect.backpressure-data-size {
+    fill: #d8d8d8;
+}
+
+g.connection rect.backpressure-object.not-configured, g.connection rect.backpressure-data-size.not-configured {
+    fill: transparent;
+}
+
+g.connection rect.backpressure-percent {
+    fill: #67b796;
+    pointer-events: none;
+}
+
+g.connection rect.backpressure-percent.warning {
+    fill: #cea958;
+}
+
+g.connection rect.backpressure-percent.error {
     fill: #ba554a;
 }
 

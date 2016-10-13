@@ -46,6 +46,8 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private String queued;
     private String queuedSize;
     private String queuedCount;
+    private Integer percentUseCount;
+    private Integer percentUseBytes;
 
     /* getters / setters */
     /**
@@ -251,6 +253,24 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
+    @ApiModelProperty("Connection percent use regarding queued flow files count and backpressure threshold if configured.")
+    public Integer getPercentUseCount() {
+        return percentUseCount;
+    }
+
+    public void setPercentUseCount(Integer percentUseCount) {
+        this.percentUseCount = percentUseCount;
+    }
+
+    @ApiModelProperty("Connection percent use regarding queued flow files size and backpressure threshold if configured.")
+    public Integer getPercentUseBytes() {
+        return percentUseBytes;
+    }
+
+    public void setPercentUseBytes(Integer percentUseBytes) {
+        this.percentUseBytes = percentUseBytes;
+    }
+
     @Override
     public ConnectionStatusSnapshotDTO clone() {
         final ConnectionStatusSnapshotDTO other = new ConnectionStatusSnapshotDTO();
@@ -273,6 +293,8 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
         other.setQueued(getQueued());
         other.setQueuedCount(getQueuedCount());
         other.setQueuedSize(getQueuedSize());
+        other.setPercentUseBytes(getPercentUseBytes());
+        other.setPercentUseCount(getPercentUseCount());
 
         return other;
     }
