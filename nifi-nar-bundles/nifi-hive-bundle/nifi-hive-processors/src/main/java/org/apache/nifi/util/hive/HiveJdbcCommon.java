@@ -339,6 +339,16 @@ public class HiveJdbcCommon {
                             rowValues.add("");
                         }
                         break;
+                    case ARRAY:
+                    case STRUCT:
+                    case JAVA_OBJECT:
+                        String complexValueString = rs.getString(i);
+                        if (complexValueString != null) {
+                            rowValues.add(StringEscapeUtils.escapeCsv(complexValueString));
+                        } else {
+                            rowValues.add("");
+                        }
+                        break;
                     default:
                         if (value != null) {
                             rowValues.add(value.toString());
