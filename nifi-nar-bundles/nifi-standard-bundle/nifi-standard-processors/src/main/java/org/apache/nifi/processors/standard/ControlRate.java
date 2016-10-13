@@ -115,6 +115,13 @@ public class ControlRate extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
+    public static final PropertyDescriptor MAX_FF_PER_TRIGGER = new PropertyDescriptor.Builder()
+            .name("Max FlowFiles per Trigger")
+            .description("Maximum number of FlowFiles to accept per onTrigger() call, even within the allowable limit.")
+            .required(false)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -137,6 +144,7 @@ public class ControlRate extends AbstractProcessor {
     private volatile String rateControlAttribute = null;
     private volatile String maximumRateStr = null;
     private volatile String groupingAttributeName = null;
+    private volatile String maxFlowFilePerTrigger = null;
     private volatile int timePeriodSeconds = 1;
 
     @Override
@@ -147,6 +155,7 @@ public class ControlRate extends AbstractProcessor {
         properties.add(RATE_CONTROL_ATTRIBUTE_NAME);
         properties.add(TIME_PERIOD);
         properties.add(GROUPING_ATTRIBUTE_NAME);
+        properties.add(MAX_FF_PER_TRIGGER);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -205,6 +214,7 @@ public class ControlRate extends AbstractProcessor {
         if (descriptor.equals(RATE_CONTROL_CRITERIA)
                 || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
                 || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
+                || descriptor.equals(MAX_FF_PER_TRIGGER)
                 || descriptor.equals(TIME_PERIOD)) {
             // if the criteria that is being used to determine limits/throttles is changed, we must clear our throttle map.
             throttleMap.clear();
@@ -228,12 +238,13 @@ public class ControlRate extends AbstractProcessor {
         rateControlAttribute = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
         maximumRateStr = context.getProperty(MAX_RATE).getValue().toUpperCase();
         groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
+        maxFlowFilePerTrigger = context.getProperty(MAX_FF_PER_TRIGGER).getValue();
         timePeriodSeconds = context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = session.get(new ThrottleFilter());
+        List<FlowFile> flowFiles = session.get(new ThrottleFilter(maxFlowFilePerTrigger));
         if (flowFiles.isEmpty()) {
             context.yield();
             return;
@@ -381,6 +392,14 @@ public class ControlRate extends AbstractProcessor {
 
     private class ThrottleFilter implements FlowFileFilter {
 
+        private final long flowFilesPerTrigger;
+        private final AtomicLong flowFilesFiltered = new AtomicLong(0L);
+
+        ThrottleFilter(final String ffPerTrigger) {
+            super();
+            flowFilesPerTrigger = ffPerTrigger == null ? 1L : Long.parseLong(ffPerTrigger);
+        }
+
         @Override
         public FlowFileFilterResult filter(FlowFile flowFile) {
             long accrual = getFlowFileAccrual(flowFile);
@@ -409,7 +428,13 @@ public class ControlRate extends AbstractProcessor {
             throttle.lock();
             try {
                 if (throttle.tryAdd(accrual)) {
-                    return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+                    long files = flowFilesFiltered.addAndGet(1);
+                    if (files >= flowFilesPerTrigger) {
+                        flowFilesFiltered.set(0L);
+                        return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
+                    } else {
+                        return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    }
                 }
             } finally {
                 throttle.unlock();
