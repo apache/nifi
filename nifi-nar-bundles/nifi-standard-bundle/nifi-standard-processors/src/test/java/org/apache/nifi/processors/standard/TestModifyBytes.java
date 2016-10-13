@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -95,6 +96,24 @@ public class TestModifyBytes {
     }
 
     @Test
+    public void testRemoveHeaderEL() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ModifyBytes());
+        runner.setProperty(ModifyBytes.START_OFFSET, "${numBytes}"); //REMOVE - '<<<HEADER>>>'
+        runner.setProperty(ModifyBytes.END_OFFSET, "0 MB");
+
+        runner.enqueue(testFilePath, new HashMap<String, String>() {{
+            put("numBytes", "12 B");
+        }});
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
+        System.out.println(outContent);
+        out.assertContentEquals(noHeaderFile);
+    }
+
+    @Test
     public void testKeepFooter() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ModifyBytes());
         runner.setProperty(ModifyBytes.START_OFFSET, "181 B");
@@ -117,6 +136,22 @@ public class TestModifyBytes {
         runner.setProperty(ModifyBytes.END_OFFSET, "181 B");
 
         runner.enqueue(testFilePath);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
+        out.assertContentEquals("<<<HEADER>>>".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testKeepHeaderEL() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ModifyBytes());
+        runner.setProperty(ModifyBytes.START_OFFSET, "0 B");
+        runner.setProperty(ModifyBytes.END_OFFSET, "${numBytes}");
+
+        runner.enqueue(testFilePath, new HashMap<String, String>() {{
+            put("numBytes", "181 B");
+        }});
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ModifyBytes.REL_SUCCESS, 1);
