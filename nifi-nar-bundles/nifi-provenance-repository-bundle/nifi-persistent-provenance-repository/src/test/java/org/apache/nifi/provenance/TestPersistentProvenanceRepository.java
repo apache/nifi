@@ -99,7 +99,7 @@ public class TestPersistentProvenanceRepository {
     public TestName name = new TestName();
 
     @Rule
-    TemporaryFolder testFolder = new TemporaryFolder();
+    public TemporaryFolder testFolder = new TemporaryFolder();
 
     private PersistentProvenanceRepository repo;
     private RepositoryConfiguration config;
