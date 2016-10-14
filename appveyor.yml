@@ -29,8 +29,8 @@ install:
       }
   - cmd: SET M2_HOME=C:\maven\apache-maven-3.1.1
   - cmd: SET PATH=%M2_HOME%\bin;%JAVA_HOME%\bin;%PATH%%
-  - cmd: SET MAVEN_OPTS=-XX:MaxPermSize=2g -Xmx4g
-  - cmd: SET JAVA_OPTS=-XX:MaxPermSize=2g -Xmx4g
+  - cmd: SET MAVEN_OPTS=-Xmx4g
+  - cmd: SET JAVA_OPTS=-Xmx4g
 build_script:
   - mvn -q -T 2C -DskipTests clean install
 test_script:
