@@ -2021,7 +2021,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
         } else {
             for (final File indexDir : indexDirectories) {
-                queryExecService.submit(new QueryRunnable(query, result, user, indexDir, retrievalCount));
+                result.addQueryExecution(queryExecService.submit(new QueryRunnable(query, result, user, indexDir, retrievalCount)));
             }
         }
 

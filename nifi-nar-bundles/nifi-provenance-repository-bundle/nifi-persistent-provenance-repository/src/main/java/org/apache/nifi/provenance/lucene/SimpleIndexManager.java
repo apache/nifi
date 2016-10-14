@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -44,8 +47,21 @@ public class SimpleIndexManager implements IndexManager {
     private final ConcurrentMap<Object, List<Closeable>> closeables = new ConcurrentHashMap<>();
     private final Map<File, IndexWriterCount> writerCounts = new HashMap<>();
 
+    private final ExecutorService searchExecutor = Executors.newCachedThreadPool();
+
+
     @Override
     public void close() throws IOException {
+        logger.debug("Shutting down SimpleIndexManager search executor");
+        this.searchExecutor.shutdown();
+        try {
+            if (!this.searchExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                this.searchExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            this.searchExecutor.shutdownNow();
+        }
     }
 
     @Override
@@ -53,7 +69,7 @@ public class SimpleIndexManager implements IndexManager {
         logger.debug("Creating index searcher for {}", indexDir);
         final Directory directory = FSDirectory.open(indexDir);
         final DirectoryReader directoryReader = DirectoryReader.open(directory);
-        final IndexSearcher searcher = new IndexSearcher(directoryReader);
+        final IndexSearcher searcher = new IndexSearcher(directoryReader, this.searchExecutor);
 
         final List<Closeable> closeableList = new ArrayList<>(2);
         closeableList.add(directoryReader);
