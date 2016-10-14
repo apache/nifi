@@ -85,6 +85,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -97,6 +98,9 @@ public class TestPersistentProvenanceRepository {
     @Rule
     public TestName name = new TestName();
 
+    @Rule
+    TemporaryFolder testFolder = new TemporaryFolder();
+
     private PersistentProvenanceRepository repo;
     private RepositoryConfiguration config;
 
@@ -104,9 +108,9 @@ public class TestPersistentProvenanceRepository {
     private EventReporter eventReporter;
     private List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
 
-    private RepositoryConfiguration createConfiguration() {
+    private RepositoryConfiguration createConfiguration() throws IOException {
         config = new RepositoryConfiguration();
-        config.addStorageDirectory(new File("target/storage/" + UUID.randomUUID().toString()));
+        config.addStorageDirectory(testFolder.newFolder());
         config.setCompressOnRollover(true);
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS);
         config.setCompressionBlockBytes(100);
@@ -167,7 +171,6 @@ public class TestPersistentProvenanceRepository {
             }
         }
     }
-
 
 
     private EventReporter getEventReporter() {
@@ -360,7 +363,7 @@ public class TestPersistentProvenanceRepository {
 
         int immenseAttrSize = 33000; // must be greater than 32766 for a meaningful test
         StringBuilder immenseBldr = new StringBuilder(immenseAttrSize);
-        for (int i=0; i < immenseAttrSize; i++) {
+        for (int i = 0; i < immenseAttrSize; i++) {
             immenseBldr.append('0');
         }
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -1491,9 +1494,9 @@ public class TestPersistentProvenanceRepository {
         assertEquals(5, lineageNodes.stream().map(node -> node.getNodeType()).filter(t -> t == LineageNodeType.PROVENANCE_EVENT_NODE).count());
 
         final Set<EventNode> eventNodes = lineageNodes.stream()
-            .filter(node -> node.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
-            .map(node -> (EventNode) node)
-            .collect(Collectors.toSet());
+                .filter(node -> node.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
+                .map(node -> (EventNode) node)
+                .collect(Collectors.toSet());
 
         final Map<ProvenanceEventType, List<EventNode>> nodesByType = eventNodes.stream().collect(Collectors.groupingBy(EventNode::getEventType));
         assertEquals(1, nodesByType.get(ProvenanceEventType.RECEIVE).size());
@@ -1517,9 +1520,9 @@ public class TestPersistentProvenanceRepository {
         assertEquals(3, expandChildNodes.stream().map(node -> node.getNodeType()).filter(t -> t == LineageNodeType.PROVENANCE_EVENT_NODE).count());
 
         final Set<EventNode> childEventNodes = expandChildNodes.stream()
-            .filter(node -> node.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
-            .map(node -> (EventNode) node)
-            .collect(Collectors.toSet());
+                .filter(node -> node.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
+                .map(node -> (EventNode) node)
+                .collect(Collectors.toSet());
 
         final Map<ProvenanceEventType, List<EventNode>> childNodesByType = childEventNodes.stream().collect(Collectors.groupingBy(EventNode::getEventType));
         assertEquals(1, childNodesByType.get(ProvenanceEventType.FORK).size());
@@ -1527,7 +1530,6 @@ public class TestPersistentProvenanceRepository {
         assertEquals(1, childNodesByType.get(ProvenanceEventType.UNKNOWN).size());
         assertNull(childNodesByType.get(ProvenanceEventType.ATTRIBUTES_MODIFIED));
     }
-
 
 
     @Test
@@ -1720,7 +1722,7 @@ public class TestPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
 
-        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS){
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
             @Override
             File mergeJournals(List<File> journalFiles, File suggestedMergeFile, EventReporter eventReporter) throws IOException {
                 retryAmount.incrementAndGet();
@@ -1766,7 +1768,7 @@ public class TestPersistentProvenanceRepository {
         exec.awaitTermination(10, TimeUnit.SECONDS);
 
         repo.waitForRollover();
-        assertEquals(5,retryAmount.get());
+        assertEquals(5, retryAmount.get());
     }
 
     @Test
@@ -1801,7 +1803,7 @@ public class TestPersistentProvenanceRepository {
     }
 
 
-    @Test(timeout=5000)
+    @Test(timeout = 5000)
     public void testExceptionOnIndex() throws IOException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxAttributeChars(50);
@@ -1840,7 +1842,7 @@ public class TestPersistentProvenanceRepository {
         builder.setComponentId("1234");
         builder.setComponentType("dummy processor");
 
-        for (int i=0; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             final ProvenanceEventRecord record = builder.build();
             repo.registerEvent(record);
         }
