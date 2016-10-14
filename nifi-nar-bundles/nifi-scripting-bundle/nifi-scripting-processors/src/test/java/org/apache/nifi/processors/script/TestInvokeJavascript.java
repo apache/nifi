@@ -52,9 +52,9 @@ public class TestInvokeJavascript extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "ECMAScript");
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        runner.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/javascript");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -80,9 +80,9 @@ public class TestInvokeJavascript extends BaseScriptTest {
 
         processor.initialize(initContext);
 
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "ECMAScript");
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/javascript");
+        context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
+        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
@@ -115,9 +115,9 @@ public class TestInvokeJavascript extends BaseScriptTest {
 
         processor.initialize(initContext);
 
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "ECMAScript");
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/javascript");
+        context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
+        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
 
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
@@ -146,8 +146,8 @@ public class TestInvokeJavascript extends BaseScriptTest {
     public void testInvokeScriptCausesException() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "ECMAScript");
-        runner.setProperty(ExecuteScript.SCRIPT_BODY, getFileContentsAsString(
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "javascript/testInvokeScriptCausesException.js")
         );
         runner.assertValid();
@@ -164,8 +164,8 @@ public class TestInvokeJavascript extends BaseScriptTest {
     @Test
     public void testScriptRoutesToFailure() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "ECMAScript");
-        runner.setProperty(ExecuteScript.SCRIPT_BODY, getFileContentsAsString(
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "javascript/testScriptRoutesToFailure.js")
         );
         runner.assertValid();

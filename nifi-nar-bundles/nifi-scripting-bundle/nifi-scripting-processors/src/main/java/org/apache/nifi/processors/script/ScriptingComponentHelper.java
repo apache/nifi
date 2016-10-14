@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
@@ -29,7 +27,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -46,72 +43,72 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.StringUtils;
 
 /**
- * This class contains variables and methods common to scripting processors
+ * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
-@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
-        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
-public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProcessor {
+public class ScriptingComponentHelper {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles that were successfully processed")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("FlowFiles that failed to be processed")
-            .build();
-
-    public static PropertyDescriptor SCRIPT_ENGINE;
-
-    public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder()
-            .name("Script File")
-            .required(false)
-            .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(new StandardValidators.FileExistsValidator(true))
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
-            .name("Script Body")
-            .required(false)
-            .description("Body of script to execute. Only one of Script File or Script Body may be used")
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(false)
-            .build();
-
-    public static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
-            .name("Module Directory")
-            .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
-            .required(false)
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public PropertyDescriptor SCRIPT_ENGINE;
 
     // A map from engine name to a custom configurator for that engine
-    protected final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
-    protected final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    public final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
+    public final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
-    protected Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
-    protected String scriptEngineName;
-    protected String scriptPath;
-    protected String scriptBody;
-    protected String[] modules;
-    protected List<PropertyDescriptor> descriptors;
+    public Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
+    private String scriptEngineName;
+    private String scriptPath;
+    private String scriptBody;
+    private String[] modules;
+    private List<PropertyDescriptor> descriptors;
 
-    protected BlockingQueue<ScriptEngine> engineQ = null;
+    public BlockingQueue<ScriptEngine> engineQ = null;
+
+    public String getScriptEngineName() {
+        return scriptEngineName;
+    }
+
+    public void setScriptEngineName(String scriptEngineName) {
+        this.scriptEngineName = scriptEngineName;
+    }
+
+    public String getScriptPath() {
+        return scriptPath;
+    }
+
+    public void setScriptPath(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
+
+    public String getScriptBody() {
+        return scriptBody;
+    }
+
+    public void setScriptBody(String scriptBody) {
+        this.scriptBody = scriptBody;
+    }
+
+    public String[] getModules() {
+        return modules;
+    }
+
+    public void setModules(String[] modules) {
+        this.modules = modules;
+    }
+
+    public List<PropertyDescriptor> getDescriptors() {
+        return descriptors;
+    }
+
+    public void setDescriptors(List<PropertyDescriptor> descriptors) {
+        this.descriptors = descriptors;
+    }
 
     /**
      * Custom validation for ensuring exactly one of Script File or Script Body is populated
@@ -121,13 +118,12 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      *                          for operating on those values
      * @return A collection of validation results
      */
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Set<ValidationResult> results = new HashSet<>();
 
         // Verify that exactly one of "script file" or "script body" is set
         Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(SCRIPT_BODY))) {
+        if (StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_BODY))) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "Exactly one of Script File or Script Body must be set").build());
         }
@@ -139,7 +135,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * This method creates all resources needed for the script processor to function, such as script engines,
      * script file reloader threads, etc.
      */
-    protected void createResources() {
+    public void createResources() {
         descriptors = new ArrayList<>();
         // The following is required for JRuby, should be transparent to everything else.
         // Note this is not done in a ScriptEngineConfigurator, as it is too early in the lifecycle. The
@@ -158,17 +154,14 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
             }
 
             // Sort the list by name so the list always looks the same.
-            Collections.sort(engineList, new Comparator<AllowableValue>() {
-                @Override
-                public int compare(AllowableValue o1, AllowableValue o2) {
-                    if (o1 == null) {
-                        return o2 == null ? 0 : 1;
-                    }
-                    if (o2 == null) {
-                        return -1;
-                    }
-                    return o1.getValue().compareTo(o2.getValue());
+            Collections.sort(engineList, (o1, o2) -> {
+                if (o1 == null) {
+                    return o2 == null ? 0 : 1;
                 }
+                if (o2 == null) {
+                    return -1;
+                }
+                return o1.getValue().compareTo(o2.getValue());
             });
 
             AllowableValue[] engines = engineList.toArray(new AllowableValue[engineList.size()]);
@@ -185,9 +178,9 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
             descriptors.add(SCRIPT_ENGINE);
         }
 
-        descriptors.add(SCRIPT_FILE);
-        descriptors.add(SCRIPT_BODY);
-        descriptors.add(MODULES);
+        descriptors.add(ScriptingComponentUtils.SCRIPT_FILE);
+        descriptors.add(ScriptingComponentUtils.SCRIPT_BODY);
+        descriptors.add(ScriptingComponentUtils.MODULES);
 
         isInitialized.set(true);
     }
@@ -198,7 +191,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * @param path a path to a file
      * @return true if the path refers to a valid file, false otherwise
      */
-    protected boolean isFile(final String path) {
+    public static boolean isFile(final String path) {
         return path != null && Files.isRegularFile(Paths.get(path));
     }
 
@@ -208,7 +201,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      *
      * @param numberOfScriptEngines number of engines to setup
      */
-    public void setup(int numberOfScriptEngines) {
+    public void setup(int numberOfScriptEngines, ComponentLog log) {
 
         if (scriptEngineConfiguratorMap.isEmpty()) {
             ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
@@ -217,7 +210,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
                 scriptEngineConfiguratorMap.put(configurator.getScriptEngineName().toLowerCase(), configurator);
             }
         }
-        setupEngines(numberOfScriptEngines);
+        setupEngines(numberOfScriptEngines, log);
     }
 
     /**
@@ -228,12 +221,10 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * @param numberOfScriptEngines number of engines to setup
      * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
      */
-    protected void setupEngines(int numberOfScriptEngines) {
+    protected void setupEngines(int numberOfScriptEngines, ComponentLog log) {
         engineQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            ComponentLog log = getLogger();
-
             if (StringUtils.isBlank(scriptEngineName)) {
                 throw new IllegalArgumentException("The script engine name cannot be null");
             }
@@ -290,6 +281,18 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         }
     }
 
+    void setupVariables(ProcessContext context) {
+        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
+        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
+        }
+    }
+
     /**
      * Provides a ScriptEngine corresponding to the currently selected script engine name.
      * ScriptEngineManager.getEngineByName() doesn't use find ScriptEngineFactory.getName(), which
@@ -307,8 +310,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         return factory.getScriptEngine();
     }
 
-    @OnStopped
-    public void stop() {
+    void stop() {
         if (engineQ != null) {
             engineQ.clear();
         }
