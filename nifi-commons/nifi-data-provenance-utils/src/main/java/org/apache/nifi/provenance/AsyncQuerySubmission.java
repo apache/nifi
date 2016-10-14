@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.provenance;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.provenance.search.Query;
@@ -32,6 +35,8 @@ public class AsyncQuerySubmission implements QuerySubmission {
     private volatile boolean canceled = false;
     private final StandardQueryResult queryResult;
     private final String submitterId;
+
+    private final List<Future<?>> queryExecutions = new ArrayList<>();
 
     /**
      * Constructs an AsyncQuerySubmission with the given query and the given
@@ -65,6 +70,9 @@ public class AsyncQuerySubmission implements QuerySubmission {
     @Override
     public void cancel() {
         this.canceled = true;
+        for (Future<?> queryExecution : this.queryExecutions) {
+            queryExecution.cancel(true);
+        }
         queryResult.cancel();
     }
 
@@ -81,5 +89,9 @@ public class AsyncQuerySubmission implements QuerySubmission {
     @Override
     public StandardQueryResult getResult() {
         return queryResult;
+    }
+
+    public void addQueryExecution(Future<?> execution) {
+        this.queryExecutions.add(execution);
     }
 }
