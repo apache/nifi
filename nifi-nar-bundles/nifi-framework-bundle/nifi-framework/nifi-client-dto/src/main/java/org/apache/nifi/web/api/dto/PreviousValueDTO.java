@@ -52,7 +52,8 @@ public class PreviousValueDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when the value was modified."
+            value = "The timestamp when the value was modified.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

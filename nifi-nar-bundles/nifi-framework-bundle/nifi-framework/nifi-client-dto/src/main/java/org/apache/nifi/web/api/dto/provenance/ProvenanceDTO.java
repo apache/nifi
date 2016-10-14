@@ -74,7 +74,8 @@ public class ProvenanceDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when the query was submitted."
+            value = "The timestamp when the query was submitted.",
+            dataType = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -89,7 +90,8 @@ public class ProvenanceDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when the query will expire."
+            value = "The timestamp when the query will expire.",
+            dataType = "string"
     )
     public Date getExpiration() {
         return expiration;

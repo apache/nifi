@@ -65,7 +65,8 @@ public class NodeEventDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp of the node event."
+            value = "The timestamp of the node event.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

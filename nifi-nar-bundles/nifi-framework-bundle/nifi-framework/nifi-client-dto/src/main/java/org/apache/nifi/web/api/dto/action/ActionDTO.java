@@ -76,7 +76,8 @@ public class ActionDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp of the action."
+            value = "The timestamp of the action.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

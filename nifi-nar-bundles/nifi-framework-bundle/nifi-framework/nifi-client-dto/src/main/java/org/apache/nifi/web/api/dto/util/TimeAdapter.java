@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
+import javax.xml.bind.annotation.adapters.XmlAdapter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 /**
  * XmlAdapter for (un)marshalling a time.

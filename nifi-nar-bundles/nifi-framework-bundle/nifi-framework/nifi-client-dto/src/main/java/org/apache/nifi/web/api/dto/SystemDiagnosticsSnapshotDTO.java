@@ -220,7 +220,10 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty("When the diagnostics were generated.")
+    @ApiModelProperty(
+            value = "When the diagnostics were generated.",
+            dataType = "string"
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }

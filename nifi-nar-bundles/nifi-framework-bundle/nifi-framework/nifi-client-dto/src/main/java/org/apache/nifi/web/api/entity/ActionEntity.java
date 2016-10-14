@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.entity;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
@@ -66,6 +67,10 @@ public class ActionEntity extends Entity implements ReadablePermission {
      * @return The timestamp of the action.
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the action.",
+            dataType = "string"
+    )
     public Date getTimestamp() {
         return timestamp;
     }
