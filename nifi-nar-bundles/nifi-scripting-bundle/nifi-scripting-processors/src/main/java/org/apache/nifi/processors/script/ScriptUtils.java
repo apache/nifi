@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
@@ -46,23 +44,19 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 /**
- * This class contains variables and methods common to scripting processors
+ * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
-@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
-        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
-public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProcessor {
+public class ScriptUtils {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -101,17 +95,17 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
             .build();
 
     // A map from engine name to a custom configurator for that engine
-    protected final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
-    protected final AtomicBoolean isInitialized = new AtomicBoolean(false);
+    public final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
+    public final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
-    protected Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
-    protected String scriptEngineName;
-    protected String scriptPath;
-    protected String scriptBody;
-    protected String[] modules;
-    protected List<PropertyDescriptor> descriptors;
+    public Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
+    public String scriptEngineName;
+    public String scriptPath;
+    public String scriptBody;
+    public String[] modules;
+    public List<PropertyDescriptor> descriptors;
 
-    protected BlockingQueue<ScriptEngine> engineQ = null;
+    public BlockingQueue<ScriptEngine> engineQ = null;
 
     /**
      * Custom validation for ensuring exactly one of Script File or Script Body is populated
@@ -121,8 +115,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      *                          for operating on those values
      * @return A collection of validation results
      */
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         Set<ValidationResult> results = new HashSet<>();
 
         // Verify that exactly one of "script file" or "script body" is set
@@ -139,7 +132,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * This method creates all resources needed for the script processor to function, such as script engines,
      * script file reloader threads, etc.
      */
-    protected void createResources() {
+    public void createResources() {
         descriptors = new ArrayList<>();
         // The following is required for JRuby, should be transparent to everything else.
         // Note this is not done in a ScriptEngineConfigurator, as it is too early in the lifecycle. The
@@ -198,7 +191,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * @param path a path to a file
      * @return true if the path refers to a valid file, false otherwise
      */
-    protected boolean isFile(final String path) {
+    public static boolean isFile(final String path) {
         return path != null && Files.isRegularFile(Paths.get(path));
     }
 
@@ -208,7 +201,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      *
      * @param numberOfScriptEngines number of engines to setup
      */
-    public void setup(int numberOfScriptEngines) {
+    public void setup(int numberOfScriptEngines, ComponentLog log) {
 
         if (scriptEngineConfiguratorMap.isEmpty()) {
             ServiceLoader<ScriptEngineConfigurator> configuratorServiceLoader =
@@ -217,7 +210,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
                 scriptEngineConfiguratorMap.put(configurator.getScriptEngineName().toLowerCase(), configurator);
             }
         }
-        setupEngines(numberOfScriptEngines);
+        setupEngines(numberOfScriptEngines, log);
     }
 
     /**
@@ -228,12 +221,10 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * @param numberOfScriptEngines number of engines to setup
      * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
      */
-    protected void setupEngines(int numberOfScriptEngines) {
+    protected void setupEngines(int numberOfScriptEngines, ComponentLog log) {
         engineQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            ComponentLog log = getLogger();
-
             if (StringUtils.isBlank(scriptEngineName)) {
                 throw new IllegalArgumentException("The script engine name cannot be null");
             }
@@ -307,7 +298,6 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
         return factory.getScriptEngine();
     }
 
-    @OnStopped
     public void stop() {
         if (engineQ != null) {
             engineQ.clear();

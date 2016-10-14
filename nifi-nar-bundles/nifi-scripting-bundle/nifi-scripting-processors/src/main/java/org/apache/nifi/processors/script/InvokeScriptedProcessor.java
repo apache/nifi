@@ -20,6 +20,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -28,9 +29,11 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -61,9 +64,11 @@ import java.util.concurrent.atomic.AtomicReference;
         + "Experimental: Impact of sustained usage not yet verified.")
 @DynamicProperty(name = "A script engine property to update", value = "The value to set it to", supportsExpressionLanguage = true,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
+        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 @SeeAlso({ExecuteScript.class})
 @Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
-public class InvokeScriptedProcessor extends AbstractScriptProcessor {
+public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
     private final AtomicReference<Processor> processor = new AtomicReference<>();
     private final AtomicReference<Collection<ValidationResult>> validationResults = new AtomicReference<>(new ArrayList<>());
@@ -74,6 +79,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
     private volatile File kerberosServiceKeytab = null;
+    private volatile ScriptUtils scriptUtils = new ScriptUtils();
 
     /**
      * Returns the valid relationships for this processor as supplied by the
@@ -123,13 +129,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
 
-        synchronized (isInitialized) {
-            if (!isInitialized.get()) {
-                createResources();
+        synchronized (scriptUtils.isInitialized) {
+            if (!scriptUtils.isInitialized.get()) {
+                scriptUtils.createResources();
             }
         }
         List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        supportedPropertyDescriptors.addAll(descriptors);
+        supportedPropertyDescriptors.addAll(scriptUtils.descriptors);
 
         final Processor instance = processor.get();
         if (instance != null) {
@@ -182,14 +188,14 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
      */
     @OnScheduled
     public void setup(final ProcessContext context) {
-        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(MODULES).getValue();
+        scriptUtils.scriptEngineName = context.getProperty(ScriptUtils.SCRIPT_ENGINE).getValue();
+        scriptUtils.scriptPath = context.getProperty(ScriptUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptUtils.scriptBody = context.getProperty(ScriptUtils.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptUtils.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
+            scriptUtils.modules = modulePath.split(",");
         } else {
-            modules = new String[0];
+            scriptUtils.modules = new String[0];
         }
         setup();
     }
@@ -197,8 +203,8 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     public void setup() {
         // Create a single script engine, the Processor object is reused by each task
         if(scriptEngine == null) {
-            super.setup(1);
-            scriptEngine = engineQ.poll();
+            scriptUtils.setup(1, getLogger());
+            scriptEngine = scriptUtils.engineQ.poll();
         }
 
         if (scriptEngine == null) {
@@ -206,10 +212,10 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         }
 
         if (scriptNeedsReload.get() || processor.get() == null) {
-            if (isFile(scriptPath)) {
-                reloadScriptFile(scriptPath);
+            if (ScriptUtils.isFile(scriptUtils.scriptPath)) {
+                reloadScriptFile(scriptUtils.scriptPath);
             } else {
-                reloadScriptBody(scriptBody);
+                reloadScriptBody(scriptUtils.scriptBody);
             }
             scriptNeedsReload.set(false);
         }
@@ -228,13 +234,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         final ComponentLog logger = getLogger();
         final Processor instance = processor.get();
 
-        if (SCRIPT_FILE.equals(descriptor)
-                || SCRIPT_BODY.equals(descriptor)
-                || MODULES.equals(descriptor)
-                || SCRIPT_ENGINE.equals(descriptor)) {
+        if (ScriptUtils.SCRIPT_FILE.equals(descriptor)
+                || ScriptUtils.SCRIPT_BODY.equals(descriptor)
+                || ScriptUtils.MODULES.equals(descriptor)
+                || ScriptUtils.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
             // Need to reset scriptEngine if the value has changed
-            if (SCRIPT_ENGINE.equals(descriptor)) {
+            if (ScriptUtils.SCRIPT_ENGINE.equals(descriptor)) {
                 scriptEngine = null;
             }
         } else if (instance != null) {
@@ -258,7 +264,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         final Collection<ValidationResult> results = new HashSet<>();
 
         try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
-            return reloadScript(IOUtils.toString(scriptStream));
+            return reloadScript(IOUtils.toString(scriptStream, Charset.defaultCharset()));
 
         } catch (final Exception e) {
             final ComponentLog logger = getLogger();
@@ -300,7 +306,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     .subject("ScriptValidation")
                     .valid(false)
                     .explanation("Unable to load script due to " + e)
-                    .input(scriptPath)
+                    .input(scriptUtils.scriptPath)
                     .build());
         }
 
@@ -329,9 +335,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 final Invocable invocable = (Invocable) scriptEngine;
 
                 // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
+                ScriptEngineConfigurator configurator = scriptUtils.scriptEngineConfiguratorMap.get(scriptUtils.scriptEngineName.toLowerCase());
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptBody, modules);
+                    configurator.eval(scriptEngine, scriptBody, scriptUtils.modules);
                 } else {
                     // evaluate the script
                     scriptEngine.eval(scriptBody);
@@ -412,7 +418,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     .subject("ScriptValidation")
                     .valid(false)
                     .explanation("Unable to load script due to " + ex.getLocalizedMessage())
-                    .input(scriptPath)
+                    .input(scriptUtils.scriptPath)
                     .build());
         }
 
@@ -442,14 +448,14 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             return commonValidationResults;
         }
 
-        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(MODULES).getValue();
+        scriptUtils.scriptEngineName = context.getProperty(ScriptUtils.SCRIPT_ENGINE).getValue();
+        scriptUtils.scriptPath = context.getProperty(ScriptUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptUtils.scriptBody = context.getProperty(ScriptUtils.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptUtils.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
+            scriptUtils.modules = modulePath.split(",");
         } else {
-            modules = new String[0];
+            scriptUtils.modules = new String[0];
         }
         setup();
 
@@ -477,7 +483,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                         .subject("Validation")
                         .valid(false)
                         .explanation("An error occurred calling validate in the configured script Processor.")
-                        .input(context.getProperty(SCRIPT_FILE).getValue())
+                        .input(context.getProperty(scriptUtils.SCRIPT_FILE).getValue())
                         .build());
                 return results;
             }
@@ -505,9 +511,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
 
         // Initialize the rest of the processor resources if we have not already done so
-        synchronized (isInitialized) {
-            if (!isInitialized.get()) {
-                super.createResources();
+        synchronized (scriptUtils.isInitialized) {
+            if (!scriptUtils.isInitialized.get()) {
+                scriptUtils.createResources();
             }
         }
 
@@ -529,7 +535,8 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 // run the processor
                 instance.onTrigger(context, sessionFactory);
             } catch (final ProcessException e) {
-                final String message = String.format("An error occurred executing the configured Processor [%s]: %s", context.getProperty(SCRIPT_FILE).getValue(), e);
+                final String message = String.format("An error occurred executing the configured Processor [%s]: %s",
+                        context.getProperty(ScriptUtils.SCRIPT_FILE).getValue(), e);
                 log.error(message);
                 throw e;
             }
@@ -539,9 +546,8 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     @OnStopped
-    @Override
     public void stop() {
-        super.stop();
+        scriptUtils.stop();
         processor.set(null);
         scriptEngine = null;
     }

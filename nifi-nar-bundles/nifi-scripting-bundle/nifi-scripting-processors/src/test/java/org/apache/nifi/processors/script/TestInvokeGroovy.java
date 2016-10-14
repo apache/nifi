@@ -50,9 +50,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
-        runner.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/groovy");
+        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
+        runner.setProperty(ScriptUtils.MODULES, "target/test/resources/groovy");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -77,9 +77,9 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         processor.initialize(initContext);
 
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
-        context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/groovy");
+        context.setProperty(ScriptUtils.SCRIPT_ENGINE, "Groovy");
+        context.setProperty(ScriptUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
+        context.setProperty(ScriptUtils.MODULES, "target/test/resources/groovy");
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
@@ -111,8 +111,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
 
         processor.initialize(initContext);
 
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
-        context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
+        context.setProperty(ScriptUtils.SCRIPT_ENGINE, "Groovy");
+        context.setProperty(ScriptUtils.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
@@ -140,8 +140,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
     public void testInvokeScriptCausesException() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
-        runner.setProperty(ExecuteScript.SCRIPT_BODY, getFileContentsAsString(
+        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testInvokeScriptCausesException.groovy")
         );
         runner.assertValid();
@@ -158,8 +158,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
     @Test
     public void testScriptRoutesToFailure() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
-        runner.setProperty(ExecuteScript.SCRIPT_BODY, getFileContentsAsString(
+        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(ScriptUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "groovy/testScriptRoutesToFailure.groovy")
         );
         runner.assertValid();
