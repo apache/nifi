@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
@@ -28,20 +29,17 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
  */
 public class TimeAdapter extends XmlAdapter<String, Date> {
 
-    public static final String DEFAULT_TIME_FORMAT = "HH:mm:ss z";
-
     @Override
     public String marshal(Date date) throws Exception {
-        final SimpleDateFormat formatter = new SimpleDateFormat(DEFAULT_TIME_FORMAT, Locale.US);
-        formatter.setTimeZone(TimeZone.getDefault());
-        return formatter.format(date);
+
+        return ZonedDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault())
+                .truncatedTo(ChronoUnit.SECONDS)
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     @Override
     public Date unmarshal(String date) throws Exception {
-        final SimpleDateFormat parser = new SimpleDateFormat(DEFAULT_TIME_FORMAT, Locale.US);
-        parser.setTimeZone(TimeZone.getDefault());
-        return parser.parse(date);
+        return Date.from(ZonedDateTime.parse(date).toInstant());
     }
 
 }
