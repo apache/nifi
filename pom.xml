@@ -1869,8 +1869,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
+                -->
             </properties>
         </profile>
         <profile>
@@ -1892,8 +1893,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
+                -->
             </properties>
         </profile>
         <profile>
@@ -1915,8 +1917,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.6.0-cdh5.8.1</hadoop.version>
+                -->
             </properties>
         </profile>
     </profiles>
