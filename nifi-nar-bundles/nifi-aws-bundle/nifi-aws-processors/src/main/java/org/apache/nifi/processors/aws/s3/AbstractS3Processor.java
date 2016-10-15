@@ -121,7 +121,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .required(false)
             .allowableValues(
                     new AllowableValue("Default Signature", "Default Signature"),
-                    new AllowableValue("AWSS3V4Signer", "Signature v4"),
+                    new AllowableValue("AWSS3V4SignerType", "Signature v4"),
                     new AllowableValue("S3SignerType", "Signature v2"))
             .defaultValue("Default Signature")
             .build();
