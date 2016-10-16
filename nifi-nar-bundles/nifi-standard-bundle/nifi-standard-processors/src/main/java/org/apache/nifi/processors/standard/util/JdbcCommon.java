@@ -43,6 +43,7 @@ import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,8 +56,13 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.List;
 
+import org.apache.avro.Conversions.DecimalConversion;
+import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.avro.file.DataFileWriter;
@@ -91,6 +97,7 @@ public class JdbcCommon {
             throws SQLException, IOException {
         final Schema schema = createSchema(rs, recordName, convertNames);
         final GenericRecord rec = new GenericData.Record(schema);
+        final DecimalConversion decimalConversion = new DecimalConversion();
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
@@ -168,8 +175,13 @@ public class JdbcCommon {
                         rec.put(i - 1, ((Byte) value).intValue());
 
                     } else if (value instanceof BigDecimal) {
-                        // Avro can't handle BigDecimal as a number - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
-                        rec.put(i - 1, value.toString());
+                        // try to avoid mysterious error: Unknown datum type java.math.BigDecimal: 38
+                        String columnName = convertNames ? normalizeNameForAvro(meta.getColumnName(i)) : meta.getColumnName(i);
+                        Schema decimalSchema = getDecimalSchema(schema, columnName);
+                        LogicalType logicalType = LogicalTypes.fromSchema(decimalSchema);
+
+                        ByteBuffer byteBuffer = decimalConversion.toBytes((BigDecimal) value, decimalSchema, logicalType);
+                        rec.put(i - 1, byteBuffer);
 
                     } else if (value instanceof BigInteger) {
                         // Check the precision of the BIGINT. Some databases allow arbitrary precision (> 19), but Avro won't handle that.
@@ -222,6 +234,21 @@ public class JdbcCommon {
 
             return nrOfRows;
         }
+    }
+
+    /**
+     *  Because we want to support null values, Avro Union Schema is required.
+     * And handling is little bit complicated. getDecimalSchema() contains handling logic
+     */
+    public static Schema getDecimalSchema(Schema recordSchema, String fieldName) {
+
+        Field field = recordSchema.getField(fieldName);
+        requireNonNull(field, "schema does not contain field '" + fieldName + "'");
+
+        Schema unionSchema = field.schema();
+        List<Schema> supportedTypes = unionSchema.getTypes();
+        Schema decimalSchema = supportedTypes.get(1);
+        return decimalSchema;
     }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
@@ -315,10 +342,13 @@ public class JdbcCommon {
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().doubleType().endUnion().noDefault();
                     break;
 
-                // Did not find direct suitable type, need to be clarified!!!!
+                // Avro 1.8.1 support decimal type
                 case DECIMAL:
                 case NUMERIC:
-                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
+                    int dprecision = meta.getPrecision(i);
+                    int scale = meta.getScale(i);
+                    Schema decimal = LogicalTypes.decimal(dprecision, scale).addToSchema(Schema.create(Schema.Type.BYTES));
+                    builder.name(columnName).type().unionOf().nullBuilder().endNull().and().type(decimal).endUnion().noDefault();
                     break;
 
                 // Did not find direct suitable type, need to be clarified!!!!
