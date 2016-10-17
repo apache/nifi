@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -205,4 +206,49 @@ public class TestExecuteProcess {
 
         // assertEquals(inFile.length(), totalFlowFilesSize);
     }
+
+    @Test
+    public void testNotRedirectErrorStream() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "cd");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
+
+        ProcessContext processContext = runner.getProcessContext();
+
+        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        processor.updateScheduledTrue();
+        processor.setupExecutor(processContext);
+
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+
+        final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
+        assertEquals("If redirect error stream is false, " +
+                "the output should be logged as a warning so that user can notice on bulletin.", 1, warnMessages.size());
+        final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        assertEquals(0, succeeded.size());
+    }
+
+
+    @Test
+    public void testRedirectErrorStream() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "cd");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
+        runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
+
+        ProcessContext processContext = runner.getProcessContext();
+
+        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        processor.updateScheduledTrue();
+        processor.setupExecutor(processContext);
+
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+
+        final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
+        assertEquals("If redirect error stream is true " +
+                "the output should be sent as a content of flow-file.", 0, warnMessages.size());
+        final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        assertEquals(1, succeeded.size());
+    }
+
 }
