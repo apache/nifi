@@ -596,7 +596,7 @@ public class RunNiFi {
 
         if (status.isProcessRunning()) {
             logger.info("Apache NiFi is running at PID {} but is not responding to ping requests", status.getPid());
-            return 0;
+            return 4;
         }
 
         if (status.getPort() == null) {
