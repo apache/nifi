@@ -265,7 +265,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         final boolean warningUnmappedColumns = WARNING_UNMATCHED_COLUMN.getValue().equalsIgnoreCase(context.getProperty(UNMATCHED_COLUMN_BEHAVIOR).getValue());
 
         //Escape column names?
-        final boolean escapeColumnNames = "true".equalsIgnoreCase(context.getProperty(QUOTED_IDENTIFIERS).getValue());
+        final boolean escapeColumnNames = context.getProperty(QUOTED_IDENTIFIERS).asBoolean();
 
         // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
         // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
