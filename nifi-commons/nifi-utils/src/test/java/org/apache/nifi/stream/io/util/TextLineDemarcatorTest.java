@@ -17,13 +17,16 @@
 package org.apache.nifi.stream.io.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
 import org.junit.Test;
 
 public class TextLineDemarcatorTest {
@@ -58,22 +61,22 @@ public class TextLineDemarcatorTest {
     public void singleCR() {
         InputStream is = stringToIs("\r");
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
-        long[] offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(0, offsetInfo[0]); // offset
-        assertEquals(1, offsetInfo[1]); // length
-        assertEquals(1, offsetInfo[2]); // CR or CRLF - values can only be 1 or 2
-        assertEquals(1, offsetInfo[3]); // EOF
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
     }
 
     @Test
     public void singleLF() {
         InputStream is = stringToIs("\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
-        long[] offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(0, offsetInfo[0]); // offset
-        assertEquals(1, offsetInfo[1]); // length
-        assertEquals(1, offsetInfo[2]); // CR or CRLF - values can only be 1 or 2
-        assertEquals(1, offsetInfo[3]); // EOF
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
     }
 
     @Test
@@ -81,46 +84,46 @@ public class TextLineDemarcatorTest {
     public void crlfWhereLFdoesNotFitInInitialBuffer() throws Exception {
         InputStream is = stringToIs("oleg\r\njoe");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 5);
-        long[] offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(0, offsetInfo[0]);
-        assertEquals(6, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(6, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(6, offsetInfo[0]);
-        assertEquals(3, offsetInfo[1]);
-        assertEquals(0, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(6, offsetInfo.getStartOffset());
+        assertEquals(3, offsetInfo.getLength());
+        assertEquals(0, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
     }
 
     @Test
     public void mixedCRLF() throws Exception {
         InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
-        long[] offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(0, offsetInfo[0]);
-        assertEquals(5, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(5, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(5, offsetInfo[0]);
-        assertEquals(4, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(5, offsetInfo.getStartOffset());
+        assertEquals(4, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(9, offsetInfo[0]);
-        assertEquals(6, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(9, offsetInfo.getStartOffset());
+        assertEquals(6, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo();
-        assertEquals(15, offsetInfo[0]);
-        assertEquals(11, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(15, offsetInfo.getStartOffset());
+        assertEquals(11, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
     }
 
     @Test
@@ -128,49 +131,49 @@ public class TextLineDemarcatorTest {
         InputStream is = stringToIs("oleg\r\r\njoe\n\n\rjack\n\r\nstacymike\r\n\n\n\r");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
 
-        long[] offsetInfo = demarcator.nextOffsetInfo(); // oleg\r
-        assertEquals(5, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo(); // oleg\r
+        assertEquals(5, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \r\n
-        assertEquals(2, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
+        assertEquals(2, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // joe\n
-        assertEquals(4, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(4, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \n
-        assertEquals(1, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \r
-        assertEquals(1, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // jack\n
-        assertEquals(5, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(5, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \r\n
-        assertEquals(2, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
+        assertEquals(2, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // stacymike\r\n
-        assertEquals(11, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
+        assertEquals(11, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \n
-        assertEquals(1, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \n
-        assertEquals(1, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
 
         offsetInfo = demarcator.nextOffsetInfo();        // \r
-        assertEquals(1, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
+        assertEquals(1, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
     }
 
     @Test
@@ -178,29 +181,29 @@ public class TextLineDemarcatorTest {
         InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
 
-        long[] offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
-        assertEquals(0, offsetInfo[0]);
-        assertEquals(5, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(5, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("foo".getBytes());
-        assertEquals(5, offsetInfo[0]);
-        assertEquals(4, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        assertEquals(5, offsetInfo.getStartOffset());
+        assertEquals(4, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("joe".getBytes());
-        assertEquals(9, offsetInfo[0]);
-        assertEquals(6, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        assertEquals(9, offsetInfo.getStartOffset());
+        assertEquals(6, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("stasy".getBytes());
-        assertEquals(15, offsetInfo[0]);
-        assertEquals(11, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        assertEquals(15, offsetInfo.getStartOffset());
+        assertEquals(11, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
     }
 
     @Test
@@ -208,29 +211,29 @@ public class TextLineDemarcatorTest {
         InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 7);
 
-        long[] offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
-        assertEquals(0, offsetInfo[0]);
-        assertEquals(5, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        OffsetInfo offsetInfo = demarcator.nextOffsetInfo("foojhkj".getBytes());
+        assertEquals(0, offsetInfo.getStartOffset());
+        assertEquals(5, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("jo".getBytes());
-        assertEquals(5, offsetInfo[0]);
-        assertEquals(4, offsetInfo[1]);
-        assertEquals(1, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(5, offsetInfo.getStartOffset());
+        assertEquals(4, offsetInfo.getLength());
+        assertEquals(1, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("joe".getBytes());
-        assertEquals(9, offsetInfo[0]);
-        assertEquals(6, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(0, offsetInfo[3]);
+        assertEquals(9, offsetInfo.getStartOffset());
+        assertEquals(6, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertFalse(offsetInfo.isStartsWithMatch());
 
         offsetInfo = demarcator.nextOffsetInfo("stacy".getBytes());
-        assertEquals(15, offsetInfo[0]);
-        assertEquals(11, offsetInfo[1]);
-        assertEquals(2, offsetInfo[2]);
-        assertEquals(1, offsetInfo[3]);
+        assertEquals(15, offsetInfo.getStartOffset());
+        assertEquals(11, offsetInfo.getLength());
+        assertEquals(2, offsetInfo.getCrlfLength());
+        assertTrue(offsetInfo.isStartsWithMatch());
     }
 
     private InputStream stringToIs(String data) {

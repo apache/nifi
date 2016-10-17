@@ -57,6 +57,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.util.TextLineDemarcator;
+import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
 
 @EventDriven
 @SideEffectFree
@@ -149,17 +150,19 @@ public class SplitText extends AbstractProcessor {
     private static final Set<Relationship> relationships;
 
     static {
-        properties = new ArrayList<>();
-        properties.add(LINE_SPLIT_COUNT);
-        properties.add(FRAGMENT_MAX_SIZE);
-        properties.add(HEADER_LINE_COUNT);
-        properties.add(HEADER_MARKER);
-        properties.add(REMOVE_TRAILING_NEWLINES);
+        properties = Collections.unmodifiableList(Arrays.asList(new PropertyDescriptor[]{
+                LINE_SPLIT_COUNT,
+                FRAGMENT_MAX_SIZE,
+                HEADER_LINE_COUNT,
+                HEADER_MARKER,
+                REMOVE_TRAILING_NEWLINES
+        }));
 
-        relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_SPLITS);
-        relationships.add(REL_FAILURE);
+        relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new Relationship[]{
+                REL_ORIGINAL,
+                REL_SPLITS,
+                REL_FAILURE
+        })));
     }
 
     private volatile boolean removeTrailingNewLines;
@@ -174,12 +177,9 @@ public class SplitText extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.unmodifiableSet(relationships);
+        return relationships;
     }
 
-    /**
-     *
-     */
     @OnScheduled
     public void onSchedule(ProcessContext context) {
         this.removeTrailingNewLines = context.getProperty(REMOVE_TRAILING_NEWLINES).isSet()
@@ -195,115 +195,67 @@ public class SplitText extends AbstractProcessor {
      * Will split the incoming stream releasing all splits as FlowFile at once.
      */
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile != null) {
-            AtomicBoolean error = new AtomicBoolean();
-            List<FlowFile> splitFlowFiles = new ArrayList<>();
-            List<SplitInfo> computedSplitsInfo = new ArrayList<>();
-            AtomicReference<SplitInfo> headerSplitInfoRef = new AtomicReference<>();
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    TextLineDemarcator demarcator = new TextLineDemarcator(in);
-                    SplitInfo splitInfo = null;
-                    long startOffset = 0;
+    public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
+        FlowFile sourceFlowFile = processSession.get();
+        if (sourceFlowFile == null) {
+            return;
+        }
+        AtomicBoolean error = new AtomicBoolean();
+        List<SplitInfo> computedSplitsInfo = new ArrayList<>();
+        AtomicReference<SplitInfo> headerSplitInfoRef = new AtomicReference<>();
+        processSession.read(sourceFlowFile, new InputStreamCallback() {
+            @Override
+            public void process(InputStream in) throws IOException {
+                TextLineDemarcator demarcator = new TextLineDemarcator(in);
+                SplitInfo splitInfo = null;
+                long startOffset = 0;
 
-                    // Compute fragment representing the header (if available)
-                    long start = System.nanoTime();
-                    try {
-                        if (SplitText.this.headerLineCount > 0) {
-                            splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
-                            if (splitInfo.lineCount < SplitText.this.headerLineCount) {
-                                error.set(true);
-                                getLogger().error("Unable to split " + flowFile + " due to insufficient amount of header lines. Required "
-                                        + SplitText.this.headerLineCount + " but was " + splitInfo.lineCount + ". Routing to failure.");
-                            }
-                        } else if (SplitText.this.headerMarker != null) {
-                            splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
+                // Compute fragment representing the header (if available)
+                long start = System.nanoTime();
+                try {
+                    if (SplitText.this.headerLineCount > 0) {
+                        splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
+                        if (splitInfo.lineCount < SplitText.this.headerLineCount) {
+                            error.set(true);
+                            getLogger().error("Unable to split " + sourceFlowFile + " due to insufficient amount of header lines. Required "
+                                    + SplitText.this.headerLineCount + " but was " + splitInfo.lineCount + ". Routing to failure.");
                         }
-                        headerSplitInfoRef.set(splitInfo);
-                    } catch (IllegalStateException e) {
-                        error.set(true);
-                        getLogger().error(e.getMessage() + " Routing to failure.");
+                    } else if (SplitText.this.headerMarker != null) {
+                        splitInfo = SplitText.this.computeHeader(demarcator, startOffset, Long.MAX_VALUE, SplitText.this.headerMarker.getBytes(StandardCharsets.UTF_8), null);
                     }
-
-                    // Compute and collect fragments representing the individual splits
-                    if (!error.get()) {
-                        if (headerSplitInfoRef.get() != null) {
-                            startOffset = headerSplitInfoRef.get().length;
-                        }
-                        long preAccumulatedLength = startOffset;
-                        while ((splitInfo = SplitText.this.nextSplit(demarcator, startOffset, SplitText.this.lineCount, splitInfo, preAccumulatedLength)) != null) {
-                            computedSplitsInfo.add(splitInfo);
-                            startOffset += splitInfo.length;
-                        }
-                        long stop = System.nanoTime();
-                        if (getLogger().isDebugEnabled()) {
-                            getLogger().debug("Computed splits in " + (stop - start) + " milliseconds.");
-                        }
-                    }
-                }
-            });
-            if (!error.get()) {
-                FlowFile headerFlowFile = null;
-                long headerCrlfLength = 0;
-                if (headerSplitInfoRef.get() != null) {
-                    headerFlowFile = session.clone(flowFile, headerSplitInfoRef.get().startOffset, headerSplitInfoRef.get().length);
-                    headerCrlfLength = headerSplitInfoRef.get().trimmedLength;
-                }
-                int fragmentIndex = 1; // set to 1 to preserve the existing behavior *only*. Perhaps should be deprecated to follow the 0,1,2... scheme
-                String fragmentId = UUID.randomUUID().toString();
-
-                if (computedSplitsInfo.size() == 0) {
-                    FlowFile splitFlowFile = session.clone(flowFile, 0, headerFlowFile.getSize() - headerCrlfLength);
-                    splitFlowFile = SplitText.this.updateAttributes(session, splitFlowFile, 0, splitFlowFile.getSize(),
-                            fragmentId, fragmentIndex++, 0, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                    splitFlowFiles.add(splitFlowFile);
-                } else {
-                    for (SplitInfo computedSplitInfo : computedSplitsInfo) {
-                        long length = SplitText.this.removeTrailingNewLines ? computedSplitInfo.trimmedLength : computedSplitInfo.length;
-                        boolean proceedWithClone = headerFlowFile != null || length > 0;
-                        if (proceedWithClone) {
-                            FlowFile splitFlowFile = null;
-                            if (headerFlowFile != null) {
-                                if (length > 0) {
-                                    splitFlowFile = session.clone(flowFile, computedSplitInfo.startOffset, length);
-                                    splitFlowFile = session.merge( Arrays.asList(new FlowFile[] { headerFlowFile, splitFlowFile }), splitFlowFile);
-                                } else {
-                                    splitFlowFile = session.clone(flowFile, 0, headerFlowFile.getSize() - headerCrlfLength); // trim the last CRLF if split consists of only HEADER
-                                }
-                            } else {
-                                splitFlowFile = session.clone(flowFile, computedSplitInfo.startOffset, length);
-                            }
-
-                            splitFlowFile = SplitText.this.updateAttributes(session, splitFlowFile, computedSplitInfo.lineCount, splitFlowFile.getSize(), fragmentId, fragmentIndex++,
-                                    computedSplitsInfo.size(), flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                            splitFlowFiles.add(splitFlowFile);
-                        }
-                    }
+                    headerSplitInfoRef.set(splitInfo);
+                } catch (IllegalStateException e) {
+                    error.set(true);
+                    getLogger().error(e.getMessage() + " Routing to failure.", e);
                 }
 
-                getLogger().info("Split " + flowFile + " into " + splitFlowFiles.size() + " flow files" + (headerFlowFile != null ? " containing headers." : "."));
-                if (headerFlowFile != null) {
-                    session.remove(headerFlowFile);
+                // Compute and collect fragments representing the individual splits
+                if (!error.get()) {
+                    if (headerSplitInfoRef.get() != null) {
+                        startOffset = headerSplitInfoRef.get().length;
+                    }
+                    long preAccumulatedLength = startOffset;
+                    while ((splitInfo = SplitText.this.nextSplit(demarcator, startOffset, SplitText.this.lineCount, splitInfo, preAccumulatedLength)) != null) {
+                        computedSplitsInfo.add(splitInfo);
+                        startOffset += splitInfo.length;
+                    }
+                    long stop = System.nanoTime();
+                    if (getLogger().isDebugEnabled()) {
+                        getLogger().debug("Computed splits in " + (stop - start) + " milliseconds.");
+                    }
                 }
             }
+        });
 
-            if (error.get()) {
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
-                session.transfer(flowFile, REL_ORIGINAL);
-                session.transfer(splitFlowFiles, REL_SPLITS);
-            }
+        if (error.get()){
+            processSession.transfer(sourceFlowFile, REL_FAILURE);
         } else {
-            context.yield();
+            List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
+            processSession.transfer(sourceFlowFile, REL_ORIGINAL);
+            processSession.transfer(splitFlowFiles, REL_SPLITS);
         }
     }
 
-    /**
-     *
-     */
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>();
@@ -314,27 +266,75 @@ public class SplitText extends AbstractProcessor {
         return results;
     }
 
-    /**
-     *
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(properties);
+        return properties;
     }
 
     /**
-     *
+     * Generates the list of {@link FlowFile}s representing splits. If
+     * {@link SplitInfo} provided as an argument to this operation is not null
+     * it signifies the header information and its contents will be included in
+     * each and every computed split.
      */
-   private FlowFile updateAttributes(ProcessSession session, FlowFile splitFlowFile, long lCount, long fSize, String fId, int fIdx, int fCount, String origFname) {
-       Map<String, String> attributes = new HashMap<>();
-       attributes.put(SPLIT_LINE_COUNT, String.valueOf(lCount));
-       attributes.put(FRAGMENT_SIZE, String.valueOf(splitFlowFile.getSize()));
-       attributes.put(FRAGMENT_ID, fId);
-       attributes.put(FRAGMENT_INDEX, String.valueOf(fIdx));
-       attributes.put(FRAGMENT_COUNT, String.valueOf(fCount));
-       attributes.put(SEGMENT_ORIGINAL_FILENAME, origFname);
-       return session.putAllAttributes(splitFlowFile, attributes);
-   }
+    private List<FlowFile> generateSplitFlowFiles(FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession){
+        List<FlowFile> splitFlowFiles = new ArrayList<>();
+        FlowFile headerFlowFile = null;
+        long headerCrlfLength = 0;
+        if (splitInfo != null) {
+            headerFlowFile = processSession.clone(sourceFlowFile, splitInfo.startOffset, splitInfo.length);
+            headerCrlfLength = splitInfo.trimmedLength;
+        }
+        int fragmentIndex = 1; // set to 1 to preserve the existing behavior *only*. Perhaps should be deprecated to follow the 0,1,2... scheme
+        String fragmentId = UUID.randomUUID().toString();
+
+        if (computedSplitsInfo.size() == 0) {
+            FlowFile splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength);
+            splitFlowFile = SplitText.this.updateAttributes(processSession, splitFlowFile, 0, splitFlowFile.getSize(),
+                    fragmentId, fragmentIndex++, 0, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            splitFlowFiles.add(splitFlowFile);
+        } else {
+            for (SplitInfo computedSplitInfo : computedSplitsInfo) {
+                long length = SplitText.this.removeTrailingNewLines ? computedSplitInfo.trimmedLength : computedSplitInfo.length;
+                boolean proceedWithClone = headerFlowFile != null || length > 0;
+                if (proceedWithClone) {
+                    FlowFile splitFlowFile = null;
+                    if (headerFlowFile != null) {
+                        if (length > 0) {
+                            splitFlowFile = processSession.clone(sourceFlowFile, computedSplitInfo.startOffset, length);
+                            splitFlowFile = processSession.merge( Arrays.asList(new FlowFile[] { headerFlowFile, splitFlowFile }), splitFlowFile);
+                        } else {
+                            splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength); // trim the last CRLF if split consists of only HEADER
+                        }
+                    } else {
+                        splitFlowFile = processSession.clone(sourceFlowFile, computedSplitInfo.startOffset, length);
+                    }
+
+                    splitFlowFile = SplitText.this.updateAttributes(processSession, splitFlowFile, computedSplitInfo.lineCount, splitFlowFile.getSize(), fragmentId, fragmentIndex++,
+                            computedSplitsInfo.size(), sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                    splitFlowFiles.add(splitFlowFile);
+                }
+            }
+        }
+
+        getLogger().info("Split " + sourceFlowFile + " into " + splitFlowFiles.size() + " flow files" + (headerFlowFile != null ? " containing headers." : "."));
+        if (headerFlowFile != null) {
+            processSession.remove(headerFlowFile);
+        }
+        return splitFlowFiles;
+    }
+
+    private FlowFile updateAttributes(ProcessSession processSession, FlowFile splitFlowFile, long splitLineCount, long splitFlowFileSize,
+            String splitId, int splitIndex, int splitCount, String origFileName) {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(SPLIT_LINE_COUNT, String.valueOf(splitLineCount));
+        attributes.put(FRAGMENT_SIZE, String.valueOf(splitFlowFile.getSize()));
+        attributes.put(FRAGMENT_ID, splitId);
+        attributes.put(FRAGMENT_INDEX, String.valueOf(splitIndex));
+        attributes.put(FRAGMENT_COUNT, String.valueOf(splitCount));
+        attributes.put(SEGMENT_ORIGINAL_FILENAME, origFileName);
+        return processSession.putAllAttributes(splitFlowFile, attributes);
+    }
 
     /**
      * Will generate {@link SplitInfo} for the next fragment that represents the
@@ -349,26 +349,23 @@ public class SplitText extends AbstractProcessor {
     private SplitInfo computeHeader(TextLineDemarcator demarcator, long startOffset, long splitMaxLineCount, byte[] startsWithFilter, SplitInfo previousSplitInfo) {
         long length = 0;
         long actualLineCount = 0;
-        long[] offsetInfo = null;
+        OffsetInfo offsetInfo = null;
         SplitInfo splitInfo = null;
-        long[] previousOffsetInfo = null;
+        OffsetInfo previousOffsetInfo = null;
         long lastCrlfLength = 0;
         while ((offsetInfo = demarcator.nextOffsetInfo(startsWithFilter)) != null) {
-            lastCrlfLength = offsetInfo[2];
+            lastCrlfLength = offsetInfo.getCrlfLength();
 
-            if (startsWithFilter != null && offsetInfo[3] == 0) {
-                if (offsetInfo[2] != -1) {
+            if (startsWithFilter != null && !offsetInfo.isStartsWithMatch()) {
+                if (offsetInfo.getCrlfLength() != -1) {
                     previousOffsetInfo = offsetInfo;
-                } else if (offsetInfo[1] > 0) {
-                    length += offsetInfo[1];
-                    actualLineCount++;
                 }
                 break;
             } else {
-                if (length + offsetInfo[1] > this.maxSplitSize) {
+                if (length + offsetInfo.getLength() > this.maxSplitSize) {
                     throw new IllegalStateException( "Computing header resulted in header size being > MAX split size of " + this.maxSplitSize + ".");
                 } else {
-                    length += offsetInfo[1];
+                    length += offsetInfo.getLength();
                     actualLineCount++;
                     if (actualLineCount == splitMaxLineCount) {
                         break;
@@ -395,35 +392,35 @@ public class SplitText extends AbstractProcessor {
         long length = 0;
         long trailingCrlfLength = 0;
         long actualLineCount = 0;
-        long[] offsetInfo = null;
+        OffsetInfo offsetInfo = null;
         SplitInfo splitInfo = null;
         // the remainder from the previous read after which it was determined that adding it would make
         // the split size > 'maxSplitSize'. So it's being carried over to the next line.
         if (remainderSplitInfo != null && remainderSplitInfo.remaningOffsetInfo != null) {
-            length += remainderSplitInfo.remaningOffsetInfo[1];
+            length += remainderSplitInfo.remaningOffsetInfo.getLength();
             actualLineCount++;
         }
-        long[] remaningOffsetInfo = null;
+        OffsetInfo remaningOffsetInfo = null;
         long lastCrlfLength = 0;
         while ((offsetInfo = demarcator.nextOffsetInfo()) != null) {
-            lastCrlfLength = offsetInfo[2];
+            lastCrlfLength = offsetInfo.getCrlfLength();
 
-            if (offsetInfo[1] == offsetInfo[2]) {
-                trailingCrlfLength += offsetInfo[2];
-            } else if (offsetInfo[1] > offsetInfo[2]) {
+            if (offsetInfo.getLength() == offsetInfo.getCrlfLength()) {
+                trailingCrlfLength += offsetInfo.getCrlfLength();
+            } else if (offsetInfo.getLength() > offsetInfo.getCrlfLength()) {
                 trailingCrlfLength = 0; // non-empty line came in, thus resetting counter
             }
 
-            if (length + offsetInfo[1] + startingLength > this.maxSplitSize) {
+            if (length + offsetInfo.getLength() + startingLength > this.maxSplitSize) {
                 if (length == 0) { // single line per split
-                    length += offsetInfo[1];
+                    length += offsetInfo.getLength();
                     actualLineCount++;
                 } else {
                     remaningOffsetInfo = offsetInfo;
                 }
                 break;
             } else {
-                length += offsetInfo[1];
+                length += offsetInfo.getLength();
                 actualLineCount++;
                 if (splitMaxLineCount > 0 && actualLineCount >= splitMaxLineCount) {
                     break;
@@ -446,9 +443,9 @@ public class SplitText extends AbstractProcessor {
      */
     private class SplitInfo {
         final long startOffset, length, trimmedLength, lineCount;
-        long[] remaningOffsetInfo;
+        OffsetInfo remaningOffsetInfo;
 
-        SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, long[] remaningOffsetInfo) {
+        SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, OffsetInfo remaningOffsetInfo) {
             this.startOffset = startOffset;
             this.length = length;
             this.lineCount = lineCount;

@@ -74,45 +74,29 @@ public class TextLineDemarcator {
     }
 
     /**
-     * Will compute the next <i>offset info</i> for a
-     * text line (line terminated by either '\r', '\n' or '\r\n').
-     * <br>
-     * The <i>offset info</i> computed and returned as <code>long[]</code> consisting of
-     * 4 elements <code>{startOffset, length, crlfLength, startsWithMatch}</code>.
-     *  <ul>
-     *    <li><i>startOffset</i> - the offset in the overall stream which represents the beginning of the text line</li>
-     *    <li><i>length</i> - length of the text line including CRLF characters</li>
-     *    <li><i>crlfLength</i> - the length of the CRLF. Could be either 1 (if line ends with '\n' or '\r')
-     *                                          or 2 (if line ends with '\r\n').</li>
-     *    <li><i>startsWithMatch</i> - value is always 1. See {@link #nextOffsetInfo(byte[])} for more info.</li>
-     *  </ul>
+     * Will compute the next <i>offset info</i> for a text line (line terminated
+     * by either '\r', '\n' or '\r\n'). <br>
+     * The <i>offset info</i> computed and returned as {@link OffsetInfo} where
+     * {@link OffsetInfo#isStartsWithMatch()} will always return true.
      *
-     * @return offset info as <code>long[]</code>
+     * @return offset info
      */
-    public long[] nextOffsetInfo() {
+    public OffsetInfo nextOffsetInfo() {
         return this.nextOffsetInfo(null);
     }
 
     /**
-     * Will compute the next <i>offset info</i> for a
-     * text line (line terminated by either '\r', '\n' or '\r\n').
-     * <br>
-     * The <i>offset info</i> computed and returned as <code>long[]</code> consisting of
-     * 4 elements <code>{startOffset, length, crlfLength, startsWithMatch}</code>.
-     *  <ul>
-     *    <li><i>startOffset</i> - the offset in the overall stream which represents the beginning of the text line</li>
-     *    <li><i>length</i> - length of the text line including CRLF characters</li>
-     *    <li><i>crlfLength</i> - the length of the CRLF. Could be either 1 (if line ends with '\n' or '\r')
-     *                                          or 2 (if line ends with '\r\n').</li>
-     *    <li><i>startsWithMatch</i> - value is always 1 unless 'startsWith' is provided. If 'startsWith' is provided it will
-     *                                          be compared to the computed text line and if matches the value
-     *                                          will remain 1 otherwise it will be set to 0. </li>
-     *  </ul>
-     * @param startsWith - bytes
-     * @return offset info as <code>long[]</code>
+     * Will compute the next <i>offset info</i> for a text line (line terminated
+     * by either '\r', '\n' or '\r\n'). <br>
+     * The <i>offset info</i> computed and returned as {@link OffsetInfo} where
+     * {@link OffsetInfo#isStartsWithMatch()} will return true if
+     * <code>startsWith</code> was successfully matched with the stsarting bytes
+     * of the text line.
+     *
+     * @return offset info
      */
-    public long[] nextOffsetInfo(byte[] startsWith) {
-        long[] offsetInfo = null;
+    public OffsetInfo nextOffsetInfo(byte[] startsWith) {
+        OffsetInfo offsetInfo = null;
         int lineLength = 0;
         byte[] token = null;
         lineLoop:
@@ -132,7 +116,7 @@ public class TextLineDemarcator {
                         if (crlfLength == 2) {
                             lineLength++;
                         }
-                        offsetInfo = new long[] { this.offset, lineLength, crlfLength, 1 };
+                        offsetInfo = new OffsetInfo(this.offset, lineLength, crlfLength);
                         if (startsWith != null) {
                             token = this.extractDataToken(lineLength);
                         }
@@ -146,7 +130,7 @@ public class TextLineDemarcator {
         }
         // EOF where last char(s) are not CRLF.
         if (lineLength > 0 && offsetInfo == null) {
-            offsetInfo = new long[] { this.offset, lineLength, 0, 1 };
+            offsetInfo = new OffsetInfo(this.offset, lineLength, 0);
             if (startsWith != null) {
                 token = this.extractDataToken(lineLength);
             }
@@ -158,7 +142,7 @@ public class TextLineDemarcator {
             for (int i = 0; i < startsWith.length; i++) {
                 byte sB = startsWith[i];
                 if (token != null && sB != token[i]) {
-                    offsetInfo[3] = 0;
+                    offsetInfo.setStartsWithMatch(0);
                     break;
                 }
             }
@@ -166,9 +150,6 @@ public class TextLineDemarcator {
         return offsetInfo;
     }
 
-    /**
-     *
-     */
     private int isEol(byte currentByte, int currentIndex) {
         int crlfLength = 0;
         if (currentByte == '\n') {
@@ -184,9 +165,6 @@ public class TextLineDemarcator {
         return crlfLength;
     }
 
-    /**
-     *
-     */
     private byte[] extractDataToken(int length) {
         byte[] data = null;
         if (length > 0) {
@@ -222,6 +200,54 @@ public class TextLineDemarcator {
             this.bufferLength = bytesRead != -1 ? this.index + bytesRead : -1;
         } catch (IOException e) {
             throw new IllegalStateException("Failed while reading InputStream", e);
+        }
+    }
+
+    /**
+     * Container to hold offset and meta info for a computed text line.
+     * The offset and meta info is represented with the following 4 values:
+     *  <ul>
+     *    <li><i>startOffset</i> - the offset in the overall stream which represents the beginning of the text line</li>
+     *    <li><i>length</i> - length of the text line including CRLF characters</li>
+     *    <li><i>crlfLength</i> - the length of the CRLF.
+     *                            Value 0 is returned if text line represents the last text line in the
+     *                            {@link InputStream} (i.e., EOF) and such line does not terminate with CR or LF or the combination of the two.
+     *                            Value 1 is returned if text line ends with '\n' or '\r'.
+     *                            Value 2 is returned if line ends with '\r\n').</li>
+     *    <li><i>startsWithMatch</i> - <code>true</code> by default unless <code>startWith</code> bytes are provided and not matched. 
+     *                                 See {@link #nextOffsetInfo(byte[])} for more info.</li>
+     *  </ul>
+     **/
+    public static class OffsetInfo {
+        private final long startOffset, length;
+        private final int crlfLength;
+
+        private boolean startsWithMatch = true;
+
+        OffsetInfo(long startOffset, long length, int crlfLength) {
+            this.startOffset = startOffset;
+            this.length = length;
+            this.crlfLength = crlfLength;
+        }
+
+        public long getStartOffset() {
+            return startOffset;
+        }
+
+        public long getLength() {
+            return length;
+        }
+
+        public int getCrlfLength() {
+            return this.crlfLength;
+        }
+
+        public boolean isStartsWithMatch() {
+            return this.startsWithMatch;
+        }
+
+        void setStartsWithMatch(int startsWithMatch) {
+            this.startsWithMatch = startsWithMatch == 1 ? true : false;
         }
     }
 }
