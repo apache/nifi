@@ -184,6 +184,7 @@ nf.Graph = (function () {
         pan: function () {
             // refresh the components
             nf.Port.pan();
+            nf.Funnel.pan();
             nf.RemoteProcessGroup.pan();
             nf.ProcessGroup.pan();
             nf.Processor.pan();

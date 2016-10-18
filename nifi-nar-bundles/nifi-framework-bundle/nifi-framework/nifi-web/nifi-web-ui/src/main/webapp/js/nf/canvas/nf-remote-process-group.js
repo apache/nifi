@@ -131,7 +131,8 @@ nf.RemoteProcessGroup = (function () {
                     return d.dimensions.width;
                 },
                 'height': 32,
-                'fill': '#b8c6cd'
+                'fill': '#b8c6cd',
+                'class': 'remote-process-group-header'
             });
 
         // remote process group name
@@ -142,17 +143,6 @@ nf.RemoteProcessGroup = (function () {
                 'width': 305,
                 'height': 16,
                 'class': 'remote-process-group-name'
-            });
-
-        // remote process group icon
-        remoteProcessGroup.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 352,
-                'height': 89,
-                'x': 6,
-                'y': 38,
-                'class': 'remote-process-group-preview'
             });
 
         // always support selection
@@ -584,20 +574,6 @@ nf.RemoteProcessGroup = (function () {
                                 return 'Remote flow not current';
                             }
                         });
-
-                    // update the process group name
-                    remoteProcessGroup.select('text.remote-process-group-name')
-                        .each(function (d) {
-                            var remoteProcessGroupName = d3.select(this);
-
-                            // reset the remote process group name to handle any previous state
-                            remoteProcessGroupName.text(null).selectAll('title').remove();
-
-                            // apply ellipsis to the remote process group name as necessary
-                            nf.CanvasUtils.ellipsis(remoteProcessGroupName, d.component.name);
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
                 } else {
                     // clear the target uri
                     details.select('text.remote-process-group-uri').text(null);
@@ -610,33 +586,11 @@ nf.RemoteProcessGroup = (function () {
 
                     // clear the last refresh
                     details.select('text.remote-process-group-last-refresh').text(null);
-
-                    // clear the name
-                    remoteProcessGroup.select('text.remote-process-group-name').text(null);
                 }
-
-                // show the preview
-                remoteProcessGroup.select('image.remote-process-group-preview').style('display', 'none');
 
                 // populate the stats
                 remoteProcessGroup.call(updateProcessGroupStatus);
             } else {
-                if (remoteProcessGroupData.permissions.canRead) {
-                    // update the process group name
-                    remoteProcessGroup.select('text.remote-process-group-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
-                }
-
-                // show the preview
-                remoteProcessGroup.select('image.remote-process-group-preview').style('display', 'block');
-
                 // remove the tooltips
                 remoteProcessGroup.call(removeTooltips);
 
@@ -645,8 +599,84 @@ nf.RemoteProcessGroup = (function () {
                     details.remove();
                 }
             }
+
+            // enhance color for usability
+            remoteProcessGroup.call(enhanceRemoteProcessorGroupReadability, remoteProcessGroupData);
         });
     };
+
+    /**
+     * Enhances the readability of the remote process group in the specified selection.
+     *
+     * @param {selection} remoteProcessGroup           The remote process group to update.
+     * @param {object} remoteProcessGroupData           The remote process group data.
+     */
+    var enhanceRemoteProcessorGroupReadability = function (remoteProcessGroup, remoteProcessGroupData) {
+        var remoteProcessGroupRectBody = remoteProcessGroup.select('rect.body')
+            .style('fill', function (d) {
+                if (remoteProcessGroup.classed('visible')) {
+                    return '#ffffff';
+                } else {
+                    return '#728e9b';
+                }
+            });
+        remoteProcessGroup.select('rect.remote-process-group-header')
+            .style('fill', function (d) {
+                if (remoteProcessGroup.classed('visible')) {
+                    return '#b8c6cd';
+                } else {
+                    return '#728e9b';
+                }
+            });
+        if (remoteProcessGroupData.permissions.canRead) {
+            // update the process group name
+            if (remoteProcessGroup.classed('visible')) {
+                remoteProcessGroup.select('text.remote-process-group-name')
+                    .each(function (d) {
+                        var remoteProcessGroupName = d3.select(this);
+
+                        // reset the remote process group name to handle any previous state
+                        remoteProcessGroupName.text(null).selectAll('title').remove();
+
+                        remoteProcessGroupName.style('fill', function (d) {
+                            if (remoteProcessGroup.classed('visible')) {
+                                return '#262626';
+                            } else {
+                                return nf.Common.determineContrastColor(
+                                    nf.Common.substringAfterLast(
+                                        d3.rgb(remoteProcessGroupRectBody.style('fill')).toString(), '#'
+                                    ));
+                            }
+                        });
+
+                        // apply ellipsis to the remote process group name as necessary
+                        nf.CanvasUtils.ellipsis(remoteProcessGroupName, d.component.name);
+                    }).append('title').text(function (d) {
+                    return d.component.name;
+                });
+
+            } else {
+                remoteProcessGroup.select('text.remote-process-group-name')
+                    .text(function (d) {
+                        var name = d.component.name;
+                        if (name.length > PREVIEW_NAME_LENGTH) {
+                            return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                        } else {
+                            return name;
+                        }
+                    })
+                    .style('fill', function (d) {
+                        return nf.Common.determineContrastColor(
+                            nf.Common.substringAfterLast(
+                                d3.rgb(remoteProcessGroupRectBody.style('fill')).toString(), '#'
+                            ));
+                    });
+            }
+        } else {
+            // clear the name
+            remoteProcessGroup.select('text.remote-process-group-name').text(null);
+        }
+    }
 
     /**
      * Updates the process group status.

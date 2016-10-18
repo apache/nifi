@@ -1161,6 +1161,9 @@ nf.Canvas = (function () {
                 $.each(graph.remoteProcessGroups, function (_, d) {
                     updateVisibility(d, isComponentVisible);
                 });
+                $.each(graph.funnels, function (_, d) {
+                    updateVisibility(d, isComponentVisible);
+                });
                 $.each(graph.connections, function (_, d) {
                     updateVisibility(d, isConnectionVisible);
                 });

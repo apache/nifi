@@ -132,7 +132,8 @@ nf.Port = (function () {
                         return d.dimensions.width;
                     },
                     'height': offset,
-                    'fill': '#e3e8eb'
+                    'fill': '#e3e8eb',
+                    'class': 'port-header'
                 });
         }
 
@@ -269,48 +270,9 @@ nf.Port = (function () {
                         });
                 }
 
-                if (portData.permissions.canRead) {
-                    // update the port name
-                    port.select('text.port-name')
-                        .each(function (d) {
-                            var portName = d3.select(this);
-                            var name = d.component.name;
-                            var words = name.split(/\s+/);
-
-                            // reset the port name to handle any previous state
-                            portName.text(null).selectAll('tspan, title').remove();
-
-                            // handle based on the number of tokens in the port name
-                            if (words.length === 1) {
-                                // apply ellipsis to the port name as necessary
-                                nf.CanvasUtils.ellipsis(portName, name);
-                            } else {
-                                nf.CanvasUtils.multilineEllipsis(portName, 2, name);
-                            }
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
-                } else {
-                    // clear the port name
-                    port.select('text.port-name').text(null);
-                }
-
                 // populate the stats
                 port.call(updatePortStatus);
             } else {
-                if (portData.permissions.canRead) {
-                    // update the port name
-                    port.select('text.port-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
-                }
-
                 // remove tooltips if necessary
                 port.call(removeTooltips);
 
@@ -319,8 +281,84 @@ nf.Port = (function () {
                     details.remove();
                 }
             }
+
+            // enhance color for usability
+            port.call(enhancePortReadability, portData);
         });
     };
+
+    /**
+     * Enhances the readability of the port in the specified selection.
+     *
+     * @param {selection} processGroup           The port to update.
+     * @param {object} portData           The port data.
+     */
+    var enhancePortReadability = function (port, portData) {
+        var portRectBody = port.select('rect.body')
+            .style('fill', function (d) {
+                if (port.classed('visible')) {
+                    return '#ffffff';
+                } else {
+                    return '#bbdcde';
+                }
+            });
+        port.select('rect.port-header')
+            .style('fill', function (d) {
+                if (port.classed('visible')) {
+                    return '#e3e8eb';
+                } else {
+                    return '#bbdcde';
+                }
+            });
+        port.select('text.port-icon')
+            .style('fill', function (d) {
+                if (port.classed('visible')) {
+                    return nf.Processor.defaultColor();
+                } else {
+                    return nf.Common.determineContrastColor(
+                        nf.Common.substringAfterLast(
+                            d3.rgb(portRectBody.style('fill')).toString(), '#'
+                        ));
+                }
+            });
+
+        if (portData.permissions.canRead) {
+            // update the port name
+            port.select('text.port-name')
+                .each(function (d) {
+                    var portName = d3.select(this);
+                    var name = d.component.name;
+                    var words = name.split(/\s+/);
+
+                    // reset the port name to handle any previous state
+                    portName.text(null).selectAll('tspan, title').remove();
+
+                    portName.style('fill', function (d) {
+                        if (port.classed('visible')) {
+                            return '#262626';
+                        } else {
+                            return nf.Common.determineContrastColor(
+                                nf.Common.substringAfterLast(
+                                    d3.rgb(portRectBody.style('fill')).toString(), '#'
+                                ));
+                        }
+                    });
+
+                    // handle based on the number of tokens in the port name
+                    if (words.length === 1) {
+                        // apply ellipsis to the port name as necessary
+                        nf.CanvasUtils.ellipsis(portName, name);
+                    } else {
+                        nf.CanvasUtils.multilineEllipsis(portName, 2, name);
+                    }
+                }).append('title').text(function (d) {
+                return d.component.name;
+            });
+        } else {
+            // clear the port name
+            port.select('text.port-name').text(null);
+        }
+    }
 
     /**
      * Updates the port status.

@@ -131,7 +131,8 @@ nf.ProcessGroup = (function () {
                     return d.dimensions.width;
                 },
                 'height': 32,
-                'fill': '#b8c6cd'
+                'fill': '#b8c6cd',
+                'class': 'process-group-header'
             });
 
         // process group name
@@ -142,17 +143,6 @@ nf.ProcessGroup = (function () {
                 'width': 316,
                 'height': 16,
                 'class': 'process-group-name'
-            });
-
-        // process group preview
-        processGroup.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 352,
-                'height': 113,
-                'x': 6,
-                'y': 22,
-                'class': 'process-group-preview'
             });
 
         // always support selecting and navigation
@@ -572,7 +562,7 @@ nf.ProcessGroup = (function () {
                             'y': 60,
                             'class': 'process-group-out stats-value'
                         });
-                    
+
                     // out ports
                     outText.append('tspan')
                         .attr({
@@ -791,50 +781,14 @@ nf.ProcessGroup = (function () {
                     }).append('title').text(function (d) {
                         return getProcessGroupComments(d);
                     });
-
-                    // update the process group name
-                    processGroup.select('text.process-group-name')
-                        .each(function (d) {
-                            var processGroupName = d3.select(this);
-
-                            // reset the process group name to handle any previous state
-                            processGroupName.text(null).selectAll('title').remove();
-
-                            // apply ellipsis to the process group name as necessary
-                            nf.CanvasUtils.ellipsis(processGroupName, d.component.name);
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
                 } else {
                     // clear the process group comments
                     details.select('text.process-group-comments').text(null);
-                    
-                    // clear the process group name
-                    processGroup.select('text.process-group-name').text(null);
                 }
-
-                // hide the preview
-                processGroup.select('image.process-group-preview').style('display', 'none');
 
                 // populate the stats
                 processGroup.call(updateProcessGroupStatus);
             } else {
-                if (processGroupData.permissions.canRead) {
-                    // update the process group name
-                    processGroup.select('text.process-group-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
-                }
-
-                // show the preview
-                processGroup.select('image.process-group-preview').style('display', 'block');
-
                 // remove the tooltips
                 processGroup.call(removeTooltips);
 
@@ -843,8 +797,85 @@ nf.ProcessGroup = (function () {
                     details.remove();
                 }
             }
+
+            // enhance color for usability
+            processGroup.call(enhanceProcessorGroupReadability, processGroupData);
         });
     };
+
+    /**
+     * Enhances the readability of the process group in the specified selection.
+     *
+     * @param {selection} processGroup           The process group to update.
+     * @param {object} processGroupData           The process group data.
+     */
+    var enhanceProcessorGroupReadability = function (processGroup, processGroupData) {
+        var processGroupRectBody = processGroup.select('rect.body')
+            .style('fill', function (d) {
+                if (processGroup.classed('visible')) {
+                    return '#ffffff';
+                } else {
+                    return '#728e9b';
+                }
+            });
+        processGroup.select('rect.process-group-header')
+            .style('fill', function (d) {
+                if (processGroup.classed('visible')) {
+                    return '#b8c6cd';
+                } else {
+                    return '#728e9b';
+                }
+            });
+
+        if (processGroupData.permissions.canRead) {
+            // update the process group name
+            if (processGroup.classed('visible')) {
+                processGroup.select('text.process-group-name')
+                    .each(function (d) {
+                        var processGroupName = d3.select(this);
+
+                        // reset the process group name to handle any previous state
+                        processGroupName.text(null).selectAll('title').remove();
+
+                        processGroupName.style('fill', function (d) {
+                            if (processGroup.classed('visible')) {
+                                return '#262626';
+                            } else {
+                                return nf.Common.determineContrastColor(
+                                    nf.Common.substringAfterLast(
+                                        d3.rgb(processGroupRectBody.style('fill')).toString(), '#'
+                                    ));
+                            }
+                        });
+
+                        // apply ellipsis to the process group name as necessary
+                        nf.CanvasUtils.ellipsis(processGroupName, d.component.name);
+                    }).append('title').text(function (d) {
+                    return d.component.name;
+                });
+            } else {
+                processGroup.select('text.process-group-name')
+                    .text(function (d) {
+                        var name = d.component.name;
+                        if (name.length > PREVIEW_NAME_LENGTH) {
+                            return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                        } else {
+                            return name;
+                        }
+                    })
+                    .style('fill', function (d) {
+                        return nf.Common.determineContrastColor(
+                            nf.Common.substringAfterLast(
+                                d3.rgb(processGroupRectBody.style('fill')).toString(), '#'
+                            ));
+                    });
+
+            }
+        } else {
+            // clear the process group name
+            processGroup.select('text.process-group-name').text(null);
+        }
+    }
 
     /**
      * Updates the process group status.
@@ -897,7 +928,7 @@ nf.ProcessGroup = (function () {
             .text(function (d) {
                 return d.outputPortCount + ' ' + String.fromCharCode(8594) + ' ';
             });
-        
+
         // out count value
         updated.select('text.process-group-out tspan.count')
             .text(function (d) {
@@ -1017,7 +1048,7 @@ nf.ProcessGroup = (function () {
             selection.enter().call(renderProcessGroups, selectAll);
             selection.call(updateProcessGroups);
         },
-        
+
         /**
          * Populates the graph with the specified process groups.
          *
