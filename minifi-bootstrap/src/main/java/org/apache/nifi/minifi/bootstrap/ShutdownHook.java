@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 
 public class ShutdownHook extends Thread {
 
@@ -60,6 +61,16 @@ public class ShutdownHook extends Thread {
                 System.out.println("Could not successfully stop notifier " + notifier.getClass() + " due to " + ioe);
             }
         }
+
+        System.out.println("Initiating shutdown of bootstrap periodic status reporters...");
+        for (PeriodicStatusReporter periodicStatusReporter : runner.getPeriodicStatusReporters()) {
+            try {
+                periodicStatusReporter.stop();
+            } catch (Exception exception) {
+                System.out.println("Could not successfully stop periodic status reporter " + periodicStatusReporter.getClass() + " due to " + exception);
+            }
+        }
+
         runner.setAutoRestartNiFi(false);
         final int ccPort = runner.getNiFiCommandControlPort();
         if (ccPort > 0) {

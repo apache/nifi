@@ -17,6 +17,7 @@
 package org.apache.nifi.minifi.bootstrap;
 
 import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -33,6 +34,7 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -43,6 +45,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -61,6 +64,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
@@ -86,7 +90,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * <p>
  * If the {@code bootstrap.conf} file cannot be found, throws a {@code FileNotFoundException}.
  */
-public class RunMiNiFi {
+public class RunMiNiFi implements QueryableStatusAggregator {
 
     public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
     public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
@@ -114,6 +118,9 @@ public class RunMiNiFi {
     public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
     public static final String NOTIFIER_COMPONENTS_KEY = NOTIFIER_PROPERTY_PREFIX + ".components";
 
+    public static final String STATUS_REPORTER_PROPERTY_PREFIX = "nifi.minifi.status.reporter";
+    public static final String STATUS_REPORTER_COMPONENTS_KEY = STATUS_REPORTER_PROPERTY_PREFIX + ".components";
+
     private volatile boolean autoRestartNiFi = true;
     private volatile int ccPort = -1;
     private volatile long nifiPid = -1L;
@@ -137,6 +144,8 @@ public class RunMiNiFi {
     private volatile int gracefulShutdownSeconds;
 
     private Set<ConfigurationChangeNotifier> changeNotifiers;
+    private Set<PeriodicStatusReporter> periodicStatusReporters;
+
     private MiNiFiConfigurationChangeListener changeListener;
 
     // Is set to true after the MiNiFi instance shuts down in preparation to be reloaded. Will be set to false after MiNiFi is successfully started again.
@@ -235,9 +244,9 @@ public class RunMiNiFi {
                 break;
             case "flowstatus":
                 if(args.length == 2) {
-                    runMiNiFi.statusReport(args[1]);
+                    System.out.println(runMiNiFi.statusReport(args[1]));
                 } else {
-                    System.out.println("The 'flowStatus' command requires input. See the System Admin Guide 'FlowStatus Query Options' section for complete details.");
+                    System.out.println("The 'flowStatus' command requires an input query. See the System Admin Guide 'FlowStatus Script Query' section for complete details.");
                 }
                 break;
         }
@@ -510,17 +519,27 @@ public class RunMiNiFi {
         }
     }
 
-    public void statusReport(String statusRequest) throws IOException {
+    public FlowStatusReport statusReport(String statusRequest) throws IOException {
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         final Properties props = loadProperties(logger);
 
-        try {
-            FlowStatusReport flowStatusReport = getFlowStatusReport(statusRequest,status.getPort(), props.getProperty("secret.key"), logger);
-            System.out.println(flowStatusReport.toString());
-        } catch (IOException | ClassNotFoundException e) {
-            logger.error("Failed to get Flow Status", e);
+        List<String> problemsGeneratingReport = new LinkedList<>();
+        if (!status.isProcessRunning()) {
+            problemsGeneratingReport.add("MiNiFi process is not running");
         }
+
+        if (!status.isRespondingToPing()) {
+            problemsGeneratingReport.add("MiNiFi process is not responding to pings");
+        }
+
+        if (!problemsGeneratingReport.isEmpty()) {
+            FlowStatusReport flowStatusReport = new FlowStatusReport();
+            flowStatusReport.setErrorsGeneratingReport(problemsGeneratingReport);
+            return flowStatusReport;
+        }
+
+        return getFlowStatusReport(statusRequest, status.getPort(), props.getProperty("secret.key"), logger);
     }
 
     public void env() {
@@ -1095,6 +1114,8 @@ public class RunMiNiFi {
         // Instantiate configuration listener and configured notifiers
         this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
         this.changeNotifiers = initializeNotifiers(this.changeListener);
+        this.periodicStatusReporters = initializePeriodicNotifiers();
+        startPeriodicNotifiers();
 
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();
@@ -1208,10 +1229,11 @@ public class RunMiNiFi {
             }
         } finally {
             shutdownChangeNotifiers();
+            shutdownPeriodicStatusReporters();
         }
     }
 
-    public FlowStatusReport getFlowStatusReport(String statusRequest, final int port, final String secretKey, final Logger logger) throws IOException, ClassNotFoundException {
+    public FlowStatusReport getFlowStatusReport(String statusRequest, final int port, final String secretKey, final Logger logger) throws IOException {
         logger.debug("Pinging {}", port);
 
         try (final Socket socket = new Socket("localhost", port)) {
@@ -1234,9 +1256,12 @@ public class RunMiNiFi {
                 return FlowStatusReport.class.cast(o);
             } catch (ClassCastException e) {
                 String message = String.class.cast(o);
-                throw new IOException("Failed to get status report from MiNiFi due to:" + message);
+                FlowStatusReport flowStatusReport = new FlowStatusReport();
+                flowStatusReport.setErrorsGeneratingReport(Collections.singletonList("Failed to get status report from MiNiFi due to:" + message));
+                return flowStatusReport;
             }
-
+        } catch (EOFException | ClassNotFoundException | SocketTimeoutException e) {
+            throw new IllegalStateException("Failed to get the status report from the MiNiFi process. Potentially due to the process currently being down (restarting or otherwise).", e);
         }
     }
 
@@ -1434,6 +1459,47 @@ public class RunMiNiFi {
             }
         }
         return changeNotifiers;
+    }
+
+    public Set<PeriodicStatusReporter> getPeriodicStatusReporters() {
+        return Collections.unmodifiableSet(periodicStatusReporters);
+    }
+
+    public void shutdownPeriodicStatusReporters() {
+        for (PeriodicStatusReporter periodicStatusReporter : getPeriodicStatusReporters()) {
+            try {
+                periodicStatusReporter.stop();
+            } catch (Exception exception) {
+                System.out.println("Could not successfully stop periodic status reporter " + periodicStatusReporter.getClass() + " due to " + exception);
+            }
+        }
+    }
+
+    private Set<PeriodicStatusReporter> initializePeriodicNotifiers() throws IOException {
+        final Set<PeriodicStatusReporter> statusReporters = new HashSet<>();
+
+        final Properties bootstrapProperties = getBootstrapProperties();
+
+        final String reportersCsv = bootstrapProperties.getProperty(STATUS_REPORTER_COMPONENTS_KEY);
+        if (reportersCsv != null && !reportersCsv.isEmpty()) {
+            for (String reporterClassname : Arrays.asList(reportersCsv.split(","))) {
+                try {
+                    Class<?> reporterClass = Class.forName(reporterClassname);
+                    PeriodicStatusReporter reporter = (PeriodicStatusReporter) reporterClass.newInstance();
+                    reporter.initialize(bootstrapProperties, this);
+                    statusReporters.add(reporter);
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                    throw new RuntimeException("Issue instantiating notifier " + reporterClassname, e);
+                }
+            }
+        }
+        return statusReporters;
+    }
+
+    private void startPeriodicNotifiers() throws IOException {
+        for (PeriodicStatusReporter periodicStatusReporter: this.periodicStatusReporters) {
+            periodicStatusReporter.start();
+        }
     }
 
     private static class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
