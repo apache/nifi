@@ -115,9 +115,10 @@ public class ControlRate extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
-    public static final PropertyDescriptor MAX_FF_PER_TRIGGER = new PropertyDescriptor.Builder()
-            .name("Max FlowFiles per Trigger")
-            .description("Maximum number of FlowFiles to accept per onTrigger() call, even within the allowable limit.")
+    public static final PropertyDescriptor MAX_FF_PER_BATCH = new PropertyDescriptor.Builder()
+            .name("Max FlowFiles per processing batch")
+            .description("Maximum number of FlowFiles to accept per processing batch, even if Maximum Rate isn't reached.")
+            .displayName("Max FlowFiles per batch")
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .expressionLanguageSupported(false)
@@ -144,7 +145,7 @@ public class ControlRate extends AbstractProcessor {
     private volatile String rateControlAttribute = null;
     private volatile String maximumRateStr = null;
     private volatile String groupingAttributeName = null;
-    private volatile String maxFlowFilePerTrigger = null;
+    private volatile int maxFlowFilesPerBatch = 1;
     private volatile int timePeriodSeconds = 1;
 
     @Override
@@ -155,7 +156,7 @@ public class ControlRate extends AbstractProcessor {
         properties.add(RATE_CONTROL_ATTRIBUTE_NAME);
         properties.add(TIME_PERIOD);
         properties.add(GROUPING_ATTRIBUTE_NAME);
-        properties.add(MAX_FF_PER_TRIGGER);
+        properties.add(MAX_FF_PER_BATCH);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -214,7 +215,7 @@ public class ControlRate extends AbstractProcessor {
         if (descriptor.equals(RATE_CONTROL_CRITERIA)
                 || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
                 || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
-                || descriptor.equals(MAX_FF_PER_TRIGGER)
+                || descriptor.equals(MAX_FF_PER_BATCH)
                 || descriptor.equals(TIME_PERIOD)) {
             // if the criteria that is being used to determine limits/throttles is changed, we must clear our throttle map.
             throttleMap.clear();
@@ -238,13 +239,17 @@ public class ControlRate extends AbstractProcessor {
         rateControlAttribute = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
         maximumRateStr = context.getProperty(MAX_RATE).getValue().toUpperCase();
         groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
-        maxFlowFilePerTrigger = context.getProperty(MAX_FF_PER_TRIGGER).getValue();
+        if (context.getProperty(MAX_FF_PER_BATCH).isSet()) {
+            maxFlowFilesPerBatch = context.getProperty(MAX_FF_PER_BATCH).asInteger();
+        } else {
+            maxFlowFilesPerBatch = 1;
+        }
         timePeriodSeconds = context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = session.get(new ThrottleFilter(maxFlowFilePerTrigger));
+        List<FlowFile> flowFiles = session.get(new ThrottleFilter(maxFlowFilesPerBatch));
         if (flowFiles.isEmpty()) {
             context.yield();
             return;
@@ -392,12 +397,11 @@ public class ControlRate extends AbstractProcessor {
 
     private class ThrottleFilter implements FlowFileFilter {
 
-        private final long flowFilesPerTrigger;
-        private final AtomicLong flowFilesFiltered = new AtomicLong(0L);
+        private final int flowFilesPerBatch;
+        private int flowFilesInBatch = 0;
 
-        ThrottleFilter(final String ffPerTrigger) {
-            super();
-            flowFilesPerTrigger = ffPerTrigger == null ? 1L : Long.parseLong(ffPerTrigger);
+        ThrottleFilter(final int maxFFPerBatch) {
+            flowFilesPerBatch = maxFFPerBatch;
         }
 
         @Override
@@ -428,9 +432,9 @@ public class ControlRate extends AbstractProcessor {
             throttle.lock();
             try {
                 if (throttle.tryAdd(accrual)) {
-                    long files = flowFilesFiltered.addAndGet(1);
-                    if (files >= flowFilesPerTrigger) {
-                        flowFilesFiltered.set(0L);
+                    flowFilesInBatch += 1;
+                    if (flowFilesInBatch>= flowFilesPerBatch) {
+                        flowFilesInBatch = 0;
                         return FlowFileFilterResult.ACCEPT_AND_TERMINATE;
                     } else {
                         return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
