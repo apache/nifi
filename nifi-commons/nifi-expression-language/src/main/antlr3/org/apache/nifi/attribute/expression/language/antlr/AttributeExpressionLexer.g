@@ -79,6 +79,13 @@ DOT		: '.';
 SEMICOLON : ';';
 WHOLE_NUMBER	: ('0'..'9')+;
 
+DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?
+           | '.' ('0'..'9')+ EXP?
+           | ('0'..'9')+ EXP
+           | ('0'..'9')+ ;
+
+fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
+
 TRUE	: 'true';
 FALSE	: 'false';
 

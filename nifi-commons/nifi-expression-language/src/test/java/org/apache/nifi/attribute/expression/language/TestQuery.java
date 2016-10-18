@@ -807,6 +807,9 @@ public class TestQuery {
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
         verifyEquals("${ten:divide(${two:plus(3)}):toDecimal()}", attributes, (10.1 / (2.2 + 3)));
 
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${ten:divide(${two:plus(3.1)}):toDecimal()}", attributes, (10.1 / (2.2 + 3.1)));
+
         verifyEquals("${ten:divide(${two:plus(3)}):toDate():format(\"SSS\")}", attributes, "001");
     }
 

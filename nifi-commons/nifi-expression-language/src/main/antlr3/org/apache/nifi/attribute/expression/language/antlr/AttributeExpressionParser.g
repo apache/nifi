@@ -100,7 +100,7 @@ stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
 numberFunctionRef : zeroArgNum | oneArgNum;
 
-anyArg : WHOLE_NUMBER | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool | expression;
+anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool | expression;
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
 functionRef : stringFunctionRef | booleanFunctionRef | numberFunctionRef;
 
