@@ -175,6 +175,65 @@ public class TestControlRate {
         runner.assertQueueEmpty();
     }
 
+    @Test
+    public void testBatchSizeDefaultOne() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "5555");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+
+        runner.enqueue("test data 0");
+        runner.enqueue("test data 1");
+        runner.enqueue("test data 2");
+        runner.enqueue("test data 3");
+        runner.enqueue("test data 4");
+        runner.enqueue("test data 5");
+        runner.enqueue("test data 6");
+        runner.enqueue("test data 7");
+        runner.enqueue("test data 8");
+        runner.enqueue("test data 9");
+
+        runner.run(4, false);
+
+        // we've run 4 times and should have 4 files with 6 in the queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueNotEmpty();
+        runner.clearTransferState();
+
+        runner.run(8, false);
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 6);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueEmpty();
+    }
+
+    @Test
+    public void testBatchSizeOneHundred() throws InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
+        runner.setProperty(ControlRate.MAX_RATE, "5555");
+        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
+        runner.setProperty(ControlRate.MAX_FF_PER_BATCH, "100");
+
+        runner.enqueue("test data 0");
+        runner.enqueue("test data 1");
+        runner.enqueue("test data 2");
+        runner.enqueue("test data 3");
+        runner.enqueue("test data 4");
+        runner.enqueue("test data 5");
+        runner.enqueue("test data 6");
+        runner.enqueue("test data 7");
+        runner.enqueue("test data 8");
+        runner.enqueue("test data 9");
+
+        runner.run(1, false);
+
+        // we've run 1 time and should have all 10 files with 0 in the queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 10);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueEmpty();
+    }
+
     private void createFlowFile(final TestRunner runner, final int value) {
         final Map<String, String> attributeMap = new HashMap<>();
         attributeMap.put("count", String.valueOf(value));
