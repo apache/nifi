@@ -26,6 +26,11 @@
     <version>1.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
+        <hadoop.version>${hive.hadoop.version}</hadoop.version>
+    </properties>
+
     <modules>
         <module>nifi-hive-processors</module>
         <module>nifi-hive-nar</module>
