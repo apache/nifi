@@ -97,6 +97,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64
 import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64EncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.literals.DecimalLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.ToLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.WholeNumberLiteralEvaluator;
@@ -132,6 +133,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTRIBUTE_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTR_NAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.CONTAINS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DECIMAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.COUNT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DIVIDE;
@@ -679,6 +681,9 @@ public class Query {
             }
             case STRING_LITERAL: {
                 return newStringLiteralEvaluator(tree.getText());
+            }
+            case DECIMAL: {
+                return new DecimalLiteralEvaluator(tree.getText());
             }
             case TRUE:
             case FALSE:
