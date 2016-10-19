@@ -821,6 +821,7 @@ public class TestQuery {
 
         // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
         verifyEquals("${literal(5):toNumber():multiply(${two:plus(1)})}", attributes, 5*3.2);
+        verifyEquals("${literal(5.5E-1):toDecimal():plus(${literal(.5E1)}):multiply(${two:plus(1)})}", attributes, (0.55+5)*3.2);
     }
 
     @Test
