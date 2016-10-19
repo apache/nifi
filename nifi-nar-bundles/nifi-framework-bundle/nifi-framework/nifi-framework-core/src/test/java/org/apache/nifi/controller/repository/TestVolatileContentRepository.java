@@ -83,7 +83,7 @@ public class TestVolatileContentRepository {
 
         final ContentRepository mockRepo = Mockito.mock(ContentRepository.class);
         contentRepo.setBackupRepository(mockRepo);
-        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1000", true);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1000", true, false);
         final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
         Mockito.when(mockRepo.create(Matchers.anyBoolean())).thenReturn(contentClaim);
 

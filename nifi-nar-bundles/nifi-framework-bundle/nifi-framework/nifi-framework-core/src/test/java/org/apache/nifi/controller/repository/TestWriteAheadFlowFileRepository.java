@@ -87,10 +87,10 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);
 
-        final ResourceClaim resourceClaim1 = claimManager.newResourceClaim("container", "section", "1", false);
+        final ResourceClaim resourceClaim1 = claimManager.newResourceClaim("container", "section", "1", false, false);
         final ContentClaim claim1 = new StandardContentClaim(resourceClaim1, 0L);
 
-        final ResourceClaim resourceClaim2 = claimManager.newResourceClaim("container", "section", "2", false);
+        final ResourceClaim resourceClaim2 = claimManager.newResourceClaim("container", "section", "2", false, false);
         final ContentClaim claim2 = new StandardContentClaim(resourceClaim2, 0L);
 
         // Create a flowfile repo, update it once with a FlowFile that points to one resource claim. Then,

@@ -439,7 +439,7 @@ public class FileSystemRepository implements ContentRepository {
         final String id = idPath.toFile().getName();
         final String sectionName = sectionPath.toFile().getName();
 
-        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, id, false);
+        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, id, false, false);
         if (resourceClaimManager.getClaimantCount(resourceClaim) == 0) {
             removeIncompleteContent(fileToRemove);
         }
@@ -537,7 +537,7 @@ public class FileSystemRepository implements ContentRepository {
             final String section = String.valueOf(modulatedSectionIndex);
             final String claimId = System.currentTimeMillis() + "-" + currentIndex;
 
-            resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant);
+            resourceClaim = resourceClaimManager.newResourceClaim(containerName, section, claimId, lossTolerant, true);
             resourceOffset = 0L;
             LOG.debug("Creating new Resource Claim {}", resourceClaim);
 
@@ -949,6 +949,7 @@ public class FileSystemRepository implements ContentRepository {
                         LOG.debug("Claim length less than max; Adding {} back to Writable Claim Queue", this);
                     } else {
                         writableClaimStreams.remove(scc.getResourceClaim());
+                        resourceClaimManager.freeze(scc.getResourceClaim());
 
                         bcos.close();
 

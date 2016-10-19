@@ -115,7 +115,12 @@ public class TestFileSystemSwapManager {
     public class NopResourceClaimManager implements ResourceClaimManager {
 
         @Override
-        public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant) {
+        public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant, boolean writable) {
+            return null;
+        }
+
+        @Override
+        public ResourceClaim getResourceClaim(String container, String section, String id) {
             return null;
         }
 
