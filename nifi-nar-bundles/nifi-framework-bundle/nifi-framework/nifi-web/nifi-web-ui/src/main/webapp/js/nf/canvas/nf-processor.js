@@ -122,17 +122,6 @@ nf.Processor = (function () {
             })
             .text('\ue807');
 
-        // processor stats preview
-        processor.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 294,
-                'height': 58,
-                'x': 8,
-                'y': 35,
-                'class': 'processor-stats-preview'
-            });
-
         // make processors selectable
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
     };
@@ -161,6 +150,30 @@ nf.Processor = (function () {
 
         updated.each(function (processorData) {
             var processor = d3.select(this);
+            var info = processor.select('g.processor-canvas-info');
+
+            if (info.empty()) {
+                info = processor.append('g').attr('class', 'processor-canvas-info');
+
+                // run status icon
+                info.append('text')
+                    .attr({
+                        'class': 'run-status-icon',
+                        'x': 42,
+                        'y': 20
+                    });
+
+                // processor type
+                info.append('text')
+                    .attr({
+                        'class': 'processor-type',
+                        'x': 62,
+                        'y': 35,
+                        'width': 246,
+                        'height': 16
+                    });
+            }
+
             var details = processor.select('g.processor-canvas-details');
 
             // update the component behavior as appropriate
@@ -170,24 +183,6 @@ nf.Processor = (function () {
             if (processor.classed('visible')) {
                 if (details.empty()) {
                     details = processor.append('g').attr('class', 'processor-canvas-details');
-
-                    // run status icon
-                    details.append('text')
-                        .attr({
-                            'class': 'run-status-icon',
-                            'x': 42,
-                            'y': 20
-                        });
-
-                    // processor type
-                    details.append('text')
-                        .attr({
-                            'class': 'processor-type',
-                            'x': 62,
-                            'y': 35,
-                            'width': 246,
-                            'height': 16
-                        });
 
                     // -----
                     // stats
@@ -480,65 +475,7 @@ nf.Processor = (function () {
                         })
                         .text('\uf24a');
                 }
-
-                if (processorData.permissions.canRead) {
-                    // update the processor name
-                    processor.select('text.processor-name')
-                        .each(function (d) {
-                            var processorName = d3.select(this);
-
-                            // reset the processor name to handle any previous state
-                            processorName.text(null).selectAll('title').remove();
-
-                            // apply ellipsis to the processor name as necessary
-                            nf.CanvasUtils.ellipsis(processorName, d.component.name);
-                        }).append('title').text(function (d) {
-                        return d.component.name;
-                    });
-
-                    // update the processor type
-                    processor.select('text.processor-type')
-                        .each(function (d) {
-                            var processorType = d3.select(this);
-
-                            // reset the processor type to handle any previous state
-                            processorType.text(null).selectAll('title').remove();
-
-                            // apply ellipsis to the processor type as necessary
-                            nf.CanvasUtils.ellipsis(processorType, nf.Common.substringAfterLast(d.component.type, '.'));
-                        }).append('title').text(function (d) {
-                        return nf.Common.substringAfterLast(d.component.type, '.');
-                    });
-                } else {
-                    // clear the processor name
-                    processor.select('text.processor-name').text(null);
-
-                    // clear the processor type
-                    processor.select('text.processor-type').text(null);
-                }
-
-                // hide the preview
-                processor.select('image.processor-stats-preview').style('display', 'none');
-
-                // populate the stats
-                processor.call(updateProcessorStatus);
             } else {
-                if (processorData.permissions.canRead) {
-                    // update the processor name
-                    processor.select('text.processor-name')
-                        .text(function (d) {
-                            var name = d.component.name;
-                            if (name.length > PREVIEW_NAME_LENGTH) {
-                                return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
-                            } else {
-                                return name;
-                            }
-                        });
-                }
-
-                // show the preview
-                processor.select('image.processor-stats-preview').style('display', 'block');
-
                 // remove the tooltips
                 processor.call(removeTooltips);
 
@@ -547,31 +484,113 @@ nf.Processor = (function () {
                     details.remove();
                 }
             }
-        });
-        
-        // ---------------
-        // processor color
-        // ---------------
 
-        // update the processor color
-        updated.select('text.processor-icon')
+            // enhance color for usability
+            processor.call(enhanceProcessorReadability, processorData);
+
+            // populate the status
+            processor.call(updateProcessorStatus);
+        });
+    };
+
+    /**
+     * Enhances the readability of the processors in the specified selection.
+     *
+     * @param {selection} processor           The processor to update.
+     * @param {object} processorData           The processor data.
+     */
+    var enhanceProcessorReadability = function (processor, processorData) {
+        var processorRectBody = processor.select('rect.body')
             .style('fill', function (d) {
-                
-                // get the default color
-                var color = nf.Processor.defaultColor();
-                
-                if (!d.permissions.canRead) {
+                if (processor.classed('visible')) {
+                    return '#ffffff';
+                } else {
+                    var color = '#dde4eb';
+
+                    // use the specified color if appropriate
+                    if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                        color = d.component.style['background-color'];
+                    }
+
                     return color;
                 }
-
-                // use the specified color if appropriate
-                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                    color = d.component.style['background-color'];
-                }
-
-                return color;
             });
-    };
+
+        processor.select('text.processor-icon')
+            .style('fill', function (d) {
+                if (processor.classed('visible')) {
+                    // get the default color
+                    var color = nf.Processor.defaultColor();
+
+                    if (!d.permissions.canRead) {
+                        return color;
+                    }
+
+                    // use the specified color if appropriate
+                    if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                        color = d.component.style['background-color'];
+                    }
+
+                    return color;
+                } else {
+                    return nf.Common.determineContrastColor(
+                        nf.Common.substringAfterLast(
+                            d3.rgb(processorRectBody.style('fill')).toString(), '#'
+                        ));
+                }
+            });
+
+        if (processorData.permissions.canRead) {
+            // update the processor name
+            processor.select('text.processor-name')
+                .text(function (d) {
+                    var name = d.component.name;
+                    if (name.length > PREVIEW_NAME_LENGTH) {
+                        return name.substring(0, PREVIEW_NAME_LENGTH) + String.fromCharCode(8230);
+                    } else {
+                        return name;
+                    }
+                })
+                .style('fill', function (d) {
+                    return nf.Common.determineContrastColor(
+                        nf.Common.substringAfterLast(
+                            d3.rgb(processorRectBody.style('fill')).toString(), '#'
+                        ));
+                });
+
+            // update the processor type
+            processor.select('text.processor-type')
+                .each(function (d) {
+                    var processorType = d3.select(this);
+
+                    // reset the processor type to handle any previous state
+                    processorType.text(null).selectAll('title').remove();
+
+                    processorType.style('fill', function (d) {
+                        if (processor.classed('visible')) {
+                            return '#728e9b';
+                        } else {
+                            return nf.Common.determineContrastColor(
+                                nf.Common.substringAfterLast(
+                                    d3.rgb(processorRectBody.style('fill')).toString(), '#'
+                                ));
+                        }
+                    });
+
+                    // apply ellipsis to the processor type as necessary
+                    nf.CanvasUtils.ellipsis(processorType, nf.Common.substringAfterLast(d.component.type, '.'));
+                }).append('title').text(function (d) {
+                return nf.Common.substringAfterLast(d.component.type, '.');
+            })
+
+        } else {
+            // clear the processor name
+            processor.select('text.processor-name').text(null);
+
+            // clear the processor type
+            processor.select('text.processor-type').text(null);
+        }
+    }
 
     /**
      * Updates the stats for the processors in the specified selection.
@@ -590,6 +609,13 @@ nf.Processor = (function () {
                     var fill = '#728e9b';
                     if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                         fill = '#ba554a';
+                    }
+                    if (!updated.classed('visible')) {
+                        var processorRectBody = updated.select('rect.body');
+                        fill = nf.Common.determineContrastColor(
+                            nf.Common.substringAfterLast(
+                                d3.rgb(processorRectBody.style('fill')).toString(), '#'
+                            ));
                     }
                     return fill;
                 },

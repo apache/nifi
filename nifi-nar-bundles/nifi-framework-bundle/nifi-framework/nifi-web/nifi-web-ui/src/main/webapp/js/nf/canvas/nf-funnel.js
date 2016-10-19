@@ -149,6 +149,26 @@ nf.Funnel = (function () {
 
             // update the component behavior as appropriate
             nf.CanvasUtils.editable(funnel);
+
+            var funnelRectBody = funnel.select('rect.body')
+                .style('fill', function (d) {
+                    if (funnel.classed('visible')) {
+                        return '#ffffff';
+                    } else {
+                        return '#ad9897';
+                    }
+                });
+            funnel.select('text.funnel-icon')
+                .style('fill', function (d) {
+                    if (funnel.classed('visible')) {
+                        return nf.Processor.defaultColor();
+                    } else {
+                        return nf.Common.determineContrastColor(
+                            nf.Common.substringAfterLast(
+                                d3.rgb(funnelRectBody.style('fill')).toString(), '#'
+                            ));
+                    }
+                });
         });
     };
 
@@ -296,6 +316,13 @@ nf.Funnel = (function () {
             } else {
                 d3.selectAll('g.funnel').call(updateFunnels);
             }
+        },
+
+        /**
+         * Refreshes the funnels necessary after a pan event.
+         */
+        pan: function () {
+            d3.selectAll('g.funnel.entering, g.funnel.leaving').call(updateFunnels);
         },
 
         /**

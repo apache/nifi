@@ -220,7 +220,17 @@ nf.Connectable = (function () {
                                         'class': 'add-connect',
                                         'transform': 'translate(' + x + ', ' + y + ')'
                                     })
-                                    .text('\ue834');
+                                    .text('\ue834').style('fill', function (d) {
+                                    if (selection.classed('visible')) {
+                                        return '#004849';
+                                    } else {
+                                        var processorRectBody = selection.select('rect.body');
+                                        return nf.Common.determineContrastColor(
+                                            nf.Common.substringAfterLast(
+                                                d3.rgb(processorRectBody.style('fill')).toString(), '#'
+                                            ));
+                                    }
+                                });
                             }
                         }
                     }
