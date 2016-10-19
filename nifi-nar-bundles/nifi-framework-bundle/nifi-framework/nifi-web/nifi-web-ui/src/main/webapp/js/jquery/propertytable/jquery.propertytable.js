@@ -77,7 +77,8 @@
                 'background-color': 'rgb(255, 255, 255)',
                 'overflow': 'hidden',
                 'padding': '10px 20px',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).appendTo(container);
 
             // create the input field
@@ -301,7 +302,8 @@
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 cancel: 'input, textarea, pre, .nf-checkbox, .button, .' + editorClass,
                 containment: 'parent'
@@ -506,7 +508,8 @@
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 cancel: '.button, .combo',
                 containment: 'parent'
@@ -723,6 +726,7 @@
                     'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                     'background-color': 'rgb(255, 255, 255)',
                     'cursor': 'move',
+                    'transform': 'translate3d(0px, 0px, 0px)',
                     'top': offset.top - 24,
                     'left': offset.left - 20
                 }).appendTo('body');
@@ -805,6 +809,7 @@
                             'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                             'background-color': 'rgb(255, 255, 255)',
                             'cursor': 'move',
+                            'transform': 'translate3d(0px, 0px, 0px)',
                             'top': offset.top - 22,
                             'left': offset.left - 43
                         }).draggable({
@@ -835,6 +840,7 @@
                             'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                             'background-color': 'rgb(255, 255, 255)',
                             'cursor': 'move',
+                            'transform': 'translate3d(0px, 0px, 0px)',
                             'top': offset.top - 26,
                             'left': offset.left - 20
                         });

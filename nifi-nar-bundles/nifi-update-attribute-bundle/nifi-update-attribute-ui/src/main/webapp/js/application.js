@@ -1727,7 +1727,8 @@ var ua = {
                 'overflow': 'hidden',
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 containment: 'parent'
             }).appendTo(container);
@@ -1865,7 +1866,8 @@ var ua = {
                 'overflow': 'hidden',
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 cancel: 'input, textarea, pre, .button, div.' + editorClass,
                 containment: 'parent'
