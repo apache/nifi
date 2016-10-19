@@ -504,7 +504,14 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                         lossTolerant = false;
                     }
 
-                    resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
+                    resourceClaim = claimManager.getResourceClaim(container, section, claimId);
+                    if (resourceClaim == null) {
+                        logger.error("Swap file indicates that FlowFile was referencing Resource Claim at container={}, section={}, claimId={}, "
+                            + "but this Resource Claim cannot be found! Will create a temporary Resource Claim, but this may affect the framework's "
+                            + "ability to properly clean up this resource", container, section, claimId);
+                        resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant, true);
+                    }
+
                     final StandardContentClaim claim = new StandardContentClaim(resourceClaim, resourceOffset);
                     claim.setLength(resourceLength);
 

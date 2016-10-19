@@ -826,7 +826,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     lossTolerant = false;
                 }
 
-                final ResourceClaim resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant);
+                final ResourceClaim resourceClaim = claimManager.newResourceClaim(container, section, claimId, lossTolerant, false);
                 final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, resourceOffset);
                 contentClaim.setLength(resourceLength);
 

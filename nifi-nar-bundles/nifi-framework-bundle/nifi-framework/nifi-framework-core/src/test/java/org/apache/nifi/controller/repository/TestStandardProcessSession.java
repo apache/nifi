@@ -817,7 +817,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .size(1L)
                 .build();
         flowFileQueue.put(flowFileRecord);
@@ -964,7 +964,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .size(1L)
                 .build();
         flowFileQueue.put(flowFileRecord);
@@ -988,7 +988,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .build();
         flowFileQueue.put(flowFileRecord);
 
@@ -1004,7 +1004,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .contentClaimOffset(1000L)
                 .size(1000L)
                 .build();
@@ -1029,7 +1029,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .build();
 
         flowFileQueue.put(flowFileRecord);
@@ -1046,7 +1046,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .contentClaimOffset(1000L).size(1L).build();
         flowFileQueue.put(flowFileRecord2);
 
@@ -1113,7 +1113,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
 
@@ -1150,7 +1150,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
                 .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
                 .entryDate(System.currentTimeMillis())
-                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true, false), 0L))
                 .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
 
@@ -1477,7 +1477,7 @@ public class TestStandardProcessSession {
             final Set<ContentClaim> claims = new HashSet<>();
 
             for (long i = 0; i < idGenerator.get(); i++) {
-                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim("container", "section", String.valueOf(i), false);
+                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim("container", "section", String.valueOf(i), false, false);
                 final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
                 if (getClaimantCount(contentClaim) > 0) {
                     claims.add(contentClaim);
@@ -1489,7 +1489,7 @@ public class TestStandardProcessSession {
 
         @Override
         public ContentClaim create(boolean lossTolerant) throws IOException {
-            final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false);
+            final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false, false);
             final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
 
             claimantCounts.put(contentClaim, new AtomicInteger(1));
