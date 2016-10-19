@@ -194,15 +194,20 @@ Language supports four different data types:
 - *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
     is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
     very precise values, such as currency. For more documentation on the range of values stored in this data type
-    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. Decimals cannot be expressed as un-quoted characters
-    when inputting a literal Decimal to an Expression Language function. They must be input as Strings using quotes, like so: "1.1".
+    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. The following are some examples of the forms of
+    literal decimals that are supported in expression language (the "E" can also be lower-case):
+
+        * 1.1
+        * .1E1
+        * 1.11E-12
+
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
 	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
 	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
 	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
-After evaluating expression language functions, all attributes are stored as of type String.
+After evaluating expression language functions, all attributes are stored as type String.
 
 The Expression Language is generally able to automatically coerce a value of one data type to the appropriate
 data type for a function. However, functions do exist to manually coerce a value into a specific data type.
