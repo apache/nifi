@@ -23,19 +23,20 @@
 
 # Status Reporting and Querying
 
-Since MiNiFi does not have a UI there needed to be ways to get the information normally seen in the NiFi UI, information such as the stats or bulletins of a processor. This FlowStatus can be queried using using the MiNiFi.sh script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the flowStatus script option. The API is outlined in the "FlowStatus Query Options" section.
+You can use FlowStatus to view status, processor bulletin, and health information similar to that displayed in the NiFi UI. Query FlowStatus either using the MiNiFi.sh script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the flowStatus script option. The API is outlined in the "FlowStatus Query Options" section below.
 
 ## FlowStatus Script Query
 
-From the minifi.sh script there is the ability to manually query to get the current status of the flow. Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups or processors that contain " " (a space), ":", ";" or "," will cause parsing errors when querying. Below is an example query.
+From the minifi.sh script, you can manually query to get the current status of your  dataflow. The following is an example of a minifi.sh query you might run to view health, stats, and bulletins for the TailFile processor. This query returns information to your command-line.
 
 ```
 minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
+Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups, or processors that contain " " (a space), ":", ";" or "," cause parsing errors when querying.
 
 ## Periodic Status Reporters
 
-In addition to manually querying via the MiNiFi.sh script, Periodic Status Reporters can be set up to periodically report the status of the flow. Every period the configured query will be executed and the result reported via the configured implementation. The Reporters are configured in the bootstrap.conf using the "nifi.minifi.status.reporter.components" key followed by the full path name of the desired Reporter implementation to run (a comma separated list can be used to define more than one). For example:
+You can set up Periodic Status Reporters to periodically report the status of your dataflow. The query executes at configurable intervals and the results are reported using the configured implementation. Configure the Reporters in the bootstrap.conf file, using the "nifi.minifi.status.reporter.components" key followed by the full path name of the desired Reporter implementation to run. Use a comma separated list  to define more than one Reporter implementation. For example:
 
 ```
 nifi.minifi.status.reporter.components=org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger
@@ -46,7 +47,7 @@ nifi.minifi.status.reporter.components=org.apache.nifi.minifi.bootstrap.status.r
 
 class name: org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger
 
-This Periodic Status Reporter simply logs the results of the query to the logs. By default it will be logged to the minifi-bootstrap.log but using the logback.xml it can be configured to log to wherever is desired.
+The Periodic Status Reporter logs the results of the query to the logs. By default it is logged to the minifi-bootstrap.log but you can modify logback.xml to log to an alternate file and location.
 
 Option | Description
 ------ | -----------
@@ -65,7 +66,7 @@ nifi.minifi.status.reporter.log.level=INFO
 nifi.minifi.status.reporter.log.period=60000
 ```
 
-Example logback.xml configuration to output the status to it's own rolling log file:
+Example logback.xml configuration to output the status to its own rolling log file:
 
 ```
 <appender name="STATUS_LOG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -93,11 +94,11 @@ Example logback.xml configuration to output the status to it's own rolling log f
 
 ## FlowStatus Query Options
 
-This section gives outlines each of the different options to query the MiNiFi instance for the FlowStatus.
+This section outlines each option to query the MiNiFi instance for the FlowStatus.
 
 ### Processors
 
-To query the processors use the "processor" flag followed by the id of the processor to get (or "all") followed by one of the processor options. The processor options are below.
+To query the processors use the "processor" flag followed by the processor ID to get (or "all") followed by one of the processor options. The processor options are below.
 
 Option | Description
 ------ | -----------
@@ -111,7 +112,7 @@ minifi.sh flowStatus processor:TailFile:health,stats,bulletins
 ```
 ### Connections
 
-To query the connections use the "connection" flag followed by the id of the connection to get (or "all") followed by one of the connection options. The connection options are below.
+To query the connections use the "connection" flag followed by the connection ID to get (or "all") followed by one of the connection options. The connection options are below.
 
 Option | Description
 ------ | -----------
@@ -125,7 +126,7 @@ minifi.sh flowStatus connection:TailToS2S:health,stats
 
 ### Remote Process Groups
 
-To query the remote process groups (RPG) use the "remoteProcessGroup" flag followed by the id of the remote process group to get (or "all") followed by one of the remote process group options. The remote process group options are below.
+To query the remote process groups (RPG) use the "remoteProcessGroup" flag followed by the RPG ID to get (or "all") followed by one of the remote process group options. The remote process group options are below.
 
 Option | Description
 ------ | -----------
@@ -173,7 +174,7 @@ minifi.sh flowStatus provenancereporting:health,bulletins
 
 ### Instance
 
-To query the status of the MiNiFi instance in general use the "instance" flag followed by one of the instance options. The instance options are below.
+To query the status of the MiNiFi instance use the "instance" flag followed by one of the instance options. The instance options are below.
 
 Option | Description
 ------ | -----------
