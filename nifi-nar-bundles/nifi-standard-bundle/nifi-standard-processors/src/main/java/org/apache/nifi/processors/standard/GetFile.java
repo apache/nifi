@@ -295,13 +295,13 @@ public class GetFile extends AbstractProcessor {
     }
 
     private Set<File> performListing(final File directory, final FileFilter filter, final boolean recurseSubdirectories) {
+        Path p = directory.toPath();
+        if (!Files.isWritable(p) || !Files.isReadable(p)) {
+            throw new IllegalStateException("Directory '" + directory + "' does not have sufficient permissions (i.e., not writable and redable)");
+        }
         final Set<File> queue = new HashSet<>();
         if (!directory.exists()) {
             return queue;
-        }
-        // this check doesn't work on Windows
-        if (!directory.canRead()) {
-            getLogger().warn("No read permission on directory {}", new Object[]{directory.toString()});
         }
 
         final File[] children = directory.listFiles();

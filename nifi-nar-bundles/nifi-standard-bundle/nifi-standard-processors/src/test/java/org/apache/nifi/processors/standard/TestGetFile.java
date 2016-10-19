@@ -32,6 +32,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -43,6 +44,72 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 public class TestGetFile {
+
+    @Test
+    public void testWithInaccessibleDir() throws IOException {
+        File inaccessibleDir = new File("target/inaccessible");
+        inaccessibleDir.deleteOnExit();
+        inaccessibleDir.mkdir();
+        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
+        Files.setPosixFilePermissions(inaccessibleDir.toPath(), posixFilePermissions);
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, inaccessibleDir.getAbsolutePath());
+        try {
+            runner.run();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getCause().getMessage()
+                    .endsWith("does not have sufficient permissions (i.e., not writable and redable)"));
+        }
+    }
+
+    @Test
+    public void testWithUnreadableDir() throws IOException {
+        File unreadableDir = new File("target/unreadable");
+        unreadableDir.deleteOnExit();
+        unreadableDir.mkdir();
+        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
+        posixFilePermissions.add(PosixFilePermission.GROUP_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.GROUP_WRITE);
+        posixFilePermissions.add(PosixFilePermission.OTHERS_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.OTHERS_WRITE);
+        posixFilePermissions.add(PosixFilePermission.OWNER_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.OWNER_WRITE);
+        Files.setPosixFilePermissions(unreadableDir.toPath(), posixFilePermissions);
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, unreadableDir.getAbsolutePath());
+        try {
+            runner.run();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getCause().getMessage()
+                    .endsWith("does not have sufficient permissions (i.e., not writable and redable)"));
+        }
+    }
+
+    @Test
+    public void testWithUnwritableDir() throws IOException {
+        File unreadableDir = new File("target/unreadable");
+        unreadableDir.deleteOnExit();
+        unreadableDir.mkdir();
+        Set<PosixFilePermission> posixFilePermissions = new HashSet<>();
+        posixFilePermissions.add(PosixFilePermission.GROUP_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.GROUP_READ);
+        posixFilePermissions.add(PosixFilePermission.OTHERS_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.OTHERS_READ);
+        posixFilePermissions.add(PosixFilePermission.OWNER_EXECUTE);
+        posixFilePermissions.add(PosixFilePermission.OWNER_READ);
+        Files.setPosixFilePermissions(unreadableDir.toPath(), posixFilePermissions);
+        final TestRunner runner = TestRunners.newTestRunner(new GetFile());
+        runner.setProperty(GetFile.DIRECTORY, unreadableDir.getAbsolutePath());
+        try {
+            runner.run();
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getCause().getMessage()
+                    .endsWith("does not have sufficient permissions (i.e., not writable and redable)"));
+        }
+    }
 
     @Test
     public void testFilePickedUp() throws IOException {
