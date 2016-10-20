@@ -166,6 +166,7 @@ PLUS : 'plus';
 MINUS : 'minus';
 MULTIPLY : 'multiply';
 DIVIDE : 'divide';
+MATH : 'math';
 TO_RADIX : 'toRadix';
 OR : 'or';
 AND : 'and';

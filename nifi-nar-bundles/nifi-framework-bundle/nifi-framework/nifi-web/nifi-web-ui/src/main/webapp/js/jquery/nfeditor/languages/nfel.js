@@ -64,13 +64,17 @@ nf.nfel = (function() {
             var returnType = elFunction.find('span.returnType').text();
             
             var subject;
+            var subjectSpan = subject = elFunction.find('span.subject');
             var subjectless = elFunction.find('span.subjectless');
             
-            // determine if this function is subjectless
+            // Determine if this function supports running subjectless
             if (subjectless.length) {
                 subjectlessFunctions.push(name);
                 subject = '<span class="unset">None</span>';
-            } else {
+            }
+
+            // Determine if this function supports running with a subject
+            if (subjectSpan.length) {
                 functions.push(name);
                 subject = elFunction.find('span.subject').text();
             }

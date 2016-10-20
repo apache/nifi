@@ -95,10 +95,11 @@ zeroArgNum	: (LENGTH | TO_NUMBER | TO_DECIMAL | COUNT) LPAREN! RPAREN!;
 oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
 			  (TO_DATE LPAREN! anyArg? RPAREN!) |
 			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
+oneOrTwoArgNum : MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!;
 
 stringFunctionRef : zeroArgString | oneArgString | twoArgString | fiveArgString;
 booleanFunctionRef : zeroArgBool | oneArgBool | multiArgBool;
-numberFunctionRef : zeroArgNum | oneArgNum;
+numberFunctionRef : zeroArgNum | oneArgNum | oneOrTwoArgNum;
 
 anyArg : WHOLE_NUMBER | DECIMAL | numberFunctionRef | STRING_LITERAL | zeroArgString | oneArgString | twoArgString | fiveArgString | booleanLiteral | zeroArgBool | oneArgBool | multiArgBool | expression;
 stringArg : STRING_LITERAL | zeroArgString | oneArgString | twoArgString | expression;
@@ -128,7 +129,7 @@ functionCall : functionRef ->
 
 booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | RANDOM) LPAREN! RPAREN!;
-oneArgStandaloneFunction : (TO_LITERAL^ LPAREN! anyArg RPAREN!) |
+oneArgStandaloneFunction : ((TO_LITERAL | MATH)^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
 standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
 

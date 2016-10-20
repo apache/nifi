@@ -814,6 +814,32 @@ public class TestQuery {
     }
 
     @Test
+    public void testMathFunction() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1");
+        attributes.put("two", "2");
+        attributes.put("oneDecimal", "1.5");
+        attributes.put("twoDecimal", "2.3");
+        attributes.put("negative", "-64");
+        attributes.put("negativeDecimal", "-64.1");
+
+        // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
+        verifyEquals("${math('random'):toNumber()}", attributes, 0L);
+
+        verifyEquals("${negative:math('abs')}", attributes, 64L);
+        verifyEquals("${negativeDecimal:math('abs')}", attributes, 64.1D);
+
+        verifyEquals("${negative:math('max', ${two})}", attributes, 2L);
+        verifyEquals("${negativeDecimal:math('max', ${twoDecimal})}", attributes, 2.3D);
+
+        verifyEquals("${oneDecimal:math('pow', ${two:toDecimal()})}", attributes, Math.pow(1.5,2));
+        verifyEquals("${oneDecimal:math('scalb', ${two})}", attributes, Math.scalb(1.5,2));
+
+        verifyEquals("${negative:math('abs'):toDecimal():math('cbrt'):math('max', ${two:toDecimal():math('pow',${oneDecimal}):mod(${two})})}", attributes,
+                Math.max(Math.cbrt(Math.abs(-64)), Math.pow(2,1.5)%2));
+    }
+
+    @Test
     public void testMathLiteralOperations() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ten", "10.1");
