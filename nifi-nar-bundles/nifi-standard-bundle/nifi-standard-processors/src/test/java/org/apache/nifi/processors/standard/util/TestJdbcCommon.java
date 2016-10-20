@@ -151,6 +151,31 @@ public class TestJdbcCommon {
     }
 
     @Test
+    public void testCreateSchemaOnlyColumnLabel() throws ClassNotFoundException, SQLException {
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(2);
+        when(resultSetMetaData.getTableName(1)).thenReturn("TEST");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(resultSetMetaData.getColumnName(1)).thenReturn("");
+        when(resultSetMetaData.getColumnLabel(1)).thenReturn("ID");
+        when(resultSetMetaData.getColumnType(2)).thenReturn(Types.VARCHAR);
+        when(resultSetMetaData.getColumnName(2)).thenReturn("VCHARC");
+        when(resultSetMetaData.getColumnLabel(2)).thenReturn("NOT_VCHARC");
+
+        final Schema schema = JdbcCommon.createSchema(resultSet);
+        assertNotNull(schema);
+
+        assertNotNull(schema.getField("ID"));
+        assertNotNull(schema.getField("VCHARC"));
+
+        // records name, should be result set first column table name
+        assertEquals("TEST", schema.getName());
+    }
+
+    @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         final Statement st = con.createStatement();
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");

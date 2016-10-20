@@ -210,8 +210,6 @@ public class ReplaceText extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        final String unsubstitutedRegex = context.getProperty(SEARCH_VALUE).getValue();
-        String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).getValue();
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
 
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());

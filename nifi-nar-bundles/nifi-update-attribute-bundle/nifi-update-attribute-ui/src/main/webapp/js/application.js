@@ -91,14 +91,30 @@ var ua = {
         // initialize the rule list
         ua.initRuleList();
 
+        var destroyEditors = function(){
+            if($('.slickgrid-nfel-editor').is(':visible') || $('.slickgrid-custom-long-text-editor').is(':visible')){
+
+                $('#selected-rule-actions').data('gridInstance').getEditController().cancelCurrentEdit();
+                $('#selected-rule-conditions').data('gridInstance').getEditController().cancelCurrentEdit();
+            }
+            if( $('#new-condition-dialog').is(':visible')){
+                $('#new-condition-dialog').modal('hide');
+            }
+            if( $('#new-action-dialog').is(':visible')){
+                $('#new-action-dialog').modal('hide');
+            }
+        };
+
         // button click for new rules
         $('#new-rule').on('click', function () {
+            destroyEditors();
             $('#new-rule-dialog').modal('show');
             $('#new-rule-name').focus();
         });
 
         // button click for new conditions/actions
         $('#new-condition').on('click', function () {
+            destroyEditors();
             var ruleId = $('#selected-rule-id').text();
 
             if (ruleId === '') {
@@ -114,6 +130,7 @@ var ua = {
             }
         });
         $('#new-action').on('click', function () {
+            destroyEditors();
             var ruleId = $('#selected-rule-id').text();
 
             if (ruleId === '') {
@@ -647,6 +664,7 @@ var ua = {
     initOkDialog: function () {
         $('#ok-dialog').modal({
             overlayBackground: false,
+            scrollableContentStyle: 'scrollable',
             buttons: [{
                     buttonText: 'Ok',
                     color: {
@@ -677,6 +695,7 @@ var ua = {
      */
     initYesNoDialog: function () {
         $('#yes-no-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             overlayBackground: false
         });
     },
@@ -974,6 +993,8 @@ var ua = {
                     if (ruleList.is(':empty')) {
                         // update the rule list visibility
                         ua.hideRuleList();
+                        // clear the selected rule id
+                        $('#selected-rule-id').text('');
                     }
 
                     // clear the rule details
@@ -1665,7 +1686,7 @@ var ua = {
 
         // add an ok button that will remove the entire pop up
         var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
-            cleaUp();
+            cleanUp();
         });
 
         $('<div></div>').css({
@@ -1698,7 +1719,7 @@ var ua = {
             var container = $('#update-attributes-content');
 
             // create the wrapper
-            wrapper = $('<div></div>').css({
+            wrapper = $('<div></div>').addClass('slickgrid-custom-long-text-editor').css({
                 'z-index': 100000,
                 'position': 'absolute',
                 'background': 'white',
@@ -1716,7 +1737,8 @@ var ua = {
                 'width': args.position.width + 'px',
                 'min-width': '202px',
                 'height': '80px',
-                'margin-bottom': '35px'
+                'margin-bottom': '35px',
+                'resize': 'both'
             }).on('keydown', scope.handleKeyDown).appendTo(wrapper);
 
             // create the button panel
@@ -1764,12 +1786,18 @@ var ua = {
         };
 
         this.show = function () {
+            if( $('#new-condition-dialog').is(':visible')){
+                $('#new-condition-dialog').modal('hide');
+            }
+            if( $('#new-action-dialog').is(':visible')){
+                $('#new-action-dialog').modal('hide');
+            }
             wrapper.show();
         };
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 5,
+                'top': position.top - 11,
                 'left': position.left - 5
             });
         };
@@ -1887,13 +1915,19 @@ var ua = {
         };
 
         this.show = function () {
+            if( $('#new-condition-dialog').is(':visible')){
+                $('#new-condition-dialog').modal('hide');
+            }
+            if( $('#new-action-dialog').is(':visible')){
+                $('#new-action-dialog').modal('hide');
+            }
             wrapper.show();
         };
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 5,
-                'left': position.left - 5
+                'top': position.top - 6,
+                'left': position.left - 25
             });
         };
 

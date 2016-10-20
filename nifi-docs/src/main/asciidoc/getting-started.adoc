@@ -371,8 +371,7 @@ categorizing them by their functions.
 	the content fetched from HDFS.
 - *FetchS3Object*: Fetches the contents of an object from the Amazon Web Services (AWS) Simple Storage Service (S3). The outbound FlowFile contains the contents
   received from S3.
-- *GetKafka*: Consumes messages from Apache Kafka. The messages can be emitted as a FlowFile per message or can be batched together using a user-specified
-  delimiter.
+- *GetKafka*: Fetches messages from Apache Kafka, specifically for 0.8.x versions. The messages can be emitted as a FlowFile per message or can be batched together using a user-specified delimiter.
 - *GetMongo*: Executes a user-specified query against MongoDB and writes the contents to a new FlowFile.
 - *GetTwitter*: Allows Users to register a filter to listen to the Twitter "garden hose" or Enterprise endpoint, creating a FlowFile for each tweet
   that is received.
@@ -386,7 +385,7 @@ categorizing them by their functions.
 - *PutSQL*: Executes the contents of a FlowFile as a SQL DDL Statement (INSERT, UPDATE, or DELETE). The contents of the FlowFile must be a valid
   SQL statement. Attributes can be used as parameters so that the contents of the FlowFile can be parameterized SQL statements in order to avoid
 	SQL injection attacks.
-- *PutKafka*: Sends the contents of a FlowFile to Kafka as a message. The FlowFile can be sent as a single message or a delimiter, such as a
+- *PutKafka*: Sends the contents of a FlowFile as a message to Apache Kafka, specifically for 0.8.x versions. The FlowFile can be sent as a single message or a delimiter, such as a
   new-line can be specified, in order to send many messages for a single FlowFile.
 - *PutMongo*: Sends the contents of a FlowFile to Mongo as an INSERT or an UPDATE.
 

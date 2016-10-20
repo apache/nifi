@@ -1179,6 +1179,42 @@ Each of the following functions will encode a string according the rules of the 
 
 
 
+
+[.function]
+=== base64Encode
+
+*Description*: [.description]#Returns a Base64 encoded string. This is useful for being able to transfer binary data as ascii.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can Base64-Encoded an attribute named "payload" by using the Expression 
+	   `${payload:base64Encode()}` If the attribute payload had a value of "admin:admin"
+	    then the Expression  `${payload:base64Encode()}` will return "YWRtaW46YWRtaW4=". 
+
+
+
+
+[.function]
+=== base64Decode
+
+*Description*: [.description]#Reverses the Base64 encoding on given string.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If we have a Base64-Encoded attribute named "payload" with the value
+	"YWRtaW46YWRtaW4=", then the Expression
+	`${payload:base64Decode()}` will return "admin:admin".
+
+
+
 [[searching]]
 == Searching
 

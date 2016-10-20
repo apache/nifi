@@ -28,7 +28,7 @@ import java.util.Objects;
 /**
  * A base type for request/response entities.
  */
-@XmlRootElement(name = "entity")
+@XmlRootElement(name = "componentEntity")
 public class ComponentEntity extends Entity {
 
     private RevisionDTO revision;

@@ -61,6 +61,7 @@
     height: 62px;
     font-size: 12px;
     line-height: 16px;
+    overflow-y: auto;
 }
 
 #processor-types-table {

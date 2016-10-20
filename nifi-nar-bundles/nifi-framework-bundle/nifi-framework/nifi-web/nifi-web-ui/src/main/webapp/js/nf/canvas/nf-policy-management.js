@@ -229,9 +229,52 @@ nf.PolicyManagement = (function () {
     };
     
     var initPolicyTable = function () {
-        // create/override a policy
-        $('#create-policy-link, #override-policy-link, #add-local-admin-link').on('click', function () {
-            createPolicy();
+        $('#override-policy-dialog').modal({
+            headerText: 'Override Policy',
+            buttons: [{
+                buttonText: 'Override',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        // create the policy, copying if appropriate
+                        createPolicy($('#copy-policy-radio-button').is(':checked'));
+
+                        $(this).modal('hide');
+                    }
+                }
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        $(this).modal('hide');
+                    }
+                }
+            }],
+            handler: {
+                close: function () {
+                    // reset the radio button
+                    $('#copy-policy-radio-button').prop('checked', true);
+                }
+            }
+        });
+
+        // create/add a policy
+        $('#create-policy-link, #add-local-admin-link').on('click', function () {
+            createPolicy(false);
+        });
+
+        // override a policy
+        $('#override-policy-link').on('click', function () {
+            $('#override-policy-dialog').modal('show');
         });
 
         // policy type listing
@@ -413,7 +456,9 @@ nf.PolicyManagement = (function () {
 
             // see if the user has permissions for the current policy
             var currentEntity = $('#policy-table').data('policy');
-            if (currentEntity.permissions.canWrite === true) {
+            var resourceComponentId = nf.Common.substringAfterLast(currentEntity.component.resource, '/');
+            var selectedComponentId = $('#selected-policy-component-id').text();
+            if (currentEntity.permissions.canWrite === true && resourceComponentId === selectedComponentId) {
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
@@ -659,13 +704,30 @@ nf.PolicyManagement = (function () {
      *
      * @param resource
      */
-    var convertToHumanReadableResource = function (resource) {
+    var getResourceMessage = function (resource) {
         if (resource === '/policies') {
-            return 'all policies';
+            return $('<span>Showing effective policy inherited from all policies.</span>');
         } else if (resource === '/controller') {
-            return 'the controller';
+            return $('<span>Showing effective policy inherited from the controller.</span>');
         } else {
-            return 'Process Group ' + nf.Common.substringAfterLast(resource, '/');
+            // extract the group id
+            var processGroupId = nf.Common.substringAfterLast(resource, '/');
+            var processGroupName = processGroupId;
+
+            // attempt to resolve the group name
+            var breadcrumbs = nf.ng.Bridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            $.each(breadcrumbs, function (_, breadcrumbEntity) {
+                if (breadcrumbEntity.id === processGroupId) {
+                    processGroupName = breadcrumbEntity.label;
+                    return false;
+                }
+            });
+
+            // build the mark up
+            return $('<span>Showing effective policy inherited from Process Group </span>').append($('<span class="link"></span>').text(processGroupName).on('click', function () {
+                $('#shell-close-button').click();
+                nf.CanvasUtils.enterGroup(processGroupId);
+            })).append('<span>.</span>');
         }
     };
 
@@ -686,21 +748,22 @@ nf.PolicyManagement = (function () {
         // store the current policy version
         $('#policy-table').data('policy', policyEntity);
 
-        // allow modification if allowed
-        $('#new-policy-user-button').prop('disabled', policyEntity.permissions.canWrite === false);
-
         // see if the policy is for this resource
         if (resourceAndAction.resource === policy.resource) {
             // allow remove when policy is not inherited
             $('#delete-policy-button').prop('disabled', policyEntity.permissions.canWrite === false);
+
+            // allow modification if allowed
+            $('#new-policy-user-button').prop('disabled', policyEntity.permissions.canWrite === false);
         } else {
-            $('#policy-message').text('Showing effective policy inherited from ' + convertToHumanReadableResource(policy.resource) + '. ');
+            $('#policy-message').append(getResourceMessage(policy.resource));
 
             // policy is inherited, we do not know if the user has permissions to modify the desired policy... show button and let server decide
             $('#override-policy-message').show();
 
-            // to not support policy deletion
+            // do not support policy deletion/modification
             $('#delete-policy-button').prop('disabled', true);
+            $('#new-policy-user-button').prop('disabled', true);
         }
 
         // populate the table
@@ -732,8 +795,6 @@ nf.PolicyManagement = (function () {
 
                         // if the return policy is for the desired policy (not inherited, show it)
                         if (resourceAndAction.resource === policy.resource) {
-                            $('#policy-message').text(policy.resource);
-
                             // populate the policy details
                             populatePolicy(policyEntity);
                         } else {
@@ -803,10 +864,6 @@ nf.PolicyManagement = (function () {
 
                     // ensure appropriate actions for the loaded policy
                     if (policyEntity.permissions.canRead === true) {
-                        var policy = policyEntity.component;
-
-                        $('#policy-message').text(policy.resource);
-
                         // populate the policy details
                         populatePolicy(policyEntity);
                     } else {
@@ -856,9 +913,32 @@ nf.PolicyManagement = (function () {
 
     /**
      * Creates a new policy for the current selection.
+     *
+     * @param copyInheritedPolicy   Whether or not to copy the inherited policy
      */
-    var createPolicy = function () {
+    var createPolicy = function (copyInheritedPolicy) {
         var resourceAndAction = getSelectedResourceAndAction();
+
+        var users = [];
+        var userGroups = [];
+        if (copyInheritedPolicy === true) {
+            var policyGrid = $('#policy-table').data('gridInstance');
+            var policyData = policyGrid.getData();
+
+            var items = policyData.getItems();
+            $.each(items, function (_, item) {
+                var itemCopy = $.extend({}, item);
+
+                if (itemCopy.type === 'user') {
+                    users.push(itemCopy);
+                } else {
+                    userGroups.push(itemCopy);
+                }
+
+                // remove the type as it was added client side to render differently and is not part of the actual schema
+                delete itemCopy.type;
+            });
+        }
 
         var entity = {
             'revision': nf.Client.getRevision({
@@ -868,7 +948,9 @@ nf.PolicyManagement = (function () {
             }),
             'component': {
                 'action': resourceAndAction.action,
-                'resource': resourceAndAction.resource
+                'resource': resourceAndAction.resource,
+                'users': users,
+                'userGroups': userGroups
             }
         };
 
@@ -881,10 +963,6 @@ nf.PolicyManagement = (function () {
         }).done(function (policyEntity) {
             // ensure appropriate actions for the loaded policy
             if (policyEntity.permissions.canRead === true) {
-                var policy = policyEntity.component;
-
-                $('#policy-message').text(policy.resource);
-
                 // populate the policy details
                 populatePolicy(policyEntity);
             } else {
@@ -907,14 +985,16 @@ nf.PolicyManagement = (function () {
 
         var items = policyData.getItems();
         $.each(items, function (_, item) {
-            if (item.type === 'user') {
-                users.push(item);
+            var itemCopy = $.extend({}, item);
+
+            if (itemCopy.type === 'user') {
+                users.push(itemCopy);
             } else {
-                userGroups.push(item);
+                userGroups.push(itemCopy);
             }
 
-            // remove the type as it was added client side to render differently
-            delete item.type;
+            // remove the type as it was added client side to render differently and is not part of the actual schema
+            delete itemCopy.type;
         });
 
         var currentEntity = $('#policy-table').data('policy');
@@ -937,10 +1017,6 @@ nf.PolicyManagement = (function () {
             }).done(function (policyEntity) {
                 // ensure appropriate actions for the loaded policy
                 if (policyEntity.permissions.canRead === true) {
-                    var policy = policyEntity.component;
-
-                    $('#policy-message').text(policy.resource);
-
                     // populate the policy details
                     populatePolicy(policyEntity);
                 } else {
@@ -982,7 +1058,7 @@ nf.PolicyManagement = (function () {
      * Reset the policy message.
      */
     var resetPolicyMessage = function () {
-        $('#policy-message').text('');
+        $('#policy-message').text('').empty();
         $('#new-policy-message').hide();
         $('#override-policy-message').hide();
         $('#add-local-admin-message').hide();

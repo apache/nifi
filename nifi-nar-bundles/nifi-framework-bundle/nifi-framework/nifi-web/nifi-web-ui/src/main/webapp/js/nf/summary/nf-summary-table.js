@@ -617,6 +617,18 @@ nf.SummaryTable = (function () {
             return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details" style="margin-top: 5px;"></div>';
         };
 
+        var backpressureFormatter = function (row, cell, value, columnDef, dataContext) {
+            var percentUseCount = 'NA';
+            if (nf.Common.isDefinedAndNotNull(dataContext.percentUseCount)) {
+                percentUseCount = dataContext.percentUseCount + '%';
+            }
+            var percentUseBytes = 'NA';
+            if (nf.Common.isDefinedAndNotNull(dataContext.percentUseBytes)) {
+                percentUseBytes = dataContext.percentUseBytes + '%';
+            }
+            return percentUseCount + ' / ' + percentUseBytes;
+        };
+
         // define the input, read, written, and output columns (reused between both tables)
         var queueColumn = {
             id: 'queued',
@@ -624,6 +636,17 @@ nf.SummaryTable = (function () {
             name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>',
             sortable: true,
             defaultSortAsc: false,
+            resize: true
+        };
+
+        // define the backpressure column (reused between both tables)
+        var backpressureColumn = {
+            id: 'backpressure',
+            field: 'backpressure',
+            name: '<span class="backpressure-object-title">Queue</span>&nbsp;/&nbsp;<span class="backpressure-data-size-title">Size</span> Threshold',
+            sortable: true,
+            defaultSortAsc: false,
+            formatter: backpressureFormatter,
             resize: true
         };
 
@@ -649,6 +672,7 @@ nf.SummaryTable = (function () {
             },
             inputColumn,
             queueColumn,
+            backpressureColumn,
             outputColumn
         ];
 
@@ -818,6 +842,7 @@ nf.SummaryTable = (function () {
             {id: 'node', field: 'node', name: 'Node', sortable: true, resizable: true},
             inputColumn,
             queueColumn,
+            backpressureColumn,
             outputColumn
         ];
 
@@ -2073,6 +2098,19 @@ nf.SummaryTable = (function () {
                     var bQueueSize = nf.Common.parseSize(b['queuedSize']);
                     return aQueueSize - bQueueSize;
                 }
+            } else if (sortDetails.columnId === 'backpressure') {
+                var mod = sortState[tableId].count % 4;
+                if (mod < 2) {
+                    $('#' + tableId + ' span.backpressure-object-title').addClass('sorted');
+                    var aPercentUseObject = nf.Common.isDefinedAndNotNull(a['percentUseCount']) ? a['percentUseCount'] : -1;
+                    var bPercentUseObject = nf.Common.isDefinedAndNotNull(b['percentUseCount']) ? b['percentUseCount'] : -1;
+                    return aPercentUseObject - bPercentUseObject;
+                } else {
+                    $('#' + tableId + ' span.backpressure-data-size-title').addClass('sorted');
+                    var aPercentUseDataSize = nf.Common.isDefinedAndNotNull(a['percentUseBytes']) ? a['percentUseBytes'] : -1;
+                    var bPercentUseDataSize = nf.Common.isDefinedAndNotNull(b['percentUseBytes']) ? b['percentUseBytes'] : -1;
+                    return aPercentUseDataSize - bPercentUseDataSize;
+                }
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
                 var aSplit = a[sortDetails.columnId].split(/ \/ /);
                 var bSplit = b[sortDetails.columnId].split(/ \/ /);
@@ -2124,6 +2162,8 @@ nf.SummaryTable = (function () {
         // remove previous sort indicators
         $('#' + tableId + ' span.queued-title').removeClass('sorted');
         $('#' + tableId + ' span.queued-size-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-object-title').removeClass('sorted');
+        $('#' + tableId + ' span.backpressure-data-size-title').removeClass('sorted');
         $('#' + tableId + ' span.input-title').removeClass('sorted');
         $('#' + tableId + ' span.input-size-title').removeClass('sorted');
         $('#' + tableId + ' span.output-title').removeClass('sorted');
@@ -2473,6 +2513,8 @@ nf.SummaryTable = (function () {
                         queued: snapshot.queued,
                         queuedCount: snapshot.queuedCount,
                         queuedSize: snapshot.queuedSize,
+                        percentUseCount: snapshot.percentUseCount,
+                        percentUseBytes: snapshot.percentUseBytes,
                         output: snapshot.output
                     });
                 });

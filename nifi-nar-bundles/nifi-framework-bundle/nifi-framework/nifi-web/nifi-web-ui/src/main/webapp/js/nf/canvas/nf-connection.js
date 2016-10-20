@@ -24,6 +24,9 @@ nf.Connection = (function () {
         width: 200
     };
 
+    // width of a backpressure indicator - half of width, left/right padding, left/right border
+    var backpressureBarWidth = (dimensions.width / 2) - 15 - 2;
+
     /**
      * Gets the position of the label for the specified connection.
      *
@@ -293,6 +296,83 @@ nf.Connection = (function () {
         return unavailable;
     };
 
+    // gets the appropriate end marker
+    var getEndMarker = function (d) {
+        var marker = 'normal';
+
+        if (d.permissions.canRead) {
+            // if the connection has a relationship that is unavailable, mark it a ghost relationship
+            if (isFullBytes(d) || isFullCount(d)) {
+                marker = 'full';
+            } else if (hasUnavailableRelationship(d)) {
+                marker = 'ghost';
+            }
+        } else {
+            marker = 'unauthorized';
+        }
+
+        return 'url(#' + marker + ')';
+    };
+
+    // gets the appropriate drop shadow
+    var getDropShadow = function (d) {
+        if (isFullCount(d) || isFullBytes(d)) {
+            return 'url(#connection-full-drop-shadow)';
+        } else {
+            return 'url(#component-drop-shadow)';
+        }
+    };
+
+    // determines whether the connection is full based on the object count threshold
+    var isFullCount = function (d) {
+        return d.status.aggregateSnapshot.percentUseCount === 100;
+    };
+
+    // determines whether the connection is in warning based on the object count threshold
+    var isWarningCount = function (d) {
+        var percentUseCount = d.status.aggregateSnapshot.percentUseCount;
+        if (nf.Common.isDefinedAndNotNull(percentUseCount)) {
+            return percentUseCount >= 61 && percentUseCount <= 85;
+        }
+
+        return false;
+    };
+
+    // determines whether the connection is in error based on the object count threshold
+    var isErrorCount = function (d) {
+        var percentUseCount = d.status.aggregateSnapshot.percentUseCount;
+        if (nf.Common.isDefinedAndNotNull(percentUseCount)) {
+            return percentUseCount > 85;
+        }
+
+        return false;
+    };
+
+    // determines whether the connection is full based on the data size threshold
+    var isFullBytes = function (d) {
+        return d.status.aggregateSnapshot.percentUseBytes === 100
+    };
+
+    // determines whether the connection is in warning based on the data size threshold
+    var isWarningBytes = function (d) {
+        var percentUseBytes = d.status.aggregateSnapshot.percentUseBytes;
+        if (nf.Common.isDefinedAndNotNull(percentUseBytes)) {
+            return percentUseBytes >= 61 && percentUseBytes <= 85;
+        }
+
+        return false;
+    };
+
+    // determines whether the connection is in error based on the data size threshold
+    var isErrorBytes = function (d) {
+        var percentUseBytes = d.status.aggregateSnapshot.percentUseBytes;
+        if (nf.Common.isDefinedAndNotNull(percentUseBytes)) {
+            return percentUseBytes > 85;
+        }
+
+        return false;
+    };
+
     // updates the specified connections
     var updateConnections = function (updated, options) {
         if (updated.empty()) {
@@ -469,20 +549,6 @@ nf.Connection = (function () {
                         'd': function () {
                             var datum = [d.start].concat(d.bends, [d.end]);
                             return lineGenerator(datum);
-                        },
-                        'marker-end': function () {
-                            var marker = 'normal';
-
-                            if (d.permissions.canRead) {
-                                // if the connection has a relationship that is unavailable, mark it a ghost relationship
-                                if (hasUnavailableRelationship(d)) {
-                                    marker = 'ghost';
-                                }
-                            } else {
-                                marker = 'unauthorized';
-                            }
-
-                            return 'url(#' + marker + ')';
                         }
                     });
                 nf.CanvasUtils.transition(connection.select('path.connection-selection-path'), transition)
@@ -685,8 +751,7 @@ nf.Connection = (function () {
                                 'class': 'body',
                                 'width': dimensions.width,
                                 'x': 0,
-                                'y': 0,
-                                'filter': 'url(#component-drop-shadow)'
+                                'y': 0
                             });
 
                         // processor border
@@ -986,6 +1051,8 @@ nf.Connection = (function () {
                     // connection label - queued
                     // -------------------------
 
+                    var HEIGHT_FOR_BACKPRESSURE = 3;
+
                     // see if the queue label is already rendered
                     var queued = connectionLabelContainer.select('g.queued-container');
                     if (queued.empty()) {
@@ -999,7 +1066,7 @@ nf.Connection = (function () {
                             .attr({
                                 'class': 'connection-label-background',
                                 'width': dimensions.width,
-                                'height': rowHeight
+                                'height': rowHeight + HEIGHT_FOR_BACKPRESSURE
                             }));
 
                         // border
@@ -1037,12 +1104,107 @@ nf.Connection = (function () {
                                 'class': 'size'
                             });
 
+                        // expiration icon
                         queued.append('text')
                             .attr({
                                 'class': 'expiration-icon',
                                 'x': 185,
                                 'y': 14
-                            }).append('title');
+                            })
+                            .text(function () {
+                                return '\uf017';
+                            })
+                            .append('title');
+
+                        var yBackpressureOffset = rowHeight + HEIGHT_FOR_BACKPRESSURE - 4;
+
+                        // backpressure object threshold
+
+                        // start
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-tick object',
+                                'width': 1,
+                                'height': 3,
+                                'x': 5,
+                                'y': yBackpressureOffset
+                            });
+
+                        // bar
+                        var backpressureCountOffset = 6;
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-object',
+                                'width': backpressureBarWidth,
+                                'height': 3,
+                                'x': backpressureCountOffset,
+                                'y': yBackpressureOffset
+                            })
+                            .append('title');
+
+                        // end
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-tick object',
+                                'width': 1,
+                                'height': 3,
+                                'x': backpressureCountOffset + backpressureBarWidth,
+                                'y': yBackpressureOffset
+                            });
+
+                        // percent full
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-percent object',
+                                'width': 0,
+                                'height': 3,
+                                'x': backpressureCountOffset,
+                                'y': yBackpressureOffset
+                            });
+
+                        // backpressure data size threshold
+
+                        // start
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-tick data-size',
+                                'width': 1,
+                                'height': 3,
+                                'x': (dimensions.width / 2) + 10,
+                                'y': yBackpressureOffset
+                            });
+
+                        // bar
+                        var backpressureDataSizeOffset = (dimensions.width / 2) + 10 + 1;
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-data-size',
+                                'width': backpressureBarWidth,
+                                'height': 3,
+                                'x': backpressureDataSizeOffset,
+                                'y': yBackpressureOffset
+                            })
+                            .append('title');
+
+                        // end
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-tick data-size',
+                                'width': 1,
+                                'height': 3,
+                                'x': backpressureDataSizeOffset + backpressureBarWidth,
+                                'y': yBackpressureOffset
+                            });
+
+                        // percent full
+                        queued.append('rect')
+                            .attr({
+                                'class': 'backpressure-percent data-size',
+                                'width': 0,
+                                'height': 3,
+                                'x': backpressureDataSizeOffset,
+                                'y': yBackpressureOffset
+                            });
                     } else {
                         backgrounds.push(queued.select('rect.connection-label-background'));
                         borders.push(queued.select('rect.connection-label-border'));
@@ -1057,14 +1219,14 @@ nf.Connection = (function () {
                     // update the height based on the labels being rendered
                     connectionLabelContainer.select('rect.body')
                         .attr('height', function () {
-                            return (rowHeight * labelCount);
+                            return (rowHeight * labelCount) + HEIGHT_FOR_BACKPRESSURE;
                         })
                         .classed('unauthorized', function () {
                             return d.permissions.canRead === false;
                         });
                     connectionLabelContainer.select('rect.border')
                         .attr('height', function () {
-                            return (rowHeight * labelCount);
+                            return (rowHeight * labelCount) + HEIGHT_FOR_BACKPRESSURE;
                         })
                         .classed('unauthorized', function () {
                             return d.permissions.canRead === false;
@@ -1097,15 +1259,32 @@ nf.Connection = (function () {
                                 return true;
                             }
                         })
-                        .text(function () {
-                            return '\uf017';
-                        })
-                        .select('title', function () {
+                        .select('title').text(function () {
                             if (d.permissions.canRead) {
                                 return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
                             } else {
                                 return '';
                             }
+                        });
+
+                    // update backpressure object fill
+                    connectionLabelContainer.select('rect.backpressure-object')
+                        .classed('not-configured', function () {
+                            return nf.Common.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseCount);
+                        });
+                    connectionLabelContainer.selectAll('rect.backpressure-tick.object')
+                        .classed('not-configured', function () {
+                            return nf.Common.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseCount);
+                        });
+
+                    // update backpressure data size fill
+                    connectionLabelContainer.select('rect.backpressure-data-size')
+                        .classed('not-configured', function () {
+                            return nf.Common.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseBytes);
+                        });
+                    connectionLabelContainer.selectAll('rect.backpressure-tick.data-size')
+                        .classed('not-configured', function () {
+                            return nf.Common.isUndefinedOrNull(d.status.aggregateSnapshot.percentUseBytes);
                         });
 
                     if (d.permissions.canWrite) {
@@ -1142,17 +1321,101 @@ nf.Connection = (function () {
             return;
         }
 
-        // queued count value
-        updated.select('text.queued tspan.count')
-            .text(function (d) {
-                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
-            });
+        // update data size
+        var dataSizeDeferred = $.Deferred(function (deferred) {
+            // queued count value
+            updated.select('text.queued tspan.count')
+                .text(function (d) {
+                    return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+                });
 
-        // queued size value
-        updated.select('text.queued tspan.size')
-            .text(function (d) {
-                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+            var backpressurePercentDataSize = updated.select('rect.backpressure-percent.data-size');
+            backpressurePercentDataSize.transition()
+                .duration(400)
+                .attr({
+                    'width': function (d) {
+                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
+                    }
+                }).each('end', function () {
+                    backpressurePercentDataSize
+                        .classed('warning', function (d) {
+                            return isWarningBytes(d);
+                        })
+                        .classed('error', function (d) {
+                            return isErrorBytes(d);
+                        });
+
+                    deferred.resolve();
+                });
+
+            updated.select('rect.backpressure-data-size').select('title').text(function (d) {
+                if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseBytes)) {
+                    return 'Queue is ' + d.status.aggregateSnapshot.percentUseBytes + '% full based on Back Pressure Data Size Threshold';
+                } else {
+                    return 'Back Pressure Data Size Threshold is not configured';
+                }
             });
+        }).promise();
+
+        // update object count
+        var objectCountDeferred = $.Deferred(function (deferred) {
+            // queued size value
+            updated.select('text.queued tspan.size')
+                .text(function (d) {
+                    return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+                });
+
+            var backpressurePercentObject = updated.select('rect.backpressure-percent.object');
+            backpressurePercentObject.transition()
+                .duration(400)
+                .attr({
+                    'width': function (d) {
+                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
+                    }
+                }).each('end', function () {
+                    backpressurePercentObject
+                        .classed('warning', function (d) {
+                            return isWarningCount(d);
+                        })
+                        .classed('error', function (d) {
+                            return isErrorCount(d);
+                        });
+
+                    deferred.resolve();
+                });
+
+            updated.select('rect.backpressure-object').select('title').text(function (d) {
+                if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseCount)) {
+                    return 'Queue is ' + d.status.aggregateSnapshot.percentUseCount + '% full based on Back Pressure Object Threshold';
+                } else {
+                    return 'Back Pressure Object Threshold is not configured';
+                }
+            });
+        }).promise();
+
+        // update connection once progress bars have transitioned
+        $.when(dataSizeDeferred, objectCountDeferred).done(function () {
+            // connection stroke
+            updated.select('path.connection-path')
+                .classed('full', function (d) {
+                    return isFullCount(d) || isFullBytes(d);
+                })
+                .attr({
+                    'marker-end': getEndMarker
+                });
+
+            // border
+            updated.select('rect.border')
+                .classed('full', function (d) {
+                    return isFullCount(d) || isFullBytes(d);
+                });
+
+            // drop shadow
+            updated.select('rect.body')
+                .attr({
+                    'filter': getDropShadow
+                });
+        });
     };
 
     /**
@@ -1710,6 +1973,29 @@ nf.Connection = (function () {
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Connection.set(response);
+                });
+            }
+        },
+
+        /**
+         * Reloads the connection status from the server and refreshes the UI.
+         *
+         * @param {string} id       The connection id
+         */
+        reloadStatus: function (id) {
+            if (connectionMap.has(id)) {
+                return $.ajax({
+                    type: 'GET',
+                    url: '../nifi-api/flow/connections/' + encodeURIComponent(id) + '/status',
+                    dataType: 'json'
+                }).done(function (response) {
+                    // update the existing connection
+                    var connectionEntity = connectionMap.get(id);
+                    connectionEntity.status = response.connectionStatus;
+                    connectionMap.set(id, connectionEntity);
+
+                    // update the UI
+                    select().call(updateConnectionStatus);
                 });
             }
         },

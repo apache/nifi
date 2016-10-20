@@ -69,8 +69,8 @@ import kafka.message.MessageAndMetadata;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Fetches messages from Apache Kafka")
-@Tags({"Kafka", "Apache", "Get", "Ingest", "Ingress", "Topic", "PubSub"})
+@CapabilityDescription("Fetches messages from Apache Kafka, specifically for 0.8.x versions. The complementary NiFi processor for sending messages is PutKafka.")
+@Tags({"Kafka", "Apache", "Get", "Ingest", "Ingress", "Topic", "PubSub", "0.8.x"})
 @WritesAttributes({
         @WritesAttribute(attribute = "kafka.topic", description = "The name of the Kafka Topic from which the message was received"),
         @WritesAttribute(attribute = "kafka.key", description = "The key of the Kafka message, if it exists and batch size is 1. If"

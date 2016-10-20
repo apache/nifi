@@ -102,19 +102,17 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * all other lifecycle methods are invoked multiple times.
      */
     static {
-        propertyDescriptors.add(USER);
-        propertyDescriptors.add(PASSWORD);
+        propertyDescriptors.add(CF_SERVICE);
         propertyDescriptors.add(DESTINATION);
         propertyDescriptors.add(DESTINATION_TYPE);
+        propertyDescriptors.add(USER);
+        propertyDescriptors.add(PASSWORD);
         propertyDescriptors.add(SESSION_CACHE_SIZE);
-        propertyDescriptors.add(CF_SERVICE);
     }
 
     protected volatile T targetResource;
 
     private volatile CachingConnectionFactory cachingConnectionFactory;
-
-    protected volatile String destinationName;
 
     /**
      *
@@ -176,7 +174,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
      * @see JMSPublisher
      * @see JMSConsumer
      */
-    protected abstract T finishBuildingTargetResource(JmsTemplate jmsTemplate);
+    protected abstract T finishBuildingTargetResource(JmsTemplate jmsTemplate, ProcessContext processContext);
 
     /**
      * This method essentially performs initialization of this Processor by
@@ -201,13 +199,12 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
             JmsTemplate jmsTemplate = new JmsTemplate();
             jmsTemplate.setConnectionFactory(this.cachingConnectionFactory);
-            this.destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
             // set of properties that may be good candidates for exposure via configuration
-            jmsTemplate.setReceiveTimeout(10000);
+            jmsTemplate.setReceiveTimeout(1000);
 
-            this.targetResource = this.finishBuildingTargetResource(jmsTemplate);
+            this.targetResource = this.finishBuildingTargetResource(jmsTemplate, context);
         }
     }
 }

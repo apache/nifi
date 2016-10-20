@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.File;
@@ -58,6 +60,8 @@ import org.apache.nifi.util.StringUtils;
 /**
  * This class contains variables and methods common to scripting processors
  */
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
+        description = "Scripts can store and retrieve state using the State Management APIs. Consult the State Manager section of the Developer's Guide for more details.")
 public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

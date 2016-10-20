@@ -24,6 +24,7 @@ import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.remote.PeerDTO;
 import org.apache.nifi.web.api.entity.ControllerEntity;
 import org.apache.nifi.web.api.entity.PeersEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
@@ -122,6 +123,28 @@ public class TestSiteToSiteResource {
 
         assertEquals(200, response.getStatus());
         assertEquals(1, resultEntity.getPeers().size());
+        final PeerDTO peer = resultEntity.getPeers().iterator().next();
+        assertEquals(8080, peer.getPort());
+    }
+
+    @Test
+    public void testPeersPortForwarding() throws Exception {
+        final HttpServletRequest req = createCommonHttpServletRequest();
+
+        final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
+
+        final Map<String, String> additionalProperties = new HashMap<>();
+        additionalProperties.put(NiFiProperties.WEB_HTTP_PORT_FORWARDING, "80");
+        final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade, additionalProperties);
+
+        final Response response = resource.getPeers(req);
+
+        PeersEntity resultEntity = (PeersEntity) response.getEntity();
+
+        assertEquals(200, response.getStatus());
+        assertEquals(1, resultEntity.getPeers().size());
+        final PeerDTO peer = resultEntity.getPeers().iterator().next();
+        assertEquals(80, peer.getPort());
     }
 
     @Test
@@ -130,7 +153,9 @@ public class TestSiteToSiteResource {
 
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
 
-        final SiteToSiteResource resource = getSiteToSiteResourceClustered(serviceFacade);
+        final Map<String, String> clusterSettings = new HashMap<>();
+        clusterSettings.put(NiFiProperties.CLUSTER_IS_NODE, "true");
+        final SiteToSiteResource resource = getSiteToSiteResource(serviceFacade, clusterSettings);
 
         final ClusterCoordinator clusterCoordinator = mock(ClusterCoordinator.class);
         final Map<String, NodeWorkload> hostportWorkloads = new HashMap<>();
@@ -164,7 +189,6 @@ public class TestSiteToSiteResource {
         });
 
     }
-
 
     @Test
     public void testPeersVersionWasNotSpecified() throws Exception {
@@ -200,20 +224,11 @@ public class TestSiteToSiteResource {
     }
 
     private SiteToSiteResource getSiteToSiteResource(final NiFiServiceFacade serviceFacade) {
-        final SiteToSiteResource resource = new SiteToSiteResource(NiFiProperties.createBasicNiFiProperties(null, null)) {
-            @Override
-            protected void authorizeSiteToSite() {
-            }
-        };
-        resource.setProperties(NiFiProperties.createBasicNiFiProperties(null, null));
-        resource.setServiceFacade(serviceFacade);
-        return resource;
+        return getSiteToSiteResource(serviceFacade, null);
     }
 
-    private SiteToSiteResource getSiteToSiteResourceClustered(final NiFiServiceFacade serviceFacade) {
-        final Map<String, String> clusterSettings = new HashMap<>();
-        clusterSettings.put(NiFiProperties.CLUSTER_IS_NODE, "true");
-        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, clusterSettings);
+    private SiteToSiteResource getSiteToSiteResource(final NiFiServiceFacade serviceFacade, final Map<String, String> additionalProperties) {
+        final NiFiProperties properties = NiFiProperties.createBasicNiFiProperties(null, additionalProperties);
         final SiteToSiteResource resource = new SiteToSiteResource(properties) {
             @Override
             protected void authorizeSiteToSite() {

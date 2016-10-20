@@ -258,7 +258,8 @@ public class JdbcCommon {
          * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
-            String columnName = convertNames ? normalizeNameForAvro(meta.getColumnName(i)) : meta.getColumnName(i);
+            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnName(i)) ? meta.getColumnName(i) : meta.getColumnLabel(i);
+            String columnName = convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:

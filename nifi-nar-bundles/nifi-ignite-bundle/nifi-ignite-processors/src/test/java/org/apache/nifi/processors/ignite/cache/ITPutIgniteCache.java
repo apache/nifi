@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processors.ignite.cache;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,6 +23,14 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class ITPutIgniteCache {
 
@@ -160,7 +160,7 @@ public class ITPutIgniteCache {
 
         runner.clearTransferState();
 
-        putIgniteCache.initilizeIgniteDataStreamer(runner.getProcessContext());
+        putIgniteCache.initializeIgniteDataStreamer(runner.getProcessContext());
 
         runner.assertValid();
         properties1.put("igniteKey", "key51");
@@ -178,7 +178,7 @@ public class ITPutIgniteCache {
 
         runner.clearTransferState();
 
-        putIgniteCache.initilizeIgniteDataStreamer(runner.getProcessContext());
+        putIgniteCache.initializeIgniteDataStreamer(runner.getProcessContext());
 
         runner.assertValid();
         properties1.put("igniteKey", "key51");

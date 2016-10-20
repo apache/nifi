@@ -53,9 +53,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub" })
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka. The messages to send may be individual FlowFiles or may be delimited, using a "
-        + "user-specified delimiter, such as a new-line.")
+@Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub", "0.8.x"})
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka, specifically for 0.8.x versions. The messages to send may be individual FlowFiles or may be delimited, using a "
+        + "user-specified delimiter, such as a new-line. The complementary NiFi processor for fetching messages is GetKafka.")
 @DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
                  description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
         + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"

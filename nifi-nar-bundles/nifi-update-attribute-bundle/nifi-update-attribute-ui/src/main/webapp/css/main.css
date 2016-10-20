@@ -191,9 +191,10 @@ div.remove-rule {
 }
 
 #no-rule-selected-label {
-    clear: both;
-    height: 32px;
     line-height: 32px;
+    position: absolute;
+    left: 0px;
+    top: 26px;
 }
 
 div.large-label-container {

@@ -94,6 +94,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUppe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64DecodeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Base64EncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.NumberLiteralEvaluator;
@@ -192,6 +194,8 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.BASE64_DECODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.BASE64_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_JSON;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_CSV;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_HTML3;
@@ -932,6 +936,14 @@ public class Query {
             case URL_DECODE: {
                 verifyArgCount(argEvaluators, 0, "urlDecode");
                 return addToken(new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
+            }
+            case BASE64_ENCODE: {
+                verifyArgCount(argEvaluators, 0, "base64Encode");
+                return addToken(new Base64EncodeEvaluator(toStringEvaluator(subjectEvaluator)), "base64Encode");
+            }
+            case BASE64_DECODE: {
+                verifyArgCount(argEvaluators, 0, "base64Decode");
+                return addToken(new Base64DecodeEvaluator(toStringEvaluator(subjectEvaluator)), "base64Decode");
             }
             case ESCAPE_CSV: {
                 verifyArgCount(argEvaluators, 0, "escapeCsv");

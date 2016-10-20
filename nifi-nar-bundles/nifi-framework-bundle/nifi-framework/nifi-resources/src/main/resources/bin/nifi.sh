@@ -267,7 +267,7 @@ run() {
     RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
 
     if [ "$1" = "start" ]; then
-        (eval $RUN_NIFI_CMD $@ &)
+        (eval $RUN_NIFI_CMD $@ &)> /dev/null 2>&1 < /dev/null
     else
         (eval $RUN_NIFI_CMD $@)
     fi
