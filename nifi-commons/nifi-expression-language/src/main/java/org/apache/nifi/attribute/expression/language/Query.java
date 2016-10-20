@@ -62,6 +62,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Length
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MatchesEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.MathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MinusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ModEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.MultiplyEvaluator;
@@ -122,6 +123,7 @@ import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
@@ -736,6 +738,13 @@ public class Query {
             case RANDOM: {
                 return new RandomNumberGeneratorEvaluator();
             }
+            case MATH: {
+                if (tree.getChildCount() == 1) {
+                    return addToken(new MathEvaluator(null, toStringEvaluator(buildEvaluator(tree.getChild(0))), null), "math");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("Call to math() as the subject must take exactly 1 parameter");
+                }
+            }
             default:
                 throw new AttributeExpressionLanguageParsingException("Unexpected token: " + tree.toString());
         }
@@ -1246,6 +1255,15 @@ public class Query {
             }
             case DIVIDE: {
                 return addToken(new DivideEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "divide");
+            }
+            case MATH: {
+                if (argEvaluators.size() == 1) {
+                    return addToken(new MathEvaluator(toNumberEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), null), "math");
+                } else if (argEvaluators.size() == 2){
+                    return addToken(new MathEvaluator(toNumberEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toNumberEvaluator(argEvaluators.get(1))), "math");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("math() function takes 1 or 2 arguments");
+                }
             }
             case RANDOM : {
                 return addToken(new RandomNumberGeneratorEvaluator(), "random");

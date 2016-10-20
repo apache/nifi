@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -811,6 +812,60 @@ public class TestQuery {
         verifyEquals("${ten:divide(${two:plus(3.1)}):toDecimal()}", attributes, (10.1 / (2.2 + 3.1)));
 
         verifyEquals("${ten:divide(${two:plus(3)}):toDate():format(\"SSS\")}", attributes, "001");
+    }
+
+    @Test
+    public void testMathFunction() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1");
+        attributes.put("two", "2");
+        attributes.put("oneDecimal", "1.5");
+        attributes.put("twoDecimal", "2.3");
+        attributes.put("negative", "-64");
+        attributes.put("negativeDecimal", "-64.1");
+
+        // Test that errors relating to not finding methods are properly handled
+        try {
+            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+        }
+
+        // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
+        verifyEquals("${math('random'):toNumber()}", attributes, 0L);
+
+        verifyEquals("${negative:math('abs')}", attributes, 64L);
+        verifyEquals("${negativeDecimal:math('abs')}", attributes, 64.1D);
+
+        verifyEquals("${negative:math('max', ${two})}", attributes, 2L);
+        verifyEquals("${negativeDecimal:math('max', ${twoDecimal})}", attributes, 2.3D);
+
+        verifyEquals("${oneDecimal:math('pow', ${two:toDecimal()})}", attributes, Math.pow(1.5,2));
+        verifyEquals("${oneDecimal:math('scalb', ${two})}", attributes, Math.scalb(1.5,2));
+
+        verifyEquals("${negative:math('abs'):toDecimal():math('cbrt'):math('max', ${two:toDecimal():math('pow',${oneDecimal}):mod(${two})})}", attributes,
+                Math.max(Math.cbrt(Math.abs(-64)), Math.pow(2,1.5)%2));
     }
 
     @Test

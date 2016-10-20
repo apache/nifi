@@ -1200,9 +1200,9 @@ Each of the following functions will encode a string according the rules of the 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: We can Base64-Encoded an attribute named "payload" by using the Expression 
+*Examples*: We can Base64-Encoded an attribute named "payload" by using the Expression
 	   `${payload:base64Encode()}` If the attribute payload had a value of "admin:admin"
-	    then the Expression  `${payload:base64Encode()}` will return "YWRtaW46YWRtaW4=". 
+	    then the Expression  `${payload:base64Encode()}` will return "YWRtaW46YWRtaW4=".
 
 
 
@@ -1656,6 +1656,33 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 *Return Type*: [.returnType]#Number#
 
 *Examples*: ${random():mod(10):plus(1)} returns random number between 1 and 10 inclusive.
+
+[.function]
+=== math
+
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html
+ +
+In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
+
+*Subject Type*: [.subject .subjectless]#Subjectless, Number or Decimal (depending on the desired method to run)#
+
+*Arguments*:
+	- [.argName]#_Method_# : [.argDesc]#The name of the Java Math method to run#
+	- [.argName]#_Optional Argument_# : [.argDesc]#Optional argument that acts as the second parameter to the method.#
+
+*Return Type*: [.returnType]#Number or Decimal (depending on method run)#
+
+*Examples*:
+
+	- ${math("random")} runs Math.random().
+
+	- ${literal(2):toDecimal:math("pow", 2.5)} runs Math.pow(2D,2.5D).
+
+	- ${literal(64):toDouble():math("cbrt"):toNumber():math("max", 5)} runs Math.max((Double.valueOf(Math.cbrt(64D))).longValue(), 5L). Note that the toDecimal() is needed because "cbrt" takes a "double" as input and the "64" will get interpreted as a long. The "toDecimal()" call is necessary to correctly call the method. that the "toNumber()" call is necessary because "cbrt" returns a double and the "max" method is must have parameters of the same type and "5" is interpreted as a long.
+
+	- ${literal(5.4):math("scalb", 2)} runs Math.scalb(5.4, 2). This example is important because NiFi EL treats all whole numbers as "longs" and there is no concept of an "int". "scalb" takes a second parameter of an "int" and it is not overloaded to accept longs so it could not be run without special type handling. In the instance where the Java method cannot be found using parameters of type "double" and "long" the "math()" EL function will attempt to find a Java method with the same name but parameters of "double" and "int".
+
+	- ${first:toDecimal():math("pow", ${second:toDecimal()})} where attributes evaluate to "first" = 2.5 and "second" = 2. This example runs Math.pow(2.5D, 2D). The explicit calls to toDecimal() are important because of the dynamic nature of EL. When creating the flow, the user is unaware if the expression language values will be able to be interpreted as a whole number or not. In this example without the explicit calls "toDecimal" the "math" function would attempt to run a Java method "pow" with types "double" and "long" (which doesn't exist).
 
 [[dates]]
 == Date Manipulation
