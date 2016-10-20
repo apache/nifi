@@ -46,7 +46,7 @@ public abstract class PeriodicStatusReporter {
      */
     public void start() {
         if (reportRunner == null){
-            throw new IllegalStateException("Programmatic error, the reportRunner has is still NULL when 'start' was called.");
+            throw new IllegalStateException("Programmatic error, the reportRunner is still NULL when 'start' was called.");
         }
         scheduledExecutorService.scheduleAtFixedRate(reportRunner, period, period, TimeUnit.MILLISECONDS);
     }

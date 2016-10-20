@@ -19,11 +19,11 @@
 
 [Apache NiFi Team](dev@nifi.apache.org>)
 
-[NiFi Homepage](http://nifi.apache.org)
+[MiNiFi Homepage](https://nifi.apache.org/minifi/index.html)
 
 # Status Reporting and Querying
 
-You can use FlowStatus to view status, processor bulletin, and health information similar to that displayed in the NiFi UI. Query FlowStatus either using the MiNiFi.sh script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the flowStatus script option. The API is outlined in the "FlowStatus Query Options" section below.
+In NiFi there is a lot of information, such as stats and bulletins, that is only available to view through the UI. MiNiFi provides access to this information through a query mechanism. You can query FlowStatus either using the MiNiFi.sh script or by configuring one of the Periodic Status Reporters. The API for the query is the same for the reporters and the "flowStatus" script option. The API is outlined in the "FlowStatus Query Options" section below.
 
 ## FlowStatus Script Query
 
