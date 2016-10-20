@@ -197,7 +197,7 @@ nf.Canvas = (function () {
 
         // create arrow definitions for the various line types
         defs.selectAll('marker')
-            .data(['normal', 'ghost', 'unauthorized', 'full'])
+            .data(['normal', 'ghost', 'unauthorized'])
             .enter().append('marker')
             .attr({
                 'id': function (d) {
@@ -213,9 +213,7 @@ nf.Canvas = (function () {
                     if (d === 'ghost') {
                         return '#aaaaaa';
                     } else if (d === 'unauthorized') {
-                        return '#ba554a';
-                    } else if (d === 'full') {
-                        return '#ba554a';
+                        return '#f0ad4e';
                     } else {
                         return '#000000';
                     }
@@ -225,7 +223,7 @@ nf.Canvas = (function () {
             .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
 
         // filter for drop shadow
-        var componentDropShadowFilter = defs.append('filter')
+        var filter = defs.append('filter')
             .attr({
                 'id': 'component-drop-shadow',
                 'height': '140%',
@@ -233,7 +231,7 @@ nf.Canvas = (function () {
             });
 
         // blur
-        componentDropShadowFilter.append('feGaussianBlur')
+        filter.append('feGaussianBlur')
             .attr({
                 'in': 'SourceAlpha',
                 'stdDeviation': 3,
@@ -241,7 +239,7 @@ nf.Canvas = (function () {
             });
 
         // offset
-        componentDropShadowFilter.append('feOffset')
+        filter.append('feOffset')
             .attr({
                 'in': 'blur',
                 'dx': 0,
@@ -250,7 +248,7 @@ nf.Canvas = (function () {
             });
 
         // color/opacity
-        componentDropShadowFilter.append('feFlood')
+        filter.append('feFlood')
             .attr({
                 'flood-color': '#000000',
                 'flood-opacity': 0.4,
@@ -258,7 +256,7 @@ nf.Canvas = (function () {
             });
 
         // combine
-        componentDropShadowFilter.append('feComposite')
+        filter.append('feComposite')
             .attr({
                 'in': 'offsetColor',
                 'in2': 'offsetBlur',
@@ -267,60 +265,33 @@ nf.Canvas = (function () {
             });
 
         // stack the effect under the source graph
-        var componentDropShadowFeMerge = componentDropShadowFilter.append('feMerge');
-        componentDropShadowFeMerge.append('feMergeNode')
+        var feMerge = filter.append('feMerge');
+        feMerge.append('feMergeNode')
             .attr('in', 'offsetColorBlur');
-        componentDropShadowFeMerge.append('feMergeNode')
+        feMerge.append('feMergeNode')
             .attr('in', 'SourceGraphic');
 
-        // filter for drop shadow
-        var connectionFullDropShadowFilter = defs.append('filter')
+        // define the gradient for the expiration icon
+        var expirationBackground = defs.append('linearGradient')
             .attr({
-                'id': 'connection-full-drop-shadow',
-                'height': '140%',
-                'y': '-20%'
+                'id': 'expiration',
+                'x1': '0%',
+                'y1': '0%',
+                'x2': '0%',
+                'y2': '100%'
             });
 
-        // blur
-        connectionFullDropShadowFilter.append('feGaussianBlur')
+        expirationBackground.append('stop')
             .attr({
-                'in': 'SourceAlpha',
-                'stdDeviation': 3,
-                'result': 'blur'
+                'offset': '0%',
+                'stop-color': '#aeafb1'
             });
 
-        // offset
-        connectionFullDropShadowFilter.append('feOffset')
+        expirationBackground.append('stop')
             .attr({
-                'in': 'blur',
-                'dx': 0,
-                'dy': 1,
-                'result': 'offsetBlur'
+                'offset': '100%',
+                'stop-color': '#87888a'
             });
-
-        // color/opacity
-        connectionFullDropShadowFilter.append('feFlood')
-            .attr({
-                'flood-color': '#ba554a',
-                'flood-opacity': 1,
-                'result': 'offsetColor'
-            });
-
-        // combine
-        connectionFullDropShadowFilter.append('feComposite')
-            .attr({
-                'in': 'offsetColor',
-                'in2': 'offsetBlur',
-                'operator': 'in',
-                'result': 'offsetColorBlur'
-            });
-
-        // stack the effect under the source graph
-        var connectionFullFeMerge = connectionFullDropShadowFilter.append('feMerge');
-        connectionFullFeMerge.append('feMergeNode')
-            .attr('in', 'offsetColorBlur');
-        connectionFullFeMerge.append('feMergeNode')
-            .attr('in', 'SourceGraphic');
 
         // create the canvas element
         canvas = svg.append('g')
@@ -508,11 +479,6 @@ nf.Canvas = (function () {
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {
-                // close the hamburger menu if open
-                if($('.md-menu-backdrop').is(':visible') === true){
-                    $('.md-menu-backdrop').click();
-                }
-
                 updateGraphSize();
                 updateFlowStatusContainerSize();
 
