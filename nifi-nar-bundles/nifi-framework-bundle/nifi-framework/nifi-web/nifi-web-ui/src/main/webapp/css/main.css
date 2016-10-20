@@ -104,13 +104,13 @@ div.running {
 
 div.has-errors, div.invalid {
     float: left;
-    color: #ba554a !important;
+    color: #f0ad4e !important;
 }
 
 div.has-errors:before, div.invalid:before {
     font-family: FontAwesome;
     content: "\f071";
-    color: #ba554a;
+    color: #f0ad4e;
 }
 
 div.transmitting {
@@ -128,7 +128,7 @@ div.valid {
 }
 
 div.has-bulletins {
-    color: #ba554a !important;
+    color: #f0ad4e !important;
 }
 
 /*
@@ -233,7 +233,7 @@ span.details-title {
     font-weight: bold;
     font-family: Roboto;
     font-size: 13px;
-    color: #ba554a;
+    color: #f0ad4e;
 }
 
 #upload-template-container button {

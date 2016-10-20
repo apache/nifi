@@ -783,18 +783,50 @@ public class PutSQL extends AbstractProcessor {
                     stmt.setBigDecimal(parameterIndex, new BigDecimal(parameterValue));
                     break;
                 case Types.DATE:
-                    stmt.setDate(parameterIndex, new Date(Long.parseLong(parameterValue)));
+                    long lDate;
+
+                    if(LONG_PATTERN.matcher(parameterValue).matches()){
+                        lDate = Long.parseLong(parameterValue);
+                    }else {
+                        String dateFormatString = "yyyy-MM-dd";
+                        if (!valueFormat.isEmpty()) {
+                            dateFormatString = valueFormat;
+                        }
+                        SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
+                        java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                        lDate = parsedDate.getTime();
+                    }
+
+                    stmt.setDate(parameterIndex, new Date(lDate));
                     break;
                 case Types.TIME:
-                    stmt.setTime(parameterIndex, new Time(Long.parseLong(parameterValue)));
+                    long lTime;
+
+                    if(LONG_PATTERN.matcher(parameterValue).matches()){
+                        lTime = Long.parseLong(parameterValue);
+                    }else {
+                        String timeFormatString = "HH:mm:ss.SSS";
+                        if (!valueFormat.isEmpty()) {
+                            timeFormatString = valueFormat;
+                        }
+                        SimpleDateFormat dateFormat = new SimpleDateFormat(timeFormatString);
+                        java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                        lTime = parsedDate.getTime();
+                    }
+
+                    stmt.setTime(parameterIndex, new Time(lTime));
                     break;
                 case Types.TIMESTAMP:
-                    long lTimestamp=0L;
+                    long lTimestamp;
 
                     if(LONG_PATTERN.matcher(parameterValue).matches()){
                         lTimestamp = Long.parseLong(parameterValue);
                     }else {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+                        String dateTimeFormatString = "yyyy-MM-dd HH:mm:ss.SSS";
+                        if (!valueFormat.isEmpty()) {
+                            dateTimeFormatString = valueFormat;
+                        }
+                        SimpleDateFormat dateFormat = new SimpleDateFormat(dateTimeFormatString);
                         java.util.Date parsedDate = dateFormat.parse(parameterValue);
                         lTimestamp = parsedDate.getTime();
                     }

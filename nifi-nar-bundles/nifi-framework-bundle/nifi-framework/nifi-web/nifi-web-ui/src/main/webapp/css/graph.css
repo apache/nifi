@@ -73,7 +73,7 @@ g.component rect.border {
 
 g.component rect.border.unauthorized {
     stroke-width: 1.5;
-    stroke: #ba554a;
+    stroke: #f0ad4e;
     stroke-dasharray: 3,3;
 }
 
@@ -110,11 +110,19 @@ text.bulletin-icon {
 }
 
 rect.bulletin-background {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 text.process-group-invalid.has-validation-errors {
-    fill: #ba554a;
+    fill: #f0ad4e;
+}
+
+text.process-group-stopped.process-group-contents-icon {
+    fill: #d9534f;
+}
+
+text.process-group-running.process-group-contents-icon{
+    fill: #5cb85c;
 }
 
 text.active-thread-count-icon {
@@ -193,13 +201,8 @@ g.connection rect.body.unauthorized {
 
 g.connection rect.border.unauthorized {
     stroke-width: 1.5;
-    stroke: #ba554a;
+    stroke: #f0ad4e;
     stroke-dasharray: 3,3;
-}
-
-g.connection rect.border.full {
-    stroke: rgba(186, 85, 74, 0.65);
-    stroke-width: 1;
 }
 
 g.connection.selected rect.border {
@@ -230,12 +233,8 @@ g.connection path.connection-path {
     cursor: pointer;
 }
 
-g.connection path.connection-path.full {
-    stroke: #ba554a;
-}
-
 g.connection path.connection-path.unauthorized {
-    stroke: #ba554a;
+    stroke: #f0ad4e;
     stroke-dasharray: 3,3;
 }
 
@@ -246,36 +245,7 @@ text.connection-from-run-status, text.connection-to-run-status, text.expiration-
 }
 
 text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
-    fill: #ba554a;
-}
-
-g.connection rect.backpressure-tick {
-    fill: #3e3e3e;
-}
-
-g.connection rect.backpressure-tick.not-configured {
-    fill: #acacac;
-}
-
-g.connection rect.backpressure-object, g.connection rect.backpressure-data-size {
-    fill: #d8d8d8;
-}
-
-g.connection rect.backpressure-object.not-configured, g.connection rect.backpressure-data-size.not-configured {
-    fill: transparent;
-}
-
-g.connection rect.backpressure-percent {
-    fill: #67b796;
-    pointer-events: none;
-}
-
-g.connection rect.backpressure-percent.warning {
-    fill: #cea958;
-}
-
-g.connection rect.backpressure-percent.error {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 /* grouped connection */
@@ -422,7 +392,7 @@ text.remote-process-group-transmission-status {
 }
 
 text.remote-process-group-transmission-status.has-authorization-errors {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 text.remote-process-group-transmission-secure {
