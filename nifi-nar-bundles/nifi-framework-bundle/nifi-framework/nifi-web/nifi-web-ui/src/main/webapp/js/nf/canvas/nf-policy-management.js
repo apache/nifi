@@ -516,9 +516,8 @@ nf.PolicyManagement = (function () {
 
             // see if the user has permissions for the current policy
             var currentEntity = $('#policy-table').data('policy');
-            var resourceComponentId = nf.Common.substringAfterLast(currentEntity.component.resource, '/');
-            var selectedComponentId = $('#selected-policy-component-id').text();
-            if (currentEntity.permissions.canWrite === true && resourceComponentId === selectedComponentId) {
+            var isPolicyEditable = $('#delete-policy-button').is(':disabled') === false;
+            if (currentEntity.permissions.canWrite === true && isPolicyEditable) {
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
