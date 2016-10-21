@@ -309,6 +309,9 @@ nf.Port = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the port name
+                    port.select('text.port-name').text(null);
                 }
 
                 // remove tooltips if necessary
