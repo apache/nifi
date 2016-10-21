@@ -144,17 +144,6 @@ nf.ProcessGroup = (function () {
                 'class': 'process-group-name'
             });
 
-        // process group preview
-        processGroup.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 352,
-                'height': 113,
-                'x': 6,
-                'y': 22,
-                'class': 'process-group-preview'
-            });
-
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
                 // enter this group on double click
@@ -813,9 +802,6 @@ nf.ProcessGroup = (function () {
                     processGroup.select('text.process-group-name').text(null);
                 }
 
-                // hide the preview
-                processGroup.select('image.process-group-preview').style('display', 'none');
-
                 // populate the stats
                 processGroup.call(updateProcessGroupStatus);
             } else {
@@ -830,10 +816,10 @@ nf.ProcessGroup = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the process group name
+                    processGroup.select('text.process-group-name').text(null);
                 }
-
-                // show the preview
-                processGroup.select('image.process-group-preview').style('display', 'block');
 
                 // remove the tooltips
                 processGroup.call(removeTooltips);
