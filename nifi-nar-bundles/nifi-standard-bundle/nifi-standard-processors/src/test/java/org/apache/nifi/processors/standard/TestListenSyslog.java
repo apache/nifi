@@ -89,15 +89,15 @@ public class TestListenSyslog {
 
         // call onTrigger until we read all datagrams, or 30 seconds passed
         try {
-            int numTransfered = 0;
+            int numTransferred = 0;
             long timeout = System.currentTimeMillis() + 30000;
 
-            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+            while (numTransferred < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
+                numTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
-            Assert.assertEquals("Did not process all the datagrams", numMessages, numTransfered);
+            Assert.assertEquals("Did not process all the datagrams", numMessages, numTransferred);
 
             MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
             checkFlowFile(flowFile, 0, ListenSyslog.UDP_VALUE.getValue());
@@ -142,15 +142,15 @@ public class TestListenSyslog {
 
         // call onTrigger until we read all messages, or 30 seconds passed
         try {
-            int numTransfered = 0;
+            int nubTransferred = 0;
             long timeout = System.currentTimeMillis() + 30000;
 
-            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
+                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
-            Assert.assertEquals("Did not process all the messages", numMessages, numTransfered);
+            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
 
             MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
             checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
@@ -193,15 +193,15 @@ public class TestListenSyslog {
 
         // call onTrigger until we read all messages, or 30 seconds passed
         try {
-            int numTransfered = 0;
+            int nubTransferred = 0;
             long timeout = System.currentTimeMillis() + 30000;
 
-            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
+                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
-            Assert.assertEquals("Did not process all the messages", numMessages, numTransfered);
+            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
 
             MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
             checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
@@ -244,15 +244,15 @@ public class TestListenSyslog {
 
         // call onTrigger until we read all messages, or 30 seconds passed
         try {
-            int numTransfered = 0;
+            int nubTransferred = 0;
             long timeout = System.currentTimeMillis() + 30000;
 
-            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(10);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
+                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).size();
             }
-            Assert.assertEquals("Did not process all the messages", numMessages, numTransfered);
+            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
 
             MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS).get(0);
             checkFlowFile(flowFile, 0, ListenSyslog.TCP_VALUE.getValue());
@@ -347,17 +347,17 @@ public class TestListenSyslog {
 
         // call onTrigger until we read all messages, or 30 seconds passed
         try {
-            int numTransfered = 0;
+            int nubTransferred = 0;
             long timeout = System.currentTimeMillis() + 30000;
 
-            while (numTransfered < numMessages && System.currentTimeMillis() < timeout) {
+            while (nubTransferred < numMessages && System.currentTimeMillis() < timeout) {
                 Thread.sleep(50);
                 proc.onTrigger(context, processSessionFactory);
-                numTransfered = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID).size();
+                nubTransferred = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID).size();
             }
 
             // all messages should be transferred to invalid
-            Assert.assertEquals("Did not process all the messages", numMessages, numTransfered);
+            Assert.assertEquals("Did not process all the messages", numMessages, nubTransferred);
 
         } finally {
             // unschedule to close connections

@@ -16,58 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.provenance.expiration.ExpirationAction;
-import org.apache.nifi.provenance.expiration.FileRemovalAction;
-import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
-import org.apache.nifi.provenance.lineage.FlowFileLineage;
-import org.apache.nifi.provenance.lineage.Lineage;
-import org.apache.nifi.provenance.lineage.LineageComputationType;
-import org.apache.nifi.provenance.lucene.DeleteIndexAction;
-import org.apache.nifi.provenance.lucene.FieldNames;
-import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.IndexSearch;
-import org.apache.nifi.provenance.lucene.IndexingAction;
-import org.apache.nifi.provenance.lucene.LineageQuery;
-import org.apache.nifi.provenance.lucene.LuceneUtil;
-import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QueryResult;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.serialization.RecordWriters;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.RingBuffer;
-import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileFilter;
@@ -112,6 +60,59 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.provenance.expiration.ExpirationAction;
+import org.apache.nifi.provenance.expiration.FileRemovalAction;
+import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
+import org.apache.nifi.provenance.lineage.FlowFileLineage;
+import org.apache.nifi.provenance.lineage.Lineage;
+import org.apache.nifi.provenance.lineage.LineageComputationType;
+import org.apache.nifi.provenance.lucene.DeleteIndexAction;
+import org.apache.nifi.provenance.lucene.FieldNames;
+import org.apache.nifi.provenance.lucene.IndexManager;
+import org.apache.nifi.provenance.lucene.IndexSearch;
+import org.apache.nifi.provenance.lucene.IndexingAction;
+import org.apache.nifi.provenance.lucene.LineageQuery;
+import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QueryResult;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.serialization.RecordWriters;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.RingBuffer;
+import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PersistentProvenanceRepository implements ProvenanceRepository {
 
@@ -226,7 +227,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         this.maxPartitionMillis = configuration.getMaxEventFileLife(TimeUnit.MILLISECONDS);
         this.maxPartitionBytes = configuration.getMaxEventFileCapacity();
         this.indexConfig = new IndexConfiguration(configuration);
-        this.indexManager = new IndexManager();
+        this.indexManager = new SimpleIndexManager();
         this.alwaysSync = configuration.isAlwaysSync();
         this.rolloverCheckMillis = rolloverCheckMillis;
 
@@ -1303,57 +1304,61 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 final Runnable rolloverRunnable = new Runnable() {
                     @Override
                     public void run() {
-
                         File fileRolledOver = null;
 
                         try {
-                            fileRolledOver = mergeJournals(journalsToMerge, getMergeFile(journalsToMerge, storageDir), eventReporter);
-                        } catch (final IOException ioe) {
-                            logger.error("Failed to merge Journal Files {} into a Provenance Log File due to {}", journalsToMerge, ioe.toString());
-                            logger.error("", ioe);
-                        }
-
-                        if (fileRolledOver != null) {
-
-                            final File file = fileRolledOver;
-
-                            // update our map of id to Path
-                            // We need to make sure that another thread doesn't also update the map at the same time. We cannot
-                            // use the write lock when purging old events, and we want to use the same approach here.
-                            boolean updated = false;
-                            final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
-                            while (!updated) {
-                                final SortedMap<Long, Path> existingPathMap = idToPathMap.get();
-                                final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
-                                newIdToPathMap.putAll(existingPathMap);
-                                newIdToPathMap.put(fileFirstEventId, file.toPath());
-                                updated = idToPathMap.compareAndSet(existingPathMap, newIdToPathMap);
+                            try {
+                                fileRolledOver = mergeJournals(journalsToMerge, getMergeFile(journalsToMerge, storageDir), eventReporter);
+                            } catch (final IOException ioe) {
+                                logger.error("Failed to merge Journal Files {} into a Provenance Log File due to {}", journalsToMerge, ioe.toString());
+                                logger.error("", ioe);
                             }
 
-                            logger.info("Successfully Rolled over Provenance Event file containing {} records", recordsWritten);
-                        }
+                            if (fileRolledOver != null) {
 
-                        //if files were rolled over or if out of retries stop the future
-                        if (fileRolledOver != null || retryAttempts.decrementAndGet() == 0) {
+                                final File file = fileRolledOver;
 
-                            if (fileRolledOver == null && retryAttempts.get() == 0) {
-                                logger.error("Failed to merge Journal Files {} after {} attempts. ", journalsToMerge, MAX_JOURNAL_ROLLOVER_RETRIES);
-                            }
-
-                            rolloverCompletions.getAndIncrement();
-
-                            // Cancel the future so that we don't run anymore
-                            Future<?> future;
-                            while ((future = futureReference.get()) == null) {
-                                try {
-                                    Thread.sleep(10L);
-                                } catch (final InterruptedException ie) {
+                                // update our map of id to Path
+                                // We need to make sure that another thread doesn't also update the map at the same time. We cannot
+                                // use the write lock when purging old events, and we want to use the same approach here.
+                                boolean updated = false;
+                                final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
+                                while (!updated) {
+                                    final SortedMap<Long, Path> existingPathMap = idToPathMap.get();
+                                    final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
+                                    newIdToPathMap.putAll(existingPathMap);
+                                    newIdToPathMap.put(fileFirstEventId, file.toPath());
+                                    updated = idToPathMap.compareAndSet(existingPathMap, newIdToPathMap);
                                 }
-                            }
-                            future.cancel(false);
 
-                        } else {
-                            logger.warn("Couldn't merge journals. Will try again. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
+                                logger.info("Successfully Rolled over Provenance Event file containing {} records", recordsWritten);
+                            }
+
+                            //if files were rolled over or if out of retries stop the future
+                            if (fileRolledOver != null || retryAttempts.decrementAndGet() == 0) {
+
+                                if (fileRolledOver == null && retryAttempts.get() == 0) {
+                                    logger.error("Failed to merge Journal Files {} after {} attempts. ", journalsToMerge, MAX_JOURNAL_ROLLOVER_RETRIES);
+                                }
+
+                                rolloverCompletions.getAndIncrement();
+
+                                // Cancel the future so that we don't run anymore
+                                Future<?> future;
+                                while ((future = futureReference.get()) == null) {
+                                    try {
+                                        Thread.sleep(10L);
+                                    } catch (final InterruptedException ie) {
+                                    }
+                                }
+                                future.cancel(false);
+
+                            } else {
+                                logger.warn("Couldn't merge journals. Will try again. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
+                            }
+                        } catch (final Exception e) {
+                            logger.error("Failed to merge journals. Will try again. journalsToMerge: {}, storageDir: {}, cause: {}", journalsToMerge, storageDir, e.toString());
+                            logger.error("", e);
                         }
                     }
                 };

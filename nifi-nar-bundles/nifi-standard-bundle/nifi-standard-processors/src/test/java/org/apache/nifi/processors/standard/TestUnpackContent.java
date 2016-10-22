@@ -341,4 +341,35 @@ public class TestUnpackContent {
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 0);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
     }
+
+    /*
+     * This test checks for thread safety problems when PackageFormat.AUTO_DETECT_FORMAT is used.
+     * It won't always fail if there is a issue with the code, but it will fail often enough to eventually be noticed.
+     * If this test fails at all, then it needs to be investigated.
+     */
+    @Test
+    public void testThreadSafetyUsingAutoDetect() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
+
+        Map<String, String> attrsTar = new HashMap<>(1);
+        Map<String, String> attrsFFv3 = new HashMap<>(1);
+        attrsTar.put("mime.type", UnpackContent.PackageFormat.TAR_FORMAT.getMimeType());
+        attrsFFv3.put("mime.type", UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.getMimeType());
+
+        int numThreads = 50;
+        runner.setThreadCount(numThreads);
+
+        for (int i=0; i<numThreads; i++) {
+            if (i%2 == 0) {
+                runner.enqueue(dataPath.resolve("data.tar"), attrsTar);
+            } else {
+                runner.enqueue(dataPath.resolve("data.flowfilev3"), attrsFFv3);
+            }
+        }
+
+        runner.run(numThreads);
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads*2);
+    }
 }

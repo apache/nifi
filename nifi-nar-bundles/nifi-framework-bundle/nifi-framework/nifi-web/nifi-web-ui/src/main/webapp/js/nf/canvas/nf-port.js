@@ -37,6 +37,13 @@ nf.Port = (function () {
 
     var portMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -302,6 +309,9 @@ nf.Port = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the port name
+                    port.select('text.port-name').text(null);
                 }
 
                 // remove tooltips if necessary
@@ -467,6 +477,8 @@ nf.Port = (function () {
          */
         init: function () {
             portMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the port container
             portContainer = d3.select('#canvas').append('g')
@@ -494,7 +506,12 @@ nf.Port = (function () {
                 dimensions = remotePortDimensions;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (portEntity) {
+                addedCache.set(portEntity.id, now);
+
                 // add the port
                 portMap.set(portEntity.id, $.extend({
                     type: 'Port',
@@ -540,21 +557,34 @@ nf.Port = (function () {
                 dimensions = remotePortDimensions;
             }
 
-            var set = function (portEntity) {
-                // add the port
-                portMap.set(portEntity.id, $.extend({
-                    type: 'Port',
-                    dimensions: dimensions,
-                    status: {
-                        activeThreadCount: 0
-                    }
-                }, portEntity));
+            var set = function (proposedPortEntity) {
+                var currentPortEntity = portMap.get(proposedPortEntity.id);
+
+                // set the port if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentPortEntity, proposedPortEntity) && !removedCache.has(proposedPortEntity.id)) {
+                    // add the port
+                    portMap.set(proposedPortEntity.id, $.extend({
+                        type: 'Port',
+                        dimensions: dimensions,
+                        status: {
+                            activeThreadCount: 0
+                        }
+                    }, proposedPortEntity));
+                }
             };
 
             // determine how to handle the specified port status
             if ($.isArray(portEntities)) {
                 $.each(portMap.keys(), function (_, key) {
-                    portMap.remove(key);
+                    var currentPortEntity = portMap.get(key);
+                    var isPresent = $.grep(portEntities, function (proposedPortEntity) {
+                        return proposedPortEntity.id === currentPortEntity.id;
+                    });
+
+                    // if the current port is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
+                        portMap.remove(key);
+                    }
                 });
                 $.each(portEntities, function (_, portNode) {
                     set(portNode);
@@ -636,15 +666,19 @@ nf.Port = (function () {
         /**
          * Removes the specified port.
          *
-         * @param {string} ports      The port id(s)
+         * @param {string} portIds      The port id(s)
          */
-        remove: function (ports) {
-            if ($.isArray(ports)) {
-                $.each(ports, function (_, port) {
-                    portMap.remove(port);
+        remove: function (portIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(portIds)) {
+                $.each(portIds, function (_, portId) {
+                    removedCache.set(portId, now);
+                    portMap.remove(portId);
                 });
             } else {
-                portMap.remove(ports);
+                removedCache.set(portIds, now);
+                portMap.remove(portIds);
             }
 
             // apply the selection and handle all removed ports
@@ -656,6 +690,24 @@ nf.Port = (function () {
          */
         removeAll: function () {
             nf.Port.remove(portMap.keys());
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         }
     };
 }());

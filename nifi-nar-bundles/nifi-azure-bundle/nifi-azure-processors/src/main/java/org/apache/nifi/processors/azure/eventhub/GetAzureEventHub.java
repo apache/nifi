@@ -113,6 +113,14 @@ public class GetAzureEventHub extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor ENQUEUE_TIME = new PropertyDescriptor.Builder()
+            .name("Event Hub Message Enqueue Time")
+            .description("A timestamp (ISO-8061 Instant) formatted as YYYY-MM-DDThhmmss.sssZ (2016-01-01T01:01:01.000Z) from which messages "
+                    + "should have been enqueued in the EventHub to start reading from")
+            .addValidator(StandardValidators.ISO8061_INSTANT_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .required(false)
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -121,6 +129,7 @@ public class GetAzureEventHub extends AbstractProcessor {
 
     private final ConcurrentMap<String, PartitionReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
+    private volatile Instant configuredEnqueueTime;
     private EventHubClient eventHubClient;
 
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -138,6 +147,7 @@ public class GetAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
         _propertyDescriptors.add(NUM_PARTITIONS);
         _propertyDescriptors.add(CONSUMER_GROUP);
+        _propertyDescriptors.add(ENQUEUE_TIME);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -189,7 +199,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             final PartitionReceiver receiver = eventHubClient.createReceiver(
                     consumerGroupName,
                     partitionId,
-                    Instant.now()).get();
+                    configuredEnqueueTime == null ? Instant.now() : configuredEnqueueTime).get();
 
             partitionToReceiverMap.put(partitionId, receiver);
             return receiver;
@@ -249,6 +259,11 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
 
+        if(context.getProperty(ENQUEUE_TIME).isSet()) {
+            configuredEnqueueTime = Instant.parse(context.getProperty(ENQUEUE_TIME).toString());
+        } else {
+            configuredEnqueueTime = null;
+        }
 
         final String connectionString = new ConnectionStringBuilder(namespace, eventHubName, policyName, policyKey).toString();
         setupReceiver(connectionString);

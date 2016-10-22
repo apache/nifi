@@ -55,10 +55,6 @@ public class KerberosProperties {
     public KerberosProperties(final File kerberosConfigFile) {
         this.kerberosConfigFile = kerberosConfigFile;
 
-        if (this.kerberosConfigFile != null) {
-            System.setProperty("java.security.krb5.conf", kerberosConfigFile.getAbsolutePath());
-        }
-
         this.kerberosConfigValidator = new Validator() {
             @Override
             public ValidationResult validate(String subject, String input, ValidationContext context) {

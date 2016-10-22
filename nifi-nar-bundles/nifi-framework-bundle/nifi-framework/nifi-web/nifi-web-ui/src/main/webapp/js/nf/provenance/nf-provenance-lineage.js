@@ -42,6 +42,28 @@ nf.ng.ProvenanceLineage = function () {
         });
     };
 
+    var downloadSvgFile = function(svgString){
+        var link = document.getElementById("image-download-link");
+        var downloadSupported = typeof link.download != 'undefined';
+        var fileName ='lineage.svg';
+
+        if (downloadSupported) {
+            var DOMURL = self.URL || self.webkitURL || self;
+            var svg = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+
+            if (window.navigator.msSaveOrOpenBlob) {
+                window.navigator.msSaveOrOpenBlob(svg, fileName);
+            } else {
+                var url = DOMURL.createObjectURL(svg);
+                link.href = url;
+                link.download = fileName;
+                link.click();
+            }
+        } else {
+            window.open('data:image/svg+xml;charset=utf-8,' + encodeURI(svgString));
+        }
+    };
+
     /**
      * Appends the items to the context menu.
      *
@@ -1203,68 +1225,82 @@ nf.ng.ProvenanceLineage = function () {
                 $('#provenance-table').data('gridInstance').resizeCanvas();
             });
 
-            // TODO - restore this as necessary when able to download lineage svg entirely client side
-            // $('#provenance-lineage-downloader').on('click', function () {
-            //     var svg = $('#provenance-lineage-container').html();
-            //
-            //     // get the lineage to determine the actual dimensions
-            //     var lineage = $('g.lineage')[0];
-            //     var bbox = lineage.getBBox();
-            //
-            //     // adjust to provide some padding
-            //     var height = bbox.height + 30;
-            //     var width = bbox.width + 30;
-            //     var offsetX = bbox.x - 15;
-            //     var offsetY = bbox.y - 15;
-            //
-            //     // replace the svg height, width with the actual values
-            //     svg = svg.replace(/height=".*?"/, 'height="' + height + '"');
-            //     svg = svg.replace(/width=".*?"/, 'width="' + width + '"');
-            //
-            //     // remove any transform applied to the lineage
-            //     svg = svg.replace(/transform=".*?"/, '');
-            //
-            //     // adjust link positioning based on the offset of the bounding box
-            //     svg = svg.replace(/<path([^>]*?)d="M[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?L[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?"(.*?)>/g, function (match, before, rawMoveX, rawMoveY, rawLineX, rawLineY, after) {
-            //         // this regex captures the content before and after the d attribute in order to ensure that it contains the link class.
-            //         // within the svg image, there are other paths that are (within markers) that we do not want to offset
-            //         if (before.indexOf('link') === -1 && after.indexOf('link') === -1) {
-            //             return match;
-            //         }
-            //
-            //         var moveX = parseFloat(rawMoveX) - offsetX;
-            //         var moveY = parseFloat(rawMoveY) - offsetY;
-            //         var lineX = parseFloat(rawLineX) - offsetX;
-            //         var lineY = parseFloat(rawLineY) - offsetY;
-            //         return '<path' + before + 'd="M' + moveX + ',' + moveY + 'L' + lineX + ',' + lineY + '"' + after + '>';
-            //     });
-            //
-            //     // adjust node positioning based on the offset of the bounding box
-            //     svg = svg.replace(/<g([^>]*?)transform="translate\([\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?\)"(.*?)>/g, function (match, before, rawX, rawY, after) {
-            //         // this regex captures the content before and after the transform attribute in order to ensure that it contains the
-            //         // node class. only node groups are translated with absolute coordinates since all other translated groups fall under
-            //         // a parent that is already positioned. this makes their translation relative and not appropriate for this adjustment
-            //         if (before.indexOf('node') === -1 && after.indexOf('node') === -1) {
-            //             return match;
-            //         }
-            //
-            //         var x = parseFloat(rawX) - offsetX;
-            //         var y = parseFloat(rawY) - offsetY;
-            //         return '<g' + before + 'transform="translate(' + x + ',' + y + ')"' + after + '>';
-            //     });
-            //
-            //     // namespaces
-            //     svg = svg.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"');
-            //
-            //     // doctype
-            //     svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
-            //
-            //     // send to server to initiate download... client side only support is too browser specific at this point
-            //     nf.Common.post('./download-svg', {
-            //         'filename': 'provenance',
-            //         'svg': svg
-            //     });
-            // });
+             $('#provenance-lineage-downloader').on('click', function () {
+                 var svg = $('#provenance-lineage-container').html();
+
+                 // get the lineage to determine the actual dimensions
+                 var lineage = $('g.lineage')[0];
+                 var bbox = lineage.getBBox();
+
+                 // adjust to provide some padding
+                 var height = bbox.height + 60;
+                 var width = bbox.width + 60;
+                 var offsetX = bbox.x - 15;
+                 var offsetY = bbox.y - 15;
+
+                 // replace the svg height, width with the actual values
+                 svg = svg.replace(/height=".*?"/, 'height="' + height + '"');
+                 svg = svg.replace(/width=".*?"/, 'width="' + width + '"');
+
+                 // remove any transform applied to the lineage
+                 svg = svg.replace(/transform=".*?"/, '');
+
+                 // adjust link positioning based on the offset of the bounding box
+                 svg = svg.replace(/<path([^>]*?)d="M[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?L[\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?"(.*?)>/g, function (match, before, rawMoveX, rawMoveY, rawLineX, rawLineY, after) {
+                     // this regex captures the content before and after the d attribute in order to ensure that it contains the link class.
+                     // within the svg image, there are other paths that are (within markers) that we do not want to offset
+                     if (before.indexOf('link') === -1 && after.indexOf('link') === -1) {
+                         return match;
+                     }
+
+                     var moveX = parseFloat(rawMoveX) - offsetX;
+                     var moveY = parseFloat(rawMoveY) - offsetY;
+                     var lineX = parseFloat(rawLineX) - offsetX;
+                     var lineY = parseFloat(rawLineY) - offsetY;
+                     return '<path' + before + 'd="M' + moveX + ',' + moveY + 'L' + lineX + ',' + lineY + '"' + after + '>';
+                 });
+
+                 // adjust node positioning based on the offset of the bounding box
+                 svg = svg.replace(/<g([^>]*?)transform="translate\([\s]?([^\s]+?)[\s,]([^\s]+?)[\s]?\)"(.*?)>/g, function (match, before, rawX, rawY, after) {
+                     // this regex captures the content before and after the transform attribute in order to ensure that it contains the
+                     // node class. only node groups are translated with absolute coordinates since all other translated groups fall under
+                     // a parent that is already positioned. this makes their translation relative and not appropriate for this adjustment
+                     if (before.indexOf('node') === -1 && after.indexOf('node') === -1) {
+                         return match;
+                     }
+
+                     var x = parseFloat(rawX) - offsetX;
+                     var y = parseFloat(rawY) - offsetY;
+                     return '<g' + before + 'transform="translate(' + x + ',' + y + ')"' + after + '>';
+                 });
+
+                 // namespaces
+                 svg = svg.replace(/<svg ([^>]*)/, function (match) {
+                     var svgString = match;
+                     var nsSVG = ' xmlns="http://www.w3.org/2000/svg"';
+                     var nsXlink = ' xmlns:xlink="http://www.w3.org/1999/xlink"';
+                     var version = ' version="1.1"';
+
+                     if (svgString.indexOf(nsSVG) === -1) {
+                         svgString += nsSVG;
+                     }
+
+                     if (svgString.indexOf(nsXlink) === -1) {
+                         svgString += nsXlink;
+                     }
+
+                     if (svgString.indexOf(version) === -1) {
+                         svgString += version;
+                     }
+
+                     return svgString;
+                 });
+
+                 // doctype
+                 svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
+
+                 downloadSvgFile(svg);
+             });
 
             initLineageQueryDialog();
         },

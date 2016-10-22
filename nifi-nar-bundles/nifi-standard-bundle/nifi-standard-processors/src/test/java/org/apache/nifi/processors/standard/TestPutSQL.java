@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -30,9 +31,11 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -45,6 +48,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
+
+import javax.xml.bind.DatatypeConverter;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
@@ -305,6 +310,136 @@ public class TestPutSQL {
     }
 
     @Test
+    public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 CHAR(8) FOR BIT DATA, bn2 VARCHAR(100) FOR BIT DATA, " +
+                        "bn3 LONG VARCHAR FOR BIT DATA)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final byte[] insertStatement = "INSERT INTO BINARYTESTS (ID, bn1, bn2, bn3) VALUES (?, ?, ?, ?)".getBytes();
+
+        final String arg2BIN = fixedSizeByteArrayAsASCIIString(8);
+        final String art3VARBIN = fixedSizeByteArrayAsASCIIString(50);
+        final String art4LongBin = fixedSizeByteArrayAsASCIIString(32700); //max size supported by Derby
+
+        //ASCII (default) binary formatn
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BINARY));
+        attributes.put("sql.args.2.value", arg2BIN);
+        attributes.put("sql.args.3.type", String.valueOf(Types.VARBINARY));
+        attributes.put("sql.args.3.value", art3VARBIN);
+        attributes.put("sql.args.4.type", String.valueOf(Types.LONGVARBINARY));
+        attributes.put("sql.args.4.value", art4LongBin);
+
+        runner.enqueue(insertStatement, attributes);
+
+        //ASCII with specified format
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "2");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BINARY));
+        attributes.put("sql.args.2.value", arg2BIN);
+        attributes.put("sql.args.2.format", "ascii");
+        attributes.put("sql.args.3.type", String.valueOf(Types.VARBINARY));
+        attributes.put("sql.args.3.value", art3VARBIN);
+        attributes.put("sql.args.3.format", "ascii");
+        attributes.put("sql.args.4.type", String.valueOf(Types.LONGVARBINARY));
+        attributes.put("sql.args.4.value", art4LongBin);
+        attributes.put("sql.args.4.format", "ascii");
+
+        runner.enqueue(insertStatement, attributes);
+
+        //Hex
+        final String arg2HexBIN = fixedSizeByteArrayAsHexString(8);
+        final String art3HexVARBIN = fixedSizeByteArrayAsHexString(50);
+        final String art4HexLongBin = fixedSizeByteArrayAsHexString(32700);
+
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "3");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BINARY));
+        attributes.put("sql.args.2.value", arg2HexBIN);
+        attributes.put("sql.args.2.format", "hex");
+        attributes.put("sql.args.3.type", String.valueOf(Types.VARBINARY));
+        attributes.put("sql.args.3.value", art3HexVARBIN);
+        attributes.put("sql.args.3.format", "hex");
+        attributes.put("sql.args.4.type", String.valueOf(Types.LONGVARBINARY));
+        attributes.put("sql.args.4.value", art4HexLongBin);
+        attributes.put("sql.args.4.format", "hex");
+
+        runner.enqueue(insertStatement, attributes);
+
+        //Base64
+        final String arg2Base64BIN = fixedSizeByteArrayAsBase64String(8);
+        final String art3Base64VARBIN = fixedSizeByteArrayAsBase64String(50);
+        final String art4Base64LongBin = fixedSizeByteArrayAsBase64String(32700);
+
+        attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "4");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BINARY));
+        attributes.put("sql.args.2.value", arg2Base64BIN);
+        attributes.put("sql.args.2.format", "base64");
+        attributes.put("sql.args.3.type", String.valueOf(Types.VARBINARY));
+        attributes.put("sql.args.3.value", art3Base64VARBIN);
+        attributes.put("sql.args.3.format", "base64");
+        attributes.put("sql.args.4.type", String.valueOf(Types.LONGVARBINARY));
+        attributes.put("sql.args.4.value", art4Base64LongBin);
+        attributes.put("sql.args.4.format", "base64");
+
+        runner.enqueue(insertStatement, attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 4);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM BINARYTESTS");
+
+                //First Batch
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertTrue(Arrays.equals(arg2BIN.getBytes("ASCII"), rs.getBytes(2)));
+                assertTrue(Arrays.equals(art3VARBIN.getBytes("ASCII"), rs.getBytes(3)));
+                assertTrue(Arrays.equals(art4LongBin.getBytes("ASCII"), rs.getBytes(4)));
+
+                //Second batch
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertTrue(Arrays.equals(arg2BIN.getBytes("ASCII"), rs.getBytes(2)));
+                assertTrue(Arrays.equals(art3VARBIN.getBytes("ASCII"), rs.getBytes(3)));
+                assertTrue(Arrays.equals(art4LongBin.getBytes("ASCII"), rs.getBytes(4)));
+
+                //Third Batch (Hex)
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertTrue(Arrays.equals(DatatypeConverter.parseHexBinary(arg2HexBIN), rs.getBytes(2)));
+                assertTrue(Arrays.equals(DatatypeConverter.parseHexBinary(art3HexVARBIN), rs.getBytes(3)));
+                assertTrue(Arrays.equals(DatatypeConverter.parseHexBinary(art4HexLongBin), rs.getBytes(4)));
+
+                //Fourth Batch (Base64)
+                assertTrue(rs.next());
+                assertEquals(4, rs.getInt(1));
+                assertTrue(Arrays.equals(DatatypeConverter.parseBase64Binary(arg2Base64BIN), rs.getBytes(2)));
+                assertTrue(Arrays.equals(DatatypeConverter.parseBase64Binary(art3Base64VARBIN), rs.getBytes(3)));
+                assertTrue(Arrays.equals(DatatypeConverter.parseBase64Binary(art4Base64LongBin), rs.getBytes(4)));
+
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
     public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
         runner.addControllerService("dbcp", service);
@@ -373,7 +508,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-            "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -444,7 +579,7 @@ public class TestPutSQL {
         recreateTable("PERSONS", createPersons);
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-            "UPDATE SOME_RANDOM_TABLE NAME='George' WHERE ID=?; ";
+                "UPDATE SOME_RANDOM_TABLE NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -483,7 +618,7 @@ public class TestPutSQL {
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-            "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -670,5 +805,25 @@ public class TestPutSQL {
                 stmt.executeUpdate(createSQL);
             }
         }
+    }
+
+    private String fixedSizeByteArrayAsASCIIString(int length){
+        byte[] bBinary = RandomUtils.nextBytes(length);
+        ByteBuffer bytes = ByteBuffer.wrap(bBinary);
+        StringBuffer sbBytes = new StringBuffer();
+        for (int i = bytes.position(); i < bytes.limit(); i++)
+            sbBytes.append((char)bytes.get(i));
+
+        return sbBytes.toString();
+    }
+
+    private String fixedSizeByteArrayAsHexString(int length){
+        byte[] bBinary = RandomUtils.nextBytes(length);
+        return DatatypeConverter.printHexBinary(bBinary);
+    }
+
+    private String fixedSizeByteArrayAsBase64String(int length){
+        byte[] bBinary = RandomUtils.nextBytes(length);
+        return DatatypeConverter.printBase64Binary(bBinary);
     }
 }

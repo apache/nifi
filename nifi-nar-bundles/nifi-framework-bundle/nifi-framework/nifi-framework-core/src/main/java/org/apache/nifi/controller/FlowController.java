@@ -16,7 +16,35 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -206,36 +234,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -363,7 +362,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Lock writeLock = rwLock.writeLock();
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowController.class);
-    private static final Logger heartbeatLogger = LoggerFactory.getLogger("org.apache.nifi.cluster.heartbeat");
 
     public static FlowController createStandaloneInstance(
             final FlowFileEventRepository flowFileEventRepo,
@@ -591,16 +589,26 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
             // the coordinator.
             LOG.info("Checking if there is already a Cluster Coordinator Elected...");
-            final NodeIdentifier electedCoordinatorNodeId = clusterCoordinator.getElectedActiveCoordinatorNode();
-            if (electedCoordinatorNodeId == null) {
+            final String clusterCoordinatorAddress = leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
+            if (StringUtils.isEmpty(clusterCoordinatorAddress)) {
                 LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
-                registerForClusterCoordinator();
+                registerForClusterCoordinator(true);
             } else {
-                LOG.info("The Elected Cluster Coordinator is {}. Will not register to be elected for this role until after connecting "
-                        + "to the cluster and inheriting the cluster's flow.", electedCoordinatorNodeId);
+                // At this point, we have determined that there is a Cluster Coordinator elected. It is important to note, though,
+                // that if we are running an embedded ZooKeeper, and we have just restarted the cluster (at least the nodes that run the
+                // embedded ZooKeeper), that we could possibly determine that the Cluster Coordinator is at an address that is not really
+                // valid. This is because the latest stable ZooKeeper does not support "Container ZNodes" and as a result the ZNodes that
+                // are created are persistent, not ephemeral. Upon restart, we can get this persisted value, even though the node that belongs
+                // to that address has not started. ZooKeeper/Curator will recognize this after a while and delete the ZNode. As a result,
+                // we may later determine that there is in fact no Cluster Coordinator. If this happens, we will automatically register for
+                // Cluster Coordinator through the StandardFlowService.
+                LOG.info("The Election for Cluster Coordinator has already begun (Leader is {}). Will not register to be elected for this role until after connecting "
+                    + "to the cluster and inheriting the cluster's flow.", clusterCoordinatorAddress);
+                registerForClusterCoordinator(false);
             }
 
             leaderElectionManager.start();
+            heartbeatMonitor.start();
         } else {
             heartbeater = null;
         }
@@ -723,7 +731,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void notifyComponentsConfigurationRestored() {
         for (final ProcessorNode procNode : getGroup(getRootGroupId()).findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
-            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
             }
         }
@@ -731,7 +739,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -739,7 +747,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
             }
         }
@@ -1052,7 +1060,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
 
         if (firstTimeAdded) {
-            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
@@ -1060,7 +1068,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             if (firstTimeAdded) {
-                try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
             }
@@ -1158,7 +1166,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
-                authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+                authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure), nifiProperties);
     }
 
     /**
@@ -1178,7 +1186,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT,
-                authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+                authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure), nifiProperties);
     }
 
     /**
@@ -1320,7 +1328,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
                 }
@@ -1329,7 +1337,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
                 final ConfigurationContext configContext = taskNode.getConfigurationContext();
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
                 }
             }
@@ -1739,7 +1747,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
                 remoteGroup.setYieldDuration(remoteGroupDTO.getYieldDuration());
-                remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(remoteGroupDTO.getTransportProtocol()));
+                if (remoteGroupDTO.getTransportProtocol() == null) {
+                    remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.RAW);
+                } else {
+                    remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(remoteGroupDTO.getTransportProtocol()));
+                }
+
                 remoteGroup.setProxyHost(remoteGroupDTO.getProxyHost());
                 remoteGroup.setProxyPort(remoteGroupDTO.getProxyPort());
                 remoteGroup.setProxyUser(remoteGroupDTO.getProxyUser());
@@ -2862,7 +2875,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + type, ie);
             }
 
-            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
@@ -2916,7 +2929,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         reportingTaskNode.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
@@ -2953,7 +2966,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (firstTimeAdded) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -3072,7 +3085,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         service.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass())) {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
@@ -3316,8 +3329,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return configuredForClustering;
     }
 
-    private void registerForClusterCoordinator() {
-        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+    void registerForClusterCoordinator(final boolean participate) {
+        final String participantId = participate ? heartbeatMonitor.getHeartbeatAddress() : null;
 
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
@@ -3337,12 +3350,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
-                heartbeatMonitor.start();   // ensure heartbeat monitor is started
             }
         }, participantId);
     }
 
-    private void registerForPrimaryNode() {
+    void registerForPrimaryNode() {
         final String participantId = heartbeatMonitor.getHeartbeatAddress();
 
         leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
@@ -3396,15 +3408,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                     // Participate in Leader Election for Heartbeat Monitor. Start the heartbeat monitor
                     // if/when we become leader and stop it when we lose leader role
-                    registerForClusterCoordinator();
+                    registerForClusterCoordinator(true);
 
                     leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();
 
                     heartbeat();
                 } else {
-                    leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
-                    leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
                     stateManagerProvider.disableClusterProvider();
 
                     setPrimary(false);
@@ -3414,6 +3424,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 for (final RemoteProcessGroup remoteGroup : remoteGroups) {
                     remoteGroup.reinitialize(clustered);
                 }
+            }
+
+            if (!clustered) {
+                leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
+                leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
             }
 
             // update the heartbeat bean
@@ -3436,17 +3451,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
         final ProcessGroup rootGroup = getGroup(getRootGroupId());
         for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
         }
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
         }
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
         }
@@ -3856,9 +3871,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     private class HeartbeatSendTask implements Runnable {
-
-        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
-
         @Override
         public void run() {
             try (final NarCloseable narCloseable = NarCloseable.withFrameworkNar()) {
@@ -3868,36 +3880,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                 final HeartbeatMessage message = createHeartbeatMessage();
                 if (message == null) {
-                    heartbeatLogger.debug("No heartbeat to send");
+                    LOG.debug("No heartbeat to send");
                     return;
                 }
 
-                final long sendStart = System.nanoTime();
                 heartbeater.send(message);
-
-                final long sendNanos = System.nanoTime() - sendStart;
-                final long sendMillis = TimeUnit.NANOSECONDS.toMillis(sendNanos);
-
-                String heartbeatAddress;
-                try {
-                    heartbeatAddress = heartbeater.getHeartbeatAddress();
-                } catch (final IOException ioe) {
-                    heartbeatAddress = "Cluster Coordinator (could not determine socket address)";
-                }
-
-                heartbeatLogger.info("Heartbeat created at {} and sent to {} at {}; send took {} millis",
-                        dateFormatter.format(new Date(message.getHeartbeat().getCreatedTimestamp())),
-                        heartbeatAddress,
-                        dateFormatter.format(new Date()),
-                        sendMillis);
             } catch (final UnknownServiceAddressException usae) {
-                if (heartbeatLogger.isDebugEnabled()) {
-                    heartbeatLogger.debug(usae.getMessage());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex);
-                if (heartbeatLogger.isDebugEnabled()) {
-                    heartbeatLogger.warn("", ex);
+                LOG.warn("Failed to send heartbeat due to: " + ex);
+                if (LOG.isDebugEnabled()) {
+                    LOG.warn("", ex);
                 }
             }
         }
@@ -3936,7 +3931,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 
-            heartbeatLogger.debug("Generated heartbeat");
+            LOG.debug("Generated heartbeat");
 
             return message;
         } catch (final Throwable ex) {

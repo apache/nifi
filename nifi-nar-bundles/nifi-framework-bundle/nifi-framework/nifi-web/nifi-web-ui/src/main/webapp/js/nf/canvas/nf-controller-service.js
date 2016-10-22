@@ -23,7 +23,10 @@ nf.ControllerService = (function () {
         edit: 'edit',
         readOnly: 'read-only',
         serviceOnly: 'SERVICE_ONLY',
-        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS'
+        serviceAndReferencingComponents: 'SERVICE_AND_REFERENCING_COMPONENTS',
+        urls: {
+            api: '../nifi-api'
+        }
     };
 
     /**
@@ -58,14 +61,14 @@ nf.ControllerService = (function () {
      * that needs to be saved.
      */
     var isSaveRequired = function () {
-        var details = $('#controller-service-configuration').data('controllerServiceDetails');
+        var entity = $('#controller-service-configuration').data('controllerServiceDetails');
 
         // determine if any controller service settings have changed
 
-        if ($('#controller-service-name').val() !== details['name']) {
+        if ($('#controller-service-name').val() !== entity.component['name']) {
             return true;
         }
-        if ($('#controller-service-comments').val() !== details['comments']) {
+        if ($('#controller-service-comments').val() !== entity.component['comments']) {
             return true;
         }
 
@@ -1563,6 +1566,11 @@ nf.ControllerService = (function () {
         return referencedServices;
     };
 
+    /**
+     * Track the current table
+     */
+    var currentTable;
+
     return {
         /**
          * Initializes the controller service configuration dialog.
@@ -1717,8 +1725,11 @@ nf.ControllerService = (function () {
          * @argument {object} controllerServiceEntity      The controller service
          */
         showConfiguration: function (serviceTable, controllerServiceEntity) {
+            if (nf.Common.isUndefined(currentTable)){
+                currentTable = serviceTable;
+            }
             var controllerServiceDialog = $('#controller-service-configuration');
-            if (controllerServiceDialog.data('mode') !== config.edit) {
+            if (controllerServiceDialog.data('mode') !== config.edit || currentTable !== serviceTable) {
                 // update the visibility
                 $('#controller-service-configuration .controller-service-read-only').hide();
                 $('#controller-service-configuration .controller-service-editable').show();
@@ -1728,6 +1739,21 @@ nf.ControllerService = (function () {
                     readOnly: false,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
+                    controllerServiceCreatedDeferred: function(response) {
+                        var controllerServicesUri;
+                        var createdControllerServicesTable;
+
+                        // calculate the correct uri
+                        var createdControllerService = response.component;
+                        if (nf.Common.isDefinedAndNotNull(createdControllerService.parentGroupId)) {
+                            controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(createdControllerService.parentGroupId) + '/controller-services';
+                        } else {
+                            controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
+                        }
+
+                        // load the controller services accordingly
+                        return nf.ControllerServices.loadControllerServices(controllerServicesUri, serviceTable);
+                    },
                     goToServiceDeferred: function () {
                         return goToServiceFromProperty(serviceTable);
                     }
@@ -1736,6 +1762,9 @@ nf.ControllerService = (function () {
                 // update the mode
                 controllerServiceDialog.data('mode', config.edit);
             }
+
+            //track the current table
+            currentTable = serviceTable;
 
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({

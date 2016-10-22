@@ -17,8 +17,8 @@
 package org.apache.nifi.encrypt;
 
 import java.security.Security;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.jasypt.encryption.pbe.StandardPBEStringEncryptor;
 import org.jasypt.exceptions.EncryptionInitializationException;

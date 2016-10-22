@@ -199,7 +199,7 @@ nf.ng.Provenance = function (provenanceTableCtrl) {
                     var searchTerms = {};
 
                     // look for a processor id in the query search
-                    var initialComponentId = $('#intial-component-query').text();
+                    var initialComponentId = $('#initial-component-query').text();
                     if ($.trim(initialComponentId) !== '') {
                         // populate initial search component
                         $('input.searchable-component-id').val(initialComponentId);
@@ -209,7 +209,7 @@ nf.ng.Provenance = function (provenanceTableCtrl) {
                     }
 
                     // look for a flowfile uuid in the query search
-                    var initialFlowFileUuid = $('#intial-flowfile-query').text();
+                    var initialFlowFileUuid = $('#initial-flowfile-query').text();
                     if ($.trim(initialFlowFileUuid) !== '') {
                         // populate initial search component
                         $('input.searchable-flowfile-uuid').val(initialFlowFileUuid);

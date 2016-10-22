@@ -32,7 +32,7 @@ public class RemoteProcessGroupStatusSnapshotEntity extends Entity implements Re
     /**
      * @return The remote process group id
      */
-    @ApiModelProperty("The id of the remote processo group.")
+    @ApiModelProperty("The id of the remote process group.")
     public String getId() {
         return id;
     }

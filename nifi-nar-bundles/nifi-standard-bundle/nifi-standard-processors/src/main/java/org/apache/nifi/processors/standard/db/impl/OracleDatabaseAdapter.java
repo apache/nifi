@@ -62,7 +62,7 @@ public class OracleDatabaseAdapter implements DatabaseAdapter {
         }
         if (!StringUtils.isEmpty(orderByClause)) {
             query.append(" ORDER BY ");
-            query.append(whereClause);
+            query.append(orderByClause);
         }
         if (nestedSelect) {
             query.append(") a");

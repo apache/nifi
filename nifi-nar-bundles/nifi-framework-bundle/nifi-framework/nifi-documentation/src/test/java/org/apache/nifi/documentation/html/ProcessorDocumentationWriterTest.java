@@ -66,6 +66,9 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "Controller Service API: ");
         assertContains(results, "SampleService");
 
+        assertContains(results, "CLUSTER, LOCAL");
+        assertContains(results, "state management description");
+
         assertNotContains(results, "iconSecure.png");
         assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
                 .value());
@@ -109,6 +112,9 @@ public class ProcessorDocumentationWriterTest {
 
         // relationships
         assertContains(results, "This processor has no relationships.");
+
+        // state management
+        assertContains(results, "This processor has no state management.");
 
     }
 

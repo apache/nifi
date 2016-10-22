@@ -42,6 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -368,54 +369,55 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public void enqueue(final Path path) throws IOException {
-        enqueue(path, new HashMap<String, String>());
+    public MockFlowFile enqueue(final Path path) throws IOException {
+        return enqueue(path, new HashMap<String, String>());
     }
 
     @Override
-    public void enqueue(final Path path, final Map<String, String> attributes) throws IOException {
+    public MockFlowFile enqueue(final Path path, final Map<String, String> attributes) throws IOException {
         final Map<String, String> modifiedAttributes = new HashMap<>(attributes);
         if (!modifiedAttributes.containsKey(CoreAttributes.FILENAME.key())) {
             modifiedAttributes.put(CoreAttributes.FILENAME.key(), path.toFile().getName());
         }
         try (final InputStream in = Files.newInputStream(path)) {
-            enqueue(in, modifiedAttributes);
+            return enqueue(in, modifiedAttributes);
         }
     }
 
     @Override
-    public void enqueue(final byte[] data) {
-        enqueue(data, new HashMap<String, String>());
+    public MockFlowFile enqueue(final byte[] data) {
+        return enqueue(data, new HashMap<String, String>());
     }
 
     @Override
-    public void enqueue(final String data) {
-        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
+    public MockFlowFile enqueue(final String data) {
+        return enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
     }
 
     @Override
-    public void enqueue(final byte[] data, final Map<String, String> attributes) {
-        enqueue(new ByteArrayInputStream(data), attributes);
+    public MockFlowFile enqueue(final byte[] data, final Map<String, String> attributes) {
+        return enqueue(new ByteArrayInputStream(data), attributes);
     }
 
     @Override
-    public void enqueue(final String data, final Map<String, String> attributes) {
-        enqueue(data.getBytes(StandardCharsets.UTF_8), attributes);
+    public MockFlowFile enqueue(final String data, final Map<String, String> attributes) {
+        return enqueue(data.getBytes(StandardCharsets.UTF_8), attributes);
     }
 
 
     @Override
-    public void enqueue(final InputStream data) {
-        enqueue(data, new HashMap<String, String>());
+    public MockFlowFile enqueue(final InputStream data) {
+        return enqueue(data, new HashMap<String, String>());
     }
 
     @Override
-    public void enqueue(final InputStream data, final Map<String, String> attributes) {
+    public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
         final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor);
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
         enqueue(flowFile);
+        return flowFile;
     }
 
     @Override
@@ -466,6 +468,13 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public QueueSize getQueueSize() {
         return flowFileQueue.size();
+    }
+
+    public void clearQueue() {
+        // TODO: Add #clear to MockFlowFileQueue or just point to new instance?
+        while (!flowFileQueue.isEmpty()) {
+            flowFileQueue.poll();
+        }
     }
 
     @Override
@@ -848,5 +857,42 @@ public class StandardProcessorTestRunner implements TestRunner {
         Objects.requireNonNull(name);
 
         return variableRegistry.removeVariable(new VariableDescriptor.Builder(name).build());
+    }
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
+     */
+    @Override
+    public void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate) {
+        assertAllConditionsMet(new Relationship.Builder().name(relationshipName).build(), predicate);
+    }
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    @Override
+    public void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate) {
+
+        if (predicate==null) {
+            Assert.fail("predicate cannot be null");
+        }
+
+        final List<MockFlowFile> flowFiles = getFlowFilesForRelationship(relationship);
+
+        if (flowFiles.isEmpty()) {
+            Assert.fail("Relationship " + relationship.getName() + " does not contain any FlowFile");
+        }
+
+        for (MockFlowFile flowFile : flowFiles) {
+            if (predicate.test(flowFile)==false) {
+                Assert.fail("FlowFile " + flowFile + " does not meet all condition");
+            }
+        }
     }
 }

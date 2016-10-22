@@ -128,6 +128,26 @@ nf.Graph = (function () {
                 nf.ng.Bridge.digest();
             }
         },
+
+        /**
+         * Expires any caches prior to setting updated components via .set(...) above. This is necessary
+         * if an ajax request returns out of order. The caches will ensure that added/removed components
+         * will not be removed/added due to process group refreshes. Whether or not a component is present
+         * is ambiguous whether the request is from before the component was added/removed or if another
+         * client has legitimately removed/added it. Once a request is initiated after the component is
+         * added/removed we can remove the entry from the cache.
+         *
+         * @param timestamp expire caches before
+         */
+        expireCaches: function (timestamp) {
+            nf.Label.expireCaches(timestamp);
+            nf.Funnel.expireCaches(timestamp);
+            nf.RemoteProcessGroup.expireCaches(timestamp);
+            nf.Port.expireCaches(timestamp);
+            nf.ProcessGroup.expireCaches(timestamp);
+            nf.Processor.expireCaches(timestamp);
+            nf.Connection.expireCaches(timestamp);
+        },
         
         /**
          * Gets the components currently on the canvas.

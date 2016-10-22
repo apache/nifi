@@ -39,9 +39,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
@@ -328,6 +326,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             sslContextBuilder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
+        sslContextBuilder.useProtocol(service.getSslAlgorithm());
+
         return sslContextBuilder.build();
     }
 
@@ -368,7 +368,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 throw new ProcessException(e);
             }
 
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
 
             // Also include a plain socket factory for regular http connections (especially proxies)
             final Registry<ConnectionSocketFactory> socketFactoryRegistry =

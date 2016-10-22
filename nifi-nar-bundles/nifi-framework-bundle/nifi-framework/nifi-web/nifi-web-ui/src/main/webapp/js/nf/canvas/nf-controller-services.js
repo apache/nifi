@@ -790,6 +790,7 @@ nf.ControllerServices = (function () {
             controllerServicesData.setItems(services);
             controllerServicesData.reSort();
             controllerServicesGrid.invalidate();
+            controllerServicesGrid.render();
         });
     };
 

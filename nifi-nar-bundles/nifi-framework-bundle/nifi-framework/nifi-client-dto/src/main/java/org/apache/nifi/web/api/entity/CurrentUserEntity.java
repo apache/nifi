@@ -35,6 +35,7 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO tenantsPermissions;
     private PermissionsDTO controllerPermissions;
     private PermissionsDTO policiesPermissions;
+    private PermissionsDTO systemPermissions;
 
     /**
      * @return the user identity being serialized
@@ -118,5 +119,17 @@ public class CurrentUserEntity extends Entity {
 
     public void setPoliciesPermissions(PermissionsDTO policiesPermissions) {
         this.policiesPermissions = policiesPermissions;
+    }
+
+    /**
+     * @return permissions for accessing the system
+     */
+    @ApiModelProperty("Permissions for accessing system.")
+    public PermissionsDTO getSystemPermissions() {
+        return systemPermissions;
+    }
+
+    public void setSystemPermissions(PermissionsDTO systemPermissions) {
+        this.systemPermissions = systemPermissions;
     }
 }

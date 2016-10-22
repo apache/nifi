@@ -157,7 +157,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      * @return the time period used for the timeout when communicating with this RemoteProcessGroup
      */
     @ApiModelProperty(
-            value = "The time period used for the timeout when commicating with the target."
+            value = "The time period used for the timeout when communicating with the target."
     )
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
@@ -213,7 +213,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      * @return number of active remote output ports
      */
     @ApiModelProperty(
-            value = "The number of acitve remote output ports."
+            value = "The number of active remote output ports."
     )
     public Integer getActiveRemoteOutputPortCount() {
         return activeRemoteOutputPortCount;

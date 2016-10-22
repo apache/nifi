@@ -37,7 +37,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 public interface NotificationService extends ConfigurableComponent {
 
     /**
-     * Provides the NotificatoinService with access to objects that may be of use
+     * Provides the NotificationService with access to objects that may be of use
      * throughout the life of the service
      *
      * @param context of initialization

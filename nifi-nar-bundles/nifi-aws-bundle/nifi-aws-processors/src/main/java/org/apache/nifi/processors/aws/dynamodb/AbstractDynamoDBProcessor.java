@@ -47,7 +47,7 @@ import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 /**
- * Base class for Nifi dynamo db related processors
+ * Base class for NiFi dynamo db related processors
  *
  * @see DeleteDynamoDB
  * @see PutDynamoDB

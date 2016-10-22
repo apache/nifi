@@ -62,7 +62,7 @@ public abstract class AbstractSNSProcessor extends AbstractAWSCredentialsProvide
     }
 
     /**
-     * Create client using AWSCredentails
+     * Create client using AWSCredentials
      *
      * @deprecated use {@link #createClient(ProcessContext, AWSCredentialsProvider, ClientConfiguration)} instead
      */

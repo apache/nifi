@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.ReportedEvent;
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
 import org.apache.nifi.cluster.coordination.heartbeat.ClusterProtocolHeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender;
@@ -65,7 +66,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.mockito.Mockito;
@@ -76,6 +76,7 @@ public class Node {
 
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
+    private final FlowElection flowElection;
 
     private NodeClusterCoordinator clusterCoordinator;
     private NodeProtocolSender protocolSender;
@@ -89,11 +90,12 @@ public class Node {
 
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
-    public Node(final NiFiProperties properties) {
-        this(new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null), properties);
+
+    public Node(final NiFiProperties properties, final FlowElection flowElection) {
+        this(createNodeId(), properties, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final FlowElection flowElection) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override
@@ -117,11 +119,16 @@ public class Node {
         };
 
         revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.<Revision> emptyList());
+        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
+        this.flowElection = flowElection;
     }
 
+
+    private static NodeIdentifier createNodeId() {
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+    }
 
     public synchronized void start() {
         running = true;
@@ -129,7 +136,7 @@ public class Node {
         protocolSender = createNodeProtocolSender();
         clusterCoordinator = createClusterCoordinator();
         clusterCoordinator.setLocalNodeIdentifier(nodeId);
-        clusterCoordinator.setConnected(true);
+        //        clusterCoordinator.setConnected(true);
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
@@ -150,6 +157,7 @@ public class Node {
                 StringEncryptor.createEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
+
             flowService.load(null);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -269,7 +277,8 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, null, revisionManager, nodeProperties);
+        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
+                revisionManager, nodeProperties, protocolSender);
     }
 
 

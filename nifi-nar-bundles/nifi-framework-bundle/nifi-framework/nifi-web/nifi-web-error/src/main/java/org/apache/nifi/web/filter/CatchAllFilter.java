@@ -25,7 +25,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 
 /**
- * Filter for foward all requests to index.jsp.
+ * Filter for forward all requests to index.jsp.
  */
 public class CatchAllFilter implements Filter {
 

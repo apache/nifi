@@ -389,7 +389,8 @@ public class StandardFlowFileQueue implements FlowFileQueue {
             if (flowFile != null) {
                 incrementActiveQueueSize(-1, -flowFile.getSize());
             }
-        } while (isExpired);
+        }
+        while (isExpired);
 
         if (!expiredRecords.isEmpty()) {
             incrementActiveQueueSize(-expiredRecords.size(), -expiredBytes);
@@ -546,6 +547,8 @@ public class StandardFlowFileQueue implements FlowFileQueue {
         if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
             return;
         }
+
+        migrateSwapToActive();
 
         final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
 

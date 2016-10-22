@@ -37,7 +37,7 @@ public interface LineageNode {
      * @return the timestamp that corresponds to this Node. The meaning of the
      * timestamp may differ between implementations. For example, a
      * {@link ProvenanceEventLineageNode}'s timestamp indicates the time at
-     * which the event occurred. However, for a Node that reperesents a
+     * which the event occurred. However, for a Node that represents a
      * FlowFile, for example, the timestamp may represent the time at which the
      * FlowFile was created
      */

@@ -320,7 +320,8 @@ For details see http://asm.ow2.org/asmdex-license.html
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
     THE POSSIBILITY OF SUCH DAMAGE.
 
-The binary distribution of this product bundles 'jBCrypt' which is available under a BSD license. For details see https://github.com/svenkubiak/jBCrypt/blob/0.4.1/LICENSE
+The binary distribution of this product bundles 'jBCrypt' which is available under an MIT
+   license. For details see https://github.com/svenkubiak/jBCrypt/blob/0.4.1/LICENSE
 
     Copyright (c) 2006 Damien Miller <djm@mindrot.org>
 

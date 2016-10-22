@@ -17,7 +17,7 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="fill-color-dialog" class="hidden">
     <div class="dialog-content">
-        <div class="setting">
+        <div class="setting" style="margin-bottom: 0px;">
             <div class="setting-name">Color</div>
             <div class="setting-field">
                 <input type="text" id="fill-color" value="#FFFFFF"/>

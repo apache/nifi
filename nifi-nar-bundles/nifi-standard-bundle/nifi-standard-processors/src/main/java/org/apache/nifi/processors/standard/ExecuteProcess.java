@@ -316,8 +316,7 @@ public class ExecuteProcess extends AbstractProcessor {
                 @Override
                 public void run() {
                     try (final BufferedReader reader = new BufferedReader(new InputStreamReader(externalProcess.getErrorStream()))) {
-                        while (reader.read() >= 0) {
-                        }
+                        reader.lines().filter(line -> line != null && line.length() > 0).forEach(getLogger()::warn);
                     } catch (final IOException ioe) {
                     }
                 }

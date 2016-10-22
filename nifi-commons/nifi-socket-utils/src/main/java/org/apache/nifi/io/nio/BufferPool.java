@@ -73,14 +73,14 @@ public class BufferPool implements Runnable {
     private synchronized void computeRate() {
         final Calendar now = Calendar.getInstance();
         final long measurementDurationMillis = now.getTimeInMillis() - lastRateSampleTime.getTimeInMillis();
-        final double duractionSecs = ((double) measurementDurationMillis) / 1000.0;
-        if (duractionSecs >= 0.75) { //recompute every 3/4 second or when we're too fast
-            final long totalDuractionMillis = now.getTimeInMillis() - startTime.getTimeInMillis();
-            final double totalDurationSecs = ((double) totalDuractionMillis) / 1000.0;
+        final double durationSecs = ((double) measurementDurationMillis) / 1000.0;
+        if (durationSecs >= 0.75) { //recompute every 3/4 second or when we're too fast
+            final long totalDurationMillis = now.getTimeInMillis() - startTime.getTimeInMillis();
+            final double totalDurationSecs = ((double) totalDurationMillis) / 1000.0;
             final long differenceBytes = totalBytesExtracted - lastTotalBytesExtracted;
             lastTotalBytesExtracted = totalBytesExtracted;
             lastRateSampleTime = now;
-            final double bps = ((double) differenceBytes) / duractionSecs;
+            final double bps = ((double) differenceBytes) / durationSecs;
             final double totalBps = ((double) totalBytesExtracted / totalDurationSecs);
             lastRateSampleMBps = bps / ONE_MB;
             overallMBps = totalBps / ONE_MB;

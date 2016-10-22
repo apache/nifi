@@ -20,6 +20,7 @@ package org.apache.nifi.hbase;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -89,8 +90,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())
             .build();
 
-    protected static final String STRING_ENCODING_VALUE = "String";
-    protected static final String BYTES_ENCODING_VALUE = "Bytes";
+
 
     protected static final AllowableValue FIELD_ENCODING_STRING = new AllowableValue(STRING_ENCODING_VALUE, STRING_ENCODING_VALUE,
             "Stores the value of each field as a UTF-8 String.");
@@ -115,6 +115,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(TABLE_NAME);
         properties.add(ROW_ID);
         properties.add(ROW_FIELD_NAME);
+        properties.add(ROW_ID_ENCODING_STRATEGY);
         properties.add(COLUMN_FAMILY);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
@@ -163,6 +164,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final boolean extractRowId = !StringUtils.isBlank(rowFieldName);
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
         final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
+        final String rowIdEncodingStrategy = context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue();
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
@@ -236,7 +238,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                 if (extractRowId && fieldName.equals(rowFieldName)) {
                     rowIdHolder.set(fieldNode.asText());
                 } else {
-                    columns.add(new PutColumn(columnFamily, fieldName, fieldValueHolder.get()));
+                    columns.add(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8), fieldName.getBytes(StandardCharsets.UTF_8), fieldValueHolder.get()));
                 }
             }
         }
@@ -250,7 +252,9 @@ public class PutHBaseJSON extends AbstractPutHBase {
         }
 
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
-        return new PutFlowFile(tableName, putRowId, columns, flowFile);
+
+        byte[] rowKeyBytes = getRow(putRowId,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
+        return new PutFlowFile(tableName, rowKeyBytes, columns, flowFile);
     }
 
     /*

@@ -17,8 +17,8 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <div id="provenance">
-    <span id="intial-component-query" class="hidden"><c:out value="${param.componentId}"/></span>
-    <span id="intial-flowfile-query" class="hidden"><c:out value="${param.flowFileUuid}"/></span>
+    <span id="initial-component-query" class="hidden"><c:out value="${param.componentId}"/></span>
+    <span id="initial-flowfile-query" class="hidden"><c:out value="${param.flowFileUuid}"/></span>
     <span id="nifi-controller-uri" class="hidden"></span>
     <span id="nifi-content-viewer-url" class="hidden"></span>
     <div id="provenance-header-text">NiFi Data Provenance</div>
@@ -56,7 +56,7 @@
             <div id="provenance-lineage-loading" class="loading-container"></div>
         </div>
         <div id="provenance-lineage-close-container">
-            <div id="provenance-lineage-downloader" class="hidden" title="Download"></div>
+            <div id="provenance-lineage-downloader" class="fa fa-download" title="Download"></div>
             <div id="provenance-lineage-closer" class="fa fa-long-arrow-left" title="Go back to event list"></div>
         </div>
         <div id="provenance-lineage-context-menu" class="context-menu"></div>
@@ -71,4 +71,5 @@
         </div>
         <div id="provenance-lineage-container"></div>
     </div>
+    <a id="image-download-link" hreflang="image/svg+xml" class="hidden" target="_blank"></a>
 </div>

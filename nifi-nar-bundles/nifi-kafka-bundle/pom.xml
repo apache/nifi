@@ -17,27 +17,41 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-kafka-bundle</artifactId>
     <packaging>pom</packaging>
+
+    <properties>
+      <kafka8.version>0.8.2.2</kafka8.version>
+      <kafka9.version>0.9.0.1</kafka9.version>
+      <kafka10.version>0.10.0.1</kafka10.version>
+    </properties>
+
     <modules>
-        <module>nifi-kafka-processors</module>
-        <module>nifi-kafka-pubsub-processors</module>
-        <module>nifi-kafka-nar</module>
-        <module>nifi-kafka-pubsub-nar</module>
+        <module>nifi-kafka-0-8-processors</module>
+        <module>nifi-kafka-0-9-processors</module>
+        <module>nifi-kafka-0-10-processors</module>
+        <module>nifi-kafka-0-8-nar</module>
+        <module>nifi-kafka-0-9-nar</module>
+        <module>nifi-kafka-0-10-nar</module>
     </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-kafka-processors</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <artifactId>nifi-kafka-0-8-processors</artifactId>
+                <version>1.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-kafka-pubsub-processors</artifactId>
-                <version>1.0.0-SNAPSHOT</version>
+                <artifactId>nifi-kafka-0-10-processors</artifactId>
+                <version>1.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kafka-0-9-processors</artifactId>
+                <version>1.1.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement> 

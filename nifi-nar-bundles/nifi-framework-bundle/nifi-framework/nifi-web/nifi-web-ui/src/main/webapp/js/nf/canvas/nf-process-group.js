@@ -32,6 +32,13 @@ nf.ProcessGroup = (function () {
 
     var processGroupMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -135,17 +142,6 @@ nf.ProcessGroup = (function () {
                 'width': 316,
                 'height': 16,
                 'class': 'process-group-name'
-            });
-
-        // process group preview
-        processGroup.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 352,
-                'height': 113,
-                'x': 6,
-                'y': 22,
-                'class': 'process-group-preview'
             });
 
         // always support selecting and navigation
@@ -806,9 +802,6 @@ nf.ProcessGroup = (function () {
                     processGroup.select('text.process-group-name').text(null);
                 }
 
-                // hide the preview
-                processGroup.select('image.process-group-preview').style('display', 'none');
-
                 // populate the stats
                 processGroup.call(updateProcessGroupStatus);
             } else {
@@ -823,10 +816,10 @@ nf.ProcessGroup = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the process group name
+                    processGroup.select('text.process-group-name').text(null);
                 }
-
-                // show the preview
-                processGroup.select('image.process-group-preview').style('display', 'block');
 
                 // remove the tooltips
                 processGroup.call(removeTooltips);
@@ -960,6 +953,8 @@ nf.ProcessGroup = (function () {
          */
         init: function () {
             processGroupMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the process group container
             processGroupContainer = d3.select('#canvas').append('g')
@@ -981,7 +976,12 @@ nf.ProcessGroup = (function () {
                 selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (processGroupEntity) {
+                addedCache.set(processGroupEntity.id, now);
+
                 // add the process group
                 processGroupMap.set(processGroupEntity.id, $.extend({
                     type: 'ProcessGroup',
@@ -1018,18 +1018,30 @@ nf.ProcessGroup = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processGroupEntity) {
-                // add the process group
-                processGroupMap.set(processGroupEntity.id, $.extend({
-                    type: 'ProcessGroup',
-                    dimensions: dimensions
-                }, processGroupEntity));
+            var set = function (proposedProcessGroupEntity) {
+                var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
+
+                // set the process group if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
+                    processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
+                        type: 'ProcessGroup',
+                        dimensions: dimensions
+                    }, proposedProcessGroupEntity));
+                }
             };
 
             // determine how to handle the specified process groups
             if ($.isArray(processGroupEntities)) {
                 $.each(processGroupMap.keys(), function (_, key) {
-                    processGroupMap.remove(key);
+                    var currentProcessGroupEntity = processGroupMap.get(key);
+                    var isPresent = $.grep(processGroupEntities, function (proposedProcessGroupEntity) {
+                        return proposedProcessGroupEntity.id === currentProcessGroupEntity.id;
+                    });
+
+                    // if the current process group is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
+                        processGroupMap.remove(key);
+                    }
                 });
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     set(processGroupEntity);
@@ -1111,15 +1123,19 @@ nf.ProcessGroup = (function () {
         /**
          * Removes the specified process group.
          *
-         * @param {string} processGroups      The process group id(s)
+         * @param {string} processGroupIds      The process group id(s)
          */
-        remove: function (processGroups) {
-            if ($.isArray(processGroups)) {
-                $.each(processGroups, function (_, processGroup) {
-                    processGroupMap.remove(processGroup);
+        remove: function (processGroupIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(processGroupIds)) {
+                $.each(processGroupIds, function (_, processGroupId) {
+                    removedCache.set(processGroupId, now);
+                    processGroupMap.remove(processGroupId);
                 });
             } else {
-                processGroupMap.remove(processGroups);
+                removedCache.set(processGroupIds, now);
+                processGroupMap.remove(processGroupIds);
             }
 
             // apply the selection and handle all removed process groups
@@ -1131,6 +1147,24 @@ nf.ProcessGroup = (function () {
          */
         removeAll: function () {
             nf.ProcessGroup.remove(processGroupMap.keys());
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         }
     };
 }());

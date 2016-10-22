@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Maps mutal request exceptions into client responses.
+ * Maps mutual request exceptions into client responses.
  */
 @Provider
 public class MutableRequestExceptionMapper implements ExceptionMapper<MutableRequestException> {

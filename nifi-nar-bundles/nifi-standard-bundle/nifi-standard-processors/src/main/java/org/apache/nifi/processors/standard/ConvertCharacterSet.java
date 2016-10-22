@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
- * This processor reads files in as text according to the specified character set and it outputs another text file according to the given characeter set. The character sets supported depend on the
+ * This processor reads files in as text according to the specified character set and it outputs another text file according to the given character set. The character sets supported depend on the
  * version of the JRE and is platform specific. In addition, the JVM can be expanded with additional character sets to support. More information on which character sets are supported can be found in
  * the JDK documentation under the docs directory in the following path: ....\technotes\guides\intl\encoding.doc.html</p>
  *

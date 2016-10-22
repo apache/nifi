@@ -48,7 +48,7 @@ public class GenericDatabaseAdapter implements DatabaseAdapter {
         }
         if (!StringUtils.isEmpty(orderByClause)) {
             query.append(" ORDER BY ");
-            query.append(whereClause);
+            query.append(orderByClause);
         }
         if (limit != null) {
             query.append(" LIMIT ");

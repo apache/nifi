@@ -130,9 +130,9 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
         }
 
         public boolean matches(final byte[] candidate, final int offset, final int length) {
-            final boolean finsihedReplacing = (numMatches >= maxMatches && maxMatches > -1);
+            final boolean finishedReplacing = (numMatches >= maxMatches && maxMatches > -1);
 
-            if (finsihedReplacing || (length != toReplace.length)) {
+            if (finishedReplacing || (length != toReplace.length)) {
                 return false;
             }
 

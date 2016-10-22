@@ -91,7 +91,7 @@ public class TestJdbcTypesDerby {
         final ResultSet resultSet = st.executeQuery("select U.*, ROW_NUMBER() OVER () as rownr from users U");
 
         final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        JdbcCommon.convertToAvroStream(resultSet, outStream);
+        JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
         final byte[] serializedBytes = outStream.toByteArray();
         assertNotNull(serializedBytes);

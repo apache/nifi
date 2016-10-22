@@ -74,7 +74,7 @@ public class IndexingAction {
         }
 
         for (final SearchableField searchableField : attributeSearchableFields) {
-            addField(doc, searchableField, attributes.get(searchableField.getSearchableFieldName()), Store.NO);
+            addField(doc, searchableField, LuceneUtil.truncateIndexField(attributes.get(searchableField.getSearchableFieldName())), Store.NO);
         }
 
         final String storageFilename = LuceneUtil.substringBefore(record.getStorageFilename(), ".");

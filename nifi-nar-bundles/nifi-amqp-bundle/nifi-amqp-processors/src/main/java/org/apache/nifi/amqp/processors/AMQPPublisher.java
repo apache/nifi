@@ -97,7 +97,7 @@ final class AMQPPublisher extends AMQPWorker {
             }
         } else {
             throw new IllegalStateException("This instance of AMQPPublisher is invalid since "
-                    + "its publishigChannel is closed");
+                    + "its publishingChannel is closed");
         }
     }
 

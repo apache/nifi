@@ -19,9 +19,6 @@ The following binary components are provided under the Apache Software License v
       Apache Tika
       Copyright 2015 The Apache Software Foundation
 
-      This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
-
       Copyright 1993-2010 University Corporation for Atmospheric Research/Unidata
       This software contains code derived from UCAR/Unidata's NetCDF library.
 
@@ -33,3 +30,188 @@ The following binary components are provided under the Apache Software License v
       OpenCSV: Copyright 2005 Bytecode Pty Ltd. Licensed under the Apache License, Version 2.0
 
       IPTC Photo Metadata descriptions Copyright 2010 International Press Telecommunications Council.
+
+    (ASLv2) Apache Commons Lang
+      The following NOTICE information applies:
+        Apache Commons Lang
+        Copyright 2001-2015 The Apache Software Foundation
+
+        This product includes software from the Spring Framework,
+        under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+    (ASLv2) Apache Commons IO
+      The following NOTICE information applies:
+        Apache Commons IO
+        Copyright 2002-2016 The Apache Software Foundation
+
+    (ASLV2) Apache Commons Compress
+      The following NOTICE information applies:
+        Apache Commons Compress
+        Copyright 2002-2016 The Apache Software Foundation
+
+        The files in the package org.apache.commons.compress.archivers.sevenz
+        were derived from the LZMA SDK, version 9.20 (C/ and CPP/7zip/),
+        which has been placed in the public domain:
+
+        "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
+
+    (ASLv2) Apache Commons Codec
+      The following NOTICE information applies:
+        Apache Commons Codec
+        Copyright 2002-2014 The Apache Software Foundation
+
+        src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+        contains test data from http://aspell.net/test/orig/batch0.tab.
+        Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+        ===============================================================================
+
+        The content of package org.apache.commons.codec.language.bm has been translated
+        from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+        with permission from the original authors.
+        Original source copyright:
+        Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+    (ASLv2) Apache Commons Logging
+      The following NOTICE information applies:
+        Apache Commons Logging
+        Copyright 2003-2014 The Apache Software Foundation
+
+    (ASLv2) Apache Commons VFS
+      The following NOTICE information applies:
+        Apache Commons VFS
+        Copyright 2002-2010 The Apache Software Foundation
+
+    (ASLv2) Apache Commons CSV
+      The following NOTICE information applies:
+        Apache Commons CSV
+        Copyright 2005-2016 The Apache Software Foundation
+
+    (ASLv2) Apache JAMES Mime4j
+      The following NOTICE information applies:
+       Apache JAMES Mime4j
+       Copyright 2004-2010 The Apache Software Foundation
+
+       This product test suite includes data (mimetools-testmsgs folder) developed
+       by Eryq and ZeeGee Software Inc as part of the "MIME-tools" Perl5 toolkit
+       and licensed under the Artistic License
+
+    (ASLv2) Apache PDFBox
+      The following NOTICE information applies:
+       Apache PDFBox
+       Copyright 2014 The Apache Software Foundation
+
+       Based on source code originally developed in the PDFBox, JempBox and
+       FontBox projects.
+       Copyright (c) 2002-2007, www.pdfbox.org
+       Copyright (c) 2006-2007, www.jempbox.org
+
+       Based on source code originally developed in the PaDaF project.
+       Copyright (c) 2010 Atos Worldline SAS
+
+    (ASLv2) Apache XMLBeans
+      The following NOTICE information applies:
+        Portions of this software were originally based on the following:
+        - software copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+        Aside from contributions to the Apache XMLBeans project, this
+        software also includes:
+
+        - one or more source files from the Apache Xerces-J and Apache Axis
+        products, Copyright (c) 1999-2003 Apache Software Foundation
+
+        - W3C XML Schema documents Copyright 2001-2003 (c) World Wide Web
+        Consortium (Massachusetts Institute of Technology, European Research
+        Consortium for Informatics and Mathematics, Keio University)
+
+        - resolver.jar from Apache Xml Commons project,
+        Copyright (c) 2001-2003 Apache Software Foundation
+
+        - Piccolo XML Parser for Java from http://piccolo.sourceforge.net/,
+        Copyright 2002 Yuval Oren under the terms of the Apache Software License 2.0
+
+        - JSR-173 Streaming API for XML from http://sourceforge.net/projects/xmlpullparser/,
+        Copyright 2005 BEA under the terms of the Apache Software License 2.0
+
+    (ASLv2) Apache HttpComponents
+      The following NOTICE information applies:
+        Apache HttpClient
+        Copyright 1999-2015 The Apache Software Foundation
+
+        Apache HttpCore
+        Copyright 2005-2015 The Apache Software Foundation
+
+        Apache HttpMime
+        Copyright 1999-2013 The Apache Software Foundation
+
+        This project contains annotations derived from JCIP-ANNOTATIONS
+        Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+
+    (ASLv2) Vorbis Java
+      The following NOTICE information applies:
+        Ogg and Vorbis Tools for Java
+        Copyright 2012 Nick Burch
+
+        The Apache Tika Plugin includes developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+    (ASLv2) Joda Time
+      The following NOTICE information applies:
+        This product includes software developed by
+        Joda.org (http://www.joda.org/).
+
+    (ASLv2) Quartz
+      The following NOTICE information applies:
+        Copyright Declaration:
+        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
+
+        Trademark and Patent declaration
+        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
+        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
+
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+
+        Third Party declaration
+        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
+        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
+        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
+        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+
+        Confidentiality Disclaimer:
+        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
+        Contact GitHub API Training Shop Blog About
+
+    (ASLv2) JCommander
+      The following NOTICE information applies:
+        JCommander Copyright Notices
+        Copyright 2010 Cedric Beust cedric@beust.com
+
+************************
+Eclipse Public License 1.0
+************************
+
+    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
+
+*****************
+Public Domain
+*****************
+
+The following binary components are provided to the 'Public Domain'.  See project link for details.
+
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
+
+*****************
+Mozilla Public License v1.1
+*****************
+
+The following binary components are provided under the Mozilla Public License v1.1.  See project link for details.
+
+    (MPL 1.1) Java port of universalchardet (com.googlecode.juniversalchardet:juniversalchardet:1.0.3 - https://code.google.com/archive/p/juniversalchardet/)
+
+************************
+Common Development and Distribution License 1.0
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.0.  See project link for details.
+
+    (CDDL 1.0) JHighlight (org.codelibs:jhighlight:1.0.2 - https://github.com/codelibs/jhighlight)

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -49,4 +51,12 @@ public interface NodeProtocolSender {
      * @return the response from the Cluster Coordinator
      */
     HeartbeatResponseMessage heartbeat(HeartbeatMessage msg, String address) throws ProtocolException;
+
+    /**
+     * Sends a "cluster workflow request" message to the Cluster Coordinator.
+     * @param msg a request message
+     * @return the response from the Cluster Coordinator
+     * @throws ProtocolException if communication failed
+     */
+    ClusterWorkloadResponseMessage clusterWorkload(ClusterWorkloadRequestMessage msg) throws ProtocolException;
 }

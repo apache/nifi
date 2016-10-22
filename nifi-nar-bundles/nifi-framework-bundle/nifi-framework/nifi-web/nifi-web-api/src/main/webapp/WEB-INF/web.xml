@@ -70,16 +70,4 @@
         <filter-name>requestLogger</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    <filter>
-        <filter-name>gzipCompressionFilter</filter-name>
-        <filter-class>org.eclipse.jetty.servlets.GzipFilter</filter-class>
-        <init-param>
-            <param-name>methods</param-name>
-            <param-value>get,post,put</param-value>
-        </init-param>
-    </filter>
-    <filter-mapping>
-        <filter-name>gzipCompressionFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
 </web-app>

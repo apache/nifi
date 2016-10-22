@@ -35,7 +35,9 @@ public abstract class ProtocolMessage {
         HEARTBEAT_RESPONSE,
         NODE_CONNECTION_STATUS_REQUEST,
         NODE_CONNECTION_STATUS_RESPONSE,
-        NODE_STATUS_CHANGE;
+        NODE_STATUS_CHANGE,
+        CLUSTER_WORKLOAD_REQUEST,
+        CLUSTER_WORKLOAD_RESPONSE
     }
 
     public abstract MessageType getType();

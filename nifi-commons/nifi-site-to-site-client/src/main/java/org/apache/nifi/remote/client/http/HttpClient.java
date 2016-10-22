@@ -42,6 +42,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -55,6 +57,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     private final ScheduledExecutorService taskExecutor;
     private final PeerSelector peerSelector;
+    private final Set<HttpClientTransaction> activeTransactions = Collections.synchronizedSet(new HashSet<>());
 
     public HttpClient(final SiteToSiteClientConfig config) {
         super(config);
@@ -84,12 +87,11 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     }
 
     @Override
-    public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+    public PeerDescription getBootstrapPeerDescription() throws IOException {
         if (siteInfoProvider.getSiteToSiteHttpPort() == null) {
             throw new IOException("Remote instance of NiFi is not configured to allow HTTP site-to-site communications");
         }
 
-        final String scheme = siteInfoProvider.isSecure() ? "https" : "http";
         final URI clusterUrl;
         try {
             clusterUrl = new URI(config.getUrl());
@@ -97,8 +99,15 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             throw new IllegalArgumentException("Specified clusterUrl was: " + config.getUrl(), e);
         }
 
-        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy())) {
-            final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort());
+        return new PeerDescription(clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort(), siteInfoProvider.isSecure());
+    }
+
+    @Override
+    public Set<PeerStatus> fetchRemotePeerStatuses(PeerDescription peerDescription) throws IOException {
+        // Each node should has the same URL structure and network reach-ability with the proxy configuration.
+        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter())) {
+            final String scheme = peerDescription.isSecure() ? "https" : "http";
+            apiClient.setBaseUrl(scheme, peerDescription.getHostname(), peerDescription.getPort());
 
             final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
             apiClient.setConnectTimeoutMillis(timeoutMillis);
@@ -106,7 +115,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
             final Collection<PeerDTO> peers = apiClient.getPeers();
             if(peers == null || peers.size() == 0){
-                throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUrl + " returned zero peers.");
+                throw new IOException("Couldn't get any peer to communicate with. " + apiClient.getBaseUrl() + " returned zero peers.");
             }
 
             // Convert the PeerDTO's to PeerStatus objects. Use 'true' for the query-peer-for-peers flag because Site-to-Site over HTTP
@@ -139,7 +148,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 }
             }
 
-            final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy());
+            final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy(), config.getEventReporter());
 
             apiClient.setBaseUrl(peer.getUrl());
             apiClient.setConnectTimeoutMillis(timeoutMillis);
@@ -157,10 +166,13 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 commSession.setUserDn(apiClient.getTrustedPeerDn());
             } catch (final Exception e) {
                 apiClient.close();
-                logger.debug("Penalizing a peer due to {}", e.getMessage());
+                logger.warn("Penalizing a peer {} due to {}", peer, e.toString());
                 peerSelector.penalize(peer, penaltyMillis);
 
-                if (e instanceof UnknownPortException || e instanceof PortNotRunningException) {
+                // Following exceptions will be thrown even if we tried other peers, so throw it.
+                if (e instanceof UnknownPortException
+                        || e instanceof PortNotRunningException
+                        || e instanceof HandshakeException) {
                     throw e;
                 }
 
@@ -171,15 +183,31 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             // We found a valid peer to communicate with.
             final Integer transactionProtocolVersion = apiClient.getTransactionProtocolVersion();
             final HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
-                    config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
-            transaction.initialize(apiClient, transactionUrl);
+                config.isUseCompression(), portId, penaltyMillis, config.getEventReporter()) {
 
+                @Override
+                protected void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        activeTransactions.remove(this);
+                    }
+                }
+            };
+
+            try {
+                transaction.initialize(apiClient, transactionUrl);
+            } catch (final Exception e) {
+                transaction.error();
+                throw e;
+            }
+
+            activeTransactions.add(transaction);
             return transaction;
         }
 
         logger.info("Couldn't find a valid peer to communicate with.");
         return null;
-
     }
 
     private String resolveNodeApiUrl(final PeerDescription description) {
@@ -195,5 +223,9 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
     public void close() throws IOException {
         taskExecutor.shutdown();
         peerSelector.clear();
+
+        for (final HttpClientTransaction transaction : activeTransactions) {
+            transaction.getCommunicant().getCommunicationsSession().interrupt();
+        }
     }
 }

@@ -19,7 +19,7 @@ package org.apache.nifi.processors.aws.kinesis.firehose;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
@@ -29,7 +29,7 @@ import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClient;
 /**
  * This class provides processor the base class for kinesis firehose
  */
-public abstract class AbstractKinesisFirehoseProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonKinesisFirehoseClient> {
+public abstract class AbstractKinesisFirehoseProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisFirehoseClient> {
 
     public static final PropertyDescriptor KINESIS_FIREHOSE_DELIVERY_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("Amazon Kinesis Firehose Delivery Stream Name")

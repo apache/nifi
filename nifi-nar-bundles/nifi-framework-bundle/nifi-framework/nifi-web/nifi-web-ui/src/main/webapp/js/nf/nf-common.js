@@ -338,6 +338,19 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access system diagnostics.
+         *
+         * @returns {boolean}
+         */
+        canAccessSystem: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.systemPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Adds a mouse over effect for the specified selector using
          * the specified styles.
          * 
@@ -407,6 +420,8 @@ nf.Common = (function () {
                     $('#message-title').text('Unauthorized');
                 } else if (xhr.status === 403) {
                     $('#message-title').text('Access Denied');
+                } else if (xhr.status === 409) {
+                    $('#message-title').text('Invalid State');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
                 }

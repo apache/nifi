@@ -17,7 +17,6 @@
 package org.apache.nifi.cluster.coordination.http.replication;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -27,11 +26,13 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -117,10 +118,6 @@ public class TestThreadPoolRequestReplicator {
 
             // We should get back the same response object
             assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
-            assertFalse(response.isComplete());
-
-            final NodeResponse nodeResponse = response.getNodeResponse(nodeId);
-            assertNull(nodeResponse);
 
             final NodeResponse completedNodeResponse = response.awaitMergedResponse(2, TimeUnit.SECONDS);
             assertNotNull(completedNodeResponse);
@@ -167,7 +164,8 @@ public class TestThreadPoolRequestReplicator {
         final ThreadPoolRequestReplicator replicator
                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -235,7 +233,7 @@ public class TestThreadPoolRequestReplicator {
                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
             public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
-                    boolean indicateReplicated, boolean verify) {
+                                                  boolean indicateReplicated, boolean verify) {
                 return null;
             }
         };
@@ -288,7 +286,8 @@ public class TestThreadPoolRequestReplicator {
         final ThreadPoolRequestReplicator replicator
                 = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
                 final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
@@ -321,21 +320,157 @@ public class TestThreadPoolRequestReplicator {
         }
     }
 
+    @Test(timeout = 5000)
+    public void testMonitorNotifiedOnException() {
+        withReplicator(replicator -> {
+            final Object monitor = new Object();
+
+            final CountDownLatch preNotifyLatch = new CountDownLatch(1);
+            final CountDownLatch postNotifyLatch = new CountDownLatch(1);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (monitor) {
+                        while (true) {
+                            // If monitor is not notified, this will block indefinitely, and the test will timeout
+                            try {
+                                preNotifyLatch.countDown();
+                                monitor.wait();
+                                break;
+                            } catch (InterruptedException e) {
+                                continue;
+                            }
+                        }
+
+                        postNotifyLatch.countDown();
+                    }
+                }
+            }).start();
+
+            // wait for the background thread to notify that it is synchronized on monitor.
+            preNotifyLatch.await();
+
+            try {
+                // Pass in Collections.emptySet() for the node ID's so that an Exception is thrown
+                replicator.replicate(Collections.emptySet(), "GET", new URI("localhost:8080/nifi"), Collections.emptyMap(),
+                    Collections.emptyMap(), true, null, true, true, monitor);
+                Assert.fail("replicate did not throw IllegalArgumentException");
+            } catch (final IllegalArgumentException iae) {
+                // expected
+            }
+
+            // wait for monitor to be notified.
+            postNotifyLatch.await();
+        });
+    }
+
+    @Test(timeout = 5000)
+    public void testMonitorNotifiedOnSuccessfulCompletion() {
+        withReplicator(replicator -> {
+            final Object monitor = new Object();
+
+            final CountDownLatch preNotifyLatch = new CountDownLatch(1);
+            final CountDownLatch postNotifyLatch = new CountDownLatch(1);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (monitor) {
+                        while (true) {
+                            // If monitor is not notified, this will block indefinitely, and the test will timeout
+                            try {
+                                preNotifyLatch.countDown();
+                                monitor.wait();
+                                break;
+                            } catch (InterruptedException e) {
+                                continue;
+                            }
+                        }
+
+                        postNotifyLatch.countDown();
+                    }
+                }
+            }).start();
+
+            // wait for the background thread to notify that it is synchronized on monitor.
+            preNotifyLatch.await();
+
+            final Set<NodeIdentifier> nodeIds = new HashSet<>();
+            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
+            nodeIds.add(nodeId);
+            final URI uri = new URI("http://localhost:8080/processors/1");
+            final Entity entity = new ProcessorEntity();
+
+            replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, null, true, true, monitor);
+
+            // wait for monitor to be notified.
+            postNotifyLatch.await();
+        });
+    }
+
+
+    @Test(timeout = 5000)
+    public void testMonitorNotifiedOnFailureResponse() {
+        withReplicator(replicator -> {
+            final Object monitor = new Object();
+
+            final CountDownLatch preNotifyLatch = new CountDownLatch(1);
+            final CountDownLatch postNotifyLatch = new CountDownLatch(1);
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (monitor) {
+                        while (true) {
+                            // If monitor is not notified, this will block indefinitely, and the test will timeout
+                            try {
+                                preNotifyLatch.countDown();
+                                monitor.wait();
+                                break;
+                            } catch (InterruptedException e) {
+                                continue;
+                            }
+                        }
+
+                        postNotifyLatch.countDown();
+                    }
+                }
+            }).start();
+
+            // wait for the background thread to notify that it is synchronized on monitor.
+            preNotifyLatch.await();
+
+            final Set<NodeIdentifier> nodeIds = new HashSet<>();
+            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
+            nodeIds.add(nodeId);
+            final URI uri = new URI("http://localhost:8080/processors/1");
+            final Entity entity = new ProcessorEntity();
+
+            replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, null, true, true, monitor);
+
+            // wait for monitor to be notified.
+            postNotifyLatch.await();
+        }, Status.INTERNAL_SERVER_ERROR, 0L, null);
+    }
+
+
     private void withReplicator(final WithReplicator function) {
         withReplicator(function, ClientResponse.Status.OK, 0L, null);
     }
 
     private void withReplicator(final WithReplicator function, final Status status, final long delayMillis, final RuntimeException failure) {
         final ClusterCoordinator coordinator = createClusterCoordinator();
-        final ThreadPoolRequestReplicator replicator
-                = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, NiFiProperties.createBasicNiFiProperties(null, null)) {
+        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, null);
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null, nifiProps) {
             @Override
-            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
+            protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method,
+                                                    final URI uri, final String requestId, Map<String, String> givenHeaders) {
                 if (delayMillis > 0L) {
                     try {
                         Thread.sleep(delayMillis);
                     } catch (InterruptedException e) {
-                        Assert.fail("Thread Interrupted durating test");
+                        Assert.fail("Thread Interrupted during test");
                     }
                 }
 

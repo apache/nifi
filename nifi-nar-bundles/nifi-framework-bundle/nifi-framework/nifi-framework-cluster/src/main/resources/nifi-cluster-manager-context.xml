@@ -41,6 +41,10 @@
         <property name="properties" ref="nifiProperties" />
     </bean>
 
+    <bean id="flowElection" class="org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElectionFactoryBean">
+        <property name="properties" ref="nifiProperties" />
+    </bean>
+
     <!-- Cluster Coordinator -->
     <bean id="clusterCoordinator" class="org.apache.nifi.cluster.spring.NodeClusterCoordinatorFactoryBean">
         <property name="properties" ref="nifiProperties"/>

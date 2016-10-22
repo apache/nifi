@@ -55,6 +55,7 @@ import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
+import static java.sql.Types.JAVA_OBJECT;
 import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
@@ -64,6 +65,7 @@ import static java.sql.Types.NVARCHAR;
 import static java.sql.Types.REAL;
 import static java.sql.Types.ROWID;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.STRUCT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TINYINT;
@@ -103,11 +105,19 @@ public class HiveJdbcCommon {
                     if (value == null) {
                         rec.put(i - 1, null);
 
-                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == ARRAY || javaSqlType == BLOB || javaSqlType == CLOB) {
+                    } else if (javaSqlType == BINARY || javaSqlType == VARBINARY || javaSqlType == LONGVARBINARY || javaSqlType == BLOB || javaSqlType == CLOB) {
                         // bytes requires little bit different handling
-                        byte[] bytes = rs.getBytes(i);
-                        ByteBuffer bb = ByteBuffer.wrap(bytes);
-                        rec.put(i - 1, bb);
+                        ByteBuffer bb = null;
+                        if (value instanceof byte[]) {
+                            bb = ByteBuffer.wrap((byte[]) value);
+                        } else if (value instanceof ByteBuffer) {
+                            bb = (ByteBuffer) value;
+                        }
+                        if (bb != null) {
+                            rec.put(i - 1, bb);
+                        } else {
+                            throw new IOException("Could not process binary object of type " + value.getClass().getName());
+                        }
 
                     } else if (value instanceof Byte) {
                         // tinyint(1) type is returned by JDBC driver as java.sql.Types.TINYINT
@@ -202,6 +212,9 @@ public class HiveJdbcCommon {
                 case NCHAR:
                 case NVARCHAR:
                 case VARCHAR:
+                case ARRAY:
+                case STRUCT:
+                case JAVA_OBJECT:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
@@ -265,7 +278,6 @@ public class HiveJdbcCommon {
                 case BINARY:
                 case VARBINARY:
                 case LONGVARBINARY:
-                case ARRAY:
                 case BLOB:
                 case CLOB:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().bytesType().endUnion().noDefault();
@@ -323,6 +335,16 @@ public class HiveJdbcCommon {
                         String valueString = rs.getString(i);
                         if (valueString != null) {
                             rowValues.add("\"" + StringEscapeUtils.escapeCsv(valueString) + "\"");
+                        } else {
+                            rowValues.add("");
+                        }
+                        break;
+                    case ARRAY:
+                    case STRUCT:
+                    case JAVA_OBJECT:
+                        String complexValueString = rs.getString(i);
+                        if (complexValueString != null) {
+                            rowValues.add(StringEscapeUtils.escapeCsv(complexValueString));
                         } else {
                             rowValues.add("");
                         }

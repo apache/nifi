@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -28,17 +29,19 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.remote.PeerDTO;
@@ -56,14 +59,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
-import org.apache.nifi.util.NiFiProperties;
 
 /**
  * RESTful endpoint for managing a SiteToSite connection.
@@ -97,12 +101,21 @@ public class SiteToSiteResource extends ApplicationResource {
     protected void authorizeSiteToSite() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        final Map<String, String> userContext;
+        if (!StringUtils.isBlank(user.getClientAddress())) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getSiteToSiteResource())
                 .identity(user.getIdentity())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.READ)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -153,7 +166,7 @@ public class SiteToSiteResource extends ApplicationResource {
         if (isEmpty(req.getHeader(HttpHeaders.PROTOCOL_VERSION))) {
             // This indicates the client uses older NiFi version,
             // which strictly read JSON properties and fail with unknown properties.
-            // Convert result entity so that old version clients can understance.
+            // Convert result entity so that old version clients can understand.
             logger.debug("Converting result to provide backward compatibility...");
             controller.setRemoteSiteHttpListeningPort(null);
         }
@@ -203,18 +216,23 @@ public class SiteToSiteResource extends ApplicationResource {
 
         final List<PeerDTO> peers = new ArrayList<>();
         if (properties.isNode()) {
-            final Set<NodeIdentifier> nodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
 
-            // TODO: Get total number of FlowFiles for each node
-            for (final NodeIdentifier nodeId : nodeIds) {
-                final PeerDTO peer = new PeerDTO();
-                final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
-                peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
-                peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
-                peer.setSecure(nodeId.isSiteToSiteSecure());
-                peer.setFlowFileCount(0);
-                peers.add(peer);
+            try {
+                final Map<NodeIdentifier, NodeWorkload> clusterWorkload = clusterCoordinator.getClusterWorkload();
+                clusterWorkload.entrySet().stream().forEach(entry -> {
+                    final PeerDTO peer = new PeerDTO();
+                    final NodeIdentifier nodeId = entry.getKey();
+                    final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
+                    peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
+                    peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
+                    peer.setSecure(nodeId.isSiteToSiteSecure());
+                    peer.setFlowFileCount(entry.getValue().getFlowFileCount());
+                    peers.add(peer);
+                });
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to retrieve cluster workload due to " + e, e);
             }
+
         } else {
             // Standalone mode.
             final PeerDTO peer = new PeerDTO();
@@ -248,6 +266,7 @@ public class SiteToSiteResource extends ApplicationResource {
     }
 
     // setters
+
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

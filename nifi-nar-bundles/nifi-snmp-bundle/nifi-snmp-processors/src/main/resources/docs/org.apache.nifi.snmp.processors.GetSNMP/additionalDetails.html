@@ -29,7 +29,7 @@
 <p>
     When the processor is triggered, it sends the SNMP request and gets the information associated to request OID(s). Once response is received
     from the SNMP agent, a FlowFile is constructed. The FlowFile content is empty, all the information is written in the FlowFile attributes.
-    In case of a single GET request, the properties associated to the received PDU are transfered into the FlowFile as attributes. In case of a
+    In case of a single GET request, the properties associated to the received PDU are transferred into the FlowFile as attributes. In case of a
     WALK request, only the couples "OID/value" are transferred into the FlowFile as attributes. SNMP attributes names are prefixed with
     <i>snmp$</i> prefix.
 </p>

@@ -40,6 +40,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 
@@ -56,10 +57,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -164,8 +163,8 @@ public class CountersResource extends ApplicationResource {
                 if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
                     nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders()).awaitMergedResponse();
                 } else {
-                    final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
-                    nodeResponse = getRequestReplicator().replicate(coordinatorNode, HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders(), false, true).awaitMergedResponse();
+                    nodeResponse = getRequestReplicator().forwardToCoordinator(
+                            getClusterCoordinatorNode(), HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders()).awaitMergedResponse();
                 }
 
                 final CountersEntity entity = (CountersEntity) nodeResponse.getUpdatedEntity();
@@ -227,33 +226,37 @@ public class CountersResource extends ApplicationResource {
     )
     public Response updateCounter(
             @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The id of the counter."
+            )
             @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT);
         }
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(lookup -> {
-                authorizeCounters(RequestAction.WRITE);
-            });
-        }
-        if (validationPhase) {
-            return generateContinueResponse().build();
-        }
+        final ComponentEntity requestComponentEntity = new ComponentEntity();
+        requestComponentEntity.setId(id);
 
-        // reset the specified counter
-        final CounterDTO counter = serviceFacade.updateCounter(id);
+        return withWriteLock(
+                serviceFacade,
+                requestComponentEntity,
+                lookup -> {
+                    authorizeCounters(RequestAction.WRITE);
+                },
+                null,
+                (componentEntity) -> {
+                    // reset the specified counter
+                    final CounterDTO counter = serviceFacade.updateCounter(componentEntity.getId());
 
-        // create the response entity
-        final CounterEntity entity = new CounterEntity();
-        entity.setCounter(counter);
+                    // create the response entity
+                    final CounterEntity entity = new CounterEntity();
+                    entity.setCounter(counter);
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     // setters

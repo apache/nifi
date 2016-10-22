@@ -372,9 +372,11 @@ div.content-detail-value {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconExportLineage.png") no-repeat scroll left center transparent;
+    font-size: 16px;
+    color: #004849;
     cursor: pointer;
-    margin-right: 2px;
+    margin-right: 4px;
+    margin-top: 2px;
 }
 
 #provenance-lineage-closer {
@@ -385,6 +387,7 @@ div.content-detail-value {
     color: #004849;
     cursor: pointer;
     margin-right: 5px;
+    margin-top: 2px;
 }
 
 #provenance-lineage-slider-container {

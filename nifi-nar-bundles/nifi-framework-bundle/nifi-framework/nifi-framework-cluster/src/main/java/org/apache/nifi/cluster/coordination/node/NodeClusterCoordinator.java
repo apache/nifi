@@ -16,43 +16,31 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
-import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
+import org.apache.nifi.cluster.coordination.flow.FlowElection;
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.NodeEvent;
+import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
-import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
@@ -69,6 +57,22 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandler, RequestCompletionCallback {
 
@@ -87,16 +91,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final NiFiProperties nifiProperties;
     private final LeaderElectionManager leaderElectionManager;
     private final AtomicLong latestUpdateId = new AtomicLong(-1);
+    private final FlowElection flowElection;
+    private final NodeProtocolSender nodeProtocolSender;
 
     private volatile FlowService flowService;
     private volatile boolean connected;
     private volatile boolean closed = false;
+    private volatile boolean requireElection = true;
 
     private final ConcurrentMap<NodeIdentifier, NodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();
     private final ConcurrentMap<NodeIdentifier, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>();
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
-            final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties) {
+            final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
+            final NodeProtocolSender nodeProtocolSender) {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
@@ -104,6 +112,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.revisionManager = revisionManager;
         this.nifiProperties = nifiProperties;
         this.leaderElectionManager = leaderElectionManager;
+        this.flowElection = flowElection;
+        this.nodeProtocolSender = nodeProtocolSender;
 
         senderListener.addHandler(this);
     }
@@ -116,9 +126,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         closed = true;
 
-        final NodeConnectionStatus shutdownStatus = new NodeConnectionStatus(getLocalNodeIdentifier(), DisconnectionCode.NODE_SHUTDOWN);
-        updateNodeStatus(shutdownStatus, false);
-        logger.info("Successfully notified other nodes that I am shutting down");
+        final NodeIdentifier localId = getLocalNodeIdentifier();
+        if (localId != null) {
+            final NodeConnectionStatus shutdownStatus = new NodeConnectionStatus(localId, DisconnectionCode.NODE_SHUTDOWN);
+            updateNodeStatus(shutdownStatus, false);
+            logger.info("Successfully notified other nodes that I am shutting down");
+        }
     }
 
     @Override
@@ -231,6 +244,15 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public void requestNodeConnect(final NodeIdentifier nodeId, final String userDn) {
+        if (requireElection && !flowElection.isElectionComplete() && flowElection.isVoteCounted(nodeId)) {
+            // If we receive a heartbeat from a node that we already know, we don't want to request that it reconnect
+            // to the cluster because no flow has yet been elected. However, if the node has not yet voted, we want to send
+            // a reconnect request because we want this node to cast its vote for the flow, and this happens on connection
+            logger.debug("Received heartbeat for {} and node is not connected. Will not request node connect to cluster, "
+                + "though, because the Flow Election is still in progress", nodeId);
+            return;
+        }
+
         if (userDn == null) {
             reportEvent(nodeId, Severity.INFO, "Requesting that node connect to cluster");
         } else {
@@ -244,7 +266,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         request.setNodeId(nodeId);
         request.setInstanceId(instanceId);
 
-        requestReconnectionAsynchronously(request, 10, 5);
+        // If we still are requiring that an election take place, we do not want to include our local dataflow, because we don't
+        // yet know what the cluster's dataflow looks like. However, if we don't require election, then we've connected to the
+        // cluster, which means that our flow is correct.
+        final boolean includeDataFlow = !requireElection;
+        requestReconnectionAsynchronously(request, 10, 5, includeDataFlow);
     }
 
     @Override
@@ -653,7 +679,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         disconnectThread.start();
     }
 
-    private void requestReconnectionAsynchronously(final ReconnectionRequestMessage request, final int reconnectionAttempts, final int retrySeconds) {
+    private void requestReconnectionAsynchronously(final ReconnectionRequestMessage request, final int reconnectionAttempts, final int retrySeconds, final boolean includeDataFlow) {
         final Thread reconnectionThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -676,7 +702,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                             return;
                         }
 
-                        request.setDataFlow(new StandardDataFlow(flowService.createDataFlow()));
+                        if (includeDataFlow) {
+                            request.setDataFlow(new StandardDataFlow(flowService.createDataFlow()));
+                        }
+
                         request.setNodeConnectionStatuses(getConnectionStatuses());
                         request.setComponentRevisions(revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
 
@@ -727,9 +756,13 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private NodeConnectionStatusResponseMessage handleNodeConnectionStatusRequest() {
-        final NodeConnectionStatus connectionStatus = nodeStatuses.get(getLocalNodeIdentifier());
         final NodeConnectionStatusResponseMessage msg = new NodeConnectionStatusResponseMessage();
-        msg.setNodeConnectionStatus(connectionStatus);
+        final NodeIdentifier self = getLocalNodeIdentifier();
+        if (self != null) {
+            final NodeConnectionStatus connectionStatus = nodeStatuses.get(self);
+            msg.setNodeConnectionStatus(connectionStatus);
+        }
+
         return msg;
     }
 
@@ -782,6 +815,20 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
     }
 
+    @Override
+    public String getFlowElectionStatus() {
+        if (!requireElection) {
+            return null;
+        }
+
+        return flowElection.getStatusDescription();
+    }
+
+    @Override
+    public boolean isFlowElectionComplete() {
+        return !requireElection || flowElection.isElectionComplete();
+    }
+
     private NodeIdentifier resolveNodeId(final NodeIdentifier proposedIdentifier) {
         final NodeConnectionStatus proposedConnectionStatus = new NodeConnectionStatus(proposedIdentifier, DisconnectionCode.NOT_YET_CONNECTED);
         final NodeConnectionStatus existingStatus = nodeStatuses.putIfAbsent(proposedIdentifier, proposedConnectionStatus);
@@ -809,58 +856,85 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     private ConnectionResponseMessage handleConnectionRequest(final ConnectionRequestMessage requestMessage) {
         final NodeIdentifier proposedIdentifier = requestMessage.getConnectionRequest().getProposedNodeIdentifier();
-        final ConnectionRequest requestWithDn = new ConnectionRequest(addRequestorDn(proposedIdentifier, requestMessage.getRequestorDN()));
+        final NodeIdentifier withRequestorDn = addRequestorDn(proposedIdentifier, requestMessage.getRequestorDN());
+        final DataFlow dataFlow = requestMessage.getConnectionRequest().getDataFlow();
+        final ConnectionRequest requestWithDn = new ConnectionRequest(withRequestorDn, dataFlow);
 
         // Resolve Node identifier.
         final NodeIdentifier resolvedNodeId = resolveNodeId(proposedIdentifier);
-        final ConnectionResponse response = createConnectionResponse(requestWithDn, resolvedNodeId);
+
+        if (requireElection) {
+            final DataFlow electedDataFlow = flowElection.castVote(dataFlow, withRequestorDn);
+            if (electedDataFlow == null) {
+                logger.info("Received Connection Request from {}; responding with Flow Election In Progress message", withRequestorDn);
+                return createFlowElectionInProgressResponse();
+            } else {
+                logger.info("Received Connection Request from {}; responding with DataFlow that was elected", withRequestorDn);
+                return createConnectionResponse(requestWithDn, resolvedNodeId, electedDataFlow);
+            }
+        }
+
+        logger.info("Received Connection Request from {}; responding with my DataFlow", withRequestorDn);
+        return createConnectionResponse(requestWithDn, resolvedNodeId);
+    }
+
+    private ConnectionResponseMessage createFlowElectionInProgressResponse() {
         final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
-        responseMessage.setConnectionResponse(response);
+        final String statusDescription = flowElection.getStatusDescription();
+        responseMessage.setConnectionResponse(new ConnectionResponse(5, "Cluster is still voting on which Flow is the correct flow for the cluster. " + statusDescription));
         return responseMessage;
     }
 
-    private ConnectionResponse createConnectionResponse(final ConnectionRequest request, final NodeIdentifier resolvedNodeIdentifier) {
-        if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
-            // if the socket address is not listed in the firewall, then return a null response
-            logger.info("Firewall blocked connection request from node " + resolvedNodeIdentifier);
-            return ConnectionResponse.createBlockedByFirewallResponse();
-        }
-
-        // Set node's status to 'CONNECTING'
-        NodeConnectionStatus status = getConnectionStatus(resolvedNodeIdentifier);
-        if (status == null) {
-            addNodeEvent(resolvedNodeIdentifier, "Connection requested from new node.  Setting status to connecting.");
-        } else {
-            addNodeEvent(resolvedNodeIdentifier, "Connection requested from existing node.  Setting status to connecting");
-        }
-
-        status = new NodeConnectionStatus(resolvedNodeIdentifier, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis());
-        updateNodeStatus(status);
-
+    private ConnectionResponseMessage createConnectionResponse(final ConnectionRequest request, final NodeIdentifier resolvedNodeIdentifier) {
         DataFlow dataFlow = null;
         if (flowService != null) {
             try {
                 dataFlow = flowService.createDataFlow();
             } catch (final IOException ioe) {
                 logger.error("Unable to obtain current dataflow from FlowService in order to provide the flow to "
-                        + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);
+                    + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);
             }
         }
 
-        if (dataFlow == null) {
-            // Create try-later response based on flow retrieval delay to give
-            // the flow management service a chance to retrieve a current flow
-            final int tryAgainSeconds = 5;
-            addNodeEvent(resolvedNodeIdentifier, Severity.WARNING, "Connection requested from node, but manager was unable to obtain current flow. "
-                    + "Instructing node to try again in " + tryAgainSeconds + " seconds.");
+        return createConnectionResponse(request, resolvedNodeIdentifier, dataFlow);
+    }
 
-            // return try later response
-            return new ConnectionResponse(tryAgainSeconds);
+
+    private ConnectionResponseMessage createConnectionResponse(final ConnectionRequest request, final NodeIdentifier resolvedNodeIdentifier, final DataFlow clusterDataFlow) {
+        if (isBlockedByFirewall(resolvedNodeIdentifier.getSocketAddress())) {
+            // if the socket address is not listed in the firewall, then return a null response
+            logger.info("Firewall blocked connection request from node " + resolvedNodeIdentifier);
+            final ConnectionResponse response = ConnectionResponse.createBlockedByFirewallResponse();
+            final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
+            responseMessage.setConnectionResponse(response);
+            return responseMessage;
         }
 
-        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, getConnectionStatuses(),
+        if (clusterDataFlow == null) {
+            final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
+            responseMessage.setConnectionResponse(new ConnectionResponse(5, "The cluster dataflow is not yet available"));
+            return responseMessage;
+        }
+
+        // Set node's status to 'CONNECTING'
+        NodeConnectionStatus status = getConnectionStatus(resolvedNodeIdentifier);
+        if (status == null) {
+            addNodeEvent(resolvedNodeIdentifier, "Connection requested from new node. Setting status to connecting.");
+        } else {
+            addNodeEvent(resolvedNodeIdentifier, "Connection requested from existing node. Setting status to connecting.");
+        }
+
+        status = new NodeConnectionStatus(resolvedNodeIdentifier, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis());
+        updateNodeStatus(status);
+
+        final ConnectionResponse response = new ConnectionResponse(resolvedNodeIdentifier, clusterDataFlow, instanceId, getConnectionStatuses(),
                 revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
+
+        final ConnectionResponseMessage responseMessage = new ConnectionResponseMessage();
+        responseMessage.setConnectionResponse(response);
+        return responseMessage;
     }
+
 
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
@@ -901,7 +975,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
          * state even if they had problems handling the request.
          */
         if (mutableRequest) {
-            final HttpResponseMerger responseMerger = new StandardHttpResponseMerger(nifiProperties);
+            final HttpResponseMapper responseMerger = new StandardHttpResponseMapper(nifiProperties);
             final Set<NodeResponse> problematicNodeResponses = responseMerger.getProblematicNodeResponses(nodeResponses);
 
             // all nodes failed
@@ -960,10 +1034,27 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public void setConnected(final boolean connected) {
         this.connected = connected;
+
+        // Once we have connected to the cluster, election is no longer required.
+        // It is required only upon startup so that if multiple nodes are started up
+        // at the same time, and they have different flows, that we don't choose the
+        // wrong flow as the 'golden copy' by electing that node as the elected
+        // active Cluster Coordinator.
+        if (connected) {
+            logger.info("This node is now connected to the cluster. Will no longer require election of DataFlow.");
+            requireElection = false;
+        }
     }
 
     @Override
     public boolean isConnected() {
         return connected;
+    }
+
+    @Override
+    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
+        final ClusterWorkloadRequestMessage request = new ClusterWorkloadRequestMessage();
+        final ClusterWorkloadResponseMessage response = nodeProtocolSender.clusterWorkload(request);
+        return response.getNodeWorkloads();
     }
 }

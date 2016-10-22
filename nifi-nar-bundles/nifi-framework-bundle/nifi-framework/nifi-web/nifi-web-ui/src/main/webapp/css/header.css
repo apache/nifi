@@ -126,12 +126,15 @@ md-toolbar.md-small .md-toolbar-tools {
     font-size: 15px;
     color: #728E9B;
     margin-right: 10px;
+    width: 15px;
+    display: inline-block;
 }
 
 #global-menu-content .fa {
     font-size: 15px;
     color: #728E9B;
     margin-right: 10px;
+    width: 15px;
 }
 
 /* styles for the toolbox */

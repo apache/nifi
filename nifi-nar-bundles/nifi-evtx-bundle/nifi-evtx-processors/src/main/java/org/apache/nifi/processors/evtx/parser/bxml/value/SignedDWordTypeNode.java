@@ -25,7 +25,7 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 import java.io.IOException;
 
 /**
- * Node contianing a signed 32 bit value
+ * Node containing a signed 32 bit value
  */
 public class SignedDWordTypeNode extends VariantTypeNode {
     private final UnsignedInteger value;

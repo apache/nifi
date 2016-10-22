@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.hbase;
 
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,7 +49,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
-    public void put(String tableName, String rowId, Collection<PutColumn> columns) throws IOException {
+    public void put(String tableName, byte[] rowId, Collection<PutColumn> columns) throws IOException {
        throw new UnsupportedOperationException();
     }
 
@@ -130,5 +132,10 @@ public class MockHBaseClientService extends AbstractControllerService implements
     @Override
     public byte[] toBytes(final String s) {
         return s.getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public byte[] toBytesBinary(String s) {
+       return Bytes.toBytesBinary(s);
     }
 }

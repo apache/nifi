@@ -184,7 +184,7 @@ public class FTPUtils {
      * @param client - the ftp client with an already active connection
      * @param dirPath - the path to change or create directories to
      * @param createDirs - if true will attempt to create any missing directories
-     * @param processor - used solely for targetting logging output.
+     * @param processor - used solely for targeting logging output.
      * @throws IOException if any access problem occurs
      */
     public static void changeWorkingDirectory(final FTPClient client, final String dirPath, final boolean createDirs, final Processor processor) throws IOException {
@@ -204,7 +204,7 @@ public class FTPUtils {
         } catch (final IOException ioe) {
             logger.debug(processor + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
         }
-        if (!dirExists) {  //coulnd't navigate directly...begin hard work
+        if (!dirExists) {  //couldn't navigate directly...begin hard work
             final Deque<String> stack = new LinkedList<>();
             File fakeFile = new File(dir.getPath());
             do {

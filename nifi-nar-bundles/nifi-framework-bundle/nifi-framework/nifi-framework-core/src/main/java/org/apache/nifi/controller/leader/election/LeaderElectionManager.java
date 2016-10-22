@@ -24,14 +24,9 @@ public interface LeaderElectionManager {
     void start();
 
     /**
-     * Adds a new role for which a leader is required
-     *
-     * @param roleName the name of the role
-     */
-    void register(String roleName);
-
-    /**
-     * Adds a new role for which a leader is required, without providing a Participant ID
+     * Adds a new role for which a leader is required, without participating in the leader election. I.e., this node
+     * will not be elected leader but will passively observe changes to the leadership. This allows calls to {@link #isLeader(String)}
+     * and {@link #getLeader(String)} to know which node is currently elected the leader.
      *
      * @param roleName the name of the role
      * @param listener a listener that will be called when the node gains or relinquishes
@@ -40,7 +35,8 @@ public interface LeaderElectionManager {
     void register(String roleName, LeaderElectionStateChangeListener listener);
 
     /**
-     * Adds a new role for which a leader is required, providing the given value for this node as the Participant ID
+     * Adds a new role for which a leader is required, providing the given value for this node as the Participant ID. If the Participant ID
+     * is <code>null</code>, this node will never be elected leader but will passively observe changes to the leadership.
      *
      * @param roleName the name of the role
      * @param listener a listener that will be called when the node gains or relinquishes
@@ -90,4 +86,12 @@ public interface LeaderElectionManager {
      * again, all previously registered roles will still be registered.
      */
     void stop();
+
+    /**
+     * Returns <code>true</code> if a leader has been elected for the given role, <code>false</code> otherwise.
+     *
+     * @param roleName the name of the role
+     * @return <code>true</code> if a leader has been elected, <code>false</code> otherwise.
+     */
+    boolean isLeaderElected(String roleName);
 }

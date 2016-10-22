@@ -83,7 +83,7 @@ public class TestJdbcHugeStream {
                     + " from persons PER, products PRD, relationships REL");
 
                 final OutputStream outStream = new FileOutputStream("target/data.avro");
-                final long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, outStream);
+                final long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
                 // Deserialize bytes to records
                 final InputStream instream = new FileInputStream("target/data.avro");

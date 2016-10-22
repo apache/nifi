@@ -137,7 +137,6 @@ public class AmbariReportingTask extends AbstractReportingTask {
                 final String responseEntity = response.hasEntity() ? response.readEntity(String.class) : "unknown error";
                 getLogger().error("Error sending metrics to Ambari due to {} - {}", new Object[]{response.getStatus(), responseEntity});
             }
-
         }
 
         // calculate the current metrics, but store them to be sent next time

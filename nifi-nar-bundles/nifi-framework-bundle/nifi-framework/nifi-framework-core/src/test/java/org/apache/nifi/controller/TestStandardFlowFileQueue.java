@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -493,6 +494,29 @@ public class TestStandardFlowFileQueue {
         final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 100);
         assertNotNull(status);
         assertEquals(30050, status.getQueueSize().getObjectCount());
+
+        while (status.getState() != ListFlowFileState.COMPLETE) {
+            Thread.sleep(100);
+        }
+
+        assertEquals(100, status.getFlowFileSummaries().size());
+        assertEquals(100, status.getCompletionPercentage());
+        assertNull(status.getFailureReason());
+    }
+
+    @Test(timeout = 5000)
+    public void testListFlowFilesResultsLimitedCollection() throws InterruptedException {
+        Collection<FlowFileRecord> tff = new ArrayList<>();
+        //Swap Size is 10000 records, so 30000 is equal to 3 swap files.
+        for (int i = 0; i < 30000; i++) {
+            tff.add(new TestFlowFile());
+        }
+
+        queue.putAll(tff);
+
+        final ListFlowFileStatus status = queue.listFlowFiles(UUID.randomUUID().toString(), 100);
+        assertNotNull(status);
+        assertEquals(30000, status.getQueueSize().getObjectCount());
 
         while (status.getState() != ListFlowFileState.COMPLETE) {
             Thread.sleep(100);

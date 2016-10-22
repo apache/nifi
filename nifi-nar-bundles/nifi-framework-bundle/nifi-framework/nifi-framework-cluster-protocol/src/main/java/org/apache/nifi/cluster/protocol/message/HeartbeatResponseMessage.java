@@ -28,7 +28,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 public class HeartbeatResponseMessage extends ProtocolMessage {
 
     private List<NodeConnectionStatus> updatedNodeStatuses = new ArrayList<>();
-
+    private String flowElectionMessage = null;
 
     @Override
     public MessageType getType() {
@@ -41,5 +41,13 @@ public class HeartbeatResponseMessage extends ProtocolMessage {
 
     public void setUpdatedNodeStatuses(final List<NodeConnectionStatus> nodeStatuses) {
         this.updatedNodeStatuses = new ArrayList<>(nodeStatuses);
+    }
+
+    public String getFlowElectionMessage() {
+        return flowElectionMessage;
+    }
+
+    public void setFlowElectionMessage(String flowElectionMessage) {
+        this.flowElectionMessage = flowElectionMessage;
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote.io.http;
 
+import org.apache.nifi.remote.io.InterruptableInputStream;
 import org.apache.nifi.remote.protocol.CommunicationsInput;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 
@@ -25,6 +26,7 @@ import java.io.InputStream;
 public class HttpInput implements CommunicationsInput {
 
     private ByteCountingInputStream countingIn;
+    private InterruptableInputStream interruptableIn;
 
     @Override
     public InputStream getInputStream() throws IOException {
@@ -53,6 +55,13 @@ public class HttpInput implements CommunicationsInput {
     }
 
     public void setInputStream(InputStream inputStream) {
-        this.countingIn = new ByteCountingInputStream(inputStream);
+        interruptableIn = new InterruptableInputStream(inputStream);
+        this.countingIn = new ByteCountingInputStream(interruptableIn);
+    }
+
+    public void interrupt() {
+        if (interruptableIn != null) {
+            interruptableIn.interrupt();
+        }
     }
 }

@@ -125,9 +125,8 @@
                 <div class="clear"></div>
             </div>
             <div id="message-and-save-container">
-                <div id="selected-rule-save" class="button hidden">Save</div>
                 <div id="message"></div>
-                <div class="clear"></div>
+                <div id="selected-rule-save" class="button hidden">Save</div>
             </div>
             <div class="clear"></div>
             <div id="glass-pane"></div>

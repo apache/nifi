@@ -271,16 +271,18 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             // Create one Put per row....
             final Map<String, Put> rowPuts = new HashMap<>();
             for (final PutFlowFile putFlowFile : puts) {
-                Put put = rowPuts.get(putFlowFile.getRow());
+                //this is used for the map key as a byte[] does not work as a key.
+                final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+                Put put = rowPuts.get(rowKeyString);
                 if (put == null) {
-                    put = new Put(putFlowFile.getRow().getBytes(StandardCharsets.UTF_8));
-                    rowPuts.put(putFlowFile.getRow(), put);
+                    put = new Put(putFlowFile.getRow());
+                    rowPuts.put(rowKeyString, put);
                 }
 
                 for (final PutColumn column : putFlowFile.getColumns()) {
                     put.addColumn(
-                            column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
-                            column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                            column.getColumnFamily(),
+                            column.getColumnQualifier(),
                             column.getBuffer());
                 }
             }
@@ -290,13 +292,13 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     }
 
     @Override
-    public void put(final String tableName, final String rowId, final Collection<PutColumn> columns) throws IOException {
+    public void put(final String tableName, final byte[] rowId, final Collection<PutColumn> columns) throws IOException {
         try (final Table table = connection.getTable(TableName.valueOf(tableName))) {
-            Put put = new Put(rowId.getBytes(StandardCharsets.UTF_8));
+            Put put = new Put(rowId);
             for (final PutColumn column : columns) {
                 put.addColumn(
-                        column.getColumnFamily().getBytes(StandardCharsets.UTF_8),
-                        column.getColumnQualifier().getBytes(StandardCharsets.UTF_8),
+                        column.getColumnFamily(),
+                        column.getColumnQualifier(),
                         column.getBuffer());
             }
             table.put(put);
@@ -428,4 +430,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         return Bytes.toBytes(s);
     }
 
+    @Override
+    public byte[] toBytesBinary(String s) {
+        return Bytes.toBytesBinary(s);
+    }
 }

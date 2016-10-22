@@ -27,11 +27,11 @@ import java.util.Collection;
 public class PutFlowFile {
 
     private final String tableName;
-    private final String row;
+    private final byte[] row;
     private final Collection<PutColumn> columns;
     private final FlowFile flowFile;
 
-    public PutFlowFile(String tableName, String row, Collection<PutColumn> columns, FlowFile flowFile) {
+    public PutFlowFile(String tableName, byte[] row, Collection<PutColumn> columns, FlowFile flowFile) {
         this.tableName = tableName;
         this.row = row;
         this.columns = columns;
@@ -42,7 +42,7 @@ public class PutFlowFile {
         return tableName;
     }
 
-    public String getRow() {
+    public byte[] getRow() {
         return row;
     }
 
@@ -55,12 +55,12 @@ public class PutFlowFile {
     }
 
     public boolean isValid() {
-        if (StringUtils.isBlank(tableName) || StringUtils.isBlank(row) || flowFile == null || columns == null || columns.isEmpty()) {
+        if (StringUtils.isBlank(tableName) || null == row || flowFile == null || columns == null || columns.isEmpty()) {
             return false;
         }
 
         for (PutColumn column : columns) {
-            if (StringUtils.isBlank(column.getColumnQualifier()) || StringUtils.isBlank(column.getColumnFamily()) || column.getBuffer() == null) {
+            if (null == column.getColumnQualifier() || null == column.getColumnFamily() || column.getBuffer() == null) {
                 return false;
             }
         }

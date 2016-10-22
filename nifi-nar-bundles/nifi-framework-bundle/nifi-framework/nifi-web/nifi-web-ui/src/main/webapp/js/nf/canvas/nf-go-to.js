@@ -25,295 +25,375 @@ nf.GoTo = (function () {
     var config = {
         urls: {
             api: '../nifi-api',
-            processGroups: '../nifi-api/process-groups/'
+            processGroups: '../nifi-api/flow/process-groups/'
         }
     };
-
-    /**
-     * Returns a deferred for the process group.
-     *
-     * @param {string} processGroupId
-     */
-    var getProcessGroup = function (processGroupId) {
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(processGroupId),
-            dataType: 'json'
-        });
-    };
-
-    /**
-     * Returns a deferred for the remote process group.
-     *
-     * @param {string} parentGroupId
-     * @param {string} remoteProcessGroupId
-     */
-    var getRemoteProcessGroup = function (parentGroupId, remoteProcessGroupId) {
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.processGroups + encodeURIComponent(parentGroupId) + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId),
-            dataType: 'json'
-        });
-    };
+    
+    var currentComponentId;
+    var currentComponentLabel;
 
     /**
      * Adds a connection to the connections dialog.
      *
-     * @param {object} connection
+     * @param {string}  parentProcessGroupId
+     * @param {object}  connectionEntity
+     * @param {array}   processGroupEntities
+     * @param {array}   remoteProcessGroupEntities
      */
-    var addConnection = function (connection) {
+    var addConnection = function (parentProcessGroupId, connectionEntity, processGroupEntities, remoteProcessGroupEntities) {
         var container = $('<div class="source-destination-connection"></div>').appendTo('#connections-container');
 
-        var source;
-        if (connection.source.type === 'OUTPUT_PORT') {
-            source = addSourceOutputPort(container, connection);
-        } else if (connection.source.type === 'REMOTE_OUTPUT_PORT') {
-            source = addSourceRemoteOutputPort(container, connection);
+        if (connectionEntity.sourceType === 'OUTPUT_PORT') {
+            addSourceOutputPort(parentProcessGroupId, container, connectionEntity, processGroupEntities);
+        } else if (connectionEntity.sourceType === 'REMOTE_OUTPUT_PORT') {
+            addSourceRemoteOutputPort(parentProcessGroupId, container, connectionEntity, remoteProcessGroupEntities);
         } else {
-            source = addSourceComponent(container, connection);
+            addSourceComponent(container, connectionEntity);
         }
 
-        source.done(function () {
-            var connectionEntry = $('<div class="connection-entry"></div>').appendTo(container);
+        var connectionEntry = $('<div class="connection-entry"></div>').appendTo(container);
 
-            // format the connection name.. fall back to id
-            var connectionStyle = '';
-            var connectionName = nf.CanvasUtils.formatConnectionName(connection);
-            if (connectionName === '') {
-                connectionStyle = 'unset';
-                connectionName = 'Connection';
+        // format the connection name.. fall back to id
+        var connectionStyle = 'unset';
+        var connectionName = 'Connection';
+        if (connectionEntity.permissions.canRead === true) {
+            var formattedConnectionName = nf.CanvasUtils.formatConnectionName(connectionEntity.component);
+            if (formattedConnectionName !== '') {
+                connectionStyle = '';
+                connectionName = formattedConnectionName;
             }
+        }
 
-            // connection
-            $('<div class="search-result-icon connection-small-icon"></div>').appendTo(connectionEntry);
-            $('<div class="connection-entry-name go-to-link"></div>').attr('title', connectionName).addClass(connectionStyle).text(connectionName).on('click', function () {
-                // go to the connection
-                nf.CanvasUtils.showComponent(connection.parentGroupId, connection.id);
+        // connection
+        $('<div class="search-result-icon icon-connect"></div>').appendTo(connectionEntry);
+        $('<div class="connection-entry-name go-to-link"></div>').attr('title', connectionName).addClass(connectionStyle).text(connectionName).on('click', function () {
+            // go to the connection
+            nf.CanvasUtils.showComponent(parentProcessGroupId, connectionEntity.id);
 
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(connectionEntry);
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(connectionEntry);
 
-            // clear
-            $('<div class="clear"></div>').appendTo(connectionEntry);
+        // clear
+        $('<div class="clear"></div>').appendTo(connectionEntry);
 
-            var destination;
-            if (connection.destination.type === 'INPUT_PORT') {
-                destination = addDestinationInputPort(container, connection);
-            } else if (connection.destination.type === 'REMOTE_INPUT_PORT') {
-                destination = addDestinationRemoteInputPort(container, connection);
-            } else {
-                destination = addDestinationComponent(container, connection);
-            }
+        if (connectionEntity.destinationType === 'INPUT_PORT') {
+            addDestinationInputPort(parentProcessGroupId, container, connectionEntity, processGroupEntities);
+        } else if (connectionEntity.destinationType === 'REMOTE_INPUT_PORT') {
+            addDestinationRemoteInputPort(parentProcessGroupId, container, connectionEntity, remoteProcessGroupEntities);
+        } else {
+            addDestinationComponent(container, connectionEntity);
+        }
 
-            destination.done(function () {
-                // clear
-                $('<div class="clear"></div>').appendTo(container);
-            });
-        });
+        // clear
+        $('<div class="clear"></div>').appendTo(container);
     };
 
     /**
      * Adds a destination component to the dialog.
      *
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection to the downstream component
+     * @param {object} connectionEntity             The connection to the downstream component
      */
-    var addDestinationComponent = function (container, connection) {
-        return $.Deferred(function (deferred) {
-            // get the appropriate component icon
-            var smallIconClass = '';
-            if (connection.destination.type === 'PROCESSOR') {
-                smallIconClass = 'processor-small-icon';
-            } else if (connection.destination.type === 'OUTPUT_PORT') {
-                smallIconClass = 'output-port-small-icon';
-            }
+    var addDestinationComponent = function (container, connectionEntity) {
+        // get the appropriate component icon
+        var smallIconClass = 'icon-funnel';
+        if (connectionEntity.destinationType === 'PROCESSOR') {
+            smallIconClass = 'icon-processor';
+        } else if (connectionEntity.destinationType === 'OUTPUT_PORT') {
+            smallIconClass = 'icon-port-out';
+        }
 
-            // component
-            var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
-            $('<div class="search-result-icon"></div>').addClass(smallIconClass).appendTo(downstreamComponent);
-            $('<div class="destination-component-name go-to-link"></div>').attr('title', connection.destination.name).text(connection.destination.name).on('click', function () {
-                // go to the component
-                nf.CanvasUtils.showComponent(connection.destination.groupId, connection.destination.id);
+        // get the source name
+        var destinationName = connectionEntity.destinationId;
+        if (connectionEntity.permissions.canRead === true) {
+            destinationName = connectionEntity.component.destination.name;
+        } else if (currentComponentId === connectionEntity.destinationId) {
+            destinationName = currentComponentLabel;
+        }
 
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(downstreamComponent);
+        // component
+        var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
+        $('<div class="search-result-icon"></div>').addClass(smallIconClass).appendTo(downstreamComponent);
+        $('<div class="destination-component-name go-to-link"></div>').attr('title', destinationName).text(destinationName).on('click', function () {
+            // go to the component
+            nf.CanvasUtils.showComponent(connectionEntity.destinationGroupId, connectionEntity.destinationId);
 
-            // clear
-            $('<div class="clear"></div>').appendTo(downstreamComponent);
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(downstreamComponent);
 
-            deferred.resolve();
-        }).promise();
+        // clear
+        $('<div class="clear"></div>').appendTo(downstreamComponent);
     };
 
     /**
      * Adds a destination input port to the dialog.
      *
+     * @param {string} parentProcessGroupId               The process group id
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection to the downstream input port
+     * @param {object} connectionEntity             The connection to the downstream input port
+     * @param {array}  processGroupEntities         The process groups
      */
-    var addDestinationInputPort = function (container, connection) {
-        // get the remote process group
-        return getProcessGroup(connection.destination.groupId).done(function (response) {
-            var processGroup = response.component;
-
-            // process group
-            var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
-            $('<div class="search-result-icon process-group-small-icon"></div>').appendTo(downstreamComponent);
-            $('<div class="destination-component-name go-to-link"></div>').attr('title', processGroup.name).text(processGroup.name).on('click', function () {
-                // go to the remote process group
-                nf.CanvasUtils.showComponent(processGroup.parentGroupId, processGroup.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(downstreamComponent);
-
-            // clear
-            $('<div class="clear"></div>').appendTo(downstreamComponent);
-
-            // input port
-            var downstreamInputPort = $('<div class="destination-input-port"></div>').appendTo(downstreamComponent);
-            $('<div class="search-result-icon input-port-small-icon"></div>').appendTo(downstreamInputPort);
-            $('<div class="destination-input-port-name go-to-link"></div>').attr('title', connection.destination.name).text(connection.destination.name).on('click', function () {
-                // go to the remote process group
-                nf.CanvasUtils.showComponent(connection.destination.groupId, connection.destination.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(downstreamInputPort);
-
-            // clear
-            $('<div class="clear"></div>').appendTo(downstreamComponent);
+    var addDestinationInputPort = function (parentProcessGroupId, container, connectionEntity, processGroupEntities) {
+        var processGroupEntity;
+        $.each(processGroupEntities, function (_, pge) {
+            if (connectionEntity.destinationGroupId === pge.id) {
+                processGroupEntity = pge;
+                return false;
+            }
         });
+
+        // get the group label
+        var groupLabel = getDisplayName(processGroupEntity);
+
+        // process group
+        var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
+        $('<div class="search-result-icon icon-group"></div>').appendTo(downstreamComponent);
+        $('<div class="destination-component-name go-to-link"></div>').attr('title', groupLabel).text(groupLabel).on('click', function () {
+            // go to the remote process group
+            nf.CanvasUtils.showComponent(parentProcessGroupId, processGroupEntity.id);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(downstreamComponent);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(downstreamComponent);
+
+        // get the port label
+        var portLabel = connectionEntity.destinationId;
+        if (connectionEntity.permissions.canRead === true) {
+            portLabel = connectionEntity.component.destination.name;
+        } else if (currentComponentId === connectionEntity.destinationId) {
+            portLabel = currentComponentLabel;
+        }
+
+        // input port
+        var downstreamInputPort = $('<div class="destination-input-port"></div>').appendTo(downstreamComponent);
+        $('<div class="search-result-icon icon-port-in"></div>').appendTo(downstreamInputPort);
+        $('<div class="destination-input-port-name go-to-link"></div>').attr('title', portLabel).text(portLabel).on('click', function () {
+            // go to the remote process group
+            nf.CanvasUtils.showComponent(connectionEntity.destinationGroupId, connectionEntity.destinationId);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(downstreamInputPort);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(downstreamComponent);
     };
 
     /**
      * Adds a destination remote input port to the dialog.
      *
+     * @param {string} parentProcessGroupId               The process group id
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection to the downstream remote input port
+     * @param {object} connectionEntity             The connection to the downstream remote input port
+     * @param {array} remoteProcessGroupEntities    The remote process groups
      */
-    var addDestinationRemoteInputPort = function (container, connection) {
-        // get the remote process group
-        return getRemoteProcessGroup(connection.parentGroupId, connection.destination.groupId).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
-
-            // remote process group
-            var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
-            $('<div class="search-result-icon remote-process-group-small-icon"></div>').appendTo(downstreamComponent);
-            $('<div class="destination-component-name go-to-link"></div>').attr('title', remoteProcessGroup.name).text(remoteProcessGroup.name).on('click', function () {
-                // go to the remote process group
-                nf.CanvasUtils.showComponent(remoteProcessGroup.parentGroupId, remoteProcessGroup.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(downstreamComponent);
-
-            // clear
-            $('<div class="clear"></div>').appendTo(downstreamComponent);
-
-            // remote input port
-            var downstreamInputPort = $('<div class="destination-input-port"></div>').appendTo(downstreamComponent);
-            $('<div class="search-result-icon input-port-small-icon"></div>').appendTo(downstreamInputPort);
-            $('<div class="destination-input-port-name"></div>').attr('title', connection.destination.name).text(connection.destination.name).appendTo(downstreamInputPort);
-
-            // clear
-            $('<div class="clear"></div>').appendTo(downstreamComponent);
+    var addDestinationRemoteInputPort = function (parentProcessGroupId, container, connectionEntity, remoteProcessGroupEntities) {
+        var remoteProcessGroupEntity;
+        $.each(remoteProcessGroupEntities, function (_, rpge) {
+            if (connectionEntity.destinationGroupId === rpge.id) {
+                remoteProcessGroupEntity = rpge;
+                return false;
+            }
         });
+
+        // get the group label
+        var remoteGroupLabel = getDisplayName(remoteProcessGroupEntity);
+
+        // remote process group
+        var downstreamComponent = $('<div class="destination-component"></div>').appendTo(container);
+        $('<div class="search-result-icon icon-group-remote"></div>').appendTo(downstreamComponent);
+        $('<div class="destination-component-name go-to-link"></div>').attr('title', remoteGroupLabel).text(remoteGroupLabel).on('click', function () {
+            // go to the remote process group
+            nf.CanvasUtils.showComponent(parentProcessGroupId, remoteProcessGroupEntity.id);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(downstreamComponent);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(downstreamComponent);
+
+        // get the port label
+        var remotePortLabel = connectionEntity.destinationId;
+        if (connectionEntity.permissions.canRead === true) {
+            remotePortLabel = connectionEntity.component.destination.name;
+        } else if (currentComponentId === connectionEntity.destinationId) {
+            remotePortLabel = currentComponentLabel;
+        }
+
+        // remote input port
+        var downstreamInputPort = $('<div class="destination-input-port"></div>').appendTo(downstreamComponent);
+        $('<div class="search-result-icon icon-port-in"></div>').appendTo(downstreamInputPort);
+        $('<div class="destination-input-port-name"></div>').attr('title', remotePortLabel).text(remotePortLabel).appendTo(downstreamInputPort);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(downstreamComponent);
     };
 
     /**
      * Adds a source component to the dialog.
      *
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection to the upstream component
+     * @param {object} connectionEntity             The connection to the upstream component
      */
-    var addSourceComponent = function (container, connection) {
-        return $.Deferred(function (deferred) {
-            // get the appropriate component icon
-            var smallIconClass = '';
-            if (connection.source.type === 'PROCESSOR') {
-                smallIconClass = 'processor-small-icon';
-            } else if (connection.source.type === 'INPUT_PORT') {
-                smallIconClass = 'input-port-small-icon';
-            }
+    var addSourceComponent = function (container, connectionEntity) {
+        // get the appropriate component icon
+        var smallIconClass = 'icon-funnel';
+        if (connectionEntity.sourceType === 'PROCESSOR') {
+            smallIconClass = 'icon-processor';
+        } else if (connectionEntity.sourceType === 'INPUT_PORT') {
+            smallIconClass = 'icon-port-in';
+        }
 
-            // component
-            var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
-            $('<div class="search-result-icon"></div>').addClass(smallIconClass).appendTo(sourceComponent);
-            $('<div class="source-component-name go-to-link"></div>').attr('title', connection.source.name).text(connection.source.name).on('click', function () {
-                // go to the component
-                nf.CanvasUtils.showComponent(connection.source.groupId, connection.source.id);
+        // get the source name
+        var sourceName = connectionEntity.sourceId;
+        if (connectionEntity.permissions.canRead === true) {
+            sourceName = connectionEntity.component.source.name;
+        } else if (currentComponentId === connectionEntity.sourceId) {
+            sourceName = currentComponentLabel;
+        }
 
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(sourceComponent);
+        // component
+        var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
+        $('<div class="search-result-icon"></div>').addClass(smallIconClass).appendTo(sourceComponent);
+        $('<div class="source-component-name go-to-link"></div>').attr('title', sourceName).text(sourceName).on('click', function () {
+            // go to the component
+            nf.CanvasUtils.showComponent(connectionEntity.sourceGroupId, connectionEntity.sourceId);
 
-            deferred.resolve();
-        }).promise();
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(sourceComponent);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(sourceComponent);
     };
 
     /**
      * Adds a source output port to the dialog.
      *
+     * @param {string} parentProcessGroupId               The process group id
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection
+     * @param {object} connectionEntity             The connection
+     * @param {array} processGroupEntities          The process groups
      */
-    var addSourceOutputPort = function (container, connection) {
-        // get the remote process group
-        return getProcessGroup(connection.source.groupId).done(function (response) {
-            var processGroup = response.component;
-
-            // process group
-            var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
-            $('<div class="search-result-icon process-group-small-icon"></div>').appendTo(sourceComponent);
-            $('<div class="source-component-name go-to-link"></div>').attr('title', processGroup.name).text(processGroup.name).on('click', function () {
-                // go to the process group
-                nf.CanvasUtils.showComponent(processGroup.parentGroupId, processGroup.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(sourceComponent);
-            $('<div class="clear"></div>').appendTo(sourceComponent);
-            var sourceOutputPort = $('<div class="source-output-port"></div>').appendTo(sourceComponent);
-            $('<div class="search-result-icon output-port-small-icon"></div>').appendTo(sourceOutputPort);
-            $('<div class="source-output-port-name go-to-link"></div>').attr('title', connection.source.name).text(connection.source.name).on('click', function () {
-                // go to the output port
-                nf.CanvasUtils.showComponent(connection.source.groupId, connection.source.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(sourceOutputPort);
+    var addSourceOutputPort = function (parentProcessGroupId, container, connectionEntity, processGroupEntities) {
+        var processGroupEntity;
+        $.each(processGroupEntities, function (_, pge) {
+            if (connectionEntity.sourceGroupId === pge.id) {
+                processGroupEntity = pge;
+                return false;
+            }
         });
+
+        // get the group label
+        var groupLabel = getDisplayName(processGroupEntity);
+
+        // process group
+        var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
+        $('<div class="search-result-icon icon-group"></div>').appendTo(sourceComponent);
+        $('<div class="source-component-name go-to-link"></div>').attr('title', groupLabel).text(groupLabel).on('click', function () {
+            // go to the process group
+            nf.CanvasUtils.showComponent(parentProcessGroupId, processGroupEntity.id);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(sourceComponent);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(sourceComponent);
+
+        // get the port label
+        var portLabel = connectionEntity.sourceId;
+        if (connectionEntity.permissions.canRead === true) {
+            portLabel = connectionEntity.component.source.name;
+        } else if (currentComponentId === connectionEntity.sourceId) {
+            portLabel = currentComponentLabel;
+        }
+
+        var sourceOutputPort = $('<div class="source-output-port"></div>').appendTo(sourceComponent);
+        $('<div class="search-result-icon icon-port-out"></div>').appendTo(sourceOutputPort);
+        $('<div class="source-output-port-name go-to-link"></div>').attr('title', portLabel).text(portLabel).on('click', function () {
+            // go to the output port
+            nf.CanvasUtils.showComponent(connectionEntity.sourceGroupId, connectionEntity.sourceId);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(sourceOutputPort);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(sourceComponent);
     };
 
     /**
      * Adds a source remote output port to the dialog.
      *
+     * @param {string} parentProcessGroupId               The process group id
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection to the downstream remote output port
+     * @param {object} connectionEntity             The connection to the downstream remote output port
+     * @param {array} remoteProcessGroupEntities    The remote process groups
      */
-    var addSourceRemoteOutputPort = function (container, connection) {
-        // get the remote process group
-        return getRemoteProcessGroup(connection.parentGroupId, connection.source.groupId).done(function (response) {
-            var remoteProcessGroup = response.remoteProcessGroup;
-
-            // remote process group
-            var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
-            $('<div class="search-result-icon remote-process-group-small-icon"></div>').appendTo(sourceComponent);
-            $('<div class="source-component-name go-to-link"></div>').attr('title', remoteProcessGroup.name).text(remoteProcessGroup.name).on('click', function () {
-                // go to the remote process group
-                nf.CanvasUtils.showComponent(remoteProcessGroup.parentGroupId, remoteProcessGroup.id);
-
-                // close the dialog
-                $('#connections-dialog').modal('hide');
-            }).appendTo(sourceComponent);
-            $('<div class="clear"></div>').appendTo(sourceComponent);
-            var sourceOutputPort = $('<div class="source-output-port"></div>').appendTo(sourceComponent);
-            $('<div class="search-result-icon output-port-small-icon"></div>').appendTo(sourceOutputPort);
-            $('<div class="source-output-port-name"></div>').attr('title', connection.source.name).text(connection.source.name).appendTo(sourceOutputPort);
+    var addSourceRemoteOutputPort = function (parentProcessGroupId, container, connectionEntity, remoteProcessGroupEntities) {
+        var remoteProcessGroupEntity;
+        $.each(remoteProcessGroupEntities, function (_, rpge) {
+            if (connectionEntity.sourceGroupId === rpge.id) {
+                remoteProcessGroupEntity = rpge;
+                return false;
+            }
         });
+
+        // get the group label
+        var remoteGroupLabel = getDisplayName(remoteProcessGroupEntity);
+
+        // remote process group
+        var sourceComponent = $('<div class="source-component"></div>').appendTo(container);
+        $('<div class="search-result-icon icon-group-remote"></div>').appendTo(sourceComponent);
+        $('<div class="source-component-name go-to-link"></div>').attr('title', remoteGroupLabel).text(remoteGroupLabel).on('click', function () {
+            // go to the remote process group
+            nf.CanvasUtils.showComponent(parentProcessGroupId, remoteProcessGroupEntity.id);
+
+            // close the dialog
+            $('#connections-dialog').modal('hide');
+        }).appendTo(sourceComponent);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(sourceComponent);
+
+        // get the port label
+        var remotePortLabel = connectionEntity.sourceId;
+        if (connectionEntity.permissions.canRead === true) {
+            remotePortLabel = connectionEntity.component.source.name;
+        } else if (connectionEntity.sourceId === currentComponentId) {
+            remotePortLabel = currentComponentLabel;
+        }
+
+        // port markup
+        var sourceOutputPort = $('<div class="source-output-port"></div>').appendTo(sourceComponent);
+        $('<div class="search-result-icon icon-port-out"></div>').appendTo(sourceOutputPort);
+        $('<div class="source-output-port-name"></div>').attr('title', remotePortLabel).text(remotePortLabel).appendTo(sourceOutputPort);
+
+        // clear
+        $('<div class="clear"></div>').appendTo(sourceComponent);
+    };
+
+    /**
+     * Gets the display name for the specified entity.
+     *
+     * @param entity entity
+     * @returns display name
+     */
+    var getDisplayName = function (entity) {
+        if (entity.permissions.canRead === true) {
+            return entity.component.name;
+        } else if (currentComponentId === entity.id) {
+            return currentComponentLabel;
+        } else {
+            return entity.id;
+        }
     };
 
     return {
@@ -351,37 +431,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The processor selection
          */
         showDownstreamFromProcessor: function (selection) {
-            var selectionData = selection.datum();
+            var processorEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var processorLabel = getDisplayName(processorEntity);
 
-                // populate the downstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon processor-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
+            // record details of the current component
+            currentComponentId = processorEntity.id;
+            currentComponentLabel = processorLabel;
 
-                // add the destination for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the source
-                    if (connection.source.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
+            // populate the downstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-processor"></div>')
+                .append($('<div class="connections-component-name"></div>').text(processorLabel))
+                .append('<div class="clear"></div>');
 
-                // ensure there are downstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No downstream components</span>');
+            // add the destination for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the source
+                if (connectionEntity.sourceId === processorEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the downstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are downstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No downstream components</span>');
+            }
+
+            // show the downstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
         },
 
         /**
@@ -390,37 +471,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The processor selection
          */
         showUpstreamFromProcessor: function (selection) {
-            var selectionData = selection.datum();
+            var processorEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var processorLabel = getDisplayName(processorEntity);
 
-                // populate the upstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon processor-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
+            // record details of the current component
+            currentComponentId = processorEntity.id;
+            currentComponentLabel = processorLabel;
+            
+            // populate the upstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-processor"></div>')
+                .append($('<div class="connections-component-name"></div>').text(processorLabel))
+                .append('<div class="clear"></div>');
 
-                // add the source for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the destination
-                    if (connection.destination.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
-
-                // ensure there are upstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No upstream components</span>');
+            // add the source for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the destination
+                if (connectionEntity.destinationId === processorEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the upstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are upstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No upstream components</span>');
+            }
+
+            // show the upstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
         },
 
         /**
@@ -429,37 +511,43 @@ nf.GoTo = (function () {
          * @param {selection} selection The process group or remote process group selection
          */
         showDownstreamFromGroup: function (selection) {
-            var selectionData = selection.datum();
+            var groupEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var iconStyle = 'icon-group';
+            if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
+                iconStyle = 'icon-group-remote';
+            }
 
-                // populate the downstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon process-group-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
+            var groupLabel = getDisplayName(groupEntity);
 
-                // add the destination for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the source
-                    if (connection.source.groupId === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
+            // record details of the current component
+            currentComponentId = groupEntity.id;
+            currentComponentLabel = groupLabel;
+            
+            // populate the downstream dialog
+            $('#connections-context')
+                .append($('<div class="search-result-icon"></div>').addClass(iconStyle))
+                .append($('<div class="connections-component-name"></div>').text(groupLabel))
+                .append('<div class="clear"></div>');
 
-                // ensure there are downstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No downstream components</span>');
+            // add the destination for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the source
+                if (connectionEntity.sourceGroupId === groupEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the downstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are downstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No downstream components</span>');
+            }
+
+            // show the downstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
         },
 
         /**
@@ -468,37 +556,43 @@ nf.GoTo = (function () {
          * @param {selection} selection The process group or remote process group selection
          */
         showUpstreamFromGroup: function (selection) {
-            var selectionData = selection.datum();
+            var groupEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var iconStyle = 'icon-group';
+            if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
+                iconStyle = 'icon-group-remote';
+            }
 
-                // populate the upstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon process-group-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
+            var groupLabel = getDisplayName(groupEntity);
 
-                // add the source for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the destination
-                    if (connection.destination.groupId === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
+            // record details of the current component
+            currentComponentId = groupEntity.id;
+            currentComponentLabel = groupLabel;
+            
+            // populate the upstream dialog
+            $('#connections-context')
+                .append($('<div class="search-result-icon"></div>').addClass(iconStyle))
+                .append($('<div class="connections-component-name"></div>').text(groupLabel))
+                .append('<div class="clear"></div>');
 
-                // ensure there are upstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No upstream components</span>');
+            // add the source for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the destination
+                if (connectionEntity.destinationGroupId === groupEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the dialog
-                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are upstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No upstream components</span>');
+            }
+
+            // show the dialog
+            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
         },
 
         /**
@@ -507,37 +601,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The input port selection
          */
         showDownstreamFromInputPort: function (selection) {
-            var selectionData = selection.datum();
+            var portEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var portLabel = getDisplayName(portEntity);
 
-                // populate the downstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon input-port-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
+            // record details of the current component
+            currentComponentId = portEntity.id;
+            currentComponentLabel = portLabel;
+            
+            // populate the downstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-port-in"></div>')
+                .append($('<div class="connections-component-name"></div>').text(portLabel))
+                .append('<div class="clear"></div>');
 
-                // add the destination for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the source
-                    if (connection.source.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
-
-                // ensure there are downstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No downstream components</span>');
+            // add the destination for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the source
+                if (connectionEntity.sourceId === portEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the downstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are downstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No downstream components</span>');
+            }
+
+            // show the downstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
         },
 
         /**
@@ -546,29 +641,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The input port selection
          */
         showUpstreamFromInputPort: function (selection) {
-            var selectionData = selection.datum();
+            var portEntity = selection.datum();
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
+                url: config.urls.processGroups + encodeURIComponent(nf.Canvas.getParentGroupId()),
                 dataType: 'json'
             }).done(function (response) {
-                var connections = response.connections;
+                var flow = response.processGroupFlow.flow;
+                var connections = flow.connections;
+                var processGroups = flow.processGroups;
+                var remoteProcessGroups = flow.remoteProcessGroups;
 
+                var portLabel = getDisplayName(portEntity);
+
+                // record details of the current component
+                currentComponentId = portEntity.id;
+                currentComponentLabel = portLabel;
+                
                 // populate the upstream dialog
                 $('#connections-context')
-                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append('<div class="search-result-icon icon-group"></div>')
                     .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
                     .append('<div class="clear"></div>')
-                    .append('<div class="search-result-icon input-port-small-icon" style="margin-left: 20px;"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="search-result-icon icon-port-in" style="margin-left: 20px;"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(portLabel))
                     .append('<div class="clear"></div>');
 
                 // add the source for each connection
-                $.each(connections, function (_, connection) {
+                $.each(connections, function (_, connectionEntity) {
                     // only show connections for which this selection is the destination
-                    if (connection.destination.id === selectionData.id) {
-                        addConnection(connection);
+                    if (connectionEntity.destinationId === portEntity.id) {
+                        addConnection(nf.Canvas.getParentGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                     }
                 });
 
@@ -588,29 +692,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The output port selection
          */
         showDownstreamFromOutputPort: function (selection) {
-            var selectionData = selection.datum();
+            var portEntity = selection.datum();
 
             $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
+                url: config.urls.processGroups + encodeURIComponent(nf.Canvas.getParentGroupId()),
                 dataType: 'json'
             }).done(function (response) {
-                var connections = response.connections;
+                var flow = response.processGroupFlow.flow;
+                var connections = flow.connections;
+                var processGroups = flow.processGroups;
+                var remoteProcessGroups = flow.remoteProcessGroups;
 
+                var portLabel = getDisplayName(portEntity);
+
+                // record details of the current component
+                currentComponentId = portEntity.id;
+                currentComponentLabel = portLabel;
+                
                 // populate the downstream dialog
                 $('#connections-context')
-                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append('<div class="search-result-icon icon-group"></div>')
                     .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
                     .append('<div class="clear"></div>')
-                    .append('<div class="search-result-icon output-port-small-icon" style="margin-left: 20px;"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="search-result-icon icon-port-out" style="margin-left: 20px;"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(portLabel))
                     .append('<div class="clear"></div>');
 
                 // add the destination for each connection
-                $.each(connections, function (_, connection) {
+                $.each(connections, function (_, connectionEntity) {
                     // only show connections for which this selection is the source
-                    if (connection.source.id === selectionData.id) {
-                        addConnection(connection);
+                    if (connectionEntity.sourceId === portEntity.id) {
+                        addConnection(nf.Canvas.getParentGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                     }
                 });
 
@@ -630,37 +743,38 @@ nf.GoTo = (function () {
          * @param {selection} selection The output port selection
          */
         showUpstreamFromOutputPort: function (selection) {
-            var selectionData = selection.datum();
+            var portEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            var portLabel = getDisplayName(portEntity);
+            
+            // record details of the current component
+            currentComponentId = portEntity.id;
+            currentComponentLabel = portLabel;
+            
+            // populate the upstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-port-out"></div>')
+                .append($('<div class="connections-component-name"></div>').text(portLabel))
+                .append('<div class="clear"></div>');
 
-                // populate the upstream dialog
-                $('#connections-context')
-                    .append('<div class="search-result-icon input-port-small-icon"></div>')
-                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                    .append('<div class="clear"></div>');
-
-                // add the source for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the destination
-                    if (connection.destination.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
-
-                // ensure there are upstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No upstream components</span>');
+            // add the source for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the destination
+                if (connectionEntity.destinationId === portEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the upstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are upstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No upstream components</span>');
+            }
+
+            // show the upstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
         },
 
         /**
@@ -669,34 +783,36 @@ nf.GoTo = (function () {
          * @param {selection} selection The funnel selection
          */
         showDownstreamFromFunnel: function (selection) {
-            var selectionData = selection.datum();
+            var funnelEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            // record details of the current component
+            currentComponentId = funnelEntity.id;
+            currentComponentLabel = 'Funnel';
+            
+            // populate the downstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-funnel"></div>')
+                .append($('<div class="connections-component-name"></div>').text('Funnel'))
+                .append('<div class="clear"></div>');
 
-                // populate the downstream dialog
-                $('#connections-context').append($('<div class="connections-component-name"></div>').text('Funnel'));
-
-                // add the destination for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the source
-                    if (connection.source.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
-
-                // ensure there are downstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No downstream components</span>');
+            // add the destination for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the source
+                if (connectionEntity.sourceId === funnelEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the downstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are downstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No downstream components</span>');
+            }
+
+            // show the downstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
         },
 
         /**
@@ -705,34 +821,36 @@ nf.GoTo = (function () {
          * @param {selection} selection The funnel selection
          */
         showUpstreamFromFunnel: function (selection) {
-            var selectionData = selection.datum();
+            var funnelEntity = selection.datum();
+            var connections = nf.Connection.get();
+            var processGroups = nf.ProcessGroup.get();
+            var remoteProcessGroups = nf.RemoteProcessGroup.get();
 
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
-                dataType: 'json'
-            }).done(function (response) {
-                var connections = response.connections;
+            // record details of the current component
+            currentComponentId = funnelEntity.id;
+            currentComponentLabel = 'Funnel';
+            
+            // populate the upstream dialog
+            $('#connections-context')
+                .append('<div class="search-result-icon icon-funnel"></div>')
+                .append($('<div class="upstream-destination-name"></div>').text('Funnel'))
+                .append('<div class="clear"></div>');
 
-                // populate the upstream dialog
-                $('#connections-context').append($('<div class="upstream-destination-name"></div>').text('Funnel'));
-
-                // add the source for each connection
-                $.each(connections, function (_, connection) {
-                    // only show connections for which this selection is the destination
-                    if (connection.destination.id === selectionData.id) {
-                        addConnection(connection);
-                    }
-                });
-
-                // ensure there are upstream components
-                if ($('#connections-container').is(':empty')) {
-                    $('#connections-container').html('<span class="unset">No upstream components</span>');
+            // add the source for each connection
+            $.each(connections, function (_, connectionEntity) {
+                // only show connections for which this selection is the destination
+                if (connectionEntity.destinationId === funnelEntity.id) {
+                    addConnection(nf.Canvas.getGroupId(), connectionEntity, processGroups, remoteProcessGroups);
                 }
+            });
 
-                // show the upstream dialog
-                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            // ensure there are upstream components
+            if ($('#connections-container').is(':empty')) {
+                $('#connections-container').html('<span class="unset">No upstream components</span>');
+            }
+
+            // show the upstream dialog
+            $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
         }
     };
 }());

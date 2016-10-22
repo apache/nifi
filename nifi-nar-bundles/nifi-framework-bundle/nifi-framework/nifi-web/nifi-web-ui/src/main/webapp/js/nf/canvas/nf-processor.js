@@ -33,6 +33,13 @@ nf.Processor = (function () {
 
     var processorMap;
 
+    // -----------------------------------------------------------
+    // cache for components that are added/removed from the canvas
+    // -----------------------------------------------------------
+
+    var removedCache;
+    var addedCache;
+
     // --------------------
     // component containers
     // --------------------
@@ -114,17 +121,6 @@ nf.Processor = (function () {
                 'class': 'processor-icon'
             })
             .text('\ue807');
-
-        // processor stats preview
-        processor.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 294,
-                'height': 58,
-                'x': 8,
-                'y': 35,
-                'class': 'processor-stats-preview'
-            });
 
         // make processors selectable
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
@@ -510,9 +506,6 @@ nf.Processor = (function () {
                     processor.select('text.processor-type').text(null);
                 }
 
-                // hide the preview
-                processor.select('image.processor-stats-preview').style('display', 'none');
-
                 // populate the stats
                 processor.call(updateProcessorStatus);
             } else {
@@ -527,10 +520,10 @@ nf.Processor = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the processor name
+                    processor.select('text.processor-name').text(null);
                 }
-
-                // show the preview
-                processor.select('image.processor-stats-preview').style('display', 'block');
 
                 // remove the tooltips
                 processor.call(removeTooltips);
@@ -733,6 +726,8 @@ nf.Processor = (function () {
          */
         init: function () {
             processorMap = d3.map();
+            removedCache = d3.map();
+            addedCache = d3.map();
 
             // create the processor container
             processorContainer = d3.select('#canvas').append('g')
@@ -754,7 +749,12 @@ nf.Processor = (function () {
                 selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
+            // get the current time
+            var now = new Date().getTime();
+
             var add = function (processorEntity) {
+                addedCache.set(processorEntity.id, now);
+
                 // add the processor
                 processorMap.set(processorEntity.id, $.extend({
                     type: 'Processor',
@@ -791,18 +791,30 @@ nf.Processor = (function () {
                 transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
-            var set = function (processorEntity) {
-                // add the processor
-                processorMap.set(processorEntity.id, $.extend({
-                    type: 'Processor',
-                    dimensions: dimensions
-                }, processorEntity));
+            var set = function (proposedProcessorEntity) {
+                var currentProcessorEntity = processorMap.get(proposedProcessorEntity.id);
+
+                // set the processor if appropriate due to revision and wasn't previously removed
+                if (nf.Client.isNewerRevision(currentProcessorEntity, proposedProcessorEntity) && !removedCache.has(proposedProcessorEntity.id)) {
+                    processorMap.set(proposedProcessorEntity.id, $.extend({
+                        type: 'Processor',
+                        dimensions: dimensions
+                    }, proposedProcessorEntity));
+                }
             };
 
             // determine how to handle the specified processor
             if ($.isArray(processorEntities)) {
                 $.each(processorMap.keys(), function (_, key) {
-                    processorMap.remove(key);
+                    var currentProcessorEntity = processorMap.get(key);
+                    var isPresent = $.grep(processorEntities, function (proposedProcessorEntity) {
+                        return proposedProcessorEntity.id === currentProcessorEntity.id;
+                    });
+
+                    // if the current processor is not present and was not recently added, remove it
+                    if (isPresent.length === 0 && !addedCache.has(key)) {
+                        processorMap.remove(key);
+                    }
                 });
                 $.each(processorEntities, function (_, processorEntity) {
                     set(processorEntity);
@@ -884,15 +896,19 @@ nf.Processor = (function () {
         /**
          * Removes the specified processor.
          *
-         * @param {array|string} processors      The processors
+         * @param {array|string} processorIds      The processors
          */
-        remove: function (processors) {
-            if ($.isArray(processors)) {
-                $.each(processors, function (_, processor) {
-                    processorMap.remove(processor);
+        remove: function (processorIds) {
+            var now = new Date().getTime();
+
+            if ($.isArray(processorIds)) {
+                $.each(processorIds, function (_, processorId) {
+                    removedCache.set(processorId, now);
+                    processorMap.remove(processorId);
                 });
             } else {
-                processorMap.remove(processors);
+                removedCache.set(processorIds, now);
+                processorMap.remove(processorIds);
             }
 
             // apply the selection and handle all removed processors
@@ -904,6 +920,24 @@ nf.Processor = (function () {
          */
         removeAll: function () {
             nf.Processor.remove(processorMap.keys());
+        },
+
+        /**
+         * Expires the caches up to the specified timestamp.
+         *
+         * @param timestamp
+         */
+        expireCaches: function (timestamp) {
+            var expire = function (cache) {
+                cache.forEach(function (id, entryTimestamp) {
+                    if (timestamp > entryTimestamp) {
+                        cache.remove(id);
+                    }
+                });
+            };
+
+            expire(addedCache);
+            expire(removedCache);
         },
 
         /**

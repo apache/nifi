@@ -117,7 +117,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         BlockingQueue<FileInfo> fileQueue = fileQueueRef.get();
         final ComponentLog logger = getLogger();
 
-        // dont do the listing if there are already 100 or more items in our queue
+        // do not do the listing if there are already 100 or more items in our queue
         // 100 is really just a magic number that seems to work out well in practice
         FileTransfer transfer = null;
         if (System.currentTimeMillis() >= nextPollTime && (fileQueue == null || fileQueue.size() < 100) && listingLock.tryLock()) {

@@ -125,10 +125,31 @@ public class ITListS3 extends AbstractS3IT {
     }
 
     @Test
+    public void testSimpleListWithPrefixAndVersions() throws Throwable {
+        putTestFile("a", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        putTestFile("b/c", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+        putTestFile("d/e", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME));
+
+        final TestRunner runner = TestRunners.newTestRunner(new ListS3());
+
+        runner.setProperty(ListS3.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ListS3.REGION, REGION);
+        runner.setProperty(ListS3.BUCKET, BUCKET_NAME);
+        runner.setProperty(ListS3.PREFIX, "b/");
+        runner.setProperty(ListS3.USE_VERSIONS, "true");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListS3.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
+        flowFiles.get(0).assertAttributeEquals("filename", "b/c");
+    }
+
+    @Test
     public void testGetPropertyDescriptors() throws Exception {
         ListS3 processor = new ListS3();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 13, pd.size());
+        assertEquals("size should be eq", 15, pd.size());
         assertTrue(pd.contains(ListS3.ACCESS_KEY));
         assertTrue(pd.contains(ListS3.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(ListS3.BUCKET));
@@ -136,11 +157,13 @@ public class ITListS3 extends AbstractS3IT {
         assertTrue(pd.contains(ListS3.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(ListS3.REGION));
         assertTrue(pd.contains(ListS3.SECRET_KEY));
+        assertTrue(pd.contains(ListS3.SIGNER_OVERRIDE));
         assertTrue(pd.contains(ListS3.SSL_CONTEXT_SERVICE));
         assertTrue(pd.contains(ListS3.TIMEOUT));
         assertTrue(pd.contains(ListS3.PROXY_HOST));
         assertTrue(pd.contains(ListS3.PROXY_HOST_PORT));
         assertTrue(pd.contains(ListS3.DELIMITER));
         assertTrue(pd.contains(ListS3.PREFIX));
+        assertTrue(pd.contains(ListS3.USE_VERSIONS));
     }
 }

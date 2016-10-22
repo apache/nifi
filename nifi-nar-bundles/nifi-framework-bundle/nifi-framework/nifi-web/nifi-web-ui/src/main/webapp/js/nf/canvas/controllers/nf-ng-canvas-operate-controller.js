@@ -114,37 +114,46 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // initialize the form
                     var templateForm = $('#template-upload-form').ajaxForm({
-                        url: '../nifi-api/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload',
+                        url: '../nifi-api/process-groups/',
                         dataType: 'xml',
+                        beforeSubmit: function (formData, $form, options) {
+                            // ensure uploading to the current process group
+                            options.url += (encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload');
+                        },
                         success: function (response, statusText, xhr, form) {
-                            // see if the import was successful
+                            // see if the import was successful and inform the user
                             if (response.documentElement.tagName === 'templateEntity') {
-                                // close the dialog
-                                $('#upload-template-dialog').modal('hide');
-
-                                // close the settings dialog
                                 nf.Dialog.showOkDialog({
                                     headerText: 'Success',
                                     dialogContent: 'Template successfully imported.'
                                 });
                             } else {
                                 // import failed
-                                var status = 'Unable to import template. Please check the log for errors.';
+                                var statusText = 'Unable to import template. Please check the log for errors.';
                                 if (response.documentElement.tagName === 'errorResponse') {
                                     // if a more specific error was given, use it
                                     var errorMessage = response.documentElement.getAttribute('statusText');
                                     if (!nf.Common.isBlank(errorMessage)) {
-                                        status = errorMessage;
+                                        statusText = errorMessage;
                                     }
                                 }
-                                $('#upload-template-status').text(status);
+
+                                // show reason
+                                nf.Dialog.showOkDialog({
+                                    headerText: 'Unable to Upload',
+                                    dialogContent: nf.Common.escapeHtml(statusText)
+                                });
                             }
                         },
                         error: function (xhr, statusText, error) {
-                            $('#upload-template-status').text(xhr.responseText);
+                            // request failed
+                            nf.Dialog.showOkDialog({
+                                headerText: 'Unable to Upload',
+                                dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                            });
                         }
                     });
-                    
+
                     // configure the upload template dialog
                     this.getElement().modal({
                         headerText: 'Upload Template',
@@ -164,6 +173,9 @@ nf.ng.Canvas.OperateCtrl = function () {
                                         $('#upload-template-status').text('No template selected. Please browse to select a template.');
                                     } else {
                                         templateForm.submit();
+
+                                        // hide the dialog
+                                        $('#upload-template-dialog').modal('hide');
                                     }
                                 }
                             }

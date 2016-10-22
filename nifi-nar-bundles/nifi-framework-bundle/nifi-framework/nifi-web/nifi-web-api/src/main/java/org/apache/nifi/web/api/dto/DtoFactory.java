@@ -1021,6 +1021,14 @@ public final class DtoFactory {
 
         snapshot.setFlowFilesOut(connectionStatus.getOutputCount());
         snapshot.setBytesOut(connectionStatus.getOutputBytes());
+
+        if (connectionStatus.getBackPressureObjectThreshold() > 0) {
+            snapshot.setPercentUseCount(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedCount(), connectionStatus.getBackPressureObjectThreshold())));
+        }
+        if (connectionStatus.getBackPressureBytesThreshold() > 0) {
+            snapshot.setPercentUseBytes(Math.min(100, StatusMerger.getUtilization(connectionStatus.getQueuedBytes(), connectionStatus.getBackPressureBytesThreshold())));
+        }
+
         StatusMerger.updatePrettyPrintedFields(snapshot);
 
         return connectionStatusDto;

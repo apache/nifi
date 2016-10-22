@@ -67,7 +67,7 @@ public class TestGetSQS {
     }
 
     @Test
-    public void testSimpleGetUsingCredentailsProviderService() throws Throwable {
+    public void testSimpleGetUsingCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
 
         runner.setProperty(GetSQS.TIMEOUT, "30 secs");

@@ -222,7 +222,7 @@ public class TestHL7Query {
     }
 
     @Test
-    public void testAndWithParens() throws HL7Exception, IOException {
+    public void testAndWithParents() throws HL7Exception, IOException {
         HL7Query hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT MESSAGE WHERE result.7 = 'L' AND result.3.1 = 'GLU'");
         QueryResult result = hl7Query.evaluate(createMessage(new File("src/test/resources/hypoglycemia")));
         assertTrue(result.isMatch());

@@ -219,19 +219,20 @@ public class HandleHttpRequest extends AbstractProcessor {
             .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
             .defaultValue(CLIENT_NONE.getValue())
             .build();
+    public static final PropertyDescriptor CONTAINER_QUEUE_SIZE = new PropertyDescriptor.Builder()
+            .name("container-queue-size").displayName("Container Queue Size")
+            .description("The size of the queue for Http Request Containers").required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).defaultValue("50").build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All content that is received is routed to the 'success' relationship")
             .build();
 
-    private volatile Server server;
-    private AtomicBoolean initialized = new AtomicBoolean(false);
-    private final BlockingQueue<HttpRequestContainer> containerQueue = new LinkedBlockingQueue<>(50);
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+    static {
+        List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(PORT);
         descriptors.add(HOSTNAME);
         descriptors.add(SSL_CONTEXT);
@@ -246,8 +247,17 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(ALLOW_OPTIONS);
         descriptors.add(ADDITIONAL_METHODS);
         descriptors.add(CLIENT_AUTH);
+        descriptors.add(CONTAINER_QUEUE_SIZE);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
+    }
 
-        return descriptors;
+    private volatile Server server;
+    private AtomicBoolean initialized = new AtomicBoolean(false);
+    private volatile BlockingQueue<HttpRequestContainer> containerQueue;
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
     }
 
     @Override
@@ -264,7 +274,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         if(initialized.get()){
             return;
         }
-
+        this.containerQueue = new LinkedBlockingQueue<>(context.getProperty(CONTAINER_QUEUE_SIZE).asInteger());
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);

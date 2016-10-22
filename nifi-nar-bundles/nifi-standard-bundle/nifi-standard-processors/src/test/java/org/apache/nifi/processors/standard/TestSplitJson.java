@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -32,6 +33,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 public class TestSplitJson {
 
@@ -110,13 +112,26 @@ public class TestSplitJson {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
 
-        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.enqueue(JSON_SNIPPET, new HashMap<String, String>() {
+            {
+                put(CoreAttributes.FILENAME.key(), "test.json");
+            }
+        });
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0);
+        flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
+        flowFile.assertAttributeEquals("fragment.count", "7");
+        flowFile.assertAttributeEquals("fragment.index", "0");
+        flowFile.assertAttributeEquals("segment.original.filename", "test.json");
+
+        flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(6);
+        flowFile.assertAttributeEquals("fragment.count", "7");
+        flowFile.assertAttributeEquals("fragment.index", "6");
+        flowFile.assertAttributeEquals("segment.original.filename", "test.json");
     }
 
     @Test

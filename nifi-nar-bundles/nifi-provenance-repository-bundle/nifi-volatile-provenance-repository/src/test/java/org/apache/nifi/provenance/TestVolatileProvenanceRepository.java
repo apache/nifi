@@ -44,7 +44,6 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-
         repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final Map<String, String> attributes = new HashMap<>();

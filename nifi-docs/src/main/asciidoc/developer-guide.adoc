@@ -638,7 +638,7 @@ or by calling the `getLogger` method of `AbstractProcessor`.
 
 Additionally, Processors should use the `ProvenanceReporter`
 interface, obtained via the ProcessSession's
-`getProvenanceReporter` method. The ProvenanceReoprter should be used
+`getProvenanceReporter` method. The ProvenanceReporter should be used
 to indicate any time that content is
 received from an external source or sent to an external location. The
 ProvenanceReporter also has methods for
@@ -1387,7 +1387,7 @@ If at any point in the InputStreamCallback, a condition is reached in
 which processing cannot continue
 (for example, the input is malformed), a `ProcessException` should be
 thrown. The call to the
-ProcesssSession's `read` method is wrapped in a `try/catch` block
+ProcessSession's `read` method is wrapped in a `try/catch` block
 where `ProcessException` is
 caught. If an Exception is caught, a log message is generated
 explaining the error. The List of
@@ -1744,7 +1744,8 @@ have an `onTrigger` method because Controller Services are not
 scheduled to run periodically, and
 Controller Services do not have Relationships because they are not
 integrated into the flow directly. Rather,
-they are used Processors, Reporting Tasks, and other Controller Services.
+they are used by Processors, Reporting Tasks, and
+other Controller Services.
 
 [[developing-controller-service]]
 === Developing a ControllerService

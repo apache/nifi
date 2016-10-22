@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -351,7 +350,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             out.flush();
         }
 
-        logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[]{toSwap.size(), queue, swapLocation});
+        logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", toSwap.size(), queue, swapLocation);
 
         return toSwap.size();
     }
@@ -399,8 +398,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
         } catch (final EOFException eof) {
             final QueueSize queueSize = new QueueSize(numRecords, contentSize);
-            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.<ResourceClaim>emptyList());
-            final SwapContents partialContents = new StandardSwapContents(summary, Collections.<FlowFileRecord>emptyList());
+            final SwapSummary summary = new StandardSwapSummary(queueSize, maxRecordId, Collections.emptyList());
+            final SwapContents partialContents = new StandardSwapContents(summary, Collections.emptyList());
             throw new IncompleteSwapFileException(swapLocation, partialContents);
         }
 

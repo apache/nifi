@@ -65,7 +65,7 @@ public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, Comp
                 statusNodeIdentifier.getApiPort());
     }
 
-    private static void mergeDtos(final PortDTO clientDto, final Map<NodeIdentifier, PortDTO> dtoMap) {
+    public static void mergeDtos(final PortDTO clientDto, final Map<NodeIdentifier, PortDTO> dtoMap) {
         // if unauthorized for the client dto, simple return
         if (clientDto == null) {
             return;

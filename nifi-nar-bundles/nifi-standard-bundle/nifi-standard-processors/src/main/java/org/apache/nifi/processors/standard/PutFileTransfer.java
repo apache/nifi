@@ -141,7 +141,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     stopWatch.stop();
                     final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-                    logger.info("Successfully transfered {} to {} on remote host {} in {} milliseconds at a rate of {}",
+                    logger.info("Successfully transferred {} to {} on remote host {} in {} milliseconds at a rate of {}",
                             new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
 
                     String fullPathWithSlash = fullPathRef.get();

@@ -797,6 +797,12 @@ public class ControllerFacade implements Authorizable {
 
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
+        // include the root group
+        final Resource rootResource = root.getResource();
+        resources.add(rootResource);
+        resources.add(ResourceFactory.getDataResource(rootResource));
+        resources.add(ResourceFactory.getPolicyResource(rootResource));
+
         // add each processor
         for (final ProcessorNode processor : root.findAllProcessors()) {
             final Resource processorResource = processor.getResource();
@@ -1052,7 +1058,7 @@ public class ControllerFacade implements Authorizable {
             provenanceDto.setResults(resultsDto);
             return provenanceDto;
         } catch (final IOException ioe) {
-            throw new NiFiCoreException("An error occured while searching the provenance events.", ioe);
+            throw new NiFiCoreException("An error occurred while searching the provenance events.", ioe);
         }
     }
 
@@ -1214,7 +1220,7 @@ public class ControllerFacade implements Authorizable {
             // convert the event record
             return createProvenanceEventDto(event);
         } catch (final IOException ioe) {
-            throw new NiFiCoreException("An error occured while getting the specified event.", ioe);
+            throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
         }
     }
 
@@ -1286,7 +1292,7 @@ public class ControllerFacade implements Authorizable {
             // convert the event
             return createProvenanceEventDto(event);
         } catch (final IOException ioe) {
-            throw new NiFiCoreException("An error occured while getting the specified event.", ioe);
+            throw new NiFiCoreException("An error occurred while getting the specified event.", ioe);
         }
     }
 
@@ -1641,7 +1647,7 @@ public class ControllerFacade implements Authorizable {
             final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController, variableRegistry);
 
             // search the processor using the appropriate thread context classloader
-            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass())) {
                 final Collection<SearchResult> searchResults = searchable.search(context);
                 if (CollectionUtils.isNotEmpty(searchResults)) {
                     for (final SearchResult searchResult : searchResults) {

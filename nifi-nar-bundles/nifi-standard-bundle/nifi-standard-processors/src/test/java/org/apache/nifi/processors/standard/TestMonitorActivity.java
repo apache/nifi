@@ -223,7 +223,7 @@ public class TestMonitorActivity {
             List<MockFlowFile> inactiveFlowFiles = runner.getFlowFilesForRelationship(MonitorActivity.REL_INACTIVE);
             if (inactiveFlowFiles.size() == 1) {
                 // Seems Threshold was not sufficient, which has caused One inactive message.
-                // Step-up and rerun the test until successful or jUnit Timesout
+                // Step-up and rerun the test until successful or jUnit times out
                 threshold += threshold;
                 rerun = true;
             } else {

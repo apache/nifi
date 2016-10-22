@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,7 @@ import java.util.Set;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
@@ -226,4 +228,20 @@ public interface ClusterCoordinator {
      * @return <code>true</code> if connected, <code>false</code> otherwise
      */
     boolean isConnected();
+
+    /**
+     * @return <code>true</code> if Flow Election is complete, <code>false</code> otherwise
+     */
+    boolean isFlowElectionComplete();
+
+    /**
+     * @return the current status of Flow Election.
+     */
+    String getFlowElectionStatus();
+
+    /**
+     * @return the current cluster workload retrieved from the cluster coordinator.
+     * @throws IOException thrown when it failed to communicate with the cluster coordinator.
+     */
+    Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException;
 }

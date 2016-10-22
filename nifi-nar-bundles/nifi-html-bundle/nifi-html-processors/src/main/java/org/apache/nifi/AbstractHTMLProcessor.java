@@ -102,7 +102,7 @@ public abstract class AbstractHTMLProcessor extends AbstractProcessor {
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
             .name("element not found")
             .description("Element could not be found in the HTML document. The original HTML input will remain " +
-                    "in the flowfile content unchanged. Relationship '" + REL_ORIGINAL + "' will not be invoked " +
+                    "in the FlowFile content unchanged. Relationship '" + REL_ORIGINAL + "' will not be invoked " +
                     "in this scenario.")
             .build();
 

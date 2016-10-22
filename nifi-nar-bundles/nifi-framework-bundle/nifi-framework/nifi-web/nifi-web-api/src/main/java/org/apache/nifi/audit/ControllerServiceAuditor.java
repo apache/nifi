@@ -102,7 +102,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             + "args(controllerServiceDTO) && "
             + "target(controllerServiceDAO)")
     public Object updateControllerServiceAdvice(ProceedingJoinPoint proceedingJoinPoint, ControllerServiceDTO controllerServiceDTO, ControllerServiceDAO controllerServiceDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(controllerService, controllerServiceDTO);
         final boolean isDisabled = isDisabled(controllerService);

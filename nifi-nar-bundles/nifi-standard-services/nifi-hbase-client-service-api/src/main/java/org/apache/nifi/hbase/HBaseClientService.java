@@ -84,7 +84,7 @@ public interface HBaseClientService extends ControllerService {
      * @param columns the columns of the row to put
      * @throws IOException thrown when there are communication errors with HBase
      */
-    void put(String tableName, String rowId, Collection<PutColumn> columns) throws IOException;
+    void put(String tableName, byte[] rowId, Collection<PutColumn> columns) throws IOException;
 
     /**
      * Scans the given table using the optional filter criteria and passing each result to the provided handler.
@@ -129,5 +129,12 @@ public interface HBaseClientService extends ControllerService {
      * @return the string represented as bytes
      */
     byte[] toBytes(String s);
+
+    /**
+     * Converts the given binary formatted string to a byte representation
+     * @param s a binary encoded string
+     * @return the string represented as bytes
+     */
+    byte[] toBytesBinary(String s);
 
 }

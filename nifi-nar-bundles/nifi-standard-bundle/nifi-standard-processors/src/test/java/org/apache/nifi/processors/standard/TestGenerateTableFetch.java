@@ -128,7 +128,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
         ResultSet resultSet = stmt.executeQuery(query);
         // Should be three records
         assertTrue(resultSet.next());
@@ -153,7 +153,7 @@ public class TestGenerateTableFetch {
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
         // Should be two records
         assertTrue(resultSet.next());
@@ -163,7 +163,7 @@ public class TestGenerateTableFetch {
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 ORDER BY ID OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
         // Should be one record
         assertTrue(resultSet.next());
@@ -176,7 +176,7 @@ public class TestGenerateTableFetch {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
         resultSet = stmt.executeQuery(query);
         // Should be one record
         assertTrue(resultSet.next());
@@ -189,14 +189,65 @@ public class TestGenerateTableFetch {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4); // 7 records with partition size 2 means 4 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(2);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(3);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY name OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
 
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testMultiplePartitions() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
+        // Set partition size to 1 so we can compare flow files to records
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        // Add a new row in the same bucket
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        // Add a new row in a new bucket
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (3, 1)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        // Add a new row in an old bucket, it should not be transferred
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (4, 0)");
+        runner.run();
+        runner.assertTransferCount(GenerateTableFetch.REL_SUCCESS, 0);
+
+        // Add a new row in the second bucket, only the new row should be transferred
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (5, 1)");
+        runner.run();
+        runner.assertAllFlowFilesTransferred(GenerateTableFetch.REL_SUCCESS, 1);
         runner.clearTransferState();
     }
 

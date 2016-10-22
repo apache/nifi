@@ -32,7 +32,6 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 
 /**
  * Utility helper class simplify interactions with target AMQP API and NIFI API.
- *
  */
 abstract class AMQPUtils {
 
@@ -43,20 +42,20 @@ abstract class AMQPUtils {
     private final static Logger logger = LoggerFactory.getLogger(AMQPUtils.class);
 
     public enum PropertyNames {
-        CONTENT_TYPE (AMQP_PROP_PREFIX + "contentType"),
-        CONTENT_ENCODING (AMQP_PROP_PREFIX + "contentEncoding"),
-        HEADERS (AMQP_PROP_PREFIX + "headers"),
-        DELIVERY_MODE (AMQP_PROP_PREFIX + "deliveryMode"),
-        PRIORITY (AMQP_PROP_PREFIX + "priority"),
-        CORRELATION_ID (AMQP_PROP_PREFIX + "correlationId"),
-        REPLY_TO (AMQP_PROP_PREFIX + "replyTo"),
-        EXPIRATION (AMQP_PROP_PREFIX + "expiration"),
-        MESSAGE_ID (AMQP_PROP_PREFIX + "messageId"),
-        TIMESTAMP (AMQP_PROP_PREFIX + "timestamp"),
-        TYPE (AMQP_PROP_PREFIX + "type"),
-        USER_ID (AMQP_PROP_PREFIX + "userId"),
-        APP_ID (AMQP_PROP_PREFIX + "appId"),
-        CLUSTER_ID (AMQP_PROP_PREFIX + "clusterId");
+        CONTENT_TYPE(AMQP_PROP_PREFIX + "contentType"),
+        CONTENT_ENCODING(AMQP_PROP_PREFIX + "contentEncoding"),
+        HEADERS(AMQP_PROP_PREFIX + "headers"),
+        DELIVERY_MODE(AMQP_PROP_PREFIX + "deliveryMode"),
+        PRIORITY(AMQP_PROP_PREFIX + "priority"),
+        CORRELATION_ID(AMQP_PROP_PREFIX + "correlationId"),
+        REPLY_TO(AMQP_PROP_PREFIX + "replyTo"),
+        EXPIRATION(AMQP_PROP_PREFIX + "expiration"),
+        MESSAGE_ID(AMQP_PROP_PREFIX + "messageId"),
+        TIMESTAMP(AMQP_PROP_PREFIX + "timestamp"),
+        TYPE(AMQP_PROP_PREFIX + "type"),
+        USER_ID(AMQP_PROP_PREFIX + "userId"),
+        APP_ID(AMQP_PROP_PREFIX + "appId"),
+        CLUSTER_ID(AMQP_PROP_PREFIX + "clusterId");
 
         PropertyNames(String value) {
             this.value = value;
@@ -71,7 +70,7 @@ abstract class AMQPUtils {
         }
 
         static {
-            for(PropertyNames propertyNames : PropertyNames.values()) {
+            for (PropertyNames propertyNames : PropertyNames.values()) {
                 lookup.put(propertyNames.getValue(), propertyNames);
             }
         }
@@ -89,15 +88,12 @@ abstract class AMQPUtils {
     /**
      * Updates {@link FlowFile} with attributes representing AMQP properties
      *
-     * @param amqpProperties
-     *            instance of {@link BasicProperties}
-     * @param flowFile
-     *            instance of target {@link FlowFile}
-     * @param processSession
-     *            instance of {@link ProcessSession}
+     * @param amqpProperties instance of {@link BasicProperties}
+     * @param flowFile       instance of target {@link FlowFile}
+     * @param processSession instance of {@link ProcessSession}
      */
     public static FlowFile updateFlowFileAttributesWithAmqpProperties(BasicProperties amqpProperties, FlowFile flowFile, ProcessSession processSession) {
-        if (amqpProperties != null){
+        if (amqpProperties != null) {
             try {
                 Method[] methods = BasicProperties.class.getDeclaredMethods();
                 Map<String, String> attributes = new HashMap<>();
@@ -126,8 +122,7 @@ abstract class AMQPUtils {
     /**
      * Will validate if provided name corresponds to valid AMQP property.
      *
-     * @param name
-     *            the name of the property
+     * @param name the name of the property
      * @return 'true' if valid otherwise 'false'
      */
     public static boolean isValidAmqpPropertyName(String name) {
@@ -147,11 +142,10 @@ abstract class AMQPUtils {
      * Will validate if provided amqpPropValue can be converted to a {@link Map}.
      * Should be passed in the format: amqp$headers=key=value,key=value etc.
      *
-     * @param amqpPropValue
-     *            the value of the property
+     * @param amqpPropValue the value of the property
      * @return {@link Map} if valid otherwise null
      */
-    public static Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue){
+    public static Map<String, Object> validateAMQPHeaderProperty(String amqpPropValue) {
         String[] strEntries = amqpPropValue.split(",");
         Map<String, Object> headers = new HashMap<>();
         for (String strEntry : strEntries) {
@@ -170,11 +164,10 @@ abstract class AMQPUtils {
      * Will validate if provided amqpPropValue can be converted to an {@link Integer}, and that its
      * value is 1 or 2.
      *
-     * @param amqpPropValue
-     *            the value of the property
+     * @param amqpPropValue the value of the property
      * @return {@link Integer} if valid otherwise null
      */
-    public static Integer validateAMQPDeliveryModeProperty(String amqpPropValue){
+    public static Integer validateAMQPDeliveryModeProperty(String amqpPropValue) {
         Integer deliveryMode = toInt(amqpPropValue);
 
         if (deliveryMode == null || !(deliveryMode == 1 || deliveryMode == 2)) {
@@ -187,14 +180,13 @@ abstract class AMQPUtils {
      * Will validate if provided amqpPropValue can be converted to an {@link Integer} and that its
      * value is between 0 and 9 (inclusive).
      *
-     * @param amqpPropValue
-     *            the value of the property
+     * @param amqpPropValue the value of the property
      * @return {@link Integer} if valid otherwise null
      */
-    public static Integer validateAMQPPriorityProperty(String amqpPropValue){
+    public static Integer validateAMQPPriorityProperty(String amqpPropValue) {
         Integer priority = toInt(amqpPropValue);
 
-        if (priority == null || !(priority >= 0 && priority <= 9)){
+        if (priority == null || !(priority >= 0 && priority <= 9)) {
             logger.warn("Invalid value for AMQP priority property: " + amqpPropValue);
         }
         return priority;
@@ -203,14 +195,13 @@ abstract class AMQPUtils {
     /**
      * Will validate if provided amqpPropValue can be converted to a {@link Date}.
      *
-     * @param amqpPropValue
-     *            the value of the property
+     * @param amqpPropValue the value of the property
      * @return {@link Date} if valid otherwise null
      */
-    public static Date validateAMQPTimestampProperty(String amqpPropValue){
+    public static Date validateAMQPTimestampProperty(String amqpPropValue) {
         Long timestamp = toLong(amqpPropValue);
 
-        if (timestamp == null){
+        if (timestamp == null) {
             logger.warn("Invalid value for AMQP timestamp property: " + amqpPropValue);
             return null;
         }
@@ -222,14 +213,13 @@ abstract class AMQPUtils {
     /**
      * Takes a {@link String} and tries to convert to an {@link Integer}.
      *
-     * @param strVal
-     *            the value to be converted
+     * @param strVal the value to be converted
      * @return {@link Integer} if valid otherwise null
      */
-    private static Integer toInt(String strVal){
+    private static Integer toInt(String strVal) {
         try {
             return Integer.parseInt(strVal);
-        } catch (NumberFormatException aE){
+        } catch (NumberFormatException aE) {
             return null;
         }
     }
@@ -237,14 +227,13 @@ abstract class AMQPUtils {
     /**
      * Takes a {@link String} and tries to convert to a {@link Long}.
      *
-     * @param strVal
-     *            the value to be converted
+     * @param strVal the value to be converted
      * @return {@link Long} if valid otherwise null
      */
-    private static Long toLong(String strVal){
+    private static Long toLong(String strVal) {
         try {
             return Long.parseLong(strVal);
-        } catch (NumberFormatException aE){
+        } catch (NumberFormatException aE) {
             return null;
         }
     }

@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -382,7 +383,7 @@ public interface TestRunner {
      * @param path to read content from
      * @throws IOException if unable to read content
      */
-    void enqueue(Path path) throws IOException;
+    MockFlowFile enqueue(Path path) throws IOException;
 
     /**
      * Reads the content from the given {@link Path} into memory and creates a
@@ -393,7 +394,7 @@ public interface TestRunner {
      * @param attributes attributes to use for new flow file
      * @throws IOException if unable to read content
      */
-    void enqueue(Path path, Map<String, String> attributes) throws IOException;
+    MockFlowFile enqueue(Path path, Map<String, String> attributes) throws IOException;
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -402,7 +403,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    void enqueue(byte[] data);
+    MockFlowFile enqueue(byte[] data);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with no attributes,
@@ -410,7 +411,7 @@ public interface TestRunner {
      *
      * @param data to enqueue
      */
-    void enqueue(String data);
+    MockFlowFile enqueue(String data);
 
     /**
      * Copies the content from the given byte array into memory and creates a
@@ -420,7 +421,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    void enqueue(byte[] data, Map<String, String> attributes);
+    MockFlowFile enqueue(byte[] data, Map<String, String> attributes);
 
     /**
      * Creates a FlowFile with the content set to the given string (in UTF-8 format), with the given attributes,
@@ -429,7 +430,7 @@ public interface TestRunner {
      * @param data to enqueue
      * @param attributes to use for enqueued item
      */
-    void enqueue(String data, Map<String, String> attributes);
+    MockFlowFile enqueue(String data, Map<String, String> attributes);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -438,7 +439,7 @@ public interface TestRunner {
      *
      * @param data to source data from
      */
-    void enqueue(InputStream data);
+    MockFlowFile enqueue(InputStream data);
 
     /**
      * Reads the content from the given {@link InputStream} into memory and
@@ -448,7 +449,7 @@ public interface TestRunner {
      * @param data source of data
      * @param attributes to use for flow files
      */
-    void enqueue(InputStream data, Map<String, String> attributes);
+    MockFlowFile enqueue(InputStream data, Map<String, String> attributes);
 
     /**
      * Copies the contents of the given {@link MockFlowFile} into a byte array
@@ -464,7 +465,7 @@ public interface TestRunner {
      * to the given relationship
      *
      * @param relationship to get flowfiles for
-     * @return flowfiles transfered to given relationship
+     * @return flowfiles transferred to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(String relationship);
 
@@ -473,7 +474,7 @@ public interface TestRunner {
      * to the given relationship
      *
      * @param relationship to get flowfiles for
-     * @return flowfiles transfered to given relationship
+     * @return flowfiles transferred to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(Relationship relationship);
 
@@ -756,7 +757,7 @@ public interface TestRunner {
     ValidationResult setProperty(ControllerService service, String propertyName, String value);
 
     /**
-     * Sets the annontation data of the given service to the provided annotation
+     * Sets the annotation data of the given service to the provided annotation
      * data.
      *
      * @param service to modify
@@ -932,4 +933,20 @@ public interface TestRunner {
      * @throws NullPointerException if the name is null
      */
     String removeVariable(String name);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate);
 }

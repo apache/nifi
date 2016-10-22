@@ -38,7 +38,7 @@ import java.util.Set;
  * values to be available at runtime. It is strongly tied to the startup
  * properties needed and is often refer to as the 'nifi.properties' file. The
  * properties contains keys and values. Great care should be taken in leveraging
- * this class or passing it along. It's use should be refactored and minimized
+ * this class or passing it along. Its use should be refactored and minimized
  * over time.
  */
 public abstract class NiFiProperties {
@@ -147,8 +147,10 @@ public abstract class NiFiProperties {
     // web properties
     public static final String WEB_WAR_DIR = "nifi.web.war.directory";
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
+    public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
     public static final String WEB_HTTP_HOST = "nifi.web.http.host";
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
+    public static final String WEB_HTTPS_PORT_FORWARDING = "nifi.web.https.port.forwarding";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
@@ -169,6 +171,8 @@ public abstract class NiFiProperties {
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
+    public static final String FLOW_ELECTION_MAX_WAIT_TIME = "nifi.cluster.flow.election.max.wait.time";
+    public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
     // zookeeper properties
     public static final String ZOOKEEPER_CONNECT_STRING = "nifi.zookeeper.connect.string";
@@ -239,6 +243,7 @@ public abstract class NiFiProperties {
     // cluster node defaults
     public static final int DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS = 2;
     public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "15 secs";
+    public static final String DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME = "5 mins";
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
@@ -247,9 +252,9 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
     /**
-     * Retrieves the property value for the given property key
+     * Retrieves the property value for the given property key.
      *
-     * @param key the key of property value to lookup.
+     * @param key the key of property value to lookup
      * @return value of property at given key or null if not found
      */
     public abstract String getProperty(String key);
@@ -257,7 +262,7 @@ public abstract class NiFiProperties {
     /**
      * Retrieves all known property keys.
      *
-     * @return all known property keys.
+     * @return all known property keys
      */
     public abstract Set<String> getPropertyKeys();
 
@@ -309,12 +314,12 @@ public abstract class NiFiProperties {
 
     public Integer getIntegerProperty(final String propertyName, final Integer defaultValue) {
         final String value = getProperty(propertyName);
-        if (value == null) {
+        if (value == null || value.trim().isEmpty()) {
             return defaultValue;
         }
 
         try {
-            return Integer.parseInt(getProperty(propertyName));
+            return Integer.parseInt(value.trim());
         } catch (final Exception e) {
             return defaultValue;
         }
@@ -375,11 +380,7 @@ public abstract class NiFiProperties {
     public Boolean isSiteToSiteSecure() {
         final String secureVal = getProperty(SITE_TO_SITE_SECURE, "true");
 
-        if ("false".equalsIgnoreCase(secureVal)) {
-            return false;
-        } else {
-            return true;
-        }
+        return !"false".equalsIgnoreCase(secureVal);
 
     }
 
@@ -389,11 +390,7 @@ public abstract class NiFiProperties {
     public Boolean isSiteToSiteHttpEnabled() {
         final String remoteInputHttpEnabled = getProperty(SITE_TO_SITE_HTTP_ENABLED, "false");
 
-        if ("true".equalsIgnoreCase(remoteInputHttpEnabled)) {
-            return true;
-        } else {
-            return false;
-        }
+        return "true".equalsIgnoreCase(remoteInputHttpEnabled);
 
     }
 
@@ -408,9 +405,23 @@ public abstract class NiFiProperties {
             return null;
         }
 
-        String propertyKey = isSiteToSiteSecure() ? NiFiProperties.WEB_HTTPS_PORT : NiFiProperties.WEB_HTTP_PORT;
-        Integer port = getIntegerProperty(propertyKey, 0);
-        if (port == 0) {
+        final String propertyKey;
+        if (isSiteToSiteSecure()) {
+            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTPS_PORT_FORWARDING))) {
+                propertyKey = WEB_HTTPS_PORT;
+            } else {
+                propertyKey = WEB_HTTPS_PORT_FORWARDING;
+            }
+        } else {
+            if (StringUtils.isBlank(getProperty(NiFiProperties.WEB_HTTP_PORT_FORWARDING))) {
+                propertyKey = WEB_HTTP_PORT;
+            } else {
+                propertyKey = WEB_HTTP_PORT_FORWARDING;
+            }
+        }
+
+        final Integer port = getIntegerProperty(propertyKey, null);
+        if (port == null) {
             throw new RuntimeException("Remote input HTTP" + (isSiteToSiteSecure() ? "S" : "")
                     + " is enabled but " + propertyKey + " is not specified.");
         }
@@ -769,8 +780,8 @@ public abstract class NiFiProperties {
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      *
-     * - login identity provider is not populated - Kerberos service support is
-     * not enabled
+     * - login identity provider is not populated
+     * - Kerberos service support is not enabled
      *
      * @return true if client certificates are required for access to the REST
      * API
@@ -941,6 +952,14 @@ public abstract class NiFiProperties {
 
     public String getFlowConfigurationArchiveDir() {
         return getProperty(FLOW_CONFIGURATION_ARCHIVE_DIR);
+    }
+
+    public String getFlowElectionMaxWaitTime() {
+        return getProperty(FLOW_ELECTION_MAX_WAIT_TIME, DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME);
+    }
+
+    public Integer getFlowElectionMaxCandidates() {
+        return getIntegerProperty(FLOW_ELECTION_MAX_CANDIDATES, null);
     }
 
     public String getFlowConfigurationArchiveMaxTime() {

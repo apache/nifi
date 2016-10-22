@@ -67,9 +67,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     private final AtomicReference<Processor> processor = new AtomicReference<>();
     private final AtomicReference<Collection<ValidationResult>> validationResults = new AtomicReference<>(new ArrayList<>());
 
-    private AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
+    private final AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
-    private ScriptEngine scriptEngine = null;
+    private volatile ScriptEngine scriptEngine = null;
     private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
     private volatile File kerberosServiceKeytab = null;
@@ -195,8 +195,11 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
 
     public void setup() {
         // Create a single script engine, the Processor object is reused by each task
-        super.setup(1);
-        scriptEngine = engineQ.poll();
+        if(scriptEngine == null) {
+            super.setup(1);
+            scriptEngine = engineQ.poll();
+        }
+
         if (scriptEngine == null) {
             throw new ProcessException("No script engine available!");
         }
@@ -229,6 +232,10 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 || MODULES.equals(descriptor)
                 || SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
+            // Need to reset scriptEngine if the value has changed
+            if (SCRIPT_ENGINE.equals(descriptor)) {
+                scriptEngine = null;
+            }
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {
@@ -535,5 +542,6 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     public void stop() {
         super.stop();
         processor.set(null);
+        scriptEngine = null;
     }
 }
