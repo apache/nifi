@@ -57,15 +57,16 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
             System.exit(e.getExitCode().ordinal());
         }
         TlsCertificateAuthorityService tlsCertificateAuthorityService = new TlsCertificateAuthorityService();
-        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJson(),
+        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut(),
                 tlsCertificateAuthorityServiceCommandLine.differentPasswordForKeyAndKeystore());
         System.out.println("Server Started");
         System.out.flush();
     }
 
     public TlsConfig createConfig() throws IOException {
-        if (onlyUseConfigJson()) {
-            try (InputStream inputStream = inputStreamFactory.create(new File(getConfigJson()))) {
+        String configJsonIn = getConfigJsonIn();
+        if (!StringUtils.isEmpty(configJsonIn)) {
+            try (InputStream inputStream = inputStreamFactory.create(new File(configJsonIn))) {
                 TlsConfig tlsConfig = new ObjectMapper().readValue(inputStream, TlsConfig.class);
                 tlsConfig.initDefaults();
                 return tlsConfig;
