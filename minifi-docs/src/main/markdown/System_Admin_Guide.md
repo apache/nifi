@@ -78,7 +78,7 @@ Example logback.xml configuration to output the status to its own rolling log fi
           To GZIP rolled files, replace '.log' with '.log.gz'.
           To ZIP rolled files, replace '.log' with '.log.zip'.
         -->
-        <fileNamePattern>./logs/minifi-bootstrap_%d.log</fileNamePattern>
+        <fileNamePattern>./logs/minifi-status_%d.log</fileNamePattern>
         <!-- keep 5 log files worth of history -->
         <maxHistory>5</maxHistory>
     </rollingPolicy>
