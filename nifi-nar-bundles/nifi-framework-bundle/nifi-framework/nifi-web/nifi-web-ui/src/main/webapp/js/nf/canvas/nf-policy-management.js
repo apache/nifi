@@ -50,85 +50,31 @@ nf.PolicyManagement = (function () {
                 },
                 handler: {
                     click: function () {
-                        var tenantSearchTerm = $('#search-users-field').val();
+                        // add to table and update policy
+                        var policyGrid = $('#policy-table').data('gridInstance');
+                        var policyData = policyGrid.getData();
 
-                        // create the search request
-                        $.ajax({
-                            type: 'GET',
-                            data: {
-                                q: tenantSearchTerm
-                            },
-                            dataType: 'json',
-                            url: config.urls.searchTenants
-                        }).done(function (response) {
-                            var selectedUsers = $.map(response.users, function (user) {
-                                return $.extend({
-                                    type: 'user'
-                                }, user);
-                            });
-                            var selectedGroups = $.map(response.userGroups, function (userGroup) {
-                                return $.extend({
-                                    type: 'group'
-                                }, userGroup);
-                            });
+                        // begin the update
+                        policyData.beginUpdate();
 
-                            var selectedUser = [];
-                            selectedUser = selectedUser.concat(selectedUsers, selectedGroups);
-
-                            // add the user to the policy table
-                            var addUser = function (user) {
-                                // add to table and update policy
-                                var policyGrid = $('#policy-table').data('gridInstance');
-                                var policyData = policyGrid.getData();
-
-                                // begin the update
-                                policyData.beginUpdate();
-
-                                // remove the user
-                                policyData.addItem(user);
-
-                                // end the update
-                                policyData.endUpdate();
-
-                                // update the policy
-                                updatePolicy();
-                            };
-
-                            // ensure the search found some results
-                            if (!$.isArray(selectedUser) || selectedUser.length === 0) {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'User Search',
-                                    dialogContent: 'No users match \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                });
-                            } else if (selectedUser.length > 1) {
-                                var exactMatch = false;
-
-                                // look for an exact match
-                                $.each(selectedUser, function (_, userEntity) {
-                                    if (userEntity.component.identity === tenantSearchTerm) {
-                                        addUser(userEntity);
-                                        exactMatch = true;
-                                        return false;
-                                    }
-                                });
-
-                                // if there is an exact match, use it
-                                if (exactMatch) {
-                                    // close the dialog
-                                    $('#search-users-dialog').modal('hide');
-                                } else {
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'User Search',
-                                        dialogContent: 'More than one user matches \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                    });
-                                }
-                            } else if (selectedUser.length === 1) {
-                                addUser(selectedUser[0]);
-
-                                // close the dialog
-                                $('#search-users-dialog').modal('hide');
-                            }
+                        // add all users/groups
+                        $.each(getTenantsToAdd($('#allowed-users')), function (_, user) {
+                            // remove the user
+                            policyData.addItem(user);
                         });
+                        $.each(getTenantsToAdd($('#allowed-groups')), function (_, group) {
+                            // remove the user
+                            policyData.addItem(group);
+                        });
+
+                        // end the update
+                        policyData.endUpdate();
+
+                        // update the policy
+                        updatePolicy();
+
+                        // close the dialog
+                        $('#search-users-dialog').modal('hide');
                     }
                 }
             },
@@ -150,9 +96,16 @@ nf.PolicyManagement = (function () {
                 close: function () {
                     // reset the search fields
                     $('#search-users-field').userSearchAutocomplete('reset').val('');
-                    $('#selected-user-id').text('');
+
+                    // clear the selected users/groups
+                    $('#allowed-users, #allowed-groups').empty();
                 }
             }
+        });
+
+        // listen for removal requests
+        $(document).on('click', 'div.remove-allowed-entity', function () {
+            $(this).closest('li').remove();
         });
 
         // configure the user auto complete
@@ -169,18 +122,25 @@ nf.PolicyManagement = (function () {
                 // results are normalized into a single element array
                 var searchResults = items[0];
 
+                var allowedGroups = getAllAllowedGroups();
+                var allowedUsers = getAllAllowedUsers();
+
                 var self = this;
                 $.each(searchResults.userGroups, function (_, tenant) {
-                    self._renderGroup(ul, {
-                        label: tenant.component.identity,
-                        value: tenant.component.identity
-                    });
+                    // see if this match is not already selected
+                    if ($.inArray(tenant.id, allowedGroups) === -1) {
+                        self._renderGroup(ul, $.extend({
+                            type: 'group'
+                        }, tenant));
+                    }
                 });
                 $.each(searchResults.users, function (_, tenant) {
-                    self._renderUser(ul, {
-                        label: tenant.component.identity,
-                        value: tenant.component.identity
-                    });
+                    // see if this match is not already selected
+                    if ($.inArray(tenant.id, allowedUsers) === -1) {
+                        self._renderUser(ul, $.extend({
+                            type: 'user'
+                        }, tenant));
+                    }
                 });
 
                 // ensure there were some results
@@ -190,14 +150,14 @@ nf.PolicyManagement = (function () {
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
-                ul.width($('#search-users-field').width() + 6);
+                ul.width($('#search-users-field').outerWidth() - 6);
             },
             _renderUser: function (ul, match) {
-                var userContent = $('<a></a>').text(match.label);
+                var userContent = $('<a></a>').text(match.component.identity);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(userContent).appendTo(ul);
             },
             _renderGroup: function (ul, match) {
-                var groupLabel = $('<span></span>').text(match.label);
+                var groupLabel = $('<span></span>').text(match.component.identity);
                 var groupContent = $('<a></a>').append('<div class="fa fa-users" style="margin-right: 5px;"></div>').append(groupLabel);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(groupContent).appendTo(ul);
             }
@@ -224,10 +184,110 @@ nf.PolicyManagement = (function () {
                 }).done(function (searchResponse) {
                     response(searchResponse);
                 });
+            },
+            select: function (event, ui) {
+                addAllowedTenant(ui.item);
+
+                // reset the search field
+                $(this).val('');
+
+                // stop event propagation
+                return false;
             }
         });
     };
-    
+
+    /**
+     * Gets all allowed groups including those already in the policy and those selected while searching (not yet saved).
+     *
+     * @returns {Array}
+     */
+    var getAllAllowedGroups = function () {
+        var policyGrid = $('#policy-table').data('gridInstance');
+        var policyData = policyGrid.getData();
+
+        var userGroups = [];
+
+        // consider existing groups in the policy table
+        var items = policyData.getItems();
+        $.each(items, function (_, item) {
+            if (item.type === 'group') {
+                userGroups.push(item.id);
+            }
+        });
+
+        // also consider groups already selected in the search users dialog
+        $.each(getTenantsToAdd($('#allowed-groups')), function (_, group) {
+            userGroups.push(group.id);
+        });
+
+        return userGroups;
+    };
+
+    /**
+     * Gets the user groups that will be added upon applying the changes.
+     *
+     * @param {jQuery} container
+     * @returns {Array}
+     */
+    var getTenantsToAdd = function (container) {
+        var tenants = [];
+
+        // also consider groups already selected in the search users dialog
+        container.children('li').each(function (_, allowedTenant) {
+            var tenant = $(allowedTenant).data('tenant');
+            if (nf.Common.isDefinedAndNotNull(tenant)) {
+                tenants.push(tenant);
+            }
+        });
+
+        return tenants;
+    };
+
+    /**
+     * Gets all allowed users including those already in the policy and those selected while searching (not yet saved).
+     *
+     * @returns {Array}
+     */
+    var getAllAllowedUsers = function () {
+        var policyGrid = $('#policy-table').data('gridInstance');
+        var policyData = policyGrid.getData();
+
+        var users = [];
+
+        // consider existing users in the policy table
+        var items = policyData.getItems();
+        $.each(items, function (_, item) {
+            if (item.type === 'user') {
+                users.push(item.id);
+            }
+        });
+
+        // also consider users already selected in the search users dialog
+        $.each(getTenantsToAdd($('#allowed-users')), function (_, user) {
+            users.push(user.id);
+        });
+
+        return users;
+    };
+
+    /**
+     * Added the specified tenant to the listing of users/groups which will be added when applied.
+     *
+     * @param allowedTenant user/group to add
+     */
+    var addAllowedTenant = function (allowedTenant) {
+        var allowedTenants = allowedTenant.type === 'user' ? $('#allowed-users') : $('#allowed-groups');
+
+        // append the user
+        var tenant = $('<span></span>').addClass('allowed-entity ellipsis').text(allowedTenant.component.identity).ellipsis();
+        var tenantAction = $('<div></div>').addClass('remove-allowed-entity fa fa-trash');
+        $('<li></li>').data('tenant', allowedTenant).append(tenant).append(tenantAction).appendTo(allowedTenants);
+    };
+
+    /**
+     * Initializes the policy table.
+     */
     var initPolicyTable = function () {
         $('#override-policy-dialog').modal({
             headerText: 'Override Policy',

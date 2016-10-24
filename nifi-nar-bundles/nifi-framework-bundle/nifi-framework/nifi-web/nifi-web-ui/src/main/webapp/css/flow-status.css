@@ -170,13 +170,6 @@ input.search-flow {
     line-height: 1.4em;
 }
 
-#search-flow-results li.search-no-matches {
-    padding: 4px;
-    font-weight: bold;
-    color: #aaa;
-    font-style: italic;
-}
-
 div.search-glass-pane {
     position: absolute;
     background-image: url(../images/spacer.png);

@@ -824,7 +824,12 @@ nf.UsersTable = (function () {
                 $('#new-user-button').on('click', function () {
                     buildUsersList();
                     buildGroupsList();
+
+                    // show the dialog
                     $('#user-dialog').modal('show');
+
+                    // set the focus automatically, only when adding a new user
+                    $('#user-identity-edit-dialog').focus();
                 });
 
                 $('#new-user-button').prop('disabled', false);
