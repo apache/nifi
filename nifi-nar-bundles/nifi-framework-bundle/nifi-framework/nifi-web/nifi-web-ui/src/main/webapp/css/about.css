@@ -22,14 +22,14 @@
 }
 
 #nf-about-pic {
-    height: 50%;
+    height: 60%;
     background: url(../images/nifi-logo-about.svg) #000000 no-repeat center center;
-    top: 25%;
+    top: 20%;
     position: relative;
 }
 
 #nf-about-pic-container {
-    height: 50%;
+    height: 40%;
     background: #000000;
 }
 
@@ -52,14 +52,8 @@
     font-weight:900;
 }
 
-#nf-version-detail-toggle {
-    cursor: pointer;
-    color: #007ed2;
-}
-
 #nf-version-detail {
-    display: none;
-    padding: 5px;
+    padding: 5px 0 0 5px;
 }
 
 #nf-version-detail-tag {

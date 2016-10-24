@@ -24,9 +24,12 @@ import java.net.InetSocketAddress;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -979,6 +982,21 @@ public abstract class NiFiProperties {
             return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
         } else {
             return new Path[]{};
+        }
+    }
+
+    public Date getBuildTimestamp() {
+        String buildTimestampString = getProperty(NiFiProperties.BUILD_TIMESTAMP);
+        if (!StringUtils.isEmpty(buildTimestampString)) {
+            try {
+                SimpleDateFormat buildTimestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                Date buildTimestampDate = buildTimestampFormat.parse(buildTimestampString);
+                return buildTimestampDate;
+            } catch (ParseException parseEx) {
+                return null;
+            }
+        } else {
+            return null;
         }
     }
 

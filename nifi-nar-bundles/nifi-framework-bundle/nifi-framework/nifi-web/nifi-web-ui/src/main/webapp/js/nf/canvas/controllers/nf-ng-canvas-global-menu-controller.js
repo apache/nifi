@@ -278,26 +278,16 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     // set the document title and the about title
                     document.title = aboutDetails.title;
                     $('#nf-version').text(aboutDetails.version);
-                    $('#nf-version,#nf-version-detail-toggle').each(function () {
-                        $(this).click(function () {
-                            $('#nf-version-detail').toggle();
-                        });
-                    });
-                    $('#nf-about-build-tag').text(aboutDetails.buildTag);
-                    $('#nf-about-build-revision').text(aboutDetails.buildRevision);
                     if (aboutDetails.buildTag !== 'HEAD') {
+                        $('#nf-about-build-tag').text(aboutDetails.buildTag);
                         $('#nf-version-detail-tag').show();
                     }
                     if (aboutDetails.buildRevision) {
+                        $('#nf-about-build-revision').text(aboutDetails.buildRevision);
+                        $('#nf-about-build-branch').text(aboutDetails.buildBranch);
                         $('#nf-version-detail-commit').show();
                     }
-                    $('#nf-about-build-branch').text(aboutDetails.buildBranch);
                     $('#nf-about-build-timestamp').text(aboutDetails.buildTimestamp);
-                    $('#nf-about-java-vendor').text(aboutDetails.javaVendor);
-                    $('#nf-about-java-version').text(aboutDetails.javaVersion);
-                    $('#nf-about-os-name').text(aboutDetails.osName);
-                    $('#nf-about-os-version').text(aboutDetails.osVersion);
-                    $('#nf-about-os-arch').text(aboutDetails.osArchitecture);
 
                     // store the content viewer url if available
                     if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {

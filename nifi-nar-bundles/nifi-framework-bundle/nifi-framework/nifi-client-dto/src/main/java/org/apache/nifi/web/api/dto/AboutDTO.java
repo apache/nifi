@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimezoneAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -36,15 +37,10 @@ public class AboutDTO {
     private String contentViewerUrl;
     private Date timezone;
 
-    private String javaVendor;
-    private String javaVersion;
-    private String osName;
-    private String osVersion;
-    private String osArchitecture;
     private String buildTag;
     private String buildRevision;
     private String buildBranch;
-    private String buildTimestamp;
+    private Date buildTimestamp;
 
     /* getters / setters */
     /**
@@ -124,61 +120,6 @@ public class AboutDTO {
     }
 
     @ApiModelProperty(
-            value = "Java JVM vendor"
-    )
-    public String getJavaVendor() {
-        return javaVendor;
-    }
-
-    public void setJavaVendor(String javaVendor) {
-        this.javaVendor = javaVendor;
-    }
-
-    @ApiModelProperty(
-            value = "Java version"
-    )
-    public String getJavaVersion() {
-        return javaVersion;
-    }
-
-    public void setJavaVersion(String javaVersion) {
-        this.javaVersion = javaVersion;
-    }
-
-    @ApiModelProperty(
-            value = "Host operating system name"
-    )
-    public String getOsName() {
-        return osName;
-    }
-
-    public void setOsName(String osName) {
-        this.osName = osName;
-    }
-
-    @ApiModelProperty(
-            value = "Host operating system version"
-    )
-    public String getOsVersion() {
-        return osVersion;
-    }
-
-    public void setOsVersion(String osVersion) {
-        this.osVersion = osVersion;
-    }
-
-    @ApiModelProperty(
-            value = "Host operating system architecture"
-    )
-    public String getOsArchitecture() {
-        return osArchitecture;
-    }
-
-    public void setOsArchitecture(String osArchitecture) {
-        this.osArchitecture = osArchitecture;
-    }
-
-    @ApiModelProperty(
             value = "Build tag"
     )
     public String getBuildTag() {
@@ -211,14 +152,15 @@ public class AboutDTO {
         this.buildBranch = buildBranch;
     }
 
+    @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "Build timestamp"
     )
-    public String getBuildTimestamp() {
+    public Date getBuildTimestamp() {
         return buildTimestamp;
     }
 
-    public void setBuildTimestamp(String buildTimestamp) {
+    public void setBuildTimestamp(Date buildTimestamp) {
         this.buildTimestamp = buildTimestamp;
     }
 }

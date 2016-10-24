@@ -2404,7 +2404,7 @@ public final class DtoFactory {
         dto.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
         dto.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
         dto.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
-        dto.setBuildTimestamp(properties.getProperty(NiFiProperties.BUILD_TIMESTAMP));
+        dto.setBuildTimestamp(properties.getBuildTimestamp());
         return dto;
     }
 

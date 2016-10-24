@@ -23,6 +23,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -574,7 +575,7 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         private String buildTag;
         private String buildRevision;
         private String buildBranch;
-        private String buildTimestamp;
+        private Date buildTimestamp;
 
         @ApiModelProperty("The version of this NiFi.")
         public String getNiFiVersion() {
@@ -657,12 +658,13 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
             this.buildBranch = buildBranch;
         }
 
+        @XmlJavaTypeAdapter(DateTimeAdapter.class)
         @ApiModelProperty("Build timestamp")
-        public String getBuildTimestamp() {
+        public Date getBuildTimestamp() {
             return buildTimestamp;
         }
 
-        public void setBuildTimestamp(String buildTimestamp) {
+        public void setBuildTimestamp(Date buildTimestamp) {
             this.buildTimestamp = buildTimestamp;
         }
 

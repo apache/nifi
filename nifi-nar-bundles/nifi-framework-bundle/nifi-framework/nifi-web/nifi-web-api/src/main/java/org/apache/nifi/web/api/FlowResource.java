@@ -1092,18 +1092,11 @@ public class FlowResource extends ApplicationResource {
         final NiFiProperties properties = getProperties();
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
-        // Get platform version info
-        aboutDTO.setJavaVendor(System.getProperty("java.vendor"));
-        aboutDTO.setJavaVersion(System.getProperty("java.version"));
-        aboutDTO.setOsName(System.getProperty("os.name"));
-        aboutDTO.setOsVersion(System.getProperty("os.version"));
-        aboutDTO.setOsArchitecture(System.getProperty("os.arch"));
-
         // Get build info
         aboutDTO.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
         aboutDTO.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
         aboutDTO.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
-        aboutDTO.setBuildTimestamp(properties.getProperty(NiFiProperties.BUILD_TIMESTAMP));
+        aboutDTO.setBuildTimestamp(properties.getBuildTimestamp());
 
         // create the response entity
         final AboutEntity entity = new AboutEntity();
