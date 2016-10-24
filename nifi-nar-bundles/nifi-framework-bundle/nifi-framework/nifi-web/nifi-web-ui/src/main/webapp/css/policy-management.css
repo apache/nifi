@@ -194,7 +194,7 @@ div.policy-selected-component-type {
 
 #search-users-dialog {
     width: 450px;
-    height: 250px;
+    height: 450px;
 }
 
 #search-users-results .ui-autocomplete {
@@ -209,6 +209,69 @@ div.policy-selected-component-type {
     background: #D4E0E5 !important;
     border: 1px solid #999999;
     border-radius: 0;
+}
+
+div.secure-port-setting {
+    margin-bottom: 15px;
+    width: 410px;
+}
+
+li.search-users-header {
+    font-weight: bold;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    height: 14px;
+}
+
+div.search-users-match-header {
+    font-weight: normal;
+    margin-left: 10px;
+}
+
+li.search-users-no-matches {
+    padding: 4px;
+    font-weight: bold;
+    color: #aaa;
+    font-style: italic;
+}
+
+div.allowed-container {
+    width: 408px;
+    height: 100px;
+    border: 1px solid #aaa;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+ul.allowed {
+    list-style-type: none;
+}
+
+ul.allowed li {
+    height: 16px;
+    width: 385px;
+    border-bottom: 1px solid #ddd;
+    color: #262626;
+    overflow: hidden;
+    margin: 2px;
+    padding: 2px;
+    line-height: 16px;
+    font-weight: normal;
+}
+
+span.allowed-entity {
+    float: left;
+    width: 360px;
+}
+
+div.remove-allowed-entity {
+    float: right;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 16px;
 }
 
 /*
