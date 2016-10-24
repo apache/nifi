@@ -32,14 +32,15 @@ import java.io.File;
 public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
     public static final String TOKEN_ARG = "token";
     public static final String CONFIG_JSON_ARG = "configJson";
+    public static final String READ_CONFIG_JSON_ARG = "configJsonIn";
     public static final String USE_CONFIG_JSON_ARG = "useConfigJson";
-    public static final String PORT_ARG = "PORT";
 
+    public static final String PORT_ARG = "PORT";
     public static final String DEFAULT_CONFIG_JSON = new File("config.json").getPath();
 
     private String token;
-    private String configJson;
-    private boolean onlyUseConfigJson;
+    private String configJsonOut;
+    private String configJsonIn;
     private int port;
     private String dn;
 
@@ -47,6 +48,8 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
         super(header);
         addOptionWithArg("t", TOKEN_ARG, getTokenDescription());
         addOptionWithArg("f", CONFIG_JSON_ARG, "The place to write configuration info", DEFAULT_CONFIG_JSON);
+        addOptionWithArg(null, READ_CONFIG_JSON_ARG, "The place to read configuration info from (defaults to the value of " + CONFIG_JSON_ARG + "), implies "
+                + USE_CONFIG_JSON_ARG + " if set.", CONFIG_JSON_ARG + " value");
         addOptionNoArg("F", USE_CONFIG_JSON_ARG, "Flag specifying that all configuration is read from " + CONFIG_JSON_ARG + " to facilitate automated use (otherwise "
                 + CONFIG_JSON_ARG + " will only be written to.");
         addOptionWithArg("p", PORT_ARG, getPortDescription(), TlsConfig.DEFAULT_PORT);
@@ -66,11 +69,18 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
         CommandLine commandLine = super.doParse(args);
 
         token = commandLine.getOptionValue(TOKEN_ARG);
-        onlyUseConfigJson = commandLine.hasOption(USE_CONFIG_JSON_ARG);
-        if (StringUtils.isEmpty(token) && !onlyUseConfigJson) {
-            printUsageAndThrow(TOKEN_ARG + " argument must not be empty unless " + USE_CONFIG_JSON_ARG + " set", ExitCode.ERROR_TOKEN_ARG_EMPTY);
+
+        boolean useConfigJson = commandLine.hasOption(USE_CONFIG_JSON_ARG);
+
+        configJsonOut = commandLine.getOptionValue(CONFIG_JSON_ARG, DEFAULT_CONFIG_JSON);
+        configJsonIn = commandLine.getOptionValue(READ_CONFIG_JSON_ARG);
+        if (StringUtils.isEmpty(configJsonIn) && useConfigJson) {
+            configJsonIn = configJsonOut;
         }
-        configJson = commandLine.getOptionValue(CONFIG_JSON_ARG, DEFAULT_CONFIG_JSON);
+
+        if (StringUtils.isEmpty(token) && StringUtils.isEmpty(configJsonIn)) {
+            printUsageAndThrow(TOKEN_ARG + " argument must not be empty unless " + USE_CONFIG_JSON_ARG + " or " + READ_CONFIG_JSON_ARG+ " set", ExitCode.ERROR_TOKEN_ARG_EMPTY);
+        }
         port = getIntValue(commandLine, PORT_ARG, TlsConfig.DEFAULT_PORT);
         dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(getDnHostname()));
         return commandLine;
@@ -80,12 +90,12 @@ public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLin
         return token;
     }
 
-    public String getConfigJson() {
-        return configJson;
+    public String getConfigJsonOut() {
+        return configJsonOut;
     }
 
-    public boolean onlyUseConfigJson() {
-        return onlyUseConfigJson;
+    public String getConfigJsonIn() {
+        return configJsonIn;
     }
 
     public int getPort() {
