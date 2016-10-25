@@ -50,7 +50,7 @@ public class TestMetricsService {
         status.setActiveThreadCount(5);
     }
 
-    //test group status metric retreiveing
+    //test group status metric retrieving
     @Test
     public void testGetProcessGroupStatusMetrics() {
         ProcessorStatus procStatus = new ProcessorStatus();
@@ -71,7 +71,7 @@ public class TestMetricsService {
         Assert.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
     }
 
-    //test processor status metric retreiveing
+    //test processor status metric retrieving
     @Test
     public void testGetProcessorGroupStatusMetrics() {
         ProcessorStatus procStatus = new ProcessorStatus();
@@ -88,7 +88,7 @@ public class TestMetricsService {
         Assert.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
     }
 
-    //test JVM status metric retreiveing
+    //test JVM status metric retrieving
     @Test
     public void testGetVirtualMachineMetrics() {
         final VirtualMachineMetrics virtualMachineMetrics = VirtualMachineMetrics.getInstance();

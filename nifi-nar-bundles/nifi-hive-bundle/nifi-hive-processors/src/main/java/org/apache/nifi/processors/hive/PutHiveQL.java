@@ -64,9 +64,9 @@ import java.util.regex.Pattern;
         + "with the naming convention hiveql.args.N.type and hiveql.args.N.value, where N is a positive integer. The hiveql.args.N.type is expected to be "
         + "a number indicating the JDBC Type. The content of the FlowFile is expected to be in UTF-8 format.")
 @ReadsAttributes({
-        @ReadsAttribute(attribute = "hiveql.args.N.type", description = "Incoming FlowFiles are expected to be parameterized HiveQL statements. The type of each Parameter is specified as an integer "
+        @ReadsAttribute(attribute = "hiveql.args.N.type", description = "Incoming FlowFiles are expected to be parametrized HiveQL statements. The type of each Parameter is specified as an integer "
                 + "that represents the JDBC Type of the parameter."),
-        @ReadsAttribute(attribute = "hiveql.args.N.value", description = "Incoming FlowFiles are expected to be parameterized HiveQL statements. The value of the Parameters are specified as "
+        @ReadsAttribute(attribute = "hiveql.args.N.value", description = "Incoming FlowFiles are expected to be parametrized HiveQL statements. The value of the Parameters are specified as "
                 + "hiveql.args.1.value, hiveql.args.2.value, hiveql.args.3.value, and so on. The type of the hiveql.args.1.value Parameter is specified by the hiveql.args.1.type attribute.")
 })
 public class PutHiveQL extends AbstractHiveQLProcessor {

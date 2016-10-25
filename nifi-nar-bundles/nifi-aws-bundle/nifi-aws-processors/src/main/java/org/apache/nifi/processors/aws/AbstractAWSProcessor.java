@@ -204,10 +204,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public void onScheduled(final ProcessContext context) {
         final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
         this.client = awsClient;
-        intializeRegionAndEndpoint(context);
+        initializeRegionAndEndpoint(context);
     }
 
-    protected void intializeRegionAndEndpoint(ProcessContext context) {
+    protected void initializeRegionAndEndpoint(ProcessContext context) {
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();

@@ -122,17 +122,6 @@ nf.Processor = (function () {
             })
             .text('\ue807');
 
-        // processor stats preview
-        processor.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 294,
-                'height': 58,
-                'x': 8,
-                'y': 35,
-                'class': 'processor-stats-preview'
-            });
-
         // make processors selectable
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
     };
@@ -517,9 +506,6 @@ nf.Processor = (function () {
                     processor.select('text.processor-type').text(null);
                 }
 
-                // hide the preview
-                processor.select('image.processor-stats-preview').style('display', 'none');
-
                 // populate the stats
                 processor.call(updateProcessorStatus);
             } else {
@@ -534,10 +520,10 @@ nf.Processor = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the processor name
+                    processor.select('text.processor-name').text(null);
                 }
-
-                // show the preview
-                processor.select('image.processor-stats-preview').style('display', 'block');
 
                 // remove the tooltips
                 processor.call(removeTooltips);

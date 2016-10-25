@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData.Record;
@@ -70,7 +69,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @DynamicProperty(name = "Field name from input schema",
 value = "Field name for output schema",
 description = "Explicit mappings from input schema to output schema, which supports renaming fields and stepping into nested records on the input schema using notation like parent.id")
-public class ConvertAvroSchema extends AbstractKiteProcessor {
+public class ConvertAvroSchema extends AbstractKiteConvertProcessor {
 
     private static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
@@ -180,7 +179,9 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
             .<PropertyDescriptor> builder()
             .add(INPUT_SCHEMA)
             .add(OUTPUT_SCHEMA)
-            .add(LOCALE).build();
+            .add(LOCALE)
+            .add(COMPRESSION_TYPE)
+            .build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet
             .<Relationship> builder().add(SUCCESS).add(FAILURE).build();
@@ -284,11 +285,11 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
 
         final DataFileWriter<Record> writer = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(outputSchema, Record.class));
-        writer.setCodec(CodecFactory.snappyCodec());
+        writer.setCodec(getCodecFactory(context.getProperty(COMPRESSION_TYPE).getValue()));
 
         final DataFileWriter<Record> failureWriter = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(outputSchema, Record.class));
-        failureWriter.setCodec(CodecFactory.snappyCodec());
+        failureWriter.setCodec(getCodecFactory(context.getProperty(COMPRESSION_TYPE).getValue()));
 
         try {
             final AtomicLong written = new AtomicLong(0L);
@@ -376,6 +377,17 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         } catch (DatasetException e) {
             getLogger().error("Failed to read FlowFile", e);
             session.transfer(incomingAvro, FAILURE);
+        } finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                getLogger().warn("Unable to close writer ressource", e);
+            }
+            try {
+                failureWriter.close();
+            } catch (IOException e) {
+                getLogger().warn("Unable to close writer ressource", e);
+            }
         }
     }
 }

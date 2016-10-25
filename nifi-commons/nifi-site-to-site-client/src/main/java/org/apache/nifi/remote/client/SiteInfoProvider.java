@@ -59,7 +59,7 @@ public class SiteInfoProvider {
         final ControllerDTO controller;
 
         try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP)) {
-            apiClient.resolveBaseUrl(clusterUrl);
+            apiClient.setBaseUrl(SiteToSiteRestApiClient.resolveBaseUrl(clusterUrl));
             apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
             apiClient.setReadTimeoutMillis(readTimeoutMillis);
             controller = apiClient.getController();

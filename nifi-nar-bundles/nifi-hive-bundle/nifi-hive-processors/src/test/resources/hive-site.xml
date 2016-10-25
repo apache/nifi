@@ -17,6 +17,6 @@
 <configuration>
   <property>
     <name>fs.default.name</name>
-    <value>hdfs://hive</value>
+    <value>file:///</value>
   </property>
 </configuration>

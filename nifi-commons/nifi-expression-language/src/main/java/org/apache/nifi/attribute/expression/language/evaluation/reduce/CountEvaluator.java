@@ -19,12 +19,12 @@ package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-public class CountEvaluator extends NumberEvaluator implements ReduceEvaluator<Long> {
+public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvaluator<Long> {
 
     private final Evaluator<?> subjectEvaluator;
     private long count = 0L;
@@ -37,15 +37,15 @@ public class CountEvaluator extends NumberEvaluator implements ReduceEvaluator<L
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
         final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
         if (result.getValue() == null) {
-            return new NumberQueryResult(count);
+            return new WholeNumberQueryResult(count);
         }
 
         if (result.getResultType() == ResultType.BOOLEAN && ((Boolean) result.getValue()).equals(Boolean.FALSE)) {
-            return new NumberQueryResult(count);
+            return new WholeNumberQueryResult(count);
         }
 
         count++;
-        return new NumberQueryResult(count);
+        return new WholeNumberQueryResult(count);
     }
 
     @Override

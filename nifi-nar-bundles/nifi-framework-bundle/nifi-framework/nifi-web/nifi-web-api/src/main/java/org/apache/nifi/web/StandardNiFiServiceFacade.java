@@ -1902,7 +1902,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Creates entities for compnents referencing a ControllerServcie using the specified revisions.
+     * Creates entities for components referencing a ControllerServcie using the specified revisions.
      *
      * @param reference ControllerServiceReference
      * @param revisions The revisions
@@ -2339,7 +2339,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorNode processor = processorDAO.getProcessor(id);
         PropertyDescriptor descriptor = processor.getPropertyDescriptor(property);
 
-        // return an invalid descriptor if the processor doesn't suppor this property
+        // return an invalid descriptor if the processor doesn't support this property
         if (descriptor == null) {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
         }

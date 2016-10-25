@@ -107,7 +107,7 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
 
-        // create a reader for the merged contet
+        // create a reader for the merged content
         byte[] data = runner.getContentAsByteArray(bundle);
         final Map<String, GenericRecord> users = getGenericRecordMap(data, schema, "name");
 

@@ -53,7 +53,7 @@ public class TestPutDistributedMapCache {
     @Test
     public void testNoCacheKey() throws InitializationException {
 
-        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
+        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.enqueue(new byte[] {});
 
         runner.run();
@@ -66,10 +66,10 @@ public class TestPutDistributedMapCache {
 
     @Test
     public void testSingleFlowFile() throws InitializationException, IOException {
-        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
+        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
         final Map<String, String> props = new HashMap<>();
-        props.put("caheKeyAttribute", "1");
+        props.put("cacheKeyAttribute", "1");
 
         String flowFileContent = "content";
         runner.enqueue(flowFileContent.getBytes("UTF-8"), props);
@@ -90,10 +90,10 @@ public class TestPutDistributedMapCache {
 
     @Test
     public void testNothingToCache() throws InitializationException, IOException {
-        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
+        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
 
         final Map<String, String> props = new HashMap<>();
-        props.put("caheKeyAttribute", "2");
+        props.put("cacheKeyAttribute", "2");
 
         // flow file without content
         runner.enqueue(new byte[] {}, props);
@@ -132,11 +132,11 @@ public class TestPutDistributedMapCache {
     @Test
     public void testCacheStrategyReplace() throws InitializationException, IOException {
 
-        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
+        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(PutDistributedMapCache.CACHE_UPDATE_STRATEGY, PutDistributedMapCache.CACHE_UPDATE_REPLACE.getValue());
 
         final Map<String, String> props = new HashMap<>();
-        props.put("caheKeyAttribute", "replaceme");
+        props.put("cacheKeyAttribute", "replaceme");
 
         String original = "original";
         runner.enqueue(original.getBytes("UTF-8"), props);
@@ -176,11 +176,11 @@ public class TestPutDistributedMapCache {
     @Test
     public void testCacheStrategyKeepOriginal() throws InitializationException, IOException {
 
-        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${caheKeyAttribute}");
+        runner.setProperty(PutDistributedMapCache.CACHE_ENTRY_IDENTIFIER, "${cacheKeyAttribute}");
         runner.setProperty(PutDistributedMapCache.CACHE_UPDATE_STRATEGY, PutDistributedMapCache.CACHE_UPDATE_KEEP_ORIGINAL.getValue());
 
         final Map<String, String> props = new HashMap<>();
-        props.put("caheKeyAttribute", "replaceme");
+        props.put("cacheKeyAttribute", "replaceme");
 
         String original = "original";
         runner.enqueue(original.getBytes("UTF-8"), props);

@@ -38,6 +38,7 @@
     height: 16px;
     background-image: url(../../../images/iconResize.png);
     background-color: #fff;
+    z-index: 6;
 }
 
 /*

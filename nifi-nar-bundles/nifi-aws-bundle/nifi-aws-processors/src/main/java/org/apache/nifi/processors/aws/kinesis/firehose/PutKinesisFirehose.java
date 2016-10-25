@@ -91,25 +91,8 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
         final long maxBufferSizeBytes = context.getProperty(MAX_MESSAGE_BUFFER_SIZE_MB).asDataSize(DataUnit.B).longValue();
         final String firehoseStreamName = context.getProperty(KINESIS_FIREHOSE_DELIVERY_STREAM_NAME).getValue();
 
-        List<FlowFile> flowFiles = new ArrayList<FlowFile>(batchSize);
-
-        long currentBufferSizeBytes = 0;
-
-        for (int i = 0; (i < batchSize) && (currentBufferSizeBytes <= maxBufferSizeBytes); i++) {
-
-            FlowFile flowFileCandidate = session.get();
-            if ( flowFileCandidate == null )
-                break;
-
-            if (flowFileCandidate.getSize() > MAX_MESSAGE_SIZE) {
-                flowFileCandidate = handleFlowFileTooBig(session, flowFileCandidate, firehoseStreamName);
-                continue;
-            }
-
-            currentBufferSizeBytes += flowFileCandidate.getSize();
-
-            flowFiles.add(flowFileCandidate);
-        }
+        List<FlowFile> flowFiles = filterMessagesByMaxSize(session, batchSize, maxBufferSizeBytes, firehoseStreamName,
+            AWS_KINESIS_FIREHOSE_ERROR_MESSAGE);
 
         final AmazonKinesisFirehoseClient client = getClient();
 
@@ -170,16 +153,6 @@ public class PutKinesisFirehose extends AbstractKinesisFirehoseProcessor {
             session.transfer(flowFiles, REL_FAILURE);
             context.yield();
         }
-    }
-
-    protected FlowFile handleFlowFileTooBig(final ProcessSession session, FlowFile flowFileCandidate,
-            final String firehoseStreamName) {
-        flowFileCandidate = session.putAttribute(flowFileCandidate, AWS_KINESIS_FIREHOSE_ERROR_MESSAGE,
-            "record too big " + flowFileCandidate.getSize() + " max allowed " + MAX_MESSAGE_SIZE );
-        session.transfer(flowFileCandidate, REL_FAILURE);
-        getLogger().error("Failed to publish to kinesis firehose {} records {} because the size was greater than {} bytes",
-            new Object[]{firehoseStreamName, flowFileCandidate, MAX_MESSAGE_SIZE});
-        return flowFileCandidate;
     }
 
 }

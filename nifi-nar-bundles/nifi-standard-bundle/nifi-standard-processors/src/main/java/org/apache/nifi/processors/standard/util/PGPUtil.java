@@ -65,7 +65,7 @@ public class PGPUtil {
         }
 
         try {
-            // TODO: Can probably hardcode provider to BC and remove one method parameter
+            // TODO: Can probably hard-code provider to BC and remove one method parameter
             PGPEncryptedDataGenerator encryptedDataGenerator = new PGPEncryptedDataGenerator(
                     new JcePGPDataEncryptorBuilder(cipher).setWithIntegrityPacket(true).setSecureRandom(new SecureRandom()).setProvider(provider));
 

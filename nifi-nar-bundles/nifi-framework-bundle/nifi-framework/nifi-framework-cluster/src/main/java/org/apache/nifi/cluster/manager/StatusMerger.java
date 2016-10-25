@@ -450,6 +450,18 @@ public class StatusMerger {
         target.setBytesOut(target.getBytesOut() + toMerge.getBytesOut());
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
+
+        if (target.getPercentUseBytes() == null) {
+            target.setPercentUseBytes(toMerge.getPercentUseBytes());
+        } else if (toMerge.getPercentUseBytes() != null) {
+            target.setPercentUseBytes(Math.max(target.getPercentUseBytes(), toMerge.getPercentUseBytes()));
+        }
+        if (target.getPercentUseCount() == null) {
+            target.setPercentUseCount(toMerge.getPercentUseCount());
+        } else if (toMerge.getPercentUseCount() != null) {
+            target.setPercentUseCount(Math.max(target.getPercentUseCount(), toMerge.getPercentUseCount()));
+        }
+
         updatePrettyPrintedFields(target);
     }
 
@@ -573,7 +585,14 @@ public class StatusMerger {
         target.setFreeNonHeapBytes(target.getFreeNonHeapBytes() + toMerge.getFreeNonHeapBytes());
         target.setMaxHeapBytes(target.getMaxHeapBytes() + toMerge.getMaxHeapBytes());
         target.setMaxNonHeapBytes(target.getMaxNonHeapBytes() + toMerge.getMaxNonHeapBytes());
-        target.setProcessorLoadAverage(target.getProcessorLoadAverage() + toMerge.getProcessorLoadAverage());
+        double systemLoad = target.getProcessorLoadAverage();
+        double toMergeSystemLoad = toMerge.getProcessorLoadAverage();
+        if (systemLoad >= 0 && toMergeSystemLoad >= 0) {
+            systemLoad += toMergeSystemLoad;
+        } else if (systemLoad < 0 && toMergeSystemLoad >= 0) {
+            systemLoad = toMergeSystemLoad;
+        }
+        target.setProcessorLoadAverage(systemLoad);
         target.setTotalHeapBytes(target.getTotalHeapBytes() + toMerge.getTotalHeapBytes());
         target.setTotalNonHeapBytes(target.getTotalNonHeapBytes() + toMerge.getTotalNonHeapBytes());
         target.setTotalThreads(target.getTotalThreads() + toMerge.getTotalThreads());

@@ -48,7 +48,7 @@ public interface ResourceClaimManager {
      * particular piece of FlowFile content and returns the new count
      *
      * @param claim to decrement claimants on
-     * @return new claimaint count
+     * @return new claimant count
      */
     int decrementClaimantCount(ResourceClaim claim);
 

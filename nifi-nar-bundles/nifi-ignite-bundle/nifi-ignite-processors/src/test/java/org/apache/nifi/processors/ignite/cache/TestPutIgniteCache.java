@@ -47,13 +47,18 @@ public class TestPutIgniteCache {
 
     @BeforeClass
     public static void setUpClass() {
-        ignite = Ignition.start("test-ignite.xml");
+        List<Ignite> grids = Ignition.allGrids();
+        if ( grids.size() == 1 )
+            ignite = grids.get(0);
+        else
+            ignite = Ignition.start("test-ignite.xml");
 
     }
 
     @AfterClass
     public static void tearDownClass() {
-        ignite.close();
+        if ( ignite != null )
+            ignite.close();
         Ignition.stop(true);
     }
 
@@ -92,8 +97,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 1);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(1, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
@@ -123,8 +128,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 1);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(1, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
@@ -156,8 +161,8 @@ public class TestPutIgniteCache {
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
 
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(2, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(2, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
@@ -201,8 +206,8 @@ public class TestPutIgniteCache {
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
 
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(2, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(2, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
@@ -245,8 +250,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_FAILURE, 1);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(0, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(0, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
 
@@ -277,8 +282,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_FAILURE, 1);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(0, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(0, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
 
@@ -310,8 +315,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_SUCCESS, 2);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(2, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(2, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(0, failureFlowFiles.size());
 
@@ -355,8 +360,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_FAILURE, 2);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(0, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(0, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(2, failureFlowFiles.size());
 
@@ -400,8 +405,8 @@ public class TestPutIgniteCache {
         runner.enqueue("test2".getBytes(),properties2);
         runner.run(1, false, true);
 
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(1, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
 
@@ -445,8 +450,8 @@ public class TestPutIgniteCache {
         runner.enqueue("test2".getBytes());
         runner.run(1, false, true);
 
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(1, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(1, failureFlowFiles.size());
 
@@ -492,8 +497,8 @@ public class TestPutIgniteCache {
         runner.run(1, false, true);
 
         runner.assertAllFlowFilesTransferred(PutIgniteCache.REL_FAILURE, 2);
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(0, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(0, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(2, failureFlowFiles.size());
 
@@ -538,8 +543,8 @@ public class TestPutIgniteCache {
         runner.enqueue("".getBytes(),properties2);
         runner.run(1, false, true);
 
-        List<MockFlowFile> sucessfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
-        assertEquals(1, sucessfulFlowFiles.size());
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
         List<MockFlowFile> failureFlowFiles = runner.getFlowFilesForRelationship(PutIgniteCache.REL_FAILURE);
         assertEquals(2, failureFlowFiles.size());
 

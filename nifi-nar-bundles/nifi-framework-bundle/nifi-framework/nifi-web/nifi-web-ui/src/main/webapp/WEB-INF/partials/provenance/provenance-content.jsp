@@ -17,8 +17,8 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <div id="provenance">
-    <span id="intial-component-query" class="hidden"><c:out value="${param.componentId}"/></span>
-    <span id="intial-flowfile-query" class="hidden"><c:out value="${param.flowFileUuid}"/></span>
+    <span id="initial-component-query" class="hidden"><c:out value="${param.componentId}"/></span>
+    <span id="initial-flowfile-query" class="hidden"><c:out value="${param.flowFileUuid}"/></span>
     <span id="nifi-controller-uri" class="hidden"></span>
     <span id="nifi-content-viewer-url" class="hidden"></span>
     <div id="provenance-header-text">NiFi Data Provenance</div>

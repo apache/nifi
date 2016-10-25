@@ -20,7 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of input InputPortEntitys.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of input InputPortEntity's.
  */
 @XmlRootElement(name = "inputPortsEntity")
 public class InputPortsEntity extends Entity {

@@ -18,7 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
-public abstract class NumberEvaluator implements Evaluator<Long> {
+public abstract class NumberEvaluator implements Evaluator<Number> {
     private String token;
 
     @Override

@@ -144,17 +144,6 @@ nf.RemoteProcessGroup = (function () {
                 'class': 'remote-process-group-name'
             });
 
-        // remote process group icon
-        remoteProcessGroup.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 352,
-                'height': 89,
-                'x': 6,
-                'y': 38,
-                'class': 'remote-process-group-preview'
-            });
-
         // always support selection
         remoteProcessGroup.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
     };
@@ -615,9 +604,6 @@ nf.RemoteProcessGroup = (function () {
                     remoteProcessGroup.select('text.remote-process-group-name').text(null);
                 }
 
-                // show the preview
-                remoteProcessGroup.select('image.remote-process-group-preview').style('display', 'none');
-
                 // populate the stats
                 remoteProcessGroup.call(updateProcessGroupStatus);
             } else {
@@ -632,10 +618,10 @@ nf.RemoteProcessGroup = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the name
+                    remoteProcessGroup.select('text.remote-process-group-name').text(null);
                 }
-
-                // show the preview
-                remoteProcessGroup.select('image.remote-process-group-preview').style('display', 'block');
 
                 // remove the tooltips
                 remoteProcessGroup.call(removeTooltips);

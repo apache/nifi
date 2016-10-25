@@ -72,7 +72,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
     protected void onScheduledUsingControllerService(ProcessContext context) {
         final ClientType awsClient = createClient(context, getCredentialsProvider(context), createConfiguration(context));
         this.client = awsClient;
-        super.intializeRegionAndEndpoint(context);
+        super.initializeRegionAndEndpoint(context);
 
      }
 
