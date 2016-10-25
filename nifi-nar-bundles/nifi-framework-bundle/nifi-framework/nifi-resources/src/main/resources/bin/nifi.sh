@@ -278,7 +278,6 @@ run() {
     # control back to the user
     sleep 3
     echo
-    exit $EXIT_STATUS
 }
 
 main() {
@@ -293,11 +292,13 @@ case "$1" in
         ;;
     start|stop|run|status|dump|env)
         main "$@"
+        exit $EXIT_STATUS
         ;;
     restart)
         init
         run "stop"
         run "start"
+        exit $EXIT_STATUS
         ;;
     *)
         echo "Usage nifi {start|stop|run|restart|status|dump|install}"
