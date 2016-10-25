@@ -70,16 +70,29 @@ public class MathEvaluator extends NumberEvaluator {
             Number executionValue = null;
 
             if (subjectValue == null){
-                Method method = Math.class.getMethod(methodNamedValue);
+                Method method;
+                try {
+                    method = Math.class.getMethod(methodNamedValue);
+                } catch (NoSuchMethodException subjectlessNoMethodException) {
+                    throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no subjectless method was found with the name:'" +
+                            methodNamedValue + "'", subjectlessNoMethodException);
+                }
 
                 if(method == null) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no subjectless method was found with the name:'" + methodNamedValue + "'");
                 }
 
                 executionValue = (Number) method.invoke(null);
+
             } else if(optionalArg == null) {
                 boolean subjectIsDecimal = subjectValue instanceof Double;
-                Method method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class);
+                Method method;
+                try {
+                    method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class);
+                } catch (NoSuchMethodException noOptionalNoMethodException){
+                    throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
+                            " name:'" + methodNamedValue + "', one argument of type: '" + (subjectIsDecimal ? "double" : "long")+"'", noOptionalNoMethodException);
+                }
 
                 if(method == null) {
                     throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters:" +
@@ -91,19 +104,29 @@ public class MathEvaluator extends NumberEvaluator {
                 } else {
                     executionValue = (Number) method.invoke(null, subjectValue.longValue());
                 }
+
             } else {
                 boolean subjectIsDecimal = subjectValue instanceof Double;
                 boolean optionalArgIsDecimal = optionalArgValue instanceof Double;
                 Method method;
                 boolean convertOptionalToInt = false;
+
                 try {
                     method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class, optionalArgIsDecimal ? double.class : long.class);
-                } catch (NoSuchMethodException e1) {
+                } catch (NoSuchMethodException withOptionalNoMethodException) {
+
                     if (!optionalArgIsDecimal) {
-                        method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class, int.class);
+                        try {
+                            method = Math.class.getMethod(methodNamedValue, subjectIsDecimal ? double.class : long.class, int.class);
+                        } catch (NoSuchMethodException withOptionalInnerNoMethodException) {
+                            throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters: " + "name:'" +
+                                    methodNamedValue + "', first argument type: '" + (subjectIsDecimal ? "double" : "long") + "', second argument type:  'long'", withOptionalInnerNoMethodException);
+                        }
                         convertOptionalToInt = true;
+
                     } else {
-                        throw e1;
+                        throw new AttributeExpressionLanguageException("Cannot evaluate 'math' function because no method was found matching the passed parameters: " + "name:'" +
+                                methodNamedValue + "', first argument type: '" + (subjectIsDecimal ? "double" : "long") + "', second argument type:  'double'", withOptionalNoMethodException);
                     }
                 }
 
@@ -125,7 +148,7 @@ public class MathEvaluator extends NumberEvaluator {
             }
 
             return new NumberQueryResult(executionValue);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
             throw new AttributeExpressionLanguageException("Unable to calculate math function value", e);
         }
     }

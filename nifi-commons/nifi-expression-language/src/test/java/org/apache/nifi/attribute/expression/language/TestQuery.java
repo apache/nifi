@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -822,6 +823,34 @@ public class TestQuery {
         attributes.put("twoDecimal", "2.3");
         attributes.put("negative", "-64");
         attributes.put("negativeDecimal", "-64.1");
+
+        // Test that errors relating to not finding methods are properly handled
+        try {
+            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+        }
 
         // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
         verifyEquals("${math('random'):toNumber()}", attributes, 0L);
