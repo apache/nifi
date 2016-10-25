@@ -635,7 +635,7 @@ public class QueryDatabaseTableTest {
 
         cal.setTimeInMillis(0);
         cal.add(Calendar.MINUTE, 5);
-        runner.setProperty("initial.maxvalue.created_on", dateFormat.format(cal.getTime().getTime()));
+        runner.setProperty("initial.maxvalue.CREATED_ON", dateFormat.format(cal.getTime().getTime()));
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
