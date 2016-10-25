@@ -302,7 +302,6 @@ run() {
     # control back to the user
     sleep 3
     echo
-    exit $EXIT_STATUS
 }
 
 main() {
