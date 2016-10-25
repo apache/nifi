@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -148,7 +149,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final String componentType, final String componentCanonicalClass, final NiFiProperties nifiProperties) {
 
         super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
-
         this.processor = processor;
         identifier = new AtomicReference<>(uuid);
         destinations = new HashMap<>();
@@ -187,6 +187,34 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
+        try {
+            if (procClass.isAnnotationPresent(DefaultSchedule.class)) {
+                DefaultSchedule dsc = procClass.getAnnotation(DefaultSchedule.class);
+                try {
+                    this.setSchedulingStrategy(dsc.strategy());
+                } catch (Throwable ex) {
+                    LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+                }
+                try {
+                    this.setScheduldingPeriod(dsc.period());
+                } catch (Throwable ex) {
+                    this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
+                    LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+                }
+                if (!triggeredSerially) {
+                    try {
+                        setMaxConcurrentTasks(dsc.concurrentTasks());
+                    } catch (Throwable ex) {
+                        LOG.error(String.format("Error while setting max concurrent tasks from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+                    }
+                }
+            }
+        } catch (Throwable ex) {
+            LOG.error(String.format("Error while setting default schedule from DefaultSchedule annotation: %s",ex.getMessage()),ex);
+        }
+
+
+
     }
 
     /**
