@@ -183,8 +183,13 @@ public class FetchFile extends AbstractProcessor {
         final LogLevel levelPermDenied = LogLevel.valueOf(context.getProperty(PERM_DENIED_LOG_LEVEL).getValue());
         final File file = new File(filename);
 
-        // Verify that file exists
-        if (!file.exists()) {
+        // Verify that file system is reachable and file exists
+        Path filePath = file.toPath();
+        if (!Files.exists(filePath) && !Files.notExists(filePath)){ // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
+            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure", new Object[] {file, flowFile});
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
+        } else if (!Files.exists(filePath)) {
             getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[] {file, flowFile});
             session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
             session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
