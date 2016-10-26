@@ -213,7 +213,11 @@ The Expression Language is generally able to automatically coerce a value of one
 data type for a function. However, functions do exist to manually coerce a value into a specific data type.
 See the <<type_cast>> section for more information.
 
+Hex values are supported for Number and Decimal types but they must be quoted and prepended with "0x" when being
+interpreted as literals. For example these two expressions are valid (without the quotes or "0x" the expression would fail to run properly):
 
+ - ${literal("0xF"):toNumber()}
+ - ${literal("0xF.Fp10"):toDecimal()}
 
 
 
@@ -1642,6 +1646,34 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 | `${fileSize:toRadix(16, 8)}` | `00000400`
 | `${fileSize:toRadix(2)}` | `10000000000`
 | `${fileSize:toRadix(2, 16)}` | `0000010000000000`
+|=======================================================================================
+
+[.function]
+=== fromRadix
+
+*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters
+must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character.
+
+	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_Subject Base_# : [.argDesc]#A Number between 2 and 36 (inclusive)#
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If the "fileSize" attributes has a value of 1234A, then the following Expressions will yield
+	the following results:
+
+
+.toRadix Examples
+|=======================================================================================
+| Expression | Value
+| `${fileSize:fromRadix(11)}` | `17720`
+| `${fileSize:fromRadix(16)}` | `74570`
+| `${fileSize:fromRadix(20)}` | `177290`
 |=======================================================================================
 
 [.function]

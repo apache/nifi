@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 
 public class NumberParsing {
 
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
 
     public static enum ParseResultType {
         NOT_NUMBER, WHOLE_NUMBER, DECIMAL;
@@ -68,6 +67,8 @@ public class NumberParsing {
                     "[\\x00-\\x20]*");// Optional trailing "whitespace"
 
     private static final Pattern DOUBLE_PATTERN = Pattern.compile(fpRegex);
+
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?((\\d+)|(0[xX]" + HexDigits + "))");
 
     private NumberParsing(){
     }

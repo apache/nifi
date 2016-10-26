@@ -64,8 +64,14 @@ public class NumberCastEvaluator extends NumberEvaluator {
                     case DECIMAL:
                         return new NumberQueryResult(Double.valueOf(trimmed));
                     case WHOLE_NUMBER:
-                        final Long resultValue = Long.valueOf(trimmed);
-                        return new NumberQueryResult(Long.valueOf(trimmed));
+                        Long resultValue;
+                        try {
+                            resultValue = Long.valueOf(trimmed);
+                        } catch (NumberFormatException e){
+                            // Will only occur if trimmed is a hex number
+                            resultValue = Long.decode(trimmed);
+                        }
+                        return new NumberQueryResult(resultValue);
                     case NOT_NUMBER:
                     default:
                         return new NumberQueryResult(null);
