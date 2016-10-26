@@ -47,6 +47,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Equals
 import org.apache.nifi.attribute.expression.language.evaluation.functions.CharSequenceTranslatorEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.FromRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
@@ -123,6 +124,7 @@ import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
@@ -1240,6 +1242,10 @@ public class Query {
                     return addToken(new ToRadixEvaluator(toWholeNumberEvaluator(subjectEvaluator),
                             toWholeNumberEvaluator(argEvaluators.get(0)), toWholeNumberEvaluator(argEvaluators.get(1))), "toRadix");
                 }
+            }
+            case FROM_RADIX: {
+                return addToken(new FromRadixEvaluator(toStringEvaluator(subjectEvaluator),
+                        toWholeNumberEvaluator(argEvaluators.get(0))), "fromRadix");
             }
             case MOD: {
                 return addToken(new ModEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "mod");

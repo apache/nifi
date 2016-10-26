@@ -58,7 +58,13 @@ public class DecimalCastEvaluator extends DecimalEvaluator {
                     case DECIMAL:
                         return new DecimalQueryResult(Double.valueOf(trimmed));
                     case WHOLE_NUMBER:
-                        final Long resultValue = Long.valueOf(trimmed);
+                        Long resultValue;
+                        try {
+                            resultValue = Long.valueOf(trimmed);
+                        } catch (NumberFormatException e){
+                            // Will only occur if trimmed is a hex number
+                            resultValue = Long.decode(trimmed);
+                        }
                         return new DecimalQueryResult(resultValue.doubleValue());
                     case NOT_NUMBER:
                     default:
