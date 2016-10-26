@@ -21,7 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
-import org.apache.nifi.processors.script.ScriptUtils
+import org.apache.nifi.processors.script.ScriptingComponentHelper
 import org.apache.nifi.provenance.ProvenanceEventBuilder
 import org.apache.nifi.provenance.ProvenanceEventRecord
 import org.apache.nifi.provenance.ProvenanceEventRepository
@@ -100,13 +100,13 @@ public class ScriptedReportingTaskGroovyTest {
 
         // Mock the ConfigurationContext for setup(...)
         def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_ENGINE))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_FILE))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_provenance_events.groovy'))
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_BODY))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptUtils.MODULES))
+        when(configurationContext.getProperty(ScriptingComponentHelper.MODULES))
                 .thenReturn(new MockPropertyValue(null))
 
         // Set up ReportingContext
@@ -159,13 +159,13 @@ public class ScriptedReportingTaskGroovyTest {
 
         // Mock the ConfigurationContext for setup(...)
         def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_ENGINE))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_FILE))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_vm_stats.groovy'))
-        when(configurationContext.getProperty(ScriptUtils.SCRIPT_BODY))
+        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptUtils.MODULES))
+        when(configurationContext.getProperty(ScriptingComponentHelper.MODULES))
                 .thenReturn(new MockPropertyValue(null))
 
         // Set up ReportingContext
@@ -195,11 +195,11 @@ public class ScriptedReportingTaskGroovyTest {
 
     class MockScriptedReportingTask extends ScriptedReportingTask {
         def getScriptEngine() {
-            return scriptUtils.engineQ.poll()
+            return scriptingComponentHelper.engineQ.poll()
         }
 
         def offerScriptEngine(engine) {
-            this.scriptUtils.engineQ.offer(engine)
+            this.scriptingComponentHelper.engineQ.offer(engine)
         }
     }
 

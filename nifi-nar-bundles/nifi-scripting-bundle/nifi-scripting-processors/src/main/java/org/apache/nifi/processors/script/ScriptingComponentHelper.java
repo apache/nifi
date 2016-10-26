@@ -27,7 +27,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -49,6 +48,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
@@ -56,7 +56,7 @@ import org.apache.nifi.util.StringUtils;
 /**
  * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
-public class ScriptUtils {
+public class ScriptingComponentHelper {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -151,17 +151,14 @@ public class ScriptUtils {
             }
 
             // Sort the list by name so the list always looks the same.
-            Collections.sort(engineList, new Comparator<AllowableValue>() {
-                @Override
-                public int compare(AllowableValue o1, AllowableValue o2) {
-                    if (o1 == null) {
-                        return o2 == null ? 0 : 1;
-                    }
-                    if (o2 == null) {
-                        return -1;
-                    }
-                    return o1.getValue().compareTo(o2.getValue());
+            Collections.sort(engineList, (o1, o2) -> {
+                if (o1 == null) {
+                    return o2 == null ? 0 : 1;
                 }
+                if (o2 == null) {
+                    return -1;
+                }
+                return o1.getValue().compareTo(o2.getValue());
             });
 
             AllowableValue[] engines = engineList.toArray(new AllowableValue[engineList.size()]);
@@ -278,6 +275,18 @@ public class ScriptUtils {
         } finally {
             // Restore original context class loader
             Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+        }
+    }
+
+    public void setupVariables(ProcessContext context) {
+        scriptEngineName = context.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE).getValue();
+        scriptPath = context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptBody = context.getProperty(ScriptingComponentHelper.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptingComponentHelper.MODULES).getValue();
+        if (!StringUtils.isEmpty(modulePath)) {
+            modules = modulePath.split(",");
+        } else {
+            modules = new String[0];
         }
     }
 

@@ -43,9 +43,9 @@ public class TestExecuteJRuby extends BaseScriptTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "ruby");
-        runner.setProperty(ScriptUtils.SCRIPT_FILE, "target/test/resources/jruby/test_onTrigger.rb");
-        runner.setProperty(ScriptUtils.MODULES, "target/test/resources/jruby");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "ruby");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jruby/test_onTrigger.rb");
+        runner.setProperty(ScriptingComponentHelper.MODULES, "target/test/resources/jruby");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));

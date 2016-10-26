@@ -38,7 +38,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.StringUtils;
 
 import java.nio.charset.Charset;
 import javax.script.Bindings;
@@ -73,11 +72,11 @@ import java.util.Set;
 public class ExecuteScript extends AbstractSessionFactoryProcessor {
 
     // Constants maintained for backwards compatibility
-    public static final Relationship REL_SUCCESS = ScriptUtils.REL_SUCCESS;
-    public static final Relationship REL_FAILURE = ScriptUtils.REL_FAILURE;
+    public static final Relationship REL_SUCCESS = ScriptingComponentHelper.REL_SUCCESS;
+    public static final Relationship REL_FAILURE = ScriptingComponentHelper.REL_FAILURE;
 
     private String scriptToRun = null;
-    private volatile ScriptUtils scriptUtils = new ScriptUtils();
+    private volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
 
     /**
@@ -88,8 +87,8 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(ScriptUtils.REL_SUCCESS);
-        relationships.add(ScriptUtils.REL_FAILURE);
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
         return Collections.unmodifiableSet(relationships);
     }
 
@@ -102,13 +101,13 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        synchronized (scriptUtils.isInitialized) {
-            if (!scriptUtils.isInitialized.get()) {
-                scriptUtils.createResources();
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
             }
         }
 
-        return Collections.unmodifiableList(scriptUtils.descriptors);
+        return Collections.unmodifiableList(scriptingComponentHelper.descriptors);
     }
 
     /**
@@ -131,7 +130,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return scriptUtils.customValidate(validationContext);
+        return scriptingComponentHelper.customValidate(validationContext);
     }
 
     /**
@@ -142,23 +141,16 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
      */
     @OnScheduled
     public void setup(final ProcessContext context) {
-        scriptUtils.scriptEngineName = context.getProperty(ScriptUtils.SCRIPT_ENGINE).getValue();
-        scriptUtils.scriptPath = context.getProperty(ScriptUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptUtils.scriptBody = context.getProperty(ScriptUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptUtils.MODULES).getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            scriptUtils.modules = modulePath.split(",");
-        } else {
-            scriptUtils.modules = new String[0];
-        }
+        scriptingComponentHelper.setupVariables(context);
+
         // Create a script engine for each possible task
         int maxTasks = context.getMaxConcurrentTasks();
-        scriptUtils.setup(maxTasks, getLogger());
-        scriptToRun = scriptUtils.scriptBody;
+        scriptingComponentHelper.setup(maxTasks, getLogger());
+        scriptToRun = scriptingComponentHelper.scriptBody;
 
         try {
-            if (scriptToRun == null && scriptUtils.scriptPath != null) {
-                try (final FileInputStream scriptStream = new FileInputStream(scriptUtils.scriptPath)) {
+            if (scriptToRun == null && scriptingComponentHelper.scriptPath != null) {
+                try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.scriptPath)) {
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
@@ -180,12 +172,12 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
      */
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
-        synchronized (scriptUtils.isInitialized) {
-            if (!scriptUtils.isInitialized.get()) {
-                scriptUtils.createResources();
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
             }
         }
-        ScriptEngine scriptEngine = scriptUtils.engineQ.poll();
+        ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
         ComponentLog log = getLogger();
         if (scriptEngine == null) {
             // No engine available so nothing more to do here
@@ -202,8 +194,8 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
                 bindings.put("session", session);
                 bindings.put("context", context);
                 bindings.put("log", log);
-                bindings.put("REL_SUCCESS", ScriptUtils.REL_SUCCESS);
-                bindings.put("REL_FAILURE", ScriptUtils.REL_FAILURE);
+                bindings.put("REL_SUCCESS", REL_SUCCESS);
+                bindings.put("REL_FAILURE", REL_FAILURE);
 
                 // Find the user-added properties and set them on the script
                 for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
@@ -219,11 +211,11 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
 
                 // Execute any engine-specific configuration before the script is evaluated
                 ScriptEngineConfigurator configurator =
-                        scriptUtils.scriptEngineConfiguratorMap.get(scriptUtils.scriptEngineName.toLowerCase());
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.scriptEngineName.toLowerCase());
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, scriptUtils.modules);
+                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.modules);
                 } else {
                     scriptEngine.eval(scriptToRun);
                 }
@@ -241,12 +233,12 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
             session.rollback(true);
             throw t;
         } finally {
-            scriptUtils.engineQ.offer(scriptEngine);
+            scriptingComponentHelper.engineQ.offer(scriptEngine);
         }
     }
 
     @OnStopped
     public void stop() {
-        scriptUtils.stop();
+        scriptingComponentHelper.stop();
     }
 }

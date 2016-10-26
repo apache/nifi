@@ -29,7 +29,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
-import org.apache.nifi.processors.script.ScriptUtils;
+import org.apache.nifi.processors.script.ScriptingComponentHelper;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.util.StringUtils;
@@ -56,7 +56,7 @@ import java.util.Map;
         + "as events, provenance, bulletins, controller services, process groups, Java Virtual Machine metrics, etc.")
 public class ScriptedReportingTask extends AbstractReportingTask {
 
-    protected volatile ScriptUtils scriptUtils = new ScriptUtils();
+    protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     protected volatile String scriptToRun = null;
     protected volatile VirtualMachineMetrics vmMetrics;
 
@@ -69,13 +69,13 @@ public class ScriptedReportingTask extends AbstractReportingTask {
      */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        synchronized (scriptUtils.isInitialized) {
-            if (!scriptUtils.isInitialized.get()) {
-                scriptUtils.createResources();
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
             }
         }
 
-        return Collections.unmodifiableList(scriptUtils.descriptors);
+        return Collections.unmodifiableList(scriptingComponentHelper.descriptors);
     }
 
     /**
@@ -98,7 +98,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return scriptUtils.customValidate(validationContext);
+        return scriptingComponentHelper.customValidate(validationContext);
     }
 
     /**
@@ -109,22 +109,22 @@ public class ScriptedReportingTask extends AbstractReportingTask {
      */
     @OnScheduled
     public void setup(final ConfigurationContext context) {
-        scriptUtils.scriptEngineName = context.getProperty(ScriptUtils.SCRIPT_ENGINE).getValue();
-        scriptUtils.scriptPath = context.getProperty(ScriptUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptUtils.scriptBody = context.getProperty(ScriptUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptUtils.MODULES).getValue();
+        scriptingComponentHelper.scriptEngineName = context.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE).getValue();
+        scriptingComponentHelper.scriptPath = context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptingComponentHelper.scriptBody = context.getProperty(ScriptingComponentHelper.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptingComponentHelper.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            scriptUtils.modules = modulePath.split(",");
+            scriptingComponentHelper.modules = modulePath.split(",");
         } else {
-            scriptUtils.modules = new String[0];
+            scriptingComponentHelper.modules = new String[0];
         }
         // Create a script engine for each possible task
-        scriptUtils.setup(1, getLogger());
-        scriptToRun = scriptUtils.scriptBody;
+        scriptingComponentHelper.setup(1, getLogger());
+        scriptToRun = scriptingComponentHelper.scriptBody;
 
         try {
-            if (scriptToRun == null && scriptUtils.scriptPath != null) {
-                try (final FileInputStream scriptStream = new FileInputStream(scriptUtils.scriptPath)) {
+            if (scriptToRun == null && scriptingComponentHelper.scriptPath != null) {
+                try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.scriptPath)) {
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
@@ -137,12 +137,12 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        synchronized (scriptUtils.isInitialized) {
-            if (!scriptUtils.isInitialized.get()) {
-                scriptUtils.createResources();
+        synchronized (scriptingComponentHelper.isInitialized) {
+            if (!scriptingComponentHelper.isInitialized.get()) {
+                scriptingComponentHelper.createResources();
             }
         }
-        ScriptEngine scriptEngine = scriptUtils.engineQ.poll();
+        ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
         ComponentLog log = getLogger();
         if (scriptEngine == null) {
             // No engine available so nothing more to do here
@@ -174,11 +174,11 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
                 // Execute any engine-specific configuration before the script is evaluated
                 ScriptEngineConfigurator configurator =
-                        scriptUtils.scriptEngineConfiguratorMap.get(scriptUtils.scriptEngineName.toLowerCase());
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.scriptEngineName.toLowerCase());
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, scriptUtils.modules);
+                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.modules);
                 } else {
                     scriptEngine.eval(scriptToRun);
                 }
@@ -190,7 +190,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
             throw t;
         } finally {
-            scriptUtils.engineQ.offer(scriptEngine);
+            scriptingComponentHelper.engineQ.offer(scriptEngine);
         }
 
     }

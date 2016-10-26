@@ -42,9 +42,9 @@ public class TestExecuteJavascript extends BaseScriptTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "ECMAScript");
-        runner.setProperty(ScriptUtils.SCRIPT_FILE, "target/test/resources/javascript/test_onTrigger.js");
-        runner.setProperty(ScriptUtils.MODULES, "target/test/resources/javascript");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/javascript/test_onTrigger.js");
+        runner.setProperty(ScriptingComponentHelper.MODULES, "target/test/resources/javascript");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));

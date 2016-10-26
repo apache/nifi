@@ -41,8 +41,8 @@ public class TestExecuteJython extends BaseScriptTest {
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttributeWithScriptBody() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptUtils.SCRIPT_BODY,
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_BODY,
                 "from org.apache.nifi.processors.script import ExecuteScript\n"
                         + "flowFile = session.get()\n"
                         + "flowFile = session.putAttribute(flowFile, \"from-content\", \"test content\")\n"
@@ -65,8 +65,8 @@ public class TestExecuteJython extends BaseScriptTest {
     @Test(expected = AssertionError.class)
     public void testScriptNoTransfer() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptUtils.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptUtils.SCRIPT_BODY,
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentHelper.SCRIPT_BODY,
                 "flowFile = session.putAttribute(flowFile, \"from-content\", \"test content\")\n");
 
         runner.assertValid();
