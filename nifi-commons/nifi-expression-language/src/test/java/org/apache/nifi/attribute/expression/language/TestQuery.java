@@ -1057,11 +1057,14 @@ public class TestQuery {
         verifyEquals("${literal(5):toNumber()}", attributes, 5L);
         verifyEquals("${literal(5):toDecimal()}", attributes, 5D);
 
-        // Unquoted doubles are not due to more complicated parsing
         verifyEquals("${literal(\"5.5\")}", attributes, "5.5");
 
-        verifyEquals("${literal(\"5.5\"):toNumber()}", attributes, 5L);
-        verifyEquals("${literal(\"5.5\"):toDecimal()}", attributes, 5.5D);
+        verifyEquals("${literal(5.5):toNumber()}", attributes, 5L);
+        verifyEquals("${literal(5.5):toDecimal()}", attributes, 5.5D);
+        verifyEquals("${literal('0xF.Fp10'):toDecimal()}", attributes, 0xF.Fp10D);
+
+        verifyEquals("${literal('0xABC'):toNumber()}", attributes, 0xABCL);
+        verifyEquals("${literal('-0xABC'):toNumber()}", attributes, -0xABCL);
     }
 
     @Test
@@ -1173,6 +1176,16 @@ public class TestQuery {
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16):toUpper()}", attributes, "FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16, 4):toUpper()}", attributes, "00FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(36, 3):toUpper()}", attributes, "073");
+    }
+
+    @Test
+    public void testFromRadix() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("test1", "ABCDEF");
+        attributes.put("test2", "123");
+
+        verifyEquals("${test1:fromRadix(16)}", attributes, 0xABCDEFL);
+        verifyEquals("${test2:fromRadix(4)}", attributes, 27L);
     }
 
     @Test
