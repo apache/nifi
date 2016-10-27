@@ -1,0 +1,191 @@
+[
+  {
+    "connectString": "127.0.0.1:0",
+    "path": "/nifi"
+  },
+  {
+    "path": "/nifi",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 2,
+      "mzxid": 2,
+      "ctime": 1477602095884,
+      "mtime": 1477602095884,
+      "version": 0,
+      "cversion": 3,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 3,
+      "pzxid": 6
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/nifi/1/a",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 4,
+      "mzxid": 4,
+      "ctime": 1477602095888,
+      "mtime": 1477602095888,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 96836130884026368,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 4
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 96836130884026368
+  },
+  {
+    "path": "/nifi/2",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 5,
+      "mzxid": 5,
+      "ctime": 1477602095889,
+      "mtime": 1477602095889,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 5
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/nifi/3",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 6,
+      "mzxid": 6,
+      "ctime": 1477602095890,
+      "mtime": 1477602095890,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 6
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/nifi/1",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 3,
+      "mzxid": 3,
+      "ctime": 1477602095888,
+      "mtime": 1477602095888,
+      "version": 0,
+      "cversion": 1,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 1,
+      "pzxid": 4
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  }
+]
