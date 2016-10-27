@@ -30,6 +30,7 @@
                 <include>nifi-api</include>
                 <include>commons-lang3</include>
                 <include>bcprov-jdk15on</include>
+                <include>bcpkix-jdk15on</include>
             </includes>
         </dependencySet>
 
