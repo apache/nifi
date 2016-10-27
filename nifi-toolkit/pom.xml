@@ -26,6 +26,7 @@
         <module>nifi-toolkit-tls</module>
         <module>nifi-toolkit-encrypt-config</module>
         <module>nifi-toolkit-s2s</module>
+        <module>nifi-toolkit-zookeeper-migrator</module>
         <module>nifi-toolkit-assembly</module>
     </modules>
     <dependencyManagement>

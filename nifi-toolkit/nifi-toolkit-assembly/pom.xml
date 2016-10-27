@@ -73,6 +73,10 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-toolkit-s2s</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-zookeeper-migrator</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>compile</scope>
