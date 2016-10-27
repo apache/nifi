@@ -22,7 +22,6 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
@@ -49,7 +48,6 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
     }
 
     public static void main(String[] args) throws Exception {
-        TlsHelper.addBouncyCastleProvider();
         TlsCertificateAuthorityServiceCommandLine tlsCertificateAuthorityServiceCommandLine = new TlsCertificateAuthorityServiceCommandLine();
         try {
             tlsCertificateAuthorityServiceCommandLine.parse(args);

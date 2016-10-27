@@ -24,7 +24,6 @@ import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,6 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     }
 
     public static void main(String[] args) throws Exception {
-        TlsHelper.addBouncyCastleProvider();
         TlsCertificateAuthorityClientCommandLine tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
         try {
             tlsCertificateAuthorityClientCommandLine.parse(args);
@@ -135,8 +133,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
             tlsClientConfig.setPort(getPort());
             tlsClientConfig.setKeyStore(KEYSTORE + getKeyStoreType().toLowerCase());
             tlsClientConfig.setKeyStoreType(getKeyStoreType());
-            tlsClientConfig.setTrustStore(TRUSTSTORE + getKeyStoreType().toLowerCase());
-            tlsClientConfig.setTrustStoreType(getKeyStoreType());
+            tlsClientConfig.setTrustStore(TRUSTSTORE + tlsClientConfig.getTrustStoreType().toLowerCase());
             tlsClientConfig.setKeySize(getKeySize());
             tlsClientConfig.setKeyPairAlgorithm(getKeyAlgorithm());
             tlsClientConfig.setSigningAlgorithm(getSigningAlgorithm());

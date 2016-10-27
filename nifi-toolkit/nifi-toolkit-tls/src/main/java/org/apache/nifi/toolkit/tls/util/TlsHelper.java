@@ -51,7 +51,6 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -126,10 +125,6 @@ public class TlsHelper {
             }
         }
         return password;
-    }
-
-    public static void addBouncyCastleProvider() {
-        Security.addProvider(new BouncyCastleProvider());
     }
 
     private static KeyPairGenerator createKeyPairGenerator(String algorithm, int keySize) throws NoSuchAlgorithmException {

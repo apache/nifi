@@ -17,6 +17,8 @@
 
 package org.apache.nifi.toolkit.tls.manager;
 
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
@@ -24,7 +26,6 @@ import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,8 +34,6 @@ import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchProviderException;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +42,6 @@ import java.util.List;
  * Base class for managing KeyStores and Certificates
  */
 public class BaseTlsManager {
-    public static final String PKCS_12 = "PKCS12";
     private final TlsConfig tlsConfig;
     private final PasswordUtil passwordUtil;
     private final InputStreamFactory inputStreamFactory;
@@ -110,7 +108,7 @@ public class BaseTlsManager {
     }
 
     private String getKeyPassword() {
-        if (keyStore.getType().equalsIgnoreCase(PKCS_12)) {
+        if (keyStore.getType().equalsIgnoreCase(KeystoreType.PKCS12.toString())) {
             tlsConfig.setKeyPassword(null);
             return null;
         } else {
@@ -137,16 +135,8 @@ public class BaseTlsManager {
         return result;
     }
 
-    private KeyStore getInstance(String keyStoreType) throws KeyStoreException, NoSuchProviderException {
-        if (PKCS_12.equalsIgnoreCase(keyStoreType)) {
-            return KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
-        } else {
-            return KeyStore.getInstance(keyStoreType);
-        }
-    }
-
     protected KeyStore loadKeystore(String keyStore, String keyStoreType, String keyStorePassword) throws GeneralSecurityException, IOException {
-        KeyStore result = getInstance(keyStoreType);
+        KeyStore result = KeyStoreUtils.getKeyStore(keyStoreType);
         File file = new File(keyStore);
         if (file.exists()) {
             try (InputStream stream = inputStreamFactory.create(file)) {
