@@ -23,13 +23,17 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.TlsToolkitMain;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class with common CLI parsing functionality as well as arguments shared by multiple entry points
  */
 public abstract class BaseCommandLine {
+    private static final Logger logger = LoggerFactory.getLogger(BaseCommandLine.class);
     public static final String HELP_ARG = "help";
     public static final String JAVA_HOME = "JAVA_HOME";
     public static final String NIFI_TOOLKIT_HOME = "NIFI_TOOLKIT_HOME";
@@ -202,6 +206,10 @@ public abstract class BaseCommandLine {
             keySize = getIntValue(commandLine, KEY_SIZE_ARG, TlsConfig.DEFAULT_KEY_SIZE);
             keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
             keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, getKeyStoreTypeDefault());
+            if (KeystoreType.PKCS12.toString().equalsIgnoreCase(keyStoreType)) {
+                logger.info("Command line argument --" + KEY_STORE_TYPE_ARG + "=" + keyStoreType + " only applies to keystore, recommended truststore type of " + KeystoreType.JKS.toString() +
+                        " unaffected.");
+            }
             signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
             differentPasswordForKeyAndKeystore = commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG);
         } catch (ParseException e) {

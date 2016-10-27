@@ -20,15 +20,15 @@ package org.apache.nifi.toolkit.tls.standalone;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.manager.BaseTlsManager;
 import org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityTest;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -190,6 +190,14 @@ public class TlsToolkitStandaloneTest {
     }
 
     @Test
+    public void testKeyStoreTypeArg() throws Exception {
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-n", TlsConfig.DEFAULT_HOSTNAME, "-T", KeystoreType.PKCS12.toString().toLowerCase(),
+                "-K", "change", "-S", "change", "-P", "change");
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
+    }
+
+    @Test
     public void testClientDnsArg() throws Exception {
         String clientDn = "OU=NIFI,CN=testuser";
         String clientDn2 = "OU=NIFI,CN=testuser2";
@@ -237,13 +245,14 @@ public class TlsToolkitStandaloneTest {
         }
 
         String trustStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-        KeyStore trustStore = KeyStore.getInstance(trustStoreType);
+        assertEquals(KeystoreType.JKS.toString().toLowerCase(), trustStoreType.toLowerCase());
+        KeyStore trustStore = KeyStoreUtils.getTrustStore(trustStoreType);
         try (InputStream inputStream = new FileInputStream(new File(hostDir, "truststore." + trustStoreType))) {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }
 
-        String trustStoreFilename = BaseCommandLine.KEYSTORE + trustStoreType;
-        assertEquals("./conf/" + trustStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+        String trustStoreFilename = BaseCommandLine.TRUSTSTORE + trustStoreType;
+        assertEquals("./conf/" + trustStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
 
         Certificate certificate = trustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT);
         assertEquals(rootCert, certificate);
@@ -253,12 +262,16 @@ public class TlsToolkitStandaloneTest {
         File keyStoreFile = new File(hostDir, keyStoreFilename);
         assertEquals("./conf/" + keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 
-        KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+        KeyStore keyStore = KeyStoreUtils.getKeyStore(keyStoreType);
+        char[] keyStorePassword = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray();
         try (InputStream inputStream = new FileInputStream(keyStoreFile)) {
-            keyStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray());
+            keyStore.load(inputStream, keyStorePassword);
         }
 
         char[] keyPassword = nifiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray();
+        if (keyPassword == null || keyPassword.length == 0) {
+            keyPassword = keyStorePassword;
+        }
 
         KeyStore.Entry entry = keyStore.getEntry(TlsToolkitStandalone.NIFI_KEY, new KeyStore.PasswordProtection(keyPassword));
         assertEquals(KeyStore.PrivateKeyEntry.class, entry.getClass());
@@ -288,7 +301,7 @@ public class TlsToolkitStandaloneTest {
             password = lines.get(0);
         }
 
-        KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
+        KeyStore keyStore = KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString());
         try (FileInputStream fileInputStream = new FileInputStream(new File(tempDir, clientDnFile + ".p12"))) {
             keyStore.load(fileInputStream, password.toCharArray());
         }

@@ -106,6 +106,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
@@ -422,7 +423,7 @@ public class PostHTTP extends AbstractProcessor {
         SSLContextBuilder builder = SSLContexts.custom();
         final String trustFilename = service.getTrustStoreFile();
         if (trustFilename != null) {
-            final KeyStore truststore = KeyStore.getInstance(service.getTrustStoreType());
+            final KeyStore truststore = KeyStoreUtils.getTrustStore(service.getTrustStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
                 truststore.load(in, service.getTrustStorePassword().toCharArray());
             }
@@ -431,7 +432,7 @@ public class PostHTTP extends AbstractProcessor {
 
         final String keyFilename = service.getKeyStoreFile();
         if (keyFilename != null) {
-            final KeyStore keystore = KeyStore.getInstance(service.getKeyStoreType());
+            final KeyStore keystore = KeyStoreUtils.getKeyStore(service.getKeyStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
                 keystore.load(in, service.getKeyStorePassword().toCharArray());
             }
