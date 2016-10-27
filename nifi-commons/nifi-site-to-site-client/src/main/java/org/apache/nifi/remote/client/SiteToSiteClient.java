@@ -28,6 +28,7 @@ import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
+import org.apache.nifi.security.util.KeyStoreUtils;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -768,7 +769,7 @@ public interface SiteToSiteClient extends Closeable {
             if (keystoreFilename != null && keystorePass != null && keystoreType != null) {
                 try {
                     // prepare the keystore
-                    final KeyStore keyStore = KeyStore.getInstance(getKeystoreType().name());
+                    final KeyStore keyStore = KeyStoreUtils.getKeyStore(getKeystoreType().name());
                     try (final InputStream keyStoreStream = new FileInputStream(new File(getKeystoreFilename()))) {
                         keyStore.load(keyStoreStream, keystorePass.toCharArray());
                     }
@@ -785,7 +786,7 @@ public interface SiteToSiteClient extends Closeable {
             if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
                 try {
                     // prepare the truststore
-                    final KeyStore trustStore = KeyStore.getInstance(getTruststoreType().name());
+                    final KeyStore trustStore = KeyStoreUtils.getTrustStore(getTruststoreType().name());
                     try (final InputStream trustStoreStream = new FileInputStream(new File(getTruststoreFilename()))) {
                         trustStore.load(trustStoreStream, truststorePass.toCharArray());
                     }

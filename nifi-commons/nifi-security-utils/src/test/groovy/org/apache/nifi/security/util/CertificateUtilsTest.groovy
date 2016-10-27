@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.security.util
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.operator.OperatorCreationException
 import org.junit.After
 import org.junit.Before
@@ -35,7 +34,6 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
-import java.security.Security
 import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
@@ -67,8 +65,6 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() {
-        Security.addProvider(new BouncyCastleProvider())
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }

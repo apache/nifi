@@ -35,7 +35,6 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Response;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -90,11 +89,6 @@ public class TlsCertificateSigningRequestPerformerTest {
     int statusCode;
     private byte[] testHmac;
     private String testSignedCsr;
-
-    @BeforeClass
-    public static void before() {
-        TlsHelper.addBouncyCastleProvider();
-    }
 
     @Before
     public void setup() throws GeneralSecurityException, OperatorCreationException, IOException {
