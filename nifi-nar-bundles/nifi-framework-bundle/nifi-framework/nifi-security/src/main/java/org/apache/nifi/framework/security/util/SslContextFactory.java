@@ -28,6 +28,8 @@ import java.security.cert.CertificateException;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.commons.lang3.StringUtils;
 
@@ -65,11 +67,10 @@ public final class SslContextFactory {
         }
 
         try {
-
             // prepare the trust store
             final KeyStore trustStore;
             if (hasTruststoreProperties(props)) {
-                trustStore = KeyStore.getInstance(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
+                trustStore = KeyStoreUtils.getTrustStore(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
                 try (final InputStream trustStoreStream = new FileInputStream(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))) {
                     trustStore.load(trustStoreStream, props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
                 }
@@ -80,7 +81,7 @@ public final class SslContextFactory {
             trustManagerFactory.init(trustStore);
 
             // prepare the key store
-            final KeyStore keyStore = KeyStore.getInstance(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
+            final KeyStore keyStore = KeyStoreUtils.getKeyStore(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
             try (final InputStream keyStoreStream = new FileInputStream(props.getProperty(NiFiProperties.SECURITY_KEYSTORE))) {
                 keyStore.load(keyStoreStream, props.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray());
             }

@@ -139,12 +139,12 @@ NiFi provides several different configuration options for security purposes. The
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
-|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.keystorePasswd` | The password for the Keystore.
 |`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi. If not set, all who
                             attempt to connect will be provided access as the 'Anonymous' user.
-|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
 |`nifi.security.needClientAuth` | Specifies whether or not connecting clients must authenticate themselves. Specifically this property is used
                                 by the NiFi cluster protocol. If the Truststore properties are not set, this must be `false`. Otherwise, a value

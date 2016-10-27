@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.service.client;
 
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
@@ -129,9 +130,10 @@ public class TlsCertificateAuthorityClientCommandLineTest {
 
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
         assertEquals(testType, clientConfig.getKeyStoreType());
-        assertEquals(testType, clientConfig.getTrustStoreType());
+        String trustStoreType = KeystoreType.JKS.toString().toLowerCase();
+        assertEquals(trustStoreType, clientConfig.getTrustStoreType());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + testType.toLowerCase(), clientConfig.getKeyStore());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + testType.toLowerCase(), clientConfig.getTrustStore());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + trustStoreType, clientConfig.getTrustStore());
     }
 
     @Test

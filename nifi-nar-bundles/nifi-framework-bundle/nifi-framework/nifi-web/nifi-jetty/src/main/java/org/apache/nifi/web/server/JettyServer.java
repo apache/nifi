@@ -26,6 +26,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -630,8 +631,13 @@ public class JettyServer implements NiFiServer {
         if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE))) {
             contextFactory.setKeyStorePath(props.getProperty(NiFiProperties.SECURITY_KEYSTORE));
         }
-        if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE))) {
-            contextFactory.setKeyStoreType(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
+        String keyStoreType = props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
+        if (StringUtils.isNotBlank(keyStoreType)) {
+            contextFactory.setKeyStoreType(keyStoreType);
+            String keyStoreProvider = KeyStoreUtils.getKeyStoreProvider(keyStoreType);
+            if (StringUtils.isNoneEmpty(keyStoreProvider)) {
+                contextFactory.setKeyStoreProvider(keyStoreProvider);
+            }
         }
         final String keystorePassword = props.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
         final String keyPassword = props.getProperty(NiFiProperties.SECURITY_KEY_PASSWD);
@@ -649,8 +655,13 @@ public class JettyServer implements NiFiServer {
         if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))) {
             contextFactory.setTrustStorePath(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
         }
-        if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE))) {
-            contextFactory.setTrustStoreType(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
+        String trustStoreType = props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
+        if (StringUtils.isNotBlank(trustStoreType)) {
+            contextFactory.setTrustStoreType(trustStoreType);
+            String trustStoreProvider = KeyStoreUtils.getKeyStoreProvider(trustStoreType);
+            if (StringUtils.isNoneEmpty(trustStoreProvider)) {
+                contextFactory.setTrustStoreProvider(trustStoreProvider);
+            }
         }
         if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD))) {
             contextFactory.setTrustStorePassword(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));

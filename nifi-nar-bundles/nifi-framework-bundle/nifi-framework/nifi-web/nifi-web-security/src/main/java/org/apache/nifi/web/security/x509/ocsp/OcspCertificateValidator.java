@@ -29,6 +29,7 @@ import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
@@ -192,7 +193,7 @@ public class OcspCertificateValidator {
 
         // load the configured truststore
         try (final FileInputStream fis = new FileInputStream(truststorePath)) {
-            final KeyStore truststore = KeyStore.getInstance(KeyStore.getDefaultType());
+            final KeyStore truststore = KeyStoreUtils.getTrustStore(KeyStore.getDefaultType());
             truststore.load(fis, truststorePassword);
 
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());

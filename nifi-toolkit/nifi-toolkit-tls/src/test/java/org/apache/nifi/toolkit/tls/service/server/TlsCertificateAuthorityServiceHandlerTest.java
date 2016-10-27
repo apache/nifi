@@ -30,7 +30,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -96,11 +95,6 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     private byte[] testHmac;
     private String requestedDn;
     private KeyPair certificateKeyPair;
-
-    @BeforeClass
-    public static void before() {
-        TlsHelper.addBouncyCastleProvider();
-    }
 
     @Before
     public void setup() throws Exception {

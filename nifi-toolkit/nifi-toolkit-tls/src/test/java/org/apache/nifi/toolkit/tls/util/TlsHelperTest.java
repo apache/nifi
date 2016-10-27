@@ -27,7 +27,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.AdditionalMatchers;
@@ -51,7 +50,6 @@ import java.security.KeyStoreSpi;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
-import java.security.Security;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -128,11 +126,6 @@ public class TlsHelperTest {
 
     public static X509Certificate loadCertificate(File file) throws IOException, CertificateException {
         return loadCertificate(new FileReader(file));
-    }
-
-    @BeforeClass
-    public static void beforeClass() {
-        Security.addProvider(new BouncyCastleProvider());
     }
 
     @Before

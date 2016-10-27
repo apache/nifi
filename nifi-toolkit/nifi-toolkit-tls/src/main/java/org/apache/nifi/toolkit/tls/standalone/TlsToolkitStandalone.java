@@ -18,17 +18,17 @@
 package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
-import org.apache.nifi.toolkit.tls.manager.BaseTlsManager;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
@@ -214,7 +214,7 @@ public class TlsToolkitStandalone {
             }
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
             X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(reorderedDn, keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days);
-            KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
+            KeyStore keyStore = KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString());
             keyStore.load(null, null);
             keyStore.setKeyEntry(NIFI_KEY, keyPair.getPrivate(), null, new Certificate[]{clientCert, certificate});
             String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, clientPasswords.get(i), standaloneConfig.isClientPasswordsGenerated());
