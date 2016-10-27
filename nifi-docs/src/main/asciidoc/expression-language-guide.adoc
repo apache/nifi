@@ -1652,7 +1652,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 === fromRadix
 
 *Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters
-must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to it not x not being a valid hex character.
+must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character.
 
 	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
