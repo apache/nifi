@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -29,6 +33,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -38,6 +43,7 @@ import org.apache.nifi.util.StopWatch;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -83,6 +89,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> props = new ArrayList<>(properties);
         props.add(FILENAME);
+        props.add(COMPRESSION_CODEC);
         return props;
     }
 
@@ -116,10 +123,38 @@ public class FetchHDFS extends AbstractHadoopProcessor {
             return;
         }
 
+        InputStream stream = null;
+        CompressionCodec codec = null;
+        Configuration conf = getConfiguration();
+        final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
+        final CompressionType compressionType = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
+        final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
+
+        if(inferCompressionCodec) {
+            codec = compressionCodecFactory.getCodec(path);
+        } else if (compressionType != CompressionType.NONE) {
+            codec = getCompressionCodec(context, getConfiguration());
+        }
+
         final URI uri = path.toUri();
         final StopWatch stopWatch = new StopWatch(true);
-        try (final FSDataInputStream inStream = hdfs.open(path, 16384)) {
-            flowFile = session.importFrom(inStream, flowFile);
+        try {
+
+            final String outputFilename;
+            final String originalFilename = path.getName();
+            stream = hdfs.open(path, 16384);
+
+            // Check if compression codec is defined (inferred or otherwise)
+            if (codec != null) {
+                stream = codec.createInputStream(stream);
+                outputFilename = StringUtils.removeEnd(originalFilename, codec.getDefaultExtension());
+            } else {
+                outputFilename = originalFilename;
+            }
+
+            flowFile = session.importFrom(stream, flowFile);
+            flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
+
             stopWatch.stop();
             getLogger().info("Successfully received content from {} for {} in {}", new Object[] {uri, flowFile, stopWatch.getDuration()});
             session.getProvenanceReporter().fetch(flowFile, uri.toString(), stopWatch.getDuration(TimeUnit.MILLISECONDS));
@@ -133,6 +168,8 @@ public class FetchHDFS extends AbstractHadoopProcessor {
             getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {uri, flowFile, e});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_COMMS_FAILURE);
+        } finally {
+            IOUtils.closeQuietly(stream);
         }
     }
 
