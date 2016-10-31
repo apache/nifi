@@ -715,7 +715,7 @@ In either case, use the following steps to add a Controller Service:
 . Click the Add button to display the Add Controller Service dialog.
 . Select the Controller Service you want to add, and click Add.
 . Perform any necessary Controller Service configuration tasks by clicking the View Details icon (
-image:iconViewDetails.png["View Details"]
+image:iconDetails.png["View Details"]
 ) in the left-hand column.
 
 
@@ -1548,14 +1548,11 @@ Each template must have a unique name. After entering the name and optional desc
 will generate the template and notify the user that the template was successfully created, or provide an appropriate
 error message if unable to create the template for some reason.
 
-.Note
-********************************************************************************************************************
-It is important to note that if any Processor that is Templated has a sensitive property (such as a password), the value of that
+NOTE: It is important to note that if any Processor that is Templated has a sensitive property (such as a password), the value of that
 sensitive property is not included in the Template. As a result, when dragging the Template onto the canvas, newly
 created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any
 Connection that was selected when making the Template is not included in the Template if either the source or the
 destination of the Connection is not also included in the Template.
-********************************************************************************************************************
 
 [[Import_Template]]
 === Importing a Template
