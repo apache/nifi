@@ -18,7 +18,6 @@
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -29,6 +28,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.minifi.commons.schema.common.CollectionUtil.nullToEmpty;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
@@ -53,11 +53,11 @@ public class ProcessorSchemaFunction implements Function<ProcessorDTO, Processor
         if (runDurationMillis != null) {
             map.put(ProcessorSchema.RUN_DURATION_NANOS_KEY, runDurationMillis * 1000);
         }
-        map.put(ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, BaseSchema.nullToEmpty(processorDTO.getRelationships()).stream()
+        map.put(ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, nullToEmpty(processorDTO.getRelationships()).stream()
                 .filter(RelationshipDTO::isAutoTerminate)
                 .map(RelationshipDTO::getName)
                 .collect(Collectors.toList()));
-        map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(BaseSchema.nullToEmpty(processorDTOConfig.getProperties())));
+        map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(nullToEmpty(processorDTOConfig.getProperties())));
 
         String annotationData = processorDTOConfig.getAnnotationData();
         if(annotationData != null && !annotationData.isEmpty()) {

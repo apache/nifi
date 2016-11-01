@@ -114,6 +114,9 @@ Processors:
   Properties:
     Delete Attributes Expression:
     filename: abc
+Process Groups: []
+Input Ports: []
+Output Ports: []
 Connections:
 - name: GenerateFlowFile/success/UpdateAttribute
   id: 7c79cce3-0157-1000-0000-000000000000

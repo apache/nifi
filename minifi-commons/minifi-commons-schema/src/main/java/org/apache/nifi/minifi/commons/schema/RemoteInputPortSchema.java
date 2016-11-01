@@ -22,13 +22,9 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
 
-/**
- *
- */
 public class RemoteInputPortSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_COMMENT = "";
     public static final int DEFAULT_MAX_CONCURRENT_TASKS = 1;
@@ -39,11 +35,12 @@ public class RemoteInputPortSchema extends BaseSchemaWithIdAndName {
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
 
     public RemoteInputPortSchema(Map map) {
-        super(map, INPUT_PORTS_KEY);
+        super(map, "RemoteInputPort(id: {id}, name: {name})");
+        String wrapperName = getWrapperName();
 
-        comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, INPUT_PORTS_KEY, DEFAULT_COMMENT);
-        maxConcurrentTasks = getOptionalKeyAsType(map, MAX_CONCURRENT_TASKS_KEY, Number.class, INPUT_PORTS_KEY, DEFAULT_MAX_CONCURRENT_TASKS);
-        useCompression = getOptionalKeyAsType(map, USE_COMPRESSION_KEY, Boolean.class, INPUT_PORTS_KEY, DEFAULT_USE_COMPRESSION);
+        comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, wrapperName, DEFAULT_COMMENT);
+        maxConcurrentTasks = getOptionalKeyAsType(map, MAX_CONCURRENT_TASKS_KEY, Number.class, wrapperName, DEFAULT_MAX_CONCURRENT_TASKS);
+        useCompression = getOptionalKeyAsType(map, USE_COMPRESSION_KEY, Boolean.class, wrapperName, DEFAULT_USE_COMPRESSION);
     }
 
     @Override

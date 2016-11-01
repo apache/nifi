@@ -28,6 +28,8 @@ import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.NiFiComponentDTO;
+import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -42,14 +44,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.minifi.commons.schema.common.CollectionUtil.nullToEmpty;
 
 public class ConfigMain {
     public static final int ERR_INVALID_ARGS = 1;
@@ -134,80 +141,82 @@ public class ConfigMain {
         System.out.println();
     }
 
-    private static void enrichTemplateDTO(TemplateDTO templateDTO) {
-        FlowSnippetDTO flowSnippetDTO = templateDTO.getSnippet();
+    private static void enrichFlowSnippetDTO(FlowSnippetDTO flowSnippetDTO) {
+        List<FlowSnippetDTO> allFlowSnippets = getAllFlowSnippets(flowSnippetDTO);
 
-        Set<RemoteProcessGroupDTO> remoteProcessGroups = flowSnippetDTO.getRemoteProcessGroups();
-        if (remoteProcessGroups != null) {
-            for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {
-                if (StringUtil.isNullOrEmpty(remoteProcessGroupDTO.getName())) {
-                    remoteProcessGroupDTO.setName(remoteProcessGroupDTO.getTargetUri());
+        Set<RemoteProcessGroupDTO> remoteProcessGroups = getAll(allFlowSnippets, FlowSnippetDTO::getRemoteProcessGroups).collect(Collectors.toSet());
+
+        // RPGs with no name get Target URI as name
+        remoteProcessGroups.stream().filter(r -> StringUtil.isNullOrEmpty(r.getName())).forEach(r -> r.setName(r.getTargetUri()));
+
+        Map<String, String> connectableNameMap = getAll(allFlowSnippets, FlowSnippetDTO::getProcessors).collect(Collectors.toMap(NiFiComponentDTO::getId, ProcessorDTO::getName));
+
+        for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {
+            RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
+            addConnectables(connectableNameMap, nullToEmpty(contents.getInputPorts()), RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getId);
+            addConnectables(connectableNameMap, nullToEmpty(contents.getOutputPorts()), RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getId);
+        }
+
+        addConnectables(connectableNameMap, getAll(allFlowSnippets, FlowSnippetDTO::getInputPorts).collect(Collectors.toList()), PortDTO::getId, PortDTO::getName);
+        addConnectables(connectableNameMap, getAll(allFlowSnippets, FlowSnippetDTO::getOutputPorts).collect(Collectors.toList()), PortDTO::getId, PortDTO::getName);
+
+        Set<ConnectionDTO> connections = getAll(allFlowSnippets, FlowSnippetDTO::getConnections).collect(Collectors.toSet());
+        for (ConnectionDTO connection : connections) {
+            setName(connectableNameMap, connection.getSource());
+            setName(connectableNameMap, connection.getDestination());
+        }
+
+        for (ConnectionDTO connection : connections) {
+            if (StringUtil.isNullOrEmpty(connection.getName())) {
+                StringBuilder name = new StringBuilder();
+                ConnectableDTO connectionSource = connection.getSource();
+                if (connectionSource != null) {
+                    name.append(connectionSource.getName());
                 }
+                name.append("/");
+                if (connection.getSelectedRelationships() != null && connection.getSelectedRelationships().size() > 0) {
+                    name.append(connection.getSelectedRelationships().iterator().next());
+                }
+                name.append("/");
+                ConnectableDTO connectionDestination = connection.getDestination();
+                if (connectionDestination != null) {
+                    name.append(connectionDestination.getName());
+                }
+                connection.setName(name.toString());
             }
         }
-        Set<ConnectionDTO> connections = flowSnippetDTO.getConnections();
-        if (connections != null) {
-            Map<String, String> connectableNameMap = new HashMap<>();
-            Set<ProcessorDTO> processorDTOs = flowSnippetDTO.getProcessors();
-            if (processorDTOs != null) {
-                connectableNameMap.putAll(processorDTOs.stream().collect(Collectors.toMap(NiFiComponentDTO::getId, ProcessorDTO::getName)));
-            }
-
-            if (remoteProcessGroups != null) {
-                for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {
-                    RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
-                    addRemoteProcessGroupPortDTOs(connectableNameMap, contents.getInputPorts());
-                    addRemoteProcessGroupPortDTOs(connectableNameMap, contents.getOutputPorts());
-                }
-            }
-            for (ConnectionDTO connection : connections) {
-                setName(connectableNameMap, connection.getSource());
-                setName(connectableNameMap, connection.getDestination());
-            }
-            for (ConnectionDTO connection : connections) {
-                if (StringUtil.isNullOrEmpty(connection.getName())) {
-                    StringBuilder name = new StringBuilder();
-                    ConnectableDTO connectionSource = connection.getSource();
-                    if (connectionSource != null) {
-                        name.append(connectionSource.getName());
-                    }
-                    name.append("/");
-                    if (connection.getSelectedRelationships() != null && connection.getSelectedRelationships().size() > 0) {
-                        name.append(connection.getSelectedRelationships().iterator().next());
-                    }
-                    name.append("/");
-                    ConnectableDTO connectionDestination = connection.getDestination();
-                    if (connectionDestination != null) {
-                        name.append(connectionDestination.getName());
-                    }
-                    connection.setName(name.toString());
-                }
-            }
-        }
+        nullToEmpty(flowSnippetDTO.getProcessGroups()).stream().map(ProcessGroupDTO::getContents).forEach(ConfigMain::enrichFlowSnippetDTO);
     }
 
-    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, SchemaLoaderException {
-        TemplateDTO templateDTO = (TemplateDTO) JAXBContext.newInstance(TemplateDTO.class).createUnmarshaller().unmarshal(source);
+    private static <T> Stream<T> getAll(List<FlowSnippetDTO> allFlowSnippets, Function<FlowSnippetDTO, Collection<T>> accessor) {
+        return allFlowSnippets.stream().flatMap(f -> accessor.apply(f).stream()).filter(Objects::nonNull);
+    }
 
-        if (templateDTO.getSnippet().getProcessGroups().size() != 0){
-            throw new SchemaLoaderException("Process Groups are not currently supported in MiNiFi. Please remove any from the template and try again.");
+    private static List<FlowSnippetDTO> getAllFlowSnippets(FlowSnippetDTO flowSnippetDTO) {
+        List<FlowSnippetDTO> result = new ArrayList<>();
+        getAllFlowSnippets(flowSnippetDTO, result);
+        return result;
+    }
+
+    private static void getAllFlowSnippets(FlowSnippetDTO flowSnippetDTO, List<FlowSnippetDTO> result) {
+        result.add(flowSnippetDTO);
+        nullToEmpty(flowSnippetDTO.getProcessGroups()).stream().map(ProcessGroupDTO::getContents).forEach(f -> getAllFlowSnippets(f, result));
+    }
+
+    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, IOException, SchemaLoaderException {
+        try {
+            TemplateDTO templateDTO = (TemplateDTO) JAXBContext.newInstance(TemplateDTO.class).createUnmarshaller().unmarshal(source);
+
+            if (templateDTO.getSnippet().getFunnels().size() != 0){
+                throw new SchemaLoaderException("Funnels are not currently supported in MiNiFi. Please remove any from the template and try again.");
+            }
+
+            enrichFlowSnippetDTO(templateDTO.getSnippet());
+            ConfigSchema configSchema = new ConfigSchemaFunction().apply(templateDTO);
+            return configSchema;
+        } finally {
+            source.close();
         }
-
-        if (templateDTO.getSnippet().getOutputPorts().size() != 0){
-            throw new SchemaLoaderException("Output Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
-        }
-
-        if (templateDTO.getSnippet().getInputPorts().size() != 0){
-            throw new SchemaLoaderException("Input Ports are not currently supported in MiNiFi. Please remove any from the template and try again.");
-        }
-
-        if (templateDTO.getSnippet().getFunnels().size() != 0){
-            throw new SchemaLoaderException("Funnels are not currently supported in MiNiFi. Please remove any from the template and try again.");
-        }
-
-        enrichTemplateDTO(templateDTO);
-        ConfigSchema configSchema = new ConfigSchemaFunction().apply(templateDTO);
-        return configSchema;
     }
 
     private static void setName(Map<String, String> connectableNameMap, ConnectableDTO connectableDTO) {
@@ -217,10 +226,6 @@ public class ConfigMain {
                 connectableDTO.setName(name);
             }
         }
-    }
-
-    private static void addRemoteProcessGroupPortDTOs(Map<String, String> connectableNameMap, Collection<RemoteProcessGroupPortDTO> ports) {
-        addConnectables(connectableNameMap, ports, RemoteProcessGroupPortDTO::getId, RemoteProcessGroupPortDTO::getId);
     }
 
     private static <T> void addConnectables(Map<String, String> connectableNameMap, Collection<T> hasIdAndNames, Function<T, String> idGetter, Function<T, String> nameGetter) {

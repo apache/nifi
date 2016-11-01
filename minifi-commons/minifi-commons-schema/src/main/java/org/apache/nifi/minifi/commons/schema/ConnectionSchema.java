@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
-
 public class ConnectionSchema extends BaseSchemaWithIdAndName {
     public static final String SOURCE_ID_KEY = "source id";
     public static final String SOURCE_RELATIONSHIP_NAMES_KEY = "source relationship names";
@@ -41,6 +39,7 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
 
     private String sourceId;
+    private boolean needsSourceRelationships = true;
     private List<String> sourceRelationshipNames;
     private String destinationId;
 
@@ -50,21 +49,19 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
     private String queuePrioritizerClass;
 
     public ConnectionSchema(Map map) {
-        super(map, CONNECTIONS_KEY);
+        super(map, "Connection(id: {id}, name: {name})");
 
+        String wrapperName = getWrapperName();
         // In case of older version, these may not be available until after construction, validated in getValidationIssues()
-        sourceId = getOptionalKeyAsType(map, SOURCE_ID_KEY, String.class, CONNECTIONS_KEY, "");
-        destinationId = getOptionalKeyAsType(map, DESTINATION_ID_KEY, String.class, CONNECTIONS_KEY, "");
+        sourceId = getOptionalKeyAsType(map, SOURCE_ID_KEY, String.class, wrapperName, "");
+        destinationId = getOptionalKeyAsType(map, DESTINATION_ID_KEY, String.class, wrapperName, "");
 
-        sourceRelationshipNames = getOptionalKeyAsType(map, SOURCE_RELATIONSHIP_NAMES_KEY, List.class, CONNECTIONS_KEY, new ArrayList<>());
-        if (sourceRelationshipNames.isEmpty()) {
-            addValidationIssue("Expected at least one value in " + SOURCE_RELATIONSHIP_NAMES_KEY + " for " + CONNECTIONS_KEY + " " + getName());
-        }
-
-        maxWorkQueueSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_SIZE_KEY, Number.class, CONNECTIONS_KEY, DEFAULT_MAX_WORK_QUEUE_SIZE);
-        maxWorkQueueDataSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_DATA_SIZE_KEY, String.class, CONNECTIONS_KEY, DEFAULT_MAX_QUEUE_DATA_SIZE);
-        flowfileExpiration = getOptionalKeyAsType(map, FLOWFILE_EXPIRATION__KEY, String.class, CONNECTIONS_KEY, DEFAULT_FLOWFILE_EXPIRATION);
-        queuePrioritizerClass = getOptionalKeyAsType(map, QUEUE_PRIORITIZER_CLASS_KEY, String.class, CONNECTIONS_KEY, "");
+        // This could be empty if the source is a port.
+        sourceRelationshipNames = getOptionalKeyAsType(map, SOURCE_RELATIONSHIP_NAMES_KEY, List.class, wrapperName, new ArrayList<>());
+        maxWorkQueueSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_SIZE_KEY, Number.class, wrapperName, DEFAULT_MAX_WORK_QUEUE_SIZE);
+        maxWorkQueueDataSize = getOptionalKeyAsType(map, MAX_WORK_QUEUE_DATA_SIZE_KEY, String.class, wrapperName, DEFAULT_MAX_QUEUE_DATA_SIZE);
+        flowfileExpiration = getOptionalKeyAsType(map, FLOWFILE_EXPIRATION__KEY, String.class, wrapperName, DEFAULT_FLOWFILE_EXPIRATION);
+        queuePrioritizerClass = getOptionalKeyAsType(map, QUEUE_PRIORITIZER_CLASS_KEY, String.class, wrapperName, "");
     }
 
     @Override
@@ -117,14 +114,18 @@ public class ConnectionSchema extends BaseSchemaWithIdAndName {
         return queuePrioritizerClass;
     }
 
+    public void setNeedsSourceRelationships(boolean needsSourceRelationships) {
+        this.needsSourceRelationships = needsSourceRelationships;
+    }
+
     @Override
     public List<String> getValidationIssues() {
+        String wrapperName = getWrapperName();
         List<String> validationIssues = super.getValidationIssues();
-        if (StringUtil.isNullOrEmpty(getSourceId())) {
-            validationIssues.add(getIssueText(SOURCE_ID_KEY, CONNECTIONS_KEY, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
-        }
-        if (StringUtil.isNullOrEmpty(getDestinationId())) {
-            validationIssues.add(getIssueText(DESTINATION_ID_KEY, CONNECTIONS_KEY, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
+        StringUtil.doIfNullOrEmpty(getSourceId(), id -> validationIssues.add(getIssueText(SOURCE_ID_KEY, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED)));
+        StringUtil.doIfNullOrEmpty(getDestinationId(), id -> validationIssues.add(getIssueText(DESTINATION_ID_KEY, wrapperName, IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED)));
+        if (needsSourceRelationships && sourceRelationshipNames.isEmpty()) {
+            validationIssues.add("Expected at least one value in " + SOURCE_RELATIONSHIP_NAMES_KEY + " for " + wrapperName + " " + getName());
         }
         return Collections.unmodifiableList(validationIssues);
     }

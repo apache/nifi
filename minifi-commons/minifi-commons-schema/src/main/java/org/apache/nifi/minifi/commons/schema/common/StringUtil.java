@@ -17,8 +17,40 @@
 
 package org.apache.nifi.minifi.commons.schema.common;
 
+import java.util.function.Consumer;
+
 public class StringUtil {
-    public static boolean isNullOrEmpty(final String string) {
+    /**
+     * Returns true if the string is null or empty
+     *
+     * @param string the string
+     * @return true if the string is null or empty
+     */
+    public static boolean isNullOrEmpty(String string) {
         return string == null || string.isEmpty();
+    }
+
+    /**
+     * Passes the string to the consumer if it is neither null nor empty
+     *
+     * @param string   the input
+     * @param consumer the action to perform
+     */
+    public static void doIfNotNullOrEmpty(String string, Consumer<String> consumer) {
+        if (!isNullOrEmpty(string)) {
+            consumer.accept(string);
+        }
+    }
+
+    /**
+     * Passes the string to the consumer if it is either null nor empty
+     *
+     * @param string   the input
+     * @param consumer the action to perform
+     */
+    public static void doIfNullOrEmpty(String string, Consumer<String> consumer) {
+        if (isNullOrEmpty(string)) {
+            consumer.accept(string);
+        }
     }
 }

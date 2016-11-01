@@ -179,7 +179,7 @@ public class ConnectionSchemaV1Test {
 
         ConfigSchema configSchema = new ConfigSchemaV1(Collections.singletonMap(CommonPropertyKeys.CONNECTIONS_KEY, listWithKeyValues)).convert();
         assertMessageDoesNotExist(configSchema, ConfigSchema.FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_IDS);
-        List<ConnectionSchema> connections = configSchema.getConnections();
+        List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
         assertEquals(5, connections.size());
 
         // Generated unique ids

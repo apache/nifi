@@ -19,7 +19,6 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
 import java.util.HashMap;
@@ -29,6 +28,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.minifi.commons.schema.common.CollectionUtil.nullToEmpty;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
@@ -40,14 +40,14 @@ public class ConnectionSchemaFunction implements Function<ConnectionDTO, Connect
         map.put(ID_KEY, connectionDTO.getId());
         map.put(NAME_KEY, connectionDTO.getName());
         map.put(ConnectionSchema.SOURCE_ID_KEY, connectionDTO.getSource().getId());
-        Set<String> selectedRelationships = BaseSchema.nullToEmpty(connectionDTO.getSelectedRelationships());
+        Set<String> selectedRelationships = nullToEmpty(connectionDTO.getSelectedRelationships());
         map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, selectedRelationships.stream().sorted().collect(Collectors.toList()));
         map.put(ConnectionSchema.DESTINATION_ID_KEY, connectionDTO.getDestination().getId());
 
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, connectionDTO.getBackPressureObjectThreshold());
         map.put(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY, connectionDTO.getBackPressureDataSizeThreshold());
         map.put(ConnectionSchema.FLOWFILE_EXPIRATION__KEY, connectionDTO.getFlowFileExpiration());
-        List<String> queuePrioritizers = BaseSchema.nullToEmpty(connectionDTO.getPrioritizers());
+        List<String> queuePrioritizers = nullToEmpty(connectionDTO.getPrioritizers());
         if (queuePrioritizers.size() > 0) {
             map.put(ConnectionSchema.QUEUE_PRIORITIZER_CLASS_KEY, queuePrioritizers.get(0));
         }

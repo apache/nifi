@@ -98,6 +98,9 @@ Processors:
     Delete Attributes Expression:
     property 1: value 1
     property 2: value 2 ${nextInt()}
+Process Groups: []
+Input Ports: []
+Output Ports: []
 Connections:
 - name: GenerateFlowFile/success/UpdateAttribute
   id: 0e6873cc-cb9d-4e98-92aa-a3319f4c1b02

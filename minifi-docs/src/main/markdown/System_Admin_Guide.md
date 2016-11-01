@@ -248,7 +248,7 @@ parses and upconverts to the current version without issue.
 
 1. Use ids instead of names for processors, connections.
 2. Allow multiple source relationships for connections.
-
+3. Support process groups, input ports, output ports
 
 ## Flow Controller
 
@@ -390,6 +390,39 @@ Within the Processor Configuration section, there is the `Properties` subsection
         Rolling Filename Pattern: nifi-app*
         State File: ./conf/state/tail-file
         Initial Start Position: Beginning of File
+
+## Process Groups
+
+Process groups can be nested from the top level.  They can contain other process groups as well and can be used to logically group related operations.
+
+*Property*                          | *Description*
+----------------------------------- | -------------
+name                                | The name of what this process group will do.
+id                                  | The id of this process group.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
+Processors                          | The processors contained in this Process Group. (Defined above)
+Remote Processing Groups            | The remote processing groups contained in this Process Group. (Defined below)
+Connections                         | The connections contained in this Process Group. (Defined below)
+Input Ports                         | The input ports contained in this Process Group. (Defined below)
+Output Ports                        | The output ports contained in this Process Group. (Defined below)
+Process Groups                      | The child Process Groups contained in this Process Group.
+
+## Input Ports
+
+These ports provide input to the Process Group they reside on. (Currently only for internal Input ports.)
+
+*Property*               | *Description*
+--------------------     | -------------
+name                     | The name of what this input port will do.
+id                       | The id of this input port.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
+
+## Output Ports
+
+These ports provide output from the Process Group they reside on. (Currently only for internal Output ports.)
+
+*Property*               | *Description*
+--------------------     | -------------
+name                     | The name of what this output port will do.
+id                       | The id of this output port.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 
 ## Connections
 

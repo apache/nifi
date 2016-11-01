@@ -69,8 +69,10 @@ public class ConfigSchemaV1Test {
         ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
         List<String> validationIssues = configSchema.getValidationIssues();
         assertEquals(4, validationIssues.size());
-        assertEquals(BaseSchema.getIssueText(ConnectionSchema.DESTINATION_ID_KEY, CommonPropertyKeys.CONNECTIONS_KEY, BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED), validationIssues.get(0));
-        assertEquals(BaseSchema.getIssueText(ConnectionSchema.SOURCE_ID_KEY, CommonPropertyKeys.CONNECTIONS_KEY, BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED), validationIssues.get(1));
+        assertEquals(BaseSchema.getIssueText(ConnectionSchema.DESTINATION_ID_KEY, "Connection(id: TailToSplit, name: TailToSplit)", BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED),
+                validationIssues.get(0));
+        assertEquals(BaseSchema.getIssueText(ConnectionSchema.SOURCE_ID_KEY, "Connection(id: TailToSplit, name: TailToSplit)", BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED),
+                validationIssues.get(1));
         assertEquals(ConfigSchemaV1.CONNECTION_WITH_NAME + connection.get(NAME_KEY) + ConfigSchemaV1.HAS_INVALID_DESTINATION_NAME + fakeDestination, validationIssues.get(2));
         assertEquals(ConfigSchemaV1.CONNECTION_WITH_NAME + connection.get(NAME_KEY) + ConfigSchemaV1.HAS_INVALID_SOURCE_NAME + fakeSource, validationIssues.get(3));
     }

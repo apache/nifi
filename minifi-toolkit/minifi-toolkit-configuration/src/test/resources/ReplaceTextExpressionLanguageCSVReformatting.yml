@@ -123,6 +123,9 @@ Processors:
       2006,10-01-2004,10may2004
       2007,15-05-2006,10jun2005
       2009,8-8-2008,10aug2008
+Process Groups: []
+Input Ports: []
+Output Ports: []
 Connections:
 - name: Generate Empty File/success/Set CSV Content
   id: ca71a875-0ff5-41ef-bbe0-da5de0ca1e08

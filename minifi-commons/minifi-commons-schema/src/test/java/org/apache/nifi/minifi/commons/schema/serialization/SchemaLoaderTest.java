@@ -79,12 +79,12 @@ public class SchemaLoaderTest {
     private void validateMinimalConfigVersion1Parse(ConfigSchema configSchema) {
         assertTrue(configSchema instanceof ConfigSchema);
 
-        List<ConnectionSchema> connections = configSchema.getConnections();
+        List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
         assertNotNull(connections);
         assertEquals(1, connections.size());
         assertNotNull(connections.get(0).getId());
 
-        List<ProcessorSchema> processors = configSchema.getProcessors();
+        List<ProcessorSchema> processors = configSchema.getProcessGroupSchema().getProcessors();
         assertNotNull(processors);
         assertEquals(2, processors.size());
         processors.forEach(p -> assertNotNull(p.getId()));

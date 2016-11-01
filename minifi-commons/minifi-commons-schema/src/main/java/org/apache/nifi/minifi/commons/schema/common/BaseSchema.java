@@ -17,11 +17,12 @@
 
 package org.apache.nifi.minifi.commons.schema.common;
 
+import org.apache.nifi.minifi.commons.schema.exception.SchemaInstantiatonException;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -138,6 +140,40 @@ public abstract class BaseSchema implements Schema {
         return result;
     }
 
+    public <T> List<T> getOptionalKeyAsList(Map valueMap, String key, Function<Map, T> conversionFunction, String wrapperName) {
+        return convertListToType(Map.class, (List<Map>) valueMap.get(key), key, conversionFunction, wrapperName, null);
+    }
+
+    public <InputT, OutputT> List<OutputT> convertListToType(Class<InputT> inputType, List<InputT> list, String simpleListType, Function<InputT, OutputT> conversionFunction,
+                                                             String wrapperName, Supplier<OutputT> instantiator) {
+        if (list == null) {
+            return new ArrayList<>();
+        }
+        List<OutputT> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            try {
+                OutputT val = interpretValueAsType(inputType, list.get(i), conversionFunction, instantiator);
+                if (val != null) {
+                    result.add(val);
+                }
+            } catch (SchemaInstantiatonException e) {
+                addValidationIssue(simpleListType + " number " + i, wrapperName, e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private <InputT, OutputT> OutputT interpretValueAsType(Class<InputT> inputType, InputT input, Function<InputT, OutputT> conversionFunction, Supplier<OutputT> instantiator)
+            throws SchemaInstantiatonException {
+        if (input == null && instantiator != null) {
+            return instantiator.get();
+        }
+        if (!inputType.isInstance(input)) {
+            throw new SchemaInstantiatonException("was expecting object of type " + inputType + " but was " + input.getClass());
+        }
+        return conversionFunction.apply(input);
+    }
+
     private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {
         if (obj == null) {
             if (required){
@@ -181,20 +217,6 @@ public abstract class BaseSchema implements Schema {
             valueMap.put(key, list.stream().map(WritableSchema::toMap).collect(Collectors.toList()));
         }
     }
-
-    public static <T> List<T> nullToEmpty(List<T> list) {
-        return list == null ? Collections.emptyList() : list;
-    }
-
-    public static <T> Set<T> nullToEmpty(Set<T> set) {
-        return set == null ? Collections.emptySet() : set;
-    }
-
-    public static <K, V> Map<K, V> nullToEmpty(Map<K, V> map) {
-        return map == null ? Collections.emptyMap() : map;
-    }
-
-
 
     public static void checkForDuplicates(Consumer<String> duplicateMessageConsumer, String errorMessagePrefix, List<String> strings) {
         if (strings != null) {

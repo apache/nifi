@@ -56,5 +56,8 @@ Security Properties:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
     provider: BC
 Processors: []
+Process Groups: []
+Input Ports: []
+Output Ports: []
 Connections: []
 Remote Processing Groups: []

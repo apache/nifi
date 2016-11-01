@@ -166,6 +166,9 @@ Processors:
   Properties:
     Delete Attributes Expression:
     q: nifi
+Process Groups: []
+Input Ports: []
+Output Ports: []
 Connections:
 - name: Route On Status Code/200/LogAttribute
   id: 3039718a-bb40-4811-9b74-ecbe926daae8
