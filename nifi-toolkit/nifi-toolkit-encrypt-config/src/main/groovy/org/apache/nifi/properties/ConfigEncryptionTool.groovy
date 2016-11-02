@@ -48,10 +48,14 @@ class ConfigEncryptionTool {
     public String loginIdentityProvidersPath
 
     private String keyHex
+    private String migrationKeyHex
     private String password
+    private String migrationPassword
     private NiFiProperties niFiProperties
 
     private boolean usingPassword = true
+    private boolean usingPasswordMigration = true
+    private boolean migration = false
     private boolean isVerbose = false
 
     private static final String HELP_ARG = "help"
@@ -61,7 +65,10 @@ class ConfigEncryptionTool {
     private static final String OUTPUT_NIFI_PROPERTIES_ARG = "outputNiFiProperties"
     private static final String KEY_ARG = "key"
     private static final String PASSWORD_ARG = "password"
+    private static final String KEY_MIGRATION_ARG = "oldKey"
+    private static final String PASSWORD_MIGRATION_ARG = "oldPassword"
     private static final String USE_KEY_ARG = "useRawKey"
+    private static final String MIGRATION_ARG = "migrate"
 
     private static final int MIN_PASSWORD_LENGTH = 12
 
@@ -107,8 +114,11 @@ class ConfigEncryptionTool {
         options.addOption("b", BOOTSTRAP_CONF_ARG, true, "The bootstrap.conf file to persist master key")
         options.addOption("o", OUTPUT_NIFI_PROPERTIES_ARG, true, "The destination nifi.properties file containing protected config values (will not modify input nifi.properties)")
         options.addOption("k", KEY_ARG, true, "The raw hexadecimal key to use to encrypt the sensitive properties")
+        options.addOption("e", KEY_MIGRATION_ARG, true, "The old raw hexadecimal key to use during key migration")
         options.addOption("p", PASSWORD_ARG, true, "The password from which to derive the key to use to encrypt the sensitive properties")
+        options.addOption("w", PASSWORD_MIGRATION_ARG, true, "The old password from which to derive the key during migration")
         options.addOption("r", USE_KEY_ARG, false, "If provided, the secure console will prompt for the raw key value in hexadecimal form")
+        options.addOption("m", MIGRATION_ARG, false, "If provided, the sensitive properties will be re-encrypted with a new key")
     }
 
     /**
@@ -151,6 +161,28 @@ class ConfigEncryptionTool {
                 logger.warn("The source nifi.properties and destination nifi.properties are identical [${outputNiFiPropertiesPath}] so the original will be overwritten")
             }
 
+            if (commandLine.hasOption(MIGRATION_ARG)) {
+                migration = true
+                if (isVerbose) {
+                    logger.info("Key migration mode activated")
+                }
+                if (commandLine.hasOption(PASSWORD_MIGRATION_ARG)) {
+                    usingPasswordMigration = true
+                    if (commandLine.hasOption(KEY_MIGRATION_ARG)) {
+                        printUsageAndThrow("Only one of ${PASSWORD_MIGRATION_ARG} and ${KEY_MIGRATION_ARG} can be used", ExitCode.INVALID_ARGS)
+                    } else {
+                        migrationPassword = commandLine.getOptionValue(PASSWORD_MIGRATION_ARG)
+                    }
+                } else {
+                    migrationKeyHex = commandLine.getOptionValue(KEY_MIGRATION_ARG)
+                    usingPasswordMigration = !migrationKeyHex
+                }
+            } else {
+                if (commandLine.hasOption(PASSWORD_MIGRATION_ARG) || commandLine.hasOption(KEY_MIGRATION_ARG)) {
+                    printUsageAndThrow("${PASSWORD_MIGRATION_ARG} and ${KEY_MIGRATION_ARG} are ignored unless ${MIGRATION_ARG} is enabled", ExitCode.INVALID_ARGS)
+                }
+            }
+
             if (commandLine.hasOption(PASSWORD_ARG)) {
                 usingPassword = true
                 if (commandLine.hasOption(KEY_ARG)) {
@@ -179,23 +211,43 @@ class ConfigEncryptionTool {
         return commandLine
     }
 
-    private String getKey(TextDevice device = TextDevices.defaultTextDevice()) {
+    /**
+     * The method returns the provided, derived, or securely-entered key in hex format. The reason the parameters must be provided instead of read from the fields is because this is used for the regular key/password and the migration key/password.
+     *
+     * @param device
+     * @param keyHex
+     * @param password
+     * @param usingPassword
+     * @return
+     */
+    private String getKeyInternal(TextDevice device = TextDevices.defaultTextDevice(), String keyHex, String password, boolean usingPassword) {
         if (usingPassword) {
             if (!password) {
+                if (isVerbose) {
+                    logger.info("Reading password from secure console")
+                }
                 password = readPasswordFromConsole(device)
             }
             keyHex = deriveKeyFromPassword(password)
             password = null
-            usingPassword = false
-
             return keyHex
         } else {
             if (!keyHex) {
+                if (isVerbose) {
+                    logger.info("Reading hex key from secure console")
+                }
                 keyHex = readKeyFromConsole(device)
             }
-
             return keyHex
         }
+    }
+
+    private String getKey(TextDevice textDevice = TextDevices.defaultTextDevice()) {
+        getKeyInternal(textDevice, keyHex, password, usingPassword)
+    }
+
+    private String getMigrationKey() {
+        getKeyInternal(TextDevices.defaultTextDevice(), migrationKeyHex, migrationPassword, usingPasswordMigration)
     }
 
     private static String readKeyFromConsole(TextDevice textDevice) {
@@ -239,12 +291,12 @@ class ConfigEncryptionTool {
      * @return the NiFiProperties instance
      * @throw IOException if the nifi.properties file cannot be read
      */
-    private NiFiProperties loadNiFiProperties() throws IOException {
+    private NiFiProperties loadNiFiProperties(String existingKeyHex = keyHex) throws IOException {
         File niFiPropertiesFile
         if (niFiPropertiesPath && (niFiPropertiesFile = new File(niFiPropertiesPath)).exists()) {
             NiFiProperties properties
             try {
-                properties = NiFiPropertiesLoader.withKey(keyHex).load(niFiPropertiesFile)
+                properties = NiFiPropertiesLoader.withKey(existingKeyHex).load(niFiPropertiesFile)
                 logger.info("Loaded NiFiProperties instance with ${properties.size()} properties")
                 return properties
             } catch (RuntimeException e) {
@@ -529,7 +581,30 @@ class ConfigEncryptionTool {
                     tool.printUsageAndThrow(e.getMessage(), ExitCode.INVALID_ARGS)
                 }
 
-                tool.niFiProperties = tool.loadNiFiProperties()
+                if (tool.migration) {
+                    String migrationKeyHex = tool.getMigrationKey()
+
+                    if (!migrationKeyHex) {
+                        tool.printUsageAndThrow("Original hex key must be provided for migration", ExitCode.INVALID_ARGS)
+                    }
+
+                    try {
+                        // Validate the length and format
+                        tool.migrationKeyHex = parseKey(migrationKeyHex)
+                    } catch (KeyException e) {
+                        if (tool.isVerbose) {
+                            logger.error("Encountered an error", e)
+                        }
+                        tool.printUsageAndThrow(e.getMessage(), ExitCode.INVALID_ARGS)
+                    }
+                }
+                String existingKeyHex = tool.migrationKeyHex ?: tool.keyHex
+
+                try {
+                    tool.niFiProperties = tool.loadNiFiProperties(existingKeyHex)
+                } catch (Exception e) {
+                    tool.printUsageAndThrow("Cannot migrate key if no previous encryption occurred", ExitCode.ERROR_READING_NIFI_PROPERTIES)
+                }
                 tool.niFiProperties = tool.encryptSensitiveProperties(tool.niFiProperties)
             } catch (CommandLineParseException e) {
                 if (e.exitCode == ExitCode.HELP) {

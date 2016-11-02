@@ -988,13 +988,16 @@ The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is use
 You can use the following command line options with the `encrypt-config` tool:
 
 * `-b,--bootstrapConf <arg>`          The bootstrap.conf file to persist master key
+* `-e,--oldKey <arg>`                 The old raw hexadecimal key to use during key migration
 * `-h,--help`                         Prints this usage message
-* `-k,--key <arg>`                    The raw hexadecimal key to use to encrypt the sensitive properties (the key can be entered with spaces or '-' delimiters to assist manual entry -- these will be ignored)
-* `-n,--niFiProperties <arg>`         The 'nifi.properties' file containing unprotected config values (will be overwritten by default unless `-o` is provided)
-* `-o,--outputNiFiProperties <arg>`   The destination 'nifi.properties' file containing protected config values (will not modify input 'nifi.properties')
+* `-k,--key <arg>`                    The raw hexadecimal key to use to encrypt the sensitive properties
+* `-m,--migrate`                      If provided, the sensitive properties will be re-encrypted with a new key
+* `-n,--niFiProperties <arg>`         The nifi.properties file containing unprotected config values (will be overwritten)
+* `-o,--outputNiFiProperties <arg>`   The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
 * `-p,--password <arg>`               The password from which to derive the key to use to encrypt the sensitive properties
 * `-r,--useRawKey`                    If provided, the secure console will prompt for the raw key value in hexadecimal form
 * `-v,--verbose`                      Sets verbose mode (default false)
+* `-w,--oldPassword <arg>`            The old password from which to derive the key during migration
 
 As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
 
@@ -1054,6 +1057,13 @@ nifi.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFED
 Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired.  To encrypt additional properties, specify them as comma-separated values in the `nifi.sensitive.props.additional.keys` property.
 
 If the 'nifi.properties' file already has valid protected values, those property values are not modified by the tool.
+
+In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update `bootstrap.conf` with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
+
+* old key -> new key
+* old key -> new password
+* old password -> new key
+* old password -> new password
 
 [[encrypt-config_password]]
 Password Key Derivation
