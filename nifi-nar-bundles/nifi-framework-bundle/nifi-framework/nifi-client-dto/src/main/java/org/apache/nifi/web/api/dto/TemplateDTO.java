@@ -111,7 +111,8 @@ public class TemplateDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when this template was created."
+            value = "The timestamp when this template was created.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

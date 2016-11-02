@@ -81,7 +81,8 @@ public class ProvenanceLinkDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp of the link (based on the destination)."
+            value = "The timestamp of the link (based on the destination).",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

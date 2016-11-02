@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -50,6 +51,10 @@ public class UsersEntity extends Entity {
      * @return When this content was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "When this content was generated.",
+            dataType = "string"
+    )
     public Date getGenerated() {
         return generated;
     }

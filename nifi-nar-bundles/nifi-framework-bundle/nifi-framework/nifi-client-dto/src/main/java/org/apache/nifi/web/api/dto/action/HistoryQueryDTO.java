@@ -71,7 +71,8 @@ public class HistoryQueryDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The start date of actions to return."
+            value = "The start date of actions to return.",
+            dataType = "string"
     )
     public Date getStartDate() {
         return startDate;
@@ -86,7 +87,8 @@ public class HistoryQueryDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The end date of actions to return."
+            value = "The end date of actions to return.",
+            dataType = "string"
     )
     public Date getEndDate() {
         return endDate;

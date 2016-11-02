@@ -48,7 +48,10 @@ public class CountersSnapshotDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty("The timestamp when the report was generated.")
+    @ApiModelProperty(
+            value = "The timestamp when the report was generated.",
+            dataType = "string"
+    )
     public Date getGenerated() {
         return generated;
     }

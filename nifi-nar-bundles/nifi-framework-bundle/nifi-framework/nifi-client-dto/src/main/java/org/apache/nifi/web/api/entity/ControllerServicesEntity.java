@@ -49,7 +49,8 @@ public class ControllerServicesEntity extends Entity {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The current time on the system."
+            value = "The current time on the system.",
+            dataType = "string"
     )
     public Date getCurrentTime() {
         return currentTime;

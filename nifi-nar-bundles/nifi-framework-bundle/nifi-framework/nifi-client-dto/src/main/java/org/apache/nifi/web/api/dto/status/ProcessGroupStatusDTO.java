@@ -78,7 +78,8 @@ public class ProcessGroupStatusDTO implements Cloneable {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-        value = "The time the status for the process group was last refreshed."
+        value = "The time the status for the process group was last refreshed.",
+        dataType = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
