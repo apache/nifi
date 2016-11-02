@@ -100,7 +100,7 @@ div.remote-port-removed:before {
     font-family: FontAwesome;
     content: "\f071";
     font-size: 16px;
-    color: #f0ad4e;
+    color: #ba554a;
 }
 
 div.remote-port-edit-container {

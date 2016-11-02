@@ -711,8 +711,22 @@ nf.RemoteProcessGroup = (function () {
                 }
                 return family;
             })
-            .classed('has-authorization-errors', function (d) {
+            .classed('invalid', function (d) {
                 return d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
+            })
+            .classed('transmitting', function (d) {
+                if (d.component.transmitting === true) {
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+            .classed('not-transmitting', function (d) {
+                if (d.component.transmitting !== true) {
+                    return true;
+                } else {
+                    return false;
+                }
             })
             .each(function (d) {
                 // get the tip

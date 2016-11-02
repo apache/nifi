@@ -75,7 +75,6 @@ div.processor-configuration-warning-icon:before {
     font-family: FontAwesome;
     content: "\f071";
     font-size: 16px;
-    color: #f0ad4e;
 }
 
 #auto-terminate-relationship-names {

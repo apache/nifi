@@ -213,14 +213,6 @@ div.action-button {
     text-transform:uppercase;
  }
 
-#operate-start button:hover {
-    color:#5cb85c;
-}
-
-#operate-stop button:hover {
-    color:#d9534f;
-}
-
 div.graph-control div.icon-disabled {
     color: #ddd;
 }

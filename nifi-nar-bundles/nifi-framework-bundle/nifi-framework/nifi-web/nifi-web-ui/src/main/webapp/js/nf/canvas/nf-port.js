@@ -213,7 +213,7 @@ nf.Port = (function () {
                             .attr({
                                 'class': 'port-transmission-icon',
                                 'x': 10,
-                                'y': 15
+                                'y': 18
                             });
 
                         // bulletin background
@@ -342,11 +342,11 @@ nf.Port = (function () {
                     var fill = '#728e9b';
 
                     if  (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                        fill = '#f0ad4e';
+                        fill = '#cf9f5d';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                        fill = '#5cb85c';
+                        fill = '#7dc7a0';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                        fill = '#d9534f';
+                        fill = '#d18686';
                     }
 
                     return fill;
@@ -422,6 +422,20 @@ nf.Port = (function () {
                     return '\uf140';
                 } else {
                     return '\ue80a';
+                }
+            })
+            .classed('transmitting', function (d) {
+                if (d.status.aggregateSnapshot.transmitting === true) {
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+            .classed('not-transmitting', function (d) {
+                if (d.status.aggregateSnapshot.transmitting !== true) {
+                    return true;
+                } else {
+                    return false;
                 }
             });
 

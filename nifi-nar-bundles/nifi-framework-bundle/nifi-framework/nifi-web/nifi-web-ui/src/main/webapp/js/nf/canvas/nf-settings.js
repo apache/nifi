@@ -622,13 +622,13 @@ nf.Settings = (function () {
             } else {
                 if (dataContext.component.state === 'STOPPED') {
                     label = 'Stopped';
-                    icon = 'fa fa-stop';
+                    icon = 'fa fa-stop stopped';
                 } else if (dataContext.component.state === 'RUNNING') {
                     label = 'Running';
-                    icon = 'fa fa-play';
+                    icon = 'fa fa-play running';
                 } else {
                     label = 'Disabled';
-                    icon = 'icon icon-enable-false';
+                    icon = 'icon icon-enable-false disabled';
                 }
             }
 

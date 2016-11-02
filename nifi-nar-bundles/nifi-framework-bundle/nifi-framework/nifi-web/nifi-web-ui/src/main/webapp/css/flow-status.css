@@ -38,22 +38,11 @@
     color: #728E9B; /*base-color*/
 }
 
-#flow-status .fa.fa-play {
-    color: #5cb85c;
-}
-
-#flow-status .fa.fa-stop {
-    color: #d9534f;
-}
-
-#flow-status .fa.fa-warning {
-    color: #f0ad4e;
-}
-
 #flow-status .icon span {
     font-size: 15px;
     font-weight: 500;
     color: #775351; /*value-color*/
+    text-shadow: none;
 }
 
 #flow-status .fa span {
@@ -61,6 +50,7 @@
     font-weight: 500;
     color: #775351; /*value-color*/
     font-family: Roboto, sans-serif;
+    text-shadow: none;
 }
 
 #flow-status button {
@@ -98,6 +88,7 @@
 
 #search-button .fa {
     color: #004849;
+    text-shadow: none;
 }
 
 #bulletin-button {
@@ -106,12 +97,13 @@
 }
 
 #bulletin-button.has-bulletins {
-    background-color: #f0ad4e; /*warm-color*/
+    background-color: #ba554a; /*warm-color*/
 }
 
 #bulletin-button i.fa {
     color: #fff;
     font-size: 15px;
+    text-shadow: none;
 }
 
 #canvas-loading-container {
@@ -124,7 +116,7 @@
 }
 
 #connected-nodes-count.connection-warning {
-    color: #f0ad4e;
+    color: #BA554A;
 }
 
 /* search field */
