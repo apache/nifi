@@ -805,6 +805,14 @@ nf.ProcessorConfiguration = (function () {
                         .propertytable('setGroupId', processor.parentGroupId)
                         .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory);
 
+                    // hide add property '+' if necessary
+                    if (processor.hasDynamicProperty) {
+                        $(".add-property").show();
+                    }
+                    else {
+                        $(".add-property").hide();
+                    }
+
                     // show the details
                     $('#processor-configuration').modal('show');
 

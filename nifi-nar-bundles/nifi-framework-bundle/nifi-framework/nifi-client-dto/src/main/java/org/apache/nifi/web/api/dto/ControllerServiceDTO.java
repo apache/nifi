@@ -37,6 +37,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String comments;
     private String state;
     private Boolean persistsState;
+    private Boolean hasDynamicProperty;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -104,6 +105,19 @@ public class ControllerServiceDTO extends ComponentDTO {
         this.persistsState = persistsState;
     }
 
+    /**
+     * @return whether this controller supports dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service supports dynamic properties."
+    )
+    public Boolean getHasDynamicProperty() {
+        return hasDynamicProperty;
+    }
+
+    public void setHasDynamicProperty(Boolean dynamic) {
+        this.hasDynamicProperty = dynamic;
+    }
     /**
      * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */

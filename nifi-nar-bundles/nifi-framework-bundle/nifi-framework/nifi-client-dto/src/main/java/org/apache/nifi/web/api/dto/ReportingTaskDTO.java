@@ -33,6 +33,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String state;
     private String comments;
     private Boolean persistsState;
+    private Boolean hasDynamicProperty;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -103,6 +104,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setSchedulingPeriod(String schedulingPeriod) {
         this.schedulingPeriod = schedulingPeriod;
+    }
+
+    /**
+     * @return whether this reporting task supports dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task supports dynamic properties."
+    )
+    public Boolean getHasDynamicProperty() {
+        return hasDynamicProperty;
+    }
+
+    public void setHasDynamicProperty(Boolean dynamic) {
+        this.hasDynamicProperty = dynamic;
     }
 
     /**
