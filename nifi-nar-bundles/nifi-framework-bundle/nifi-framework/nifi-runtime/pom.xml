@@ -35,7 +35,8 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties-loader</artifactId>
-            <scope>compile</scope>
+            <!-- The dependency is required to be made available by the binary build in the bootstrap folder -->
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
