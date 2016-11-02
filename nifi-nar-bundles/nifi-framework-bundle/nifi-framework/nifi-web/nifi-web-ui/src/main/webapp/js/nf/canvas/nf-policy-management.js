@@ -784,8 +784,16 @@ nf.PolicyManagement = (function () {
 
             // build the mark up
             return $('<span>Showing effective policy inherited from Process Group </span>').append($('<span class="link"></span>').text(processGroupName).on('click', function () {
+                // close the shell
                 $('#shell-close-button').click();
-                nf.CanvasUtils.enterGroup(processGroupId);
+
+                // load the correct group and unselect everything if necessary
+                nf.CanvasUtils.enterGroup(processGroupId).done(function () {
+                    nf.CanvasUtils.getSelection().classed('selected', false);
+
+                    // inform Angular app that values have changed
+                    nf.ng.Bridge.digest();
+                });
             })).append('<span>.</span>');
         }
     };
