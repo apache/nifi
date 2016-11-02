@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NiFiPropertiesLoader {
+
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
 
     private static final String RELATIVE_PATH = "conf/nifi.properties";
@@ -52,6 +53,10 @@ public class NiFiPropertiesLoader {
 
     /**
      * Returns an instance of the loader configured with the key.
+     *
+     * <p>
+     * NOTE: This method is used reflectively by the process which starts NiFi
+     * so changes to it must be made in conjunction with that mechanism.</p>
      *
      * @param keyHex the key used to encrypt any sensitive properties
      * @return the configured loader
@@ -84,7 +89,8 @@ public class NiFiPropertiesLoader {
      * startup.
      *
      * @return the populated and decrypted NiFiProperties instance
-     * @throws IOException if there is a problem reading from the bootstrap.conf or nifi.properties files
+     * @throws IOException if there is a problem reading from the bootstrap.conf
+     * or nifi.properties files
      */
     public static NiFiProperties loadDefaultWithKeyFromBootstrap() throws IOException {
         try {
@@ -163,9 +169,10 @@ public class NiFiPropertiesLoader {
     }
 
     /**
-     * Returns a {@link ProtectedNiFiProperties} instance loaded from the serialized
-     * form in the file. Responsible for actually reading from disk and deserializing
-     * the properties. Returns a protected instance to allow for decryption operations.
+     * Returns a {@link ProtectedNiFiProperties} instance loaded from the
+     * serialized form in the file. Responsible for actually reading from disk
+     * and deserializing the properties. Returns a protected instance to allow
+     * for decryption operations.
      *
      * @param file the file containing serialized properties
      * @return the ProtectedNiFiProperties instance
@@ -207,7 +214,8 @@ public class NiFiPropertiesLoader {
     /**
      * Returns an instance of {@link NiFiProperties} loaded from the provided
      * {@link File}. If any properties are protected, will attempt to use the
-     * appropriate {@link SensitivePropertyProvider} to unprotect them transparently.
+     * appropriate {@link SensitivePropertyProvider} to unprotect them
+     * transparently.
      *
      * @param file the File containing the serialized properties
      * @return the NiFiProperties instance
@@ -240,7 +248,12 @@ public class NiFiPropertiesLoader {
     }
 
     /**
-     * Returns the loaded {@link NiFiProperties} instance. If none is currently loaded, attempts to load the default instance.
+     * Returns the loaded {@link NiFiProperties} instance. If none is currently
+     * loaded, attempts to load the default instance.
+     *
+     * <p>
+     * NOTE: This method is used reflectively by the process which starts NiFi
+     * so changes to it must be made in conjunction with that mechanism.</p>
      *
      * @return the current NiFiProperties instance
      */

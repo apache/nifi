@@ -41,5 +41,11 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
         </dependency>
+        <!-- This needs to be here because it is relied upon by the nifi-runtime which starts NiFi.  It uses this bootstrap module
+        and the libs that get laid down in lib/bootstrap to create a child classloader with these bits in it -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties-loader</artifactId>
+        </dependency>
     </dependencies>
 </project>
