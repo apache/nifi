@@ -117,10 +117,6 @@ rect.bulletin-background {
     fill: #ba554a;
 }
 
-text.process-group-invalid.has-validation-errors {
-    fill: #ba554a;
-}
-
 text.active-thread-count-icon {
     font-family: flowfont;
     font-size: 12px;
@@ -379,7 +375,7 @@ text.port-icon {
 }
 
 text.port-transmission-icon {
-    font-size: 11px;
+    font-size: 15px;
     fill: #728e9b
 }
 
@@ -397,9 +393,10 @@ text.process-group-name {
 }
 
 text.process-group-contents-count {
-    font-weight: bold;
-    font-size: 13px;
-    fill: #294c58;
+    fill: #775351;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: Roboto, sans-serif;
 }
 
 g.process-group.drop rect.border {
@@ -408,7 +405,7 @@ g.process-group.drop rect.border {
 }
 
 text.process-group-contents-icon {
-    font-size: 13px;
+    font-size: 15px;
     fill: #728e9b;
 }
 
@@ -425,12 +422,8 @@ text.remote-process-group-uri {
 }
 
 text.remote-process-group-transmission-status {
-    font-size: 13px;
+    font-size: 15px;
     fill: #728e9b
-}
-
-text.remote-process-group-transmission-status.has-authorization-errors {
-    fill: #ba554a;
 }
 
 text.remote-process-group-transmission-secure {

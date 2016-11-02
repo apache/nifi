@@ -42,6 +42,7 @@
     font-size: 15px;
     font-weight: 500;
     color: #775351; /*value-color*/
+    text-shadow: none;
 }
 
 #flow-status .fa span {
@@ -49,6 +50,7 @@
     font-weight: 500;
     color: #775351; /*value-color*/
     font-family: Roboto, sans-serif;
+    text-shadow: none;
 }
 
 #flow-status button {
@@ -86,6 +88,7 @@
 
 #search-button .fa {
     color: #004849;
+    text-shadow: none;
 }
 
 #bulletin-button {
@@ -100,6 +103,7 @@
 #bulletin-button i.fa {
     color: #fff;
     font-size: 15px;
+    text-shadow: none;
 }
 
 #canvas-loading-container {
