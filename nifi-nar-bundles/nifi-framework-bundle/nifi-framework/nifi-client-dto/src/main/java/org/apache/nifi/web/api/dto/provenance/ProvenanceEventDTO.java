@@ -116,7 +116,8 @@ public class ProvenanceEventDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp of the event."
+            value = "The timestamp of the event.",
+            dataType = "string"
     )
     public Date getEventTime() {
         return eventTime;

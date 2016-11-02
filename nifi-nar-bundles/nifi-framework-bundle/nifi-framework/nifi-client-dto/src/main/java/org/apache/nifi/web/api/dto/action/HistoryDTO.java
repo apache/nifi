@@ -53,7 +53,8 @@ public class HistoryDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when the report was generated."
+            value = "The timestamp when the report was generated.",
+            dataType = "string"
     )
     public Date getLastRefreshed() {
         return lastRefreshed;

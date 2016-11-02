@@ -124,7 +124,10 @@ public class ConnectionStatusDTO implements Cloneable {
     }
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty("The timestamp of when the stats were last refreshed")
+    @ApiModelProperty(
+            value = "The timestamp of when the stats were last refreshed",
+            dataType = "string"
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
