@@ -1104,7 +1104,7 @@ nf.Actions = (function () {
 
                 var color;
                 if (allProcessors) {
-                    color = nf.Processor.defaultColor();
+                    color = nf.Processor.defaultFillColor();
                 } else {
                     color = nf.Label.defaultColor();
                 }

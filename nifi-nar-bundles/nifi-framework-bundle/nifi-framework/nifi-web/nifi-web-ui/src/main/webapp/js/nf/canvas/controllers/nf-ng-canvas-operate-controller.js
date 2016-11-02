@@ -405,12 +405,35 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 $('#fill-color-value').val(hex);
 
                                 // always update the preview
-                                $('#fill-color-processor-preview').css('color', hex);
-                                $('#fill-color-label-preview').css({
-                                    'border-color': hex,
-                                    'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
-                                    'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'
+                                if (hex.toLowerCase() === '#ffffff') {
+                                    //special case #ffffff implies default fill
+                                    $('#fill-color-processor-preview-icon').css({
+                                        'color': nf.Processor.defaultIconColor(),
+                                        'background-color': hex
+                                    });
+                                } else {
+                                    $('#fill-color-processor-preview-icon').css({
+                                        'color': nf.Common.determineContrastColor(
+                                            nf.Common.substringAfterLast(
+                                                hex, '#')),
+                                        'background-color': hex
+                                    });
+                                }
+
+                                var borderColor = hex;
+                                if (borderColor.toLowerCase() === '#ffffff') {
+                                    borderColor = 'rgba(0,0,0,0.25)';
+                                }
+                                $('#fill-color-processor-preview').css({
+                                    'border-color': borderColor
                                 });
+
+                                $('#fill-color-label-preview').css({
+                                    'background': hex
+                                });
+                                $('#fill-color-label-preview-value').css('color',
+                                    nf.Common.determineContrastColor(nf.Common.substringAfterLast(hex, '#'))
+                                );
                             }
                         });
 
