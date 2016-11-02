@@ -439,6 +439,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (!newPortIds.contains(entry.getKey())) {
                     final StandardRemoteGroupPort port = entry.getValue();
                     port.setTargetExists(false);
+                    port.setTargetRunning(false);
 
                     // If port has incoming connection, it will be cleaned up when the connection is removed
                     if (!port.hasIncomingConnection()) {
@@ -509,6 +510,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (!newPortIds.contains(entry.getKey())) {
                     final StandardRemoteGroupPort port = entry.getValue();
                     port.setTargetExists(false);
+                    port.setTargetRunning(false);
 
                     // If port has connections, it will be cleaned up when connections are removed
                     if (port.getConnections().isEmpty()) {

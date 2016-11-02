@@ -623,11 +623,11 @@ nf.Processor = (function () {
                     var fill = '#728e9b';
 
                     if  (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                        fill = '#f0ad4e';
+                        fill = '#cf9f5d';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
-                        fill = '#5cb85c';
+                        fill = '#7dc7a0';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
-                        fill = '#d9534f';
+                        fill = '#d18686';
                     }
 
                     return fill;

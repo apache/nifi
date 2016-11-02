@@ -466,11 +466,11 @@ div.lineage-collapse-children:before {
 }
 
 path.link.selected {
-    stroke: #f0ad4e;
+    stroke: #ba554a;
 }
 
 g.event circle.selected {
-    fill: #f0ad4e;
+    fill: #ba554a;
 }
 
 text.event-type {

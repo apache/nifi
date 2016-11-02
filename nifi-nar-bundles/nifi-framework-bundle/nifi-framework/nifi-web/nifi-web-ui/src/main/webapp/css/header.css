@@ -110,7 +110,7 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #global-menu-content a.disabled {
-    color: #a8a8a8;
+    color: #a8a8a8 !important;
     cursor: not-allowed;
 }
 

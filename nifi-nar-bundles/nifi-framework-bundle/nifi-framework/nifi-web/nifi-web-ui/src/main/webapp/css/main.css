@@ -84,42 +84,73 @@ div.context-menu-provenance {
 
 /* processor status styles */
 
-div.disabled {
+.disabled {
     float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.enabled {
+.enabled {
     float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
     margin-left: 3px;
     margin-right: -3px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.stopped {
+.stopped {
     float: left;
+    color: #d18686 !important;
+    fill: #d18686 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.running {
+.stopped:before {
+    content: "\f04d";
+    font-family: FontAwesome;
+}
+
+.running {
     float: left;
+    color: #7dc7a0 !important;
+    fill: #7dc7a0 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.has-errors, div.invalid {
+.running:before {
+    content: "\f04b";
+    font-family: FontAwesome;
+}
+
+.has-errors, .invalid {
     float: left;
-    color: #f0ad4e !important;
+    color: #cf9f5d !important;
+    fill: #cf9f5d !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.has-errors:before, div.invalid:before {
+.has-errors:before, .invalid:before {
     font-family: FontAwesome;
     content: "\f071";
-    color: #f0ad4e;
+    color: #cf9f5d;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.transmitting {
+.transmitting {
     float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
-div.not-transmitting {
+.not-transmitting {
     float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
     margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
 div.valid {
@@ -128,7 +159,13 @@ div.valid {
 }
 
 div.has-bulletins {
-    color: #f0ad4e !important;
+    color: #ba554a !important;
+}
+
+.zero {
+    color: #aabec7 !important;
+    fill: #aabec7 !important;
+    text-shadow: none !important;
 }
 
 /*
@@ -233,7 +270,7 @@ span.details-title {
     font-weight: bold;
     font-family: Roboto;
     font-size: 13px;
-    color: #f0ad4e;
+    color: #ba554a;
 }
 
 #upload-template-container button {

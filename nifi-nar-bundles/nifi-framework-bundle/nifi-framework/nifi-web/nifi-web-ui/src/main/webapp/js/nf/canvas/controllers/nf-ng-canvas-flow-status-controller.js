@@ -360,14 +360,14 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                     var connectedNodes = clusterSummary.connectedNodes.split(' / ');
                     if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
                         this.clusterConnectionWarning = true;
-                        color = '#f0ad4e';
+                        color = '#BA554A';
                     }
                 }
                 this.connectedNodesCount =
                     nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? clusterSummary.connectedNodes : '-';
             } else {
                 this.connectedNodesCount = 'Disconnected';
-                color = '#f0ad4e';
+                color = '#BA554A';
             }
 
             // update the color
@@ -380,35 +380,87 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
          * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
          */
         update: function (status) {
-            var controllerInvalidCountColor =
-                (nf.Common.isDefinedAndNotNull(status.invalidCount) && (status.invalidCount > 0)) ?
-                    '#f0ad4e' : '#728E9B';
-            $('#controller-invalid-count').parent().css('color', controllerInvalidCountColor);
+            var controllerInvalidCount = (nf.Common.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
+
+            if (this.controllerInvalidCount > 0) {
+                $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
+            } else {
+                $('#controller-invalid-count').parent().removeClass('invalid').addClass('zero');
+            }
 
             // update the report values
             this.activeThreadCount = status.activeThreadCount;
+
+            if (this.activeThreadCount > 0) {
+                $('#flow-status-container').find('.icon-threads').removeClass('zero');
+            } else {
+                $('#flow-status-container').find('.icon-threads').addClass('zero');
+            }
+
             this.totalQueued = status.queued;
+
+            if (this.totalQueued.indexOf('0 / 0') >= 0) {
+                $('#flow-status-container').find('.fa-list').addClass('zero');
+            } else {
+                $('#flow-status-container').find('.fa-list').removeClass('zero');
+            }
 
             // update the component counts
             this.controllerTransmittingCount =
                 nf.Common.isDefinedAndNotNull(status.activeRemotePortCount) ?
                     status.activeRemotePortCount : '-';
 
+            if (this.controllerTransmittingCount > 0) {
+                $('#flow-status-container').find('.fa-bullseye').removeClass('zero').addClass('transmitting');
+            } else {
+                $('#flow-status-container').find('.fa-bullseye').removeClass('transmitting').addClass('zero');
+            }
+
             this.controllerNotTransmittingCount =
                 nf.Common.isDefinedAndNotNull(status.inactiveRemotePortCount) ?
                     status.inactiveRemotePortCount : '-';
 
+            if (this.controllerNotTransmittingCount > 0) {
+                $('#flow-status-container').find('.icon-transmit-false').removeClass('zero').addClass('not-transmitting');
+            } else {
+                $('#flow-status-container').find('.icon-transmit-false').removeClass('not-transmitting').addClass('zero');
+            }
+
             this.controllerRunningCount =
                 nf.Common.isDefinedAndNotNull(status.runningCount) ? status.runningCount : '-';
+
+            if (this.controllerRunningCount > 0) {
+                $('#flow-status-container').find('.fa-play').removeClass('zero').addClass('running');
+            } else {
+                $('#flow-status-container').find('.fa-play').removeClass('running').addClass('zero');
+            }
 
             this.controllerStoppedCount =
                 nf.Common.isDefinedAndNotNull(status.stoppedCount) ? status.stoppedCount : '-';
 
+            if (this.controllerStoppedCount > 0) {
+                $('#flow-status-container').find('.fa-stop').removeClass('zero').addClass('stopped');
+            } else {
+                $('#flow-status-container').find('.fa-stop').removeClass('stopped').addClass('zero');
+            }
+
             this.controllerInvalidCount =
                 nf.Common.isDefinedAndNotNull(status.invalidCount) ? status.invalidCount : '-';
 
+            if (this.controllerInvalidCount > 0) {
+                $('#flow-status-container').find('.fa-warning').removeClass('zero').addClass('invalid');
+            } else {
+                $('#flow-status-container').find('.fa-warning').removeClass('invalid').addClass('zero');
+            }
+
             this.controllerDisabledCount =
                 nf.Common.isDefinedAndNotNull(status.disabledCount) ? status.disabledCount : '-';
+
+            if (this.controllerDisabledCount > 0) {
+                $('#flow-status-container').find('.icon-enable-false').removeClass('zero').addClass('disabled');
+            } else {
+                $('#flow-status-container').find('.icon-enable-false').removeClass('disabled').addClass('zero');
+            }
 
         },
 

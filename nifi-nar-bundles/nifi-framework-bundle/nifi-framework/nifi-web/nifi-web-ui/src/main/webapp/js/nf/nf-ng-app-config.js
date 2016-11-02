@@ -61,20 +61,20 @@ nf.ng.AppConfig = function ($mdThemingProvider, $compileProvider) {
         'contrastLightColors': undefined
     });
     $mdThemingProvider.definePalette('warnPalette', {
-        '50': 'f0ad4e',
-        '100': 'f0ad4e',
-        '200': 'f0ad4e',
-        '300': 'f0ad4e',
-        '400': 'f0ad4e',
-        '500': '2B5C76', /* warn-color */
-        '600': 'f0ad4e',
-        '700': 'f0ad4e',
-        '800': 'f0ad4e',
-        '900': 'f0ad4e',
-        'A100': 'f0ad4e',
-        'A200': 'f0ad4e',
-        'A400': 'f0ad4e',
-        'A700': 'f0ad4e',
+        '50': 'BA554A',
+        '100': 'BA554A',
+        '200': 'BA554A',
+        '300': 'BA554A',
+        '400': 'BA554A',
+        '500': 'BA554A', /* warn-color */
+        '600': 'BA554A',
+        '700': 'BA554A',
+        '800': 'BA554A',
+        '900': 'BA554A',
+        'A100': 'BA554A',
+        'A200': 'BA554A',
+        'A400': 'BA554A',
+        'A700': 'BA554A',
         'contrastDefaultColor': 'light',
         'contrastDarkColors': ['A100'],
         'contrastLightColors': undefined

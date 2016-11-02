@@ -114,19 +114,7 @@ text.bulletin-icon {
 }
 
 rect.bulletin-background {
-    fill: #f0ad4e;
-}
-
-text.process-group-invalid.has-validation-errors {
-    fill: #f0ad4e;
-}
-
-text.process-group-stopped.process-group-contents-icon {
-    fill: #d9534f;
-}
-
-text.process-group-running.process-group-contents-icon{
-    fill: #5cb85c;
+    fill: #ba554a;
 }
 
 text.active-thread-count-icon {
@@ -209,7 +197,7 @@ g.connection rect.body.unauthorized {
 
 g.connection rect.border.unauthorized {
     stroke-width: 1.5;
-    stroke: #f0ad4e;
+    stroke: #ba554a;
     stroke-dasharray: 3,3;
 }
 
@@ -251,7 +239,7 @@ g.connection path.connection-path.full {
 }
 
 g.connection path.connection-path.unauthorized {
-    stroke: #f0ad4e;
+    stroke: #ba554a;
     stroke-dasharray: 3,3;
 }
 
@@ -259,10 +247,11 @@ text.connection-from-run-status, text.connection-to-run-status, text.expiration-
     fill: #728e9b;
     font-family: FontAwesome;
     font-size: 10px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
 }
 
 text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
-    fill: #f0ad4e;
+    fill: #cf9f5d;
 }
 
 g.connection rect.backpressure-tick {
@@ -387,7 +376,7 @@ text.port-icon {
 }
 
 text.port-transmission-icon {
-    font-size: 11px;
+    font-size: 15px;
     fill: #728e9b
 }
 
@@ -405,9 +394,10 @@ text.process-group-name {
 }
 
 text.process-group-contents-count {
-    font-weight: bold;
-    font-size: 13px;
-    fill: #294c58;
+    fill: #775351;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: Roboto, sans-serif;
 }
 
 g.process-group.drop rect.border {
@@ -416,7 +406,7 @@ g.process-group.drop rect.border {
 }
 
 text.process-group-contents-icon {
-    font-size: 13px;
+    font-size: 15px;
     fill: #728e9b;
 }
 
@@ -433,12 +423,8 @@ text.remote-process-group-uri {
 }
 
 text.remote-process-group-transmission-status {
-    font-size: 13px;
+    font-size: 15px;
     fill: #728e9b
-}
-
-text.remote-process-group-transmission-status.has-authorization-errors {
-    fill: #f0ad4e;
 }
 
 text.remote-process-group-transmission-secure {
