@@ -187,12 +187,18 @@ nf.Birdseye = (function () {
 
         // processors
         $.each(components.processors, function (_, d) {
+            //default color
             var color = '#dde4eb';
 
             if (d.permissions.canRead) {
                 // use the specified color if appropriate
                 if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
+
+                    //if the background color is #ffffff use the default instead
+                    if (color === '#ffffff') {
+                        color = '#dde4eb';
+                    }
                 }
             }
 

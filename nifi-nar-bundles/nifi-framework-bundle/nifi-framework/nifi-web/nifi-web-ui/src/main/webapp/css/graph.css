@@ -73,12 +73,16 @@ g.component rect.border {
 
 g.component rect.border.unauthorized {
     stroke-width: 1.5;
-    stroke: #ba554a;
+    stroke: #ba554a !important;
     stroke-dasharray: 3,3;
 }
 
+g.component rect.processor-icon-container.unauthorized {
+    fill: #f4f6f7 !important;
+}
+
 g.component.selected rect.border {
-    stroke: #004849;
+    stroke: #004849 !important;
     stroke-width: 3;
 }
 
@@ -164,6 +168,10 @@ text.processor-name {
 text.processor-type {
     fill: #728e9b;
     font-size: 12px;
+}
+
+rect.processor-icon-container {
+    fill: #ffffff;
 }
 
 text.processor-icon {

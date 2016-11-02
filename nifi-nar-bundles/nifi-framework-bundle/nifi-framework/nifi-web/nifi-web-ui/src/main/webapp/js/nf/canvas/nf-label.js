@@ -201,6 +201,13 @@ nf.Label = (function () {
                     lines.push('');
                 }
 
+                var color = nf.Label.defaultColor();
+
+                // use the specified color if appropriate
+                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                    color = d.component.style['background-color'];
+                }
+
                 // add label value
                 $.each(lines, function (i, line) {
                     labelText.append('tspan')
@@ -208,6 +215,11 @@ nf.Label = (function () {
                         .attr('dy', '1.2em')
                         .text(function () {
                             return line;
+                        })
+                        .style('fill', function (d) {
+                            return nf.Common.determineContrastColor(
+                                nf.Common.substringAfterLast(
+                                    color, '#'));
                         });
                 });
 
