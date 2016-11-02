@@ -21,13 +21,13 @@
             <input id="search-users-field" type="text" placeholder="User Identity"/>
         </div>
         <div class="secure-port-setting">
-            <div class="setting-name">Allowed Users</div>
+            <div class="setting-name">Selected Users</div>
             <div class="setting-field allowed-container">
                 <ul id="allowed-users" class="allowed"></ul>
             </div>
         </div>
         <div class="secure-port-setting">
-            <div class="setting-name">Allowed Groups</div>
+            <div class="setting-name">Selected Groups</div>
             <div class="setting-field allowed-container">
                 <ul id="allowed-groups" class="allowed"></ul>
             </div>

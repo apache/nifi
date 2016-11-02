@@ -40,9 +40,9 @@ nf.PolicyManagement = (function () {
 
         $('#search-users-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Search users',
+            headerText: 'Add Users/Groups',
             buttons: [{
-                buttonText: 'Ok',
+                buttonText: 'Add',
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
