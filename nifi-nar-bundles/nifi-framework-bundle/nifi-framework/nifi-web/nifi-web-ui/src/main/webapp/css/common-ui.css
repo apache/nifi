@@ -536,6 +536,15 @@ div.context-menu-item-text {
     color: #262626;
 }
 
+/* search */
+
+li.search-no-matches {
+    padding: 4px;
+    font-weight: bold;
+    color: #aaa;
+    font-style: italic;
+}
+
 /* progress bars */
 
 md-progress-linear > div {

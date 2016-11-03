@@ -64,13 +64,17 @@ nf.nfel = (function() {
             var returnType = elFunction.find('span.returnType').text();
             
             var subject;
+            var subjectSpan = subject = elFunction.find('span.subject');
             var subjectless = elFunction.find('span.subjectless');
             
-            // determine if this function is subjectless
+            // Determine if this function supports running subjectless
             if (subjectless.length) {
                 subjectlessFunctions.push(name);
                 subject = '<span class="unset">None</span>';
-            } else {
+            }
+
+            // Determine if this function supports running with a subject
+            if (subjectSpan.length) {
                 functions.push(name);
                 subject = elFunction.find('span.subject').text();
             }
@@ -658,7 +662,24 @@ nf.nfel = (function() {
                             }
 
                             return argumentStringResult;
-                        } else if (stream.match(/^[0-9]+/)) {
+                        } else if (stream.match(/^(([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?)|((\.[0-9]+)([eE][+-]?([0-9])+)?)|(([0-9]+)([eE][+-]?([0-9])+))/)) {
+                            // -------------
+                            // Decimal value
+                            // -------------
+                            // This matches the following ANTLR spec for deciamls
+                            //
+                            // DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?    ^([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?
+                            //             | '.' ('0'..'9')+ EXP?
+                            //             | ('0'..'9')+ EXP;
+                            //
+                            // fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
+
+                            // change context back to arguments
+                            state.context = ARGUMENTS;
+
+                            // style for decimal (use same as number)
+                            return 'number';
+                        } else if (stream.match(/^-?[0-9]+/)) {
                             // -------------
                             // integer value
                             // -------------

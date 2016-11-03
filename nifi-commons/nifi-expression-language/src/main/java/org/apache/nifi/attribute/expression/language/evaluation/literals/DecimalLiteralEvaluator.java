@@ -14,32 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.attribute.expression.language.evaluation.functions;
+package org.apache.nifi.attribute.expression.language.evaluation.literals;
+
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
-public class ToNumberEvaluator extends NumberEvaluator {
+public class DecimalLiteralEvaluator extends DecimalEvaluator {
 
-    private final Evaluator<String> subject;
+    private final double literal;
 
-    public ToNumberEvaluator(final Evaluator<String> subject) {
-        this.subject = subject;
+    public DecimalLiteralEvaluator(final String value) {
+        this.literal = Double.parseDouble(value);
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final String subjectValue = subject.evaluate(attributes).getValue();
-        return new NumberQueryResult(subjectValue == null || subjectValue.trim().isEmpty() ? null : Long.valueOf(subjectValue));
+    public QueryResult<Double> evaluate(final Map<String, String> attributes) {
+        return new DecimalQueryResult(literal);
     }
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
-        return subject;
+        return null;
     }
-
 }

@@ -17,7 +17,21 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="search-users-dialog" class="hidden">
     <div class="dialog-content">
-        <input id="search-users-field" type="text" placeholder="User Identity"/>
+        <div class="secure-port-setting">
+            <input id="search-users-field" type="text" placeholder="User Identity"/>
+        </div>
+        <div class="secure-port-setting">
+            <div class="setting-name">Allowed Users</div>
+            <div class="setting-field allowed-container">
+                <ul id="allowed-users" class="allowed"></ul>
+            </div>
+        </div>
+        <div class="secure-port-setting">
+            <div class="setting-name">Allowed Groups</div>
+            <div class="setting-field allowed-container">
+                <ul id="allowed-groups" class="allowed"></ul>
+            </div>
+        </div>
     </div>
 </div>
 <div id="search-users-results"></div>

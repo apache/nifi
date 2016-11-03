@@ -221,9 +221,24 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
+        if (isCommandFailed(runner)) return;
+
+        // ExecuteProcess doesn't wait for finishing to drain error stream if it's configure NOT to redirect stream.
+        // This causes test failure when draining the error stream didn't finish
+        // fast enough before the thread of this test case method checks the warn msg count.
+        // So, this loop wait for a while until the log msg count becomes expected number, otherwise let it fail.
+        final int expectedWarningMessages = 1;
+        final int maxRetry = 5;
+        for (int i = 0; i < maxRetry
+            && (runner.getLogger().getWarnMessages().size() < expectedWarningMessages); i++) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+            }
+        }
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals("If redirect error stream is false, " +
-                "the output should be logged as a warning so that user can notice on bulletin.", 1, warnMessages.size());
+                "the output should be logged as a warning so that user can notice on bulletin.", expectedWarningMessages, warnMessages.size());
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(0, succeeded.size());
     }
@@ -244,11 +259,26 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
+        if (isCommandFailed(runner)) return;
+
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals("If redirect error stream is true " +
                 "the output should be sent as a content of flow-file.", 0, warnMessages.size());
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(1, succeeded.size());
+    }
+
+    /**
+     * On some environment, the test command immediately fail with an IOException
+     * because of the native UnixProcess.init method implementation difference.
+     *
+     * @return true, if the command fails
+     */
+    private boolean isCommandFailed(final TestRunner runner) {
+        final List<LogMessage> errorMessages = runner.getLogger().getErrorMessages();
+        return (errorMessages.size() > 0
+                && errorMessages.stream()
+                    .anyMatch(m -> m.getMsg().contains("Failed to create process due to")));
     }
 
 }

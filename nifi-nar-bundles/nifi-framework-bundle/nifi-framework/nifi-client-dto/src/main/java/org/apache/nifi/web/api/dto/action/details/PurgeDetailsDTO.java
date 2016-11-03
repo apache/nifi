@@ -35,7 +35,8 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The end date for the purge action."
+            value = "The end date for the purge action.",
+            dataType = "string"
     )
     public Date getEndDate() {
         return endDate;

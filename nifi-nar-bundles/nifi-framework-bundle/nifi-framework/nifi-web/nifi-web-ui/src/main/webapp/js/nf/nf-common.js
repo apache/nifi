@@ -385,6 +385,20 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines the contrast color of a given hex color.
+         *
+         * @param {string} hex  The hex color to test.
+         * @returns {string} The contrasting color string.
+         */
+        determineContrastColor: function (hex){
+            if (parseInt(hex, 16) > 0xffffff/1.5) {
+                return '#000000';
+            }
+            return '#ffffff';
+        },
+
+
+        /**
          * Method for handling ajax errors.
          * 
          * @argument {object} xhr       The XmlHttpRequest

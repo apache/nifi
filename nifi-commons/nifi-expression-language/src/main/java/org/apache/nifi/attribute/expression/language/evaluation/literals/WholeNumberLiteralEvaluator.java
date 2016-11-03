@@ -14,37 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.attribute.expression.language.evaluation.functions;
+package org.apache.nifi.attribute.expression.language.evaluation.literals;
 
-import java.util.Date;
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 
-public class DateToNumberEvaluator extends NumberEvaluator {
+public class WholeNumberLiteralEvaluator extends WholeNumberEvaluator {
 
-    private final DateEvaluator subjectEvaluator;
+    private final long literal;
 
-    public DateToNumberEvaluator(final DateEvaluator subjectEvaluator) {
-        this.subjectEvaluator = subjectEvaluator;
+    public WholeNumberLiteralEvaluator(final String value) {
+        this.literal = Long.parseLong(value);
     }
 
     @Override
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final QueryResult<Date> subjectResult = subjectEvaluator.evaluate(attributes);
-        if (subjectResult.getValue() == null) {
-            return new NumberQueryResult(null);
-        }
-
-        return new NumberQueryResult(subjectResult.getValue().getTime());
+        return new WholeNumberQueryResult(literal);
     }
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
-        return subjectEvaluator;
+        return null;
     }
+
 }

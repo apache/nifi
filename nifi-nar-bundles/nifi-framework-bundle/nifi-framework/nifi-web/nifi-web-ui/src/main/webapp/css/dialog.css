@@ -33,21 +33,45 @@
 }
 
 #fill-color-processor-preview {
-    font-size: 64px;
+    width: 173px;
+    height: 65px;
+    border-width: 1px;
+    border-style: solid;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#fill-color-processor-preview-icon {
+    float: left;
+    width: 25px;
+    height: 25px;
+}
+
+#fill-color-processor-preview-icon:before {
+    margin-top: 5px;
+    margin-left: 4px;
+    font-size: 15px;
+}
+
+#fill-color-processor-preview-name {
+    margin-left: 35px;
+    line-height: 25px;
+    font-size: 12px;
+    height: 25px;
 }
 
 #fill-color-label-preview {
-    width: 173px;
-    height: 56px;
+    width: 83px;
+    height: 83px;
     font-weight: bold;
-    border-width: 1px;
-    border-style: solid;
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 #fill-color-label-preview-value {
-    margin-left: 5px;
-    margin-top: 5px;
+    margin-left: 10px;
+    margin-top: 10px;
     float: left;
+    font-size: 12px;
 }
 
 div.connections-component-name {

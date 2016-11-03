@@ -192,6 +192,7 @@ nf.ProcessGroup = (function () {
 
     // attempt of space between component count and icon for process group contents
     var CONTENTS_SPACER = 10;
+    var CONTENTS_VALUE_SPACER = 5;
 
     /**
      * Updates the process groups in the specified selection.
@@ -259,7 +260,6 @@ nf.ProcessGroup = (function () {
                     // transmitting count
                     details.append('text')
                         .attr({
-                            'x': 28,
                             'y': 49,
                             'class': 'process-group-transmitting-count process-group-contents-count'
                         });
@@ -561,7 +561,7 @@ nf.ProcessGroup = (function () {
                             'y': 60,
                             'class': 'process-group-out stats-value'
                         });
-                    
+
                     // out ports
                     outText.append('tspan')
                         .attr({
@@ -681,21 +681,38 @@ nf.ProcessGroup = (function () {
                 }
 
                 // update transmitting
+                var transmitting = details.select('text.process-group-transmitting')
+                    .classed('transmitting', function (d) {
+                        return d.permissions.canRead && d.activeRemotePortCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.activeRemotePortCount === 0;
+                    });
                 var transmittingCount = details.select('text.process-group-transmitting-count')
+                    .attr('x', function () {
+                        var transmittingCountX = parseInt(transmitting.attr('x'), 10);
+                        return transmittingCountX + Math.round(transmitting.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
+                    })
                     .text(function (d) {
                         return d.activeRemotePortCount;
                     });
 
                 // update not transmitting
                 var notTransmitting = details.select('text.process-group-not-transmitting')
+                    .classed('not-transmitting', function (d) {
+                        return d.permissions.canRead && d.inactiveRemotePortCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.inactiveRemotePortCount === 0;
+                    })
                     .attr('x', function () {
                         var transmittingX = parseInt(transmittingCount.attr('x'), 10);
-                        return transmittingX + transmittingCount.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return transmittingX + Math.round(transmittingCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
                 var notTransmittingCount = details.select('text.process-group-not-transmitting-count')
                     .attr('x', function () {
                         var notTransmittingCountX = parseInt(notTransmitting.attr('x'), 10);
-                        return notTransmittingCountX + notTransmitting.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return notTransmittingCountX + Math.round(notTransmitting.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                     })
                     .text(function (d) {
                         return d.inactiveRemotePortCount;
@@ -703,14 +720,20 @@ nf.ProcessGroup = (function () {
 
                 // update running
                 var running = details.select('text.process-group-running')
+                    .classed('running', function (d) {
+                        return d.permissions.canRead && d.component.runningCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.runningCount === 0;
+                    })
                     .attr('x', function () {
                         var notTransmittingX = parseInt(notTransmittingCount.attr('x'), 10);
-                        return notTransmittingX + notTransmittingCount.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return notTransmittingX + Math.round(notTransmittingCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
                 var runningCount = details.select('text.process-group-running-count')
                     .attr('x', function () {
                         var runningCountX = parseInt(running.attr('x'), 10);
-                        return runningCountX + running.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return runningCountX + Math.round(running.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                     })
                     .text(function (d) {
                         return d.runningCount;
@@ -718,14 +741,20 @@ nf.ProcessGroup = (function () {
 
                 // update stopped
                 var stopped = details.select('text.process-group-stopped')
+                    .classed('stopped', function (d) {
+                        return d.permissions.canRead && d.component.stoppedCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.stoppedCount === 0;
+                    })
                     .attr('x', function () {
                         var runningX = parseInt(runningCount.attr('x'), 10);
-                        return runningX + runningCount.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return runningX + Math.round(runningCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
                 var stoppedCount = details.select('text.process-group-stopped-count')
                     .attr('x', function () {
                         var stoppedCountX = parseInt(stopped.attr('x'), 10);
-                        return stoppedCountX + stopped.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return stoppedCountX + Math.round(stopped.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                     })
                     .text(function (d) {
                         return d.stoppedCount;
@@ -733,17 +762,20 @@ nf.ProcessGroup = (function () {
 
                 // update invalid
                 var invalid = details.select('text.process-group-invalid')
+                    .classed('invalid', function (d) {
+                        return d.permissions.canRead && d.component.invalidCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.invalidCount === 0;
+                    })
                     .attr('x', function () {
                         var stoppedX = parseInt(stoppedCount.attr('x'), 10);
-                        return stoppedX + stoppedCount.node().getComputedTextLength() + CONTENTS_SPACER;
-                    })
-                    .classed('has-validation-errors', function (d) {
-                        return d.permissions.canRead && d.component.invalidCount > 0;
+                        return stoppedX + Math.round(stoppedCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
                 var invalidCount = details.select('text.process-group-invalid-count')
                     .attr('x', function () {
                         var invalidCountX = parseInt(invalid.attr('x'), 10);
-                        return invalidCountX + invalid.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return invalidCountX + Math.round(invalid.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                     })
                     .text(function (d) {
                         return d.invalidCount;
@@ -751,14 +783,20 @@ nf.ProcessGroup = (function () {
 
                 // update disabled
                 var disabled = details.select('text.process-group-disabled')
+                    .classed('disabled', function (d) {
+                        return d.permissions.canRead && d.component.disabledCount > 0;
+                    })
+                    .classed('zero', function (d) {
+                        return d.permissions.canRead && d.component.disabledCount === 0;
+                    })
                     .attr('x', function () {
                         var invalidX = parseInt(invalidCount.attr('x'), 10);
-                        return invalidX + invalidCount.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return invalidX + Math.round(invalidCount.node().getComputedTextLength()) + CONTENTS_SPACER;
                     });
                 details.select('text.process-group-disabled-count')
                     .attr('x', function () {
                         var disabledCountX = parseInt(disabled.attr('x'), 10);
-                        return disabledCountX + disabled.node().getComputedTextLength() + CONTENTS_SPACER;
+                        return disabledCountX + Math.round(disabled.node().getComputedTextLength()) + CONTENTS_VALUE_SPACER;
                     })
                     .text(function (d) {
                         return d.disabledCount;
@@ -797,7 +835,7 @@ nf.ProcessGroup = (function () {
                 } else {
                     // clear the process group comments
                     details.select('text.process-group-comments').text(null);
-                    
+
                     // clear the process group name
                     processGroup.select('text.process-group-name').text(null);
                 }
@@ -883,7 +921,7 @@ nf.ProcessGroup = (function () {
             .text(function (d) {
                 return d.outputPortCount + ' ' + String.fromCharCode(8594) + ' ';
             });
-        
+
         // out count value
         updated.select('text.process-group-out tspan.count')
             .text(function (d) {
@@ -1003,7 +1041,7 @@ nf.ProcessGroup = (function () {
             selection.enter().call(renderProcessGroups, selectAll);
             selection.call(updateProcessGroups);
         },
-        
+
         /**
          * Populates the graph with the specified process groups.
          *

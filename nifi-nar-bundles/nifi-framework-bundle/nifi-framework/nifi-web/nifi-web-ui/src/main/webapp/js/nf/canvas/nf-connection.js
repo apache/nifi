@@ -862,6 +862,20 @@ nf.Connection = (function () {
                                         return '\uf04d';
                                     }
                                 })
+                                .classed('running', function () {
+                                    if (d.component.source.exists === true) {
+                                        return d.component.source.running;
+                                    } else {
+                                        return false;
+                                    }
+                                })
+                                .classed('stopped', function () {
+                                    if (d.component.source.exists === true) {
+                                        return !d.component.source.running;
+                                    } else {
+                                        return false;
+                                    }
+                                })
                                 .classed('is-missing-port', function () {
                                     return d.component.source.exists === false;
                                 });
@@ -955,6 +969,20 @@ nf.Connection = (function () {
                                         return '\uf04b';
                                     } else {
                                         return '\uf04d';
+                                    }
+                                })
+                                .classed('running', function () {
+                                    if (d.component.destination.running === true) {
+                                        return d.component.destination.running;
+                                    } else {
+                                        return false;
+                                    }
+                                })
+                                .classed('stopped', function () {
+                                    if (d.component.destination.running !== true) {
+                                        return !d.component.destination.running;
+                                    } else {
+                                        return false;
                                     }
                                 })
                                 .classed('is-missing-port', function () {

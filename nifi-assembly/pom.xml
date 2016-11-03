@@ -486,6 +486,11 @@ language governing permissions and limitations under the License. -->
                                                     <destination>nifi.sh</destination>
                                                     <filter>true</filter>
                                                 </source>
+                                                <source>
+                                                    <location>${project.build.directory}/generated-resources/bin/nifi-env.sh</location>
+                                                    <destination>nifi-env.sh</destination>
+                                                    <filter>true</filter>
+                                                </source>
                                             </sources>
                                         </mapping>
                                         <mapping>
@@ -505,11 +510,18 @@ language governing permissions and limitations under the License. -->
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                             <dependency>
                                                 <excludes>
+                                                    <exclude>net.minidev:asm</exclude>
+                                                    <exclude>asm:asm</exclude>
+                                                    <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                                    <exclude>com.jayway.jsonpath:json-path</exclude>
+                                                    <exclude>net.minidev:json-smart</exclude>
                                                     <exclude>org.apache.nifi:nifi-bootstrap</exclude>
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
                                                     <exclude>commons-io:commons-io</exclude>
-                                                    <exclude>org.apache.commons:commons-lang3</exclude>
                                                     <exclude>org.antlr:antlr-runtime</exclude>
                                                     <exclude>javax.activation:activation</exclude>
                                                     <exclude>javax.mail:mail</exclude>
@@ -524,6 +536,15 @@ language governing permissions and limitations under the License. -->
                                             <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
                                             <dependency>
                                                 <includes>
+                                                    <include>net.minidev:asm</include>
+                                                    <include>asm:asm</include>
+                                                    <include>org.bouncycastle:bcpkix-jdk15on</include>
+                                                    <include>org.bouncycastle:bcprov-jdk15on</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-annotations</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-core</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                                    <include>com.jayway.jsonpath:json-path</include>
+                                                    <include>net.minidev:json-smart</include>
                                                     <include>commons-io:commons-io</include>
                                                     <include>org.apache.commons:commons-lang3</include>
                                                     <include>org.antlr:antlr-runtime</include>

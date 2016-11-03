@@ -42,7 +42,10 @@ public class StatusHistoryDTO {
      * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty("When the status history was generated.")
+    @ApiModelProperty(
+            value = "When the status history was generated.",
+            dataType = "string"
+    )
     public Date getGenerated() {
         return generated;
     }

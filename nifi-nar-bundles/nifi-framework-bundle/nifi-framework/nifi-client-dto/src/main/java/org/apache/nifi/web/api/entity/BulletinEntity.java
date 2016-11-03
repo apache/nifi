@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
@@ -87,6 +88,10 @@ public class BulletinEntity extends Entity implements ReadablePermission {
      * @return When this bulletin was generated.
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "When this bulletin was generated.",
+            dataType = "string"
+    )
     public Date getTimestamp() {
         return timestamp;
     }

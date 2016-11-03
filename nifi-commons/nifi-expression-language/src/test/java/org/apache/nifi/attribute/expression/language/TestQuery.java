@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.Query.Range;
+import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
@@ -194,7 +196,7 @@ public class TestQuery {
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
         final QueryResult<?> result = query.evaluate(attributes);
-        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
         assertEquals(1384788147678L, result.getValue());
     }
 
@@ -491,7 +493,7 @@ public class TestQuery {
         assertEquals(3, types.size());
         assertEquals(ResultType.BOOLEAN, types.get(0));
         assertEquals(ResultType.STRING, types.get(1));
-        assertEquals(ResultType.NUMBER, types.get(2));
+        assertEquals(ResultType.WHOLE_NUMBER, types.get(2));
     }
 
     @Test
@@ -768,7 +770,7 @@ public class TestQuery {
     }
 
     @Test
-    public void testMathOperations() {
+    public void testMathWholeNumberOperations() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("one", "1");
         attributes.put("two", "2");
@@ -777,7 +779,104 @@ public class TestQuery {
         attributes.put("five", "5");
         attributes.put("hundred", "100");
 
-        verifyEquals("${hundred:toNumber():multiply(2):divide(3):plus(1):mod(5)}", attributes, 2L);
+        verifyEquals("${hundred:toNumber():multiply(${two}):divide(${three}):plus(${one}):mod(${five})}", attributes, 2L);
+    }
+
+    @Test
+    public void testMathDecimalOperations() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("first", "1.5");
+        attributes.put("second", "12.3");
+        attributes.put("third", "3");
+        attributes.put("fourth", "4.201");
+        attributes.put("fifth", "5.1");
+        attributes.put("hundred", "100");
+
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${hundred:toNumber():multiply(${second}):divide(${third}):plus(${first}):mod(${fifth})}", attributes, (((100 * 12.3) / 3) + 1.5) %5.1);
+    }
+
+    @Test
+    public void testMathResultInterpretation() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("ten", "10.1");
+        attributes.put("two", "2.2");
+
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${ten:divide(${two:plus(3)}):toNumber()}", attributes, (Double.valueOf(10.1 / (2.2 + 3)).longValue()));
+
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${ten:divide(${two:plus(3)}):toDecimal()}", attributes, (10.1 / (2.2 + 3)));
+
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${ten:divide(${two:plus(3.1)}):toDecimal()}", attributes, (10.1 / (2.2 + 3.1)));
+
+        verifyEquals("${ten:divide(${two:plus(3)}):toDate():format(\"SSS\")}", attributes, "001");
+    }
+
+    @Test
+    public void testMathFunction() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1");
+        attributes.put("two", "2");
+        attributes.put("oneDecimal", "1.5");
+        attributes.put("twoDecimal", "2.3");
+        attributes.put("negative", "-64");
+        attributes.put("negativeDecimal", "-64.1");
+
+        // Test that errors relating to not finding methods are properly handled
+        try {
+            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+        }
+        try {
+            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
+            fail();
+        } catch (AttributeExpressionLanguageException expected) {
+            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+        }
+
+        // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
+        verifyEquals("${math('random'):toNumber()}", attributes, 0L);
+
+        verifyEquals("${negative:math('abs')}", attributes, 64L);
+        verifyEquals("${negativeDecimal:math('abs')}", attributes, 64.1D);
+
+        verifyEquals("${negative:math('max', ${two})}", attributes, 2L);
+        verifyEquals("${negativeDecimal:math('max', ${twoDecimal})}", attributes, 2.3D);
+
+        verifyEquals("${oneDecimal:math('pow', ${two:toDecimal()})}", attributes, Math.pow(1.5,2));
+        verifyEquals("${oneDecimal:math('scalb', ${two})}", attributes, Math.scalb(1.5,2));
+
+        verifyEquals("${negative:math('abs'):toDecimal():math('cbrt'):math('max', ${two:toDecimal():math('pow',${oneDecimal}):mod(${two})})}", attributes,
+                Math.max(Math.cbrt(Math.abs(-64)), Math.pow(2,1.5)%2));
+    }
+
+    @Test
+    public void testMathLiteralOperations() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("ten", "10.1");
+        attributes.put("two", "2.2");
+
+        // The expected resulted is calculated instead of a set number due to the inaccuracy of double arithmetic
+        verifyEquals("${literal(5):toNumber():multiply(${two:plus(1)})}", attributes, 5*3.2);
+        verifyEquals("${literal(5.5E-1):toDecimal():plus(${literal(.5E1)}):multiply(${two:plus(1)})}", attributes, (0.55+5)*3.2);
     }
 
     @Test
@@ -900,13 +999,69 @@ public class TestQuery {
     }
 
     @Test
-    public void testMathOperators() {
+    public void testMathWholeNumberOperators() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "1234");
         attributes.put("xyz", "4132");
         attributes.put("hello", "world!");
 
         verifyEquals("${xyz:toNumber():gt( ${abc:toNumber()} )}", attributes, true);
+    }
+
+    @Test
+    public void testMathDecimalOperators() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("one", "1.1");
+        attributes.put("two", "2.2");
+        attributes.put("one_2", "1.1");
+
+        verifyEquals("${one:lt(${two})}", attributes, true);
+        verifyEquals("${one:lt(${one_2})}", attributes, false);
+        verifyEquals("${two:lt(${one})}", attributes, false);
+
+        verifyEquals("${one:le(${two})}", attributes, true);
+        verifyEquals("${one:le(${one_2})}", attributes, true);
+        verifyEquals("${two:le(${one_2})}", attributes, false);
+
+        verifyEquals("${one:ge(${two})}", attributes, false);
+        verifyEquals("${one:ge(${one_2})}", attributes, true);
+        verifyEquals("${two:ge(${one_2})}", attributes, true);
+
+        verifyEquals("${one:gt(${two})}", attributes, false);
+        verifyEquals("${one:gt(${one_2})}", attributes, false);
+        verifyEquals("${two:gt(${one})}", attributes, true);
+    }
+
+    @Test
+    public void testMathNumberDecimalConversion() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("xyz", "1.332");
+        attributes.put("hello", "world!");
+
+        verifyEquals("${xyz:toNumber()}", attributes, 1L);
+
+        attributes.put("xyz", "2");
+        attributes.put("hello", "world!");
+
+        verifyEquals("${xyz:toDecimal()}", attributes, 2D);
+    }
+
+    @Test
+    public void testLiteral() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        verifyEquals("${literal(5)}", attributes, "5");
+
+        verifyEquals("${literal(\"5\")}", attributes, "5");
+
+        verifyEquals("${literal(5):toNumber()}", attributes, 5L);
+        verifyEquals("${literal(5):toDecimal()}", attributes, 5D);
+
+        // Unquoted doubles are not due to more complicated parsing
+        verifyEquals("${literal(\"5.5\")}", attributes, "5.5");
+
+        verifyEquals("${literal(\"5.5\"):toNumber()}", attributes, 5L);
+        verifyEquals("${literal(\"5.5\"):toDecimal()}", attributes, 5.5D);
     }
 
     @Test
@@ -1170,12 +1325,12 @@ public class TestQuery {
 
     @Test
     public void testToNumberFunctionReturnsNumberType() {
-        assertEquals(ResultType.NUMBER, Query.getResultType("${header.size:toNumber()}"));
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType("${header.size:toNumber()}"));
     }
 
     @Test
     public void testRandomFunctionReturnsNumberType() {
-        assertEquals(ResultType.NUMBER, Query.getResultType("${random()}"));
+        assertEquals(ResultType.WHOLE_NUMBER, Query.getResultType("${random()}"));
     }
 
     @Test
@@ -1377,8 +1532,20 @@ public class TestQuery {
         final Query query = Query.compile(expression);
         final QueryResult<?> result = query.evaluate(attributes);
 
-        if (expectedResult instanceof Number) {
-            assertEquals(ResultType.NUMBER, result.getResultType());
+        if (expectedResult instanceof Long) {
+            if (ResultType.NUMBER.equals(result.getResultType())) {
+                final Number resultNumber = ((NumberQueryResult) result).getValue();
+                assertTrue(resultNumber instanceof Long);
+            } else {
+                assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
+            }
+        } else if(expectedResult instanceof Double) {
+            if (ResultType.NUMBER.equals(result.getResultType())) {
+                final Number resultNumber = ((NumberQueryResult) result).getValue();
+                assertTrue(resultNumber instanceof Double);
+            } else {
+                assertEquals(ResultType.DECIMAL, result.getResultType());
+            }
         } else if (expectedResult instanceof Boolean) {
             assertEquals(ResultType.BOOLEAN, result.getResultType());
         } else {

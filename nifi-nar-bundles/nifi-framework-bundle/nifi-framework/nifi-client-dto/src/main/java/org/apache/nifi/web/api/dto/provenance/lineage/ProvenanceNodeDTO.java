@@ -145,7 +145,8 @@ public class ProvenanceNodeDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp of the node formatted."
+            value = "The timestamp of the node formatted.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;
