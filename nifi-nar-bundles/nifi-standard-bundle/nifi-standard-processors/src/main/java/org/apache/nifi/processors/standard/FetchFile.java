@@ -186,7 +186,8 @@ public class FetchFile extends AbstractProcessor {
         // Verify that file system is reachable and file exists
         Path filePath = file.toPath();
         if (!Files.exists(filePath) && !Files.notExists(filePath)){ // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
-            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure", new Object[] {file, flowFile});
+            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure",
+                    new Object[] {file, flowFile});
             session.transfer(session.penalize(flowFile), REL_FAILURE);
             return;
         } else if (!Files.exists(filePath)) {
