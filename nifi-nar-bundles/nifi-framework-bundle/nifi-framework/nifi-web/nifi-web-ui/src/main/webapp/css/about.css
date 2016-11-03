@@ -54,6 +54,7 @@
 
 #nf-version-detail {
     padding: 5px 0 0 5px;
+    display: none;
 }
 
 #nf-version-detail-tag {

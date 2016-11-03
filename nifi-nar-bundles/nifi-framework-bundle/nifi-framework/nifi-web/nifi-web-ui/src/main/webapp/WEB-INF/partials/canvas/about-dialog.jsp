@@ -23,7 +23,7 @@
         <div id="nf-about-content">
             <span id="nf-version"></span>
             <div id="nf-version-detail">
-                <p>
+                <p id="nf-version-detail-timestamp">
                     <span id="nf-about-build-timestamp"></span>
                 </p>
                 <p id="nf-version-detail-tag">

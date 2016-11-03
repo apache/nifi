@@ -2257,16 +2257,26 @@ nf.SummaryTable = (function () {
             });
 
             // Version
-            $('#version-nifi').text(aggregateSnapshot.versionInfo.niFiVersion);
-            $('#version-build-tag').text(aggregateSnapshot.versionInfo.buildTag);
-            $('#version-build-timestamp').text(aggregateSnapshot.versionInfo.buildTimestamp);
-            $('#version-build-branch').text(aggregateSnapshot.versionInfo.buildBranch);
-            $('#version-build-revision').text(aggregateSnapshot.versionInfo.buildRevision);
-            $('#version-java-version').text(aggregateSnapshot.versionInfo.javaVersion);
-            $('#version-java-vendor').text(aggregateSnapshot.versionInfo.javaVendor);
-            $('#version-os-name').text(aggregateSnapshot.versionInfo.osName);
-            $('#version-os-version').text(aggregateSnapshot.versionInfo.osVersion);
-            $('#version-os-arch').text(aggregateSnapshot.versionInfo.osArchitecture);
+            var versionSpanSelectorToFieldMap = {
+                '#version-nifi': aggregateSnapshot.versionInfo.niFiVersion,
+                '#version-build-tag': aggregateSnapshot.versionInfo.buildTag,
+                '#version-build-timestamp': aggregateSnapshot.versionInfo.buildTimestamp,
+                '#version-build-branch': aggregateSnapshot.versionInfo.buildBranch,
+                '#version-build-revision': aggregateSnapshot.versionInfo.buildRevision,
+                '#version-java-version': aggregateSnapshot.versionInfo.javaVersion,
+                '#version-java-vendor': aggregateSnapshot.versionInfo.javaVendor,
+                '#version-os-name': aggregateSnapshot.versionInfo.osName,
+                '#version-os-version': aggregateSnapshot.versionInfo.osVersion,
+                '#version-os-arch': aggregateSnapshot.versionInfo.osArchitecture
+            };
+            for (versionSpanSelector in versionSpanSelectorToFieldMap) {
+                var dataField = versionSpanSelectorToFieldMap[versionSpanSelector];
+                if (dataField) {
+                    $(versionSpanSelector).text(dataField);
+                } else {
+                    $(versionSpanSelector).text('(not available)').addClass('unset');
+                }
+            }
 
             // update the stats last refreshed timestamp
             $('#system-diagnostics-last-refreshed').text(aggregateSnapshot.statsLastRefreshed);
