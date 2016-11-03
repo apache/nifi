@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
@@ -42,7 +42,7 @@
         <!--
             This property can be set on the command line and allows any bower cli options to be set.
         -->
-        <bower.options />
+        <bower.options></bower.options>
     </properties>
     <build>
         <!--
@@ -136,19 +136,19 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>copy-client-side-deps</id>
-                        <phase>prepare-package</phase>
+                        <id>copy-bower-json</id>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${frontend.assets}</outputDirectory>
+                            <outputDirectory>${frontend.working.dir}</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>${frontend.working.dir}/node_modules</directory>
+                                    <directory>${frontend.dependency.configs}</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>**/*</include>
+                                        <include>bower.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -295,7 +295,17 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--cache-min Infinity install</arguments>
+                            <arguments>install</arguments>
+                            <workingDirectory>${frontend.working.dir}</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>bower-install</id>
+                        <goals>
+                            <goal>bower</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install ${bower.options} --config.directory=${frontend.assets}</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -796,7 +806,7 @@
                         <configuration>
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
-                                <exclude>src/main/frontend/package.json</exclude>
+                                <exclude>src/main/frontend/bower.json</exclude>
                                 <exclude>src/main/webapp/js/json2.js</exclude>
                                 <exclude>src/main/webapp/js/jquery/</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
