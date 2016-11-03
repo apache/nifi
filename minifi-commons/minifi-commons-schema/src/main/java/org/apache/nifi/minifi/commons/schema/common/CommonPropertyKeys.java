@@ -32,6 +32,7 @@ public class CommonPropertyKeys {
     public static final String REMOTE_PROCESSING_GROUPS_KEY = "Remote Processing Groups";
     public static final String INPUT_PORTS_KEY = "Input Ports";
     public static final String OUTPUT_PORTS_KEY = "Output Ports";
+    public static final String FUNNELS_KEY = "Funnels";
     public static final String PROVENANCE_REPO_KEY = "Provenance Repository";
 
 

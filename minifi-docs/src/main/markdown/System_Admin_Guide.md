@@ -404,6 +404,7 @@ Remote Processing Groups            | The remote processing groups contained in 
 Connections                         | The connections contained in this Process Group. (Defined below)
 Input Ports                         | The input ports contained in this Process Group. (Defined below)
 Output Ports                        | The output ports contained in this Process Group. (Defined below)
+Funnels                             | The funnels contained in this Process Group. (Defined below)
 Process Groups                      | The child Process Groups contained in this Process Group.
 
 ## Input Ports
@@ -423,6 +424,14 @@ These ports provide output from the Process Group they reside on. (Currently onl
 --------------------     | -------------
 name                     | The name of what this output port will do.
 id                       | The id of this output port.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
+
+## Funnels
+
+Funnels can be used to combine outputs from multiple processors into a single connection for ease of design.
+
+*Property*               | *Description*
+--------------------     | -------------
+id                       | The id of this funnel.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 
 ## Connections
 

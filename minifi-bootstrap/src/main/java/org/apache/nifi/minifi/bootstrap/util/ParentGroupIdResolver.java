@@ -22,7 +22,7 @@ package org.apache.nifi.minifi.bootstrap.util;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
-import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
+import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithId;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,23 +33,25 @@ public class ParentGroupIdResolver {
     private final Map<String, String> processorIdToParentIdMap;
     private final Map<String, String> inputPortIdToParentIdMap;
     private final Map<String, String> outputPortIdToParentIdMap;
+    private final Map<String, String> funnelIdToParentIdMap;
     private final Map<String, String> remoteInputPortIdToParentIdMap;
 
     public ParentGroupIdResolver(ProcessGroupSchema processGroupSchema) {
         this.processorIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getProcessors);
         this.inputPortIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getInputPortSchemas);
         this.outputPortIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getOutputPortSchemas);
+        this.funnelIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getFunnels);
         this.remoteInputPortIdToParentIdMap = getRemoteInputPortParentIdMap(processGroupSchema);
     }
 
-    protected static Map<String, String> getParentIdMap(ProcessGroupSchema processGroupSchema, Function<ProcessGroupSchema, Collection<? extends BaseSchemaWithIdAndName>> schemaAccessor) {
+    protected static Map<String, String> getParentIdMap(ProcessGroupSchema processGroupSchema, Function<ProcessGroupSchema, Collection<? extends BaseSchemaWithId>> schemaAccessor) {
         Map<String, String> map = new HashMap<>();
         getParentIdMap(processGroupSchema, map, schemaAccessor);
         return map;
     }
 
     protected static void getParentIdMap(ProcessGroupSchema processGroupSchema, Map<String, String> output, Function<ProcessGroupSchema,
-            Collection<? extends BaseSchemaWithIdAndName>> schemaAccessor) {
+            Collection<? extends BaseSchemaWithId>> schemaAccessor) {
         schemaAccessor.apply(processGroupSchema).forEach(p -> output.put(p.getId(), processGroupSchema.getId()));
         processGroupSchema.getProcessGroupSchemas().forEach(p -> getParentIdMap(p, output, schemaAccessor));
     }
@@ -83,5 +85,9 @@ public class ParentGroupIdResolver {
 
     public String getProcessorParentId(String id) {
         return processorIdToParentIdMap.get(id);
+    }
+
+    public String getFunnelParentId(String id) {
+        return funnelIdToParentIdMap.get(id);
     }
 }

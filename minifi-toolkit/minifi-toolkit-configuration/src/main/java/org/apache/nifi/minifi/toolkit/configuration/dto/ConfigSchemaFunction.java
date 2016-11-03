@@ -19,10 +19,12 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.common.CollectionUtil;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -44,20 +46,23 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
     private final FlowControllerSchemaFunction flowControllerSchemaFunction;
     private final ProcessorSchemaFunction processorSchemaFunction;
     private final ConnectionSchemaFunction connectionSchemaFunction;
+    private final FunnelSchemaFunction funnelSchemaFunction;
     private final RemoteProcessingGroupSchemaFunction remoteProcessingGroupSchemaFunction;
     private final PortSchemaFunction inputPortSchemaFunction;
     private final PortSchemaFunction outputPortSchemaFunction;
 
     public ConfigSchemaFunction() {
-        this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new RemoteProcessingGroupSchemaFunction(new RemoteInputPortSchemaFunction()),
-                new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY));
+        this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new FunnelSchemaFunction(), new RemoteProcessingGroupSchemaFunction(
+                new RemoteInputPortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY));
     }
 
     public ConfigSchemaFunction(FlowControllerSchemaFunction flowControllerSchemaFunction, ProcessorSchemaFunction processorSchemaFunction, ConnectionSchemaFunction connectionSchemaFunction,
-                                RemoteProcessingGroupSchemaFunction remoteProcessingGroupSchemaFunction, PortSchemaFunction inputPortSchemaFunction, PortSchemaFunction outputPortSchemaFunction) {
+                                FunnelSchemaFunction funnelSchemaFunction, RemoteProcessingGroupSchemaFunction remoteProcessingGroupSchemaFunction, PortSchemaFunction inputPortSchemaFunction,
+                                PortSchemaFunction outputPortSchemaFunction) {
         this.flowControllerSchemaFunction = flowControllerSchemaFunction;
         this.processorSchemaFunction = processorSchemaFunction;
         this.connectionSchemaFunction = connectionSchemaFunction;
+        this.funnelSchemaFunction = funnelSchemaFunction;
         this.remoteProcessingGroupSchemaFunction = remoteProcessingGroupSchemaFunction;
         this.inputPortSchemaFunction = inputPortSchemaFunction;
         this.outputPortSchemaFunction = outputPortSchemaFunction;
@@ -95,12 +100,16 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
                 .map(ProcessorSchema::toMap)
                 .collect(Collectors.toList()));
 
-
-
         map.put(CommonPropertyKeys.CONNECTIONS_KEY, nullToEmpty(snippet.getConnections()).stream()
                 .map(connectionSchemaFunction)
                 .sorted(Comparator.comparing(ConnectionSchema::getName))
                 .map(ConnectionSchema::toMap)
+                .collect(Collectors.toList()));
+
+        map.put(CommonPropertyKeys.FUNNELS_KEY, CollectionUtil.nullToEmpty(snippet.getFunnels()).stream()
+                .map(funnelSchemaFunction)
+                .sorted(Comparator.comparing(FunnelSchema::getId))
+                .map(FunnelSchema::toMap)
                 .collect(Collectors.toList()));
 
         map.put(CommonPropertyKeys.REMOTE_PROCESSING_GROUPS_KEY, nullToEmpty(snippet.getRemoteProcessGroups()).stream()

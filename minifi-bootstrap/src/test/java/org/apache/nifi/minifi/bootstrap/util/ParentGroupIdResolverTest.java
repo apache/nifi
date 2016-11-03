@@ -57,6 +57,8 @@ public class ParentGroupIdResolverTest {
         assertNull(parentGroupIdResolver.getOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getProcessorParentId("one"));
         assertNull(parentGroupIdResolver.getProcessorParentId("two"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("one"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("two"));
     }
 
     @Test
@@ -78,6 +80,8 @@ public class ParentGroupIdResolverTest {
         assertNull(parentGroupIdResolver.getOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getProcessorParentId("one"));
         assertNull(parentGroupIdResolver.getProcessorParentId("two"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("one"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("two"));
     }
 
     @Test
@@ -99,6 +103,8 @@ public class ParentGroupIdResolverTest {
         assertEquals("pgTwo", parentGroupIdResolver.getOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getProcessorParentId("one"));
         assertNull(parentGroupIdResolver.getProcessorParentId("two"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("one"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("two"));
     }
 
     @Test
@@ -120,6 +126,31 @@ public class ParentGroupIdResolverTest {
         assertNull(parentGroupIdResolver.getOutputPortParentId("two"));
         assertEquals(ConfigTransformer.ROOT_GROUP, parentGroupIdResolver.getProcessorParentId("one"));
         assertEquals("pgTwo", parentGroupIdResolver.getProcessorParentId("two"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("one"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("two"));
+    }
+
+    @Test
+    public void testFunnelParentId() throws IOException, SchemaLoaderException {
+        List<String> configLines = new ArrayList<>();
+        configLines.add("MiNiFi Config Version: 2");
+        configLines.add("Funnels:");
+        configLines.add("- id: one");
+        configLines.add("Process Groups:");
+        configLines.add("- id: pgTwo");
+        configLines.add("  Funnels:");
+        configLines.add("  - id: two");
+        ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
+        assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getInputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getOutputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getProcessorParentId("one"));
+        assertNull(parentGroupIdResolver.getProcessorParentId("two"));
+        assertEquals(ConfigTransformer.ROOT_GROUP, parentGroupIdResolver.getFunnelParentId("one"));
+        assertEquals("pgTwo", parentGroupIdResolver.getFunnelParentId("two"));
     }
 
     private ParentGroupIdResolver createParentGroupIdResolver(List<String> configLines) throws IOException, SchemaLoaderException {

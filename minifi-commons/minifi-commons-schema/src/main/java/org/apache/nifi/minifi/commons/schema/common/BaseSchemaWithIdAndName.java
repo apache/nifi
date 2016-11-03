@@ -19,37 +19,16 @@
 
 package org.apache.nifi.minifi.commons.schema.common;
 
-import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
-public abstract class BaseSchemaWithIdAndName extends BaseSchema implements WritableSchema {
-    public static final Pattern VALID_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
-    public static final String ID_DOES_NOT_MATCH_VALID_ID_PATTERN = "Id does not match valid pattern (" + VALID_ID_PATTERN + ")";
-
-    private final String wrapperName;
-    private String id;
+public abstract class BaseSchemaWithIdAndName extends BaseSchemaWithId implements WritableSchema {
     private String name;
 
     public BaseSchemaWithIdAndName(Map map, String wrapperName) {
-        this.wrapperName = wrapperName;
-        id = getId(map, getWrapperName());
+        super(map, wrapperName);
         name = getOptionalKeyAsType(map, NAME_KEY, String.class, getWrapperName(), "");
-    }
-
-    protected String getId(Map map, String wrapperName) {
-        return getOptionalKeyAsType(map, ID_KEY, String.class, wrapperName, "");
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     public String getName() {
@@ -61,25 +40,13 @@ public abstract class BaseSchemaWithIdAndName extends BaseSchema implements Writ
     }
 
     public String getWrapperName() {
-        return wrapperName.replace("{id}", StringUtil.isNullOrEmpty(id) ? "unkown" : id).replace("{name}", StringUtil.isNullOrEmpty(name) ? "unkown" : name);
+        return super.getWrapperName().replace("{name}", StringUtil.isNullOrEmpty(name) ? "unkown" : name);
     }
 
     @Override
     public Map<String, Object> toMap() {
-        Map<String, Object> map = mapSupplier.get();
-        map.put(ID_KEY, id);
+        Map<String, Object> map = super.toMap();
         map.put(NAME_KEY, name);
         return map;
-    }
-
-    @Override
-    public List<String> getValidationIssues() {
-        List<String> validationIssues = super.getValidationIssues();
-        if (StringUtil.isNullOrEmpty(id)) {
-            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
-        } else if (!VALID_ID_PATTERN.matcher(id).matches()) {
-            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), ID_DOES_NOT_MATCH_VALID_ID_PATTERN));
-        }
-        return validationIssues;
     }
 }

@@ -142,6 +142,7 @@ Process Groups:
     Output Ports:
     - id: 207a6d92-0158-1000-0000-000000000000
       name: output
+    Funnels: []
     Connections:
     - id: 21a6abb9-0158-1000-0000-000000000000
       name: UpdateAttribute/success/21a39aba-0158-1000-a1a0-1b55bcddcd72
@@ -190,6 +191,7 @@ Process Groups:
   Output Ports:
   - id: 2079b327-0158-1000-0000-000000000000
     name: output
+  Funnels: []
   Connections:
   - id: 21a5b1f1-0158-1000-0000-000000000000
     name: UpdateAttribute/success/21a2fb5e-0158-1000-3b5e-5a7d3aaee01b
@@ -243,6 +245,7 @@ Process Groups:
       use compression: false
 Input Ports: []
 Output Ports: []
+Funnels: []
 Connections:
 - id: 2077bf8f-0158-1000-0000-000000000000
   name: GenerateFlowFile/success/UpdateAttribute

@@ -27,6 +27,7 @@ import org.apache.nifi.minifi.commons.schema.ContentRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.CorePropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
 import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
@@ -369,6 +370,10 @@ public final class ConfigTransformer {
                 addRemoteProcessGroup(element, remoteProcessingGroupSchema);
             }
 
+            for (FunnelSchema funnelSchema : processGroupSchema.getFunnels()) {
+                addFunnel(element, funnelSchema);
+            }
+
             for (PortSchema portSchema : processGroupSchema.getInputPortSchemas()) {
                 addPort(doc, element, portSchema, "inputPort");
             }
@@ -446,6 +451,17 @@ public final class ConfigTransformer {
         } catch (Exception e) {
             throw new ConfigurationChangeException("Failed to parse the config YAML while trying to add a Processor", e);
         }
+    }
+
+
+    protected static void addFunnel(final Element parentElement, FunnelSchema funnelSchema) {
+        Document document = parentElement.getOwnerDocument();
+        Element element = document.createElement("funnel");
+        parentElement.appendChild(element);
+
+        addTextElement(element, "id", funnelSchema.getId());
+
+        addPosition(element);
     }
 
     protected static void addProvenanceReportingTask(final Element element, ConfigSchema configSchema) throws ConfigurationChangeException {
@@ -605,8 +621,13 @@ public final class ConfigTransformer {
                 if (parentId != null) {
                     type = "OUTPUT_PORT";
                 } else {
-                    parentId = parentGroupIdResolver.getProcessorParentId(id);
-                    type = "PROCESSOR";
+                    parentId = parentGroupIdResolver.getFunnelParentId(id);
+                    if (parentId != null) {
+                        type = "FUNNEL";
+                    } else {
+                        parentId = parentGroupIdResolver.getProcessorParentId(id);
+                        type = "PROCESSOR";
+                    }
                 }
             }
         }

@@ -28,8 +28,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FUNNELS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
@@ -44,6 +46,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
     private String comment;
     private List<ProcessorSchema> processors;
+    private List<FunnelSchema> funnels;
     private List<ConnectionSchema> connections;
     private List<RemoteProcessingGroupSchema> remoteProcessingGroups;
     private List<ProcessGroupSchema> processGroupSchemas;
@@ -54,6 +57,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         super(map, wrapperName);
 
         processors = getOptionalKeyAsList(map, PROCESSORS_KEY, ProcessorSchema::new, wrapperName);
+        funnels = getOptionalKeyAsList(map, FUNNELS_KEY, FunnelSchema::new, wrapperName);
         remoteProcessingGroups = getOptionalKeyAsList(map, REMOTE_PROCESSING_GROUPS_KEY, RemoteProcessingGroupSchema::new, wrapperName);
         connections = getOptionalKeyAsList(map, CONNECTIONS_KEY, ConnectionSchema::new, wrapperName);
         inputPortSchemas = getOptionalKeyAsList(map, INPUT_PORTS_KEY, m -> new PortSchema(m, "InputPort(id: {id}, name: {name})"), wrapperName);
@@ -74,9 +78,14 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         Set<String> portIds = getPortIds();
         connections.stream().filter(c -> portIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
+
+        Set<String> funnelIds = new HashSet<>(funnels.stream().map(FunnelSchema::getId).collect(Collectors.toList()));
+        connections.stream().filter(c -> funnelIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
+
         addIssuesIfNotNull(processors);
         addIssuesIfNotNull(remoteProcessingGroups);
         addIssuesIfNotNull(processGroupSchemas);
+        addIssuesIfNotNull(funnels);
         addIssuesIfNotNull(connections);
     }
 
@@ -91,6 +100,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         putListIfNotNull(result, PROCESS_GROUPS_KEY, processGroupSchemas);
         putListIfNotNull(result, INPUT_PORTS_KEY, inputPortSchemas);
         putListIfNotNull(result, OUTPUT_PORTS_KEY, outputPortSchemas);
+        putListIfNotNull(result, FUNNELS_KEY, funnels);
         putListIfNotNull(result, CONNECTIONS_KEY, connections);
         putListIfNotNull(result, REMOTE_PROCESSING_GROUPS_KEY, remoteProcessingGroups);
         return result;
@@ -98,6 +108,10 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
     public List<ProcessorSchema> getProcessors() {
         return processors;
+    }
+
+    public List<FunnelSchema> getFunnels() {
+        return funnels;
     }
 
     public List<ConnectionSchema> getConnections() {

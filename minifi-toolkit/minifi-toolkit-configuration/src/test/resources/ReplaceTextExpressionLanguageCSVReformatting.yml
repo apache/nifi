@@ -126,6 +126,7 @@ Processors:
 Process Groups: []
 Input Ports: []
 Output Ports: []
+Funnels: []
 Connections:
 - name: Generate Empty File/success/Set CSV Content
   id: ca71a875-0ff5-41ef-bbe0-da5de0ca1e08

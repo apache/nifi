@@ -63,7 +63,6 @@ public class ConfigMain {
     public static final int ERR_UNABLE_TO_OPEN_OUTPUT = 2;
     public static final int ERR_UNABLE_TO_OPEN_INPUT = 3;
     public static final int ERR_UNABLE_TO_READ_TEMPLATE = 4;
-    public static final int ERR_UNABLE_TO_TRANSFORM_TEMPLATE = 5;
     public static final int ERR_UNABLE_TO_PARSE_CONFIG = 6;
     public static final int ERR_INVALID_CONFIG = 7;
     public static final int ERR_UNABLE_TO_CLOSE_CONFIG = 8;
@@ -171,7 +170,8 @@ public class ConfigMain {
                 StringBuilder name = new StringBuilder();
                 ConnectableDTO connectionSource = connection.getSource();
                 if (connectionSource != null) {
-                    name.append(connectionSource.getName());
+                    String connectionSourceName = connectionSource.getName();
+                    name.append(StringUtil.isNullOrEmpty(connectionSourceName) ? connectionSource.getId() : connectionSourceName);
                 }
                 name.append("/");
                 if (connection.getSelectedRelationships() != null && connection.getSelectedRelationships().size() > 0) {
@@ -180,7 +180,8 @@ public class ConfigMain {
                 name.append("/");
                 ConnectableDTO connectionDestination = connection.getDestination();
                 if (connectionDestination != null) {
-                    name.append(connectionDestination.getName());
+                    String connectionDestinationName = connectionDestination.getName();
+                    name.append(StringUtil.isNullOrEmpty(connectionDestinationName) ? connectionDestination.getId() : connectionDestinationName);
                 }
                 connection.setName(name.toString());
             }
@@ -203,14 +204,9 @@ public class ConfigMain {
         nullToEmpty(flowSnippetDTO.getProcessGroups()).stream().map(ProcessGroupDTO::getContents).forEach(f -> getAllFlowSnippets(f, result));
     }
 
-    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, IOException, SchemaLoaderException {
+    public static ConfigSchema transformTemplateToSchema(InputStream source) throws JAXBException, IOException {
         try {
             TemplateDTO templateDTO = (TemplateDTO) JAXBContext.newInstance(TemplateDTO.class).createUnmarshaller().unmarshal(source);
-
-            if (templateDTO.getSnippet().getFunnels().size() != 0){
-                throw new SchemaLoaderException("Funnels are not currently supported in MiNiFi. Please remove any from the template and try again.");
-            }
-
             enrichFlowSnippetDTO(templateDTO.getSnippet());
             ConfigSchema configSchema = new ConfigSchemaFunction().apply(templateDTO);
             return configSchema;
@@ -329,10 +325,6 @@ public class ConfigMain {
                 System.out.println();
                 printTransformUsage();
                 return ERR_UNABLE_TO_READ_TEMPLATE;
-            } catch (SchemaLoaderException e) {
-                System.out.println("Error transforming template to YAML. (" + e.getMessage() + ")");
-                System.out.println();
-                return ERR_UNABLE_TO_TRANSFORM_TEMPLATE;
             }
         } catch (FileNotFoundException e) {
             return handleErrorOpeningInput(args[1], ConfigMain::printTransformUsage, e);

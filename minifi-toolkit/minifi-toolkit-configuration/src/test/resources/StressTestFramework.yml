@@ -101,6 +101,7 @@ Processors:
 Process Groups: []
 Input Ports: []
 Output Ports: []
+Funnels: []
 Connections:
 - name: GenerateFlowFile/success/UpdateAttribute
   id: 0e6873cc-cb9d-4e98-92aa-a3319f4c1b02

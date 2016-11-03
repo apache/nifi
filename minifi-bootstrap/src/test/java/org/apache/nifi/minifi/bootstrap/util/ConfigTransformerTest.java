@@ -20,6 +20,7 @@ package org.apache.nifi.minifi.bootstrap.util;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
@@ -100,7 +101,16 @@ public class ConfigTransformerTest {
 
     @Test
     public void testProcessGroupsTransform() throws Exception {
-        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(ConfigTransformerTest.class.getClassLoader().getResourceAsStream("config-process-groups.yml"));
+        testConfigFileTransform("config-process-groups.yml");
+    }
+
+    @Test
+    public void testFunnelsTransform() throws Exception {
+        testConfigFileTransform("stress-test-framework-funnel.yml");
+    }
+
+    public void testConfigFileTransform(String configFile) throws Exception {
+        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(ConfigTransformerTest.class.getClassLoader().getResourceAsStream(configFile));
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ConfigTransformer.writeFlowXmlFile(configSchema, outputStream);
@@ -124,6 +134,12 @@ public class ConfigTransformerTest {
         assertEquals(processGroupSchema.getRemoteProcessingGroups().size(), remoteProcessGroupElements.getLength());
         for (int i = 0; i < remoteProcessGroupElements.getLength(); i++) {
             testRemoteProcessGroups((Element) remoteProcessGroupElements.item(i), processGroupSchema.getRemoteProcessingGroups().get(i));
+        }
+
+        NodeList funnelElements = (NodeList) xPathFactory.newXPath().evaluate("funnel", element, XPathConstants.NODESET);
+        assertEquals(processGroupSchema.getFunnels().size(), funnelElements.getLength());
+        for (int i = 0; i < funnelElements.getLength(); i++) {
+            testFunnel((Element) funnelElements.item(i), processGroupSchema.getFunnels().get(i));
         }
 
         NodeList inputPortElements = (NodeList) xPathFactory.newXPath().evaluate("inputPort", element, XPathConstants.NODESET);
@@ -193,6 +209,10 @@ public class ConfigTransformerTest {
         assertEquals(portSchema.getId(), getText(element, "id"));
         assertEquals(portSchema.getName(), getText(element, "name"));
         assertEquals("RUNNING", getText(element, "scheduledState"));
+    }
+
+    private void testFunnel(Element element, FunnelSchema funnelSchema) throws XPathExpressionException {
+        assertEquals(funnelSchema.getId(), getText(element, "id"));
     }
 
     private void testConnection(Element element, ConnectionSchema connectionSchema) throws XPathExpressionException {

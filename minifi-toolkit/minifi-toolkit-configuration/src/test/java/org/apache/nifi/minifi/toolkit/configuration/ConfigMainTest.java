@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.toolkit.configuration;
 
 import org.apache.commons.io.Charsets;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
@@ -148,8 +149,8 @@ public class ConfigMainTest {
     @Test
     public void testTransformErrorTransformingTemplate() throws FileNotFoundException {
         when(pathInputStreamFactory.create(testInput)).thenAnswer(invocation ->
-                ConfigMainTest.class.getClassLoader().getResourceAsStream("TemplateWithFunnel.xml"));
-        assertEquals(ConfigMain.ERR_UNABLE_TO_TRANSFORM_TEMPLATE, configMain.execute(new String[]{ConfigMain.TRANSFORM, testInput, testOutput}));
+                new LimitedInputStream(ConfigMainTest.class.getClassLoader().getResourceAsStream("TemplateWithFunnel.xml"), 25));
+        assertEquals(ConfigMain.ERR_UNABLE_TO_READ_TEMPLATE, configMain.execute(new String[]{ConfigMain.TRANSFORM, testInput, testOutput}));
     }
 
     @Test
@@ -186,6 +187,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTripStressTestFrameworkFunnel() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("StressTestFrameworkFunnel");
+    }
+
+    @Test
     public void testTransformRoundTripMultipleRelationships() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("MultipleRelationships");
     }
@@ -210,8 +216,8 @@ public class ConfigMainTest {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithInputPort.xml")).toMap();
     }
 
-    @Test(expected = SchemaLoaderException.class)
-    public void testFailToTransformFunnel() throws IOException, JAXBException, SchemaLoaderException {
+    @Test
+    public void testSuccessTransformFunnel() throws IOException, JAXBException, SchemaLoaderException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithFunnel.xml")).toMap();
     }
 
