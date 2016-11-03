@@ -28,7 +28,7 @@
 </p>
 <p>
     The processor constructs SNMP Set requests by extracting information from FlowFile attributes. The processor is looking for attributes
-    prefixed with <i>snmp$</i>. If such an attribute is found, the attribute name is splitted using the $ character. The second element must
+    prefixed with <i>snmp$</i>. If such an attribute is found, the attribute name is split using the $ character. The second element must
     respect the OID format to be considered as a valid OID. If there is a third element, it must represents the SMI Syntax integer value of
     the type of data associated to the given OID to allow a correct conversion. If there is no third element, the value is considered as a String
     and the value will be sent as an OctetString object.

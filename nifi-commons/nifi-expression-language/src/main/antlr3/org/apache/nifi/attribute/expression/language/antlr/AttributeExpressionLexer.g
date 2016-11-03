@@ -77,7 +77,13 @@ COLON	: ':';
 COMMA	: ',';
 DOT		: '.';
 SEMICOLON : ';';
-NUMBER	: ('0'..'9')+;
+WHOLE_NUMBER	: ('0'..'9')+;
+
+DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?
+           | '.' ('0'..'9')+ EXP?
+           | ('0'..'9')+ EXP;
+
+fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 TRUE	: 'true';
 FALSE	: 'false';
@@ -112,6 +118,7 @@ IS_NULL	: 'isNull';
 IS_EMPTY : 'isEmpty';
 NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
+TO_DECIMAL : 'toDecimal';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
@@ -127,6 +134,8 @@ UNESCAPE_XML : 'unescapeXml';
 UNESCAPE_CSV : 'unescapeCsv';
 UNESCAPE_HTML3 : 'unescapeHtml3';
 UNESCAPE_HTML4 : 'unescapeHtml4';
+BASE64_ENCODE : 'base64Encode';
+BASE64_DECODE : 'base64Decode';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -157,6 +166,7 @@ PLUS : 'plus';
 MINUS : 'minus';
 MULTIPLY : 'multiply';
 DIVIDE : 'divide';
+MATH : 'math';
 TO_RADIX : 'toRadix';
 OR : 'or';
 AND : 'and';

@@ -33,7 +33,7 @@ public class PropertyDescriptorDtoMerger {
         for (final Map.Entry<NodeIdentifier, PropertyDescriptorDTO> nodeEntry : dtoMap.entrySet()) {
             final PropertyDescriptorDTO nodePropertyDescriptor = nodeEntry.getValue();
             final List<AllowableValueEntity> nodePropertyDescriptorAllowableValues = nodePropertyDescriptor.getAllowableValues();
-            if (clientPropertyDescriptor != nodePropertyDescriptor && nodePropertyDescriptorAllowableValues != null) {
+            if (nodePropertyDescriptorAllowableValues != null) {
                 nodePropertyDescriptorAllowableValues.stream().forEach(allowableValueEntity -> {
                     allowableValueMap.computeIfAbsent(nodePropertyDescriptorAllowableValues.indexOf(allowableValueEntity), propertyDescriptorToAllowableValue -> new ArrayList<>())
                             .add(allowableValueEntity);

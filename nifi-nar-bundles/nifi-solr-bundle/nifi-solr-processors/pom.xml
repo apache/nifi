@@ -32,12 +32,22 @@
             <version>${solr.version}</version>
         </dependency>
         <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.10</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ssl-context-service-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <!-- test dependencies -->
         <dependency>
@@ -68,8 +78,7 @@
             <version>${solr.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- These Lucene deps should be brought in through solr-core, but there
-         appears to be an issue with 5.0.0 that still references some 4.10.3 poms -->
+        <!-- Need to declare the newer versions of these b/c NiFi uses Lucene 4.10.3 -->
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
@@ -97,18 +106,19 @@
                 <configuration>
                     <excludes combine.children="append">
                         <exclude>src/test/resources/solr/solr.xml</exclude>
-                        <exclude>src/test/resources/testCollection/core.properties</exclude>
-                        <exclude>src/test/resources/testCollection/conf/_rest_managed.json</exclude>
-                        <exclude>src/test/resources/testCollection/conf/protowords.txt</exclude>
-                        <exclude>src/test/resources/testCollection/conf/schema.xml</exclude>
-                        <exclude>src/test/resources/testCollection/conf/solrconfig.xml</exclude>
-                        <exclude>src/test/resources/testCollection/conf/synonyms.txt</exclude>
-                        <exclude>src/test/resources/testCollection/conf/lang/stopwords_en.txt</exclude>
+                        <exclude>src/test/resources/solr/testCollection/core.properties</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/_rest_managed.json</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/protowords.txt</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/schema.xml</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/solrconfig.xml</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/synonyms.txt</exclude>
+                        <exclude>src/test/resources/solr/testCollection/conf/lang/stopwords_en.txt</exclude>
                         <exclude>src/test/resources/testdata/test-csv-multiple-docs.csv</exclude>
                         <exclude>src/test/resources/testdata/test-custom-json-single-doc.json</exclude>
                         <exclude>src/test/resources/testdata/test-solr-json-multiple-docs.json</exclude>
                         <exclude>src/test/resources/testdata/test-xml-multiple-docs.xml</exclude>
                         <exclude>src/test/resources/log4j.properties</exclude>
+                        <exclude>src/test/resources/jaas-client.conf</exclude>
                     </excludes>
                 </configuration>
             </plugin>

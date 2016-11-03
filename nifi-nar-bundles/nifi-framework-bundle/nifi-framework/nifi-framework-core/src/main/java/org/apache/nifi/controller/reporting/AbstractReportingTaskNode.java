@@ -94,7 +94,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
 
     @Override
-    public void setScheduldingPeriod(final String schedulingPeriod) {
+    public void setSchedulingPeriod(final String schedulingPeriod) {
         this.schedulingPeriod.set(schedulingPeriod);
     }
 

@@ -85,7 +85,7 @@ public class BulletinDTO {
      * @return category of this message
      */
     @ApiModelProperty(
-            value = "The catagory of this bulletin."
+            value = "The category of this bulletin."
     )
     public String getCategory() {
         return category;
@@ -156,7 +156,8 @@ public class BulletinDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "When this bulletin was generated."
+            value = "When this bulletin was generated.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

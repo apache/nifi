@@ -17,11 +17,35 @@
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-SCRIPT_DIR=$(dirname "$0")
-SCRIPT_NAME=$(basename "$0")
+# Discover the path of the file
+
+
+# Since MacOS X, FreeBSD and some other systems lack gnu readlink, we use a more portable
+# approach based on following StackOverflow comment http://stackoverflow.com/a/1116890/888876
+
+TARGET_FILE=$0
+
+cd $(dirname $TARGET_FILE)
+TARGET_FILE=$(basename $TARGET_FILE)
+
+# Iterate down a (possible) chain of symlinks
+while [ -L "$TARGET_FILE" ]
+do
+    TARGET_FILE=$(readlink $TARGET_FILE)
+    cd $(dirname $TARGET_FILE)
+    TARGET_FILE=$(basename $TARGET_FILE)
+done
+
+# Compute the canonicalized name by finding the physical path
+# for the directory we're in and appending the target file.
+PHYS_DIR=`pwd -P`
+
+SCRIPT_DIR=$PHYS_DIR
 PROGNAME=$(basename "$0")
 
 . "$SCRIPT_DIR"/nifi-env.sh
+
+
 
 warn() {
     echo "${PROGNAME}: $*"
@@ -267,10 +291,11 @@ run() {
     RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
 
     if [ "$1" = "start" ]; then
-        (eval $RUN_NIFI_CMD $@ &)
+        (eval $RUN_NIFI_CMD $@ &)> /dev/null 2>&1 < /dev/null
     else
         (eval $RUN_NIFI_CMD $@)
     fi
+    EXIT_STATUS=$?
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
     # We do this to avoid having logs spewed on the console after running the command and then not giving

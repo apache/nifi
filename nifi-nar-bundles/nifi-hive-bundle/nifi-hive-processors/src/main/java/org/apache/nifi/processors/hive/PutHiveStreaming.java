@@ -323,6 +323,8 @@ public class PutHiveStreaming extends AbstractProcessor {
                 .withMaxOpenConnections(maxConnections)
                 .withHeartBeatInterval(heartbeatInterval);
 
+        hiveConfigurator.preload(hiveConfig);
+
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
             final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
             final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();

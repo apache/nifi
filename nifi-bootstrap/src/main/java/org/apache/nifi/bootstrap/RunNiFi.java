@@ -204,6 +204,7 @@ public class RunNiFi {
         final File configFile = getBootstrapConfFile();
         final RunNiFi runNiFi = new RunNiFi(configFile, verbose);
 
+        Integer exitStatus = null;
         switch (cmd.toLowerCase()) {
             case "start":
                 runNiFi.start();
@@ -215,7 +216,7 @@ public class RunNiFi {
                 runNiFi.stop();
                 break;
             case "status":
-                runNiFi.status();
+                exitStatus = runNiFi.status();
                 break;
             case "restart":
                 runNiFi.stop();
@@ -227,6 +228,9 @@ public class RunNiFi {
             case "env":
                 runNiFi.env();
                 break;
+        }
+        if (exitStatus != null) {
+            System.exit(exitStatus);
         }
     }
 
@@ -581,23 +585,23 @@ public class RunNiFi {
         return new Status(port, pid, pingSuccess, alive);
     }
 
-    public void status() throws IOException {
+    public int status() throws IOException {
         final Logger logger = cmdLogger;
         final Status status = getStatus(logger);
         if (status.isRespondingToPing()) {
             logger.info("Apache NiFi is currently running, listening to Bootstrap on port {}, PID={}",
                     new Object[]{status.getPort(), status.getPid() == null ? "unknown" : status.getPid()});
-            return;
+            return 0;
         }
 
         if (status.isProcessRunning()) {
             logger.info("Apache NiFi is running at PID {} but is not responding to ping requests", status.getPid());
-            return;
+            return 4;
         }
 
         if (status.getPort() == null) {
             logger.info("Apache NiFi is not running");
-            return;
+            return 3;
         }
 
         if (status.getPid() == null) {
@@ -605,6 +609,7 @@ public class RunNiFi {
         } else {
             logger.info("Apache NiFi is not running");
         }
+        return 3;
     }
 
     public void env() {

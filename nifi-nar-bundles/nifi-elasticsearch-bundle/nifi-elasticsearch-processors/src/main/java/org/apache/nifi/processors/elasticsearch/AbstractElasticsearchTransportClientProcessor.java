@@ -118,7 +118,7 @@ public abstract class AbstractElasticsearchTransportClientProcessor extends Abst
     protected String authToken;
 
     /**
-     * Instantiate ElasticSearch Client. This chould be called by subclasses' @OnScheduled method to create a client
+     * Instantiate ElasticSearch Client. This should be called by subclasses' @OnScheduled method to create a client
      * if one does not yet exist. If called when scheduled, closeClient() should be called by the subclasses' @OnStopped
      * method so the client will be destroyed when the processor is stopped.
      *
@@ -252,7 +252,7 @@ public abstract class AbstractElasticsearchTransportClientProcessor extends Abst
     }
 
     /**
-     * Get the ElasticSearch hosts from a Nifi attribute, e.g.
+     * Get the ElasticSearch hosts from a NiFi attribute, e.g.
      *
      * @param hosts A comma-separated list of ElasticSearch hosts (host:port,host2:port2, etc.)
      * @return List of InetSocketAddresses for the ES hosts

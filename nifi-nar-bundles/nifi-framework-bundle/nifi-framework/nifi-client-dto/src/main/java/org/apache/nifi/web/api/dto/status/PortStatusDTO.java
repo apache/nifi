@@ -113,7 +113,8 @@ public class PortStatusDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-        value = "The time the status for the process group was last refreshed."
+        value = "The time the status for the process group was last refreshed.",
+        dataType = "string"
     )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;

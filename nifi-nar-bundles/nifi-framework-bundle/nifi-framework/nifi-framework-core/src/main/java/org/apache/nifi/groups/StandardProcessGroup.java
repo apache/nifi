@@ -39,6 +39,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -2468,6 +2469,30 @@ public final class StandardProcessGroup implements ProcessGroup {
 
                 if (newProcessGroup.getOutputPortByName(portName) != null) {
                     throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
+                }
+            }
+
+            for (final String id : snippet.getProcessors().keySet()) {
+                final ProcessorNode processorNode = getProcessor(id);
+                for (final PropertyDescriptor descriptor : processorNode.getProperties().keySet()) {
+                    final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
+
+                    // if this descriptor identifies a controller service
+                    if (serviceDefinition != null) {
+                        final String serviceId = processorNode.getProperty(descriptor);
+
+                        // if the processor is configured with a service
+                        if (serviceId != null) {
+                            // get all the available services
+                            final Set<String> currentControllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, getIdentifier());
+                            final Set<String> proposedControllerServiceIds = controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, newProcessGroup.getIdentifier());
+
+                            // ensure the configured service is an allowed service if it's still a valid service
+                            if (currentControllerServiceIds.contains(serviceId) && !proposedControllerServiceIds.contains(serviceId)) {
+                                throw new IllegalStateException("Cannot perform Move Operation because a Processor references a service that is not available in the destination Process Group");
+                            }
+                        }
+                    }
                 }
             }
         } finally {

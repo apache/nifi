@@ -25,6 +25,7 @@ import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
             System.exit(e.getExitCode().ordinal());
         }
         new TlsCertificateAuthorityClient().generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.createClientConfig(),
-                tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJson(),
+                tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJsonOut(),
                 tlsCertificateAuthorityClientCommandLine.differentPasswordForKeyAndKeystore());
         System.exit(ExitCode.SUCCESS.ordinal());
     }
@@ -119,8 +120,9 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     }
 
     public TlsClientConfig createClientConfig() throws IOException {
-        if (onlyUseConfigJson()) {
-            try (InputStream inputStream = inputStreamFactory.create(new File(getConfigJson()))) {
+        String configJsonIn = getConfigJsonIn();
+        if (!StringUtils.isEmpty(configJsonIn)) {
+            try (InputStream inputStream = inputStreamFactory.create(new File(configJsonIn))) {
                 TlsClientConfig tlsClientConfig = new ObjectMapper().readValue(inputStream, TlsClientConfig.class);
                 tlsClientConfig.initDefaults();
                 return tlsClientConfig;

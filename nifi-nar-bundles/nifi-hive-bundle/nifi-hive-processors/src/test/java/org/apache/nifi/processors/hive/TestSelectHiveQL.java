@@ -165,7 +165,7 @@ public class TestSelectHiveQL {
         stmt.execute("create table TEST_NO_ROWS (id integer)");
 
         runner.setIncomingConnection(false);
-        // Try a valid SQL statment that will generate an error (val1 does not exist, e.g.)
+        // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
         runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, "SELECT val1 FROM TEST_NO_ROWS");
         runner.run();
 

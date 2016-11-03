@@ -75,24 +75,24 @@ public class TestEventTypeValidator {
     @Test
     public void inputWithInvalidEventTypeShouldProperlyDisplayEventsInExplanation() throws Exception {
         String subject = "subject";
-        String input = "append, CREATE, cllose, rename, metadata, unlink";
+        String input = "append, CREATE, invalidValue1, rename, metadata, unlink";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
-        assertEquals("append, CREATE, cllose, rename, metadata, unlink", result.getInput());
-        assertEquals("The following are not valid event types: [cllose]", result.getExplanation());
+        assertEquals("append, CREATE, invalidValue1, rename, metadata, unlink", result.getInput());
+        assertEquals("The following are not valid event types: [invalidValue1]", result.getExplanation());
         assertFalse(result.isValid());
     }
 
     @Test
     public void inputWithMultipleInvalidEventTypeShouldProperlyDisplayEventsInExplanation() throws Exception {
         String subject = "subject";
-        String input = "append, CREATE, cllose, rename, metadata, unlink, unllink";
+        String input = "append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2";
         ValidationResult result = eventTypeValidator.validate(subject, input, context);
 
         assertEquals("subject", result.getSubject());
-        assertEquals("append, CREATE, cllose, rename, metadata, unlink, unllink", result.getInput());
-        assertEquals("The following are not valid event types: [cllose, unllink]", result.getExplanation());
+        assertEquals("append, CREATE, invalidValue1, rename, metadata, unlink, invalidValue2", result.getInput());
+        assertEquals("The following are not valid event types: [invalidValue1, invalidValue2]", result.getExplanation());
         assertFalse(result.isValid());
     }
 }

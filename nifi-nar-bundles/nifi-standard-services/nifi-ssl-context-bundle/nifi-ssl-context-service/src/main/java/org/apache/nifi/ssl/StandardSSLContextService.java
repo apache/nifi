@@ -456,7 +456,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
         final int numProtocols = supportedProtocols.size();
 
-        // Sort for consistent presentation in configuraiton views
+        // Sort for consistent presentation in configuration views
         final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
         Collections.sort(supportedProtocolList);
 

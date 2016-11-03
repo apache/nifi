@@ -94,11 +94,10 @@ nf.Shell = (function () {
                     canUndock = true;
                 }
 
-                // remove the previous contents of the shell
-                shell.empty();
-
                 // register a new close handler
                 $('#shell-dialog').modal('setCloseHandler', function () {
+                    // remove the previous contents of the shell
+                    shell.empty();
                     deferred.resolve();
                 });
 
@@ -146,9 +145,6 @@ nf.Shell = (function () {
                 if (content.length) {
                     var shell = $('#shell');
 
-                    // remove the previous contents of the shell
-                    shell.empty();
-
                     // get the parent of the content and detach it
                     var parent = content.parent();
                     content.detach();
@@ -167,6 +163,9 @@ nf.Shell = (function () {
 
                         // detach the content and add it back to the parent
                         content.hide().detach().appendTo(parent);
+
+                        // remove the previous contents of the shell
+                        shell.empty();
                     });
 
                     // hide the undock button

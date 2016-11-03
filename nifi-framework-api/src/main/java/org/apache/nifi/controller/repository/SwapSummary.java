@@ -40,7 +40,7 @@ public interface SwapSummary {
     Long getMaxFlowFileId();
 
     /**
-     * Returns a List of all ResoruceClaims that are referenced by the FlowFiles in the swap file.
+     * Returns a List of all ResourceClaims that are referenced by the FlowFiles in the swap file.
      * This List may well contain the same ResourceClaim many times. This indicates that many FlowFiles
      * reference the same ResourceClaim.
      *

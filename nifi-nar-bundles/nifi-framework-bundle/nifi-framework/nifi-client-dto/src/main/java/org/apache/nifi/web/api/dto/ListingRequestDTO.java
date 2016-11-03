@@ -82,7 +82,8 @@ public class ListingRequestDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-        value = "The timestamp when the query was submitted."
+        value = "The timestamp when the query was submitted.",
+        dataType = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -97,7 +98,8 @@ public class ListingRequestDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-        value = "The last time this listing request was updated."
+        value = "The last time this listing request was updated.",
+        dataType = "string"
     )
     public Date getLastUpdated() {
         return lastUpdated;

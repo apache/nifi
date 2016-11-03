@@ -41,7 +41,7 @@ public class GetKafkaIntegrationTests {
     private static EmbeddedKafkaProducerHelper producerHelper;
 
     @BeforeClass
-    public static void bforeClass(){
+    public static void beforeClass(){
         kafkaLocal = new EmbeddedKafka();
         kafkaLocal.start();
         producerHelper = new EmbeddedKafkaProducerHelper(kafkaLocal);

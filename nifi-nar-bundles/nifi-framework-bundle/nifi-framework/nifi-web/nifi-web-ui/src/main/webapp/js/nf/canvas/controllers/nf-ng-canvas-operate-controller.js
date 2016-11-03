@@ -121,34 +121,39 @@ nf.ng.Canvas.OperateCtrl = function () {
                             options.url += (encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload');
                         },
                         success: function (response, statusText, xhr, form) {
-                            // see if the import was successful
+                            // see if the import was successful and inform the user
                             if (response.documentElement.tagName === 'templateEntity') {
-                                // close the dialog
-                                $('#upload-template-dialog').modal('hide');
-
-                                // close the settings dialog
                                 nf.Dialog.showOkDialog({
                                     headerText: 'Success',
                                     dialogContent: 'Template successfully imported.'
                                 });
                             } else {
                                 // import failed
-                                var status = 'Unable to import template. Please check the log for errors.';
+                                var statusText = 'Unable to import template. Please check the log for errors.';
                                 if (response.documentElement.tagName === 'errorResponse') {
                                     // if a more specific error was given, use it
                                     var errorMessage = response.documentElement.getAttribute('statusText');
                                     if (!nf.Common.isBlank(errorMessage)) {
-                                        status = errorMessage;
+                                        statusText = errorMessage;
                                     }
                                 }
-                                $('#upload-template-status').text(status);
+
+                                // show reason
+                                nf.Dialog.showOkDialog({
+                                    headerText: 'Unable to Upload',
+                                    dialogContent: nf.Common.escapeHtml(statusText)
+                                });
                             }
                         },
                         error: function (xhr, statusText, error) {
-                            $('#upload-template-status').text(xhr.responseText);
+                            // request failed
+                            nf.Dialog.showOkDialog({
+                                headerText: 'Unable to Upload',
+                                dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                            });
                         }
                     });
-                    
+
                     // configure the upload template dialog
                     this.getElement().modal({
                         headerText: 'Upload Template',
@@ -168,6 +173,9 @@ nf.ng.Canvas.OperateCtrl = function () {
                                         $('#upload-template-status').text('No template selected. Please browse to select a template.');
                                     } else {
                                         templateForm.submit();
+
+                                        // hide the dialog
+                                        $('#upload-template-dialog').modal('hide');
                                     }
                                 }
                             }
@@ -397,12 +405,35 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 $('#fill-color-value').val(hex);
 
                                 // always update the preview
-                                $('#fill-color-processor-preview').css('color', hex);
-                                $('#fill-color-label-preview').css({
-                                    'border-color': hex,
-                                    'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
-                                    'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'
+                                if (hex.toLowerCase() === '#ffffff') {
+                                    //special case #ffffff implies default fill
+                                    $('#fill-color-processor-preview-icon').css({
+                                        'color': nf.Processor.defaultIconColor(),
+                                        'background-color': hex
+                                    });
+                                } else {
+                                    $('#fill-color-processor-preview-icon').css({
+                                        'color': nf.Common.determineContrastColor(
+                                            nf.Common.substringAfterLast(
+                                                hex, '#')),
+                                        'background-color': hex
+                                    });
+                                }
+
+                                var borderColor = hex;
+                                if (borderColor.toLowerCase() === '#ffffff') {
+                                    borderColor = 'rgba(0,0,0,0.25)';
+                                }
+                                $('#fill-color-processor-preview').css({
+                                    'border-color': borderColor
                                 });
+
+                                $('#fill-color-label-preview').css({
+                                    'background': hex
+                                });
+                                $('#fill-color-label-preview-value').css('color',
+                                    nf.Common.determineContrastColor(nf.Common.substringAfterLast(hex, '#'))
+                                );
                             }
                         });
 

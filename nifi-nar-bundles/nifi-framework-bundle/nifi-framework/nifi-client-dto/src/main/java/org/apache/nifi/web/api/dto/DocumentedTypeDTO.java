@@ -48,7 +48,7 @@ public class DocumentedTypeDTO {
      * @return The type is the fully-qualified name of a Java class
      */
     @ApiModelProperty(
-            value = "The fulley qualified name of the type."
+            value = "The fully qualified name of the type."
     )
     public String getType() {
         return type;

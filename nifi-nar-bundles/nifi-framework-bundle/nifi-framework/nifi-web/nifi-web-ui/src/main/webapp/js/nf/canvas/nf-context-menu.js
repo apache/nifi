@@ -186,16 +186,14 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection
      */
     var hasDownstream = function (selection) {
-        // TODO
-        // // ensure the correct number of components are selected
-        // if (selection.size() !== 1) {
-        //     return false;
-        // }
-        //
-        // return nf.CanvasUtils.isFunnel(selection) || nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
-        //         nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) ||
-        //         (nf.CanvasUtils.isOutputPort(selection) && nf.Canvas.getParentGroupId() !== null);
-        return false;
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return nf.CanvasUtils.isFunnel(selection) || nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
+                nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) ||
+                (nf.CanvasUtils.isOutputPort(selection) && nf.Canvas.getParentGroupId() !== null);
     };
 
     /**
@@ -204,16 +202,14 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection
      */
     var hasUpstream = function (selection) {
-        // TODO
-        // // ensure the correct number of components are selected
-        // if (selection.size() !== 1) {
-        //     return false;
-        // }
-        //
-        // return nf.CanvasUtils.isFunnel(selection) || nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
-        //         nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isOutputPort(selection) ||
-        //         (nf.CanvasUtils.isInputPort(selection) && nf.Canvas.getParentGroupId() !== null);
-        return false;
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return nf.CanvasUtils.isFunnel(selection) || nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
+                nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isOutputPort(selection) ||
+                (nf.CanvasUtils.isInputPort(selection) && nf.Canvas.getParentGroupId() !== null);
     };
 
     /**

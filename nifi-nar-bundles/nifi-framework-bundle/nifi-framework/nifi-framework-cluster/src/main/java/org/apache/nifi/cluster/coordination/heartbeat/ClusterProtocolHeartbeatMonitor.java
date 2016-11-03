@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.coordination.heartbeat;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ import javax.xml.bind.Unmarshaller;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.coordination.node.NodeWorkload;
 import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -38,6 +40,8 @@ import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.util.NiFiProperties;
@@ -130,11 +134,18 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
     @Override
     public ProtocolMessage handle(final ProtocolMessage msg) throws ProtocolException {
-        if (msg.getType() != MessageType.HEARTBEAT) {
-            throw new ProtocolException("Cannot handle message of type " + msg.getType());
+        switch (msg.getType()) {
+            case HEARTBEAT:
+                return handleHeartbeat((HeartbeatMessage) msg);
+            case CLUSTER_WORKLOAD_REQUEST:
+                return handleClusterWorkload((ClusterWorkloadRequestMessage) msg);
+            default:
+                throw new ProtocolException("Cannot handle message of type " + msg.getType());
         }
+    }
 
-        final HeartbeatMessage heartbeatMsg = (HeartbeatMessage) msg;
+    private ProtocolMessage handleHeartbeat(final HeartbeatMessage msg) {
+        final HeartbeatMessage heartbeatMsg = msg;
         final Heartbeat heartbeat = heartbeatMsg.getHeartbeat();
 
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
@@ -169,6 +180,26 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         return responseMessage;
     }
 
+    private ProtocolMessage handleClusterWorkload(final ClusterWorkloadRequestMessage msg) {
+
+        final ClusterWorkloadResponseMessage response = new ClusterWorkloadResponseMessage();
+        final Map<NodeIdentifier, NodeWorkload> workloads = new HashMap<>();
+        getLatestHeartbeats().values().stream()
+            .filter(hb -> NodeConnectionState.CONNECTED.equals(hb.getConnectionStatus().getState()))
+            .forEach(hb -> {
+                NodeWorkload wl = new NodeWorkload();
+                wl.setReportedTimestamp(hb.getTimestamp());
+                wl.setSystemStartTime(hb.getSystemStartTime());
+                wl.setActiveThreadCount(hb.getActiveThreadCount());
+                wl.setFlowFileCount(hb.getFlowFileCount());
+                wl.setFlowFileBytes(hb.getFlowFileBytes());
+                workloads.put(hb.getNodeIdentifier(), wl);
+            });
+        response.setNodeWorkloads(workloads);
+
+        return response;
+    }
+
     private List<NodeConnectionStatus> getUpdatedStatuses(final List<NodeConnectionStatus> nodeStatusList) {
         // Map node's statuses by NodeIdentifier for quick & easy lookup
         final Map<NodeIdentifier, NodeConnectionStatus> nodeStatusMap = nodeStatusList.stream()
@@ -201,6 +232,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
     @Override
     public boolean canHandle(ProtocolMessage msg) {
-        return msg.getType() == MessageType.HEARTBEAT;
+        return msg.getType() == MessageType.HEARTBEAT || msg.getType() == MessageType.CLUSTER_WORKLOAD_REQUEST;
     }
 }

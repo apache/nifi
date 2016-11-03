@@ -77,7 +77,8 @@
                 'background-color': 'rgb(255, 255, 255)',
                 'overflow': 'hidden',
                 'padding': '10px 20px',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).appendTo(container);
 
             // create the input field
@@ -301,7 +302,8 @@
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 cancel: 'input, textarea, pre, .nf-checkbox, .button, .' + editorClass,
                 containment: 'parent'
@@ -383,8 +385,8 @@
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 22,
-                'left': position.left - 20
+                'top': position.top - 21,
+                'left': position.left - 43
             });
         };
 
@@ -506,7 +508,8 @@
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move'
+                'cursor': 'move',
+                'transform': 'translate3d(0px, 0px, 0px)'
             }).draggable({
                 cancel: '.button, .combo',
                 containment: 'parent'
@@ -717,14 +720,15 @@
                 var wrapper = $('<div class="property-detail"></div>').css({
                     'z-index': 1999,
                     'position': 'absolute',
-                    'padding': '5px',
+                    'padding': '10px 20px',
                     'overflow': 'hidden',
                     'border-radius': '2px',
                     'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                     'background-color': 'rgb(255, 255, 255)',
                     'cursor': 'move',
-                    'top': offset.top - 5,
-                    'left': offset.left - 5
+                    'transform': 'translate3d(0px, 0px, 0px)',
+                    'top': offset.top - 24,
+                    'left': offset.left - 20
                 }).appendTo('body');
 
                 var allowableValues = nf.Common.getAllowableValues(propertyDescriptor);
@@ -763,7 +767,11 @@
                     var width = cellNode.width() - 16;
 
                     // build the combo field
-                    $('<div class="value-combo combo"></div>').width(width).combo({
+                    $('<div class="value-combo combo"></div>').css({
+                        'width': width,
+                        'margin-top': '10px',
+                        'margin-bottom': '10px'
+                    }).combo({
                         options: options,
                         maxHeight: maxHeight,
                         selectedOption: {
@@ -772,10 +780,9 @@
                     }).appendTo(wrapper);
 
                     $('<div class="button">Ok</div>').css({
-                        'margin': '0 0 0 5px',
-                        'float': 'left',
-                        'color': '#fff',
-                        'background': '#728E9B'
+                        'position': 'relative',
+                        'top': '10px',
+                        'left': '20px'
                     }).hover(
                         function () {
                             $(this).css('background', '#004849');
@@ -793,7 +800,19 @@
                         var editorClass = languageId + '-editor';
 
                         // prevent dragging over the nf editor
-                        wrapper.draggable({
+                        wrapper.css({
+                            'z-index': 1999,
+                            'position': 'absolute',
+                            'padding': '10px 20px',
+                            'overflow': 'hidden',
+                            'border-radius': '2px',
+                            'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                            'background-color': 'rgb(255, 255, 255)',
+                            'cursor': 'move',
+                            'transform': 'translate3d(0px, 0px, 0px)',
+                            'top': offset.top - 22,
+                            'left': offset.left - 43
+                        }).draggable({
                             cancel: 'input, textarea, pre, .button, .' + editorClass,
                             containment: 'parent'
                         });
@@ -812,12 +831,26 @@
                             }
                         });
                     } else {
+                        wrapper.css({
+                            'z-index': 1999,
+                            'position': 'absolute',
+                            'padding': '10px 20px',
+                            'overflow': 'hidden',
+                            'border-radius': '2px',
+                            'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                            'background-color': 'rgb(255, 255, 255)',
+                            'cursor': 'move',
+                            'transform': 'translate3d(0px, 0px, 0px)',
+                            'top': offset.top - 26,
+                            'left': offset.left - 20
+                        });
 
                         // create the input field
                         $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
                             'height': '80px',
+                            'resize': 'both',
                             'width': cellNode.width() + 'px',
-                            'margin': '20px 20px'
+                            'margin': '10px 0px'
                         }).text(property.value).on('keydown', function (evt) {
                             if (evt.which === $.ui.keyCode.ESCAPE) {
                                 cleanUp();
@@ -845,10 +878,9 @@
 
                     // add an ok button that will remove the entire pop up
                     var ok = $('<div class="button">Ok</div>').css({
-                        'margin': '0 0 0 5px',
-                        'float': 'left',
-                        'color': '#fff',
-                        'background': '#728E9B'
+                        'position': 'relative',
+                        'top': '10px',
+                        'left': '20px'
                     }).hover(
                         function () {
                             $(this).css('background', '#004849');
@@ -1659,11 +1691,7 @@
                             }
                         });
 
-                        // make the new property dialog draggable
-                        newPropertyDialog.draggable({
-                            cancel: 'input, textarea, pre, .button, .' + editorClass,
-                            containment: 'body'
-                        }).on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
+                        newPropertyDialog.on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
 
                         // build the control to open the new property dialog
                         var addProperty = $('<div class="add-property"></div>').appendTo(header);

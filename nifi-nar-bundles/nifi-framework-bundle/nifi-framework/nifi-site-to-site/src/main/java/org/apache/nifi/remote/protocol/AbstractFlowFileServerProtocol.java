@@ -63,7 +63,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     protected boolean shutdown = false;
     protected FlowFileCodec negotiatedFlowFileCodec = null;
 
-    protected HandshakeProperties handshakenProperties;
+    protected HandshakeProperties handshakeProperties;
 
     protected static final long DEFAULT_BATCH_NANOS = TimeUnit.SECONDS.toNanos(5L);
 
@@ -195,7 +195,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
         logger.debug("{} Handshaking with {}", this, peer);
 
-        this.handshakenProperties = doHandshake(peer);
+        this.handshakeProperties = doHandshake(peer);
 
         logger.debug("{} Finished handshake with {}", this, peer);
         handshakeCompleted = true;
@@ -242,7 +242,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         String calculatedCRC = "";
         OutputStream os = new DataOutputStream(commsSession.getOutput().getOutputStream());
         while (continueTransaction) {
-            final boolean useGzip = handshakenProperties.isUseGzip();
+            final boolean useGzip = handshakeProperties.isUseGzip();
             final OutputStream flowFileOutputStream = useGzip ? new CompressionOutputStream(os) : os;
             logger.debug("{} Sending {} to {}", new Object[]{this, flowFile, peer});
 
@@ -278,15 +278,15 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             // determine if we should check for more data on queue.
             final long sendingNanos = System.nanoTime() - startNanos;
             boolean poll = true;
-            double batchDurationNanos = handshakenProperties.getBatchDurationNanos();
+            double batchDurationNanos = handshakeProperties.getBatchDurationNanos();
             if (sendingNanos >= batchDurationNanos && batchDurationNanos > 0L) {
                 poll = false;
             }
-            double batchBytes = handshakenProperties.getBatchBytes();
+            double batchBytes = handshakeProperties.getBatchBytes();
             if (bytesSent >= batchBytes && batchBytes > 0L) {
                 poll = false;
             }
-            double batchCount = handshakenProperties.getBatchCount();
+            double batchCount = handshakeProperties.getBatchCount();
             if (flowFilesSent.size() >= batchCount && batchCount > 0) {
                 poll = false;
             }
@@ -433,7 +433,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         boolean continueTransaction = true;
         while (continueTransaction) {
             final long startNanos = System.nanoTime();
-            final InputStream flowFileInputStream = handshakenProperties.isUseGzip() ? new CompressionInputStream(dis) : dis;
+            final InputStream flowFileInputStream = handshakeProperties.isUseGzip() ? new CompressionInputStream(dis) : dis;
             final CheckedInputStream checkedInputStream = new CheckedInputStream(flowFileInputStream, crc);
 
             final DataPacket dataPacket = codec.decode(checkedInputStream);
@@ -551,12 +551,12 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
 
     @Override
     public long getRequestExpiration() {
-        return handshakenProperties.getExpirationMillis();
+        return handshakeProperties.getExpirationMillis();
     }
 
     @Override
     public String toString() {
-        String commid = handshakenProperties != null ? handshakenProperties.getCommsIdentifier() : null;
+        String commid = handshakeProperties != null ? handshakeProperties.getCommsIdentifier() : null;
         return getClass().getSimpleName() + "[CommsID=" + commid + "]";
     }
 }

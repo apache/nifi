@@ -84,7 +84,7 @@ public class TestReplaceText {
     }
 
     @Test
-    public void testWithUnEscaped$InReplacemenmt() throws IOException {
+    public void testWithUnEscaped$InReplacement() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");

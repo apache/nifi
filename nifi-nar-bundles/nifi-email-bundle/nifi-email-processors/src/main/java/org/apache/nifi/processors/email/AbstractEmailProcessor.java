@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.email;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -44,14 +43,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.integration.mail.AbstractMailReceiver;
 import org.springframework.util.Assert;
-import org.springframework.util.StreamUtils;
 
 /**
  * Base processor for implementing processors to consume messages from Email
@@ -222,7 +219,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
     protected abstract T buildMessageReceiver(ProcessContext context);
 
     /**
-     * Return the target receivere's mail protocol (e.g., imap, pop etc.)
+     * Return the target receiver's mail protocol (e.g., imap, pop etc.)
      */
     protected abstract String getProtocol(ProcessContext processContext);
 
@@ -348,14 +345,11 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         long start = System.nanoTime();
         FlowFile flowFile = processSession.create();
 
-        flowFile = processSession.append(flowFile, new OutputStreamCallback() {
-            @Override
-            public void process(final OutputStream out) throws IOException {
-                try {
-                    StreamUtils.copy(emailMessage.getInputStream(), out);
-                } catch (MessagingException e) {
-                    throw new IOException(e);
-                }
+        flowFile = processSession.append(flowFile, out -> {
+            try {
+                emailMessage.writeTo(out);
+            } catch (MessagingException e) {
+                throw new IOException(e);
             }
         });
 
@@ -368,7 +362,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
                 fromAddressesString = Arrays.asList(fromAddresses).toString();
             }
         } catch (MessagingException e) {
-            this.logger.warn("Faild to retrieve 'From' attribute from Message.");
+            this.logger.warn("Failed to retrieve 'From' attribute from Message.");
         }
 
         processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);

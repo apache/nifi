@@ -33,7 +33,7 @@ public class ControllerConfigurationDTO {
      * @return maximum number of timer driven threads this NiFi has available
      */
     @ApiModelProperty(
-            value = "The maimum number of timer driven threads the NiFi has available."
+            value = "The maximum number of timer driven threads the NiFi has available."
     )
     public Integer getMaxTimerDrivenThreadCount() {
         return maxTimerDrivenThreadCount;
@@ -47,7 +47,7 @@ public class ControllerConfigurationDTO {
      * @return maximum number of event driven thread this NiFi has available
      */
     @ApiModelProperty(
-            value = "The maximum number of event driven threads the NiFi has avaiable."
+            value = "The maximum number of event driven threads the NiFi has available."
     )
     public Integer getMaxEventDrivenThreadCount() {
         return maxEventDrivenThreadCount;

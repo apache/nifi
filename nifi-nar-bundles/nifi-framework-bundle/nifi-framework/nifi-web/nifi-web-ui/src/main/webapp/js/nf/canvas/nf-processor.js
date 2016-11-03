@@ -106,32 +106,31 @@ nf.Processor = (function () {
         // processor name
         processor.append('text')
             .attr({
-                'x': 62,
-                'y': 20,
-                'width': 220,
-                'height': 16,
+                'x': 72,
+                'y': 23,
+                'width': 210,
+                'height': 14,
                 'class': 'processor-name'
+            });
+
+        // processor icon container
+        processor.append('rect')
+            .attr({
+                'x': 0,
+                'y': 0,
+                'width': 50,
+                'height': 50,
+                'class': 'processor-icon-container'
             });
 
         // processor icon
         processor.append('text')
             .attr({
-                'x': 6,
-                'y': 32,
+                'x': 9,
+                'y': 35,
                 'class': 'processor-icon'
             })
             .text('\ue807');
-
-        // processor stats preview
-        processor.append('image')
-            .call(nf.CanvasUtils.disableImageHref)
-            .attr({
-                'width': 294,
-                'height': 58,
-                'x': 8,
-                'y': 35,
-                'class': 'processor-stats-preview'
-            });
 
         // make processors selectable
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
@@ -175,18 +174,18 @@ nf.Processor = (function () {
                     details.append('text')
                         .attr({
                             'class': 'run-status-icon',
-                            'x': 42,
-                            'y': 20
+                            'x': 55,
+                            'y': 23
                         });
 
                     // processor type
                     details.append('text')
                         .attr({
                             'class': 'processor-type',
-                            'x': 62,
-                            'y': 35,
-                            'width': 246,
-                            'height': 16
+                            'x': 72,
+                            'y': 37,
+                            'width': 236,
+                            'height': 12
                         });
 
                     // -----
@@ -517,9 +516,6 @@ nf.Processor = (function () {
                     processor.select('text.processor-type').text(null);
                 }
 
-                // hide the preview
-                processor.select('image.processor-stats-preview').style('display', 'none');
-
                 // populate the stats
                 processor.call(updateProcessorStatus);
             } else {
@@ -534,10 +530,10 @@ nf.Processor = (function () {
                                 return name;
                             }
                         });
+                } else {
+                    // clear the processor name
+                    processor.select('text.processor-name').text(null);
                 }
-
-                // show the preview
-                processor.select('image.processor-stats-preview').style('display', 'block');
 
                 // remove the tooltips
                 processor.call(removeTooltips);
@@ -547,30 +543,67 @@ nf.Processor = (function () {
                     details.remove();
                 }
             }
-        });
-        
-        // ---------------
-        // processor color
-        // ---------------
 
-        // update the processor color
-        updated.select('text.processor-icon')
-            .style('fill', function (d) {
-                
-                // get the default color
-                var color = nf.Processor.defaultColor();
-                
-                if (!d.permissions.canRead) {
+            // ---------------
+            // processor color
+            // ---------------
+
+            //update the processor icon container
+            processor.select('rect.processor-icon-container').classed('unauthorized', !processorData.permissions.canRead);
+
+            //update the processor icon
+            processor.select('text.processor-icon').classed('unauthorized', !processorData.permissions.canRead);
+
+            //update the processor border
+            processor.select('rect.border').classed('unauthorized', !processorData.permissions.canRead);
+
+            // use the specified color if appropriate
+            if (processorData.permissions.canRead){
+                if (nf.Common.isDefinedAndNotNull(processorData.component.style['background-color'])) {
+                    var color = processorData.component.style['background-color'];
+
+                    //update the processor icon container
+                    processor.select('rect.processor-icon-container')
+                        .style('fill', function (d) {
+                            return color;
+                        });
+
+                    //update the processor border
+                    processor.select('rect.border')
+                        .style('stroke', function (d) {
+                            return color;
+                        });
+                }
+            }
+
+            // update the processor color
+            processor.select('text.processor-icon')
+                .style('fill', function (d) {
+
+                    // get the default color
+                    var color = nf.Processor.defaultIconColor();
+
+                    if (!d.permissions.canRead) {
+                        return color;
+                    }
+
+                    // use the specified color if appropriate
+                    if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                        color = d.component.style['background-color'];
+
+                        //special case #ffffff implies default fill
+                        if (color.toLowerCase() === '#ffffff') {
+                            color = nf.Processor.defaultIconColor();
+                        } else {
+                            color = nf.Common.determineContrastColor(
+                                nf.Common.substringAfterLast(
+                                    color, '#'));
+                        }
+                    }
+
                     return color;
-                }
-
-                // use the specified color if appropriate
-                if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
-                    color = d.component.style['background-color'];
-                }
-
-                return color;
-            });
+                });
+        });
     };
 
     /**
@@ -588,9 +621,15 @@ nf.Processor = (function () {
             .attr({
                 'fill': function (d) {
                     var fill = '#728e9b';
-                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                        fill = '#ba554a';
+
+                    if  (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                        fill = '#cf9f5d';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
+                        fill = '#7dc7a0';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
+                        fill = '#d18686';
                     }
+
                     return fill;
                 },
                 'font-family': function (d) {
@@ -955,9 +994,16 @@ nf.Processor = (function () {
         },
 
         /**
-         * Returns the default color that should be used when drawing a processor.
+         * Returns the default fill color that should be used when drawing a processor.
          */
-        defaultColor: function () {
+        defaultFillColor: function () {
+            return '#FFFFFF';
+        },
+
+        /**
+         * Returns the default icon color that should be used when drawing a processor.
+         */
+        defaultIconColor: function () {
             return '#ad9897';
         }
     };

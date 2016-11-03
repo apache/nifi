@@ -101,6 +101,7 @@ language governing permissions and limitations under the License. -->
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <ranger.version>0.6.0</ranger.version>
         <hive.version>1.2.1</hive.version>
+        <hive.hadoop.version>2.6.2</hive.hadoop.version>
         <hbase.version>1.1.2</hbase.version>
         <storm.version>1.0.1</storm.version>
     </properties>
@@ -894,6 +895,11 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-toolkit-s2s</artifactId>
+                <version>1.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
@@ -1429,6 +1435,9 @@ language governing permissions and limitations under the License. -->
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.18</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <java.awt.headless>true</java.awt.headless>
+                        </systemPropertyVariables>
                         <includes>
                             <include>**/*Test.class</include>
                             <include>**/Test*.class</include>
@@ -1716,8 +1725,7 @@ language governing permissions and limitations under the License. -->
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.travis.yml</exclude> <!-- Travis CI Build Descriptor File -->
-                        <exclude>appveyor.yml</exclude> <!-- AppVeyor CI Build Descriptor File -->
+                        <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
                     </excludes>
                 </configuration>
                 <dependencies>
@@ -1865,8 +1873,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
+                -->
             </properties>
         </profile>
         <profile>
@@ -1888,8 +1897,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.7.0-mapr-1602</hadoop.version>
+                -->
             </properties>
         </profile>
         <profile>
@@ -1911,8 +1921,9 @@ language governing permissions and limitations under the License. -->
             </repositories>
             <properties>
                 <!-- Vendor-specific version number included here as default, should be overridden on the
-                     command-line -->
+                     command-line
                 <hadoop.version>2.6.0-cdh5.8.1</hadoop.version>
+                -->
             </properties>
         </profile>
     </profiles>

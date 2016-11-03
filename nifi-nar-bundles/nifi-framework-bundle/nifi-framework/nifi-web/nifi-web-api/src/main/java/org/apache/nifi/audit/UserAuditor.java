@@ -90,7 +90,7 @@ public class UserAuditor extends NiFiAuditor {
             + "args(userDTO) && "
             + "target(userDAO)")
     public User updateUserAdvice(ProceedingJoinPoint proceedingJoinPoint, UserDTO userDTO, UserDAO userDAO) throws Throwable {
-        // determine the initial values for each property/setting thats changing
+        // determine the initial values for each property/setting that's changing
         User user = userDAO.getUser(userDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(user, userDTO);
 

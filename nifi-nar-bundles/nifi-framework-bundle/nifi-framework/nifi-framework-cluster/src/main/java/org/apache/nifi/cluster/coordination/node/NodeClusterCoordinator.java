@@ -16,27 +16,12 @@
  */
 package org.apache.nifi.cluster.coordination.node;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.flow.FlowElection;
-import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
-import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
+import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.replication.RequestCompletionCallback;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.NodeEvent;
@@ -49,10 +34,13 @@ import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.impl.ClusterCoordinationProtocolSenderListener;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
+import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
@@ -69,6 +57,22 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandler, RequestCompletionCallback {
 
@@ -88,6 +92,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final LeaderElectionManager leaderElectionManager;
     private final AtomicLong latestUpdateId = new AtomicLong(-1);
     private final FlowElection flowElection;
+    private final NodeProtocolSender nodeProtocolSender;
 
     private volatile FlowService flowService;
     private volatile boolean connected;
@@ -98,7 +103,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final ConcurrentMap<NodeIdentifier, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>();
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
-            final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties) {
+            final FlowElection flowElection, final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties,
+            final NodeProtocolSender nodeProtocolSender) {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
@@ -107,6 +113,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.nifiProperties = nifiProperties;
         this.leaderElectionManager = leaderElectionManager;
         this.flowElection = flowElection;
+        this.nodeProtocolSender = nodeProtocolSender;
 
         senderListener.addHandler(this);
     }
@@ -968,7 +975,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
          * state even if they had problems handling the request.
          */
         if (mutableRequest) {
-            final HttpResponseMerger responseMerger = new StandardHttpResponseMerger(nifiProperties);
+            final HttpResponseMapper responseMerger = new StandardHttpResponseMapper(nifiProperties);
             final Set<NodeResponse> problematicNodeResponses = responseMerger.getProblematicNodeResponses(nodeResponses);
 
             // all nodes failed
@@ -1042,5 +1049,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public boolean isConnected() {
         return connected;
+    }
+
+    @Override
+    public Map<NodeIdentifier, NodeWorkload> getClusterWorkload() throws IOException {
+        final ClusterWorkloadRequestMessage request = new ClusterWorkloadRequestMessage();
+        final ClusterWorkloadResponseMessage response = nodeProtocolSender.clusterWorkload(request);
+        return response.getNodeWorkloads();
     }
 }

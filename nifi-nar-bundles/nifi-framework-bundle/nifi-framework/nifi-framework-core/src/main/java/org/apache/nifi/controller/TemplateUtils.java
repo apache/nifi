@@ -216,7 +216,7 @@ public class TemplateUtils {
      * so that if one of these things changes, the template itself changes, which makes it hard to
      * use a CM tool for versioning. So we remove all that we don't need.
      *
-     * @param descriptor the ProeprtyDescriptor to scrub
+     * @param descriptor the PropertyDescriptor to scrub
      */
     private static void scrubPropertyDescriptor(final PropertyDescriptorDTO descriptor) {
         descriptor.setAllowableValues(null);

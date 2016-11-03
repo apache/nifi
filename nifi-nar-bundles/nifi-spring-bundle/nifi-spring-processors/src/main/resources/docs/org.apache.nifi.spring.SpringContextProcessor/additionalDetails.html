@@ -35,7 +35,7 @@
                 In this case NiFi simply plays the role of the runtime host.</li>
                 <li><i>One way (NiFi -&gt; Spring or Spring -&gt; NiFi). </i> - This depends on existence of pre-defined message channel in Spring
                 Application Context. The name of the channel should be “fromNiFi” and the type <i>org.springframework.messaging.MessageChannel.</i></li>
-                <li><i>By-directional (NiFi -&gt; Spring -&gt; Nifi or Spring -&gt; NiFi -&gt; Spring)</i> - This depends on existence of two channels
+                <li><i>By-directional (NiFi -&gt; Spring -&gt; NiFi or Spring -&gt; NiFi -&gt; Spring)</i> - This depends on existence of two channels
                 in Spring Application Context. One channel receives messages from NiFi with name “fromNiFi” and type <i>org.springframework.messaging.MessageChannel</i>i>
                 and another is to receive messages from Spring with name “toNiFi” and type <i>org.springframework.messaging.PollableChannel.</i></li>
             </ul>
@@ -87,7 +87,7 @@
         Defaults to 0 (don't wait). FlowFiles that were successfully sent to Spring will be removed from session while FlowFiles that could not be sent to
         Spring will be routed to <i>failure</i> relationship.</li>
         <li><i>Receive Timeout</i> - [OPTIONAL] - the wait time for receiving messages from Spring Application Context. Only required if NiFi plans to receive data from Spring.
-        Defaults to 0 (don't wait). FlowFile is created if and only if a message is successfully received from Spring. It is then transfered to <i>success</i> relationship.</li>
+        Defaults to 0 (don't wait). FlowFile is created if and only if a message is successfully received from Spring. It is then transferred to <i>success</i> relationship.</li>
         </ul>
         </p>
     </body>

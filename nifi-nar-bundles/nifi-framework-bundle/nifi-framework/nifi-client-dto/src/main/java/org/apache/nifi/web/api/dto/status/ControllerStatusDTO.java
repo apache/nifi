@@ -55,7 +55,7 @@ public class ControllerStatusDTO implements Cloneable {
     /**
      * @return queue for the controller
      */
-    @ApiModelProperty("The number of flowfilew queued in the NiFi.")
+    @ApiModelProperty("The number of flowfiles queued in the NiFi.")
     public String getQueued() {
         return queued;
     }

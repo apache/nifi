@@ -21,6 +21,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.ServiceLoader;
 
+import javax.jms.ConnectionFactory;
+import javax.jms.Session;
+
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.nifi.processor.Processor;
 import org.junit.Test;
@@ -49,12 +52,13 @@ public class CommonTest {
     }
 
     static JmsTemplate buildJmsTemplateForDestination(boolean pubSub) {
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(
+        ConnectionFactory connectionFactory = new ActiveMQConnectionFactory(
                 "vm://localhost?broker.persistent=false");
-        CachingConnectionFactory cf = new CachingConnectionFactory(connectionFactory);
+        connectionFactory = new CachingConnectionFactory(connectionFactory);
 
-        JmsTemplate jmsTemplate = new JmsTemplate(cf);
+        JmsTemplate jmsTemplate = new JmsTemplate(connectionFactory);
         jmsTemplate.setPubSubDomain(pubSub);
+        jmsTemplate.setSessionAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
         return jmsTemplate;
     }
 }

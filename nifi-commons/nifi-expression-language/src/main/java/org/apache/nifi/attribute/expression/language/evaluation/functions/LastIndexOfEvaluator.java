@@ -19,11 +19,11 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 
-public class LastIndexOfEvaluator extends NumberEvaluator {
+public class LastIndexOfEvaluator extends WholeNumberEvaluator {
 
     private final Evaluator<String> subject;
     private final Evaluator<String> indexEvaluator;
@@ -37,11 +37,11 @@ public class LastIndexOfEvaluator extends NumberEvaluator {
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
         final String subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
-            return new NumberQueryResult(-1L);
+            return new WholeNumberQueryResult(-1L);
         }
         final String indexEvalValue = indexEvaluator.evaluate(attributes).getValue();
 
-        return new NumberQueryResult((long) subjectValue.lastIndexOf(indexEvalValue));
+        return new WholeNumberQueryResult((long) subjectValue.lastIndexOf(indexEvalValue));
     }
 
     @Override

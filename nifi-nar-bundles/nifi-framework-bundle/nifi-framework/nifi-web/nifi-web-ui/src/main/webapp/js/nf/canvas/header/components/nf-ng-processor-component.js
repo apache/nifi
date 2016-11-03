@@ -310,6 +310,8 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                                     $('#processor-type-description').html(processorType.description).ellipsis();
                                 }
 
+                                nf.Common.toggleScrollable($('#processor-type-description').get(0));
+
                                 // populate the dom
                                 $('#processor-type-name').text(processorType.label).ellipsis();
                                 $('#selected-processor-name').text(processorType.label);

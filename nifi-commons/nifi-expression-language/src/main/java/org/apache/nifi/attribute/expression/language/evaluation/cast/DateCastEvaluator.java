@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
@@ -102,8 +103,14 @@ public class DateCastEvaluator extends DateEvaluator {
                         throw new AttributeExpressionLanguageException("Could not implicitly convert input to DATE: " + value);
                     }
                 }
-            case NUMBER:
+            case WHOLE_NUMBER:
                 return new DateQueryResult(new Date((Long) result.getValue()));
+            case DECIMAL:
+                Double resultDouble = (Double) result.getValue();
+                return new DateQueryResult(new Date(resultDouble.longValue()));
+            case NUMBER:
+                final Number numberValue = ((NumberQueryResult) result).getValue();
+                return new DateQueryResult(new Date(numberValue.longValue()));
             default:
                 return new DateQueryResult(null);
         }

@@ -510,7 +510,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), false);
             reportingTask.setName(dto.getName());
             reportingTask.setComments(dto.getComments());
-            reportingTask.setScheduldingPeriod(dto.getSchedulingPeriod());
+            reportingTask.setSchedulingPeriod(dto.getSchedulingPeriod());
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(dto.getAnnotationData());

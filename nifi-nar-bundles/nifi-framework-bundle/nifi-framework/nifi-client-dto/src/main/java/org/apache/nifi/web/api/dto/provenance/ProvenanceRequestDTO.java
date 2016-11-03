@@ -57,7 +57,8 @@ public class ProvenanceRequestDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The earliest event time to include in the query."
+            value = "The earliest event time to include in the query.",
+            dataType = "string"
     )
     public Date getStartDate() {
         return startDate;
@@ -72,7 +73,8 @@ public class ProvenanceRequestDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The latest event time to include in the query."
+            value = "The latest event time to include in the query.",
+            dataType = "string"
     )
     public Date getEndDate() {
         return endDate;

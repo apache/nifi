@@ -22,6 +22,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -198,6 +199,19 @@ public class StandardValidators {
             }
 
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
+        }
+    };
+
+    public static final Validator ISO8061_INSTANT_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+
+            try {
+                Instant.parse(input);
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO8061 Instant Date").valid(true).build();
+            } catch (final Exception e) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO8061 Instant Date, please enter in UTC time").valid(false).build();
+            }
         }
     };
 
@@ -774,5 +788,4 @@ public class StandardValidators {
             return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
         }
     }
-
 }

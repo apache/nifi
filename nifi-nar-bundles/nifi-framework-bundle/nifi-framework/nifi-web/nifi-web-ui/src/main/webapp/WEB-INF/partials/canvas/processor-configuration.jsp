@@ -81,7 +81,7 @@
                 <div class="settings-right">
                     <div class="setting">
                         <div class="setting-name">
-                            Auto terminate relationships
+                            Automatically terminate relationships
                             <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
                         </div>
                         <div class="setting-field">

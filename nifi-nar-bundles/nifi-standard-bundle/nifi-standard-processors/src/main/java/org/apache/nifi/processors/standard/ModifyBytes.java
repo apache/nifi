@@ -66,6 +66,7 @@ public class ModifyBytes extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("0 B")
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor END_OFFSET = new PropertyDescriptor.Builder()
             .name("End Offset")
@@ -73,6 +74,7 @@ public class ModifyBytes extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("0 B")
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor REMOVE_ALL = new PropertyDescriptor.Builder()
             .name("Remove All Content")
@@ -114,8 +116,8 @@ public class ModifyBytes extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        final long startOffset = context.getProperty(START_OFFSET).asDataSize(DataUnit.B).longValue();
-        final long endOffset = context.getProperty(END_OFFSET).asDataSize(DataUnit.B).longValue();
+        final long startOffset = context.getProperty(START_OFFSET).evaluateAttributeExpressions(ff).asDataSize(DataUnit.B).longValue();
+        final long endOffset = context.getProperty(END_OFFSET).evaluateAttributeExpressions(ff).asDataSize(DataUnit.B).longValue();
         final boolean removeAll = context.getProperty(REMOVE_ALL).asBoolean();
         final long newFileSize = removeAll ? 0L : ff.getSize() - startOffset - endOffset;
 

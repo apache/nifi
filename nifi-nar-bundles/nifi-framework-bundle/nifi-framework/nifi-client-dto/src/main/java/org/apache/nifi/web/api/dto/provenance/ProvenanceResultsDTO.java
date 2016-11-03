@@ -102,7 +102,8 @@ public class ProvenanceResultsDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "Then the search was performed."
+            value = "Then the search was performed.",
+            dataType = "string"
     )
     public Date getGenerated() {
         return generated;
@@ -117,7 +118,8 @@ public class ProvenanceResultsDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The oldest event available in the provenance repository."
+            value = "The oldest event available in the provenance repository.",
+            dataType = "string"
     )
     public Date getOldestEvent() {
         return oldestEvent;
@@ -128,7 +130,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * @return time offset on the server thats used for event time
+     * @return time offset on the server that's used for event time
      */
     @ApiModelProperty(
             value = "The time offset of the server that's used for event time."

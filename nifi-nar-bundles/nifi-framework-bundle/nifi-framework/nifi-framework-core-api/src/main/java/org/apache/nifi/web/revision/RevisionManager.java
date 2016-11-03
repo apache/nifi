@@ -51,7 +51,7 @@ import org.apache.nifi.web.Revision;
  *
  * <p>
  * If the first phase of the above two-phase commit completes and all nodes indicate that the
- * request may continue, this means that all nodes have agreed that the client's Revisios are
+ * request may continue, this means that all nodes have agreed that the client's Revisions are
  * acceptable.
  * </p>
  */

@@ -338,6 +338,19 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access system diagnostics.
+         *
+         * @returns {boolean}
+         */
+        canAccessSystem: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.systemPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Adds a mouse over effect for the specified selector using
          * the specified styles.
          * 
@@ -370,6 +383,20 @@ nf.Common = (function () {
                 }
             }
         },
+
+        /**
+         * Determines the contrast color of a given hex color.
+         *
+         * @param {string} hex  The hex color to test.
+         * @returns {string} The contrasting color string.
+         */
+        determineContrastColor: function (hex){
+            if (parseInt(hex, 16) > 0xffffff/1.5) {
+                return '#000000';
+            }
+            return '#ffffff';
+        },
+
 
         /**
          * Method for handling ajax errors.

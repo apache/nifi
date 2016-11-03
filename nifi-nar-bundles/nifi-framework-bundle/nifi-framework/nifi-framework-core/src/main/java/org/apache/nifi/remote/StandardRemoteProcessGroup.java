@@ -147,15 +147,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             uri = new URI(requireNonNull(targetUri.trim()));
 
-            // Trim the trailing /
-            String uriPath = uri.getPath();
-            if (uriPath == null || uriPath.equals("/") || uriPath.trim().isEmpty()) {
-                uriPath = "/nifi";
-            } else if (uriPath.endsWith("/")) {
-                uriPath = uriPath.substring(0, uriPath.length() - 1);
-            }
+            final String apiPath = SiteToSiteRestApiClient.resolveBaseUrl(uri);
 
-            final String apiPath = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort() + uriPath.trim() + "-api";
             apiUri = new URI(apiPath);
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException(e);
@@ -446,6 +439,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (!newPortIds.contains(entry.getKey())) {
                     final StandardRemoteGroupPort port = entry.getValue();
                     port.setTargetExists(false);
+                    port.setTargetRunning(false);
 
                     // If port has incoming connection, it will be cleaned up when the connection is removed
                     if (!port.hasIncomingConnection()) {
@@ -516,6 +510,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 if (!newPortIds.contains(entry.getKey())) {
                     final StandardRemoteGroupPort port = entry.getValue();
                     port.setTargetExists(false);
+                    port.setTargetRunning(false);
 
                     // If port has connections, it will be cleaned up when connections are removed
                     if (port.getConnections().isEmpty()) {

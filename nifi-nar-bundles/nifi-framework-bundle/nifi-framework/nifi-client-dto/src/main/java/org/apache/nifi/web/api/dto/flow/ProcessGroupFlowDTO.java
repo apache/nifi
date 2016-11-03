@@ -115,7 +115,8 @@ public class ProcessGroupFlowDTO {
 
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-        value = "The time the flow for the process group was last refreshed."
+        value = "The time the flow for the process group was last refreshed.",
+        dataType = "string"
     )
     public Date getLastRefreshed() {
         return lastRefreshed;

@@ -78,8 +78,8 @@
             <div id="component-policy-target"></div>
             <div class="clear"></div>
         </div>
-        <button id="delete-policy-button" class="fa fa-trash policy-button"></button>
-        <button id="new-policy-user-button" class="fa fa-user-plus policy-button"></button>
+        <button id="delete-policy-button" class="fa fa-trash policy-button" title="Delete this policy"></button>
+        <button id="new-policy-user-button" class="fa fa-user-plus policy-button" title="Add users/groups to this policy"></button>
         <div class="clear"></div>
     </div>
     <div id="policy-table"></div>

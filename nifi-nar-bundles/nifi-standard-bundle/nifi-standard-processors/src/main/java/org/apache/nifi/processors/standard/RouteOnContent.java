@@ -64,7 +64,7 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
 @DynamicProperty(name = "Relationship Name", value = "A Regular Expression", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
-        + "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
+        + "content matches the regular expression defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
 @DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 

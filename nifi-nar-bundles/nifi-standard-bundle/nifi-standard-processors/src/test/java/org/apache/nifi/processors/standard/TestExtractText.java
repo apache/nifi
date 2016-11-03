@@ -27,7 +27,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestExtractText {
@@ -348,6 +347,59 @@ public class TestExtractText {
         // Ensure the zero capture group is in the resultant attributes
         out.assertAttributeExists(attributeKey + ".0");
         out.assertAttributeEquals(attributeKey, SAMPLE_STRING);
+    }
+
+    @Test
+    public void testFindAll() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
+        final String attributeKey = "regex.result";
+        testRunner.setProperty(attributeKey, "(?s)(\\w+)");
+        testRunner.enqueue("This is my text".getBytes("UTF-8"));
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+        // Ensure the zero capture group is in the resultant attributes
+        out.assertAttributeExists(attributeKey + ".0");
+        out.assertAttributeExists(attributeKey + ".1");
+        out.assertAttributeExists(attributeKey + ".2");
+        out.assertAttributeExists(attributeKey + ".3");
+        out.assertAttributeExists(attributeKey + ".4");
+        out.assertAttributeEquals(attributeKey, "This");
+        out.assertAttributeEquals(attributeKey + ".0", "This");
+        out.assertAttributeEquals(attributeKey + ".1", "This");
+        out.assertAttributeEquals(attributeKey + ".2", "is");
+        out.assertAttributeEquals(attributeKey + ".3", "my");
+        out.assertAttributeEquals(attributeKey + ".4", "text");
+    }
+
+    @Test
+    public void testFindAllPair() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+        testRunner.setProperty(ExtractText.ENABLE_REPEATING_CAPTURE_GROUP, "true");
+        final String attributeKey = "regex.result";
+        testRunner.setProperty(attributeKey, "(\\w+)=(\\d+)");
+        testRunner.enqueue("a=1,b=10,c=100".getBytes("UTF-8"));
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+        // Ensure the zero capture group is in the resultant attributes
+        out.assertAttributeExists(attributeKey + ".0");
+        out.assertAttributeExists(attributeKey + ".1");
+        out.assertAttributeExists(attributeKey + ".2");
+        out.assertAttributeExists(attributeKey + ".3");
+        out.assertAttributeExists(attributeKey + ".4");
+        out.assertAttributeExists(attributeKey + ".5");
+        out.assertAttributeExists(attributeKey + ".6");
+        out.assertAttributeNotExists(attributeKey + ".7"); // Ensure there's no more attributes
+        out.assertAttributeEquals(attributeKey, "a");
+        out.assertAttributeEquals(attributeKey + ".0", "a=1");
+        out.assertAttributeEquals(attributeKey + ".1", "a");
+        out.assertAttributeEquals(attributeKey + ".2", "1");
+        out.assertAttributeEquals(attributeKey + ".3", "b");
+        out.assertAttributeEquals(attributeKey + ".4", "10");
+        out.assertAttributeEquals(attributeKey + ".5", "c");
+        out.assertAttributeEquals(attributeKey + ".6", "100");
     }
 
     @Test
