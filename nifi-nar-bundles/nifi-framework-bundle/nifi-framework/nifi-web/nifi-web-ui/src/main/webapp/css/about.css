@@ -22,20 +22,21 @@
 }
 
 #nf-about-pic {
-    height: 50%;
+    height: 60%;
     background: url(../images/nifi-logo-about.svg) #000000 no-repeat center center;
-    top: 25%;
+    top: 20%;
     position: relative;
 }
 
 #nf-about-pic-container {
-    height: 50%;
+    height: 40%;
     background: #000000;
 }
 
 #nf-version {
     font-weight:500;
     font-size: 13px;
+    cursor: pointer;
 }
 
 #nf-about-content p {
@@ -51,3 +52,20 @@
     font-weight:900;
 }
 
+#nf-version-detail {
+    padding: 5px 0 0 5px;
+    display: none;
+}
+
+#nf-version-detail-tag {
+    display: none;
+}
+
+#nf-version-detail-commit {
+    display: none;
+}
+
+#nf-about-content #nf-version-detail p {
+    font-size: 12px;
+    padding: 0;
+}

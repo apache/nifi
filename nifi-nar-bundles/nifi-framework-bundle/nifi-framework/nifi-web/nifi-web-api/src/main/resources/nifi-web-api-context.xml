@@ -52,6 +52,7 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="properties" ref="nifiProperties"/>
     </bean>
 
     <!-- snippet utils -->

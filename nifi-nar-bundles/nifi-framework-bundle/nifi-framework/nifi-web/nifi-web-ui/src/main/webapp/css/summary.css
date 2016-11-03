@@ -217,6 +217,25 @@ div.storage-usage-progressbar div.ui-progressbar-value {
     border-radius: 0;
 }
 
+dl.setting-attributes-list {
+  float: left;
+  font-size: 12px;
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+.setting-attributes-list dt {
+  float: left;
+  clear: left;
+  padding: 0 0.5em 0.3em 0;
+  font-weight: bold;
+}
+
+.setting-attributes-list dd {
+  margin-left: 8em;
+  padding-bottom: 0.3em;
+}
+
 /* summary tabs */
 
 #summary-tabs {

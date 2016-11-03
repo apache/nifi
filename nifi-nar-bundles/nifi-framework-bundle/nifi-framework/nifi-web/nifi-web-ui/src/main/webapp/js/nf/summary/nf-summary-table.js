@@ -2010,6 +2010,9 @@ nf.SummaryTable = (function () {
             }, {
                 name: 'System',
                 tabContentId: 'system-tab-content'
+            }, {
+                name: 'Version',
+                tabContentId: 'version-tab-content'
             }]
         });
 
@@ -2292,6 +2295,28 @@ nf.SummaryTable = (function () {
             $.each(aggregateSnapshot.contentRepositoryStorageUsage, function (_, contentRepository) {
                 addStorageUsage(contentRepositoryUsageContainer, contentRepository);
             });
+
+            // Version
+            var versionSpanSelectorToFieldMap = {
+                '#version-nifi': aggregateSnapshot.versionInfo.niFiVersion,
+                '#version-build-tag': aggregateSnapshot.versionInfo.buildTag,
+                '#version-build-timestamp': aggregateSnapshot.versionInfo.buildTimestamp,
+                '#version-build-branch': aggregateSnapshot.versionInfo.buildBranch,
+                '#version-build-revision': aggregateSnapshot.versionInfo.buildRevision,
+                '#version-java-version': aggregateSnapshot.versionInfo.javaVersion,
+                '#version-java-vendor': aggregateSnapshot.versionInfo.javaVendor,
+                '#version-os-name': aggregateSnapshot.versionInfo.osName,
+                '#version-os-version': aggregateSnapshot.versionInfo.osVersion,
+                '#version-os-arch': aggregateSnapshot.versionInfo.osArchitecture
+            };
+            for (versionSpanSelector in versionSpanSelectorToFieldMap) {
+                var dataField = versionSpanSelectorToFieldMap[versionSpanSelector];
+                if (dataField) {
+                    $(versionSpanSelector).text(dataField);
+                } else {
+                    $(versionSpanSelector).text('(not available)').addClass('unset');
+                }
+            }
 
             // update the stats last refreshed timestamp
             $('#system-diagnostics-last-refreshed').text(aggregateSnapshot.statsLastRefreshed);
