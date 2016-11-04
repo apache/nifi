@@ -667,8 +667,10 @@ nf.PolicyManagement = (function () {
      */
     var promptToDeletePolicy = function () {
         nf.Dialog.showYesNoDialog({
-            headerText: 'Update Policy',
-            dialogContent: 'Are you sure you want to delete this policy?',
+            headerText: 'Delete Policy',
+            dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy.',
+            yesText: 'Delete',
+            noText: 'Cancel',
             yesHandler: function () {
                 deletePolicy();
             }
@@ -695,7 +697,7 @@ nf.PolicyManagement = (function () {
             });
         } else {
             nf.Dialog.showOkDialog({
-                headerText: 'Update Policy',
+                headerText: 'Delete Policy',
                 dialogContent: 'No policy selected'
             });
         }
