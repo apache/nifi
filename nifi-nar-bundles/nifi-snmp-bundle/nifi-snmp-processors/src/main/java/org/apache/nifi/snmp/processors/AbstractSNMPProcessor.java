@@ -361,6 +361,8 @@ abstract class AbstractSNMPProcessor<T extends SNMPWorker> extends AbstractProce
         }
         if (this.snmpTarget == null) {
             this.snmpTarget = this.createSnmpTarget(context);
+        }
+        if (this.targetResource == null) {
             this.targetResource = this.finishBuildingTargetResource(context);
         }
     }
