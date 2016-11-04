@@ -55,12 +55,6 @@ div.processor-enabled-container {
     width: 20%;
 }
 
-#execution-node-combo {
-    width: 130px;
-    height: 18px;
-    line-height: 18px;
-}
-
 #event-driven-warning {
     padding-top: 22px;
     color: #f00;

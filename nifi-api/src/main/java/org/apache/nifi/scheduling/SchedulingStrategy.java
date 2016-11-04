@@ -65,6 +65,7 @@ public enum SchedulingStrategy {
      * Scheduling Strategy is used, the component will be scheduled in the same
      * manner as if {@link TIMER_DRIVEN} were used.
      */
+    @Deprecated
     PRIMARY_NODE_ONLY(1, "0 sec"),
     /**
      * Indicates that the component will be scheduled to run according to a
