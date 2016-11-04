@@ -40,6 +40,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static java.sql.Types.ARRAY;
@@ -292,27 +293,36 @@ public class HiveJdbcCommon {
         return builder.endRecord();
     }
 
-    public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream) throws SQLException, IOException {
-        return convertToCsvStream(rs, outStream, null, null);
+    public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, CsvOutputOptions outputOptions) throws SQLException, IOException {
+        return convertToCsvStream(rs, outStream, null, null, outputOptions);
     }
 
-    public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback)
+    public static long convertToCsvStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, CsvOutputOptions outputOptions)
             throws SQLException, IOException {
 
         final ResultSetMetaData meta = rs.getMetaData();
         final int nrOfColumns = meta.getColumnCount();
         List<String> columnNames = new ArrayList<>(nrOfColumns);
 
-        for (int i = 1; i <= nrOfColumns; i++) {
-            String columnNameFromMeta = meta.getColumnName(i);
-            // Hive returns table.column for column name. Grab the column name as the string after the last period
-            int columnNameDelimiter = columnNameFromMeta.lastIndexOf(".");
-            columnNames.add(columnNameFromMeta.substring(columnNameDelimiter + 1));
+        if (outputOptions.isHeader()) {
+            if (outputOptions.getAltHeader() == null) {
+                for (int i = 1; i <= nrOfColumns; i++) {
+                    String columnNameFromMeta = meta.getColumnName(i);
+                    // Hive returns table.column for column name. Grab the column name as the string after the last period
+                    int columnNameDelimiter = columnNameFromMeta.lastIndexOf(".");
+                    columnNames.add(columnNameFromMeta.substring(columnNameDelimiter + 1));
+                }
+            } else {
+                String[] altHeaderNames = outputOptions.getAltHeader().split(",");
+                columnNames = Arrays.asList(altHeaderNames);
+            }
         }
 
         // Write column names as header row
-        outStream.write(StringUtils.join(columnNames, ",").getBytes(StandardCharsets.UTF_8));
-        outStream.write("\n".getBytes(StandardCharsets.UTF_8));
+        outStream.write(StringUtils.join(columnNames, outputOptions.getDelimiter()).getBytes(StandardCharsets.UTF_8));
+        if (outputOptions.isHeader()) {
+            outStream.write("\n".getBytes(StandardCharsets.UTF_8));
+        }
 
         // Iterate over the rows
         long nrOfRows = 0;
@@ -334,7 +344,24 @@ public class HiveJdbcCommon {
                     case VARCHAR:
                         String valueString = rs.getString(i);
                         if (valueString != null) {
-                            rowValues.add("\"" + StringEscapeUtils.escapeCsv(valueString) + "\"");
+                            // Removed extra quotes as those are a part of the escapeCsv when required.
+                            StringBuilder sb = new StringBuilder();
+                            if (outputOptions.isQuote()) {
+                                sb.append("\"");
+                                if (outputOptions.isEscape()) {
+                                    sb.append(StringEscapeUtils.escapeCsv(valueString));
+                                } else {
+                                    sb.append(valueString);
+                                }
+                                sb.append("\"");
+                                rowValues.add(sb.toString());
+                            } else {
+                                if (outputOptions.isEscape()) {
+                                    rowValues.add(StringEscapeUtils.escapeCsv(valueString));
+                                } else {
+                                    rowValues.add(valueString);
+                                }
+                            }
                         } else {
                             rowValues.add("");
                         }
@@ -358,7 +385,7 @@ public class HiveJdbcCommon {
                 }
             }
             // Write row values
-            outStream.write(StringUtils.join(rowValues, ",").getBytes(StandardCharsets.UTF_8));
+            outStream.write(StringUtils.join(rowValues, outputOptions.getDelimiter()).getBytes(StandardCharsets.UTF_8));
             outStream.write("\n".getBytes(StandardCharsets.UTF_8));
             nrOfRows++;
         }
