@@ -368,7 +368,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                 values.put(COMMENTS, processor.getComments());
             }
             if (newConfig.getSchedulingStrategy() != null) {
-                values.put(SCHEDULING_STRATEGY, processor.getSchedulingStrategy().toString());
+                values.put(SCHEDULING_STRATEGY, processor.getSchedulingStrategy().name());
             }
             if (newConfig.getExecutionNode() != null) {
                 values.put(EXECUTION_NODE, processor.getExecutionNode().name());

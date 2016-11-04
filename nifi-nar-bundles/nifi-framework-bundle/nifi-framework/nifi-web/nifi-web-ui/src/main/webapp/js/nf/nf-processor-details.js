@@ -158,9 +158,9 @@ nf.ProcessorDetails = (function () {
 
                     var showRunSchedule = true;
 
-                    // make the scheduling strategy human readable
                     var schedulingStrategy = details.config['schedulingStrategy'];
-                    var executionNode = details.config['executionNode'];
+
+                    // make the scheduling strategy human readable
                     if (schedulingStrategy === 'EVENT_DRIVEN') {
                         showRunSchedule = false;
                         schedulingStrategy = 'Event driven';
@@ -168,12 +168,8 @@ nf.ProcessorDetails = (function () {
                         schedulingStrategy = 'CRON driven';
                     } else if (schedulingStrategy === 'TIMER_DRIVEN') {
                         schedulingStrategy = "Timer driven";
-                    } else if (schedulingStrategy === 'PRIMARY_NODE_ONLY') {
-                        // PRIMARY_NODE_ONLY has been deprecated as a
-                        // schedulingStrategy option, and is now an
-                        // executionNode option instead.
-                        schedulingStrategy = "Timer driven";
-                        executionNode = 'PRIMARY'
+                    } else {
+                        schedulingStrategy = "On primary node";
                     }
                     nf.Common.populateField('read-only-scheduling-strategy', schedulingStrategy);
 
@@ -184,17 +180,20 @@ nf.ProcessorDetails = (function () {
                         $('#read-only-run-schedule').hide();
                     }
 
+                    var executionNode = details.config['executionNode'];
+
                     // only show the execution-node when applicable
-                    if (executionNode === 'ALL') {
-                        executionNode = "All nodes";
-                    } else if (executionNode === 'PRIMARY') {
-                        executionNode = "Primary node only";
-                    }
-                    nf.Common.populateField('read-only-execution-node', executionNode);
-                    if (nf.Canvas.isClustered()) {
-                        $('#details-execution-node-container').show();
+                    if (nf.Canvas.isClustered() || executionNode === 'PRIMARY') {
+                        if (executionNode === 'ALL') {
+                            executionNode = "All nodes";
+                        } else if (executionNode === 'PRIMARY') {
+                            executionNode = "Primary node only";
+                        }
+                        nf.Common.populateField('read-only-execution-node', executionNode);
+
+                        $('#read-only-execution-node-options').show();
                     } else {
-                        $('#details-execution-node-container').hide();
+                        $('#read-only-execution-node-options').hide();
                     }
 
                     // load the relationship list

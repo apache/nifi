@@ -25,7 +25,7 @@ nf.ProcessorConfiguration = (function () {
     /**
      * Gets the available scheduling strategies based on the specified processor.
      *
-     * @param {type} processor
+     * @param {object} processor
      * @returns {Array}
      */
     var getSchedulingStrategies = function (processor) {
@@ -52,6 +52,16 @@ nf.ProcessorConfiguration = (function () {
             });
         }
 
+        // conditionally support event driven
+        if (processor.config['schedulingStrategy'] === 'PRIMARY_NODE_ONLY') {
+            strategies.push({
+                text: 'On primary node',
+                value: 'PRIMARY_NODE_ONLY',
+                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution setting below.',
+                disabled: true
+            });
+        }
+
         // add an option for cron driven
         strategies.push({
             text: 'CRON driven',
@@ -60,6 +70,25 @@ nf.ProcessorConfiguration = (function () {
         });
 
         return strategies;
+    };
+
+    /**
+     * Gets the available execution nodes based on the specified processor.
+     *
+     * @param {object} processor
+     * @returns {Array}
+     */
+    var getExecutionNodeOptions = function (processor) {
+        return [{
+            text: 'All nodes',
+            value: 'ALL',
+            description: 'Processor will be scheduled to run on all nodes'
+        }, {
+            text: 'Primary node',
+            value: 'PRIMARY',
+            description: 'Processor will be scheduled to run only on the primary node',
+            disabled: !nf.Canvas.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+        }];
     };
 
     /**
@@ -516,19 +545,6 @@ nf.ProcessorConfiguration = (function () {
                 }]
             });
 
-            // initialize the execution node combo
-            $('#execution-node-combo').combo({
-                options: [{
-                        text: 'All nodes',
-                        value: 'ALL',
-                        description: 'Processor will be configured to run on all nodes'
-                    }, {
-                        text: 'Primary node only',
-                        value: 'PRIMARY',
-                        description: 'Processor will be configured to run only on the primary node'
-                    }]
-            });
-
             // initialize the run duration slider
             $('#run-duration-slider').slider({
                 min: 0,
@@ -630,16 +646,7 @@ nf.ProcessorConfiguration = (function () {
                         value: processor.config['bulletinLevel']
                     });
 
-                    // If the scheduling strategy is PRIMARY_NODE_ONLY (deprecated),
-                    // then set the execution node to PRIMARY and the scheduling
-                    // strategy to TIMER.  These new values will be saved when/if
-                    // the dialog is applied.
                     var schedulingStrategy = processor.config['schedulingStrategy'];
-                    var executionNode = processor.config['executionNode'];
-                    if (schedulingStrategy === 'PRIMARY_NODE_ONLY') {
-                        executionNode = 'PRIMARY';
-                        schedulingStrategy = 'TIMER_DRIVEN';
-                    }
 
                     // initialize the scheduling strategy
                     $('#scheduling-strategy-combo').combo({
@@ -671,14 +678,21 @@ nf.ProcessorConfiguration = (function () {
                         }
                     });
 
-                    // select the execution node
-                    $('#execution-node-combo').combo('setSelectedOption', {
-                        value: executionNode
+                    var executionNode = processor.config['executionNode'];
+
+                    // initialize the execution node combo
+                    $('#execution-node-combo').combo({
+                        options: getExecutionNodeOptions(processor),
+                        selectedOption: {
+                            value: executionNode
+                        }
                     });
-                    if (nf.Canvas.isClustered()) {
-                        $('#execution-node-container').show();
+
+                    // show the execution node option if we're cluster or we're currently configured to run on the primary node only
+                    if (nf.Canvas.isClustered() || executionNode === 'PRIMARY') {
+                        $('#execution-node-options').show();
                     } else {
-                        $('#execution-node-container').hide();
+                        $('#execution-node-options').hide();
                     }
 
                     // initialize the concurrentTasks

@@ -560,9 +560,9 @@ nf.Common = (function () {
          */
         populateField: function (target, value) {
             if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                return $('#' + target).addClass('unset').text('No value previously set');
+                return $('#' + target).addClass('unset').text('No value set');
             } else if (value === '') {
-                return $('#' + target).addClass('blank').text('Empty string previously set');
+                return $('#' + target).addClass('blank').text('Empty string set');
             } else {
                 return $('#' + target).text(value);
             }

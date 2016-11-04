@@ -529,6 +529,10 @@ The default value of `0 sec` means that the Processor should run as often as pos
 for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
+When configured for clustering, an Execution setting will be available. This setting is used determine which node(s) the Processor will be
+scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
+'Primary Node' will result in this Processor being scheduled on the Primary Node only.
+
 The right-hand side of the tab contains a slider for choosing the `Run duration.' This controls how long the Processor should be scheduled
 to run each time that it is triggered. On the left-hand side of the slider, it is marked `Lower latency' while the right-hand side
 is marked `Higher throughput.' When a Processor finishes running, it must update the repository in order to transfer the FlowFiles to

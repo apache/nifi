@@ -111,7 +111,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final Map<Relationship, Set<Connection>> connections;
     private final AtomicReference<Set<Relationship>> undefinedRelationshipsToTerminate;
     private final AtomicReference<List<Connection>> incomingConnectionsRef;
-    private final AtomicBoolean isolated;
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<String> comments;
     private final AtomicReference<Position> position;
@@ -172,7 +171,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         style = new AtomicReference<>(Collections.unmodifiableMap(new HashMap<String, String>()));
         this.processGroup = new AtomicReference<>();
         processScheduler = scheduler;
-        isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
         this.nifiProperties = nifiProperties;
 
@@ -266,7 +264,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isIsolated() {
-        return isolated.get();
+        return schedulingStrategy == SchedulingStrategy.PRIMARY_NODE_ONLY || executionNode == ExecutionNode.PRIMARY;
     }
 
     /**
@@ -315,19 +313,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
         this.lossTolerant.set(lossTolerant);
-    }
-
-    /**
-     * Indicates whether the processor runs on only the primary node.
-     *
-     * @param isolated
-     *            isolated
-     */
-    public void setIsolated(final boolean isolated) {
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
-        }
-        this.isolated.set(isolated);
     }
 
     @Override
@@ -429,8 +414,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         this.schedulingStrategy = schedulingStrategy;
-        // PRIMARY_NODE_ONLY is deprecated.  Isolated is also set when executionNode == PRIMARY
-        setIsolated(schedulingStrategy == SchedulingStrategy.PRIMARY_NODE_ONLY);
     }
 
     /**
@@ -483,7 +466,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void setExecutionNode(final ExecutionNode executionNode) {
         this.executionNode = executionNode;
-        setIsolated(executionNode == ExecutionNode.PRIMARY);
     }
 
     @Override

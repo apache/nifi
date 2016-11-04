@@ -16,7 +16,16 @@
  */
 package org.apache.nifi.scheduling;
 
+/**
+ * Defines the Nodes where a given Component will be scheduled to run.
+ */
 public enum ExecutionNode {
+    /**
+     * A Component will be scheduled to run on all nodes.
+     */
     ALL,
+    /**
+     * A Component will be scheduled to run on the primary node only.
+     */
     PRIMARY;
 }
