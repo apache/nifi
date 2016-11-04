@@ -356,12 +356,15 @@ public class TestPutHiveQL {
         runner.run();
 
         // should fail because of the semicolon
-        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_FAILURE, 1);
+        runner.assertAllFlowFilesTransferred(PutHiveQL.REL_SUCCESS, 1);
 
+        // Now we can check that the values were inserted by the multi-statement script.
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-                assertFalse(rs.next());
+                assertTrue(rs.next());
+                assertEquals("Record ID mismatch", 1, rs.getInt(1));
+                assertEquals("Record NAME mismatch", "George", rs.getString(2));
             }
         }
     }
@@ -450,7 +453,7 @@ public class TestPutHiveQL {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
-                assertFalse(rs.next());
+                assertTrue(rs.next());
             }
         }
     }
