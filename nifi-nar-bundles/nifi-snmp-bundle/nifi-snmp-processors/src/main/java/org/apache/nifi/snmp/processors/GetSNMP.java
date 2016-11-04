@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.snmp4j.PDU;
 import org.snmp4j.event.ResponseEvent;
@@ -56,6 +57,16 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
             .description("The OID to request")
             .required(true)
             .addValidator(SNMPUtils.SNMP_OID_VALIDATOR)
+            .build();
+
+    /** Textual OID to request */
+    public static final PropertyDescriptor TEXTUAL_OID = new PropertyDescriptor.Builder()
+            .name("snmp-textual-oid")
+            .displayName("Textual OID")
+            .description("The textual OID to request")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(null)
             .build();
 
     /** SNMP strategy for SNMP Get processor : simple get or walk */
@@ -93,6 +104,7 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(OID);
+        _propertyDescriptors.add(TEXTUAL_OID);
         _propertyDescriptors.add(SNMP_STRATEGY);
         _propertyDescriptors.addAll(descriptors);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
@@ -122,6 +134,8 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
                 FlowFile flowFile = processSession.create();
                 PDU pdu = response.getResponse();
                 flowFile = SNMPUtils.updateFlowFileAttributesWithPduProperties(pdu, flowFile, processSession);
+                flowFile = SNMPUtils.addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "textualOid",
+                        context.getProperty(TEXTUAL_OID).getValue(), flowFile, processSession);
                 processSession.getProvenanceReporter().receive(flowFile,
                         this.snmpTarget.getAddress().toString() + "/" + context.getProperty(OID).getValue());
                 if(pdu.getErrorStatus() == PDU.noError) {
