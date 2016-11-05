@@ -80,15 +80,6 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             .expressionLanguageSupported(false)
             .build();
 
-//    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-//            .name("hive-charset")
-//            .displayName("Character Set")
-//            .description("Specifies the character set of the record data.")
-//            .required(true)
-//            .defaultValue("UTF-8")
-//            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-//            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after the database is successfully updated")
