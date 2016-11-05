@@ -84,15 +84,6 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             .expressionLanguageSupported(false)
             .build();
 
-//    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-//            .name("hive-charset")
-//            .displayName("Character Set")
-//            .description("Specifies the character set of the record data.")
-//            .required(true)
-//            .defaultValue("UTF-8")
-//            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-//            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile is routed to this relationship after the database is successfully updated")
@@ -159,12 +150,16 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
             for (FlowFile flowFile : flowFiles) {
                 try {
                     final String script = getHiveQL(session, flowFile, charset);
+                    String regex = "(?<!\\\\)" + Pattern.quote(statementDelimiter);
 
-                    String[] hiveQLs = script.split(statementDelimiter);
+                    String[] hiveQLs = script.split(regex);
+
                     int loc = 1;
                     for (String hiveQL: hiveQLs) {
+                        getLogger().debug("HiveQL: {}", new Object[]{hiveQL});
+
                         if (!StringUtils.isEmpty(hiveQL.trim())) {
-                            final PreparedStatement stmt = conn.prepareStatement(hiveQL);
+                            final PreparedStatement stmt = conn.prepareStatement(hiveQL.trim());
 
                             // Get ParameterMetadata
                             // Hive JDBC Doesn't support this yet.
