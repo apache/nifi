@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -37,6 +38,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -93,18 +95,9 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .name("hive-query")
             .displayName("HiveQL Select Query")
             .description("HiveQL SELECT query to execute")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor HIVEQL_IN_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("hive-query-in-flow")
-            .description("Use the data in the flowfile for the Select Query")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor HIVEQL_CSV_HEADER = new PropertyDescriptor.Builder()
@@ -122,6 +115,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             .displayName("Alternate CSV Header")
             .description("Comma separated list of header fields")
             .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
@@ -176,7 +170,6 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         _propertyDescriptors.add(HIVE_DBCP_SERVICE);
         _propertyDescriptors.add(HIVEQL_SELECT_QUERY);
         _propertyDescriptors.add(HIVEQL_OUTPUT_FORMAT);
-        _propertyDescriptors.add(HIVEQL_IN_FLOWFILE);
         _propertyDescriptors.add(HIVEQL_CSV_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_ALT_HEADER);
         _propertyDescriptors.add(HIVEQL_CSV_DELIMITER);
@@ -201,6 +194,17 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         return relationships;
     }
 
+    @OnScheduled
+    public void setup(ProcessContext context) {
+        // If the query is not set, then an incoming flow file is needed. Otherwise fail the initialization
+        if (!context.getProperty(HIVEQL_SELECT_QUERY).isSet() && !context.hasIncomingConnection()) {
+            final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
+                    + "providing flowfile(s) containing a SQL select query";
+            getLogger().error(errorString);
+            throw new ProcessException(errorString);
+        }
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile fileToProcess = (context.hasIncomingConnection()? session.get():null);
@@ -219,10 +223,26 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
         final HiveDBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(HiveDBCPService.class);
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
-        final boolean flowbased = (context.getProperty(HIVEQL_IN_FLOWFILE).asBoolean()?true:false);
+        final boolean flowbased = !(context.getProperty(HIVEQL_SELECT_QUERY).isSet());
 
         // Source the SQL
-        final String selectQuery = (context.getProperty(HIVEQL_IN_FLOWFILE).asBoolean() ? getHiveQL(session, fileToProcess,charset):context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
+        final String selectQuery;
+
+        if (context.getProperty(HIVEQL_SELECT_QUERY).isSet()) {
+            selectQuery = context.getProperty(HIVEQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
+        } else {
+            // If the query is not set, then an incoming flow file is required, and expected to contain a valid SQL select query.
+            // If there is no incoming connection, onTrigger will not be called as the processor will fail when scheduled.
+            final StringBuilder queryContents = new StringBuilder();
+            session.read(fileToProcess, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    queryContents.append(IOUtils.toString(in));
+                }
+            });
+            selectQuery = queryContents.toString();
+        }
+
 
         final String outputFormat = context.getProperty(HIVEQL_OUTPUT_FORMAT).getValue();
         final StopWatch stopWatch = new StopWatch(true);
@@ -304,6 +324,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             }
             session.transfer(flowfile, REL_SUCCESS);
         } catch (final ProcessException | SQLException e) {
+            logger.error("Issue processing SQL {} due to {}.", new Object[]{selectQuery, e});
             if (flowfile == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("Unable to execute HiveQL select query {} due to {}. No FlowFile to route to failure",
