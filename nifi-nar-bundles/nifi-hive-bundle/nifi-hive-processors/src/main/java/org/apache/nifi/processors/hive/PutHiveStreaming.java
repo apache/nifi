@@ -349,8 +349,8 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         hiveConfigurator.preload(hiveConfig);
 
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
 
             log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
             try {
