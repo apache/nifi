@@ -95,7 +95,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final NiFiProperties nifiProperties;
 
     private final AtomicReference<String> name = new AtomicReference<>();
-    private final AtomicReference<Position> position = new AtomicReference<>();
+    private final AtomicReference<Position> position = new AtomicReference<>(new Position(0D, 0D));
     private final AtomicReference<String> comments = new AtomicReference<>();
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicBoolean transmitting = new AtomicBoolean(false);
