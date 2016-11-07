@@ -148,8 +148,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-        final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-        final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+        final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
 
         final List<ValidationResult> results = new ArrayList<>();
 
@@ -262,8 +262,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         UserGroupInformation ugi;
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
-                String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-                String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+                String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+                String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
                 ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
                 fs = getFileSystemAsUser(config, ugi);
                 lastKerberosReloginTime = System.currentTimeMillis() / 1000;

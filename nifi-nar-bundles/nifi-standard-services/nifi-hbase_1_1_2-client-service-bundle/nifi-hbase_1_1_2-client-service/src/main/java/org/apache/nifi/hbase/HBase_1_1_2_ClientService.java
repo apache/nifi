@@ -167,8 +167,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             }
 
             final Configuration hbaseConfig = resources.getConfiguration();
-            final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
 
             problems.addAll(KerberosProperties.validatePrincipalAndKeytab(
                     this.getClass().getSimpleName(), hbaseConfig, principal, keytab, getLogger()));
@@ -223,8 +223,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
-            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+            final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
 
             getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
             ugi = SecurityUtil.loginKerberos(hbaseConfig, principal, keyTab);
