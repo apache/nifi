@@ -33,6 +33,7 @@ import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -51,6 +52,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -211,6 +213,15 @@ public class ConnectionResource extends ApplicationResource {
 
             if (requestConnection.getDestination().getType() == null) {
                 throw new IllegalArgumentException("When specifying a destination component, the type of the destination is required.");
+            }
+        }
+
+        final List<PositionDTO> proposedBends = requestConnection.getBends();
+        if (proposedBends != null) {
+            for (final PositionDTO proposedBend : proposedBends) {
+                if (proposedBend.getX() == null || proposedBend.getY() == null) {
+                    throw new IllegalArgumentException("The x and y coordinate of the each bend must be specified.");
+                }
             }
         }
 
