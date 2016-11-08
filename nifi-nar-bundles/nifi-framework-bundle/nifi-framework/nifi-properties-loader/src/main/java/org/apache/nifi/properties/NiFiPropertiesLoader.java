@@ -102,7 +102,13 @@ public class NiFiPropertiesLoader {
         }
     }
 
-    private static String extractKeyFromBootstrapFile() throws IOException {
+    /**
+     * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
+     *
+     * @return the key in hexadecimal format
+     * @throws IOException if the file is not readable
+     */
+    public static String extractKeyFromBootstrapFile() throws IOException {
         // Guess at location of bootstrap.conf file from nifi.properties file
         String defaultNiFiPropertiesPath = getDefaultFilePath();
         File propertiesFile = new File(defaultNiFiPropertiesPath);
