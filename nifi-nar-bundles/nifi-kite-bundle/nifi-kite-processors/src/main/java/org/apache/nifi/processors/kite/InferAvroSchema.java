@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
 @Tags({"kite", "avro", "infer", "schema", "csv", "json"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -111,6 +112,7 @@ public class InferAvroSchema
     public static final String CSV_MIME_TYPE = "text/csv";
     public static final String AVRO_MIME_TYPE = "application/avro-binary";
     public static final String AVRO_FILE_EXTENSION = ".avro";
+    public static final Pattern AVRO_RECORD_NAME_PATTERN = Pattern.compile("[A-Za-z_]+[A-Za-z0-9_.]*[^.]");
 
     public static final PropertyDescriptor SCHEMA_DESTINATION = new PropertyDescriptor.Builder()
             .name("Schema Output Destination")
@@ -202,10 +204,11 @@ public class InferAvroSchema
 
     public static final PropertyDescriptor RECORD_NAME = new PropertyDescriptor.Builder()
             .name("Avro Record Name")
-            .description("Value to be placed in the Avro record schema \"name\" field.")
+            .description("Value to be placed in the Avro record schema \"name\" field. The value must adhere to the Avro naming "
+                    + "rules for fullname. If Expression Language is present then the evaluated value must adhere to the Avro naming rules.")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createRegexMatchingValidator(AVRO_RECORD_NAME_PATTERN))
             .build();
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
