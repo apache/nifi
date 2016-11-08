@@ -407,7 +407,7 @@ public class GetTCP extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
         } catch (InterruptedException exception) {
-            throw new ProcessException(exception);
+            Thread.currentThread().interrupt();
         }
     }
 
