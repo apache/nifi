@@ -217,6 +217,8 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
             throw new IllegalArgumentException("The cipher text does not contain the delimiter " + DELIMITER + " -- it should be of the form Base64(IV) || Base64(cipherText)");
         }
 
+        protectedValue = protectedValue.trim();
+
         final String IV_B64 = protectedValue.substring(0, protectedValue.indexOf(DELIMITER));
         byte[] iv = Base64.decode(IV_B64);
         if (iv.length < IV_LENGTH) {
