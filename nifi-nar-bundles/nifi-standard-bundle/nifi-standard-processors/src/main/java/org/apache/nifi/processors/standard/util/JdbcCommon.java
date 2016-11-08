@@ -166,7 +166,9 @@ public class JdbcCommon {
                         // direct put to avro record results:
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
-
+                    } else if(value instanceof Short) {
+                        //MS SQL returns TINYINT as a Java Short, which Avro doesn't understand.
+                        rec.put(i - 1, ((Short) value).intValue());
                     } else if (value instanceof BigDecimal) {
                         // Avro can't handle BigDecimal as a number - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
                         rec.put(i - 1, value.toString());
