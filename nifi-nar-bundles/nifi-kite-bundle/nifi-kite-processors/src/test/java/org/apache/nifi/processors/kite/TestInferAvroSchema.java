@@ -64,6 +64,30 @@ public class TestInferAvroSchema {
     }
 
     @Test
+    public void testRecordName() throws Exception {
+
+        // Dot at the end is invalid
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "org.apache.nifi.contact.");
+        runner.assertNotValid();
+        // Dashes are invalid
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "avro-schema");
+        runner.assertNotValid();
+        // Name cannot start with a digit
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "1Record");
+        runner.assertNotValid();
+        // Name cannot start with a dot
+        runner.setProperty(InferAvroSchema.RECORD_NAME, ".record");
+        runner.assertNotValid();
+
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "avro_schema");
+        runner.assertValid();
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "org.apache.nifi.contact");
+        runner.assertValid();
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "${filename}"); // EL is valid, although its value may not be when evaluated
+        runner.assertValid();
+    }
+
+    @Test
     public void inferAvroSchemaFromHeaderDefinitionOfCSVFile() throws Exception {
 
         runner.assertValid();
