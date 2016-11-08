@@ -2529,7 +2529,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         controllerDTO.setInstanceId(controllerFacade.getInstanceId());
         controllerDTO.setInputPorts(inputPortDtos);
         controllerDTO.setOutputPorts(outputPortDtos);
-        controllerDTO.setInputPortCount(inputPorts.size());
+        controllerDTO.setInputPortCount(inputPortDtos.size());
         controllerDTO.setOutputPortCount(outputPortDtos.size());
         controllerDTO.setRunningCount(counts.getRunningCount());
         controllerDTO.setStoppedCount(counts.getStoppedCount());

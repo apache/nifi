@@ -668,7 +668,7 @@ nf.PolicyManagement = (function () {
     var promptToDeletePolicy = function () {
         nf.Dialog.showYesNoDialog({
             headerText: 'Delete Policy',
-            dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy.',
+            dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy if applicable.',
             yesText: 'Delete',
             noText: 'Cancel',
             yesHandler: function () {

@@ -863,17 +863,17 @@ nf.Connection = (function () {
                                     }
                                 })
                                 .classed('running', function () {
-                                    if (d.component.source.exists === true) {
-                                        return d.component.source.running;
-                                    } else {
+                                    if (d.component.source.exists === false) {
                                         return false;
+                                    } else {
+                                        return d.component.source.running;
                                     }
                                 })
                                 .classed('stopped', function () {
-                                    if (d.component.source.exists === true) {
-                                        return !d.component.source.running;
-                                    } else {
+                                    if (d.component.source.exists === false) {
                                         return false;
+                                    } else {
+                                        return !d.component.source.running;
                                     }
                                 })
                                 .classed('is-missing-port', function () {
@@ -972,17 +972,17 @@ nf.Connection = (function () {
                                     }
                                 })
                                 .classed('running', function () {
-                                    if (d.component.destination.running === true) {
-                                        return d.component.destination.running;
-                                    } else {
+                                    if (d.component.destination.exists === false) {
                                         return false;
+                                    } else {
+                                        return d.component.destination.running;
                                     }
                                 })
                                 .classed('stopped', function () {
-                                    if (d.component.destination.running !== true) {
-                                        return !d.component.destination.running;
-                                    } else {
+                                    if (d.component.destination.exists === false) {
                                         return false;
+                                    } else {
+                                        return !d.component.destination.running;
                                     }
                                 })
                                 .classed('is-missing-port', function () {
