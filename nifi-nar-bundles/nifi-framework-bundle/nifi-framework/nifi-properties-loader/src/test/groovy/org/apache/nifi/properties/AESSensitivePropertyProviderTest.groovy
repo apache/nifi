@@ -239,6 +239,36 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
+    public void testShouldUnprotectValueWithWhitespace() throws Exception {
+        // Arrange
+        final String PLAINTEXT = "This is a plaintext value"
+
+        Map<Integer, Cipher> encryptionCiphers = KEY_SIZES.collectEntries { int keySize ->
+            byte[] iv = new byte[IV_LENGTH]
+            secureRandom.nextBytes(iv)
+            [(keySize): getCipher(true, keySize, iv)]
+        }
+
+        Map<Integer, String> CIPHER_TEXTS = encryptionCiphers.collectEntries { Map.Entry<Integer, Cipher> e ->
+            String iv = encoder.encodeToString(e.value.getIV())
+            String cipherText = encoder.encodeToString(e.value.doFinal(PLAINTEXT.getBytes(StandardCharsets.UTF_8)))
+            [(e.key): "${iv}||${cipherText}"]
+        }
+        CIPHER_TEXTS.each { key, ct -> logger.expected("Cipher text for ${key} length key: ${ct}") }
+
+        // Act
+        Map<Integer, String> plaintexts = CIPHER_TEXTS.collectEntries { int keySize, String cipherText ->
+            SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
+            logger.info("Initialized ${spp.name} with key size ${keySize}")
+            [(keySize): spp.unprotect("\t" + cipherText + "\n")]
+        }
+        plaintexts.each { ks, pt -> logger.info("Decrypted for ${ks} length key: ${pt}") }
+
+        // Assert
+        assert plaintexts.every { int ks, String pt -> pt == PLAINTEXT }
+    }
+
+    @Test
     public void testShouldHandleUnprotectMalformedValue() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
