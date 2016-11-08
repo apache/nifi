@@ -57,7 +57,7 @@ nf.ProcessorConfiguration = (function () {
             strategies.push({
                 text: 'On primary node',
                 value: 'PRIMARY_NODE_ONLY',
-                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution Node below.',
+                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution setting below.',
                 disabled: true
             });
         }
