@@ -27,7 +27,8 @@
     <xs:complexType name="Property">
         <xs:simpleContent>
             <xs:extension base="xs:string">
-                <xs:attribute name="name" type="NonEmptyStringType"></xs:attribute>
+                <xs:attribute name="name" type="NonEmptyStringType"/>
+                <xs:attribute name="encryption" type="xs:string"/>
             </xs:extension>
         </xs:simpleContent>
     </xs:complexType>
