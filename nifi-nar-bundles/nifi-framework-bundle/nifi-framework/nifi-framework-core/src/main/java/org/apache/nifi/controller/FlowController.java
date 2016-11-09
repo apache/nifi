@@ -2722,16 +2722,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setFlowFilesRemoved(entry.getFlowFilesRemoved());
         }
 
-        // determine the run status and get any validation errors... must check
-        // is valid when not disabled since a processors validity could change due
-        // to environmental conditions (property configured with a file path and
-        // the file being externally removed)
+        // Determine the run status and get any validation error... only validating while STOPPED
+        // is a trade-off we are willing to make, even though processor validity could change due to
+        // environmental conditions (property configured with a file path and the file being externally
+        // removed). This saves on validation costs that would be unnecessary most of the time.
         if (ScheduledState.DISABLED.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Disabled);
-        } else if (!procNode.isValid()) {
-            status.setRunStatus(RunStatus.Invalid);
         } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Running);
+        } else if (!procNode.isValid()) {
+            status.setRunStatus(RunStatus.Invalid);
         } else {
             status.setRunStatus(RunStatus.Stopped);
         }
