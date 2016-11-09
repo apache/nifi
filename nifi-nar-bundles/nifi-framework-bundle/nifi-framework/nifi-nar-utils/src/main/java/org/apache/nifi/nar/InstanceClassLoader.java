@@ -35,6 +35,7 @@ public class InstanceClassLoader extends URLClassLoader {
     private static final Logger logger = LoggerFactory.getLogger(InstanceClassLoader.class);
 
     private final String identifier;
+    private final String instanceType;
     private ShimClassLoader shimClassLoader;
 
     /**
@@ -42,9 +43,10 @@ public class InstanceClassLoader extends URLClassLoader {
      * @param urls the URLs for the ClassLoader
      * @param parent the parent ClassLoader
      */
-    public InstanceClassLoader(final String identifier, final URL[] urls, final ClassLoader parent) {
+    public InstanceClassLoader(final String identifier, final String type, final URL[] urls, final ClassLoader parent) {
         super(urls, parent);
         this.identifier = identifier;
+        this.instanceType = type;
     }
 
     /**
@@ -58,12 +60,11 @@ public class InstanceClassLoader extends URLClassLoader {
             try {
                 shimClassLoader.close();
             } catch (IOException e) {
-                logger.warn("Unable to close URLClassLoader for " + identifier);
+                logger.warn("Unable to close inner URLClassLoader for " + identifier);
             }
         }
 
-        // don't set a parent here b/c otherwise it will create an infinite loop
-        shimClassLoader = new ShimClassLoader(urls, null);
+        shimClassLoader = new ShimClassLoader(urls, getParent());
     }
 
     /**
@@ -88,7 +89,7 @@ public class InstanceClassLoader extends URLClassLoader {
         if (shimClassLoader != null) {
             try {
                 c = shimClassLoader.loadClass(name, resolve);
-            } catch (ClassNotFoundException cnf) {
+            } catch (ClassNotFoundException e) {
                 c = null;
             }
         }
@@ -117,6 +118,18 @@ public class InstanceClassLoader extends URLClassLoader {
         } else {
             return c;
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (shimClassLoader != null) {
+            try {
+                shimClassLoader.close();
+            } catch (IOException e) {
+                logger.warn("Unable to close inner URLClassLoader for " + identifier);
+            }
+        }
+        super.close();
     }
 
     /**

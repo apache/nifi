@@ -24,6 +24,7 @@ import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
 import org.apache.nifi.documentation.mock.MockComponentLogger;
 import org.apache.nifi.documentation.util.ReflectionUtils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -52,6 +53,8 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
             final ComponentLog logger = new MockComponentLogger();
             final MockProcessContext context = new MockProcessContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, processor, logger, context);
+        } finally {
+            ExtensionManager.removeInstanceClassLoaderIfExists(component.getIdentifier());
         }
     }
 }
