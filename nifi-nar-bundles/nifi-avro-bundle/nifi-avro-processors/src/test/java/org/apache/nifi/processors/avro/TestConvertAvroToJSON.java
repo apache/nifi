@@ -18,6 +18,7 @@ package org.apache.nifi.processors.avro;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
@@ -239,7 +240,7 @@ public class TestConvertAvroToJSON {
     }
 
     @Test
-    public void testSingleSchemalessAvroMessage_wrapSingleMessage_noContainer_StandardJson() throws IOException {
+    public void testSingleSchemalessAvroMessage_wrapSingleMessage_noContainer_AvroJson() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
         runner.setProperty(ConvertAvroToJSON.CONTAINER_OPTIONS, ConvertAvroToJSON.CONTAINER_NONE);
         runner.setProperty(ConvertAvroToJSON.WRAP_SINGLE_RECORD, Boolean.toString(true));
@@ -297,7 +298,7 @@ public class TestConvertAvroToJSON {
     }
 
     @Test
-    public void testMultipleAvroMessagesStandardJson() throws IOException {
+    public void testMultipleAvroMessagesAvroJson() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ConvertAvroToJSON());
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
 
@@ -312,6 +313,7 @@ public class TestConvertAvroToJSON {
         user2.put("name", "George");
         user2.put("favorite_number", 1024);
         user2.put("favorite_color", "red");
+
 
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         final ByteArrayOutputStream out1 = AvroTestUtil.serializeAvroRecord(schema, datumWriter, user1, user2);

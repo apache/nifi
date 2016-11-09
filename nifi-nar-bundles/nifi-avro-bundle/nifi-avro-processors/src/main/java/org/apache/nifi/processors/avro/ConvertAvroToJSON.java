@@ -230,10 +230,10 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private byte[] toAvroJSON(Schema shcemaToUse, GenericRecord datum) throws IOException {
+    private byte[] toAvroJSON(Schema schemaToUse, GenericRecord datum) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        DatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(shcemaToUse);
-        JsonEncoder encoder = EncoderFactory.get().jsonEncoder(shcemaToUse, bos);
+        DatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(schemaToUse);
+        JsonEncoder encoder = EncoderFactory.get().jsonEncoder(schemaToUse, bos);
         writer.write(datum, encoder);
         encoder.flush();
         bos.flush();
