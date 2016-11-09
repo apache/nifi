@@ -23,6 +23,7 @@ import org.apache.nifi.documentation.mock.MockConfigurationContext;
 import org.apache.nifi.documentation.mock.MockComponentLogger;
 import org.apache.nifi.documentation.mock.MockReportingInitializationContext;
 import org.apache.nifi.documentation.util.ReflectionUtils;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -51,6 +52,8 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
 
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask, new MockComponentLogger(), context);
+        } finally {
+            ExtensionManager.removeInstanceClassLoaderIfExists(component.getIdentifier());
         }
     }
 }

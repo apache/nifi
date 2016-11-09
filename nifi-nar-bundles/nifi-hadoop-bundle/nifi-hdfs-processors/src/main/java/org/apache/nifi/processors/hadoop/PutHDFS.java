@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -54,6 +55,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -205,177 +207,186 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        final Configuration configuration = getConfiguration();
         final FileSystem hdfs = getFileSystem();
-        if (configuration == null || hdfs == null) {
+        final Configuration configuration = getConfiguration();
+        final UserGroupInformation ugi = getUserGroupInformation();
+
+        if (configuration == null || hdfs == null || ugi == null) {
             getLogger().error("HDFS not configured properly");
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
             return;
         }
 
-        Path tempDotCopyFile = null;
-        try {
-            final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-            final Path configuredRootDirPath = new Path(dirValue);
+        ugi.doAs(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                Path tempDotCopyFile = null;
+                FlowFile putFlowFile = flowFile;
+                try {
+                    final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(putFlowFile).getValue();
+                    final Path configuredRootDirPath = new Path(dirValue);
 
-            final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
+                    final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
 
-            final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
-            final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
+                    final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
+                    final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
 
-            final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-            final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
+                    final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
+                    final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
 
-            final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
-            final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
-                    .getDefaultReplication(configuredRootDirPath);
+                    final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
+                    final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
+                            .getDefaultReplication(configuredRootDirPath);
 
-            final CompressionCodec codec = getCompressionCodec(context, configuration);
+                    final CompressionCodec codec = getCompressionCodec(context, configuration);
 
-            final String filename = codec != null
-                    ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
-                    : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+                    final String filename = codec != null
+                            ? putFlowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                            : putFlowFile.getAttribute(CoreAttributes.FILENAME.key());
 
-            final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
-            final Path copyFile = new Path(configuredRootDirPath, filename);
+                    final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+                    final Path copyFile = new Path(configuredRootDirPath, filename);
 
-            // Create destination directory if it does not exist
-            try {
-                if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
-                    throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
-                }
-            } catch (FileNotFoundException fe) {
-                if (!hdfs.mkdirs(configuredRootDirPath)) {
-                    throw new IOException(configuredRootDirPath.toString() + " could not be created");
-                }
-                changeOwner(context, hdfs, configuredRootDirPath);
-            }
-
-            final boolean destinationExists = hdfs.exists(copyFile);
-
-            // If destination file already exists, resolve that based on processor configuration
-            if (destinationExists) {
-                switch (conflictResponse) {
-                case REPLACE_RESOLUTION:
-                        if (hdfs.delete(copyFile, false)) {
-                            getLogger().info("deleted {} in order to replace with the contents of {}",
-                                    new Object[]{copyFile, flowFile});
-                        }
-                        break;
-                case IGNORE_RESOLUTION:
-                        session.transfer(flowFile, REL_SUCCESS);
-                        getLogger().info("transferring {} to success because file with same name already exists",
-                                new Object[]{flowFile});
-                        return;
-                case FAIL_RESOLUTION:
-                        flowFile = session.penalize(flowFile);
-                        session.transfer(flowFile, REL_FAILURE);
-                        getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
-                                new Object[]{flowFile});
-                        return;
-                    default:
-                        break;
-                }
-            }
-
-            // Write FlowFile to temp file on HDFS
-            final StopWatch stopWatch = new StopWatch(true);
-            session.read(flowFile, new InputStreamCallback() {
-
-                @Override
-                public void process(InputStream in) throws IOException {
-                    OutputStream fos = null;
-                    Path createdFile = null;
+                    // Create destination directory if it does not exist
                     try {
-                        if (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && destinationExists) {
-                            fos = hdfs.append(copyFile, bufferSize);
-                        } else {
-                            fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                        if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
+                            throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
                         }
-                        if (codec != null) {
-                            fos = codec.createOutputStream(fos);
+                    } catch (FileNotFoundException fe) {
+                        if (!hdfs.mkdirs(configuredRootDirPath)) {
+                            throw new IOException(configuredRootDirPath.toString() + " could not be created");
                         }
-                        createdFile = tempCopyFile;
-                        BufferedInputStream bis = new BufferedInputStream(in);
-                        StreamUtils.copy(bis, fos);
-                        bis = null;
-                        fos.flush();
-                    } finally {
-                        try {
-                            if (fos != null) {
-                                fos.close();
-                            }
-                        } catch (RemoteException re) {
-                            // when talking to remote HDFS clusters, we don't notice problems until fos.close()
-                            if (createdFile != null) {
+                        changeOwner(context, hdfs, configuredRootDirPath);
+                    }
+
+                    final boolean destinationExists = hdfs.exists(copyFile);
+
+                    // If destination file already exists, resolve that based on processor configuration
+                    if (destinationExists) {
+                        switch (conflictResponse) {
+                        case REPLACE_RESOLUTION:
+                                if (hdfs.delete(copyFile, false)) {
+                                    getLogger().info("deleted {} in order to replace with the contents of {}",
+                                            new Object[]{copyFile, putFlowFile});
+                                }
+                                break;
+                        case IGNORE_RESOLUTION:
+                                session.transfer(putFlowFile, REL_SUCCESS);
+                                getLogger().info("transferring {} to success because file with same name already exists",
+                                        new Object[]{putFlowFile});
+                                return null;
+                        case FAIL_RESOLUTION:
+                                session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                                getLogger().warn("penalizing {} and routing to failure because file with same name already exists",
+                                        new Object[]{putFlowFile});
+                                return null;
+                            default:
+                                break;
+                        }
+                    }
+
+                    // Write FlowFile to temp file on HDFS
+                    final StopWatch stopWatch = new StopWatch(true);
+                    session.read(putFlowFile, new InputStreamCallback() {
+
+                        @Override
+                        public void process(InputStream in) throws IOException {
+                            OutputStream fos = null;
+                            Path createdFile = null;
+                            try {
+                                if (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && destinationExists) {
+                                    fos = hdfs.append(copyFile, bufferSize);
+                                } else {
+                                    fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                                }
+                                if (codec != null) {
+                                    fos = codec.createOutputStream(fos);
+                                }
+                                createdFile = tempCopyFile;
+                                BufferedInputStream bis = new BufferedInputStream(in);
+                                StreamUtils.copy(bis, fos);
+                                bis = null;
+                                fos.flush();
+                            } finally {
                                 try {
-                                    hdfs.delete(createdFile, false);
+                                    if (fos != null) {
+                                        fos.close();
+                                    }
+                                } catch (RemoteException re) {
+                                    // when talking to remote HDFS clusters, we don't notice problems until fos.close()
+                                    if (createdFile != null) {
+                                        try {
+                                            hdfs.delete(createdFile, false);
+                                        } catch (Throwable ignore) {
+                                        }
+                                    }
+                                    throw re;
                                 } catch (Throwable ignore) {
                                 }
+                                fos = null;
                             }
-                            throw re;
-                        } catch (Throwable ignore) {
                         }
-                        fos = null;
+
+                    });
+                    stopWatch.stop();
+                    final String dataRate = stopWatch.calculateDataRate(putFlowFile.getSize());
+                    final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+                    tempDotCopyFile = tempCopyFile;
+
+                    if (!conflictResponse.equals(APPEND_RESOLUTION_AV.getValue())
+                            || (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && !destinationExists)) {
+                        boolean renamed = false;
+                        for (int i = 0; i < 10; i++) { // try to rename multiple times.
+                            if (hdfs.rename(tempCopyFile, copyFile)) {
+                                renamed = true;
+                                break;// rename was successful
+                            }
+                            Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
+                        }
+                        if (!renamed) {
+                            hdfs.delete(tempCopyFile, false);
+                            throw new ProcessException("Copied file to HDFS but could not rename dot file " + tempCopyFile
+                                    + " to its final filename");
+                        }
+
+                        changeOwner(context, hdfs, copyFile);
                     }
-                }
 
-            });
-            stopWatch.stop();
-            final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
-            final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-            tempDotCopyFile = tempCopyFile;
+                    getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
+                            new Object[]{putFlowFile, copyFile, millis, dataRate});
 
-            if (!conflictResponse.equals(APPEND_RESOLUTION_AV.getValue())
-                    || (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && !destinationExists)) {
-                boolean renamed = false;
-                for (int i = 0; i < 10; i++) { // try to rename multiple times.
-                    if (hdfs.rename(tempCopyFile, copyFile)) {
-                        renamed = true;
-                        break;// rename was successful
+                    final String outputPath = copyFile.toString();
+                    final String newFilename = copyFile.getName();
+                    final String hdfsPath = copyFile.getParent().toString();
+                    putFlowFile = session.putAttribute(putFlowFile, CoreAttributes.FILENAME.key(), newFilename);
+                    putFlowFile = session.putAttribute(putFlowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
+                    final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
+                    session.getProvenanceReporter().send(putFlowFile, transitUri);
+
+                    session.transfer(putFlowFile, REL_SUCCESS);
+
+                } catch (final Throwable t) {
+                    if (tempDotCopyFile != null) {
+                        try {
+                            hdfs.delete(tempDotCopyFile, false);
+                        } catch (Exception e) {
+                            getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                        }
                     }
-                    Thread.sleep(200L);// try waiting to let whatever might cause rename failure to resolve
-                }
-                if (!renamed) {
-                    hdfs.delete(tempCopyFile, false);
-                    throw new ProcessException("Copied file to HDFS but could not rename dot file " + tempCopyFile
-                            + " to its final filename");
+                    getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
+                    session.transfer(session.penalize(putFlowFile), REL_FAILURE);
+                    context.yield();
                 }
 
-                changeOwner(context, hdfs, copyFile);
+                return null;
             }
-
-            getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
-                    new Object[]{flowFile, copyFile, millis, dataRate});
-
-            final String outputPath = copyFile.toString();
-            final String newFilename = copyFile.getName();
-            final String hdfsPath = copyFile.getParent().toString();
-            flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
-            flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
-            final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
-            session.getProvenanceReporter().send(flowFile, transitUri);
-
-            session.transfer(flowFile, REL_SUCCESS);
-
-        } catch (final Throwable t) {
-            if (tempDotCopyFile != null) {
-                try {
-                    hdfs.delete(tempDotCopyFile, false);
-                } catch (Exception e) {
-                    getLogger().error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
-                }
-            }
-            getLogger().error("Failed to write to HDFS due to {}", new Object[]{t});
-            session.transfer(session.penalize(flowFile), REL_FAILURE);
-            context.yield();
-        }
+        });
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name) {

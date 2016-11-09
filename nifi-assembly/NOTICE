@@ -914,17 +914,13 @@ The following binary components are provided under the Apache Software License v
          Java Native Access
          Copyright 2015 Java Native Access
 
-    (ASLv2) HTrace Core
+    (ASLv2) Apache HTrace Core
       The following NOTICE information applies:
-        In addition, this product includes software dependencies. See
-        the accompanying LICENSE.txt for a listing of dependencies
-        that are NOT Apache licensed (with pointers to their licensing)
+        Copyright 2016 The Apache Software Foundation
 
         Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
         is a distributed tracing system that is Apache 2.0 Licensed.
         Copyright 2012 Twitter, Inc.
-
-
 
     (ASLv2) Groovy (org.codehaus.groovy:groovy:jar:2.4.5 - http://www.groovy-lang.org)
       The following NOTICE information applies:

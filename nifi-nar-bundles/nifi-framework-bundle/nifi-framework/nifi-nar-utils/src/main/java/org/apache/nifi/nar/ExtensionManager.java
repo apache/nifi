@@ -200,9 +200,9 @@ public class ExtensionManager {
             // InstanceClassLoader that has the NAR ClassLoader as a parent
             if (requiresInstanceClassLoading.contains(classType) && (registeredClassLoader instanceof URLClassLoader)) {
                 final URLClassLoader registeredUrlClassLoader = (URLClassLoader) registeredClassLoader;
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
             } else {
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, new URL[0], registeredClassLoader);
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], registeredClassLoader);
             }
 
             instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
@@ -218,7 +218,11 @@ public class ExtensionManager {
      * @return the removed ClassLoader for the given instance, or null if not found
      */
     public static ClassLoader removeInstanceClassLoaderIfExists(final String instanceIdentifier) {
-        ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        if (instanceIdentifier == null) {
+            return null;
+        }
+
+        final ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
         if (classLoader != null && (classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {
