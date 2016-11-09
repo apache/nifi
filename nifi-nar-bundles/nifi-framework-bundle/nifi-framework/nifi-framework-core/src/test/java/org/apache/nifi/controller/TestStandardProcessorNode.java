@@ -118,6 +118,22 @@ public class TestStandardProcessorNode {
     }
 
     @Test
+    public void testDisabledValidationErrors() {
+        final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
+        final StandardProcessorNode procNode = createProcessorNode(processor);
+
+        // Set a property to an invalid value
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(ModifiesClasspathNoAnnotationProcessor.CLASSPATH_RESOURCE.getName(), "");
+        procNode.setProperties(properties);
+        Assert.assertTrue(procNode.getValidationErrors().size() > 0);
+
+        // Disabled processors skip property validation
+        procNode.disable();
+        Assert.assertFalse(procNode.getValidationErrors().size() > 0);
+    }
+
+    @Test
     public void testSinglePropertyDynamicallyModifiesClasspath() throws MalformedURLException {
         final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")
                 .dynamicallyModifiesClasspath(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
