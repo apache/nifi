@@ -97,8 +97,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .required(false)
         .build();
-    static final PropertyDescriptor USE_STANDARD_JSON = new PropertyDescriptor.Builder()
-        .name("Use Standard JSON")
+    static final PropertyDescriptor USE_AVRO_JSON = new PropertyDescriptor.Builder().name("Use AVRO JSON")
         .description("Determines if the resulting JSON output is in AVRO-JSON format or standard JSON format. Default 'false'")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .required(true)
@@ -124,7 +123,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         properties.add(CONTAINER_OPTIONS);
         properties.add(WRAP_SINGLE_RECORD);
         properties.add(SCHEMA);
-        properties.add(USE_STANDARD_JSON);
+        properties.add(USE_AVRO_JSON);
         PROPERTIES = Collections.unmodifiableList(properties);
 
         Set<Relationship> relationships = new HashSet<>();
@@ -139,7 +138,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
 
     private volatile boolean wrapSingleRecord;
 
-    private volatile boolean useStandardJson;
+    private volatile boolean useAvroJson;
 
     @OnScheduled
     public void schedule(ProcessContext context) {
@@ -148,7 +147,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         this.wrapSingleRecord = context.getProperty(WRAP_SINGLE_RECORD).asBoolean() && useContainer;
         String stringSchema = context.getProperty(SCHEMA).getValue();
         this.schema = stringSchema == null ? null : new Schema.Parser().parse(stringSchema);
-        this.useStandardJson = context.getProperty(USE_STANDARD_JSON).asBoolean();
+        this.useAvroJson = context.getProperty(USE_AVRO_JSON).asBoolean();
     }
 
     @Override
@@ -183,7 +182,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                                 out.write('[');
                             }
                             byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT
-                                    : (useStandardJson ? toStandardJSON(schema, currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
+                                    : (useAvroJson ? toAvroJSON(schema, currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
                             out.write(outputBytes);
                             if (useContainer && wrapSingleRecord) {
                                 out.write(']');
@@ -200,7 +199,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
                                     out.write('[');
                                 }
                                 byte[] outputBytes = (currRecord == null) ? EMPTY_JSON_OBJECT
-                                        : (useStandardJson ? toStandardJSON(stream.getSchema(), currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
+                                        : (useAvroJson ? toAvroJSON(stream.getSchema(), currRecord) : genericData.toString(currRecord).getBytes(StandardCharsets.UTF_8));
                                 out.write(outputBytes);
                                 while (stream.hasNext()) {
                                     if (useContainer) {
@@ -231,7 +230,7 @@ public class ConvertAvroToJSON extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private byte[] toStandardJSON(Schema shcemaToUse, GenericRecord datum) throws IOException {
+    private byte[] toAvroJSON(Schema shcemaToUse, GenericRecord datum) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         DatumWriter<GenericRecord> writer = new GenericDatumWriter<GenericRecord>(shcemaToUse);
         JsonEncoder encoder = EncoderFactory.get().jsonEncoder(shcemaToUse, bos);

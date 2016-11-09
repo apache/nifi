@@ -246,7 +246,7 @@ public class TestConvertAvroToJSON {
         Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
         String stringSchema = schema.toString();
         runner.setProperty(ConvertAvroToJSON.SCHEMA, stringSchema);
-        runner.setProperty(ConvertAvroToJSON.USE_STANDARD_JSON, "true");
+        runner.setProperty(ConvertAvroToJSON.USE_AVRO_JSON, "true");
 
         final GenericRecord user1 = new GenericData.Record(schema);
         user1.put("name", "Alyssa");
@@ -302,7 +302,7 @@ public class TestConvertAvroToJSON {
         final Schema schema = new Schema.Parser().parse(new File("src/test/resources/user.avsc"));
 
         runner.setProperty(ConvertAvroToJSON.CONTAINER_OPTIONS, ConvertAvroToJSON.CONTAINER_ARRAY);
-        runner.setProperty(ConvertAvroToJSON.USE_STANDARD_JSON, "true");
+        runner.setProperty(ConvertAvroToJSON.USE_AVRO_JSON, "true");
 
         final GenericRecord user1 = new GenericData.Record(schema);
         user1.put("name", "Alyssa");
