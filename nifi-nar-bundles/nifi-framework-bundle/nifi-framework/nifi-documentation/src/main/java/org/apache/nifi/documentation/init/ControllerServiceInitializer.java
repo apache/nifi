@@ -26,6 +26,7 @@ import org.apache.nifi.documentation.mock.MockControllerServiceInitializationCon
 import org.apache.nifi.documentation.mock.MockComponentLogger;
 import org.apache.nifi.documentation.util.ReflectionUtils;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -53,6 +54,8 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
             final ComponentLog logger = new MockComponentLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, controllerService, logger, context);
+        } finally {
+            ExtensionManager.removeInstanceClassLoaderIfExists(component.getIdentifier());
         }
     }
 }

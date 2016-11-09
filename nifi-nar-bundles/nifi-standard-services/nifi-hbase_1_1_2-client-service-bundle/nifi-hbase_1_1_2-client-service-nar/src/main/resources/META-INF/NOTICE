@@ -269,15 +269,13 @@ Apache Software License v2
 
         Licensed under the Apache License, Version 2.0
 
-  (ASLv2) HTrace Core
-    The following NOTICE information applies:
-      In addition, this product includes software dependencies. See
-      the accompanying LICENSE.txt for a listing of dependencies
-      that are NOT Apache licensed (with pointers to their licensing)
+    (ASLv2) Apache HTrace Core
+      The following NOTICE information applies:
+        Copyright 2016 The Apache Software Foundation
 
-      Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
-      is a distributed tracing system that is Apache 2.0 Licensed.
-      Copyright 2012 Twitter, Inc.
+        Apache HTrace includes an Apache Thrift connector to Zipkin. Zipkin
+        is a distributed tracing system that is Apache 2.0 Licensed.
+        Copyright 2012 Twitter, Inc.
 
   (ASLv2) Jackson Core ASL
       The following NOTICE information applies:

@@ -707,6 +707,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
+        boolean removed = false;
         final String id = requireNonNull(processor).getIdentifier();
         writeLock.lock();
         try {
@@ -756,9 +757,16 @@ public final class StandardProcessGroup implements ProcessGroup {
                 removeConnection(conn);
             }
 
-            ExtensionManager.removeInstanceClassLoaderIfExists(id);
+            removed = true;
             LOG.info("{} removed from flow", processor);
+
         } finally {
+            if (removed) {
+                try {
+                    ExtensionManager.removeInstanceClassLoaderIfExists(id);
+                } catch (Throwable t) {
+                }
+            }
             writeLock.unlock();
         }
     }
@@ -1850,6 +1858,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeControllerService(final ControllerServiceNode service) {
+        boolean removed = false;
         writeLock.lock();
         try {
             final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
@@ -1880,8 +1889,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             controllerServices.remove(service.getIdentifier());
             flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
 
+            removed = true;
             LOG.info("{} removed from {}", service, this);
+
         } finally {
+            if (removed) {
+                try {
+                    ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
+                } catch (Throwable t) {
+                }
+            }
             writeLock.unlock();
         }
     }

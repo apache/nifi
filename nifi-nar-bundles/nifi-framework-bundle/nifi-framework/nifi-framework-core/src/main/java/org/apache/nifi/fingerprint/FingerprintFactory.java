@@ -24,6 +24,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.DomUtils;
@@ -488,6 +489,12 @@ public class FingerprintFactory {
             logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", className, e.toString());
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
+            }
+        } finally {
+            // The processor instance is only for fingerprinting so we can remove the InstanceClassLoader here
+            // since otherwise it will stick around in the map forever
+            if (processor != null) {
+                ExtensionManager.removeInstanceClassLoaderIfExists(processor.getIdentifier());
             }
         }
 
