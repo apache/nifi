@@ -126,7 +126,7 @@ public class TailFile extends AbstractProcessor {
             .name("tail-base-directory")
             .displayName("Base directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .required(false)
             .build();
@@ -148,8 +148,8 @@ public class TailFile extends AbstractProcessor {
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
                     + "to tail in the base directory. In case recursivity is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .required(true)
             .build();
 
@@ -267,7 +267,7 @@ public class TailFile extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
         if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
-            String path = context.getProperty(BASE_DIRECTORY).getValue();
+            String path = context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue();
             if(path == null) {
                 results.add(new ValidationResult.Builder().subject(BASE_DIRECTORY.getName()).valid(false)
                         .explanation("Base directory property cannot be empty in Multifile mode.").build());
@@ -291,8 +291,8 @@ public class TailFile extends AbstractProcessor {
                 }
             } else {
                 long max = context.getProperty(MAXIMUM_AGE).getValue() == null ? Long.MAX_VALUE : context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-                List<String> filesToTail = getFilesToTail(context.getProperty(BASE_DIRECTORY).getValue(),
-                        context.getProperty(FILENAME).getValue(),
+                List<String> filesToTail = getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
+                        context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
                         context.getProperty(RECURSIVE).asBoolean(),
                         max);
 
@@ -322,12 +322,12 @@ public class TailFile extends AbstractProcessor {
         List<String> filesToTail = new ArrayList<String>();
 
         if(context.getProperty(MODE).getValue().equals(MODE_MULTIFILE.getValue())) {
-            filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).getValue(),
-                    context.getProperty(FILENAME).getValue(),
+            filesToTail.addAll(getFilesToTail(context.getProperty(BASE_DIRECTORY).evaluateAttributeExpressions().getValue(),
+                    context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(),
                     context.getProperty(RECURSIVE).asBoolean(),
                     maxAge));
         } else {
-            filesToTail.add(context.getProperty(FILENAME).getValue());
+            filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
         }
 
 
@@ -1130,7 +1130,8 @@ public class TailFile extends AbstractProcessor {
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
             cleanup();
-            tfo.setState(new TailFileState(context.getProperty(FILENAME).getValue(), null, null, 0L, file.lastModified() + 1L, file.length(), null, tfo.getState().getBuffer()));
+            tfo.setState(new TailFileState(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(), null, null, 0L, file.lastModified() + 1L, file.length(), null,
+                    tfo.getState().getBuffer()));
 
             // must ensure that we do session.commit() before persisting state in order to avoid data loss.
             session.commit();

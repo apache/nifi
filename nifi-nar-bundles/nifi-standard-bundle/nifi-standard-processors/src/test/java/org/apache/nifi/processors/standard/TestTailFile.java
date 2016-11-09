@@ -620,6 +620,27 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(4).assertContentEquals("1\n");
     }
 
+    @Test
+    public void testMultipleFilesWithBasedirAndFilenameEL() throws IOException, InterruptedException {
+        runner.setVariable("vrBaseDirectory", "target");
+        runner.setProperty(TailFile.BASE_DIRECTORY, "${vrBaseDirectory}");
+        runner.setProperty(TailFile.MODE, TailFile.MODE_MULTIFILE);
+        runner.setVariable("vrFilename", "(testDir/)?log(ging)?.txt");
+        runner.setProperty(TailFile.FILENAME, "${vrFilename}");
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "${filename}.?");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE);
+        runner.setProperty(TailFile.RECURSIVE, "true");
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        otherRaf.write("hi\n".getBytes());
+        raf.write("hello\n".getBytes());
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+    }
+
     /**
      * This test is used to check the case where we have multiple files in the same directory
      * and where it is not possible to specify a single rolling pattern for all files.
