@@ -934,17 +934,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isValid() {
         try {
-            final ValidationContext validationContext = this.getValidationContextFactory()
-                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            // Processors may go invalid while RUNNING, but only validating while STOPPED is a trade-off
+            // we are willing to make in order to save on validation costs that would be unnecessary most of the time.
+            if (getScheduledState() == ScheduledState.STOPPED) {
+                final ValidationContext validationContext = this.getValidationContextFactory()
+                        .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
-            final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
-                validationResults = getProcessor().validate(validationContext);
-            }
+                final Collection<ValidationResult> validationResults;
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+                    validationResults = getProcessor().validate(validationContext);
+                }
 
-            for (final ValidationResult result : validationResults) {
-                if (!result.isValid()) {
-                    return false;
+                for (final ValidationResult result : validationResults) {
+                    if (!result.isValid()) {
+                        return false;
+                    }
                 }
             }
 
@@ -981,17 +985,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public Collection<ValidationResult> getValidationErrors() {
         final List<ValidationResult> results = new ArrayList<>();
         try {
-            final ValidationContext validationContext = this.getValidationContextFactory()
-                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
+            // Processors may go invalid while RUNNING, but only validating while STOPPED is a trade-off
+            // we are willing to make in order to save on validation costs that would be unnecessary most of the time.
+            if (getScheduledState() == ScheduledState.STOPPED) {
+                final ValidationContext validationContext = this.getValidationContextFactory()
+                        .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
-            final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
-                validationResults = getProcessor().validate(validationContext);
-            }
+                final Collection<ValidationResult> validationResults;
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+                    validationResults = getProcessor().validate(validationContext);
+                }
 
-            for (final ValidationResult result : validationResults) {
-                if (!result.isValid()) {
-                    results.add(result);
+                for (final ValidationResult result : validationResults) {
+                    if (!result.isValid()) {
+                        results.add(result);
+                    }
                 }
             }
 
