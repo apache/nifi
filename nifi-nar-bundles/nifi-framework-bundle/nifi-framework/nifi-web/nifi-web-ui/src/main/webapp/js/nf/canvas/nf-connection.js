@@ -1362,7 +1362,11 @@ nf.Connection = (function () {
                 .duration(400)
                 .attr({
                     'width': function (d) {
-                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
+                        if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseBytes)) {
+                            return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
+                        } else {
+                            return 0;
+                        }
                     }
                 }).each('end', function () {
                     backpressurePercentDataSize
@@ -1398,7 +1402,11 @@ nf.Connection = (function () {
                 .duration(400)
                 .attr({
                     'width': function (d) {
-                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
+                        if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseCount)) {
+                            return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
+                        } else {
+                            return 0;
+                        }
                     }
                 }).each('end', function () {
                     backpressurePercentObject
