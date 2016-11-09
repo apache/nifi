@@ -746,8 +746,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 removeConnection(conn);
             }
 
-            ExtensionManager.removeInstanceClassLoaderIfExists(id);
             LOG.info("{} removed from flow", processor);
+
+            // this must be called after the logging statement b/c the toString of processor calls NarCloseable
+            // and ends up using the InstanceClassLoader
+            ExtensionManager.removeInstanceClassLoaderIfExists(id);
         } finally {
             writeLock.unlock();
         }
@@ -1871,6 +1874,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
 
             LOG.info("{} removed from {}", service, this);
+
+            // this must be called after the logging statement b/c the toString of processor calls NarCloseable
+            // and ends up using the InstanceClassLoader
+            ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
         } finally {
             writeLock.unlock();
         }

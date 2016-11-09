@@ -200,9 +200,9 @@ public class ExtensionManager {
             // InstanceClassLoader that has the NAR ClassLoader as a parent
             if (requiresInstanceClassLoading.contains(classType) && (registeredClassLoader instanceof URLClassLoader)) {
                 final URLClassLoader registeredUrlClassLoader = (URLClassLoader) registeredClassLoader;
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
             } else {
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, new URL[0], registeredClassLoader);
+                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], registeredClassLoader);
             }
 
             instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
