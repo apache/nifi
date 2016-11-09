@@ -44,6 +44,10 @@
             <artifactId>hive-jdbc</artifactId>
             <version>${hive.version}</version>
             <exclusions>
+		<exclusion>
+                        <groupId>org.json</groupId>
+                        <artifactId>json</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-common</artifactId>
