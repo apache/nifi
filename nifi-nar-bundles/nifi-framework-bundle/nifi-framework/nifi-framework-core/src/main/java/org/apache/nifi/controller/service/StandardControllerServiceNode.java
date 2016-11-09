@@ -438,4 +438,13 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         final ProcessGroup procGroup = getProcessGroup();
         return procGroup == null ? null : procGroup.getIdentifier();
     }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
+        Collection<ValidationResult> results = null;
+        if (stateRef.get() == ControllerServiceState.DISABLED) {
+            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
+        }
+        return results != null ? results : Collections.emptySet();
+    }
 }
