@@ -57,8 +57,6 @@ Security Properties:
     provider: BC
 Processors: []
 Process Groups: []
-Input Ports: []
-Output Ports: []
 Funnels: []
 Connections: []
 Remote Processing Groups: []
