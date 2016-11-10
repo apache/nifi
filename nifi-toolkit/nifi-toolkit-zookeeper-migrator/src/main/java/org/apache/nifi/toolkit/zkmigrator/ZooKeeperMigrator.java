@@ -67,7 +67,7 @@ class ZooKeeperMigrator {
     ZooKeeperMigrator(String zookeeperEndpoint) throws URISyntaxException {
         LOGGER.debug("ZooKeeper endpoint parameter: {}", zookeeperEndpoint);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(zookeeperEndpoint), "connectString must not be null");
-        final String[] connectStringPath = zookeeperEndpoint.split("/");
+        final String[] connectStringPath = zookeeperEndpoint.split("/", 2);
         Preconditions.checkArgument(connectStringPath.length >= 1, "invalid ZooKeeper endpoint: %s", zookeeperEndpoint);
         final String connectString = connectStringPath[0];
         final String path;
@@ -115,7 +115,10 @@ class ZooKeeperMigrator {
         final List<Void> readsDone = finishedReads.get();
         jsonWriter.endArray();
         jsonWriter.close();
-        LOGGER.info("{} nodes read from {}", readsDone.size(), zooKeeperEndpointConfig);
+        if (LOGGER.isInfoEnabled()) {
+            final int readCount = readsDone.size();
+            LOGGER.info("{} {} read from {}", readCount, readCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
+        }
     }
 
     void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData) throws IOException, ExecutionException, InterruptedException {
@@ -169,7 +172,10 @@ class ZooKeeperMigrator {
                         .map(CompletableFuture::join)
                         .collect(Collectors.toList()));
         final List<Stat> writesDone = finishedWrites.get();
-        LOGGER.info("{} nodes transferred to {}", writesDone.size(), zooKeeperEndpointConfig);
+        if (LOGGER.isInfoEnabled()) {
+            final int writeCount = writesDone.size();
+            LOGGER.info("{} {} transferred to {}", writeCount, writeCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
+        }
         jsonReader.close();
     }
 
@@ -181,7 +187,7 @@ class ZooKeeperMigrator {
         LOGGER.debug("retrieving node and children at {}", path);
         final List<String> children = zooKeeper.getChildren(path, false);
         return new ZooKeeperNode(path, children.stream().map(s -> {
-            final String childPath = Joiner.on('/').join(path.equals("/") ? "" : path, s);
+            final String childPath = Joiner.on('/').skipNulls().join(path.equals("/") ? "" : path, s);
             try {
                 return getNode(zooKeeper, childPath);
             } catch (Exception e) {
@@ -216,8 +222,8 @@ class ZooKeeperMigrator {
             return createNodePath;
         } catch (KeeperException e) {
             if (KeeperException.Code.NONODE.equals(e.code())) {
-                final List<String> pathTokens = Splitter.on('/').omitEmptyStrings().splitToList(path);
-                final String parentPath = "/" + Joiner.on('/').join(pathTokens.subList(0, pathTokens.size() - 1));
+                final List<String> pathTokens = Splitter.on('/').omitEmptyStrings().trimResults().splitToList(path);
+                final String parentPath = "/" + Joiner.on('/').skipNulls().join(pathTokens.subList(0, pathTokens.size() - 1));
                 LOGGER.debug("node doesn't exist, recursively attempting to create node at {}", parentPath);
                 ensureNodeExists(zooKeeper, parentPath, CreateMode.PERSISTENT);
                 LOGGER.debug("recursively created node at {}", parentPath);
@@ -234,7 +240,7 @@ class ZooKeeperMigrator {
     }
 
     private DataStatAclNode transformNode(DataStatAclNode node, AuthMode destinationAuthMode) {
-        String migrationPath = zooKeeperEndpointConfig.getPath() + node.getPath();
+        String migrationPath = '/' + Joiner.on('/').skipNulls().join(Splitter.on('/').omitEmptyStrings().trimResults().split(zooKeeperEndpointConfig.getPath() + node.getPath()));
         // For the NiFi use case, all nodes will be migrated to CREATOR_ALL_ACL
         final DataStatAclNode migratedNode = new DataStatAclNode(migrationPath, node.getData(), node.getStat(),
                 destinationAuthMode.equals(AuthMode.OPEN) ? ZooDefs.Ids.OPEN_ACL_UNSAFE : ZooDefs.Ids.CREATOR_ALL_ACL,

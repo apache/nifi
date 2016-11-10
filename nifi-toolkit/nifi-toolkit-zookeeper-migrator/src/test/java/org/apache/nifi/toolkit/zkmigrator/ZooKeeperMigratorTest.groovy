@@ -89,6 +89,22 @@ class ZooKeeperMigratorTest extends Specification {
         6 == nodes.size()
     }
 
+    def "Send to open ZooKeeper without ACL migration with new multi-node parent"() {
+        given:
+        def server = new TestingServer()
+        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        })
+        def migrationPathRoot = '/newParent/node'
+
+        when:
+        ZooKeeperMigratorMain.main(['-s', '-z', "$server.connectString$migrationPathRoot", '-f', 'src/test/resources/test-data.json'] as String[])
+
+        then:
+        noExceptionThrown()
+        def nodes = getChildren(client, migrationPathRoot, [])
+        6 == nodes.size()
+    }
+
     def "Receive all nodes from ZooKeeper root"() {
         given:
         def server = new TestingServer()
@@ -141,6 +157,53 @@ class ZooKeeperMigratorTest extends Specification {
 
         when:
         ZooKeeperMigratorMain.main(['-s', '-z', "$server.connectString$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json', '-a', "$username:$password"] as String[])
+
+        then:
+        noExceptionThrown()
+        def nodes = getChildren(client, migrationPathRoot, [])
+        2 == nodes.size()
+    }
+
+    def "Send to open Zookeeper root"() {
+        given:
+        def server = new TestingServer()
+        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        })
+        def migrationPathRoot = '/'
+
+        when:
+        ZooKeeperMigratorMain.main(['-s', '-z', "$server.connectString$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
+
+        then:
+        noExceptionThrown()
+        def nodes = getChildren(client, migrationPathRoot, [])
+        4 == nodes.size()
+    }
+
+    def "Send to open Zookeeper default port at root node"() {
+        given:
+        def server = new TestingServer(2181)
+        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        })
+
+        when:
+        ZooKeeperMigratorMain.main(['-s', '-z', '127.0.0.1', '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
+
+        then:
+        noExceptionThrown()
+        def nodes = getChildren(client, '/', [])
+        4 == nodes.size()
+    }
+
+    def "Send to open Zookeeper default port at new parent node"() {
+        given:
+        def server = new TestingServer(2181)
+        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
+        })
+        def migrationPathRoot = '/newParent'
+
+        when:
+        ZooKeeperMigratorMain.main(['-s', '-z', "127.0.0.1$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
 
         then:
         noExceptionThrown()
