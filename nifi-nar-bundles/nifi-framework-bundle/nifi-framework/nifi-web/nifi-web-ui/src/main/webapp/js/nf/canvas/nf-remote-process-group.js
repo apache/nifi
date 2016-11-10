@@ -715,14 +715,14 @@ nf.RemoteProcessGroup = (function () {
                 return d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
             })
             .classed('transmitting', function (d) {
-                if (d.component.transmitting === true) {
+                if (d.permissions.canRead && d.component.transmitting === true) {
                     return true;
                 } else {
                     return false;
                 }
             })
             .classed('not-transmitting', function (d) {
-                if (d.component.transmitting !== true) {
+                if (d.permissions.canRead && d.component.transmitting !== true) {
                     return true;
                 } else {
                     return false;
