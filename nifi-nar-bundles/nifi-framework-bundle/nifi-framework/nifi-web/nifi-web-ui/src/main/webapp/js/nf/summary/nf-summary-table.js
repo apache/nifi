@@ -2115,8 +2115,8 @@ nf.SummaryTable = (function () {
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
-                var aSplit = a[sortDetails.columnId].split(/ \/ /);
-                var bSplit = b[sortDetails.columnId].split(/ \/ /);
+                var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
+                var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var mod = sortState[tableId].count % 4;
                 if (mod < 2) {
                     $('#' + tableId + ' span.' + sortDetails.columnId + '-title').addClass('sorted');
