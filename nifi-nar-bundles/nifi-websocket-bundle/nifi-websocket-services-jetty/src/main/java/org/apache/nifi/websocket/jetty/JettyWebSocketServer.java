@@ -70,16 +70,17 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
     private static final Map<Integer, JettyWebSocketServer> portToControllerService = new ConcurrentHashMap<>();
 
     // Allowable values for client auth
-    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("no", "No Authentication",
             "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
-    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication",
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("want", "Want Authentication",
             "Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously");
-    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication",
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("need", "Need Authentication",
             "Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore"
                     + "specified in the SSL Context Service");
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("Client Authentication")
+            .name("client-authentication")
+            .displayName("Client Authentication")
             .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
                     + "Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
             .required(true)
@@ -87,8 +88,9 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .defaultValue(CLIENT_NONE.getValue())
             .build();
 
-    public static final PropertyDescriptor LISTEN_PORT = new PropertyDescriptor
-            .Builder().name("Listen Port")
+    public static final PropertyDescriptor LISTEN_PORT = new PropertyDescriptor.Builder()
+            .name("listen-port")
+            .displayName("Listen Port")
             .description("The port number on which this WebSocketServer listens to.")
             .required(true)
             .expressionLanguageSupported(true)

@@ -48,8 +48,9 @@ import java.util.concurrent.TimeUnit;
         " WebSocket session management throughout the application.")
 public class JettyWebSocketClient extends AbstractJettyWebSocketService implements WebSocketClientService {
 
-    public static final PropertyDescriptor WS_URI = new PropertyDescriptor
-            .Builder().name("WebSocket URI")
+    public static final PropertyDescriptor WS_URI = new PropertyDescriptor.Builder()
+            .name("websocket-uri")
+            .displayName("WebSocket URI")
             .description("The WebSocket URI this client connects to.")
             .required(true)
             .expressionLanguageSupported(true)
@@ -70,8 +71,9 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             })
             .build();
 
-    public static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor
-            .Builder().name("Connection Timeout")
+    public static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("connection-timeout")
+            .displayName("Connection Timeout")
             .description("The timeout to connect the WebSocket URI.")
             .required(true)
             .expressionLanguageSupported(true)

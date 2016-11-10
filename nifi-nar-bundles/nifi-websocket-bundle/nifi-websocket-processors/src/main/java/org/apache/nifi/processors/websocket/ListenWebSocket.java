@@ -59,14 +59,16 @@ import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.AT
 public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
 
     public static final PropertyDescriptor PROP_WEBSOCKET_SERVER_SERVICE = new PropertyDescriptor.Builder()
-            .name("WebSocket Server Controller Service")
+            .name("websocket-server-controller-service")
+            .displayName("WebSocket Server ControllerService")
             .description("A WebSocket SERVER Controller Service which can accept WebSocket requests.")
             .required(true)
             .identifiesControllerService(WebSocketServerService.class)
             .build();
 
-    public static final PropertyDescriptor PROP_SERVER_URL_PATH = new PropertyDescriptor
-            .Builder().name("Server URL Path")
+    public static final PropertyDescriptor PROP_SERVER_URL_PATH = new PropertyDescriptor.Builder()
+            .name("server-url-path")
+            .displayName("Server URL Path")
             .description("The WetSocket URL Path on which this processor listens to. Must starts with '/', e.g. '/example'.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)

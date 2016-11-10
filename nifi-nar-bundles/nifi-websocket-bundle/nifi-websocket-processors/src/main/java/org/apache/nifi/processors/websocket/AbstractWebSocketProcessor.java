@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.websocket;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -29,8 +28,6 @@ import org.apache.nifi.websocket.WebSocketConfigurationException;
 import org.apache.nifi.websocket.WebSocketService;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class AbstractWebSocketProcessor extends AbstractSessionFactoryProcessor {
 
@@ -42,13 +39,8 @@ public abstract class AbstractWebSocketProcessor extends AbstractSessionFactoryP
     public static final String ATTR_WS_LOCAL_ADDRESS = "websocket.local.address";
     public static final String ATTR_WS_REMOTE_ADDRESS = "websocket.remote.address";
 
-    static List<PropertyDescriptor> getAbstractPropertyDescriptors(){
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        return descriptors;
-    }
-
-    protected ComponentLog logger;
-    protected ProcessSessionFactory processSessionFactory;
+    protected volatile ComponentLog logger;
+    protected volatile ProcessSessionFactory processSessionFactory;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {

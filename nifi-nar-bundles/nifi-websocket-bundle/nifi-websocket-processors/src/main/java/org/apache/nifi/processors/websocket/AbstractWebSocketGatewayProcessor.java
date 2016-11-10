@@ -55,7 +55,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 public abstract class AbstractWebSocketGatewayProcessor extends AbstractWebSocketProcessor implements ConnectedListener, TextMessageConsumer, BinaryMessageConsumer {
 
     public static final PropertyDescriptor PROP_MAX_QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("Max Queue Size")
+            .name("max-queue-size")
+            .displayName("Max Queue Size")
             .description("The WebSocket messages are kept in an on-memory queue," +
                     " then transferred to relationships when this processor is triggered." +
                     " If the 'Run Schedule' is significantly behind the rate" +
@@ -89,7 +90,6 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractWebSocke
 
     static List<PropertyDescriptor> getAbstractPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.addAll(AbstractWebSocketProcessor.getAbstractPropertyDescriptors());
         descriptors.add(PROP_MAX_QUEUE_SIZE);
         return descriptors;
     }

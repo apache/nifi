@@ -30,24 +30,27 @@ import java.util.List;
 
 public abstract class AbstractJettyWebSocketService extends AbstractWebSocketService {
 
-    public static final PropertyDescriptor INPUT_BUFFER_SIZE = new PropertyDescriptor
-            .Builder().name("Input Buffer Size")
+    public static final PropertyDescriptor INPUT_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("input-buffer-size")
+            .displayName("Input Buffer Size")
             .description("The size of the input (read from network layer) buffer size.")
             .required(true)
             .defaultValue("4 kb")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor MAX_TEXT_MESSAGE_SIZE = new PropertyDescriptor
-            .Builder().name("Max Text Message Size")
+    public static final PropertyDescriptor MAX_TEXT_MESSAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("max-text-message-size")
+            .displayName("Max Text Message Size")
             .description("The maximum size of a text message during parsing/generating.")
             .required(true)
             .defaultValue("64 kb")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor MAX_BINARY_MESSAGE_SIZE = new PropertyDescriptor
-            .Builder().name("Max Binary Message Size")
+    public static final PropertyDescriptor MAX_BINARY_MESSAGE_SIZE = new PropertyDescriptor.Builder()
+            .name("max-binary-message-size")
+            .displayName("Max Binary Message Size")
             .description("The maximum size of a binary message during parsing/generating.")
             .required(true)
             .defaultValue("64 kb")

@@ -29,7 +29,8 @@ import java.io.IOException;
 public interface WebSocketService extends ControllerService {
 
     PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
             .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only WSS requests; "
                     + "otherwise, the server will accept only WS requests")
             .required(false)

@@ -39,6 +39,7 @@ import org.apache.nifi.websocket.WebSocketService;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -71,8 +72,9 @@ import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
 })
 public class PutWebSocket extends AbstractWebSocketProcessor {
 
-    public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor
-            .Builder().name("WebSocket Session Id")
+    public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
+            .name("websocket-session-id")
+            .displayName("WebSocket Session Id")
             .description("A NiFi Expression to retrieve the session id.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -80,8 +82,9 @@ public class PutWebSocket extends AbstractWebSocketProcessor {
             .defaultValue("${" + ATTR_WS_SESSION_ID + "}")
             .build();
 
-    public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ID = new PropertyDescriptor
-            .Builder().name("WebSocket ControllerService Id")
+    public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ID = new PropertyDescriptor.Builder()
+            .name("websocket-controller-service-id")
+            .displayName("WebSocket ControllerService Id")
             .description("A NiFi Expression to retrieve the id of a WebSocket ControllerService.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -89,8 +92,9 @@ public class PutWebSocket extends AbstractWebSocketProcessor {
             .defaultValue("${" + ATTR_WS_CS_ID + "}")
             .build();
 
-    public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ENDPOINT = new PropertyDescriptor
-            .Builder().name("WebSocket Endpoint Id")
+    public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("websocket-endpoint-id")
+            .displayName("WebSocket Endpoint Id")
             .description("A NiFi Expression to retrieve the endpoint id of a WebSocket ControllerService.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -98,8 +102,9 @@ public class PutWebSocket extends AbstractWebSocketProcessor {
             .defaultValue("${" + ATTR_WS_ENDPOINT_ID + "}")
             .build();
 
-    public static final PropertyDescriptor PROP_WS_MESSAGE_TYPE = new PropertyDescriptor
-            .Builder().name("WebSocket Message Type")
+    public static final PropertyDescriptor PROP_WS_MESSAGE_TYPE = new PropertyDescriptor.Builder()
+            .name("websocket-message-type")
+            .displayName("WebSocket Message Type")
             .description("The type of message content: TEXT or BINARY")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -120,7 +125,7 @@ public class PutWebSocket extends AbstractWebSocketProcessor {
     private static final Set<Relationship> relationships;
 
     static{
-        final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
+        final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
         innerDescriptorsList.add(PROP_WS_SESSION_ID);
         innerDescriptorsList.add(PROP_WS_CONTROLLER_SERVICE_ID);
         innerDescriptorsList.add(PROP_WS_CONTROLLER_SERVICE_ENDPOINT);

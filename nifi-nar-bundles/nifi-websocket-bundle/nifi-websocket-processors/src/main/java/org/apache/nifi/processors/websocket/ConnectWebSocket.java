@@ -57,14 +57,16 @@ import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.AT
 public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
 
     public static final PropertyDescriptor PROP_WEBSOCKET_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("WebSocket Client Controller Service")
+            .name("websocket-client-controller-service")
+            .displayName("WebSocket Client ControllerService")
             .description("A WebSocket CLIENT Controller Service which can connect to a WebSocket server.")
             .required(true)
             .identifiesControllerService(WebSocketClientService.class)
             .build();
 
-    public static final PropertyDescriptor PROP_WEBSOCKET_CLIENT_ID = new PropertyDescriptor
-            .Builder().name("WebSocket Client Id")
+    public static final PropertyDescriptor PROP_WEBSOCKET_CLIENT_ID = new PropertyDescriptor.Builder()
+            .name("websocket-client-id")
+            .displayName("WebSocket Client Id")
             .description("The client ID to identify WebSocket session." +
                     " It should be unique within the WebSocket Client Controller Service." +
                     " Otherwise, it throws WebSocketConfigurationException when it gets started.")
