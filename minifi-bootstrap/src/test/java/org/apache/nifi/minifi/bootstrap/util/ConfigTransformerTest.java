@@ -44,18 +44,23 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 public class ConfigTransformerTest {
-
+    public static final Map<String, Integer> PG_ELEMENT_ORDER_MAP = generateOrderMap(
+            Arrays.asList("processor", "inputPort", "outputPort", "funnel", "processGroup", "remoteProcessGroup", "connection"));
     private XPathFactory xPathFactory;
     private Document document;
     private Element config;
@@ -109,6 +114,11 @@ public class ConfigTransformerTest {
         testConfigFileTransform("stress-test-framework-funnel.yml");
     }
 
+    @Test
+    public void testFunnelAndRpgTransform() throws Exception {
+        testConfigFileTransform("config-funnel-and-rpg.yml");
+    }
+
     public void testConfigFileTransform(String configFile) throws Exception {
         ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(ConfigTransformerTest.class.getClassLoader().getResourceAsStream(configFile));
 
@@ -123,6 +133,8 @@ public class ConfigTransformerTest {
         assertEquals(processGroupSchema.getId(), getText(element, "id"));
         assertEquals(processGroupSchema.getName(), getText(element, "name"));
         assertEquals(nullToEmpty(processGroupSchema.getComment()), nullToEmpty(getText(element, "comment")));
+
+        checkOrderOfChildren(element, PG_ELEMENT_ORDER_MAP);
 
         NodeList processorElements = (NodeList) xPathFactory.newXPath().evaluate("processor", element, XPathConstants.NODESET);
         assertEquals(processGroupSchema.getProcessors().size(), processorElements.getLength());
@@ -255,5 +267,31 @@ public class ConfigTransformerTest {
 
     private String nullToEmpty(Object val) {
         return val == null ? "" : val.toString();
+    }
+
+    private static Map<String, Integer> generateOrderMap(List<String> elements) {
+        Map<String, Integer> map = new HashMap<>();
+        for (int i = 0; i < elements.size(); i++) {
+            map.put(elements.get(i), i);
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
+    private static void checkOrderOfChildren(Element element, Map<String, Integer> orderMap) {
+        int elementOrderList = 0;
+        NodeList childNodes = element.getChildNodes();
+        String lastOrderedElementName = null;
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            String nodeName = childNodes.item(i).getNodeName();
+            Integer index = orderMap.get(nodeName);
+            if (index != null) {
+                if (elementOrderList > index) {
+                    fail("Found " + nodeName + " after " + lastOrderedElementName + "; expected all " + nodeName + " elements to come before the following elements: " + orderMap.entrySet().stream()
+                            .filter(e -> e.getValue() > index ).sorted(Comparator.comparingInt(e -> e.getValue())).map(e -> e.getKey()).collect(Collectors.joining(", ")));
+                }
+                lastOrderedElementName = nodeName;
+                elementOrderList = index;
+            }
+        }
     }
 }

@@ -366,14 +366,6 @@ public final class ConfigTransformer {
                 addProcessor(element, processorConfig);
             }
 
-            for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : processGroupSchema.getRemoteProcessingGroups()) {
-                addRemoteProcessGroup(element, remoteProcessingGroupSchema);
-            }
-
-            for (FunnelSchema funnelSchema : processGroupSchema.getFunnels()) {
-                addFunnel(element, funnelSchema);
-            }
-
             for (PortSchema portSchema : processGroupSchema.getInputPortSchemas()) {
                 addPort(doc, element, portSchema, "inputPort");
             }
@@ -382,10 +374,18 @@ public final class ConfigTransformer {
                 addPort(doc, element, portSchema, "outputPort");
             }
 
+            for (FunnelSchema funnelSchema : processGroupSchema.getFunnels()) {
+                addFunnel(element, funnelSchema);
+            }
+
             for (ProcessGroupSchema child : processGroupSchema.getProcessGroupSchemas()) {
                 Element processGroups = doc.createElement("processGroup");
                 element.appendChild(processGroups);
                 addProcessGroup(doc, processGroups, child, parentGroupIdResolver);
+            }
+
+            for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : processGroupSchema.getRemoteProcessingGroups()) {
+                addRemoteProcessGroup(element, remoteProcessingGroupSchema);
             }
 
             for (ConnectionSchema connectionConfig : processGroupSchema.getConnections()) {
