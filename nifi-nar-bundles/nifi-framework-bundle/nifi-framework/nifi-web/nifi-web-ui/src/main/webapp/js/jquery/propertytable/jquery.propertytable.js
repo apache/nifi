@@ -850,7 +850,8 @@
                             'height': '80px',
                             'resize': 'both',
                             'width': cellNode.width() + 'px',
-                            'margin': '10px 0px'
+                            'margin': '10px 0px',
+                            'white-space': 'pre'
                         }).text(property.value).on('keydown', function (evt) {
                             if (evt.which === $.ui.keyCode.ESCAPE) {
                                 cleanUp();
