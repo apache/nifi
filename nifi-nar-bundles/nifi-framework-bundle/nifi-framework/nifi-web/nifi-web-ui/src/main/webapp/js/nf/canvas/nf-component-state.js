@@ -222,6 +222,12 @@ nf.ComponentState = (function () {
                 handler: {
                     close: function () {
                         resetDialog();
+                    },
+                    resize: function () {
+                        $('#component-state-description')
+                            .width($('#component-state-dialog').find('.dialog-content').innerWidth() - 1)
+                            .text($('#component-state-description').attr('title'))
+                            .ellipsis();
                     }
                 }
             });
@@ -351,15 +357,18 @@ nf.ComponentState = (function () {
                 // load the table
                 loadComponentState(componentState.localState, componentState.clusterState);
 
+                // show the dialog
+                $('#component-state-dialog').modal('show');
+
                 // populate the name/description
                 $('#component-state-name').text(componentEntity.component.name);
-                $('#component-state-description').text(componentState.stateDescription).ellipsis();
+                $('#component-state-description')
+                    .width($('#component-state-dialog').find('.dialog-content').innerWidth() - 1)
+                    .text(componentState.stateDescription)
+                    .ellipsis();
 
                 // store the component
                 componentStateTable.data('component', componentEntity);
-
-                // show the dialog
-                $('#component-state-dialog').modal('show');
 
                 // only activate the link when appropriate
                 if (canClear === false) {

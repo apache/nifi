@@ -52,7 +52,10 @@
 
 #component-state-description{
     height: 75px;
-    overflow: auto;
+    line-height: normal;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 /*

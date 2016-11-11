@@ -440,19 +440,24 @@ nf.Settings = (function () {
 
                 // set the reporting task type description
                 if (nf.Common.isDefinedAndNotNull(reportingTaskType)) {
+                    // show the selected reporting task
+                    $('#reporting-task-description-container').show();
+
                     if (nf.Common.isBlank(reportingTaskType.description)) {
-                        $('#reporting-task-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                        $('#reporting-task-type-description')
+                            .attr('title', '')
+                            .html('<span class="unset">No description specified</span>');
                     } else {
-                        $('#reporting-task-type-description').html(reportingTaskType.description).ellipsis();
+                        $('#reporting-task-type-description')
+                            .width($('#reporting-task-description-container').innerWidth() - 1)
+                            .html(reportingTaskType.description)
+                            .ellipsis();
                     }
 
                     // populate the dom
                     $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
                     $('#selected-reporting-task-name').text(reportingTaskType.label);
                     $('#selected-reporting-task-type').text(reportingTaskType.type);
-
-                    // show the selected reporting task
-                    $('#reporting-task-description-container').show();
                 }
             }
         });
@@ -569,6 +574,12 @@ nf.Settings = (function () {
                     var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
                     reportingTaskTypesGrid.setSelectedRows([]);
                     reportingTaskTypesGrid.resetActiveCell();
+                },
+                resize: function () {
+                    $('#reporting-task-type-description')
+                        .width($('#reporting-task-description-container').innerWidth() - 1)
+                        .text($('#reporting-task-type-description').attr('title'))
+                        .ellipsis();
                 }
             }
         });

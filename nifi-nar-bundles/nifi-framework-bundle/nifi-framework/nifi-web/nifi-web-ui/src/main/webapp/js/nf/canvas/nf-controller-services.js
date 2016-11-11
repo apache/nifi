@@ -280,19 +280,24 @@ nf.ControllerServices = (function () {
 
                 // set the controller service type description
                 if (nf.Common.isDefinedAndNotNull(controllerServiceType)) {
+                    // show the selected controller service
+                    $('#controller-service-description-container').show();
+
                     if (nf.Common.isBlank(controllerServiceType.description)) {
-                        $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                        $('#controller-service-type-description')
+                            .attr('title', '')
+                            .html('<span class="unset">No description specified</span>');
                     } else {
-                        $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
+                        $('#controller-service-type-description')
+                            .width($('#controller-service-description-container').innerWidth() - 1)
+                            .html(controllerServiceType.description)
+                            .ellipsis();
                     }
 
                     // populate the dom
                     $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
                     $('#selected-controller-service-name').text(controllerServiceType.label);
                     $('#selected-controller-service-type').text(controllerServiceType.type);
-
-                    // show the selected controller service
-                    $('#controller-service-description-container').show();
                 }
             }
         });
@@ -379,6 +384,12 @@ nf.ControllerServices = (function () {
                     var controllerServiceTypesGrid = $('#controller-service-types-table').data('gridInstance');
                     controllerServiceTypesGrid.setSelectedRows([]);
                     controllerServiceTypesGrid.resetActiveCell();
+                },
+                resize: function () {
+                    $('#controller-service-type-description')
+                        .width($('#controller-service-description-container').innerWidth() - 1)
+                        .text($('#controller-service-type-description').attr('title'))
+                        .ellipsis();
                 }
             }
         });
