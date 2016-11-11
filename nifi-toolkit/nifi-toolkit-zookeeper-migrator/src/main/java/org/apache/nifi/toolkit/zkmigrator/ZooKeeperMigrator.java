@@ -292,4 +292,8 @@ class ZooKeeperMigrator {
         }
         return zooKeeper;
     }
+
+    ZooKeeperEndpointConfig getZooKeeperEndpointConfig() {
+        return zooKeeperEndpointConfig;
+    }
 }

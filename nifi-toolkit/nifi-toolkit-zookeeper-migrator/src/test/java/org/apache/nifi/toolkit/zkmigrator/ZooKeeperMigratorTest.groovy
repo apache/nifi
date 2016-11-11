@@ -25,9 +25,11 @@ import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.ZooKeeper
 import spock.lang.Ignore
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.nio.charset.StandardCharsets
 
+@Unroll
 class ZooKeeperMigratorTest extends Specification {
 
     def "Test auth and jaas usage simultaneously"() {
@@ -180,40 +182,28 @@ class ZooKeeperMigratorTest extends Specification {
         4 == nodes.size()
     }
 
-    def "Send to open Zookeeper default port at root node"() {
-        given:
-        def server = new TestingServer(2181)
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
-        })
-        def nodes
-
+    def "Parse Zookeeper connect string and path"() {
         when:
-        server.withCloseable {
-            ZooKeeperMigratorMain.main(['-s', '-z', '127.0.0.1', '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
-            nodes = getChildren(client, '/', [])
-        }
+        def zooKeeperMigrator = new ZooKeeperMigrator("$connectStringAndPath")
+        def tokens = connectStringAndPath.split('/', 2) as List
+        def connectString = tokens[0]
+        def path = '/' + (tokens.size() > 1 ? tokens[1] : '')
 
         then:
-        noExceptionThrown()
-        4 == nodes.size()
-    }
+        connectString == zooKeeperMigrator.getZooKeeperEndpointConfig().connectString
+        path == zooKeeperMigrator.getZooKeeperEndpointConfig().path
 
-    def "Send to open Zookeeper default port at new parent node"() {
-        given:
-        def server = new TestingServer(2181)
-        def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
-        })
-        def migrationPathRoot = '/newParent'
-        def nodes
-
-        when:
-        server.withCloseable {
-            ZooKeeperMigratorMain.main(['-s', '-z', "127.0.0.1$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
-            nodes = getChildren(client, migrationPathRoot, [])
-        }
-        then:
-        noExceptionThrown()
-        2 == nodes.size()
+        where:
+        connectStringAndPath       || _
+        '127.0.0.1'                || _
+        '127.0.0.1/'               || _
+        '127.0.0.1:2181'           || _
+        '127.0.0.1:2181/'          || _
+        '127.0.0.1/path'           || _
+        '127.0.0.1/path/node'      || _
+        '127.0.0.1:2181/'          || _
+        '127.0.0.1:2181/path'      || _
+        '127.0.0.1:2181/path/node' || _
     }
 
     def List<String> getChildren(ZooKeeper client, String path, List<String> ag) {
