@@ -32,8 +32,8 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+@SuppressWarnings("resource")
 public class StreamDemarcatorTest {
-
     @Test
     public void validateInitializationFailure() {
         try {
@@ -62,6 +62,41 @@ public class StreamDemarcatorTest {
             fail();
         } catch (IllegalArgumentException e) {
             // success
+        }
+    }
+
+    @Test
+    public void validateLargeBufferSmallMaxSize() throws IOException {
+        final byte[] inputData = "A Great Benefit To Us All".getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream is = new ByteArrayInputStream(inputData);
+            final StreamDemarcator demarcator = new StreamDemarcator(is, "B".getBytes(StandardCharsets.UTF_8), 24, 4096)) {
+
+            final byte[] first = demarcator.nextToken();
+            assertNotNull(first);
+            assertEquals("A Great ", new String(first));
+
+            final byte[] second = demarcator.nextToken();
+            assertNotNull(second);
+            assertEquals("enefit To Us All", new String(second));
+
+            assertNull(demarcator.nextToken());
+
+        }
+    }
+
+    @Test
+    public void vaidateOnPartialMatchThenSubsequentPartialMatch() throws IOException {
+        final byte[] inputData = "A Great Big Boy".getBytes(StandardCharsets.UTF_8);
+        final byte[] delimBytes = "AB".getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream is = new ByteArrayInputStream(inputData);
+                final StreamDemarcator demarcator = new StreamDemarcator(is, delimBytes, 4096)) {
+
+            final byte[] bytes = demarcator.nextToken();
+            assertArrayEquals(inputData, bytes);
+
+            assertNull(demarcator.nextToken());
         }
     }
 
@@ -196,9 +231,10 @@ public class StreamDemarcatorTest {
 
     @Test(expected = IOException.class)
     public void validateMaxBufferSize() throws IOException {
-        String data = "THIS IS MY TEXT<MY DELIMITER>THIS IS MY NEW TEXT<MY DELIMITER>THIS IS MY NEWEST TEXT";
+        String data = "THIS IS MY TEXT<MY DELIMITER>THIS IS MY NEW TEXT THEN<MY DELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
         StreamDemarcator scanner = new StreamDemarcator(is, "<MY DELIMITER>".getBytes(StandardCharsets.UTF_8), 20);
+        scanner.nextToken();
         scanner.nextToken();
     }
 
