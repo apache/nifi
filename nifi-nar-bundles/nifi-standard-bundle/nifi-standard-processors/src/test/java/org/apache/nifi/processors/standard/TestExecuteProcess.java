@@ -268,6 +268,31 @@ public class TestExecuteProcess {
         assertEquals(1, succeeded.size());
     }
 
+    @Test
+    public void testRedirectErrorStreamWithExpressions() {
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "ls");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "${literal('does-not-exist'):toUpper()}");
+        runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
+
+        ProcessContext processContext = runner.getProcessContext();
+
+        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        processor.updateScheduledTrue();
+        processor.setupExecutor(processContext);
+
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+
+        if (isCommandFailed(runner)) return;
+
+        final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
+        assertEquals("If redirect error stream is true " +
+                "the output should be sent as a content of flow-file.", 0, warnMessages.size());
+        final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        assertEquals(1, succeeded.size());
+        assertTrue(new String(succeeded.get(0).toByteArray()).contains("DOES-NOT-EXIST"));
+    }
+
     /**
      * On some environment, the test command immediately fail with an IOException
      * because of the native UnixProcess.init method implementation difference.
