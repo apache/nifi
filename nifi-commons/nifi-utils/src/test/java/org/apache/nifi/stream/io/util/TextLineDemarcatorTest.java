@@ -18,11 +18,13 @@ package org.apache.nifi.stream.io.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
@@ -234,6 +236,28 @@ public class TextLineDemarcatorTest {
         assertEquals(11, offsetInfo.getLength());
         assertEquals(2, offsetInfo.getCrlfLength());
         assertTrue(offsetInfo.isStartsWithMatch());
+    }
+
+    @Test
+    public void testOnBufferSplitNoTrailingDelimiter() throws IOException {
+        final byte[] inputData = "Yes\nNo".getBytes(StandardCharsets.UTF_8);
+        final ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+        final TextLineDemarcator demarcator = new TextLineDemarcator(is, 3);
+
+        final OffsetInfo first = demarcator.nextOffsetInfo();
+        final OffsetInfo second = demarcator.nextOffsetInfo();
+        final OffsetInfo third = demarcator.nextOffsetInfo();
+        assertNotNull(first);
+        assertNotNull(second);
+        assertNull(third);
+
+        assertEquals(0, first.getStartOffset());
+        assertEquals(4, first.getLength());
+        assertEquals(1, first.getCrlfLength());
+
+        assertEquals(4, second.getStartOffset());
+        assertEquals(2, second.getLength());
+        assertEquals(0, second.getCrlfLength());
     }
 
     private InputStream stringToIs(String data) {
