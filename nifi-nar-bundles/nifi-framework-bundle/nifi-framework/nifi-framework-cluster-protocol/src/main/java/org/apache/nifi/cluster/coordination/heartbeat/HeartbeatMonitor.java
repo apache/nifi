@@ -54,6 +54,11 @@ public interface HeartbeatMonitor {
     void removeHeartbeat(NodeIdentifier nodeId);
 
     /**
+     * Clears all heartbeats that have been received
+     */
+    void purgeHeartbeats();
+
+    /**
      * @return the address that heartbeats should be sent to when this node is elected coordinator.
      */
     String getHeartbeatAddress();
