@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
 import org.junit.Test;
 
+@SuppressWarnings("resource")
 public class TextLineDemarcatorTest {
 
     @Test(expected = IllegalArgumentException.class)
@@ -44,7 +45,7 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
-    public void emptyStreamNoStartWithFilter() {
+    public void emptyStreamNoStartWithFilter() throws IOException {
         String data = "";
         InputStream is = stringToIs(data);
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
@@ -53,7 +54,7 @@ public class TextLineDemarcatorTest {
 
 
     @Test
-    public void emptyStreamAndStartWithFilter() {
+    public void emptyStreamAndStartWithFilter() throws IOException {
         String data = "";
         InputStream is = stringToIs(data);
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
@@ -63,7 +64,7 @@ public class TextLineDemarcatorTest {
     // this test has no assertions. It's success criteria is validated by lack
     // of failure (see NIFI-3278)
     @Test
-    public void endsWithCRWithBufferLengthEqualStringLengthA() {
+    public void endsWithCRWithBufferLengthEqualStringLengthA() throws Exception {
         String str = "\r";
         InputStream is = stringToIs(str);
         TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
@@ -72,7 +73,7 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
-    public void endsWithCRWithBufferLengthEqualStringLengthB() {
+    public void endsWithCRWithBufferLengthEqualStringLengthB() throws Exception {
         String str = "abc\r";
         InputStream is = stringToIs(str);
         TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
@@ -81,7 +82,7 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
-    public void singleCR() {
+    public void singleCR() throws IOException {
         InputStream is = stringToIs("\r");
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
@@ -92,7 +93,7 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
-    public void singleLF() {
+    public void singleLF() throws IOException {
         InputStream is = stringToIs("\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
         OffsetInfo offsetInfo = demarcator.nextOffsetInfo();
@@ -121,7 +122,7 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
-    public void validateNiFi_3495() {
+    public void validateNiFi_3495() throws IOException {
         String str = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
         InputStream is = stringToIs(str);
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 10);

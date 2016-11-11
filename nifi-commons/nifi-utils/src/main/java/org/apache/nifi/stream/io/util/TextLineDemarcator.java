@@ -28,26 +28,10 @@ import java.io.InputStream;
  * computed text line. See {@link #nextOffsetInfo()} and
  * {@link #nextOffsetInfo(byte[])} for more details.
  * <p>
- * This class is NOT thread-safe.
+ * NOTE: Not intended for multi-thread usage hence not Thread-safe.
  * </p>
  */
-public class TextLineDemarcator {
-
-    private final static int INIT_BUFFER_SIZE = 8192;
-
-    private final InputStream is;
-
-    private final int initialBufferSize;
-
-    private byte[] buffer;
-
-    private int index;
-
-    private int mark;
-
-    private long offset;
-
-    private int bufferLength;
+public class TextLineDemarcator extends AbstractDemarcator {
 
     /**
      * Constructs an instance of demarcator with provided {@link InputStream}
@@ -62,15 +46,7 @@ public class TextLineDemarcator {
      * and initial buffer size.
      */
     public TextLineDemarcator(InputStream is, int initialBufferSize) {
-        if (is == null) {
-            throw new IllegalArgumentException("'is' must not be null.");
-        }
-        if (initialBufferSize < 1) {
-            throw new IllegalArgumentException("'initialBufferSize' must be > 0.");
-        }
-        this.is = is;
-        this.initialBufferSize = initialBufferSize;
-        this.buffer = new byte[initialBufferSize];
+        super(is, Integer.MAX_VALUE, initialBufferSize);
     }
 
     /**
@@ -81,7 +57,7 @@ public class TextLineDemarcator {
      *
      * @return offset info
      */
-    public OffsetInfo nextOffsetInfo() {
+    public OffsetInfo nextOffsetInfo() throws IOException {
         return this.nextOffsetInfo(null);
     }
 
@@ -95,133 +71,67 @@ public class TextLineDemarcator {
      *
      * @return offset info
      */
-    public OffsetInfo nextOffsetInfo(byte[] startsWith) {
+    public OffsetInfo nextOffsetInfo(byte[] startsWith) throws IOException {
         OffsetInfo offsetInfo = null;
-        int lineLength = 0;
-        byte[] token = null;
-        lineLoop:
-        while (this.bufferLength != -1) {
+        byte previousByteVal = 0;
+        byte[] data = null;
+        nextTokenLoop: 
+        while (data == null && this.bufferLength != -1) {
             if (this.index >= this.bufferLength) {
                 this.fill();
             }
+            int delimiterSize = 0;
             if (this.bufferLength != -1) {
-                int i;
                 byte byteVal;
+                int i;
                 for (i = this.index; i < this.bufferLength; i++) {
                     byteVal = this.buffer[i];
-                    lineLength++;
-                    int crlfLength = computeEol(byteVal, i + 1);
-                    if (crlfLength > 0) {
-                        i += crlfLength;
-                        if (crlfLength == 2) {
-                            lineLength++;
-                        }
-                        offsetInfo = new OffsetInfo(this.offset, lineLength, crlfLength);
+
+                    if (byteVal == 10) {
+                        delimiterSize = previousByteVal == 13 ? 2 : 1;
+                    } else if (previousByteVal == 13) {
+                        delimiterSize = 1;
+                        i--;
+                    }
+                    previousByteVal = byteVal;
+                    if (delimiterSize > 0) {
+                        this.index = i + 1;
+                        int size = Math.max(1, this.index - this.mark);
+                        offsetInfo = new OffsetInfo(this.offset, size, delimiterSize);
+                        this.offset += size;
                         if (startsWith != null) {
-                            token = this.extractDataToken(lineLength);
+                            data = this.extractDataToken(size);
                         }
                         this.mark = this.index;
-                        break lineLoop;
+                        break nextTokenLoop;
                     }
                 }
                 this.index = i;
+            } else {
+                delimiterSize = previousByteVal == 13 || previousByteVal == 10 ? 1 : 0;
+                if (offsetInfo == null) {
+                    int size = this.index - this.mark;
+                    if (size > 0) {
+                        offsetInfo = new OffsetInfo(this.offset, size, delimiterSize);
+                        this.offset += size;
+                    }
+                }
+                if (startsWith != null) {
+                    data = this.extractDataToken(this.index - this.mark);
+                }
             }
         }
-        // EOF where last char(s) are not CRLF.
-        if (lineLength > 0 && offsetInfo == null) {
-            offsetInfo = new OffsetInfo(this.offset, lineLength, 0);
-            if (startsWith != null) {
-                token = this.extractDataToken(lineLength);
-            }
-        }
-        this.offset += lineLength;
 
-        // checks if the new line starts with 'startsWith' chars
-        if (startsWith != null) {
+        if (startsWith != null && data != null) {
             for (int i = 0; i < startsWith.length; i++) {
                 byte sB = startsWith[i];
-                if (token != null && sB != token[i]) {
+                if (data != null && sB != data[i]) {
                     offsetInfo.setStartsWithMatch(0);
                     break;
                 }
             }
         }
         return offsetInfo;
-    }
-
-    /**
-     * Determines if the line terminates. Returns int specifying the length of
-     * the CRLF (i.e., only CR or LF or CR and LF) and therefore can only have
-     * values of:
-     *   0 - not the end of the line
-     *   1 - the end of the line either via CR or LF
-     *   2 - the end of the line with both CR and LF
-     *
-     * It performs the read ahead on the buffer if need to.
-     */
-    private int computeEol(byte currentByte, int providedIndex) {
-        int actualIndex = providedIndex - 1;
-        boolean readAhead = false;
-        int crlfLength = 0;
-        if (currentByte == '\n') {
-            crlfLength = 1;
-        } else if (currentByte == '\r') {
-            if (providedIndex >= this.bufferLength) {
-                this.index = this.bufferLength;
-                this.fill();
-                providedIndex = this.index;
-                readAhead = true;
-            }
-            crlfLength = 1;
-            if (providedIndex < this.buffer.length - 1) {
-                currentByte = this.buffer[providedIndex];
-                crlfLength = currentByte == '\n' ? 2 : 1;
-            }
-        }
-
-        if (crlfLength > 0) {
-            this.index = readAhead ? this.index + (crlfLength - 1) : (actualIndex + crlfLength);
-        }
-
-        return crlfLength;
-    }
-
-    private byte[] extractDataToken(int length) {
-        byte[] data = null;
-        if (length > 0) {
-            data = new byte[length];
-            System.arraycopy(this.buffer, this.mark, data, 0, data.length);
-        }
-        return data;
-    }
-
-    /**
-     * Will fill the current buffer from current 'index' position, expanding it
-     * and or shuffling it if necessary
-     */
-    private void fill() {
-        if (this.index >= this.buffer.length) {
-            if (this.mark == 0) { // expand
-                byte[] newBuff = new byte[this.buffer.length + this.initialBufferSize];
-                System.arraycopy(this.buffer, 0, newBuff, 0, this.buffer.length);
-                this.buffer = newBuff;
-            } else { // shuffle
-                int length = this.index - this.mark;
-                System.arraycopy(this.buffer, this.mark, this.buffer, 0, length);
-                this.index = length;
-                this.mark = 0;
-            }
-        }
-
-        try {
-            int bytesRead;
-            do {
-                bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
-            } while (bytesRead == 0);
-            this.bufferLength = bytesRead != -1 ? this.index + bytesRead : -1;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed while reading InputStream", e);
-        }
     }
 
     /**
@@ -245,7 +155,7 @@ public class TextLineDemarcator {
 
         private boolean startsWithMatch = true;
 
-        OffsetInfo(long startOffset, long length, int crlfLength) {
+        private OffsetInfo(long startOffset, long length, int crlfLength) {
             this.startOffset = startOffset;
             this.length = length;
             this.crlfLength = crlfLength;
@@ -269,6 +179,11 @@ public class TextLineDemarcator {
 
         void setStartsWithMatch(int startsWithMatch) {
             this.startsWithMatch = startsWithMatch == 1 ? true : false;
+        }
+
+        @Override
+        public String toString() {
+            return "offset:" + this.startOffset + "; length:" + this.length + "; crlfLength:" + this.crlfLength;
         }
     }
 }

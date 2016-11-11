@@ -32,8 +32,8 @@ import java.util.Arrays;
 
 import org.junit.Test;
 
+@SuppressWarnings("resource")
 public class StreamDemarcatorTest {
-
     @Test
     public void validateInitializationFailure() {
         try {
