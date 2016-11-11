@@ -505,6 +505,39 @@ nf.Canvas = (function () {
         };
         updateFlowStatusContainerSize();
 
+        $('body').on('GoTo:Policy', function (e, item) {
+            //close shell
+            $('#shell-close-button').click();
+
+            if (item.component.resource.startsWith('/processors')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/controller-services')) {
+                //TODO: implement go to for CS
+            } else if (item.component.resource.startsWith('/funnels')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/input-ports')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/labels')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/output-ports')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/process-groups')) {
+                // set the new group id
+                nf.CanvasUtils.enterGroup(item.component.componentReference.component.id).done(function () {
+                    nf.CanvasUtils.getSelection().classed('selected', false);
+
+                    // inform Angular app that values have changed
+                    nf.ng.Bridge.digest();
+                });
+            } else if (item.component.resource.startsWith('/remote-process-groups')) {
+                nf.CanvasUtils.showComponent(item.component.componentReference.component.parentGroupId, item.component.componentReference.component.id);
+            } else if (item.component.resource.startsWith('/reporting-tasks')) {
+                //TODO: implement go to for RT
+            } else if (item.component.resource.startsWith('/templates')) {
+                //TODO: implement go to for Templates
+            }
+        });
+
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {
