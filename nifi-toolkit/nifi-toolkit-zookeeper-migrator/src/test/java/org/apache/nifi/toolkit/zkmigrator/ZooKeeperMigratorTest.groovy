@@ -185,13 +185,16 @@ class ZooKeeperMigratorTest extends Specification {
         def server = new TestingServer(2181)
         def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
         })
+        def nodes
 
         when:
-        ZooKeeperMigratorMain.main(['-s', '-z', '127.0.0.1', '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
+        server.withCloseable {
+            ZooKeeperMigratorMain.main(['-s', '-z', '127.0.0.1', '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
+            nodes = getChildren(client, '/', [])
+        }
 
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, '/', [])
         4 == nodes.size()
     }
 
@@ -201,13 +204,15 @@ class ZooKeeperMigratorTest extends Specification {
         def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
         })
         def migrationPathRoot = '/newParent'
+        def nodes
 
         when:
-        ZooKeeperMigratorMain.main(['-s', '-z', "127.0.0.1$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
-
+        server.withCloseable {
+            ZooKeeperMigratorMain.main(['-s', '-z', "127.0.0.1$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
+            nodes = getChildren(client, migrationPathRoot, [])
+        }
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, migrationPathRoot, [])
         2 == nodes.size()
     }
 

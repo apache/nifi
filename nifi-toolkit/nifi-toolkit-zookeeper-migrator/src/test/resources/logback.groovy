@@ -16,6 +16,9 @@
  */
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.core.ConsoleAppender
+import ch.qos.logback.core.status.NopStatusListener
+
+statusListener(NopStatusListener)
 
 appender('stdout', ConsoleAppender) {
     target = 'System.out'
@@ -33,4 +36,4 @@ appender('stderr', ConsoleAppender) {
 
 logger("org.apache.nifi.toolkit.zkmigrator", INFO)
 logger("org.apache.zookeeper", WARN)
-root(DEBUG, ['stdout'])
+root(WARN, ['stderr'])
