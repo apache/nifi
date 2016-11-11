@@ -17,8 +17,12 @@
 package org.apache.nifi.properties
 
 import ch.qos.logback.classic.spi.LoggingEvent
-import ch.qos.logback.core.AppenderBase
+import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.SystemUtils
+import org.apache.nifi.controller.serialization.FlowEncodingVersion
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory
+import org.apache.nifi.encrypt.StringEncryptor
+import org.apache.nifi.stream.io.GZIPOutputStream
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -39,16 +43,23 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.w3c.dom.Element
 
 import javax.crypto.Cipher
+import javax.xml.parsers.DocumentBuilder
+import javax.xml.parsers.DocumentBuilderFactory
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
 import java.security.Security
+import java.util.function.Function
+import java.util.zip.GZIPInputStream
 
 @RunWith(JUnit4.class)
 class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionToolTest.class)
+    public static final String TMP_NIFI_PROPERTIES = "target/tmp/tmp_nifi.properties"
 
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none()
@@ -70,6 +81,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     private static final int LIP_PASSWORD_LINE_COUNT = 3
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
+    private List<LoggingEvent> events;
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -90,11 +102,14 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @Before
     public void setUp() throws Exception {
+        events = new ArrayList<>();
+        RecordingAppender.acquire(events)
     }
 
     @After
     public void tearDown() throws Exception {
-        TestAppender.reset()
+        RecordingAppender.release()
+        events = null
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
@@ -278,8 +293,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Parsed output nifi.properties location: ${tool.outputNiFiPropertiesPath}")
 
         // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.first().message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
+        assert !events.isEmpty()
+        assert events.first().message =~ "The source nifi.properties and destination nifi.properties are identical \\[.*\\] so the original will be overwritten"
     }
 
     @Test
@@ -361,8 +376,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Parsed output login-identity-providers.xml location: ${tool.outputLoginIdentityProvidersPath}")
 
         // Assert
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.any {
+        assert !events.isEmpty()
+        assert events.any {
             it.message =~ "The source login-identity-providers.xml and destination login-identity-providers.xml are identical \\[.*\\] so the original will be overwritten"
         }
     }
@@ -551,8 +566,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert !tool.password
         assert tool.keyHex == KEY_HEX
 
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect {
+        assert !events.isEmpty()
+        assert events.collect {
             it.message
         }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
@@ -574,8 +589,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert tool.password == PASSWORD
         assert !tool.keyHex
 
-        assert !TestAppender.events.isEmpty()
-        assert TestAppender.events.collect {
+        assert !events.isEmpty()
+        assert events.collect {
             it.message
         }.contains("If the key or password is provided in the arguments, '-r'/'--useRawKey' is ignored")
     }
@@ -1309,7 +1324,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Updated nifi.properties:")
         logger.info("\n" * 2 + updatedLines.join("\n"))
 
-        assert TestAppender.events.collect {
+        assert events.collect {
             it.message
         }.contains("The source nifi.properties and destination nifi.properties are identical [${workingFile.path}] so the original will be overwritten".toString())
 
@@ -1356,7 +1371,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        File workingFile = new File("target/tmp/tmp_nifi.properties")
+        File workingFile = new File(TMP_NIFI_PROPERTIES)
         workingFile.delete()
 
         // Read-only set of permissions
@@ -1394,7 +1409,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
         File tmpDir = new File("target/tmp/")
         tmpDir.mkdirs()
-        File workingFile = new File("target/tmp/tmp_nifi.properties")
+        File workingFile = new File(TMP_NIFI_PROPERTIES)
         workingFile.delete()
 
         // Read-only set of permissions
@@ -1446,7 +1461,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File(TMP_NIFI_PROPERTIES)
         outputPropertiesFile.delete()
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
@@ -1528,7 +1543,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File(TMP_NIFI_PROPERTIES)
         outputPropertiesFile.delete()
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
@@ -1610,7 +1625,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
 
         File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File(TMP_NIFI_PROPERTIES)
         outputPropertiesFile.delete()
 
         NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
@@ -1730,7 +1745,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 "src/test/resources/nifi_with_sensitive_properties_protected_aes_password.properties" :
                 "src/test/resources/nifi_with_sensitive_properties_protected_aes_password_128.properties"
         File inputPropertiesFile = new File(inputPropertiesPath)
-        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        File outputPropertiesFile = new File(TMP_NIFI_PROPERTIES)
         outputPropertiesFile.delete()
 
         // Log original sensitive properties (encrypted with first key)
@@ -2475,21 +2490,175 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assertions defined above
     }
-}
 
-public class TestAppender extends AppenderBase<LoggingEvent> {
-    static List<LoggingEvent> events = new ArrayList<>();
+    @Test
+    public void testEncRegex() {
+        assertTrue(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aBc19+==}").matches())
+        assertTrue(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aBc19+=}").matches())
+        assertTrue(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aBc19+}").matches())
+        assertTrue(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{a}").matches())
 
-    @Override
-    protected void append(LoggingEvent e) {
-        synchronized (events) {
-            events.add(e);
-        }
+        assertFalse(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aBc19+===}").matches())
+        assertFalse(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aB=c19+}").matches())
+        assertFalse(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{aB@}").matches())
+        assertFalse(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{\"}").matches())
+        assertFalse(ConfigEncryptionTool.ENC_PATTERN.matcher("enc{>}").matches())
     }
 
-    public static void reset() {
-        synchronized (events) {
-            events.clear();
+    @Test
+    public void testReplaceOldCipherTextWithNewCipherText() {
+        // This is a test migrator function just for verification that the pattern matching is working as expected
+        Function<String, String> migrator = { s -> s.toUpperCase() }
+
+        String testString = "<my><test><value>enc{abc=}</value><value>enc{def==}<value>enc{ghi#}</test>enc{jk=l}</my>"
+
+        assertEquals(testString.replaceAll("abc", "ABC").replaceAll("def", "DEF"), ConfigEncryptionTool.replaceOldCipherTextWithNewCipherText(testString, migrator))
+    }
+
+    @Test
+    public void testNoTouchFlowWithNoSensitiveChangeSameFlowXmlInputOutput() {
+        File flow = File.createTempFile("flow.xml.gz", "noTouch");
+        flow.deleteOnExit()
+
+        // Deliberately invalid ciphertext that will fail if a decrypt is attempted
+        def contents = "<flowController>enc{abc}</flowController>"
+        new FileOutputStream(flow).withCloseable { fos ->
+            new GZIPOutputStream(fos).withCloseable {
+                IOUtils.write(contents, it, StandardCharsets.UTF_8)
+            }
+        }
+
+        long lastModified = flow.lastModified()
+
+        // Arrange
+        String scenario = "flow should be untouched since source and dest are same and prop unchanged"
+        def args = ["-w", PASSWORD, "-p", PASSWORD.reverse(), "-f", flow.getAbsolutePath()]
+
+        exit.checkAssertionAfterwards({
+            assertEquals(lastModified, flow.lastModified())
+
+            new FileInputStream(flow).withCloseable { fis ->
+                new GZIPInputStream(fis).withCloseable {
+                    assertEquals(contents, IOUtils.toString(it, StandardCharsets.UTF_8))
+                }
+            }
+        })
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, PASSWORD.reverse())
+    }
+
+    @Test
+    public void testCopyFlowWithNoSensitiveChangeDifferentFlowXmlInputOutput() {
+        File flow = File.createTempFile("flow.xml.gz", "in");
+        File flowOut = File.createTempFile("flow.xml.gz", "out")
+
+        flow.deleteOnExit()
+        flowOut.deleteOnExit()
+
+        // Deliberately invalid ciphertext that will fail if a decrypt is attempted
+        def contents = "<flowController>enc{abc}</flowController>"
+        new FileOutputStream(flow).withCloseable { fos ->
+            new GZIPOutputStream(fos).withCloseable {
+                IOUtils.write(contents, it, StandardCharsets.UTF_8)
+            }
+        }
+
+        // Arrange
+        String scenario = "flow should be copied since source and dest different and prop unchanged"
+        def args = ["-w", PASSWORD, "-p", PASSWORD.reverse(), "-f", flow.getAbsolutePath(), "-g", flowOut.getAbsolutePath()]
+
+        exit.checkAssertionAfterwards(
+                {
+                    new FileInputStream(flowOut).withCloseable { fis ->
+                        new GZIPInputStream(fis).withCloseable {
+                            assertEquals(contents, IOUtils.toString(it, StandardCharsets.UTF_8))
+                        }
+                    }
+                }
+        )
+
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, PASSWORD.reverse())
+    }
+
+    @Test
+    public void testUpdateFlowSensitiveChangeDifferentFlowXmlInputOutput() {
+        File flow = File.createTempFile("flow.xml.gz", "in");
+        File flowOut = File.createTempFile("flow.xml.gz", "out")
+
+        flow.deleteOnExit()
+        flowOut.deleteOnExit()
+
+        new FileOutputStream(flow).withCloseable { fos ->
+            new GZIPOutputStream(fos).withCloseable { gos ->
+                getClass().getClassLoader().getResourceAsStream("flow_with_two_encrypted_fields.xml").withCloseable {
+                    IOUtils.copy(it, gos)
+                }
+            }
+        }
+
+        // Arrange
+        String scenario = "new propval should be reflected in flow"
+        def newPassword = PASSWORD.reverse()
+        def sensitivePropsKey = "dontuse"
+        def args = ["-w", PASSWORD, "-p", newPassword, "-f", flow.getAbsolutePath(), "-g", flowOut.getAbsolutePath(), "-s", sensitivePropsKey]
+
+        exit.checkAssertionAfterwards(checkFlowMigration(newPassword, sensitivePropsKey, flowOut))
+
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, newPassword)
+    }
+
+    @Test
+    public void testUpdateFlowSensitiveChangeSameFlowXmlInputOutput() {
+        File flow = File.createTempFile("flow.xml.gz", "in")
+
+        flow.deleteOnExit()
+
+        new FileOutputStream(flow).withCloseable { fos ->
+            new GZIPOutputStream(fos).withCloseable { gos ->
+                getClass().getClassLoader().getResourceAsStream("flow_with_two_encrypted_fields.xml").withCloseable {
+                    IOUtils.copy(it, gos)
+                }
+            }
+        }
+
+        // Arrange
+        String scenario = "new propval should be reflected in flow"
+        def newPassword = PASSWORD.reverse()
+        def sensitivePropsKey = "dontuse"
+        def args = ["-w", PASSWORD, "-p", newPassword, "-f", flow.getAbsolutePath(), "-s", sensitivePropsKey]
+
+        exit.checkAssertionAfterwards(checkFlowMigration(newPassword, sensitivePropsKey, flow))
+
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, newPassword)
+    }
+
+    private Assertion checkFlowMigration(String migrationPassword, String expectedSensitivePropsKey, File outputFlow) {
+        return {
+            NiFiProperties properties = NiFiPropertiesLoader.withKey(ConfigEncryptionTool.deriveKeyFromPassword(migrationPassword)).load(new File(TMP_NIFI_PROPERTIES))
+            assertEquals(expectedSensitivePropsKey, properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY))
+            StringEncryptor encryptor = StringEncryptor.createEncryptor(properties)
+
+            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            docFactory.setNamespaceAware(true);
+
+            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Element rootElement
+            new FileInputStream(outputFlow).withCloseable { fis ->
+                new GZIPInputStream(fis).withCloseable {
+                    rootElement = docBuilder.parse(it).getDocumentElement().getElementsByTagName("rootGroup").item(0)
+                }
+            }
+            Map<String, String> nameToPasswordMap = ['EncryptContent': '1234567890', 'PutSFTP': 'abc']
+            FlowFromDOMFactory.getProcessGroup(null, rootElement, encryptor, FlowEncodingVersion.parse(rootElement)).getContents().getProcessors().forEach({
+                String password = nameToPasswordMap.remove(it.getName())
+                if (password != null) {
+                    assertEquals(password, it.getConfig().getProperties().get("Password"))
+                }
+            })
+            assertEquals("Didn't find processors: ${nameToPasswordMap.keySet().join(",")}", 0, nameToPasswordMap.size())
         }
     }
 }
