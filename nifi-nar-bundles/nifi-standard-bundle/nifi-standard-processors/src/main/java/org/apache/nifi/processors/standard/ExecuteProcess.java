@@ -82,7 +82,7 @@ public class ExecuteProcess extends AbstractProcessor {
     .name("Command Arguments")
     .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
     .required(false)
-    .expressionLanguageSupported(false)
+    .expressionLanguageSupported(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
@@ -276,8 +276,10 @@ public class ExecuteProcess extends AbstractProcessor {
 
     protected List<String> createCommandStrings(final ProcessContext context) {
         final String command = context.getProperty(COMMAND).getValue();
-        final List<String> args = ArgumentUtils.splitArgs(context.getProperty(COMMAND_ARGUMENTS).getValue(),
-          context.getProperty(ARG_DELIMITER).getValue().charAt(0));
+        final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
+          ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
+          : null;
+        final List<String> args = ArgumentUtils.splitArgs(arguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0));
 
         final List<String> commandStrings = new ArrayList<>(args.size() + 1);
         commandStrings.add(command);
