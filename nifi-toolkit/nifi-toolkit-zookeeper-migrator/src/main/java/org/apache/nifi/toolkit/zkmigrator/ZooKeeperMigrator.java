@@ -137,6 +137,7 @@ class ZooKeeperMigrator {
                 "Source ZooKeeper config %s for the data provided can not be the same as the configured destionation ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
+        // stream through each node read from the json input
         final Stream<DataStatAclNode> stream = StreamSupport.stream(new Spliterators.AbstractSpliterator<DataStatAclNode>(0, 0) {
             @Override
             public boolean tryAdvance(Consumer<? super DataStatAclNode> action) {
@@ -157,12 +158,31 @@ class ZooKeeperMigrator {
         }, false);
 
         final List<CompletableFuture<Stat>> writeFutures = stream.parallel().map(node -> {
+            /*
+             * create stage to migrate paths and ACLs based on the migration parent path plus the node path and the given AuthMode,
+             * this stage must be run first
+             */
             final CompletableFuture<DataStatAclNode> transformNodeStage = CompletableFuture.supplyAsync(() -> transformNode(node, authMode));
+            /*
+             * create stage to ensure that nodes exist for the entire path of the zookeeper node, must be invoked after the transformNode stage to
+             * ensure that the node will exist after path migration
+             */
             final Function<DataStatAclNode, String> ensureNodeExistsStage = dataStatAclNode ->
                     ensureNodeExists(zooKeeper, dataStatAclNode.getPath(), dataStatAclNode.getEphemeralOwner() == 0 ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL);
+            /*
+             * create stage that waits for both the transformNode and ensureNodeExists stages complete, and also provides that the given transformed node is
+             * available to the next stage
+             */
             final BiFunction<String, DataStatAclNode, DataStatAclNode> combineEnsureNodeAndTransferNodeStage = (u, dataStatAclNode) -> dataStatAclNode;
+            /*
+             * create stage to transmit the node to the destination zookeeper endpoint, must be invoked after the node has been transformed and its path
+             * has been created (or already exists) in the destination zookeeper
+             */
             final Function<DataStatAclNode, CompletionStage<Stat>> transmitNodeStage = dataStatNode ->
                     CompletableFuture.supplyAsync(() -> transmitNode(zooKeeper, dataStatNode));
+            /*
+             * submit the stages chained together in the proper order to perform the processing on the given node
+             */
             return transformNodeStage.thenApply(ensureNodeExistsStage).thenCombine(transformNodeStage, combineEnsureNodeAndTransferNodeStage).thenCompose(transmitNodeStage);
         }).collect(Collectors.toList());
 
