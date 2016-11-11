@@ -40,7 +40,7 @@ public class FileUtils {
     }
 
     public static void ensureDirectoryExistAndCanReadAndWrite(final File dir) throws IOException {
-        if (dir.exists() && !dir.isDirectory() ) {
+        if (dir.exists() && !dir.isDirectory()) {
             throw new IOException(dir.getAbsolutePath() + " is not a directory");
         } else if (!dir.exists()) {
             final boolean made = dir.mkdirs();
@@ -56,8 +56,13 @@ public class FileUtils {
     public static void ensureDirectoryExistAndCanRead(final File dir) throws IOException {
         if (dir.exists() && !dir.isDirectory()) {
             throw new IOException(dir.getAbsolutePath() + " is not a directory");
+        } else if (!dir.exists()) {
+            final boolean made = dir.mkdirs();
+            if (!made) {
+                throw new IOException(dir.getAbsolutePath() + " could not be created");
+            }
         }
-        if (dir.exists() && !dir.canRead()) {
+        if (!dir.canRead()) {
             throw new IOException(dir.getAbsolutePath() + " directory does not have read privilege");
         }
     }
@@ -118,8 +123,8 @@ public class FileUtils {
      * @param directory to delete contents of
      * @param filter if null then no filter is used
      * @param logger to notify
-     * @throws IOException if abstract pathname does not denote a directory,
-     * or if an I/O error occurs
+     * @throws IOException if abstract pathname does not denote a directory, or
+     * if an I/O error occurs
      */
     public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger) throws IOException {
         FileUtils.deleteFilesInDirectory(directory, filter, logger, false);
@@ -134,8 +139,8 @@ public class FileUtils {
      * @param filter if null then no filter is used
      * @param logger to notify
      * @param recurse true if should recurse
-     * @throws IOException if abstract pathname does not denote a directory,
-     * or if an I/O error occurs
+     * @throws IOException if abstract pathname does not denote a directory, or
+     * if an I/O error occurs
      */
     public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse) throws IOException {
         FileUtils.deleteFilesInDirectory(directory, filter, logger, recurse, false);
@@ -152,8 +157,8 @@ public class FileUtils {
      * @param recurse will look for contents of sub directories.
      * @param deleteEmptyDirectories default is false; if true will delete
      * directories found that are empty
-     * @throws IOException if abstract pathname does not denote a directory,
-     * or if an I/O error occurs
+     * @throws IOException if abstract pathname does not denote a directory, or
+     * if an I/O error occurs
      */
     public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) throws IOException {
         // ensure the specified directory is actually a directory and that it exists
