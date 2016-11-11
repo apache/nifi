@@ -162,6 +162,16 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        final ProcessGroup parentProcessGroup = getParent();
+        if (parentProcessGroup == null) {
+            return null;
+        } else {
+            return parentProcessGroup.getIdentifier();
+        }
+    }
+
+    @Override
     public String getName() {
         return name.get();
     }
