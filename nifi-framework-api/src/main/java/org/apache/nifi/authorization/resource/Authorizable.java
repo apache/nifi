@@ -41,7 +41,7 @@ public interface Authorizable {
     /**
      * The Resource for this Authorizable.
      *
-     * @return the parent resource
+     * @return the resource
      */
     Resource getResource();
 

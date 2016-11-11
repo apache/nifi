@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.groups;
 
-import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -45,7 +45,7 @@ import java.util.function.Predicate;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup extends Authorizable, Positionable {
+public interface ProcessGroup extends ComponentAuthorizable, Positionable {
 
     /**
      * Predicate for filtering schedulable Processors.

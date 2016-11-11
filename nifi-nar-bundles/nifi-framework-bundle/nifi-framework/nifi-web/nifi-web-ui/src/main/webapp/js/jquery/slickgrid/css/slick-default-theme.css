@@ -7,6 +7,7 @@ classes should alter those!
 
 .slick-header-columns {
     color: #fff;
+    background-color: #728E9B;
 }
 
 .slick-header-column {
@@ -23,7 +24,7 @@ classes should alter those!
 .slick-row {
     position: absolute;
     background: white;
-    border: 0px;
+    border: 0;
     line-height: 22px;
 }
 
@@ -98,14 +99,14 @@ classes should alter those!
     to { box-shadow: none; }
 }
 
-.grid-canvas *:last-child{
-    border-right: 0px !important;
+.grid-canvas .slick-cell:first-child{
+    border-left: 0;
 }
 
 .slick-viewport .fa {
     color: #004849;
     line-height: 22px;
-    margin-top: 0px !important;
+    margin-top: 0 !important;
     width: 12px;
     height: 12px;
     float: left;
@@ -115,7 +116,7 @@ classes should alter those!
 .slick-viewport .icon {
     color: #004849;
     line-height: 24px;
-    margin-top: 0px !important;
+    margin-top: 0 !important;
     width: 12px;
     height: 12px;
     float: left;
@@ -148,9 +149,11 @@ classes should alter those!
 }
 
 .slick-cell, .slick-headerrow-column {
-    border-right: 1px solid #c7d2d7;
+    border-right: 0;
+    border-top: 0;
+    border-left: 1px solid #c7d2d7;
     border-bottom: 1px solid #c7d2d7;
-    padding: 0px 2px 6px 10px;
+    padding: 0 2px 6px 10px;
 }
 
 div.status-text {

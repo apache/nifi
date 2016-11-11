@@ -61,6 +61,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        return null;
+    }
+
+    @Override
     public void setParent(final ProcessGroup group) {
 
     }

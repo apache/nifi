@@ -63,6 +63,14 @@ public interface UserGroupDAO {
     Set<AccessPolicy> getAccessPoliciesForUser(String userId);
 
     /**
+     * Gets the access policies for the user group with the specified ID.
+     *
+     * @param userGroupId The user group ID
+     * @return The set of access policies
+     */
+    Set<AccessPolicy> getAccessPoliciesForUserGroup(String userGroupId);
+
+    /**
      * Gets all user groups.
      *
      * @return The user group transfer objects

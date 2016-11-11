@@ -16,12 +16,7 @@
  */
 package org.apache.nifi.connectable;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.groups.ProcessGroup;
@@ -29,10 +24,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Represents a connectable component to which or from which data can flow.
  */
-public interface Connectable extends Triggerable, Authorizable, Positionable {
+public interface Connectable extends Triggerable, ComponentAuthorizable, Positionable {
 
     /**
      * @return the unique identifier for this <code>Connectable</code>

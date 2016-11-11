@@ -470,6 +470,238 @@ nf.UsersTable = (function () {
     };
 
     /**
+     * Initializes the user policies dialog.
+     */
+    var initUserPoliciesDialog = function () {
+        $('#user-policies-dialog').modal({
+            headerText: 'User Policies',
+            buttons: [{
+                buttonText: 'Close',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        $('#user-policies-dialog').modal('hide');
+                    }
+                }
+            }]
+        });
+    };
+
+    /**
+     * Generates a human readable global policy strung.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var globalResourceParser = function (dataContext) {
+        return 'Global policy to ' +
+            nf.Common.getPolicyTypeListing(nf.Common.substringAfterFirst(dataContext.component.resource, '/')).text;
+    };
+
+    /**
+     * Generates a human readable component policy string.
+     *
+     * @param dataContext
+     * @returns {string}
+     */
+    var componentResourceParser = function (dataContext) {
+        var resource = dataContext.component.resource;
+        var policyLabel = '';
+
+        //determine policy type
+        if (resource.startsWith('/policies')) {
+            resource = nf.Common.substringAfterFirst(resource, '/policies');
+            policyLabel += 'Admin policy for ';
+        } else if (resource.startsWith('/data-transfer')) {
+            resource = nf.Common.substringAfterFirst(resource, '/data-transfer');
+            policyLabel += 'Site to site policy for ';
+        } else if (resource.startsWith('/data')) {
+            resource = nf.Common.substringAfterFirst(resource, '/data');
+            policyLabel += 'Data policy for ';
+        } else {
+            policyLabel += 'Component policy for ';
+        }
+
+        if (resource.startsWith('/processors')) {
+            policyLabel += 'processor ';
+        } else if (resource.startsWith('/controller-services')) {
+            policyLabel += 'controller service ';
+        } else if (resource.startsWith('/funnels')) {
+            policyLabel += 'funnel ';
+        } else if (resource.startsWith('/input-ports')) {
+            policyLabel += 'input port ';
+        } else if (resource.startsWith('/labels')) {
+            policyLabel += 'label ';
+        } else if (resource.startsWith('/output-ports')) {
+            policyLabel += 'output port ';
+        } else if (resource.startsWith('/process-groups')) {
+            policyLabel += 'process group ';
+        } else if (resource.startsWith('/remote-process-groups')) {
+            policyLabel += 'remote process group ';
+        } else if (resource.startsWith('/reporting-tasks')) {
+            policyLabel += 'reporting task ';
+        } else if (resource.startsWith('/templates')) {
+            policyLabel += 'template ';
+        }
+
+        if (dataContext.component.componentReference.permissions.canRead === true) {
+            policyLabel += '<span style="font-weight: 500">' + dataContext.component.componentReference.component.name + '</span>';
+        } else {
+            policyLabel += '<span class="unset">' + dataContext.component.componentReference.id + '</span>'
+        }
+
+        return policyLabel;
+    };
+
+    /**
+     * Initializes the user policies table.
+     */
+    var initUserPoliciesTable = function () {
+
+        // function for formatting the human readable name of the policy
+        var policyDisplayNameFormatter = function (row, cell, value, columnDef, dataContext) {
+            // if the user has permission to the policy
+            if (dataContext.permissions.canRead === true) {
+                // check if Global policy
+                if (nf.Common.isUndefinedOrNull(dataContext.component.componentReference)) {
+                    return globalResourceParser(dataContext);
+                }
+                // not a global policy... check if user has access to the component reference
+                return componentResourceParser(dataContext);
+            } else {
+                return '<span class="unset">' + dataContext.id + '</span>';
+            }
+        };
+
+        // function for formatting the actions column
+        var actionsFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (dataContext.permissions.canRead === true) {
+                if (nf.Common.isDefinedAndNotNull(dataContext.component.componentReference)) {
+                    if (dataContext.component.resource.indexOf('/processors') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/controller-services') >= 0) {
+                        //TODO: implement go to for CS
+                    } else if (dataContext.component.resource.indexOf('/funnels') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/input-ports') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/labels') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/output-ports') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/process-groups') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-process-group fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/remote-process-groups') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/reporting-tasks') >= 0) {
+                        //TODO: implement go to for RT
+                    } else if (dataContext.component.resource.indexOf('/templates') >= 0) {
+                        //TODO: implement go to for Templates
+                    }
+                }
+            }
+
+            return markup;
+        };
+
+        // function for formatting the action column
+        var actionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            if (dataContext.permissions.canRead === true) {
+                markup += dataContext.component.action;
+            }
+
+            return markup;
+        };
+
+        var userPoliciesColumns = [
+            {id: 'policy', name: 'Policy', sortable: true, resizable: true, formatter: policyDisplayNameFormatter, width: 150},
+            {id: 'action', name: 'Action', sortable: true, resizable: false, formatter: actionFormatter, width: 50}
+        ];
+
+        // add the actions if we're in the shell
+        if (top !== window) {
+            userPoliciesColumns.push({id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionsFormatter, width: 25});
+        }
+
+        var userPoliciesOptions = {
+            forceFitColumns: true,
+            enableTextSelectionOnCells: true,
+            enableCellNavigation: true,
+            enableColumnReorder: false,
+            autoEdit: false
+        };
+
+        // initialize the dataview
+        var userPoliciesData = new Slick.Data.DataView({
+            inlineFilters: false
+        });
+        userPoliciesData.setItems([]);
+
+        // initialize the sort
+        userPolicySort({
+            columnId: 'policy',
+            sortAsc: true
+        }, userPoliciesData);
+
+        // initialize the grid
+        var userPoliciesGrid = new Slick.Grid('#user-policies-table', userPoliciesData, userPoliciesColumns, userPoliciesOptions);
+        userPoliciesGrid.setSelectionModel(new Slick.RowSelectionModel());
+        userPoliciesGrid.registerPlugin(new Slick.AutoTooltips());
+        userPoliciesGrid.setSortColumn('policy', true);
+        userPoliciesGrid.onSort.subscribe(function (e, args) {
+            userPolicySort({
+                columnId: args.sortCol.id,
+                sortAsc: args.sortAsc
+            }, userPoliciesData);
+        });
+
+        // configure a click listener
+        userPoliciesGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the node at this row
+            var item = userPoliciesData.getItem(args.row);
+
+            // determine the desired action
+            if (userPoliciesGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('go-to-component')) {
+                    parent.$('body').trigger('GoTo:Component', {
+                        id: item.component.componentReference.id,
+                        parentGroupId: item.component.componentReference.parentGroupId
+                    });
+                    parent.$('#shell-close-button').click();
+                } else if (target.hasClass('go-to-process-group')) {
+                    parent.$('body').trigger('GoTo:ProcessGroup', {
+                        id: item.component.componentReference.id
+                    });
+                    parent.$('#shell-close-button').click();
+                }
+            }
+        });
+
+        // wire up the dataview to the grid
+        userPoliciesData.onRowCountChanged.subscribe(function (e, args) {
+            userPoliciesGrid.updateRowCount();
+            userPoliciesGrid.render();
+        });
+        userPoliciesData.onRowsChanged.subscribe(function (e, args) {
+            userPoliciesGrid.invalidateRows(args.rows);
+            userPoliciesGrid.render();
+        });
+
+        // hold onto an instance of the grid
+        $('#user-policies-table').data('gridInstance', userPoliciesGrid);
+    };
+
+    /**
      * Initializes the processor list.
      */
     var initUsersTable = function () {
@@ -524,6 +756,10 @@ nf.UsersTable = (function () {
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
+            if (!nf.Common.isEmpty(dataContext.component.accessPolicies)) {
+                markup += '<div title="View User Policies" class="pointer view-user-policies fa fa-key" style="margin-left: 3px;"></div>';
+            }
+
             return markup;
         };
 
@@ -553,7 +789,7 @@ nf.UsersTable = (function () {
         usersData.setFilter(filter);
 
         // initialize the sort
-        sort({
+        userSort({
             columnId: 'identity',
             sortAsc: true
         }, usersData);
@@ -564,7 +800,7 @@ nf.UsersTable = (function () {
         usersGrid.registerPlugin(new Slick.AutoTooltips());
         usersGrid.setSortColumn('identity', true);
         usersGrid.onSort.subscribe(function (e, args) {
-            sort({
+            userSort({
                 columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, usersData);
@@ -581,6 +817,8 @@ nf.UsersTable = (function () {
             if (usersGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-user')) {
                     editUser(item);
+                } else if (target.hasClass('view-user-policies')) {
+                    viewUserPolicies(item);
                 } else if (target.hasClass('delete-user')) {
                     deleteUser(item);
                 }
@@ -613,13 +851,75 @@ nf.UsersTable = (function () {
      * @param {object} sortDetails
      * @param {object} data
      */
-    var sort = function (sortDetails, data) {
+    var userSort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
             if(a.permissions.canRead && b.permissions.canRead) {
                 var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                 var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
+            } else {
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        };
+
+        // perform the sort
+        data.sort(comparer, sortDetails.sortAsc);
+    };
+
+    /**
+     * Sorts the specified data using the specified sort details.
+     *
+     * @param {object} sortDetails
+     * @param {object} data
+     */
+    var userPolicySort = function (sortDetails, data) {
+        // defines a function for sorting
+        var comparer = function (a, b) {
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'action') {
+                    var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
+                } else if (sortDetails.columnId === 'policy') {
+                    var aString = '';
+                    var bString = '';
+
+                    // if the user has permission to the policy
+                    if (a.permissions.canRead === true) {
+                        // check if Global policy
+                        if (nf.Common.isUndefinedOrNull(a.component.componentReference)) {
+                            aString = globalResourceParser(a);
+                        } else {
+                            // not a global policy... check if user has access to the component reference
+                            aString = componentResourceParser(a);
+                        }
+                    } else {
+                        aString = a.id;
+                    }
+
+                    // if the user has permission to the policy
+                    if (b.permissions.canRead === true) {
+                        // check if Global policy
+                        if (nf.Common.isUndefinedOrNull(b.component.componentReference)) {
+                            bString = globalResourceParser(b);
+                        }else {
+                            // not a global policy... check if user has access to the component reference
+                            bString = componentResourceParser(b);
+                        }
+                    } else {
+                        bString = b.id;
+                    }
+
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
+                }
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead){
                     return 0;
@@ -814,9 +1114,43 @@ nf.UsersTable = (function () {
         $('#user-delete-dialog').modal('show');
     };
 
+    /**
+     * Open's a view of the specified user's policies.
+     *
+     * @argument {object} user        The user item
+     */
+    var viewUserPolicies = function (user) {
+        var userPoliciesGrid = $('#user-policies-table').data('gridInstance');
+        var userPoliciesData = userPoliciesGrid.getData();
+
+        // begin the update
+        userPoliciesData.beginUpdate();
+
+        // set the rows
+        if (nf.Common.isDefinedAndNotNull(user.component.accessPolicies)) {
+            userPoliciesData.setItems(user.component.accessPolicies);
+        }
+
+        $('#policies-dialog-user-name').text(user.component.identity);
+
+        // end the update
+        userPoliciesData.endUpdate();
+
+        // re-sort and clear selection after updating
+        userPoliciesData.reSort();
+        userPoliciesGrid.invalidate();
+        userPoliciesGrid.getSelectionModel().setSelectedRows([]);
+
+        // show the dialog
+        $('#user-policies-dialog').modal('show');
+        userPoliciesGrid.resizeCanvas();
+    };
+
     return {
         init: function () {
             initUserDialog();
+            initUserPoliciesDialog();
+            initUserPoliciesTable();
             initUserDeleteDialog();
             initUsersTable();
 
@@ -852,7 +1186,7 @@ nf.UsersTable = (function () {
         },
 
         /**
-         * Load the processor status table.
+         * Load the users table.
          */
         loadUsersTable: function () {
             var users = $.ajax({

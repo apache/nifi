@@ -278,6 +278,16 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
+    public Set<AccessPolicy> getAccessPoliciesForUserGroup(String userGroupId) {
+        return authorizer.getAccessPolicies().stream()
+                .filter(p -> {
+                    // policy contains the user group
+                    return p.getGroups().contains(userGroupId);
+                })
+                .collect(Collectors.toSet());
+    }
+
+    @Override
     public Set<Group> getUserGroups() {
         return authorizer.getGroups();
     }
