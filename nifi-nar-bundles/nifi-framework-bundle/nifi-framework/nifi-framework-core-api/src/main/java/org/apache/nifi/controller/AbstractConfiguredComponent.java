@@ -371,8 +371,6 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     public abstract void verifyModifiable() throws IllegalStateException;
 
-    protected abstract String getProcessGroupIdentifier();
-
     /**
      *
      */

@@ -80,6 +80,12 @@ public class StandardLabel implements Label {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        final ProcessGroup procGroup = getProcessGroup();
+        return procGroup == null ? null : procGroup.getIdentifier();
+    }
+
+    @Override
     public Authorizable getParentAuthorizable() {
         return getProcessGroup();
     }

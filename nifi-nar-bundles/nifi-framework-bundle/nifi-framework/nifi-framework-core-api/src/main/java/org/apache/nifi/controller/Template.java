@@ -18,12 +18,13 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
-public class Template implements Authorizable {
+public class Template implements ComponentAuthorizable {
 
     private final TemplateDTO dto;
     private volatile ProcessGroup processGroup;
@@ -32,8 +33,15 @@ public class Template implements Authorizable {
         this.dto = dto;
     }
 
+    @Override
     public String getIdentifier() {
         return dto.getId();
+    }
+
+    @Override
+    public String getProcessGroupIdentifier() {
+        final ProcessGroup procGroup = getProcessGroup();
+        return procGroup == null ? null : procGroup.getIdentifier();
     }
 
     /**

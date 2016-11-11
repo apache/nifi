@@ -505,6 +505,21 @@ nf.Canvas = (function () {
         };
         updateFlowStatusContainerSize();
 
+        // listen for events to go to components
+        $('body').on('GoTo:Component', function (e, item) {
+            nf.CanvasUtils.showComponent(item.parentGroupId, item.id);
+        });
+
+        // listen for events to go to process groups
+        $('body').on('GoTo:ProcessGroup', function (e, item) {
+            nf.CanvasUtils.enterGroup(item.id).done(function () {
+                nf.CanvasUtils.getSelection().classed('selected', false);
+
+                // inform Angular app that values have changed
+                nf.ng.Bridge.digest();
+            });
+        });
+
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {

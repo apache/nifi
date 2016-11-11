@@ -206,6 +206,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        final ProcessGroup procGroup = getProcessGroup();
+        return procGroup == null ? null : procGroup.getIdentifier();
+    }
+
+    @Override
     public Authorizable getParentAuthorizable() {
         return getProcessGroup();
     }

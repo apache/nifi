@@ -32,6 +32,7 @@
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <script type="text/javascript" src="js/d3/d3.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
@@ -64,6 +65,7 @@
         <jsp:include page="/WEB-INF/partials/banners-utility.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/users/user-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/users/user-policies-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/users/user-delete-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/users/users-content.jsp"/>
     </body>

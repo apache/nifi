@@ -48,7 +48,9 @@ public class UserGroupDTO extends TenantDTO {
      * @return policies this user group is part of
      */
     @ApiModelProperty(
-            value = "The access policies this user group belongs to.",
+            value = "The access policies this user group belongs to. This field was incorrectly defined as an AccessPolicyEntity. For "
+                    + "compatibility reasons the field will remain of this type, however only the fields that are present in the "
+                    + "AccessPolicySummaryEntity will be populated here.",
             readOnly = true
     )
     public Set<AccessPolicyEntity> getAccessPolicies() {

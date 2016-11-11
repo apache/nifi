@@ -110,6 +110,12 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
+    public String getProcessGroupIdentifier() {
+        final ProcessGroup procGroup = getProcessGroup();
+        return procGroup == null ? null : procGroup.getIdentifier();
+    }
+
+    @Override
     public Collection<Relationship> getRelationships() {
         return relationships;
     }

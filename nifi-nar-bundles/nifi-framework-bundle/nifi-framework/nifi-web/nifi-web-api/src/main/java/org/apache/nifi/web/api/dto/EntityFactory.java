@@ -35,6 +35,7 @@ import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
@@ -286,6 +287,21 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public ComponentReferenceEntity createComponentReferenceEntity(final ComponentReferenceDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
+        final ComponentReferenceEntity entity = new ComponentReferenceEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setPermissions(permissions);
+            entity.setId(dto.getId());
+            entity.setParentGroupId(dto.getParentGroupId());
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
