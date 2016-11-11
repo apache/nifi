@@ -339,43 +339,16 @@ nf.PolicyManagement = (function () {
 
         // policy type listing
         $('#policy-type-list').combo({
-            options: [{
-                text: 'view the user interface',
-                value: 'flow',
-                description: 'Allows users to view the user interface'
-            }, {
-                text: 'access the controller',
-                value: 'controller',
-                description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
-            }, {
-                text: 'query provenance',
-                value: 'provenance',
-                description: 'Allows users to submit a Provenance Search and request Event Lineage'
-            }, {
-                text: 'access all policies',
-                value: 'policies',
-                description: 'Allows users to view/modify the policies for all components'
-            }, {
-                text: 'access users/user groups',
-                value: 'tenants',
-                description: 'Allows users to view/modify the users and user groups'
-            }, {
-                text: 'retrieve site-to-site details',
-                value: 'site-to-site',
-                description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
-            }, {
-                text: 'view system diagnostics',
-                value: 'system',
-                description: 'Allows users to view System Diagnostics'
-            }, {
-                text: 'proxy user requests',
-                value: 'proxy',
-                description: 'Allows proxy machines to send requests on the behalf of others'
-            }, {
-                text: 'access counters',
-                value: 'counters',
-                description: 'Allows users to view/modify Counters'
-            }],
+            options: [
+                nf.Common.getPolicyTypeListing('flow'),
+                nf.Common.getPolicyTypeListing('controller'),
+                nf.Common.getPolicyTypeListing('provenance'),
+                nf.Common.getPolicyTypeListing('policies'),
+                nf.Common.getPolicyTypeListing('tenants'),
+                nf.Common.getPolicyTypeListing('site-to-site'),
+                nf.Common.getPolicyTypeListing('system'),
+                nf.Common.getPolicyTypeListing('proxy'),
+                nf.Common.getPolicyTypeListing('counters')],
             select: function (option) {
                 if (initialized) {
                     // record the policy type

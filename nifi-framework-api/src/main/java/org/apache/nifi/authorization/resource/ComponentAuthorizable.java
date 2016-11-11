@@ -14,32 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.label;
+package org.apache.nifi.authorization.resource;
 
-import org.apache.nifi.authorization.resource.ComponentAuthorizable;
-import org.apache.nifi.connectable.Positionable;
-import org.apache.nifi.connectable.Size;
-import org.apache.nifi.groups.ProcessGroup;
+/**
+ * Not all Authorizables are components, however all ComponentAuthorizable's are components. This ensures that they
+ * will have an identifier and a ProcessGroup identifier.
+ */
+public interface ComponentAuthorizable extends Authorizable {
 
-import java.util.Map;
-
-public interface Label extends ComponentAuthorizable, Positionable {
-
+    /**
+     * The identifier of the underlying component.
+     *
+     * @return the identifier
+     */
     String getIdentifier();
 
-    Map<String, String> getStyle();
+    /**
+     * The identifier of the ProcessGroup this component belongs to.
+     *
+     * @return the ProcessGroup identifier
+     */
+    String getProcessGroupIdentifier();
 
-    void setStyle(Map<String, String> style);
-
-    Size getSize();
-
-    void setSize(Size size);
-
-    ProcessGroup getProcessGroup();
-
-    void setProcessGroup(ProcessGroup group);
-
-    String getValue();
-
-    void setValue(String value);
 }

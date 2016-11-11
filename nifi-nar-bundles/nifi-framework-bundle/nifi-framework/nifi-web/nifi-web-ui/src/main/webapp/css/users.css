@@ -81,6 +81,38 @@
     background-color: #fff;
 }
 
+/* user policies table */
+
+#policies-dialog-user-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#user-policies-table {
+    position: absolute;
+    top: 40px;
+    left: 0px;
+    bottom: 33px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+#user-policy-message {
+    position: absolute;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+    right: 0px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    left: 0px;
+    bottom: 0px;
+    height: 13px;
+}
+
 /* users dialog */
 
 #user-dialog {

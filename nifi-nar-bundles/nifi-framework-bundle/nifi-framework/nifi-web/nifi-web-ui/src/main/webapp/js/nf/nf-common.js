@@ -77,7 +77,45 @@ $(document).ready(function () {
 nf.Common = (function () {
     // interval for cancelling token refresh when necessary
     var tokenRefreshInterval = null;
-    
+
+    var policyTypeListing = [{
+        text: 'view the user interface',
+        value: 'flow',
+        description: 'Allows users to view the user interface'
+    }, {
+        text: 'access the controller',
+        value: 'controller',
+        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
+    }, {
+        text: 'query provenance',
+        value: 'provenance',
+        description: 'Allows users to submit a Provenance Search and request Event Lineage'
+    }, {
+        text: 'access all policies',
+        value: 'policies',
+        description: 'Allows users to view/modify the policies for all components'
+    }, {
+        text: 'access users/user groups',
+        value: 'tenants',
+        description: 'Allows users to view/modify the users and user groups'
+    }, {
+        text: 'retrieve site-to-site details',
+        value: 'site-to-site',
+        description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
+    }, {
+        text: 'view system diagnostics',
+        value: 'system',
+        description: 'Allows users to view System Diagnostics'
+    }, {
+        text: 'proxy user requests',
+        value: 'proxy',
+        description: 'Allows proxy machines to send requests on the behalf of others'
+    }, {
+        text: 'access counters',
+        value: 'counters',
+        description: 'Allows users to view/modify Counters'
+    }];
+
     return {
         ANONYMOUS_USER_TEXT: 'Anonymous user',
 
@@ -652,12 +690,12 @@ nf.Common = (function () {
         formatValue: function (value) {
             if (nf.Common.isDefinedAndNotNull(value)) {
                 if (value === '') {
-                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string previously set</span>';
+                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string set</span>';
                 } else {
                     return nf.Common.escapeHtml(value);
                 }
             } else {
-                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value previously set</span>';
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value set</span>';
             }
         },
 
@@ -1052,10 +1090,10 @@ nf.Common = (function () {
             if (!nf.Common.isDefinedAndNotNull(rawDateTime)) {
                 return new Date();
             }
-            if (rawDateTime === 'No value previously set') {
+            if (rawDateTime === 'No value set') {
                 return new Date();
             }
-            if (rawDateTime === 'Empty string previously set') {
+            if (rawDateTime === 'Empty string set') {
                 return new Date();
             }
 
@@ -1271,6 +1309,13 @@ nf.Common = (function () {
                 }
             });
             return formattedBulletinEntities;
+        },
+
+        getPolicyTypeListing: function (value) {
+            var nest = d3.nest()
+                .key(function(d) { return d.value; })
+                .map(policyTypeListing, d3.map);
+            return nest.get(value)[0];
         }
     };
 }());
