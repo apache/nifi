@@ -3350,6 +3350,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
+
+                // Purge any heartbeats that we already have. If we don't do this, we can have a scenario where we receive heartbeats
+                // from a node, and then another node becomes Cluster Coordinator. As a result, we stop receiving heartbeats. Now that
+                // we are again the Cluster Coordinator, we will detect that there are old heartbeat messages and start disconnecting
+                // nodes due to a lack of heartbeat. By purging the heartbeats here, we remove any old heartbeat messages so that this
+                // does not happen.
+                FlowController.this.heartbeatMonitor.purgeHeartbeats();
             }
         }, participantId);
     }
