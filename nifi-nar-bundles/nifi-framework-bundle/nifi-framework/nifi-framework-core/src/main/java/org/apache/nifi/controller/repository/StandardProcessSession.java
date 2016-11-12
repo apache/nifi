@@ -1443,6 +1443,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         // get batch of flow files in a round-robin manner
         final List<Connection> connections = context.getPollableConnections();
+        if(connections.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         final Connection connection = connections.get(context.getNextIncomingConnectionIndex() % connections.size());
 
         return get(connection, new QueuePoller() {
