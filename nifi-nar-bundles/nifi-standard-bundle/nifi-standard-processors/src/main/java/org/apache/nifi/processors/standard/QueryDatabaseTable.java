@@ -200,8 +200,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
         //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
         for(final Map.Entry<String,String> maxProp : maxValueProperties.entrySet()){
-            if(!statePropertyMap.containsKey(maxProp.getKey())){
-                statePropertyMap.put(maxProp.getKey(), maxProp.getValue());
+            if (!statePropertyMap.containsKey(maxProp.getKey().toLowerCase())) {
+                statePropertyMap.put(maxProp.getKey().toLowerCase(), maxProp.getValue());
             }
         }
 
