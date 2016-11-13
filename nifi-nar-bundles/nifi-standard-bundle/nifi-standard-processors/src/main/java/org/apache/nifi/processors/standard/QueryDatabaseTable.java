@@ -120,6 +120,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor MAX_FRAGMENTS = new PropertyDescriptor.Builder()
+            .name("qdbt-max-frags")
+            .displayName("Maximum Number of Fragments")
+            .description("The maximum number of fragments. If the value specified is zero, then all fragments are returned. " +
+                    "This prevents OutOfMemoryError when this processor ingests huge table.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
     public QueryDatabaseTable() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -134,6 +144,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
+        pds.add(MAX_FRAGMENTS);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -179,6 +190,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+        final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
+                ? context.getProperty(MAX_FRAGMENTS).asInteger()
+                : 0;
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
 
         final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
@@ -283,6 +297,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     }
 
                     fragmentIndex++;
+                    if (maxFragments > 0 && fragmentIndex >= maxFragments) {
+                        break;
+                    }
                 }
 
                 for (int i = 0; i < resultSetFlowFiles.size(); i++) {
