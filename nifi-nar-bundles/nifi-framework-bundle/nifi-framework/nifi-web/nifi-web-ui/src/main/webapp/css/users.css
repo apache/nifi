@@ -83,6 +83,12 @@
 
 /* user policies table */
 
+#policies-dialog-user-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
 #user-policies-table {
     position: absolute;
     top: 40px;
@@ -95,10 +101,9 @@
 
 #user-policy-message {
     position: absolute;
-    color: #ba554a;
+    color: #775351;
     font-family: Roboto;
     font-size: 13px;
-    font-weight: 500;
     right: 0px;
     white-space: nowrap;
     overflow: hidden;

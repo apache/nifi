@@ -748,13 +748,15 @@ public final class DtoFactory {
         // convert to access policies to handle backward compatibility due to incorrect
         // type in the UserGroupDTO
         final Set<AccessPolicyEntity> policies = accessPolicies.stream().map(summaryEntity -> {
-            final AccessPolicySummaryDTO summary = summaryEntity.getComponent();
-
             final AccessPolicyDTO policy = new AccessPolicyDTO();
-            policy.setId(summary.getId());
-            policy.setResource(summary.getResource());
-            policy.setAction(summary.getAction());
-            policy.setComponentReference(summary.getComponentReference());
+            policy.setId(summaryEntity.getId());
+
+            if (summaryEntity.getPermissions().getCanRead()) {
+                final AccessPolicySummaryDTO summary = summaryEntity.getComponent();
+                policy.setResource(summary.getResource());
+                policy.setAction(summary.getAction());
+                policy.setComponentReference(summary.getComponentReference());
+            }
 
             return entityFactory.createAccessPolicyEntity(policy, summaryEntity.getRevision(), summaryEntity.getPermissions());
         }).collect(Collectors.toSet());

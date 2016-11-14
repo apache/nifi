@@ -583,25 +583,25 @@ nf.UsersTable = (function () {
 
             if (dataContext.permissions.canRead === true) {
                 if (nf.Common.isDefinedAndNotNull(dataContext.component.componentReference)) {
-                    if (dataContext.component.resource.startsWith('/processors')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/controller-services')) {
+                    if (dataContext.component.resource.indexOf('/processors') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/controller-services') >= 0) {
                         //TODO: implement go to for CS
-                    } else if (dataContext.component.resource.startsWith('/funnels')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/input-ports')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/labels')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/output-ports')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/process-groups')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/remote-process-groups')) {
-                        markup += '<div title="Go To" class="pointer go-to-user-policies fa fa-long-arrow-right" style="float: left;"></div>';
-                    } else if (dataContext.component.resource.startsWith('/reporting-tasks')) {
+                    } else if (dataContext.component.resource.indexOf('/funnels') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/input-ports') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/labels') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/output-ports') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/process-groups') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-process-group fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/remote-process-groups') >= 0) {
+                        markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
+                    } else if (dataContext.component.resource.indexOf('/reporting-tasks') >= 0) {
                         //TODO: implement go to for RT
-                    } else if (dataContext.component.resource.startsWith('/templates')) {
+                    } else if (dataContext.component.resource.indexOf('/templates') >= 0) {
                         //TODO: implement go to for Templates
                     }
                 }
@@ -672,11 +672,17 @@ nf.UsersTable = (function () {
 
             // determine the desired action
             if (userPoliciesGrid.getColumns()[args.cell].id === 'actions') {
-                if (target.hasClass('go-to-user-policies')) {
-                    // trigger GoTo action in parent window if we're in the shell
-                    if (top !== window) {
-                        parent.$('body').trigger('GoTo:Policy', item);
-                    }
+                if (target.hasClass('go-to-component')) {
+                    parent.$('body').trigger('GoTo:Component', {
+                        id: item.component.componentReference.id,
+                        parentGroupId: item.component.componentReference.parentGroupId
+                    });
+                    parent.$('#shell-close-button').click();
+                } else if (target.hasClass('go-to-process-group')) {
+                    parent.$('body').trigger('GoTo:ProcessGroup', {
+                        id: item.component.componentReference.id
+                    });
+                    parent.$('#shell-close-button').click();
                 }
             }
         });

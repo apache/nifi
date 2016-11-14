@@ -21,8 +21,8 @@
                 <div id="policies-dialog-user-name"></div>
             </div>
         </div>
-        <div id="user-policy-message" title="Listing includes all policies for the selected user. Some policies may be inherited by descendant components unless explicitly overridden.">
-            Listing includes all policies for the selected user. Some policies may be inherited by descendant components unless explicitly overridden.
+        <div id="user-policy-message" title="Some policies may be inherited by descendant components unless explicitly overridden.">
+            Some policies may be inherited by descendant components unless explicitly overridden.
         </div>
         <div id="user-policies-table"></div>
     </div>
