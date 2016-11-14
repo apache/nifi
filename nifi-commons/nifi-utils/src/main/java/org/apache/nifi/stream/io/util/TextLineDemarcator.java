@@ -214,7 +214,7 @@ public class TextLineDemarcator {
      *                            {@link InputStream} (i.e., EOF) and such line does not terminate with CR or LF or the combination of the two.
      *                            Value 1 is returned if text line ends with '\n' or '\r'.
      *                            Value 2 is returned if line ends with '\r\n').</li>
-     *    <li><i>startsWithMatch</i> - <code>true</code> by default unless <code>startWith</code> bytes are provided and not matched. 
+     *    <li><i>startsWithMatch</i> - <code>true</code> by default unless <code>startWith</code> bytes are provided and not matched.
      *                                 See {@link #nextOffsetInfo(byte[])} for more info.</li>
      *  </ul>
      **/
