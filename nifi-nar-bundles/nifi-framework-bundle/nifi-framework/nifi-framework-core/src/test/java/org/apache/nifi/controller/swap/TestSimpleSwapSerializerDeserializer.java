@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -40,13 +39,14 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestSimpleSwapSerializerDeserializer {
     @Before
     public void setup() {
-        TestFlowFile.resetIdGenerator();
+        MockFlowFile.resetIdGenerator();
     }
 
     @Test
@@ -57,14 +57,15 @@ public class TestSimpleSwapSerializerDeserializer {
         final Map<String, String> attrs = new HashMap<>();
         for (int i = 0; i < 10000; i++) {
             attrs.put("i", String.valueOf(i));
-            final FlowFileRecord ff = new TestFlowFile(attrs, i, resourceClaimManager);
+            final FlowFileRecord ff = new MockFlowFile(attrs, i, resourceClaimManager);
             toSwap.add(ff);
         }
 
+        final String queueId = "87bb99fe-412c-49f6-a441-d1b0af4e20b4";
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-        Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
+        Mockito.when(flowFileQueue.getIdentifier()).thenReturn(queueId);
 
-        final String swapLocation = "target/testRoundTrip-" + UUID.randomUUID().toString() + ".swap";
+        final String swapLocation = "target/testRoundTrip-" + queueId + ".swap";
         final File swapFile = new File(swapLocation);
 
         Files.deleteIfExists(swapFile.toPath());
@@ -103,6 +104,8 @@ public class TestSimpleSwapSerializerDeserializer {
     }
 
     @Test
+    @Ignore("For manual testing only. Not intended to be run as part of the automated unit tests but can "
+        + "be convenient for determining a baseline for performance if making modifications.")
     public void testWritePerformance() throws IOException, InterruptedException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 
@@ -110,7 +113,7 @@ public class TestSimpleSwapSerializerDeserializer {
         final Map<String, String> attrs = new HashMap<>();
         for (int i = 0; i < 10000; i++) {
             attrs.put("i", String.valueOf(i));
-            final FlowFileRecord ff = new TestFlowFile(attrs, i, resourceClaimManager);
+            final FlowFileRecord ff = new MockFlowFile(attrs, i, resourceClaimManager);
             toSwap.add(ff);
         }
 

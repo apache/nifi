@@ -31,6 +31,10 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated in favor of using {@link SchemaSwapSerializer}.
+ */
+@Deprecated
 public class SimpleSwapSerializer implements SwapSerializer {
     private static final Logger logger = LoggerFactory.getLogger(SimpleSwapSerializer.class);
     public static final int SWAP_ENCODING_VERSION = 10;

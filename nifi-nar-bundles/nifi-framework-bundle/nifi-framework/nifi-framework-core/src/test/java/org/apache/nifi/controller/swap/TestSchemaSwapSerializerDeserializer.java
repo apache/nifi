@@ -57,7 +57,7 @@ public class TestSchemaSwapSerializerDeserializer {
 
     @Before
     public void setup() {
-        TestFlowFile.resetIdGenerator();
+        MockFlowFile.resetIdGenerator();
     }
 
     @Test
@@ -69,10 +69,10 @@ public class TestSchemaSwapSerializerDeserializer {
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
         final Map<String, String> attrs = new HashMap<>();
         long size = 0L;
-        final ContentClaim firstClaim = TestFlowFile.createContentClaim("id", resourceClaimManager);
+        final ContentClaim firstClaim = MockFlowFile.createContentClaim("id", resourceClaimManager);
         for (int i = 0; i < 10000; i++) {
             attrs.put("i", String.valueOf(i));
-            final FlowFileRecord ff = i < 2 ? new TestFlowFile(attrs, i, firstClaim) : new TestFlowFile(attrs, i, resourceClaimManager);
+            final FlowFileRecord ff = i < 2 ? new MockFlowFile(attrs, i, firstClaim) : new MockFlowFile(attrs, i, resourceClaimManager);
             toSwap.add(ff);
             size += i;
         }
@@ -119,7 +119,7 @@ public class TestSchemaSwapSerializerDeserializer {
         long size = 0L;
         for (int i = 0; i < 10000; i++) {
             attrs.put("i", String.valueOf(i));
-            final FlowFileRecord ff = new TestFlowFile(attrs, i, resourceClaimManager);
+            final FlowFileRecord ff = new MockFlowFile(attrs, i, resourceClaimManager);
             toSwap.add(ff);
             size += i;
         }
@@ -170,7 +170,7 @@ public class TestSchemaSwapSerializerDeserializer {
         final Map<String, String> attrs = new HashMap<>();
         for (int i = 0; i < 10000; i++) {
             attrs.put("i", String.valueOf(i));
-            final FlowFileRecord ff = new TestFlowFile(attrs, i, resourceClaimManager);
+            final FlowFileRecord ff = new MockFlowFile(attrs, i, resourceClaimManager);
             toSwap.add(ff);
         }
 

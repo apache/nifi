@@ -44,8 +44,16 @@ public class ByteArraySchemaRecordReader extends CompressableRecordReader {
         super(in, filename, tocReader, maxAttributeChars);
     }
 
+    private void verifySerializationVersion(final int serializationVersion) {
+        if (serializationVersion > ByteArraySchemaRecordWriter.SERIALIZATION_VERSION) {
+            throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion
+                + " and supported versions are 1-" + ByteArraySchemaRecordWriter.SERIALIZATION_VERSION);
+        }
+    }
+
     @Override
     protected void readHeader(final DataInputStream in, final int serializationVersion) throws IOException {
+        verifySerializationVersion(serializationVersion);
         final int schemaLength = in.readInt();
         final byte[] buffer = new byte[schemaLength];
         StreamUtils.fillBuffer(in, buffer);
@@ -59,6 +67,7 @@ public class ByteArraySchemaRecordReader extends CompressableRecordReader {
 
     @Override
     protected StandardProvenanceEventRecord nextRecord(final DataInputStream in, final int serializationVersion) throws IOException {
+        verifySerializationVersion(serializationVersion);
         final long byteOffset = getBytesConsumed();
         final int recordLength = in.readInt();
 

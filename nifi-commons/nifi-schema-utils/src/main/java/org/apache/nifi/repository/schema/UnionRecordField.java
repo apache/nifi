@@ -17,6 +17,8 @@
 
 package org.apache.nifi.repository.schema;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,9 +32,9 @@ public class UnionRecordField implements RecordField {
     }
 
     public UnionRecordField(final String fieldName, final Repetition repetition, final List<RecordField> possibilities) {
-        this.fieldName = fieldName;
-        this.repetition = repetition;
-        this.possibilities = possibilities;
+        this.fieldName = requireNonNull(fieldName);
+        this.repetition = requireNonNull(repetition);
+        this.possibilities = requireNonNull(possibilities);
     }
 
     @Override

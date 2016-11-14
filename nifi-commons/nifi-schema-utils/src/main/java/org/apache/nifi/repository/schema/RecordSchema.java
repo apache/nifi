@@ -75,13 +75,18 @@ public class RecordSchema {
     }
 
     private void writeField(final RecordField field, final DataOutputStream dos) throws IOException {
-        dos.writeInt(4);    // 4 fields.
+        dos.writeInt(4);    // A field is made up of 4 "elements": Field Name, Field Type, Field Repetition, Sub-Fields.
+
+        // For each of the elements, we write a String indicating the Element Name, a String indicating the Element Type, and
+        // finally the Element data itself.
         dos.writeUTF(FIELD_NAME);
         dos.writeUTF(STRING_TYPE);
         dos.writeUTF(field.getFieldName());
+
         dos.writeUTF(FIELD_TYPE);
         dos.writeUTF(STRING_TYPE);
         dos.writeUTF(field.getFieldType().name());
+
         dos.writeUTF(REPETITION);
         dos.writeUTF(STRING_TYPE);
         dos.writeUTF(field.getRepetition().name());
@@ -89,7 +94,7 @@ public class RecordSchema {
         dos.writeUTF(SUBFIELDS);
         dos.writeUTF(SUBFIELD_TYPE);
         final List<RecordField> subFields = field.getSubFields();
-        dos.writeInt(subFields.size());
+        dos.writeInt(subFields.size()); // SubField is encoded as number of Sub-Fields followed by the fields themselves.
         for (final RecordField subField : subFields) {
             writeField(subField, dos);
         }
@@ -116,8 +121,8 @@ public class RecordSchema {
     @SuppressWarnings("unchecked")
     private static RecordField readField(final DataInputStream dis) throws IOException {
         final Map<String, Object> schemaFieldMap = new HashMap<>();
-        final int numFieldsToRead = dis.readInt();
-        for (int i = 0; i < numFieldsToRead; i++) {
+        final int numElementsToRead = dis.readInt();
+        for (int i = 0; i < numElementsToRead; i++) {
             final String fieldName = dis.readUTF();
             final String typeName = dis.readUTF();
             Object fieldValue = null;

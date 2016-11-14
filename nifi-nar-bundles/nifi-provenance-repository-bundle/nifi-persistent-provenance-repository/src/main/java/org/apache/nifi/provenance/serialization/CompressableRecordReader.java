@@ -87,10 +87,6 @@ public abstract class CompressableRecordReader implements RecordReader {
         final int serializationVersion = dis.readInt();
         headerLength = repoClassName.getBytes(StandardCharsets.UTF_8).length + 2 + 4; // 2 bytes for string length, 4 for integer.
 
-        if (serializationVersion < 1 || serializationVersion > 9) {
-            throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion + " and supported versions are 1-9");
-        }
-
         this.serializationVersion = serializationVersion;
         this.filename = filename;
         this.tocReader = tocReader;

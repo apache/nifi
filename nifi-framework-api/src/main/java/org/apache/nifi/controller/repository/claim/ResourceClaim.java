@@ -70,7 +70,7 @@ public interface ResourceClaim extends Comparable<ResourceClaim> {
      * Provides the natural ordering for ResourceClaim objects. By default they are sorted by their id, then container, then section
      *
      * @param other other claim
-     * @return x such that x <=1 if this is less than other;
+     * @return x such that x <= -1 if this is less than other;
      *         x=0 if this.equals(other);
      *         x >= 1 if this is greater than other
      */

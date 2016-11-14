@@ -17,6 +17,8 @@
 
 package org.apache.nifi.repository.schema;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,10 +30,10 @@ public class MapRecordField implements RecordField {
     private final List<RecordField> subFields;
 
     public MapRecordField(final String fieldName, final RecordField keyField, final RecordField valueField, final Repetition repetition) {
-        this.fieldName = fieldName;
-        this.keyField = keyField;
-        this.valueField = valueField;
-        this.repetition = repetition;
+        this.fieldName = requireNonNull(fieldName);
+        this.keyField = requireNonNull(keyField);
+        this.valueField = requireNonNull(valueField);
+        this.repetition = requireNonNull(repetition);
 
         subFields = new ArrayList<>(2);
         subFields.add(keyField);

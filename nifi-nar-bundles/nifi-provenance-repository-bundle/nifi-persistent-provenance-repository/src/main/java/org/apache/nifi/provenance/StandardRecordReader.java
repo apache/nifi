@@ -121,6 +121,11 @@ public class StandardRecordReader extends CompressableRecordReader {
 
     @Override
     public StandardProvenanceEventRecord nextRecord(final DataInputStream dis, final int serializationVersion) throws IOException {
+        if (serializationVersion > StandardRecordWriter.SERIALIZATION_VERISON) {
+            throw new IllegalArgumentException("Unable to deserialize record because the version is "
+                + serializationVersion + " and supported versions are 1-" + StandardRecordWriter.SERIALIZATION_VERISON);
+        }
+
         // Schema changed drastically in version 6 so we created a new method to handle old records
         if (serializationVersion < 6) {
             return readPreVersion6Record(dis, serializationVersion);

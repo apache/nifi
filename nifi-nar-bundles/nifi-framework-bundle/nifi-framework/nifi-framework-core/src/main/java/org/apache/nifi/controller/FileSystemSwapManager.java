@@ -269,7 +269,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
 
     private SwapDeserializer createSwapDeserializer(final DataInputStream dis) throws IOException {
-        dis.mark(4);
+        dis.mark(MAGIC_HEADER.length);
 
         final byte[] magicHeader = new byte[MAGIC_HEADER.length];
         try {

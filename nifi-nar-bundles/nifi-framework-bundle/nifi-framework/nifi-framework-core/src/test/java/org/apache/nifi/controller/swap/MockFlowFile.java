@@ -29,7 +29,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.flowfile.FlowFile;
 
-public class TestFlowFile implements FlowFileRecord {
+public class MockFlowFile implements FlowFileRecord {
     private static final AtomicLong idGenerator = new AtomicLong(0L);
 
     private final long id;
@@ -39,15 +39,15 @@ public class TestFlowFile implements FlowFileRecord {
     private final long size;
     private final ContentClaim contentClaim;
 
-    public TestFlowFile(final Map<String, String> attributes, final long size, final ResourceClaimManager claimManager) {
+    public MockFlowFile(final Map<String, String> attributes, final long size, final ResourceClaimManager claimManager) {
         this(attributes, size, createContentClaim(String.valueOf(idGenerator.get()), claimManager));
     }
 
-    public TestFlowFile(final Map<String, String> attributes, final long size, final ContentClaim contentClaim) {
+    public MockFlowFile(final Map<String, String> attributes, final long size, final ContentClaim contentClaim) {
         this(idGenerator.getAndIncrement(), attributes, size, contentClaim);
     }
 
-    public TestFlowFile(final long id, final Map<String, String> attributes, final long size, final ContentClaim contentClaim) {
+    public MockFlowFile(final long id, final Map<String, String> attributes, final long size, final ContentClaim contentClaim) {
         this.id = id;
         this.attributes = new HashMap<>(attributes);
         this.size = size;
