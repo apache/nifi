@@ -21,12 +21,15 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -36,6 +39,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -49,7 +53,11 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @Tags({"test", "random", "generate"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("This processor creates FlowFiles of random data and is used for load testing")
+@CapabilityDescription("This processor creates FlowFiles with random data or custom content. GenerateFlowFile is useful" +
+        "for load testing, configuration, and simulation.")
+@DynamicProperty(name = "Generated FlowFile attribute name", value = "Generated FlowFile attribute value", supportsExpressionLanguage = true,
+        description = "Specifies an attribute on generated FlowFiles defined by the Dynamic Property's key and value." +
+        " If Expression Language is used, evaluation will be performed only once per batch of generated FlowFiles.")
 public class GenerateFlowFile extends AbstractProcessor {
 
     private final AtomicReference<byte[]> data = new AtomicReference<>();
@@ -127,6 +135,18 @@ public class GenerateFlowFile extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+            .name(propertyDescriptorName)
+            .required(false)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .dynamic(true)
+            .build();
+    }
+
+    @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
@@ -183,6 +203,16 @@ public class GenerateFlowFile extends AbstractProcessor {
             data = this.data.get();
         }
 
+        Map<PropertyDescriptor, String> processorProperties = context.getProperties();
+        Map<String, String> generatedAttributes = new HashMap<String, String>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : processorProperties.entrySet()) {
+            PropertyDescriptor property = entry.getKey();
+            if (property.isDynamic() && property.isExpressionLanguageSupported()) {
+                String dynamicValue = context.getProperty(property).evaluateAttributeExpressions().getValue();
+                generatedAttributes.put(property.getName(), dynamicValue);
+            }
+        }
+
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
             FlowFile flowFile = session.create();
             if (data.length > 0) {
@@ -193,6 +223,7 @@ public class GenerateFlowFile extends AbstractProcessor {
                     }
                 });
             }
+            flowFile = session.putAllAttributes(flowFile, generatedAttributes);
 
             session.getProvenanceReporter().create(flowFile);
             session.transfer(flowFile, SUCCESS);
