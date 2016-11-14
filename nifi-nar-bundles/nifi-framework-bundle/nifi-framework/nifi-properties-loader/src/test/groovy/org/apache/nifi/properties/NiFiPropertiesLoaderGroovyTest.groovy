@@ -51,11 +51,19 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
             "nifi.kerberos.keytab.location"
     ]
 
-    private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210" * 2
+    private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
+    private static final String KEY_HEX_256 = KEY_HEX_128 * 2
+    public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
+
+    private static final String PASSWORD_KEY_HEX_128 = "2C576A9585DB862F5ECBEE5B4FFFCCA1"
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
     private
     final Set<PosixFilePermission> ownerReadWrite = [PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_READ]
+
+    private static boolean isUnlimitedStrengthCryptoAvailable() {
+        Cipher.getMaxAllowedKeyLength("AES") > 128
+    }
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -389,5 +397,36 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
             [(it): normalReadProperties.getProperty(it)]
         }
         assert readPropertiesAndValues == expectedPropertiesAndValues
+    }
+
+    @Test
+    public void testShouldUpdateKeyInFactory() throws Exception {
+        // Arrange
+        File originalKeyFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes_128.properties")
+        File passwordKeyFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes_128_password.properties")
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalKeyFile.path)
+        NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(KEY_HEX_128)
+
+        NiFiProperties niFiProperties = niFiPropertiesLoader.load(originalKeyFile)
+        logger.info("Read ${niFiProperties.size()} total properties from ${originalKeyFile.canonicalPath}")
+
+        // Act
+        NiFiPropertiesLoader passwordNiFiPropertiesLoader = NiFiPropertiesLoader.withKey(PASSWORD_KEY_HEX_128)
+
+        NiFiProperties passwordProperties = passwordNiFiPropertiesLoader.load(passwordKeyFile)
+        logger.info("Read ${passwordProperties.size()} total properties from ${passwordKeyFile.canonicalPath}")
+
+        // Assert
+        assert niFiProperties.size() == passwordProperties.size()
+
+
+        def readPropertiesAndValues = niFiProperties.getPropertyKeys().collectEntries {
+            [(it): niFiProperties.getProperty(it)]
+        }
+        def readPasswordPropertiesAndValues = passwordProperties.getPropertyKeys().collectEntries {
+            [(it): passwordProperties.getProperty(it)]
+        }
+
+        assert readPropertiesAndValues == readPasswordPropertiesAndValues
     }
 }

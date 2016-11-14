@@ -20,6 +20,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -53,6 +54,7 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
 
     }
 
+    @Ignore("This is resolved in PR 1216")
     @Test
     public void testShouldGetProviderWithoutKey() throws Exception {
         // Arrange
@@ -81,6 +83,7 @@ class AESSensitivePropertyProviderFactoryTest extends GroovyTestCase {
         assert provider.@cipher
     }
 
+    @Ignore("This is resolved in PR 1216")
     @Test
     public void testGetProviderShouldHandleEmptyKey() throws Exception {
         // Arrange
