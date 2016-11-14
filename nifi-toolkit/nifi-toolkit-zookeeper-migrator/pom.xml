@@ -48,8 +48,8 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <!--<exclusions>-->
-                <!-- these exclusios can be used once the ZK dependency is upgraded to 3.5.2 or 3.6.0
-                which do not have the hard dependnecy on log4j -->
+                <!-- these exclusions can be used once the ZK dependency is upgraded to 3.5.2 or 3.6.0
+                which do not have the hard dependency on log4j -->
                 <!--<exclusion>-->
                     <!--<groupId>log4j</groupId>-->
                     <!--<artifactId>log4j</artifactId>-->
@@ -69,6 +69,7 @@
             <artifactId>gson</artifactId>
         </dependency>
         <dependency>
+            <!-- explicitly declaring for logback's runtime processing of logback.groovy -->
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
         </dependency>
