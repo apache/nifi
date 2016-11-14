@@ -25,7 +25,7 @@ import org.apache.zookeeper.data.Stat;
 import java.util.List;
 import java.util.Objects;
 
-public class DataStatAclNode {
+class DataStatAclNode {
 
     private final String path;
     private final byte[] data;
@@ -33,7 +33,7 @@ public class DataStatAclNode {
     private final List<ACL> acls;
     private final long ephemeralOwner;
 
-    public DataStatAclNode(String path, byte[] data, Stat stat, List<ACL> acls, long ephemeralOwner) {
+    DataStatAclNode(String path, byte[] data, Stat stat, List<ACL> acls, long ephemeralOwner) {
         this.path = Preconditions.checkNotNull(path, "path can not be null");
         this.data = data;
         this.stat = Preconditions.checkNotNull(stat, "stat can not be null");
@@ -41,23 +41,23 @@ public class DataStatAclNode {
         this.ephemeralOwner = ephemeralOwner;
     }
 
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
-    public byte[] getData() {
+    byte[] getData() {
         return data;
     }
 
-    public Stat getStat() {
+    Stat getStat() {
         return stat;
     }
 
-    public List<ACL> getAcls() {
+    List<ACL> getAcls() {
         return acls;
     }
 
-    public long getEphemeralOwner() {
+    long getEphemeralOwner() {
         return ephemeralOwner;
     }
 

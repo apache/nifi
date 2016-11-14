@@ -41,7 +41,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterators;
@@ -64,9 +63,9 @@ class ZooKeeperMigrator {
 
     private final ZooKeeperEndpointConfig zooKeeperEndpointConfig;
 
-    ZooKeeperMigrator(String zookeeperEndpoint) throws URISyntaxException {
+    ZooKeeperMigrator(String zookeeperEndpoint) {
         LOGGER.debug("ZooKeeper endpoint parameter: {}", zookeeperEndpoint);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(zookeeperEndpoint), "connectString must not be null");
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(zookeeperEndpoint), "zookeeper endpoint must not be null");
         final String[] connectStringPath = zookeeperEndpoint.split("/", 2);
         Preconditions.checkArgument(connectStringPath.length >= 1, "invalid ZooKeeper endpoint: %s", zookeeperEndpoint);
         final String connectString = connectStringPath[0];
@@ -134,7 +133,7 @@ class ZooKeeperMigrator {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath()),
                 "Source ZooKeeper %s from %s is invalid", sourceZooKeeperEndpointConfig, zkData);
         Preconditions.checkState(!zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig),
-                "Source ZooKeeper config %s for the data provided can not be the same as the configured destionation ZooKeeper config %s",
+                "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
         // stream through each node read from the json input
@@ -277,7 +276,7 @@ class ZooKeeperMigrator {
             // set data without caring what the previous version of the data at that path
             zooKeeper.setData(node.getPath(), node.getData(), -1);
             zooKeeper.setACL(node.getPath(), node.getAcls(), -1);
-            LOGGER.info("transfered node {} in {}", node, zooKeeperEndpointConfig);
+            LOGGER.info("transferred node {} in {}", node, zooKeeperEndpointConfig);
         } catch (Exception e) {
             throw new RuntimeException(String.format("unable to transmit data to %s for path %s", zooKeeper, node.getPath()), e);
         }

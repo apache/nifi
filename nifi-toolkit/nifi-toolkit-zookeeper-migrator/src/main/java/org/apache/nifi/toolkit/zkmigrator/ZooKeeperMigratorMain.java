@@ -45,7 +45,7 @@ public class ZooKeeperMigratorMain {
             .longOpt("zookeeper")
             .desc("ZooKeeper connect string with path (ex. host:port/path)")
             .hasArg()
-            .argName("connect-string")
+            .argName("zookeeper-endpoint")
             .required()
             .build();
     private static final Option OPTION_RECEIVE = Option.builder("r")
@@ -58,7 +58,7 @@ public class ZooKeeperMigratorMain {
             .build();
     private static final Option OPTION_ZK_AUTH_INFO = Option.builder("a")
             .longOpt("auth")
-            .desc("username and password for the given ZK path")
+            .desc("username and password for the given ZooKeeper path")
             .hasArg()
             .argName("username:password")
             .build();
