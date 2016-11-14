@@ -27,8 +27,9 @@
                 <div id="cluster-process-group-icon"></div>
                 <div id="cluster-process-group-details">
                     <div id="cluster-process-group-name"></div>
-                    <div id="cluster-process-group-id"></div>
+                    <div id="cluster-process-group-type"></div>
                 </div>
+                <div id="cluster-process-group-id"></div>
             </div>
         </div>
         <div id="cluster-process-group-summary-table"></div>
