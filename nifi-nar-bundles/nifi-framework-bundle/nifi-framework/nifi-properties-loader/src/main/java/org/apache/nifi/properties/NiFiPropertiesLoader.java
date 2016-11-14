@@ -90,7 +90,7 @@ public class NiFiPropertiesLoader {
      *
      * @return the populated and decrypted NiFiProperties instance
      * @throws IOException if there is a problem reading from the bootstrap.conf
-     * or nifi.properties files
+     *                     or nifi.properties files
      */
     public static NiFiProperties loadDefaultWithKeyFromBootstrap() throws IOException {
         try {
@@ -158,9 +158,7 @@ public class NiFiPropertiesLoader {
     }
 
     private void initializeSensitivePropertyProviderFactory() {
-        if (sensitivePropertyProviderFactory == null) {
-            sensitivePropertyProviderFactory = new AESSensitivePropertyProviderFactory(keyHex);
-        }
+        sensitivePropertyProviderFactory = new AESSensitivePropertyProviderFactory(keyHex);
     }
 
     private SensitivePropertyProvider getSensitivePropertyProvider() {
