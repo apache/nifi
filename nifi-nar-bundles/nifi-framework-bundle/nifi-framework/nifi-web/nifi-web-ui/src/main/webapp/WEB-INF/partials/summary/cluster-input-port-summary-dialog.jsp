@@ -27,9 +27,10 @@
                 <div id="cluster-input-port-icon"></div>
                 <div id="cluster-input-port-details">
                     <div id="cluster-input-port-name"></div>
-                    <div id="cluster-input-port-id"></div>
+                    <div id="cluster-input-port-type"></div>
                     <div id="cluster-input-port-group-id" class="hidden"></div>
                 </div>
+                <div id="cluster-input-port-id"></div>
             </div>
         </div>
         <div id="cluster-input-port-summary-table"></div>
