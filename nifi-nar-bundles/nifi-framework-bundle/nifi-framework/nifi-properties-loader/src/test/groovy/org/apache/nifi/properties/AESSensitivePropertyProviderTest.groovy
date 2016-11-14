@@ -352,18 +352,21 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGetImplementationKeyWithDifferentMaxKeyLengths() throws Exception {
+    public void testShouldGetIdentifierKeyWithDifferentMaxKeyLengths() throws Exception {
         // Arrange
-        final int MAX_KEY_SIZE = getAvailableKeySizes().max()
-        final String EXPECTED_IMPL_KEY = "aes/gcm/${MAX_KEY_SIZE}"
-        logger.expected("Implementation key: ${EXPECTED_IMPL_KEY}")
+        def keys = getAvailableKeySizes().collectEntries { int keySize ->
+            [(keySize): getKeyOfSize(keySize)]
+        }
+        logger.info("Keys: ${keys}")
 
         // Act
-        String key = new AESSensitivePropertyProvider(getKeyOfSize(MAX_KEY_SIZE)).getIdentifierKey()
-        logger.info("Implementation key: ${key}")
+        keys.each { int size, String key ->
+            String identifierKey = new AESSensitivePropertyProvider(key).getIdentifierKey()
+            logger.info("Identifier key: ${identifierKey} for size ${size}")
 
-        // Assert
-        assert key == EXPECTED_IMPL_KEY
+            // Assert
+            assert identifierKey =~ /aes\/gcm\/${size}/
+        }
     }
 
     @Test
@@ -414,9 +417,9 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     @Test
     public void testShouldEncryptArbitraryValues() {
         // Arrange
-        def values = ["thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message"]
+        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message"]
 
-        String key = getKeyOfSize(128)
+        String key = "2C576A9585DB862F5ECBEE5B4FFFCCA1" //getKeyOfSize(128)
         // key = "0" * 64
 
         SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)

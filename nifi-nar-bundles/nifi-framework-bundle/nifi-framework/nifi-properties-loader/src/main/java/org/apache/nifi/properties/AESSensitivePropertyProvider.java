@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.properties;
 
+import static sun.security.util.KeyUtil.getKeySize;
+
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -23,7 +25,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.crypto.BadPaddingException;
@@ -139,7 +140,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + Collections.max(getValidKeyLengths()).toString();
+        return IMPLEMENTATION_KEY + getKeySize(key);
     }
 
     /**
