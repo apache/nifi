@@ -1707,8 +1707,8 @@ nf.SummaryTable = (function () {
             }
 
             // generate the mark up
-            var formattedValue = '<div class="' + transmissionClass + '" style="margin-top: 5px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + transmissionClass + '"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var transmissionStatusColumn = {
@@ -2495,6 +2495,7 @@ nf.SummaryTable = (function () {
 
                 // populate the processor details
                 $('#cluster-processor-name').text(processorStatus.name).ellipsis();
+                $('#cluster-processor-type').text(processorStatus.aggregateSnapshot.type).ellipsis();
                 $('#cluster-processor-id').text(processorStatus.id);
                 $('#cluster-processor-group-id').text(processorStatus.groupId);
 
@@ -2551,6 +2552,7 @@ nf.SummaryTable = (function () {
 
                 // populate the processor details
                 $('#cluster-connection-name').text(connectionStatus.name).ellipsis();
+                $('#cluster-connection-type').text('Connection').ellipsis();
                 $('#cluster-connection-id').text(connectionStatus.id);
                 $('#cluster-connection-group-id').text(connectionStatus.groupId);
 
@@ -2611,6 +2613,7 @@ nf.SummaryTable = (function () {
 
                 // populate the input port details
                 $('#cluster-process-group-name').text(processGroupStatus.name).ellipsis();
+                $('#cluster-process-group-type').text('Process Group').ellipsis();
                 $('#cluster-process-group-id').text(processGroupStatus.id);
 
                 // update the stats last refreshed timestamp
@@ -2662,6 +2665,7 @@ nf.SummaryTable = (function () {
 
                 // populate the input port details
                 $('#cluster-input-port-name').text(inputPortStatus.name).ellipsis();
+                $('#cluster-input-port-type').text('Input Port').ellipsis();
                 $('#cluster-input-port-id').text(inputPortStatus.id);
                 $('#cluster-input-port-group-id').text(inputPortStatus.groupId);
 
@@ -2714,6 +2718,7 @@ nf.SummaryTable = (function () {
 
                 // populate the output port details
                 $('#cluster-output-port-name').text(outputPortStatus.name).ellipsis();
+                $('#cluster-output-port-type').text('Output Port').ellipsis();
                 $('#cluster-output-port-id').text(outputPortStatus.id);
                 $('#cluster-output-port-group-id').text(outputPortStatus.groupId);
 
@@ -2768,6 +2773,7 @@ nf.SummaryTable = (function () {
 
                 // populate the remote process group details
                 $('#cluster-remote-process-group-name').text(remoteProcessGroupStatus.name).ellipsis();
+                $('#cluster-remote-process-group-type').text('Remote Process Group').ellipsis();
                 $('#cluster-remote-process-group-id').text(remoteProcessGroupStatus.id);
                 $('#cluster-remote-process-group-group-id').text(remoteProcessGroupStatus.groupId);
 

@@ -27,9 +27,10 @@
                 <div id="cluster-remote-process-group-icon"></div>
                 <div id="cluster-remote-process-group-details">
                     <div id="cluster-remote-process-group-name"></div>
-                    <div id="cluster-remote-process-group-id"></div>
+                    <div id="cluster-remote-process-group-type"></div>
                     <div id="cluster-remote-process-group-group-id" class="hidden"></div>
                 </div>
+                <div id="cluster-remote-process-group-id"></div>
             </div>
         </div>
         <div id="cluster-remote-process-group-summary-table"></div>

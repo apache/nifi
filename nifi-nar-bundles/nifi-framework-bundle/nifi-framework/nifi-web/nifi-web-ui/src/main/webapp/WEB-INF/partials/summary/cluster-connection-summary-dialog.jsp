@@ -27,9 +27,10 @@
                 <div id="cluster-connection-icon"></div>
                 <div id="cluster-connection-details">
                     <div id="cluster-connection-name"></div>
-                    <div id="cluster-connection-id"></div>
+                    <div id="cluster-connection-type"></div>
                     <div id="cluster-connection-group-id" class="hidden"></div>
                 </div>
+                <div id="cluster-connection-id"></div>
             </div>
         </div>
         <div id="cluster-connection-summary-table"></div>
