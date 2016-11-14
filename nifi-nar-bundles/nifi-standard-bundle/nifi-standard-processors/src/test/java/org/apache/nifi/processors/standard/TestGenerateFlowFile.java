@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -51,6 +52,23 @@ public class TestGenerateFlowFile {
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
         runner.assertNotValid();
+    }
+
+    @Test
+    public void testDynamicPropertiesToAttributes() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
+        runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
+        runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
+        runner.setProperty("plain.dynamic.property", "Plain Value");
+        runner.setProperty("expression.dynamic.property", "${literal('Expression Value')}");
+        runner.assertValid();
+
+        runner.run();
+
+        runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
+        generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
     }
 
 }
