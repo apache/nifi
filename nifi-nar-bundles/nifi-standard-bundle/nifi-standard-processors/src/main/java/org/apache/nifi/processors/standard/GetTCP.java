@@ -242,10 +242,10 @@ public class GetTCP extends AbstractProcessor {
 
     private Map<SocketRecveiverThread, Future> socketToFuture = new HashMap<>();
     private ExecutorService executorService;
-    private ComponentLog log = getLogger();
-    private String originalServerAddressList;
-    private String backupServer;
-    private int batchSize;
+    private transient ComponentLog log = getLogger();
+    private transient String originalServerAddressList;
+    private transient String backupServer;
+    private transient int batchSize;
 
     /**
      * Bounded queue of messages events from the socket.
