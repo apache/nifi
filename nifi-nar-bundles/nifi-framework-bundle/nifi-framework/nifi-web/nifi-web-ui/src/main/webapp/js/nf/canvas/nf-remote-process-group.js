@@ -715,18 +715,10 @@ nf.RemoteProcessGroup = (function () {
                 return d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
             })
             .classed('transmitting', function (d) {
-                if (d.permissions.canRead && d.component.transmitting === true) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return d.permissions.canRead && nf.Common.isEmpty(d.component.authorizationIssues) && d.component.transmitting === true;
             })
             .classed('not-transmitting', function (d) {
-                if (d.permissions.canRead && d.component.transmitting !== true) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return d.permissions.canRead && nf.Common.isEmpty(d.component.authorizationIssues) && d.component.transmitting === false;
             })
             .each(function (d) {
                 // get the tip
