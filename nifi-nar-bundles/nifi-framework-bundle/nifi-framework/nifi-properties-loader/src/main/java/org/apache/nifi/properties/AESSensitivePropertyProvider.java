@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import static sun.security.util.KeyUtil.getKeySize;
-
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -140,7 +138,16 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + getKeySize(key);
+        return IMPLEMENTATION_KEY + getKeySize(Hex.toHexString(key.getEncoded()));
+    }
+
+    private int getKeySize(String key) {
+        if (StringUtils.isBlank(key)) {
+            return 0;
+        } else {
+            // A key in hexadecimal format has one char per nibble (4 bits)
+            return formatHexKey(key).length() * 4;
+        }
     }
 
     /**
@@ -216,7 +223,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
             throw new IllegalArgumentException("The IV (" + iv.length + " bytes) must be at least " + IV_LENGTH + " bytes");
         }
 
-         String CIPHERTEXT_B64 = protectedValue.substring(protectedValue.indexOf(DELIMITER) + 2);
+        String CIPHERTEXT_B64 = protectedValue.substring(protectedValue.indexOf(DELIMITER) + 2);
 
         // Restore the = padding if necessary to reconstitute the GCM MAC check
         if (CIPHERTEXT_B64.length() % 4 != 0) {
