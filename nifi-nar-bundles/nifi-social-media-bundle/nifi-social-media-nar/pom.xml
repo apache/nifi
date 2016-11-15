@@ -36,6 +36,10 @@
             <version>1.1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
+    <!-- This is here to ensure we do not publish the nar since it would at present
+    publish a cat-x dependency.  Since this is optional it is ok to have the jar/bundle
+    and it allows people to build it and use it themselves.  Once the dependency - twitter4j
+    no longer uses this cat-x dependency we'll be ok to return it back to normal -->
     <build>
         <plugins>
             <plugin>
