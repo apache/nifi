@@ -3859,7 +3859,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         provenanceRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue, flowFileRecord);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+        record.setWorking(flowFileRecord);
         record.setDestination(queue);
         flowFileRepository.updateRepository(Collections.<RepositoryRecord>singleton(record));
 
