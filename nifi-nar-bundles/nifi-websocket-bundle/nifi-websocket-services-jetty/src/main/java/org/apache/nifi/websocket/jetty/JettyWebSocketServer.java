@@ -24,7 +24,6 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.websocket.WebSocketConfigurationException;
@@ -44,7 +43,6 @@ import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
-import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
@@ -192,11 +190,8 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
         servletHandler.addServletWithMapping(JettyWebSocketServlet.class, "/*");
 
-        // Need to specify classloader, otherwise since the callstack doesn't have any nifi specific class, so it can't use nar.
-        try (NarCloseable closeable = NarCloseable.withComponentNarLoader(WebSocketServerFactory.class)) {
-            getLogger().info("Starting JettyWebSocketServer on port {}.", new Object[]{listenPort});
-            server.start();
-        }
+        getLogger().info("Starting JettyWebSocketServer on port {}.", new Object[]{listenPort});
+        server.start();
 
         portToControllerService.put(listenPort, this);
     }

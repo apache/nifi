@@ -33,21 +33,24 @@ import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_CS_ID;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_ENDPOINT_ID;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_LOCAL_ADDRESS;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_MESSAGE_TYPE;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_REMOTE_ADDRESS;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_SESSION_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_LOCAL_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 
 @Tags({"subscribe", "WebSocket", "consume", "listen"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
-@CapabilityDescription("Acts as a WebSocket server endpoint to accept client connections.")
+@CapabilityDescription("Acts as a WebSocket server endpoint to accept client connections." +
+        " FlowFiles are transferred to downstream relationships according to received message types" +
+        " as the WebSocket server configured with this processor receives client requests")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_WS_CS_ID, description = "WebSocket Controller Service id."),
         @WritesAttribute(attribute = ATTR_WS_SESSION_ID, description = "Established WebSocket session id."),
@@ -86,7 +89,7 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
     private static final Set<Relationship> relationships;
 
     static{
-        final List<PropertyDescriptor> innerDescriptorsList = getAbstractPropertyDescriptors();
+        final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
         innerDescriptorsList.add(PROP_WEBSOCKET_SERVER_SERVICE);
         innerDescriptorsList.add(PROP_SERVER_URL_PATH);
         descriptors = Collections.unmodifiableList(innerDescriptorsList);

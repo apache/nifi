@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -47,13 +48,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_CS_ID;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_ENDPOINT_ID;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_FAILURE_DETAIL;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_LOCAL_ADDRESS;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_MESSAGE_TYPE;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_REMOTE_ADDRESS;
-import static org.apache.nifi.processors.websocket.AbstractWebSocketProcessor.ATTR_WS_SESSION_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_FAILURE_DETAIL;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_LOCAL_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
 
 @Tags({"WebSocket", "publish", "send"})
@@ -70,7 +71,7 @@ import static org.apache.nifi.websocket.WebSocketMessage.CHARSET_NAME;
         @WritesAttribute(attribute = ATTR_WS_REMOTE_ADDRESS, description = "WebSocket client address."),
         @WritesAttribute(attribute = ATTR_WS_FAILURE_DETAIL, description = "Detail of the failure."),
 })
-public class PutWebSocket extends AbstractWebSocketProcessor {
+public class PutWebSocket extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
             .name("websocket-session-id")
@@ -222,7 +223,7 @@ public class PutWebSocket extends AbstractWebSocketProcessor {
             // WebSocketConfigurationException: If the corresponding WebSocketGatewayProcessor has been stopped.
             // IllegalStateException: Session is already closed or not found.
             // IOException: other IO error.
-            logger.error("Failed to send message via WebSocket due to " + e, e);
+            getLogger().error("Failed to send message via WebSocket due to " + e, e);
             transferToFailure(processSession, flowfile, e.toString());
         }
 

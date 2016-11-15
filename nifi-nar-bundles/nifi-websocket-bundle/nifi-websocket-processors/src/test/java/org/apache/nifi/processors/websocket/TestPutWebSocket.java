@@ -34,6 +34,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_CS_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_ENDPOINT_ID;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_FAILURE_DETAIL;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_LOCAL_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_MESSAGE_TYPE;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
+import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
@@ -47,12 +54,12 @@ import static org.mockito.Mockito.when;
 public class TestPutWebSocket {
 
     private void assertFlowFile(WebSocketSession webSocketSession, String serviceId, String endpointId, MockFlowFile ff, WebSocketMessage.Type messageType) {
-        assertEquals(serviceId, ff.getAttribute(ConnectWebSocket.ATTR_WS_CS_ID));
-        assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ConnectWebSocket.ATTR_WS_SESSION_ID));
-        assertEquals(endpointId, ff.getAttribute(ConnectWebSocket.ATTR_WS_ENDPOINT_ID));
-        assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ConnectWebSocket.ATTR_WS_LOCAL_ADDRESS));
-        assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ConnectWebSocket.ATTR_WS_REMOTE_ADDRESS));
-        assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ConnectWebSocket.ATTR_WS_MESSAGE_TYPE));
+        assertEquals(serviceId, ff.getAttribute(ATTR_WS_CS_ID));
+        assertEquals(webSocketSession.getSessionId(), ff.getAttribute(ATTR_WS_SESSION_ID));
+        assertEquals(endpointId, ff.getAttribute(ATTR_WS_ENDPOINT_ID));
+        assertEquals(webSocketSession.getLocalAddress().toString(), ff.getAttribute(ATTR_WS_LOCAL_ADDRESS));
+        assertEquals(webSocketSession.getRemoteAddress().toString(), ff.getAttribute(ATTR_WS_REMOTE_ADDRESS));
+        assertEquals(messageType != null ? messageType.name() : null, ff.getAttribute(ATTR_WS_MESSAGE_TYPE));
     }
 
     private WebSocketSession getWebSocketSession() {
@@ -78,8 +85,8 @@ public class TestPutWebSocket {
         runner.enableControllerService(service);
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(PutWebSocket.ATTR_WS_CS_ID, serviceId);
-        attributes.put(PutWebSocket.ATTR_WS_ENDPOINT_ID, endpointId);
+        attributes.put(ATTR_WS_CS_ID, serviceId);
+        attributes.put(ATTR_WS_ENDPOINT_ID, endpointId);
         runner.enqueue(textMessageFromServer, attributes);
 
         runner.run();
@@ -90,7 +97,7 @@ public class TestPutWebSocket {
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        assertNotNull(failedFlowFile.getAttribute(PutWebSocket.ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(0, provenanceEvents.size());
@@ -113,9 +120,9 @@ public class TestPutWebSocket {
         runner.enableControllerService(service);
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(PutWebSocket.ATTR_WS_CS_ID, "different-service-id");
-        attributes.put(PutWebSocket.ATTR_WS_ENDPOINT_ID, endpointId);
-        attributes.put(PutWebSocket.ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
+        attributes.put(ATTR_WS_CS_ID, "different-service-id");
+        attributes.put(ATTR_WS_ENDPOINT_ID, endpointId);
+        attributes.put(ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
         runner.enqueue(textMessageFromServer, attributes);
 
         runner.run();
@@ -126,7 +133,7 @@ public class TestPutWebSocket {
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        assertNotNull(failedFlowFile.getAttribute(PutWebSocket.ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(0, provenanceEvents.size());
@@ -149,9 +156,9 @@ public class TestPutWebSocket {
         runner.enableControllerService(service);
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(PutWebSocket.ATTR_WS_CS_ID, serviceId);
-        attributes.put(PutWebSocket.ATTR_WS_ENDPOINT_ID, endpointId);
-        attributes.put(PutWebSocket.ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
+        attributes.put(ATTR_WS_CS_ID, serviceId);
+        attributes.put(ATTR_WS_ENDPOINT_ID, endpointId);
+        attributes.put(ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
         runner.enqueue(textMessageFromServer, attributes);
 
         runner.run();
@@ -162,7 +169,7 @@ public class TestPutWebSocket {
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        assertNotNull(failedFlowFile.getAttribute(PutWebSocket.ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(0, provenanceEvents.size());
@@ -191,9 +198,9 @@ public class TestPutWebSocket {
         runner.enableControllerService(service);
 
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(PutWebSocket.ATTR_WS_CS_ID, serviceId);
-        attributes.put(PutWebSocket.ATTR_WS_ENDPOINT_ID, endpointId);
-        attributes.put(PutWebSocket.ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
+        attributes.put(ATTR_WS_CS_ID, serviceId);
+        attributes.put(ATTR_WS_ENDPOINT_ID, endpointId);
+        attributes.put(ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
         runner.enqueue(textMessageFromServer, attributes);
 
         runner.run();
@@ -204,7 +211,7 @@ public class TestPutWebSocket {
         final List<MockFlowFile> failedFlowFiles = runner.getFlowFilesForRelationship(PutWebSocket.REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
         final MockFlowFile failedFlowFile = failedFlowFiles.iterator().next();
-        assertNotNull(failedFlowFile.getAttribute(PutWebSocket.ATTR_WS_FAILURE_DETAIL));
+        assertNotNull(failedFlowFile.getAttribute(ATTR_WS_FAILURE_DETAIL));
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(0, provenanceEvents.size());
@@ -231,18 +238,18 @@ public class TestPutWebSocket {
 
         runner.enableControllerService(service);
 
-        runner.setProperty(PutWebSocket.PROP_WS_MESSAGE_TYPE, "${" + PutWebSocket.ATTR_WS_MESSAGE_TYPE + "}");
+        runner.setProperty(PutWebSocket.PROP_WS_MESSAGE_TYPE, "${" + ATTR_WS_MESSAGE_TYPE + "}");
 
         // Enqueue 1st file as Text.
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put(PutWebSocket.ATTR_WS_CS_ID, serviceId);
-        attributes.put(PutWebSocket.ATTR_WS_ENDPOINT_ID, endpointId);
-        attributes.put(PutWebSocket.ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
-        attributes.put(PutWebSocket.ATTR_WS_MESSAGE_TYPE, WebSocketMessage.Type.TEXT.name());
+        attributes.put(ATTR_WS_CS_ID, serviceId);
+        attributes.put(ATTR_WS_ENDPOINT_ID, endpointId);
+        attributes.put(ATTR_WS_SESSION_ID, webSocketSession.getSessionId());
+        attributes.put(ATTR_WS_MESSAGE_TYPE, WebSocketMessage.Type.TEXT.name());
         runner.enqueue(textMessageFromServer, attributes);
 
         // Enqueue 2nd file as Binary.
-        attributes.put(PutWebSocket.ATTR_WS_MESSAGE_TYPE, WebSocketMessage.Type.BINARY.name());
+        attributes.put(ATTR_WS_MESSAGE_TYPE, WebSocketMessage.Type.BINARY.name());
         runner.enqueue(textMessageFromServer.getBytes(), attributes);
 
         runner.run(2);
