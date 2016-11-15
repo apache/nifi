@@ -56,7 +56,7 @@ Security Properties:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
     provider: BC
 Processors:
-- id: TailFile
+- id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e2
   name: TailFile
   class: org.apache.nifi.processors.standard.TailFile
   max concurrent tasks: 1
@@ -71,9 +71,9 @@ Processors:
     Initial Start Position: Beginning of File
     Rolling Filename Pattern: minifi-app*
 Connections:
-- id: TailToS2S
+- id: f6cef9b0-8982-391c-8d70-76f33917ac12
   name: TailToS2S
-  source id: TailFile
+  source id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e2
   source relationship names:
   - success
   destination id: 8644cbcc-a45c-40e0-964d-5e536e2ada61

@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
@@ -43,7 +44,7 @@ public abstract class BaseSchemaTester<Schema extends WritableSchema, DTO> {
         assertEquals(dtoSchema.getValidationIssues(), mapSchema.getValidationIssues());
         assertSchemaEquals(dtoSchema, mapSchemaFunction.apply(dtoSchema.toMap()));
         assertSchemaEquals(mapSchema, mapSchemaFunction.apply(mapSchema.toMap()));
-        assertEquals(validationErrors, dtoSchema.getValidationIssues().size());
+        assertEquals(dtoSchema.getValidationIssues().stream().collect(Collectors.joining(", ")), validationErrors, dtoSchema.getValidationIssues().size());
     }
 
     public abstract void assertSchemaEquals(Schema one, Schema two);

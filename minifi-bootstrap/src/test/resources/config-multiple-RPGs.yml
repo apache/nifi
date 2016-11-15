@@ -77,7 +77,7 @@ Connections:
     - name: TailToS2S
       source name: TailAppLog
       source relationship name: success
-      destination name: dgs809qe-9qw7-q985-jl1u-y789ohi87g78
+      destination name: 37b4b78a-a5c9-3eac-bfb7-56fc4875aace
       max work queue size: 0
       max work queue data size: 1 MB
       flowfile expiration: 60 sec
@@ -109,7 +109,7 @@ Remote Processing Groups:
       timeout: 30 secs
       yield period: 10 sec
       Input Ports:
-          - id: dgs809qe-9qw7-q985-jl1u-y789ohi87g78
+          - id: 37b4b78a-a5c9-3eac-bfb7-56fc4875aace
             name: tailed log
             comments:
             max concurrent tasks: 1

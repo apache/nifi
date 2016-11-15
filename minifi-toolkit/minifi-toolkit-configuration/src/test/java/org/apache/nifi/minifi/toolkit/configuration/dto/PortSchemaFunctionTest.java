@@ -24,6 +24,9 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -37,7 +40,7 @@ public class PortSchemaFunctionTest {
 
     @Before
     public void setup() {
-        testId = "testId";
+        testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
         testName = "testName";
         testWrapperName = "testWrapperName";
         portDTO = new PortDTO();

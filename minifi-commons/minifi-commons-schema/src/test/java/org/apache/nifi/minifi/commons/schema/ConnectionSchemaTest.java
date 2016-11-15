@@ -23,11 +23,13 @@ import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
@@ -46,7 +48,7 @@ public class ConnectionSchemaTest {
 
     @Before
     public void setup() {
-        testId = "testId";
+        testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
         testName = "testName";
         testSourceId = "testSourceId";
         testSourceRelationShip1 = "testSourceRelationShip1";

@@ -29,9 +29,12 @@ import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.junit.Assert.assertEquals;
@@ -43,7 +46,7 @@ public class ConfigSchemaV1Test {
         Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(ConfigSchemaTest.class.getClassLoader().getResourceAsStream("config-minimal.yml"));
         ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
         List<String> validationIssues = configSchema.getValidationIssues();
-        assertEquals(0, validationIssues.size());
+        assertEquals(new ArrayList<>(), validationIssues);
     }
     @Test
     public void testValidationIssuesFromNewer() throws IOException, SchemaLoaderException {
@@ -69,9 +72,9 @@ public class ConfigSchemaV1Test {
         ConfigSchema configSchema = new ConfigSchemaV1(yamlAsMap).convert();
         List<String> validationIssues = configSchema.getValidationIssues();
         assertEquals(4, validationIssues.size());
-        assertEquals(BaseSchema.getIssueText(ConnectionSchema.DESTINATION_ID_KEY, "Connection(id: TailToSplit, name: TailToSplit)", BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED),
-                validationIssues.get(0));
-        assertEquals(BaseSchema.getIssueText(ConnectionSchema.SOURCE_ID_KEY, "Connection(id: TailToSplit, name: TailToSplit)", BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED),
+        assertEquals(BaseSchema.getIssueText(ConnectionSchema.DESTINATION_ID_KEY, "Connection(id: 0401b747-1dca-31c7-ab4b-cdacf7e6c44b, name: TailToSplit)",
+                BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED), validationIssues.get(0));
+        assertEquals(BaseSchema.getIssueText(ConnectionSchema.SOURCE_ID_KEY, "Connection(id: 0401b747-1dca-31c7-ab4b-cdacf7e6c44b, name: TailToSplit)", BaseSchema.IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED),
                 validationIssues.get(1));
         assertEquals(ConfigSchemaV1.CONNECTION_WITH_NAME + connection.get(NAME_KEY) + ConfigSchemaV1.HAS_INVALID_DESTINATION_NAME + fakeDestination, validationIssues.get(2));
         assertEquals(ConfigSchemaV1.CONNECTION_WITH_NAME + connection.get(NAME_KEY) + ConfigSchemaV1.HAS_INVALID_SOURCE_NAME + fakeSource, validationIssues.get(3));
@@ -79,18 +82,18 @@ public class ConfigSchemaV1Test {
 
     @Test
     public void testGetUniqueIdConflicts() {
-        Map<String, Integer> ids = new HashMap<>();
-        assertEquals("test_id", ConfigSchemaV1.getUniqueId(ids, "test/id"));
-        assertEquals("test_id_2", ConfigSchemaV1.getUniqueId(ids, "test$id"));
-        assertEquals("test_id_3", ConfigSchemaV1.getUniqueId(ids, "test$id"));
-        assertEquals("test_id_4", ConfigSchemaV1.getUniqueId(ids, "test$id"));
-        assertEquals("test_id_5", ConfigSchemaV1.getUniqueId(ids, "test$id"));
-        assertEquals("test_id_2_2", ConfigSchemaV1.getUniqueId(ids, "test_id_2"));
+        Set<UUID> ids = new HashSet<>();
+        assertEquals("56e7ae5d-aae1-351e-bca9-cdc4446c6386", ConfigSchemaV1.getUniqueId(ids, "test/id"));
+        assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834d8", ConfigSchemaV1.getUniqueId(ids, "test$id"));
+        assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834d9", ConfigSchemaV1.getUniqueId(ids, "test$id"));
+        assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834da", ConfigSchemaV1.getUniqueId(ids, "test$id"));
+        assertEquals("348c4f93-cd15-3d91-82f2-bfe5d43834db", ConfigSchemaV1.getUniqueId(ids, "test$id"));
+        assertEquals("697487ff-979c-342d-9aab-5c710ae43a28", ConfigSchemaV1.getUniqueId(ids, "test_id_2"));
     }
 
     @Test
     public void testGetUniqueIdEmptySet() {
         String testId = "testId";
-        assertEquals(testId + "___", ConfigSchemaV1.getUniqueId(new HashMap<>(), testId + "/ $"));
+        assertEquals("17841b04-ce22-34a3-9603-d95ec31d02dc", ConfigSchemaV1.getUniqueId(new HashSet<>(), testId + "/ $"));
     }
 }

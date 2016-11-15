@@ -26,15 +26,17 @@ import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
 public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, ProcessorDTO> {
     private final String testName = "testName";
-    private final String testId = "testId";
+    private final String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
     private final String testProcessorClass = "testProcessorClass";
     private final String testSchedulingStrategy = SchedulingStrategy.PRIMARY_NODE_ONLY.name();
     private final String testSchedulingPeriod = "10 s";

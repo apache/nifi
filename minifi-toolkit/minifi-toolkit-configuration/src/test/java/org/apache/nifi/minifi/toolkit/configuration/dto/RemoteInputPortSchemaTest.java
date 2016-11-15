@@ -23,13 +23,15 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
 public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemoteInputPortSchema, RemoteProcessGroupPortDTO> {
 
-    private String testId = "testId";
+    private String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
     private String testName = "testName";
     private String testComment = "testComment";
     private int testMaxConcurrentTasks = 111;

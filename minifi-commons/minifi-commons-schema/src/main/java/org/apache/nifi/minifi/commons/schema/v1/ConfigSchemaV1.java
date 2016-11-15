@@ -36,12 +36,14 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.ConfigSchema.TOP_LEVEL_NAME;
@@ -133,12 +135,12 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     protected List<ProcessorSchema> getProcessorSchemas() {
-        Map<String, Integer> idMap = new HashMap<>();
+        Set<UUID> ids = new HashSet<>();
         List<ProcessorSchema> processorSchemas = new ArrayList<>(processors.size());
 
         for (ProcessorSchemaV1 processor : processors) {
             ProcessorSchema processorSchema = processor.convert();
-            processorSchema.setId(getUniqueId(idMap, processorSchema.getName()));
+            processorSchema.setId(getUniqueId(ids, processorSchema.getName()));
             processorSchemas.add(processorSchema);
         }
 
@@ -146,7 +148,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     protected List<ConnectionSchema> getConnectionSchemas(List<ProcessorSchema> processors, List<String> validationIssues) {
-        Map<String, Integer> idMap = new HashMap<>();
+        Set<UUID> ids = new HashSet<>();
 
         Map<String, String> processorNameToIdMap = new HashMap<>();
 
@@ -175,7 +177,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         List<ConnectionSchema> connectionSchemas = new ArrayList<>(connections.size());
         for (ConnectionSchemaV1 connection : connections) {
             ConnectionSchema convert = connection.convert();
-            convert.setId(getUniqueId(idMap, convert.getName()));
+            convert.setId(getUniqueId(ids, convert.getName()));
 
             String sourceName = connection.getSourceName();
             if (remoteInputPortIds.contains(sourceName)) {
@@ -233,27 +235,19 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     }
 
     /**
-     * Will replace all characters not in [A-Za-z0-9_] with _
-     * <p>
-     * This has potential for collisions so it will also append numbers as necessary to prevent that
+     * Will deterministically (per config file in the case of collisions) map the name to a uuid.
      *
-     * @param ids  id map of already incremented numbers
+     * @param ids  the set of UUIDs already assigned
      * @param name the name
-     * @return a unique filesystem-friendly id
+     * @return a UUID string
      */
-    public static String getUniqueId(Map<String, Integer> ids, String name) {
-        String baseId = StringUtil.isNullOrEmpty(name) ? EMPTY_NAME : ID_REPLACE_PATTERN.matcher(name).replaceAll("_");
-        String id = baseId;
-        Integer idNum = ids.get(baseId);
-        while (ids.containsKey(id)) {
-            id = baseId + "_" + idNum++;
+    public static String getUniqueId(Set<UUID> ids, String name) {
+        UUID id = UUID.nameUUIDFromBytes(name == null ? EMPTY_NAME.getBytes(StandardCharsets.UTF_8) : name.getBytes(StandardCharsets.UTF_8));
+        while (ids.contains(id)) {
+            id = new UUID(id.getMostSignificantBits(), id.getLeastSignificantBits() + 1);
         }
-        // Using != on a string comparison here is intentional.  The two will be reference equal iff the body of the while loop was never executed.
-        if (id != baseId) {
-            ids.put(baseId, idNum);
-        }
-        ids.put(id, 2);
-        return id;
+        ids.add(id);
+        return id.toString();
     }
 
     @Override

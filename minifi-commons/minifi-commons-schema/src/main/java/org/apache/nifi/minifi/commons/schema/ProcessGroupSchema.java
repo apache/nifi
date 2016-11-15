@@ -164,4 +164,12 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     public List<PortSchema> getInputPortSchemas() {
         return inputPortSchemas;
     }
+
+    @Override
+    protected boolean isValidId(String value) {
+        if (ID_DEFAULT.equals(value)) {
+            return true;
+        }
+        return super.isValidId(value);
+    }
 }

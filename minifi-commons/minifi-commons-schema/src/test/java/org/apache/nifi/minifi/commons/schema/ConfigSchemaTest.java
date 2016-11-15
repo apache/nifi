@@ -23,10 +23,13 @@ import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.junit.Assert.assertEquals;
@@ -93,8 +96,8 @@ public class ConfigSchemaTest {
         List<Map<String, Object>> connections = (List<Map<String, Object>>) yamlAsMap.get(CommonPropertyKeys.CONNECTIONS_KEY);
         assertEquals(1, connections.size());
 
-        String fakeSource = "fakeSource";
-        String fakeDestination = "fakeDestination";
+        String fakeSource = UUID.nameUUIDFromBytes("fakeSource".getBytes(StandardCharsets.UTF_8)).toString();
+        String fakeDestination = UUID.nameUUIDFromBytes("fakeDestination".getBytes(StandardCharsets.UTF_8)).toString();
 
         Map<String, Object> connection = connections.get(0);
         connection.put(ConnectionSchema.SOURCE_ID_KEY, fakeSource);
@@ -102,9 +105,9 @@ public class ConfigSchemaTest {
 
         ConfigSchema configSchema = new ConfigSchema(yamlAsMap);
         List<String> validationIssues = configSchema.getValidationIssues();
-        assertEquals(2, validationIssues.size());
-        assertEquals(ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_DESTINATION_ID + fakeDestination, validationIssues.get(0));
-        assertEquals(ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_SOURCE_ID + fakeSource, validationIssues.get(1));
+        assertEquals(new ArrayList<>(
+                Arrays.asList(ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_DESTINATION_ID + fakeDestination,
+                        ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_SOURCE_ID + fakeSource)), validationIssues);
     }
 
     public static List<Map<String, Object>> getListWithNames(String... names) {

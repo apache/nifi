@@ -25,17 +25,19 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
 public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, ConnectionDTO> {
-    private final String testId = "testId";
+    private final String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
     private final String testName = "testName";
     private final String testSourceId = "testSourceId";
     private final String testSelectedRelationship = "testSelectedRelationship";

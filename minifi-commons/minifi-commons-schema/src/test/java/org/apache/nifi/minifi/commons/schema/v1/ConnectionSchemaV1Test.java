@@ -183,10 +183,10 @@ public class ConnectionSchemaV1Test {
         assertEquals(5, connections.size());
 
         // Generated unique ids
-        assertEquals("test", connections.get(0).getId());
-        assertEquals("test_2", connections.get(1).getId());
-        assertEquals("test_2_2", connections.get(2).getId());
-        assertEquals("test_3", connections.get(3).getId());
-        assertEquals("test_2_3", connections.get(4).getId());
+        assertEquals("098f6bcd-4621-3373-8ade-4e832627b4f6", connections.get(0).getId());
+        assertEquals("098f6bcd-4621-3373-8ade-4e832627b4f7", connections.get(1).getId());
+        assertEquals("b9dacbc6-7962-39a9-9e45-394e2cf0dbf6", connections.get(2).getId());
+        assertEquals("098f6bcd-4621-3373-8ade-4e832627b4f8", connections.get(3).getId());
+        assertEquals("b9dacbc6-7962-39a9-9e45-394e2cf0dbf7", connections.get(4).getId());
     }
 }

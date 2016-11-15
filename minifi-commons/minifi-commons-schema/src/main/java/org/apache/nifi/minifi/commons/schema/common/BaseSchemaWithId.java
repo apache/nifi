@@ -21,14 +21,11 @@ package org.apache.nifi.minifi.commons.schema.common;
 
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
+import java.util.UUID;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 
 public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
-    public static final Pattern VALID_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
-    public static final String ID_DOES_NOT_MATCH_VALID_ID_PATTERN = "Id does not match valid pattern (" + VALID_ID_PATTERN + "): ";
-
     private final String wrapperName;
     private String id;
 
@@ -65,9 +62,18 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
         List<String> validationIssues = super.getValidationIssues();
         if (StringUtil.isNullOrEmpty(id)) {
             validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED));
-        } else if (!VALID_ID_PATTERN.matcher(id).matches()) {
-            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), ID_DOES_NOT_MATCH_VALID_ID_PATTERN));
+        } else if (!isValidId(id)) {
+            validationIssues.add(getIssueText(CommonPropertyKeys.ID_KEY, getWrapperName(), "Id value of " + id + " is not a valid UUID"));
         }
         return validationIssues;
+    }
+
+    protected boolean isValidId(String value) {
+        try {
+            UUID.fromString(value);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

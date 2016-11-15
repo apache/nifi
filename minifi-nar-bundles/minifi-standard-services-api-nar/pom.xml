@@ -23,6 +23,7 @@
     </parent>
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi-standard-services-api-nar</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
