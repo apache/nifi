@@ -89,7 +89,7 @@ public class InstanceClassLoader extends URLClassLoader {
         if (shimClassLoader != null) {
             try {
                 c = shimClassLoader.loadClass(name, resolve);
-            } catch (NoClassDefFoundError | ClassNotFoundException e) {
+            } catch (ClassNotFoundException e) {
                 c = null;
             }
         }
@@ -108,7 +108,7 @@ public class InstanceClassLoader extends URLClassLoader {
         if (shimClassLoader != null) {
             try {
                 c = shimClassLoader.findClass(name);
-            } catch (NoClassDefFoundError | ClassNotFoundException cnf) {
+            } catch (ClassNotFoundException cnf) {
                 c = null;
             }
         }

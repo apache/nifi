@@ -218,7 +218,11 @@ public class ExtensionManager {
      * @return the removed ClassLoader for the given instance, or null if not found
      */
     public static ClassLoader removeInstanceClassLoaderIfExists(final String instanceIdentifier) {
-        ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
+        if (instanceIdentifier == null) {
+            return null;
+        }
+
+        final ClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
         if (classLoader != null && (classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;
             try {

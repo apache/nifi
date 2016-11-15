@@ -697,6 +697,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
+        boolean removed = false;
         final String id = requireNonNull(processor).getIdentifier();
         writeLock.lock();
         try {
@@ -746,12 +747,16 @@ public final class StandardProcessGroup implements ProcessGroup {
                 removeConnection(conn);
             }
 
+            removed = true;
             LOG.info("{} removed from flow", processor);
 
-            // this must be called after the logging statement b/c the toString of processor calls NarCloseable
-            // and ends up using the InstanceClassLoader
-            ExtensionManager.removeInstanceClassLoaderIfExists(id);
         } finally {
+            if (removed) {
+                try {
+                    ExtensionManager.removeInstanceClassLoaderIfExists(id);
+                } catch (Throwable t) {
+                }
+            }
             writeLock.unlock();
         }
     }
@@ -1843,6 +1848,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void removeControllerService(final ControllerServiceNode service) {
+        boolean removed = false;
         writeLock.lock();
         try {
             final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
@@ -1873,12 +1879,16 @@ public final class StandardProcessGroup implements ProcessGroup {
             controllerServices.remove(service.getIdentifier());
             flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
 
+            removed = true;
             LOG.info("{} removed from {}", service, this);
 
-            // this must be called after the logging statement b/c the toString of processor calls NarCloseable
-            // and ends up using the InstanceClassLoader
-            ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
         } finally {
+            if (removed) {
+                try {
+                    ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
+                } catch (Throwable t) {
+                }
+            }
             writeLock.unlock();
         }
     }
