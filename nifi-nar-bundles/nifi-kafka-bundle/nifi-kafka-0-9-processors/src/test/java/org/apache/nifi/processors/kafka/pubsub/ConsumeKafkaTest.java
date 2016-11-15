@@ -82,7 +82,7 @@ public class ConsumeKafkaTest {
             runner.assertValid();
             fail();
         } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because group.id is required"));
+            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
         }
 
         runner.setProperty(ConsumeKafka.GROUP_ID, "");
