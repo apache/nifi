@@ -68,7 +68,6 @@ The following binary components are provided under the Apache Software License v
       **********************
       This software includes third party software subject to the following copyrights:
       - XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
-      - JSON parsing and utility functions from JSON.org - Copyright 2002 JSON.org.
       - PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
 
 

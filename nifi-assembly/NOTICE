@@ -780,12 +780,6 @@ The following binary components are provided under the Apache Software License v
       Apache License Version 2.0 http://www.apache.org/licenses/.
       (c) Daniel Lemire, http://lemire.me/en/
 
-  (ASLv2) Twitter4J
-    The following NOTICE information applies:
-      Copyright 2007 Yusuke Yamamoto
-      
-      Twitter4J includes software from JSON.org to parse JSON response from the Twitter API. You can see the license term at http://www.JSON.org/license.html
-  
   (ASLv2) JOAuth
     The following NOTICE information applies:
       JOAuth
@@ -821,7 +815,6 @@ The following binary components are provided under the Apache Software License v
       **********************
       This software includes third party software subject to the following copyrights:
       - XML parsing and utility functions from JetS3t - Copyright 2006-2009 James Murty.
-      - JSON parsing and utility functions from JSON.org - Copyright 2002 JSON.org.
       - PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
 
    (ASLv2) Apache Commons DBCP
