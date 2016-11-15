@@ -78,11 +78,6 @@
             <artifactId>flume-scribe-source</artifactId>
             <version>${flume.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.flume.flume-ng-sources</groupId>
-            <artifactId>flume-twitter-source</artifactId>
-            <version>${flume.version}</version>
-        </dependency>
 
         <!-- Flume Sinks -->
         <dependency>
