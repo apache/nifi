@@ -943,7 +943,15 @@ public class FileSystemRepository implements ContentRepository {
                 final long resourceClaimLength = scc.getOffset() + scc.getLength();
                 if (recycle && resourceClaimLength < MAX_APPENDABLE_CLAIM_LENGTH) {
                     final ClaimLengthPair pair = new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength);
-                    final boolean enqueued = writableClaimQueue.offer(pair);
+
+                    // We are checking that writableClaimStreams contains the resource claim as a key, as a sanity check.
+                    // It should always be there. However, we have encountered a bug before where we archived content before
+                    // we should have. As a result, the Resource Claim and the associated OutputStream were removed from the
+                    // writableClaimStreams map, and this caused a NullPointerException. Worse, the call here to
+                    // writableClaimQueue.offer() means that the ResourceClaim was then reused, which resulted in an endless
+                    // loop of NullPointerException's being thrown. As a result, we simply ensure that the Resource Claim does
+                    // in fact have an OutputStream associated with it before adding it back to the writableClaimQueue.
+                    final boolean enqueued = writableClaimStreams.get(scc.getResourceClaim()) != null && writableClaimQueue.offer(pair);
 
                     if (enqueued) {
                         LOG.debug("Claim length less than max; Adding {} back to Writable Claim Queue", this);

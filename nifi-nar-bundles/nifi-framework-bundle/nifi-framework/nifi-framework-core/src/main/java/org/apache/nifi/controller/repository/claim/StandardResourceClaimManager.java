@@ -97,7 +97,10 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
                 logger.debug("Decrementing claimant count for {} to {}", claim, newClaimantCount);
             }
 
-            if (newClaimantCount == 0) {
+            // If the claim is no longer referenced, we want to remove it. We consider the claim to be "no longer referenced"
+            // if the count is 0 and it is no longer writable (if it's writable, it may still be writable by the Content Repository,
+            // even though no existing FlowFile is referencing the claim).
+            if (newClaimantCount == 0 && !claim.isWritable()) {
                 removeClaimantCount(claim);
             }
             return newClaimantCount;
@@ -188,6 +191,12 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
 
         ((StandardResourceClaim) claim).freeze();
+
+        synchronized (claim) {
+            if (getClaimantCount(claim) == 0) {
+                claimantCounts.remove(claim);
+            }
+        }
     }
 
 
