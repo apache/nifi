@@ -122,6 +122,18 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .sensitive(false)
             .build();
 
+    public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
+            .name("Validation-query")
+            .displayName("Validation query")
+            .description("Validation query used to validate connections before returning them. "
+                    + "When a borrowed connection is invalid, it gets dropped and a new valid connection will be returned. "
+                    + "NOTE: Using validation may have a performance penalty.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+
     private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     private List<PropertyDescriptor> properties;
@@ -147,6 +159,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
+        props.add(VALIDATION_QUERY);
 
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
@@ -197,6 +210,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
         final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
+        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -232,6 +246,11 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
+
+        if (validationQuery != null && !validationQuery.isEmpty()) {
+            dataSource.setValidationQuery(validationQuery);
+            dataSource.setTestOnBorrow(true);
+        }
 
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
