@@ -81,8 +81,8 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
@@ -132,6 +132,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
@@ -1434,6 +1435,21 @@ public class ControllerFacade implements Authorizable {
         if (connectable != null) {
             dto.setGroupId(connectable.getProcessGroup().getIdentifier());
             dto.setComponentName(connectable.getName());
+            return;
+        }
+
+        final Connection connection = root.findConnection(dto.getComponentId());
+        if (connection != null) {
+            dto.setGroupId(connection.getProcessGroup().getIdentifier());
+
+            String name = connection.getName();
+            final Collection<Relationship> relationships = connection.getRelationships();
+            if (StringUtils.isBlank(name) && CollectionUtils.isNotEmpty(relationships)) {
+                name = StringUtils.join(relationships.stream().map(relationship -> relationship.getName()).collect(Collectors.toSet()), ", ");
+            }
+            dto.setComponentName(name);
+
+            return;
         }
     }
 
