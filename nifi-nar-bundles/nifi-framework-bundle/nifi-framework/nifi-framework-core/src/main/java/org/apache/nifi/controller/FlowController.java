@@ -3795,9 +3795,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new IllegalStateException("Cannot replay data from Provenance Event because the Source FlowFile Queue with ID " + event.getSourceQueueIdentifier() + " no longer exists");
         }
 
-        // Create the ContentClaim
-        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
-            event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
+        // Create the ContentClaim. To do so, we first need the appropriate Resource Claim. Because we don't know whether or
+        // not the Resource Claim is still active, we first call ResourceClaimManager.getResourceClaim. If this returns
+        // null, then we know that the Resource Claim is no longer active and can just create a new one that is not writable.
+        // It's critical though that we first call getResourceClaim because otherwise, if the Resource Claim is active and we
+        // create a new one that is not writable, we could end up archiving or destroying the Resource Claim while it's still
+        // being written to by the Content Repository. This is important only because we are creating a FlowFile with this Resource
+        // Claim. If, for instance, we are simply creating the claim to request its content, as in #getContentAvailability, etc.
+        // then this is not necessary.
+        ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(event.getPreviousContentClaimContainer(),
+            event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier());
+        if (resourceClaim == null) {
+            resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
+                event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
+        }
 
         // Increment Claimant Count, since we will now be referencing the Content Claim
         resourceClaimManager.incrementClaimantCount(resourceClaim);
