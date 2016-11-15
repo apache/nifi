@@ -33,6 +33,12 @@ public class KeyStoreUtils {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    /**
+     * Returns the provider that will be used for the given keyStoreType
+     *
+     * @param keyStoreType the keyStoreType
+     * @return the provider that will be used
+     */
     public static String getKeyStoreProvider(String keyStoreType) {
         if (KeystoreType.PKCS12.toString().equalsIgnoreCase(keyStoreType)) {
             return BouncyCastleProvider.PROVIDER_NAME;
@@ -40,9 +46,16 @@ public class KeyStoreUtils {
         return null;
     }
 
+    /**
+     * Returns an empty KeyStore backed by the appropriate provider
+     *
+     * @param keyStoreType the keyStoreType
+     * @return an empty KeyStore
+     * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
+     */
     public static KeyStore getKeyStore(String keyStoreType) throws KeyStoreException {
         String keyStoreProvider = getKeyStoreProvider(keyStoreType);
-        if (StringUtils.isNoneEmpty(keyStoreProvider)) {
+        if (StringUtils.isNotEmpty(keyStoreProvider)) {
             try {
                 return KeyStore.getInstance(keyStoreType, keyStoreProvider);
             } catch (Exception e) {
@@ -53,6 +66,13 @@ public class KeyStoreUtils {
         return KeyStore.getInstance(keyStoreType);
     }
 
+    /**
+     * Returns an empty KeyStore intended for use as a TrustStore backed by the appropriate provider
+     *
+     * @param trustStoreType the trustStoreType
+     * @return an empty KeyStore
+     * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
+     */
     public static KeyStore getTrustStore(String trustStoreType) throws KeyStoreException {
         if (KeystoreType.PKCS12.toString().equalsIgnoreCase(trustStoreType)) {
             logger.warn(trustStoreType + " truststores are deprecated.  " + KeystoreType.JKS.toString() + " is preferred.");

@@ -174,6 +174,8 @@ TLS Generation Toolkit
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
 
+Note: JKS keyStores and trustStores are recommended for NiFi.  This tool allows the specification of other KeyStore types on the command line but will ignore a type of PKCS12 for use as the trustStore as that format has some compatibility issues between BouncyCastle and Oracle implementations.
+
 The `tls-toolkit` command line tool has two primary modes of operation:
 
 1. Standalone -- generates the certificate authority, keystores, truststores, and nifi.properties files in one command.
