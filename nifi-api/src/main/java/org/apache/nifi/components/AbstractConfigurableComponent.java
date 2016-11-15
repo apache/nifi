@@ -91,8 +91,9 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
                     value = descriptor.getDefaultValue();
                 }
                 if (value == null && descriptor.isRequired()) {
-                    ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(descriptor.getDisplayName());
-                    builder = (descriptor.getDisplayName() != null) ? builder.explanation(descriptor.getDisplayName() + " is required") : builder.explanation(descriptor.getName() + " is required");
+                    String displayName = descriptor.getDisplayName();
+                    ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());
+                    builder = (displayName != null) ? builder.explanation(displayName + " is required") : builder.explanation(descriptor.getName() + " is required");
                     results.add(builder.build());
                     continue;
                 } else if (value == null) {
