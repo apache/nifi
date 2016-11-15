@@ -4010,19 +4010,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final String rootGroupId = getRootGroupId();
 
         // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
-        // which have the root process group's identifier assigned as the component ID. So, we check if the component ID
-        // is set to the root group and otherwise assume that the ID is that of a component.
+        // which have the root process group's identifier assigned as the component ID, and DROP events, which
+        // could have the connection identifier assigned as the component ID. So, we check if the component ID
+        // is set to the root group and otherwise assume that the ID is that of a connectable or connection.
         final DataAuthorizable authorizable;
         if (rootGroupId.equals(componentId)) {
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
+            // check if the component is a connectable, this should be the case most often
             final Connectable connectable = getRootGroup().findConnectable(componentId);
-
             if (connectable == null) {
-                throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
-            }
+                // if the component id is not a connectable then consider a connection
+                final Connection connection = getRootGroup().findConnection(componentId);
 
-            authorizable = new DataAuthorizable(connectable);
+                if (connection == null) {
+                    throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+                } else {
+                    // authorizable for connection data is associated with the source connectable
+                    authorizable = new DataAuthorizable(connection.getSource());
+                }
+            } else {
+                authorizable = new DataAuthorizable(connectable);
+            }
         }
 
         return authorizable;
