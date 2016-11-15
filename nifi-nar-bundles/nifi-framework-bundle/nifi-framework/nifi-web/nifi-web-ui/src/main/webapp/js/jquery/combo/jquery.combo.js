@@ -188,7 +188,7 @@
 
                             // this is option is enabled register appropriate listeners
                             if (option.disabled === true) {
-                                optionElement.addClass('unset disabled');
+                                optionElement.addClass('unset disabled-option');
                             } else {
                                 optionElement.click(function () {
                                     //remove active styles
