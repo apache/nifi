@@ -415,7 +415,7 @@ Here is an example LDAP entry using the name John Smith:
 </authorizers>
 ----
 
-Here is a example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
+Here is an example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
 
 ----
 <authorizer>
@@ -433,7 +433,7 @@ Here is a example Kerberos entry using the name John Smith and realm `NIFI.APACH
 </authorizers>
 ----
 
-After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'authorizations.xml' file during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
+After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'users.xml' and 'authorizations.xml' files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
 NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the flow.xml.gz is generated.  If the NiFi instance is an upgrade from an existing flow.xml.gz or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
 
@@ -458,7 +458,7 @@ Here is an example entry:
 </authorizers>
 ----
 
-After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'authorizations.xml' file.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
+After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'users.xml' and 'authorizations.xml' files.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
 
 Here is a summary of policies assigned to each legacy role if the NiFi instance has an existing flow.xml.gz:
 
@@ -648,6 +648,8 @@ You can override an inherited policy (as described in the <<moving-a-processor>>
 
 NOTE: “View the policies” and “modify the policies” component-level access policies are an exception to this inherited behavior. When a user is added to either policy, they are added to the current list of administrators. They do not override higher level administrators. For this reason, only component specific administrators are displayed for the “view the policies” and “modify the policies" access policies.
 
+NOTE:  You cannot modify the users/groups on an inherited policy.  Users and groups can only be added or removed from a parent policy or an override policy.
+
 [[access-policy-config-examples]]
 Access Policy Configuration Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -679,8 +681,13 @@ To allow User2 to move the GenerateFlowFile processor in the dataflow and only t
   image:processor-modify-policy.png["Processor Modify Policy"]
   The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
-4. Select the Override link in the policy inheritance message to create a replacement policy.
-5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+4. Select the Override link in the policy inheritance message.  When creating the replacement policy, you are given a choice to override with a copy of the inherited policy or an empty policy.
+
+image:override_policy_copy_empty.png["Create Override Policy"]
+
+Select the Override button to create a copy.
+[start=5]
+5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK.
 
 image:processor-replacement-modify-policy.png["Processor Replacement Modify Policy"]
 
@@ -699,8 +706,8 @@ In the “Moving a Processor” example above, User2 was added to the “modify 
   image:processor-view-policy.png["Processor View Policy"]
   The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
-4. Select the Override link in the policy inheritance message to create a replacement policy.
-5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+4. Select the Override link in the policy inheritance message, keep the default of Copy policy and select the Override button.
+5. On the override policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK.
 
 image:processor-replacement-view-policy.png["Processor Replacement View Policy"]
 
@@ -721,8 +728,8 @@ image:user2-no-connection.png["User2 No Connection"]
 
 This is because:
 
-* User2 does not have modify access on the process group and is therefore not able to create a connection.
-* Even though User2 has view and modify access to the source component (GenerateFlowFile), User2 does not have any access policy on the destination component (LogAttribute).
+* User2 does not have modify access on the process group.
+* Even though User2 has view and modify access to the source component (GenerateFlowFile), User2 does not have an access policy on the destination component (LogAttribute).
 
 To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 
@@ -730,7 +737,7 @@ To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "modify the component” from the policy drop-down.
   image:process-group-modify-policy.png["Process Group Modify Policy"]
-  [start=4]
+[start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
@@ -766,7 +773,7 @@ To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
 3. Select "view the component” from the policy drop-down.
   image:process-group-view-policy.png["Process Group View Policy"]
-  [start=4]
+[start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
