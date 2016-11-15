@@ -207,7 +207,7 @@ public abstract class BaseCommandLine {
             keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
             keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, getKeyStoreTypeDefault());
             if (KeystoreType.PKCS12.toString().equalsIgnoreCase(keyStoreType)) {
-                logger.info("Command line argument --" + KEY_STORE_TYPE_ARG + "=" + keyStoreType + " only applies to keyStore, recommended trustStore type of " + KeystoreType.JKS.toString() +
+                logger.info("Command line argument --" + KEY_STORE_TYPE_ARG + "=" + keyStoreType + " only applies to keystore, recommended truststore type of " + KeystoreType.JKS.toString() +
                         " unaffected.");
             }
             signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
