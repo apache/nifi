@@ -250,11 +250,6 @@ language governing permissions and limitations under the License. -->
             <version>2.4.0</version>
         </dependency>
         <dependency>
-            <groupId>org.everit.json</groupId>
-            <artifactId>org.everit.json.schema</artifactId>
-            <version>1.4.0</version>
-        </dependency>
-        <dependency>
             <groupId>com.fluenda</groupId>
             <artifactId>ParCEFone</artifactId>
             <version>1.2.0</version>
@@ -290,9 +285,6 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-sample-schema.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-object-sample.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-object-sample-schema.json</exclude>
                         <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
