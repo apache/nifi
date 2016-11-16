@@ -163,6 +163,81 @@ public class TestStandardProcessorNode {
     }
 
     @Test
+    public void testUpdateOtherPropertyDoesNotImpactClasspath() throws MalformedURLException {
+        final PropertyDescriptor classpathProp = new PropertyDescriptor.Builder().name("Classpath Resources")
+                .dynamicallyModifiesClasspath(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+
+        final PropertyDescriptor otherProp = new PropertyDescriptor.Builder().name("My Property")
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+
+        final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp, otherProp));
+        final StandardProcessorNode procNode = createProcessorNode(processor);
+
+        final Set<ClassLoader> classLoaders = new HashSet<>();
+        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
+
+        // Load all of the extensions in src/test/java of this project
+        ExtensionManager.discoverExtensions(classLoaders);
+
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
+            // Should have an InstanceClassLoader here
+            final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            assertTrue(contextClassLoader instanceof InstanceClassLoader);
+
+            final InstanceClassLoader instanceClassLoader = (InstanceClassLoader) contextClassLoader;
+
+            // Should not have any of the test resources loaded at this point
+            final URL[] testResources = getTestResources();
+            for (URL testResource : testResources) {
+                if (containsResource(instanceClassLoader.getInstanceResources(), testResource)) {
+                    fail("found resource that should not have been loaded");
+                }
+            }
+
+            // Simulate setting the properties of the processor to point to the test resources directory
+            final Map<String, String> properties = new HashMap<>();
+            properties.put(classpathProp.getName(), "src/test/resources/TestClasspathResources");
+            procNode.setProperties(properties);
+
+            // Should have all of the resources loaded into the InstanceClassLoader now
+            for (URL testResource : testResources) {
+                assertTrue(containsResource(instanceClassLoader.getInstanceResources(), testResource));
+            }
+
+            // Should pass validation
+            assertTrue(procNode.isValid());
+
+            // Simulate setting updating the other property which should not change the classpath
+            final Map<String, String> otherProperties = new HashMap<>();
+            otherProperties.put(otherProp.getName(), "foo");
+            procNode.setProperties(otherProperties);
+
+            // Should STILL have all of the resources loaded into the InstanceClassLoader now
+            for (URL testResource : testResources) {
+                assertTrue(containsResource(instanceClassLoader.getInstanceResources(), testResource));
+            }
+
+            // Should STILL pass validation
+            assertTrue(procNode.isValid());
+
+            // Lets update the classpath property and make sure the resources get updated
+            final Map<String, String> newClasspathProperties = new HashMap<>();
+            newClasspathProperties.put(classpathProp.getName(), "src/test/resources/TestClasspathResources/resource1.txt");
+            procNode.setProperties(newClasspathProperties);
+
+            // Should only have resource1 loaded now
+            assertTrue(containsResource(instanceClassLoader.getInstanceResources(), testResources[0]));
+            assertFalse(containsResource(instanceClassLoader.getInstanceResources(), testResources[1]));
+            assertFalse(containsResource(instanceClassLoader.getInstanceResources(), testResources[2]));
+
+            // Should STILL pass validation
+            assertTrue(procNode.isValid());
+        } finally {
+            ExtensionManager.removeInstanceClassLoaderIfExists(procNode.getIdentifier());
+        }
+    }
+
+    @Test
     public void testMultiplePropertiesDynamicallyModifyClasspathWithExpressionLanguage() throws MalformedURLException {
         final PropertyDescriptor classpathProp1 = new PropertyDescriptor.Builder().name("Classpath Resource 1")
                 .dynamicallyModifiesClasspath(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
