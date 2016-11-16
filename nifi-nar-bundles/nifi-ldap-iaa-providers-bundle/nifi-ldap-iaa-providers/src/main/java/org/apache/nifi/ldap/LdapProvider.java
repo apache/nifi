@@ -68,6 +68,7 @@ public class LdapProvider implements LoginIdentityProvider {
     private AbstractLdapAuthenticationProvider provider;
     private String issuer;
     private long expiration;
+    private IdentityStrategy identityStrategy;
 
     @Override
     public final void initialize(final LoginIdentityProviderInitializationContext initializationContext) throws ProviderCreationException {
@@ -195,7 +196,8 @@ public class LdapProvider implements LoginIdentityProvider {
                     rawReferralStrategy, StringUtils.join(ReferralStrategy.values(), ", ")));
         }
 
-        context.setReferral(referralStrategy.toString());
+        // using the value as this needs to be the lowercase version while the value is configured with the enum constant
+        context.setReferral(referralStrategy.getValue());
 
         // url
         final String url = configurationContext.getProperty("Url");
@@ -220,6 +222,24 @@ public class LdapProvider implements LoginIdentityProvider {
         // bind
         final BindAuthenticator authenticator = new BindAuthenticator(context);
         authenticator.setUserSearch(userSearch);
+
+        // identity strategy
+        final String rawIdentityStrategy = configurationContext.getProperty("Identity Strategy");
+
+        if (StringUtils.isBlank(rawIdentityStrategy)) {
+            logger.info(String.format("Identity Strategy is not configured, defaulting strategy to %s.", IdentityStrategy.USE_DN));
+
+            // if this value is not configured, default to use dn which was the previous implementation
+            identityStrategy = IdentityStrategy.USE_DN;
+        } else {
+            try {
+                // attempt to get the configured identity strategy
+                identityStrategy = IdentityStrategy.valueOf(rawIdentityStrategy);
+            } catch (final IllegalArgumentException iae) {
+                throw new ProviderCreationException(String.format("Unrecognized identity strategy '%s'. Possible values are [%s]",
+                        rawIdentityStrategy, StringUtils.join(IdentityStrategy.values(), ", ")));
+            }
+        }
 
         try {
             // handling initializing beans
@@ -260,10 +280,16 @@ public class LdapProvider implements LoginIdentityProvider {
             final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword());
             final Authentication authentication = provider.authenticate(token);
 
-            // attempt to get the ldap user details to get the DN
-            if (authentication.getPrincipal() instanceof LdapUserDetails) {
-                final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
-                return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration, issuer);
+            // use dn if configured
+            if (IdentityStrategy.USE_DN.equals(identityStrategy)) {
+                // attempt to get the ldap user details to get the DN
+                if (authentication.getPrincipal() instanceof LdapUserDetails) {
+                    final LdapUserDetails userDetails = (LdapUserDetails) authentication.getPrincipal();
+                    return new AuthenticationResponse(userDetails.getDn(), credentials.getUsername(), expiration, issuer);
+                } else {
+                    logger.warn(String.format("Unable to determine user DN for %s, using username.", authentication.getName()));
+                    return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration, issuer);
+                }
             } else {
                 return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration, issuer);
             }

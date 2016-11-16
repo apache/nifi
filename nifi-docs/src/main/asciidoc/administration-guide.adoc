@@ -295,6 +295,7 @@ Below is an example and description of configuring a Login Identity Provider tha
     <property name="User Search Base"></property>
     <property name="User Search Filter"></property>
 
+    <property name="Identity Strategy">USE_DN</property>
     <property name="Authentication Expiration">12 hours</property>
 </provider>
 ----
@@ -326,6 +327,8 @@ nifi.security.user.login.identity.provider=ldap-provider
 |`Url` | Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
 |`User Search Base` | Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
 |`User Search Filter` | Filter for searching for users against the 'User Search Base'. (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
+|`Identity Strategy` | Strategy to identify users. Possible values are USE_DN and USE_USERNAME. The default functionality if this property is missing is USE_DN in order to retain backward
+compatibility. USE_DN will use the full DN of the user entry if possible. USE_USERNAME will use the username the user logged in with.
 |`Authentication Expiration` | The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
 |==================================================================================================================================================
 
