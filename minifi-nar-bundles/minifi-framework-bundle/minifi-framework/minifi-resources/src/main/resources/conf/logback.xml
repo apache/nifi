@@ -21,41 +21,28 @@
     
     <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/minifi-app.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!--
               For daily rollover, use 'app_%d.log'.
               For hourly rollover, use 'app_%d{yyyy-MM-dd_HH}.log'.
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>./logs/minifi-app_%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>
-            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <maxFileSize>100MB</maxFileSize>
-            </timeBasedFileNamingAndTriggeringPolicy>
-            <!-- keep 30 log files worth of history -->
-            <maxHistory>30</maxHistory>
+            <fileNamePattern>./logs/minifi-app_%d{yyyy-MM-dd_HH}.%i.log.gz</fileNamePattern>
+            <!-- Keep 10 rolling periods worth of log files-->
+            <maxHistory>10</maxHistory>
+            <!-- Max size each log file will be-->
+            <maxFileSize>1MB</maxFileSize>
+            <!--
+                Provide a cap of 10 MB across all archive files
+                NOTE: Size constraints are not guaranteed due to a bug in logback as per
+                http://jira.qos.ch/browse/LOGBACK-1166
+            -->
+            <totalSizeCap>10MB</totalSizeCap>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
             <immediateFlush>true</immediateFlush>
-        </encoder>
-    </appender>
-    
-    <appender name="USER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/minifi-user.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!--
-              For daily rollover, use 'user_%d.log'.
-              For hourly rollover, use 'user_%d{yyyy-MM-dd_HH}.log'.
-              To GZIP rolled files, replace '.log' with '.log.gz'.
-              To ZIP rolled files, replace '.log' with '.log.zip'.
-            -->
-            <fileNamePattern>./logs/minifi-user_%d.log</fileNamePattern>
-            <!-- keep 30 log files worth of history -->
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -68,8 +55,8 @@
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
-            <fileNamePattern>./logs/minifi-bootstrap_%d.log</fileNamePattern>
-            <!-- keep 5 log files worth of history -->
+            <fileNamePattern>./logs/minifi-bootstrap_%d.log.gz</fileNamePattern>
+            <!-- Keep 5 rolling periods worth of logs-->
             <maxHistory>5</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -88,9 +75,6 @@
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
 
-    <!-- Logger for logging HTTP requests received by the web server. -->
-    <logger name="org.apache.nifi.server.JettyServer" level="INFO"/>
-
     <!-- Logger for managing logging statements for jetty -->
     <logger name="org.eclipse.jetty" level="INFO"/>
 
@@ -101,25 +85,6 @@
     
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
-
-    <!--
-        Logger for capturing user events. We do not want to propagate these
-        log events to the root logger. These messages are only sent to the
-        user-log appender.
-    -->
-    <logger name="org.apache.nifi.web.security" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.web.api.config" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.authorization" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-
 
     <!--
         Logger for capturing Bootstrap logs and MiNiFi's standard error and standard out.

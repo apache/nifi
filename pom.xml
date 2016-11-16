@@ -95,23 +95,13 @@ limitations under the License.
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2016</inceptionYear>
         <org.slf4j.version>1.7.12</org.slf4j.version>
-        <logback.version>1.1.3</logback.version>
         <org.apache.nifi.version>1.0.0</org.apache.nifi.version>
-        <jetty.version>9.2.11.v20150529</jetty.version>
+        <logback.version>1.1.7</logback.version>
         <jetty.version>9.3.9.v20160517</jetty.version>
-        <lucene.version>4.10.4</lucene.version>
+        <jersey.version>1.19</jersey.version>
+        <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
-        <jersey.version>1.19</jersey.version>
-        <hadoop.version>2.6.2</hadoop.version>
-        <hadoop.guava.version>12.0.1</hadoop.guava.version>
-        <hadoop.http.client.version>4.2.5</hadoop.http.client.version>
-        <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <ranger.version>0.6.0</ranger.version>
-        <hive.version>1.2.1</hive.version>
-        <hive.hadoop.version>2.6.2</hive.hadoop.version>
-        <hbase.version>1.1.2</hbase.version>
-        <storm.version>1.0.1</storm.version>
     </properties>
 
     <dependencies>
