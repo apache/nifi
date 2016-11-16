@@ -273,7 +273,7 @@ image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
 
-*Note*: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas.
+NOTE: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas.
 Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding
 down the Shift key and dragging a selection box around the desired components.
 
@@ -529,7 +529,7 @@ The default value of `0 sec` means that the Processor should run as often as pos
 for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
-When configured for clustering, an Execution setting will be available. This setting is used determine which node(s) the Processor will be
+When configured for clustering, an Execution setting will be available. This setting is used to determine which node(s) the Processor will be
 scheduled to execute. Selecting 'All Nodes' will result in this Processor being scheduled on every node in the cluster. Selecting
 'Primary Node' will result in this Processor being scheduled on the Primary Node only.
 
@@ -759,7 +759,7 @@ image:addConnect.png["Connection Bubble"]
 image:processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
-releases the mouse, a `Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
+releases the mouse, a 'Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
 discussed in detail below. Note that it is possible to draw a connection so that it loops back on the same processor. This can be
 useful if the DFM wants the processor to try to re-process FlowFiles if they go down a failure Relationship. To create this type of looping
 connection, simply drag the connection bubble away and then back to the same processor until it is highlighted. Then release the mouse
@@ -775,7 +775,7 @@ image::create-connection.png["Create Connection"]
 Additionally, this tab provides the ability to choose which Relationships should be included in this Connection. At least one
 Relationship must be selected. If only one Relationship is available, it is automatically selected.
 
-*Note*: If multiple Connections are added with the same Relationship, any FlowFile that is routed to that Relationship will
+NOTE: If multiple Connections are added with the same Relationship, any FlowFile that is routed to that Relationship will
 automatically be `cloned', and a copy will be sent to each of those Connections.
 
 ==== Settings
@@ -794,15 +794,25 @@ In this case, the expiration can be used in conjunction with Prioritizers to ens
 processed first and then anything that cannot be processed within a certain time period (one hour, for example) can be dropped. The expiration period is based on the time that the data entered the NiFi instance. In other words, if the file expiration on a given connection is set to '1 hour', and a file that has been in the NiFi instance for one hour reaches that connection, it will expire. The default
 value of `0 sec` indicates that the data will never expire. When a file expiration other than '0 sec' is set, a small clock icon appears on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.
 
+image:file_expiration_clock.png["File Expiration Indicator"]
 
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
 This allows the system to avoid being overrun with data. The first option provided is the ``Back pressure object threshold.''
 This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
-is the ``Back pressure data size threshold.''
-This specifies the maximum amount of data (in size) that should be queued up before
+is the ``Back pressure data size threshold.'' This specifies the maximum amount of data (in size) that should be queued up before
 applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
-kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
+kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).  When back pressure is enabled, small progress bars appear on the connection label, so the DFM can see it at-a-glance when looking at a flow on the canvas.  The progress bars change color based on the queue percentage: Green (0-60%), Yellow (61-85%) and Red (86-100%).
+
+image:back_pressure_indicators.png["Back Pressure Indicator Bars"]
+
+Hovering your mouse over a bar displays the exact percentage.
+
+image:back_pressure_indicator_hover.png["Back Pressure Indicator Hover Text"]
+
+When the queue is completely full, the Connection is highlighted in red.
+
+image:back_pressure_full.png["Back Pressure Queue Full"]
 
 The right-hand side of the tab provides the ability to prioritize the data in the queue so that higher priority data is
 processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
@@ -815,10 +825,10 @@ The following prioritizers are available:
 
 - *FirstInFirstOutPrioritizer*: Given two FlowFiles, the one that reached the connection first will be processed first.
 - *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
-- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. This is the default scheme that is used if no prioritizers are selected.
+- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is oldest in the dataflow will be processed first. 'This is the default scheme that is used if no prioritizers are selected.'
 - *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be processed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
 
-*Note*: After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
+After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 image:nifi-connection.png["Connection"]
 
@@ -830,18 +840,17 @@ image:nifi-connection-menu.png["Connection Menu"]
 The following options are available:
 
 - *Configure*: This option allows the user to change the configuration of the connection.
-- *Stats*: This option opens a graphical representation of the connection's statistical information over time.
+- *Status History*: This option opens a graphical representation of the connection's statistical information over time.
 - *Bring to front*: This option brings the connection to the front of the canvas if something else (such as another connection) is overlapping it.
 - *Go to source*: This option can be useful if there is a long distance between the connection's source and destination components on the canvas. By clicking this option, the view of the canvas will jump to the source of the connection.
 - *Go to destination*: Similar to the "Go to source" option, this option changes the view to the destination component on the canvas and can be useful if there is a long distance between two connected components.
+- *List queue*: This option lists the queue of FlowFiles that may be waiting to be processed.
 - *Empty queue*: This option allows the DFM to clear the queue of FlowFiles that may be waiting to be processed. This option can be especially useful during testing, when the DFM is not concerned about deleting data from the queue. When this option is selected, users must confirm that they want to delete the data in the queue.
 - *Delete*: This option allows the DFM to delete a connection between two components. Note that the components on both sides of the connection must be stopped and the connection must be empty before it can be deleted.
 
 ==== Bending Connections
 
-To add a bend point (or elbow) to an existing connection, simply double-click on the connection in the spot where you want the bend point to be. Then, you can use the mouse to grab
-the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing
-bend point. To remove a bend point, simply double-click it again.
+To add a bend point (or elbow) to an existing connection, simply double-click on the connection in the spot where you want the bend point to be. Then, you can use the mouse to grab the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing bend point. To remove a bend point, simply double-click it again.
 
 image:nifi-connection-bend-points.png["Connection Bend Points"]
 
@@ -933,7 +942,7 @@ If the connection is dragged starting from the Remote Process Group, the ports s
 as this indicates that you will be pulling data from the remote instance. If the connection instead ends on the Remote Process Group,
 the ports shown will be the Input Ports of the remote group, as this implies that you will be pushing data to the remote instance.
 
-*Note*: if the remote instance is configured to use secure data transmission, you will see only ports that you are authorized to
+NOTE: If the remote instance is configured to use secure data transmission, you will see only ports that you are authorized to
 communicate with. For information on configuring NiFi to run securely, see the
 link:administration-guide.html[System Administrator’s Guide].
 
@@ -1116,7 +1125,7 @@ If the remote instance is using secure communications (the URL of the NiFi insta
 rather than `http://`), any Ports that the remote instance has not made available to this instance will not
 be shown.
 
-*Note*: If a Port that is expected to be shown is not shown in this dialog, ensure that the instance has proper
+NOTE: If a Port that is expected to be shown is not shown in this dialog, ensure that the instance has proper
 permissions and that the Remote Process Group's flow is current. This can be checked by closing the Port
 Configuration Dialog and looking at the bottom-right corner of the Remote Process Group. The date at which
 the flow was last refreshed is shown. If the flow appears to be outdated, it can be updated by right-clicking
