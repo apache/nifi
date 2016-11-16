@@ -76,17 +76,17 @@ div.remote-port-header {
     background: #728E9B;
     color: #fff;
     font-weight: bold;
+    font-size: 12px;
 }
 
 div.remote-ports-container {
     padding: 5px;
-    overflow-y: auto;
     overflow-x: auto;
-    border: 1px solid #666;
 }
 
 div.remote-port-container {
     margin-bottom: 20px;
+    display: flex;
 }
 
 div.remote-port-removed {
@@ -105,7 +105,6 @@ div.remote-port-removed:before {
 
 div.remote-port-edit-container {
     float: left;
-    width: 53px;
 }
 
 button.edit-remote-port {
@@ -115,27 +114,25 @@ button.edit-remote-port {
 
 div.remote-port-details-container {
     float: left;
-    width: 295px;
+    flex-grow: 1;
 }
 
 div.remote-port-name {
-    color: #000000;
+    color: #262626;
     font-weight: bold;
     float: left;
-    width: 290px;
+    width: 250px;
     line-height: normal;
     margin-bottom: 3px;
 }
 
 div.remote-port-description {
-    color: #888888;
     float: left;
     margin-bottom: 8px;
-    width: 290px;
+    width: 250px;
 }
 
 div.concurrent-task-container {
-    width: 190px;
     float: left;
 }
 
@@ -145,8 +142,7 @@ img.concurrent-tasks-info {
 }
 
 div.compression-container {
-    width: 105px;
-    float: left;
+    float: right;
 }
 
 div.remote-port-transmission-container {
