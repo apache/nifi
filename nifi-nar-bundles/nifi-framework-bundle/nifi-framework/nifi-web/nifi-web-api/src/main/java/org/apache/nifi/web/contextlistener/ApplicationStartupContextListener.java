@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.web.contextlistener;
 
-import java.io.IOException;
-
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-
+import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.RepositoryPurgeException;
@@ -32,6 +29,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import java.io.IOException;
 
 /**
  * Application context listener for starting the application. If the application is configured for a standalone environment or the application is a node in a clustered environment then a flow
@@ -80,16 +81,16 @@ public class ApplicationStartupContextListener implements ServletContextListener
                 logger.info("Flow Controller started successfully.");
             }
         } catch (BeansException | RepositoryPurgeException | IOException e) {
-            // ensure the flow service is terminated
-            if (flowService != null && flowService.isRunning()) {
-                flowService.stop(false);
-            }
+            shutdown(flowService, ctx.getBean("requestReplicator", RequestReplicator.class));
+            throw new NiFiCoreException("Unable to start Flow Controller.", e);
+        }
 
-            final RequestReplicator requestReplicator = ctx.getBean("requestReplicator", RequestReplicator.class);
-            if (requestReplicator != null) {
-                requestReplicator.shutdown();
-            }
-
+        try {
+            // attempt to get a few beans that we want to to ensure properly created since they are lazily initialized
+            ctx.getBean("loginIdentityProvider", LoginIdentityProvider.class);
+            ctx.getBean("authorizer", Authorizer.class);
+        } catch (final BeansException e) {
+            shutdown(flowService, ctx.getBean("requestReplicator", RequestReplicator.class));
             throw new NiFiCoreException("Unable to start Flow Controller.", e);
         }
     }
@@ -99,19 +100,8 @@ public class ApplicationStartupContextListener implements ServletContextListener
         ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext());
         try {
             logger.info("Initiating shutdown of flow service...");
-
-            FlowService flowService = ctx.getBean("flowService", FlowService.class);
-            if (flowService.isRunning()) {
-                flowService.stop(false);
-            }
-
-            final RequestReplicator requestReplicator = ctx.getBean("requestReplicator", RequestReplicator.class);
-            if (requestReplicator != null) {
-                requestReplicator.shutdown();
-            }
-
+            shutdown(ctx.getBean("flowService", FlowService.class), ctx.getBean("requestReplicator", RequestReplicator.class));
             logger.info("Flow service termination completed.");
-
         } catch (final Exception e) {
             String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
             if (logger.isDebugEnabled()) {
@@ -119,6 +109,18 @@ public class ApplicationStartupContextListener implements ServletContextListener
             } else {
                 logger.warn(msg);
             }
+        }
+    }
+
+    private void shutdown(final FlowService flowService, final RequestReplicator requestReplicator) {
+        // ensure the flow service is terminated
+        if (flowService != null && flowService.isRunning()) {
+            flowService.stop(false);
+        }
+
+        // ensure the request replicator is shutdown
+        if (requestReplicator != null) {
+            requestReplicator.shutdown();
         }
     }
 }
