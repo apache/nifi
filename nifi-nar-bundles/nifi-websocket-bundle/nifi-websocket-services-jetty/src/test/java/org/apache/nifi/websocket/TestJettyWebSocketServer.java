@@ -35,7 +35,7 @@ public class TestJettyWebSocketServer {
         final Collection<ValidationResult> results = service.validate(context.getValidationContext());
         assertEquals(1, results.size());
         final ValidationResult result = results.iterator().next();
-        assertEquals(JettyWebSocketServer.LISTEN_PORT.getName(), result.getSubject());
+        assertEquals(JettyWebSocketServer.LISTEN_PORT.getDisplayName(), result.getSubject());
     }
 
     @Test
