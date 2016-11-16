@@ -11,37 +11,31 @@ OF ANY KIND, either express or implied. See the License for the specific
 language governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
+        <artifactId>nifi-elasticsearch-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
         <version>1.1.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-elasticsearch-bundle</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>nifi-elasticsearch-5-nar</artifactId>
+    <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+        <lucene.version>6.2.1</lucene.version>
+    </properties>
 
-    <modules>
-        <module>nifi-elasticsearch-nar</module>
-        <module>nifi-elasticsearch-processors</module>
-        <module>nifi-elasticsearch-5-nar</module>
-        <module>nifi-elasticsearch-5-processors</module>
-    </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-elasticsearch-processors</artifactId>
-                <version>1.1.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-elasticsearch-5-processors</artifactId>
-                <version>1.1.0-SNAPSHOT</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-5-processors</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
