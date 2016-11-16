@@ -19,20 +19,8 @@ package org.apache.nifi.ldap;
 /**
  *
  */
-public enum ReferralStrategy {
+public enum IdentityStrategy {
 
-    FOLLOW("follow"),
-    IGNORE("ignore"),
-    THROW("throw");
-
-    private final String value;
-
-    private ReferralStrategy(String value) {
-        this.value = value;
-    }
-
-    public String getValue() {
-        return value;
-    }
-
+    USE_DN,
+    USE_USERNAME;
 }
