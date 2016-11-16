@@ -155,7 +155,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
         final String docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
         try {

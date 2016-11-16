@@ -50,6 +50,9 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
      * This validator ensures the Elasticsearch hosts property is a valid list of hostname:port entries
      */
     private static final Validator HOSTNAME_PORT_VALIDATOR = (subject, input, context) -> {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        }
         final List<String> esList = Arrays.asList(input.split(","));
         for (String hostnamePort : esList) {
             String[] addresses = hostnamePort.split(":");
@@ -70,6 +73,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("elasticsearch")
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final PropertyDescriptor HOSTS = new PropertyDescriptor.Builder()
@@ -79,7 +83,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     + "host1:port,host2:port,....  For example testcluster:9300. This processor uses the Transport Client to "
                     + "connect to hosts. The default transport client port is 9300.")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(HOSTNAME_PORT_VALIDATOR)
             .build();
 
@@ -94,6 +98,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dynamicallyModifiesClasspath(true)
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final PropertyDescriptor PING_TIMEOUT = new PropertyDescriptor.Builder()
@@ -103,7 +108,8 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     "For example, 5s (5 seconds). If non-local recommended is 30s")
             .required(true)
             .defaultValue("5s")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected static final PropertyDescriptor SAMPLER_INTERVAL = new PropertyDescriptor.Builder()
@@ -113,7 +119,8 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     + "If non-local recommended is 30s.")
             .required(true)
             .defaultValue("5s")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected AtomicReference<Client> esClient = new AtomicReference<>();
@@ -137,10 +144,10 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
 
         log.debug("Creating ElasticSearch Client");
         try {
-            final String clusterName = context.getProperty(CLUSTER_NAME).getValue();
-            final String pingTimeout = context.getProperty(PING_TIMEOUT).getValue();
-            final String samplerInterval = context.getProperty(SAMPLER_INTERVAL).getValue();
-            final String username = context.getProperty(USERNAME).getValue();
+            final String clusterName = context.getProperty(CLUSTER_NAME).evaluateAttributeExpressions().getValue();
+            final String pingTimeout = context.getProperty(PING_TIMEOUT).evaluateAttributeExpressions().getValue();
+            final String samplerInterval = context.getProperty(SAMPLER_INTERVAL).evaluateAttributeExpressions().getValue();
+            final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
             final String password = context.getProperty(PASSWORD).getValue();
 
             final SSLContextService sslService =
@@ -151,7 +158,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     .put("client.transport.ping_timeout", pingTimeout)
                     .put("client.transport.nodes_sampler_interval", samplerInterval);
 
-            String xPackUrl = context.getProperty(PROP_XPACK_LOCATION).getValue();
+            String xPackUrl = context.getProperty(PROP_XPACK_LOCATION).evaluateAttributeExpressions().getValue();
             if (sslService != null) {
                 settingsBuilder.put("xpack.security.transport.ssl.enabled", "true")
                         .put("xpack.ssl.keystore.path", sslService.getKeyStoreFile())
@@ -170,7 +177,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                 settingsBuilder.put("xpack.security.user", secureUser);
             }
 
-            final String hosts = context.getProperty(HOSTS).getValue();
+            final String hosts = context.getProperty(HOSTS).evaluateAttributeExpressions().getValue();
             esHosts = getEsHosts(hosts);
             Client transportClient = getTransportClient(settingsBuilder, xPackUrl, username, password, esHosts, log);
             esClient.set(transportClient);

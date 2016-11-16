@@ -121,6 +121,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
+            .expressionLanguageSupported(true)
             .build();
 
 
@@ -161,9 +162,8 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles.isEmpty()) {
@@ -180,6 +180,8 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
                 final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
+                final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(file).getValue());
+
 
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
