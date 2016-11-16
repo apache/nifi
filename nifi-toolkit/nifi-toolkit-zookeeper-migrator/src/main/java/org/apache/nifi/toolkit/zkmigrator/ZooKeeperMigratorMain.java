@@ -37,13 +37,19 @@ public class ZooKeeperMigratorMain {
 
     enum Mode {READ, WRITE}
 
+    private static final String JAVA_HOME = "JAVA_HOME";
+    private static final String NIFI_TOOLKIT_HOME = "NIFI_TOOLKIT_HOME";
+    private static final String HEADER = System.lineSeparator() + "A tool for importing and exporting data from ZooKeeper." + System.lineSeparator() + System.lineSeparator();
+    private static final String FOOTER = new StringBuilder(System.lineSeparator()).append("Java home: ")
+            .append(System.getenv(JAVA_HOME)).append(System.lineSeparator()).append("NiFi Toolkit home: ").append(System.getenv(NIFI_TOOLKIT_HOME)).toString();
+
     private static final Option OPTION_ZK_MIGRATOR_HELP = Option.builder("h")
             .longOpt("help")
             .desc("display help/usage info")
             .build();
     private static final Option OPTION_ZK_ENDPOINT = Option.builder("z")
             .longOpt("zookeeper")
-            .desc("ZooKeeper connect string with path (ex. host:port/path)")
+            .desc("ZooKeeper endpoint string (ex. host:port/path)")
             .hasArg()
             .argName("zookeeper-endpoint")
             .required()
@@ -95,11 +101,12 @@ public class ZooKeeperMigratorMain {
     private static void printUsage(String errorMessage, Options options) {
         Preconditions.checkNotNull(options, "command line options were not specified");
         if (errorMessage != null) {
-            System.out.println(String.format("%s\n", errorMessage));
+            System.out.println(errorMessage + System.lineSeparator());
         }
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.setWidth(160);
-        helpFormatter.printHelp(ZooKeeperMigratorMain.class.getCanonicalName(), options, true);
+        helpFormatter.setDescPadding(0);
+        helpFormatter.printHelp(ZooKeeperMigratorMain.class.getCanonicalName(), HEADER, options, FOOTER, true);
     }
 
     public static void main(String[] args) {
