@@ -115,23 +115,34 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
             verifyModifiable();
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass(), id)) {
-                final Set<String> modulePaths = new LinkedHashSet<>();
+                boolean classpathChanged = false;
                 for (final Map.Entry<String, String> entry : properties.entrySet()) {
+                    // determine if any of the property changes require resetting the InstanceClassLoader
+                    final PropertyDescriptor descriptor = component.getPropertyDescriptor(entry.getKey());
+                    if (descriptor.isDynamicClasspathModifier()) {
+                        classpathChanged = true;
+                    }
+
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey());
                     } else if (entry.getKey() != null) {
                         setProperty(entry.getKey(), entry.getValue());
+                    }
+                }
 
-                        // for any properties that dynamically modify the classpath, attempt to evaluate them for expression language
-                        final PropertyDescriptor descriptor = component.getPropertyDescriptor(entry.getKey());
+                // if at least one property with dynamicallyModifiesClasspath(true) was set, then re-calculate the module paths
+                // and reset the InstanceClassLoader to the new module paths
+                if (classpathChanged) {
+                    final Set<String> modulePaths = new LinkedHashSet<>();
+                    for (final Map.Entry<PropertyDescriptor, String> entry : this.properties.entrySet()) {
+                        final PropertyDescriptor descriptor = entry.getKey();
                         if (descriptor.isDynamicClasspathModifier() && !StringUtils.isEmpty(entry.getValue())) {
                             final StandardPropertyValue propertyValue = new StandardPropertyValue(entry.getValue(), null, variableRegistry);
                             modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
                         }
                     }
+                    processClasspathModifiers(modulePaths);
                 }
-
-                processClasspathModifiers(modulePaths);
             }
         } finally {
             lock.unlock();
