@@ -21,6 +21,7 @@ import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -185,12 +186,6 @@ public class SchemaRecordReader {
     private int readInt(final InputStream in) throws IOException {
         final byte[] buffer = new byte[4];
         fillBuffer(in, buffer);
-
-        final int value = ((buffer[0] & 0xFF) << 24) +
-            ((buffer[1] & 0xFF) << 16) +
-            ((buffer[2] & 0xFF) << 8) +
-            (buffer[3] & 0xFF);
-
-        return value;
+        return ByteBuffer.wrap(buffer).getInt();
     }
 }

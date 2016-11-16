@@ -544,9 +544,19 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             // from getting committed. Since rollover() transitions the partition to write to a new file already, there
             // is no reason that we need to close this FileOutputStream before releasing the write lock. Also, if any Exception
             // does get thrown when calling close(), we don't need to blacklist the partition, as the stream that was getting
-            // closed is not the stream being written to for the partition anyway.
+            // closed is not the stream being written to for the partition anyway. We also catch any IOException and wait until
+            // after we've attempted to close all streams before we throw an Exception, to avoid resource leaks if one of them
+            // is unable to be closed (due to out of storage space, for instance).
+            IOException failure = null;
             for (final OutputStream partitionStream : partitionStreams) {
-                partitionStream.close();
+                try {
+                    partitionStream.close();
+                } catch (final IOException e) {
+                    failure = e;
+                }
+            }
+            if (failure != null) {
+                throw failure;
             }
 
             // notify global sync with the write lock held. We do this because we don't want the repository to get updated
