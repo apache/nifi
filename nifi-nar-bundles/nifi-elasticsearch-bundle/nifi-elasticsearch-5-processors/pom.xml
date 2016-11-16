@@ -17,13 +17,13 @@ language governing permissions and limitations under the License. -->
         <version>1.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-elasticsearch-processors</artifactId>
+    <artifactId>nifi-elasticsearch-5-processors</artifactId>
     <packaging>jar</packaging>
 
     <properties>
-        <slf4jversion>1.7.12</slf4jversion>
-        <es.version>2.1.0</es.version>
-        <lucene.version>5.3.1</lucene.version>
+        <slf4jversion>2.7</slf4jversion>
+        <es.version>5.0.1</es.version>
+        <lucene.version>6.2.1</lucene.version>
     </properties>
 
     <dependencies>
@@ -42,24 +42,14 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-processor-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>${lucene.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>transport</artifactId>
             <version>${es.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>3.3.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -70,18 +60,18 @@ language governing permissions and limitations under the License. -->
             <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.7</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.5.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
