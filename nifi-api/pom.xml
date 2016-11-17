@@ -22,4 +22,5 @@
     </parent>
     <artifactId>nifi-api</artifactId>
     <packaging>jar</packaging>
+    <!-- This module should kept to having no dependencies -->
  </project>

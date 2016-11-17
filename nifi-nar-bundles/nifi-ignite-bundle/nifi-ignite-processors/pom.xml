@@ -26,37 +26,41 @@
     <packaging>jar</packaging>
 
     <dependencies>
-      <dependency>
-           <groupId>org.apache.ignite</groupId>
-           <artifactId>ignite-core</artifactId>
-          <exclusions>
-              <exclusion>
-                  <groupId>javax.cache</groupId>
-                  <artifactId>cache-api</artifactId>
-              </exclusion>
-          </exclusions>
-       </dependency>
         <dependency>
-           <groupId>org.apache.geronimo.specs</groupId>
-           <artifactId>geronimo-jcache_1.0_spec</artifactId>
-           <version>1.0-alpha-1</version>
+            <groupId>org.apache.ignite</groupId>
+            <artifactId>ignite-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.cache</groupId>
+                    <artifactId>cache-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-       <dependency>
-           <groupId>org.apache.ignite</groupId>
-           <artifactId>ignite-log4j2</artifactId>
-           <scope>test</scope>
-       </dependency>
-       <dependency>
-           <groupId>org.apache.ignite</groupId>
-           <artifactId>ignite-spring</artifactId>
-       </dependency>
+        <dependency>
+            <groupId>org.apache.geronimo.specs</groupId>
+            <artifactId>geronimo-jcache_1.0_spec</artifactId>
+            <version>1.0-alpha-1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ignite</groupId>
+            <artifactId>ignite-log4j2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ignite</groupId>
+            <artifactId>ignite-spring</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>

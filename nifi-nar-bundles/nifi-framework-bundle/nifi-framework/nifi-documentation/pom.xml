@@ -36,7 +36,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
+            <artifactId>nifi-utils</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
