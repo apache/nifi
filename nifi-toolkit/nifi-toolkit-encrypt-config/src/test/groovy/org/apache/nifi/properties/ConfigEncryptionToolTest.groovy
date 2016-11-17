@@ -2206,6 +2206,79 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldRespectComments() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleRenamedProvider() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-renamed.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-provider" }.empty
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
     void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleCommentedFile() {
         // Arrange
         String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
@@ -2235,7 +2308,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines == encryptedLines
-        assert TestAppender.events.any { it =~ "No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out" }
+        assert TestAppender.events.any { it =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
     }
 
     @Test
@@ -2264,7 +2337,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines.findAll { it }.isEmpty()
-        assert TestAppender.events.any { it =~ "No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out" }
+        assert TestAppender.events.any { it =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
     }
 
     @Test
@@ -2427,40 +2500,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assert
 
         // Assertions defined above
-    }
-
-    @Test
-    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldRespectComments() {
-        // Arrange
-        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
-        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
-
-        File tmpDir = setupTmpDir()
-
-        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
-        workingFile.delete()
-        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-
-        // Just need to read the lines from the original file, parse them to XML, serialize back, and compare output, as no transformation operation will occur
-        def lines = workingFile.readLines()
-        logger.info("Read lines: \n${lines.join("\n")}")
-
-        String plainXml = workingFile.text
-        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
-        logger.info("Encrypted XML: \n${encryptedXml}")
-
-        // Act
-        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
-        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
-
-        // Assert
-
-        // Some empty lines will be removed
-        def trimmedLines = lines.collect { it.trim() }.findAll { it }
-        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
-        assert trimmedLines.size() == trimmedSerializedLines.size()
     }
 
     @Test

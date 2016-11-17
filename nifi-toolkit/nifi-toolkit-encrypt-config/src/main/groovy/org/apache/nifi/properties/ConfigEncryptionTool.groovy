@@ -97,9 +97,9 @@ class ConfigEncryptionTool {
 
     private static
     final String DEFAULT_DESCRIPTION = "This tool reads from a nifi.properties and/or login-identity-providers.xml file with plain sensitive configuration values, prompts the user for a master key, and encrypts each value. It will replace the plain value with the protected value in the same file (or write to a new file if specified)."
-    static private final String LDAP_PROVIDER_REGEX = /<provider>\s*<identifier>\s*ldap-provider[\s\S]*?<\/provider>/
-    static private final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
+    static private final String LDAP_PROVIDER_REGEX = /<provider>[\s\S]*?<class>\s*org\.apache\.nifi\.ldap\.LdapProvider[\s\S]*?<\/provider>/
+    static private final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
 
     private static String buildHeader(String description = DEFAULT_DESCRIPTION) {
         "${SEP}${description}${SEP * 2}"
@@ -695,7 +695,7 @@ class ConfigEncryptionTool {
         String fileContents = originalLoginIdentityProvidersFile.text
         try {
             def parsedXml = new XmlSlurper().parseText(xmlContent)
-            def provider = parsedXml.provider.find { it.identifier == "ldap-provider" }
+            def provider = parsedXml.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
             if (provider) {
                 def serializedProvider = new XmlUtil().serialize(provider)
                 // Remove XML declaration from top
@@ -706,7 +706,7 @@ class ConfigEncryptionTool {
                 throw new SAXException("No ldap-provider element found")
             }
         } catch (SAXException e) {
-            logger.error("No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out")
+            logger.error("No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out")
             return fileContents.split("\n")
         }
     }
