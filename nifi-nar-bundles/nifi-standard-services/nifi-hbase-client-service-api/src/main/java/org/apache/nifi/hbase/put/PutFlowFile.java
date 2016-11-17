@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hbase.put;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.Collection;
@@ -55,7 +54,7 @@ public class PutFlowFile {
     }
 
     public boolean isValid() {
-        if (StringUtils.isBlank(tableName) || null == row || flowFile == null || columns == null || columns.isEmpty()) {
+        if (tableName == null || tableName.trim().isEmpty() || null == row || flowFile == null || columns == null || columns.isEmpty()) {
             return false;
         }
 

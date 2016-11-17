@@ -43,11 +43,6 @@
             <artifactId>nifi-data-provenance-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <!-- Dependency marked as provided, not test, because we have assertion 
             methods in our MockSession & MockFlowFile -->
             <groupId>junit</groupId>
