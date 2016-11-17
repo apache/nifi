@@ -99,6 +99,7 @@ class ConfigEncryptionTool {
     final String DEFAULT_DESCRIPTION = "This tool reads from a nifi.properties and/or login-identity-providers.xml file with plain sensitive configuration values, prompts the user for a master key, and encrypts each value. It will replace the plain value with the protected value in the same file (or write to a new file if specified)."
     static private final String LDAP_PROVIDER_REGEX = /<provider>\s*<identifier>\s*ldap-provider[\s\S]*?<\/provider>/
     static private final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
+    private static final String LDAP_PROVIDER_CLASS = "org.apache.nifi.ldap.LdapProvider"
 
     private static String buildHeader(String description = DEFAULT_DESCRIPTION) {
         "${SEP}${description}${SEP * 2}"
@@ -374,7 +375,6 @@ class ConfigEncryptionTool {
                 List<String> lines = loginIdentityProvidersFile.readLines()
                 logger.info("Loaded LoginIdentityProviders content (${lines.size()} lines)")
                 String decryptedXmlContent = decryptLoginIdentityProviders(xmlContent, existingKeyHex)
-//                String decryptedXmlContent = ConfigEncryptionUtility.decryptLoginIdentityProviders(xmlContent)
                 return decryptedXmlContent
             } catch (RuntimeException e) {
                 if (isVerbose) {
@@ -392,7 +392,8 @@ class ConfigEncryptionTool {
 
         try {
             def doc = new XmlSlurper().parseText(encryptedXml)
-            def passwords = doc.provider.find { it.identifier == 'ldap-provider' }.property.findAll {
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
                 it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
             }
 
@@ -428,9 +429,10 @@ class ConfigEncryptionTool {
         // TODO: Switch to XmlParser & XmlNodePrinter to maintain "empty" element structure
         try {
             def doc = new XmlSlurper().parseText(plainXml)
-            // Only operate on un-encrypted passwords
-            def passwords = doc.provider.find { it.identifier == 'ldap-provider' }
+            // Find the provider element by class even if it has been renamed
+            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
                     .property.findAll {
+                // Only operate on un-encrypted passwords
                 it.@name =~ "Password" && (it.@encryption == "none" || it.@encryption == "") && it.text()
             }
 
