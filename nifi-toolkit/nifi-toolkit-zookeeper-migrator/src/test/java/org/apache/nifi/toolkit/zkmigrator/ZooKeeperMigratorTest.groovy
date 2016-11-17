@@ -206,6 +206,32 @@ class ZooKeeperMigratorTest extends Specification {
         '127.0.0.1:2181/path/node' || _
     }
 
+    def "Test ignore source"() {
+        given:
+        def server = new TestingServer()
+        def connectString = "$server.connectString"
+        def dataPath = 'target/test-data-ignore-source.json'
+
+        when: "data is read from the source zookeeper"
+        ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
+
+        then: "verify the data has been written the output file"
+        new File(dataPath).exists()
+
+        when: "data is sent to the same zookeeper as the the source zookeeper without ignore source"
+        ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath] as String[])
+
+        then: "verify that a runtime exception is thrown with an illegal argument exception as the cause"
+        def e = thrown(RuntimeException)
+        e.cause.class == IllegalArgumentException
+
+        when: "data is sent to the same zookeeper as the source zookeeper with ignore source option is set"
+        ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath, '--ignore-source'] as String[])
+
+        then: "no exceptions are thrown"
+        noExceptionThrown()
+    }
+
     def List<String> getChildren(ZooKeeper client, String path, List<String> ag) {
         def children = client.getChildren(path, null)
         ag.add path
