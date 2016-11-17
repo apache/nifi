@@ -34,6 +34,7 @@ import org.bouncycastle.crypto.generators.SCrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.xml.sax.SAXException
 
 import javax.crypto.Cipher
 import java.nio.charset.StandardCharsets
@@ -687,19 +688,25 @@ class ConfigEncryptionTool {
         out.toString().split("\n")
     }
 
-
-    private
     static List<String> serializeLoginIdentityProvidersAndPreserveFormat(String xmlContent, File originalLoginIdentityProvidersFile) {
-       def parsedXml = new XmlSlurper().parseText(xmlContent)
-        def provider = parsedXml.provider.find { it.identifier == "ldap-provider" }
-        def serializedProvider = new XmlUtil().serialize(provider)
-        // Remove XML declaration from top
-        serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
-
         // Find the provider element of the new XML in the file contents
         String fileContents = originalLoginIdentityProvidersFile.text
-        fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
-        fileContents.split("\n")
+        try {
+            def parsedXml = new XmlSlurper().parseText(xmlContent)
+            def provider = parsedXml.provider.find { it.identifier == "ldap-provider" }
+            if (provider) {
+                def serializedProvider = new XmlUtil().serialize(provider)
+                // Remove XML declaration from top
+                serializedProvider = serializedProvider.replaceFirst(XML_DECLARATION_REGEX, "")
+                fileContents = fileContents.replaceFirst(LDAP_PROVIDER_REGEX, serializedProvider)
+                return fileContents.split("\n")
+            } else {
+                throw new SAXException("No ldap-provider element found")
+            }
+        } catch (SAXException e) {
+            logger.error("No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out")
+            return fileContents.split("\n")
+        }
     }
 
     /**

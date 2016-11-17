@@ -2166,6 +2166,68 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleCommentedFile() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+        assert encryptedLines == lines
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines == encryptedLines
+        assert TestAppender.events.any { it =~ "No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out" }
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleEmptyFile() {
+        // Arrange
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        workingFile.createNewFile()
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = lines
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines.findAll { it }.isEmpty()
+        assert TestAppender.events.any { it =~ "No provider element with identifier ldap-provider found in XML content; the file could be empty or the element may be missing or commented out" }
+    }
+
+    @Test
     void testShouldPerformFullOperationForLoginIdentityProviders() {
         // Arrange
         exit.expectSystemExitWithStatus(0)
@@ -2356,7 +2418,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assert
 
         // Some empty lines will be removed
-        def trimmedLines = lines.collect {it.trim() }.findAll { it }
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
         def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
         assert trimmedLines.size() == trimmedSerializedLines.size()
     }
@@ -2445,7 +2507,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 // Check that the comments are still there
-                def trimmedLines = inputLIPFile.readLines().collect {it.trim() }.findAll { it }
+                def trimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
                 def trimmedSerializedLines = updatedXmlContent.split("\n").collect { it.trim() }.findAll { it }
                 assert trimmedLines.size() == trimmedSerializedLines.size()
 
