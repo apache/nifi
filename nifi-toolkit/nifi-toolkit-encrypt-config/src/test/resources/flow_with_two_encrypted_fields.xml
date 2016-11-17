@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController encoding-version="1.0">
+  <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+  <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
+  <rootGroup>
+    <id>638dfd51-0158-1000-7927-11f95d16cb5a</id>
+    <name>NiFi Flow</name>
+    <position x="0.0" y="0.0"/>
+    <comment/>
+    <processor>
+      <id>6394478b-0158-1000-27f3-9fef964d9d5d</id>
+      <name>GenerateFlowFile</name>
+      <position x="456.0" y="16.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.GenerateFlowFile</class>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>File Size</name>
+        <value>25 b</value>
+      </property>
+      <property>
+        <name>Batch Size</name>
+        <value>1</value>
+      </property>
+      <property>
+        <name>Data Format</name>
+        <value>Binary</value>
+      </property>
+      <property>
+        <name>Unique FlowFiles</name>
+        <value>false</value>
+      </property>
+    </processor>
+    <processor>
+      <id>63946e03-0158-1000-311c-e2739407bcc0</id>
+      <name>EncryptContent</name>
+      <position x="458.0" y="243.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.EncryptContent</class>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Mode</name>
+        <value>Encrypt</value>
+      </property>
+      <property>
+        <name>key-derivation-function</name>
+        <value>NIFI_LEGACY</value>
+      </property>
+      <property>
+        <name>Encryption Algorithm</name>
+        <value>MD5_128AES</value>
+      </property>
+      <property>
+        <name>allow-weak-crypto</name>
+        <value>not-allowed</value>
+      </property>
+      <property>
+        <name>Password</name>
+        <value>enc{91C5174BE26C848EA2726BDF816AAA60D59A10BE4A216CA6FC285CADE48C4C24}</value>
+      </property>
+      <property>
+        <name>raw-key-hex</name>
+      </property>
+      <property>
+        <name>public-keyring-file</name>
+      </property>
+      <property>
+        <name>public-key-user-id</name>
+      </property>
+      <property>
+        <name>private-keyring-file</name>
+      </property>
+      <property>
+        <name>private-keyring-passphrase</name>
+      </property>
+      <autoTerminatedRelationship>failure</autoTerminatedRelationship>
+    </processor>
+    <processor>
+      <id>63956613-0158-1000-3ccb-5d9a217582ce</id>
+      <name>PutSFTP</name>
+      <position x="456.0" y="451.0"/>
+      <styles/>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.PutSFTP</class>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Hostname</name>
+        <value>localhost</value>
+      </property>
+      <property>
+        <name>Port</name>
+        <value>22</value>
+      </property>
+      <property>
+        <name>Username</name>
+        <value>test</value>
+      </property>
+      <property>
+        <name>Password</name>
+        <value>enc{64F54488F307CE032E168352F22871D1139E2151A2A4286F3A89916EB3DB6FE1}</value>
+      </property>
+      <property>
+        <name>Private Key Path</name>
+      </property>
+      <property>
+        <name>Private Key Passphrase</name>
+      </property>
+      <property>
+        <name>Remote Path</name>
+      </property>
+      <property>
+        <name>Create Directory</name>
+        <value>false</value>
+      </property>
+      <property>
+        <name>Batch Size</name>
+        <value>500</value>
+      </property>
+      <property>
+        <name>Connection Timeout</name>
+        <value>30 sec</value>
+      </property>
+      <property>
+        <name>Data Timeout</name>
+        <value>30 sec</value>
+      </property>
+      <property>
+        <name>Conflict Resolution</name>
+        <value>NONE</value>
+      </property>
+      <property>
+        <name>Reject Zero-Byte Files</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Dot Rename</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Temporary Filename</name>
+      </property>
+      <property>
+        <name>Host Key File</name>
+      </property>
+      <property>
+        <name>Last Modified Time</name>
+      </property>
+      <property>
+        <name>Permissions</name>
+      </property>
+      <property>
+        <name>Remote Owner</name>
+      </property>
+      <property>
+        <name>Remote Group</name>
+      </property>
+      <property>
+        <name>Strict Host Key Checking</name>
+        <value>false</value>
+      </property>
+      <property>
+        <name>Send Keep Alive On Timeout</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Use Compression</name>
+        <value>false</value>
+      </property>
+      <autoTerminatedRelationship>reject</autoTerminatedRelationship>
+      <autoTerminatedRelationship>success</autoTerminatedRelationship>
+      <autoTerminatedRelationship>failure</autoTerminatedRelationship>
+    </processor>
+    <connection>
+      <id>639583bf-0158-1000-6372-1f2cf5ebfaef</id>
+      <name/>
+      <bendPoints/>
+      <labelIndex>1</labelIndex>
+      <zIndex>0</zIndex>
+      <sourceId>63946e03-0158-1000-311c-e2739407bcc0</sourceId>
+      <sourceGroupId>638dfd51-0158-1000-7927-11f95d16cb5a</sourceGroupId>
+      <sourceType>PROCESSOR</sourceType>
+      <destinationId>63956613-0158-1000-3ccb-5d9a217582ce</destinationId>
+      <destinationGroupId>638dfd51-0158-1000-7927-11f95d16cb5a</destinationGroupId>
+      <destinationType>PROCESSOR</destinationType>
+      <relationship>success</relationship>
+      <maxWorkQueueSize>10000</maxWorkQueueSize>
+      <maxWorkQueueDataSize>1 GB</maxWorkQueueDataSize>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+    </connection>
+    <connection>
+      <id>639483e7-0158-1000-3019-eeee6a82396a</id>
+      <name/>
+      <bendPoints/>
+      <labelIndex>1</labelIndex>
+      <zIndex>0</zIndex>
+      <sourceId>6394478b-0158-1000-27f3-9fef964d9d5d</sourceId>
+      <sourceGroupId>638dfd51-0158-1000-7927-11f95d16cb5a</sourceGroupId>
+      <sourceType>PROCESSOR</sourceType>
+      <destinationId>63946e03-0158-1000-311c-e2739407bcc0</destinationId>
+      <destinationGroupId>638dfd51-0158-1000-7927-11f95d16cb5a</destinationGroupId>
+      <destinationType>PROCESSOR</destinationType>
+      <relationship>success</relationship>
+      <maxWorkQueueSize>10000</maxWorkQueueSize>
+      <maxWorkQueueDataSize>1 GB</maxWorkQueueDataSize>
+      <flowFileExpiration>0 sec</flowFileExpiration>
+    </connection>
+  </rootGroup>
+  <controllerServices/>
+  <reportingTasks/>
+</flowController>

@@ -20,13 +20,12 @@
             <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
         </encoder>
     </appender>
-    <appender name="TEST" class="org.apache.nifi.properties.TestAppender">
+    <appender name="TEST" class="org.apache.nifi.properties.RecordingAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>%-4r [%t] %-5p %c - %m%n</pattern>
         </encoder>
     </appender>
 
-    <logger name="org.apache.nifi.properties" level="DEBUG"/>
     <root level="DEBUG">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="TEST"/>
