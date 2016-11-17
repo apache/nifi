@@ -120,7 +120,7 @@ class ZooKeeperMigrator {
         }
     }
 
-    void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData) throws IOException, ExecutionException, InterruptedException {
+    void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
         ZooKeeper zooKeeper = getZooKeeper(zooKeeperEndpointConfig, authMode, authData);
         JsonReader jsonReader = new JsonReader(new BufferedReader(new InputStreamReader(zkData)));
         Gson gson = new GsonBuilder().create();
@@ -132,7 +132,7 @@ class ZooKeeperMigrator {
         LOGGER.info("Source data was obtained from ZooKeeper: {}", sourceZooKeeperEndpointConfig);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath()),
                 "Source ZooKeeper %s from %s is invalid", sourceZooKeeperEndpointConfig, zkData);
-        Preconditions.checkState(!zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig),
+        Preconditions.checkArgument(    !(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
                 "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
