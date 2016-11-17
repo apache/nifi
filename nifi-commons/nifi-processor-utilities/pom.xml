@@ -22,6 +22,14 @@
     </parent>
     <artifactId>nifi-processor-utils</artifactId>
     <packaging>jar</packaging>
+    <description>
+        This nifi-processor-utils module is designed to capture common patterns
+        and utilities that can be leveraged by other processors or components to
+        help promote reuse.  These patterns may become framework level features 
+        or may simply be made available through this utility.  It is ok for this
+        module to have dependencies but care should be taken when adding dependencies
+        as this increases the cost of utilizing this module in various nars.
+    </description>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

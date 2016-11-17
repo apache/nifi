@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -298,7 +297,7 @@ public class StandardValidators {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 try {
                     final String result = context.newExpressionLanguageCompiler().validateExpression(input, true);
-                    if (!StringUtils.isEmpty(result)) {
+                    if (!isEmpty(result)) {
                         return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(result).build();
                     }
                 } catch (final Exception e) {
@@ -310,6 +309,15 @@ public class StandardValidators {
         }
 
     };
+
+    /**
+     * @param value to test
+     * @return true if value is null or empty string; does not trim before
+     * testing
+     */
+    private static boolean isEmpty(final String value) {
+        return value == null || value.length() == 0;
+    }
 
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
         @Override
@@ -443,7 +451,7 @@ public class StandardValidators {
                 final String[] list = input.split(",");
                 for (String item : list) {
                     String itemToValidate = trimEntries ? item.trim() : item;
-                    if(!StringUtils.isEmpty(itemToValidate) || !excludeEmptyEntries) {
+                    if (!isEmpty(itemToValidate) || !excludeEmptyEntries) {
                         ValidationResult result = validator.validate(subject, itemToValidate, context);
                         if (!result.isValid()) {
                             return result;
@@ -521,10 +529,10 @@ public class StandardValidators {
      * Language will not support FlowFile Attributes but only System/JVM
      * Properties
      *
-     * @param minCapturingGroups                 minimum capturing groups allowed
-     * @param maxCapturingGroups                 maximum capturing groups allowed
+     * @param minCapturingGroups minimum capturing groups allowed
+     * @param maxCapturingGroups maximum capturing groups allowed
      * @param supportAttributeExpressionLanguage whether or not to support
-     *                                           expression language
+     * expression language
      * @return validator
      */
     public static Validator createRegexValidator(final int minCapturingGroups, final int maxCapturingGroups, final boolean supportAttributeExpressionLanguage) {
@@ -709,6 +717,7 @@ public class StandardValidators {
     }
 
     public static class StringLengthValidator implements Validator {
+
         private final int minimum;
         private final int maximum;
 
