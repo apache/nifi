@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.properties
 
-import ch.qos.logback.classic.spi.LoggingEvent
-import ch.qos.logback.core.AppenderBase
 import org.apache.commons.lang3.SystemUtils
+import org.apache.log4j.AppenderSkeleton
+import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -2050,7 +2050,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Assert
         def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
         assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
-        def populatedPasswordLines = passwordLines.findAll { it.contains(">.*<") }
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
         assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
         assert populatedPasswordLines.every { it.contains(encryptionScheme) }
         populatedPasswordLines.each {
@@ -2137,6 +2137,46 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldEncryptLoginIdentityProvidersWithRenamedProvider() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-renamed.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-provider" }.empty
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
+        assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert populatedPasswordLines.every { it.contains(encryptionScheme) }
+        populatedPasswordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
     void testEncryptLoginIdentityProvidersShouldHandleCommentedElements() {
         // Arrange
         String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
@@ -2163,6 +2203,141 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
         assert encryptedLines == lines
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldRespectComments() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleRenamedProvider() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-renamed.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-provider" }.empty
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleCommentedFile() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+        assert encryptedLines == lines
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines == encryptedLines
+        assert TestAppender.events.any { it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleEmptyFile() {
+        // Arrange
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        workingFile.createNewFile()
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = lines
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines.findAll { it }.isEmpty()
+        assert TestAppender.events.any { it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
     }
 
     @Test
@@ -2328,40 +2503,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldRespectComments() {
-        // Arrange
-        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
-        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
-
-        File tmpDir = setupTmpDir()
-
-        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
-        workingFile.delete()
-        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-
-        // Just need to read the lines from the original file, parse them to XML, serialize back, and compare output, as no transformation operation will occur
-        def lines = workingFile.readLines()
-        logger.info("Read lines: \n${lines.join("\n")}")
-
-        String plainXml = workingFile.text
-        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
-        logger.info("Encrypted XML: \n${encryptedXml}")
-
-        // Act
-        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
-        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
-
-        // Assert
-
-        // Some empty lines will be removed
-        def trimmedLines = lines.collect {it.trim() }.findAll { it }
-        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
-        assert trimmedLines.size() == trimmedSerializedLines.size()
-    }
-
-    @Test
     void testShouldPerformFullOperationForNiFiPropertiesAndLoginIdentityProviders() {
         // Arrange
         exit.expectSystemExitWithStatus(0)
@@ -2445,7 +2586,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 // Check that the comments are still there
-                def trimmedLines = inputLIPFile.readLines().collect {it.trim() }.findAll { it }
+                def trimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
                 def trimmedSerializedLines = updatedXmlContent.split("\n").collect { it.trim() }.findAll { it }
                 assert trimmedLines.size() == trimmedSerializedLines.size()
 
@@ -2477,8 +2618,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 }
 
-public class TestAppender extends AppenderBase<LoggingEvent> {
-    static List<LoggingEvent> events = new ArrayList<>();
+public class TestAppender extends AppenderSkeleton {
+    static final List<LoggingEvent> events = new ArrayList<>();
 
     @Override
     protected void append(LoggingEvent e) {
@@ -2491,5 +2632,14 @@ public class TestAppender extends AppenderBase<LoggingEvent> {
         synchronized (events) {
             events.clear();
         }
+    }
+
+    @Override
+    void close() {
+    }
+
+    @Override
+    boolean requiresLayout() {
+        return false
     }
 }
