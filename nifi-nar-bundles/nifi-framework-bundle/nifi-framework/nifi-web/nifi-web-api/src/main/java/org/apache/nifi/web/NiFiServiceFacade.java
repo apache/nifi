@@ -365,6 +365,15 @@ public interface NiFiServiceFacade {
     void verifyCanAddTemplate(String groupId, String name);
 
     /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param groupId the id of the group for the template
+     * @param name name of proposed template
+     * @param override determine if template should override existing template
+     */
+    void verifyCanAddTemplate(String groupId, String name, boolean override);
+
+    /**
      * Verifies the types of components in a template.
      *
      * @param snippet proposed template
@@ -382,6 +391,19 @@ public interface NiFiServiceFacade {
      * @return template
      */
     TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
+
+    /**
+     * Creates a new Template based off the specified snippet.
+     *
+     * @param name name
+     * @param description description
+     * @param snippetId id
+     * @param override determines if template should override existing template
+     * @param groupId id of the process group
+     * @param idGenerationSeed the seed to use for generating a UUID
+     * @return template
+     */
+    TemplateDTO createTemplate(String name, String description, String snippetId, boolean override, String groupId, Optional<String> idGenerationSeed);
 
     /**
      * Imports the specified Template.
@@ -1638,4 +1660,5 @@ public interface NiFiServiceFacade {
      * @return the resources
      */
     List<ResourceDTO> getResources();
+
 }

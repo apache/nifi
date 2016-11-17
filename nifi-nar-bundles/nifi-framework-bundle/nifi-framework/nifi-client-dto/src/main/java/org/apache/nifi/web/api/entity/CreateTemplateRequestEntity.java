@@ -29,6 +29,7 @@ public class CreateTemplateRequestEntity extends Entity {
     private String name;
     private String description;
     private String snippetId;
+    private boolean override;
 
     @ApiModelProperty(
         value = "The name of the template."
@@ -61,5 +62,16 @@ public class CreateTemplateRequestEntity extends Entity {
 
     public void setSnippetId(String snippetId) {
         this.snippetId = snippetId;
+    }
+
+    @ApiModelProperty(
+            value = "If the template can override an existing template."
+        )
+    public boolean getOverride() {
+        return override;
+    }
+
+    public void setOverride(boolean override) {
+        this.override = override;
     }
 }

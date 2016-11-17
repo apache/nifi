@@ -1593,12 +1593,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanAddTemplate(String groupId, String name, boolean override) {
+        templateDAO.verifyCanAddTemplate(name, groupId, override);
+    }
+
+    @Override
     public void verifyComponentTypes(FlowSnippetDTO snippet) {
         templateDAO.verifyComponentTypes(snippet);
     }
 
     @Override
     public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
+        return createTemplate(name, description, snippetId, false, groupId, idGenerationSeed);
+    }
+
+    @Override
+    public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final boolean override, final String groupId,
+            final Optional<String> idGenerationSeed) {
         // get the specified snippet
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
 
@@ -1615,7 +1626,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setId(uuid);
 
         // create the template
-        final Template template = templateDAO.createTemplate(templateDTO, groupId);
+        final Template template = templateDAO.createTemplate(templateDTO, groupId, override);
 
         // drop the snippet
         snippetDAO.dropSnippet(snippetId);

@@ -33,6 +33,15 @@ public interface TemplateDAO {
     void verifyCanAddTemplate(String name, String groupId);
 
     /**
+     * Verifies a new template can be created with the specified name in the specified group.
+     *
+     * @param name template name
+     * @param groupId group id
+     * @param override determine if template should override existing template
+     */
+    void verifyCanAddTemplate(String name, String groupId, boolean override);
+
+    /**
      * Verifies the types of components in a template.
      *
      * @param snippet proposed template
@@ -47,6 +56,16 @@ public interface TemplateDAO {
      * @return The template
      */
     Template createTemplate(TemplateDTO templateDTO, String groupId);
+
+    /**
+     * Creates a template.
+     *
+     * @param templateDTO The template DTO
+     * @param groupId the ID of the group to add the template to
+     * @param override determines if the template should override the existing one
+     * @return The template
+     */
+    Template createTemplate(TemplateDTO templateDTO, String groupId, boolean override);
 
     /**
      * Import the specified template.
@@ -90,4 +109,5 @@ public interface TemplateDAO {
      * @param templateId The template id
      */
     void deleteTemplate(String templateId);
+
 }
