@@ -40,8 +40,8 @@ public class ZooKeeperMigratorMain {
     private static final String JAVA_HOME = "JAVA_HOME";
     private static final String NIFI_TOOLKIT_HOME = "NIFI_TOOLKIT_HOME";
     private static final String HEADER = System.lineSeparator() + "A tool for importing and exporting data from ZooKeeper." + System.lineSeparator() + System.lineSeparator();
-    private static final String FOOTER = new StringBuilder(System.lineSeparator()).append("Java home: ")
-            .append(System.getenv(JAVA_HOME)).append(System.lineSeparator()).append("NiFi Toolkit home: ").append(System.getenv(NIFI_TOOLKIT_HOME)).toString();
+    private static final String FOOTER = System.lineSeparator() + "Java home: " +
+            System.getenv(JAVA_HOME) + System.lineSeparator() + "NiFi Toolkit home: " + System.getenv(NIFI_TOOLKIT_HOME);
 
     private static final Option OPTION_ZK_MIGRATOR_HELP = Option.builder("h")
             .longOpt("help")
@@ -81,6 +81,10 @@ public class ZooKeeperMigratorMain {
             .hasArg()
             .argName("filename")
             .build();
+    private static final Option OPTION_IGNORE_SOURCE = Option.builder()
+            .longOpt("ignore-source")
+            .desc("ignores the source ZooKeeper endpoint specified in the exported data")
+            .build();
 
     private static Options createOptions() {
         final Options options = new Options();
@@ -88,6 +92,7 @@ public class ZooKeeperMigratorMain {
         options.addOption(OPTION_ZK_ENDPOINT);
         options.addOption(OPTION_ZK_AUTH_INFO);
         options.addOption(OPTION_FILE);
+        options.addOption(OPTION_IGNORE_SOURCE);
         final OptionGroup optionGroupAuth = new OptionGroup().addOption(OPTION_ZK_AUTH_INFO).addOption(OPTION_ZK_KRB_CONF_FILE);
         optionGroupAuth.setRequired(false);
         options.addOptionGroup(optionGroupAuth);
@@ -125,6 +130,7 @@ public class ZooKeeperMigratorMain {
                 final String filename = commandLine.getOptionValue(OPTION_FILE.getOpt());
                 final String auth = commandLine.getOptionValue(OPTION_ZK_AUTH_INFO.getOpt());
                 final String jaasFilename = commandLine.getOptionValue(OPTION_ZK_KRB_CONF_FILE.getOpt());
+                final boolean ignoreSource = commandLine.hasOption(OPTION_IGNORE_SOURCE.getLongOpt());
                 final AuthMode authMode;
                 final byte[] authData;
                 if (auth != null) {
@@ -143,7 +149,7 @@ public class ZooKeeperMigratorMain {
                 if (mode.equals(Mode.READ)) {
                     zookeeperMigrator.readZooKeeper(filename != null ? new FileOutputStream(Paths.get(filename).toFile()) : output, authMode, authData);
                 } else {
-                    zookeeperMigrator.writeZooKeeper(filename != null ? new FileInputStream(Paths.get(filename).toFile()) : System.in, authMode, authData);
+                    zookeeperMigrator.writeZooKeeper(filename != null ? new FileInputStream(Paths.get(filename).toFile()) : System.in, authMode, authData, ignoreSource);
                 }
             }
         } catch (ParseException e) {
