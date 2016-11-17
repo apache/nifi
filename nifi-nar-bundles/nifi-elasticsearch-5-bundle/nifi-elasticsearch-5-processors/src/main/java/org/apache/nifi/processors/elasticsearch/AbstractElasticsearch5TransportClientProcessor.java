@@ -90,8 +90,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
     public static final PropertyDescriptor PROP_XPACK_LOCATION = new PropertyDescriptor.Builder()
             .name("el5-xpack-location")
             .displayName("X-Pack Transport Location")
-            .description("Specifies the path to the JAR(s) for the Elasticsearch X-Pack Transport feature. At a minimum, this must be a "
-                    + "folder and/or comma-separated list of JARs that include x-pack-transport and x-pack-api JARs. "
+            .description("Specifies the path to the JAR(s) for the Elasticsearch X-Pack Transport feature. "
                     + "If the Elasticsearch cluster has been secured with the X-Pack plugin, then the X-Pack Transport "
                     + "JARs must also be available to this processor. Note: Do NOT place the X-Pack JARs into NiFi's "
                     + "lib/ directory, doing so will prevent the X-Pack Transport JARs from being loaded.")
@@ -160,11 +159,22 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
 
             String xPackUrl = context.getProperty(PROP_XPACK_LOCATION).evaluateAttributeExpressions().getValue();
             if (sslService != null) {
-                settingsBuilder.put("xpack.security.transport.ssl.enabled", "true")
-                        .put("xpack.ssl.keystore.path", sslService.getKeyStoreFile())
-                        .put("xpack.ssl.keystore.password", sslService.getKeyStorePassword())
-                        .put("xpack.ssl.truststore.path", sslService.getTrustStoreFile())
-                        .put("xpack.ssl.truststore.password", sslService.getTrustStorePassword());
+                settingsBuilder.put("xpack.security.transport.ssl.enabled", "true");
+                if (!StringUtils.isEmpty(sslService.getKeyStoreFile())) {
+                    settingsBuilder.put("xpack.ssl.keystore.path", sslService.getKeyStoreFile());
+                }
+                if (!StringUtils.isEmpty(sslService.getKeyStorePassword())) {
+                    settingsBuilder.put("xpack.ssl.keystore.password", sslService.getKeyStorePassword());
+                }
+                if (!StringUtils.isEmpty(sslService.getKeyPassword())) {
+                    settingsBuilder.put("xpack.ssl.keystore.key_password", sslService.getKeyPassword());
+                }
+                if (!StringUtils.isEmpty(sslService.getTrustStoreFile())) {
+                    settingsBuilder.put("xpack.ssl.truststore.path", sslService.getTrustStoreFile());
+                }
+                if (!StringUtils.isEmpty(sslService.getTrustStorePassword())) {
+                    settingsBuilder.put("xpack.ssl.truststore.password", sslService.getTrustStorePassword());
+                }
             }
 
             // Set username and password for X-Pack

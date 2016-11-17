@@ -25,7 +25,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -64,6 +65,13 @@ import java.util.Set;
         + "supports Elasticsearch 5.x clusters.")
 public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProcessor {
 
+    private static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {
+        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
+            return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+        }
+        return new ValidationResult.Builder().subject(subject).input(value).valid(value != null && !value.isEmpty()).explanation(subject + " cannot be empty").build();
+    };
+
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to Elasticsearch are routed to this relationship").build();
 
@@ -89,8 +97,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .description("The name of the index to insert into")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                    AttributeExpression.ResultType.STRING, true))
+            .addValidator(NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
@@ -99,8 +106,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                    AttributeExpression.ResultType.STRING, true))
+            .addValidator(NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
@@ -109,8 +115,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .description("The type of the operation used to index (index, update, upsert)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                    AttributeExpression.ResultType.STRING, true))
+            .addValidator(NON_EMPTY_EL_VALIDATOR)
             .defaultValue("index")
             .build();
 
@@ -123,7 +128,6 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .defaultValue("100")
             .expressionLanguageSupported(true)
             .build();
-
 
     @Override
     public Set<Relationship> getRelationships() {

@@ -191,7 +191,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
                 | ReceiveTimeoutTransportException
                 | NodeClosedException exceptionToRetry) {
             logger.error("Failed to read into Elasticsearch due to {}, this may indicate an error in configuration "
-                            + "(hosts, username/password, etc.). Routing to retry",
+                            + "(hosts, username/password, etc.), or this issue may be transient. Routing to retry",
                     new Object[]{exceptionToRetry.getLocalizedMessage()}, exceptionToRetry);
             session.transfer(flowFile, REL_RETRY);
             context.yield();
