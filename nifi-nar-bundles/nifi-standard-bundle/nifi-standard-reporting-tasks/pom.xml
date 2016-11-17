@@ -35,10 +35,6 @@
             <artifactId>nifi-properties</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-processor-utils</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.yammer.metrics</groupId>
             <artifactId>metrics-ganglia</artifactId>
         </dependency>

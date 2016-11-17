@@ -20,8 +20,21 @@
         <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-security-utils</artifactId>
-    <description>Contains security functionality.</description>
+    <description>
+        This nifi-security-utils module is meant to hold the majority of utilities
+        that one could need to enable secure transport or interact with encryption.
+        Care should be taken to keep the number of dependencies to a minimum given the
+        utility nature of this library.
+    </description>
     <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

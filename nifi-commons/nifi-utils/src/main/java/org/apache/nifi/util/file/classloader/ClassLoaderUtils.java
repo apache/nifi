@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util.file.classloader;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +33,7 @@ import java.util.Set;
 
 public class ClassLoaderUtils {
 
-    static final Logger logger = LoggerFactory.getLogger(ClassLoaderUtils.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(ClassLoaderUtils.class);
 
     public static ClassLoader getCustomClassLoader(String modulePath, ClassLoader parentClassLoader, FilenameFilter filenameFilter) throws MalformedURLException {
         URL[] classpaths = getURLsForClasspath(modulePath, filenameFilter, false);
@@ -43,9 +42,13 @@ public class ClassLoaderUtils {
 
     /**
      *
-     * @param modulePath a module path to get URLs from, the module path may be a comma-separated list of paths
-     * @param filenameFilter a filter to apply when a module path is a directory and performs a listing, a null filter will return all matches
-     * @return an array of URL instances representing all of the modules resolved from processing modulePath
+     * @param modulePath a module path to get URLs from, the module path may be
+     * a comma-separated list of paths
+     * @param filenameFilter a filter to apply when a module path is a directory
+     * and performs a listing, a null filter will return all matches
+     * @param suppressExceptions indicates whether to suppress exceptions
+     * @return an array of URL instances representing all of the modules
+     * resolved from processing modulePath
      * @throws MalformedURLException if a module path does not exist
      */
     public static URL[] getURLsForClasspath(String modulePath, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
@@ -54,10 +57,15 @@ public class ClassLoaderUtils {
 
     /**
      *
-     * @param modulePaths one or modules paths to get URLs from, each module path may be a comma-separated list of paths
-     * @param filenameFilter a filter to apply when a module path is a directory and performs a listing, a null filter will return all matches
-     * @param suppressExceptions if true then all modules will attempt to be resolved even if some throw an exception, if false the first exception will be thrown
-     * @return an array of URL instances representing all of the modules resolved from processing modulePaths
+     * @param modulePaths one or modules paths to get URLs from, each module
+     * path may be a comma-separated list of paths
+     * @param filenameFilter a filter to apply when a module path is a directory
+     * and performs a listing, a null filter will return all matches
+     * @param suppressExceptions if true then all modules will attempt to be
+     * resolved even if some throw an exception, if false the first exception
+     * will be thrown
+     * @return an array of URL instances representing all of the modules
+     * resolved from processing modulePaths
      * @throws MalformedURLException if a module path does not exist
      */
     public static URL[] getURLsForClasspath(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
@@ -65,12 +73,16 @@ public class ClassLoaderUtils {
         Set<String> modules = new LinkedHashSet<>();
         if (modulePaths != null) {
             modulePaths.stream()
-                .flatMap(path -> Arrays.stream(path.split(",")))
-                .filter(StringUtils::isNotBlank)
-                .map(String::trim)
-                .forEach(m -> modules.add(m));
+                    .flatMap(path -> Arrays.stream(path.split(",")))
+                    .filter(path -> isNotBlank(path))
+                    .map(String::trim)
+                    .forEach(m -> modules.add(m));
         }
         return toURLs(modules, filenameFilter, suppressExceptions);
+    }
+
+    private static boolean isNotBlank(final String value) {
+        return value != null && !value.trim().isEmpty();
     }
 
     protected static URL[] toURLs(Set<String> modulePaths, FilenameFilter filenameFilter, boolean suppressExceptions) throws MalformedURLException {
@@ -98,7 +110,7 @@ public class ClassLoaderUtils {
                                 if (files != null) {
                                     for (File classpathResource : files) {
                                         if (classpathResource.isDirectory()) {
-                                            logger.warn("Recursive directories are not supported, skipping " + classpathResource.getAbsolutePath());
+                                            LOGGER.warn("Recursive directories are not supported, skipping " + classpathResource.getAbsolutePath());
                                         } else {
                                             additionalClasspath.add(classpathResource.toURI().toURL());
                                         }
