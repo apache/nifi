@@ -343,6 +343,7 @@ nf.PolicyManagement = (function () {
                 nf.Common.getPolicyTypeListing('flow'),
                 nf.Common.getPolicyTypeListing('controller'),
                 nf.Common.getPolicyTypeListing('provenance'),
+                nf.Common.getPolicyTypeListing('restricted-components'),
                 nf.Common.getPolicyTypeListing('policies'),
                 nf.Common.getPolicyTypeListing('tenants'),
                 nf.Common.getPolicyTypeListing('site-to-site'),
@@ -364,7 +365,7 @@ nf.PolicyManagement = (function () {
                         $('#controller-policy-target').hide();
 
                         // record the action
-                        if (option.value === 'proxy') {
+                        if (option.value === 'proxy' || option.value === 'restricted-components') {
                             $('#selected-policy-action').text('write');
                         } else {
                             $('#selected-policy-action').text('read');
@@ -1398,7 +1399,7 @@ nf.PolicyManagement = (function () {
 
             if (policyType === 'controller') {
                 $('#selected-policy-action').text($('#controller-policy-target').combo('getSelectedOption').value);
-            } else if (policyType === 'proxy') {
+            } else if (policyType === 'proxy' || policyType === 'restricted-components') {
                 $('#selected-policy-action').text('write');
             } else {
                 $('#selected-policy-action').text('read');

@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.flume;
 
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.EventDrivenSource;
 import org.apache.flume.PollableSource;
@@ -29,6 +28,7 @@ import org.apache.flume.conf.Configurables;
 import org.apache.flume.source.EventDrivenSourceRunner;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -44,9 +44,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * This processor runs a Flume source
@@ -55,6 +55,7 @@ import com.google.common.collect.ImmutableSet;
 @Tags({"flume", "hadoop", "get", "source"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Execute a Flume source. Each Flume Event is sent to the success relationship as a FlowFile")
+@Restricted("Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
 public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()

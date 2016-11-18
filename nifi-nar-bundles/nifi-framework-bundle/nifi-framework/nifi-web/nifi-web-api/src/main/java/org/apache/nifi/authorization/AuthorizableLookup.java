@@ -34,7 +34,7 @@ public interface AuthorizableLookup {
      * @param id processor id
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getProcessor(String id);
+    ConfigurableComponentAuthorizable getProcessor(String id);
 
     /**
      * Get the authorizable for this Processor. This will create a dummy instance of the
@@ -44,7 +44,7 @@ public interface AuthorizableLookup {
      * @param type processor type
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getProcessorByType(String type);
+    ConfigurableComponentAuthorizable getProcessorByType(String type);
 
     /**
      * Get the authorizable for querying Provenance.
@@ -156,7 +156,7 @@ public interface AuthorizableLookup {
      * @param id controller service id
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getControllerService(String id);
+    ConfigurableComponentAuthorizable getControllerService(String id);
 
     /**
      * Get the authorizable for this Controller Service. This will create a dummy instance of the
@@ -166,7 +166,7 @@ public interface AuthorizableLookup {
      * @param type processor type
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getControllerServiceByType(String type);
+    ConfigurableComponentAuthorizable getControllerServiceByType(String type);
 
     /**
      * Get the authorizable referencing component.
@@ -183,7 +183,7 @@ public interface AuthorizableLookup {
      * @param id reporting task id
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getReportingTask(String id);
+    ConfigurableComponentAuthorizable getReportingTask(String id);
 
     /**
      * Get the authorizable for this Reporting Task. This will create a dummy instance of the
@@ -193,7 +193,7 @@ public interface AuthorizableLookup {
      * @param type processor type
      * @return authorizable
      */
-    ControllerServiceReferencingComponentAuthorizable getReportingTaskByType(String type);
+    ConfigurableComponentAuthorizable getReportingTaskByType(String type);
 
     /**
      * Get the authorizable Template.
@@ -271,4 +271,10 @@ public interface AuthorizableLookup {
      */
     Authorizable getSystem();
 
+    /**
+     * Get the authorizable for accessing restricted components.
+     *
+     * @return authorizable
+     */
+    Authorizable getRestrictedComponents();
 }

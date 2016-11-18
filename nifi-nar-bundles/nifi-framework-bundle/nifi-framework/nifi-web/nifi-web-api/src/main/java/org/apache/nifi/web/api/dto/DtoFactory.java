@@ -31,6 +31,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -2011,6 +2012,11 @@ public final class DtoFactory {
         return dto;
     }
 
+    private String getUsageRestriction(final Class<?> cls) {
+        final Restricted restriction = cls.getAnnotation(Restricted.class);
+        return restriction == null ? null : restriction.value();
+    }
+
     /**
      * Gets the capability description from the specified class.
      */
@@ -2050,6 +2056,7 @@ public final class DtoFactory {
             final DocumentedTypeDTO type = new DocumentedTypeDTO();
             type.setType(cls.getName());
             type.setDescription(getCapabilityDescription(cls));
+            type.setUsageRestriction(getUsageRestriction(cls));
             type.setTags(getTags(cls));
             types.add(type);
         }

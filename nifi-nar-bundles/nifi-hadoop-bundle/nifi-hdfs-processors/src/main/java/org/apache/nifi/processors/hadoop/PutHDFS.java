@@ -26,6 +26,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -75,6 +76,7 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
 })
 @SeeAlso(GetHDFS.class)
+@Restricted("Provides operator the ability to write to any file that NiFi has access to in HDFS or the local filesystem.")
 public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";

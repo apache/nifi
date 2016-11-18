@@ -37,6 +37,7 @@ public enum ResourceType {
     SiteToSite("/site-to-site"),
     DataTransfer("/data-transfer"),
     System("/system"),
+    RestrictedComponents("/restricted-components"),
     Template("/templates"),
     Tenant("/tenants");
 

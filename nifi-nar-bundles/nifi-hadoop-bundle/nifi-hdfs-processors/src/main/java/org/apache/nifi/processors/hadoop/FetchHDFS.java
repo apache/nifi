@@ -26,6 +26,7 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.security.AccessControlException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -59,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
         + "not be fetched from HDFS")
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
+@Restricted("Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
 public class FetchHDFS extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
