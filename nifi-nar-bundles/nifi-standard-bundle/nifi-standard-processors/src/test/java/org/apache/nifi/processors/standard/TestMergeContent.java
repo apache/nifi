@@ -66,6 +66,32 @@ public class TestMergeContent {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
     }
 
+    /**
+     * This test will verify that if we have a FlowFile larger than the Max Size for a Bin, it will go into its
+     * own bin and immediately be processed as its own bin.
+     */
+    @Test
+    public void testFlowFileLargerThanBin() {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_BIN_PACK);
+        runner.setProperty(MergeContent.MIN_ENTRIES, "2");
+        runner.setProperty(MergeContent.MAX_ENTRIES, "2");
+        runner.setProperty(MergeContent.MIN_SIZE, "1 KB");
+        runner.setProperty(MergeContent.MAX_SIZE, "5 KB");
+
+        runner.enqueue(new byte[1026]); // add flowfile that fits within the bin limits
+        runner.enqueue(new byte[1024 * 6]); // add flowfile that is larger than the bin limit
+        runner.run(2); // run twice so that we have a chance to create two bins (though we shouldn't create 2, because only 1 bin will be full)
+
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 1);
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+
+        // Queue should not be empty because the first FlowFile will be transferred back to the input queue
+        // when we run out @OnStopped logic, since it won't be transferred to any bin.
+        runner.assertQueueNotEmpty();
+    }
+
     @Test
     public void testSimpleAvroConcat() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());

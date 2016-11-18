@@ -278,7 +278,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             for (final Map.Entry<String, List<FlowFile>> entry : flowFileGroups.entrySet()) {
                 final Set<FlowFile> unbinned = binManager.offer(entry.getKey(), entry.getValue(), session, sessionFactory);
                 for (final FlowFile flowFile : unbinned) {
-                    Bin bin = new Bin(session, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
+                    Bin bin = new Bin(sessionFactory.createSession(), 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null);
                     bin.offer(flowFile, session);
                     this.readyBins.add(bin);
                 }
