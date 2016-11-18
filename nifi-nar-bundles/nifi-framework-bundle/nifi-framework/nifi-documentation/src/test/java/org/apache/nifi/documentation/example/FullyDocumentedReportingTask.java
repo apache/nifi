@@ -16,20 +16,22 @@
  */
 package org.apache.nifi.documentation.example;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @CapabilityDescription("A helper reporting task to do...")
 @Tags({"first", "second", "third"})
+@Restricted("reporting task restriction description")
 public class FullyDocumentedReportingTask extends AbstractReportingTask {
 
     public static final PropertyDescriptor SHOW_DELTAS = new PropertyDescriptor.Builder()

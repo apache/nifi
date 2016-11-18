@@ -36,6 +36,7 @@
  *              hover: '#004849',
  *              text: '#ffffff'
  *          },
+ *          disabled: isDisabledFunction,
  *      handler: {
  *          click: cancelHandler
  *      }
@@ -46,6 +47,7 @@
  *              hover: '#C7D2D7',
  *              text: '#004849'
  *          },
+ *          disabled: isDisabledFunction,
  *      handler: {
  *          click: applyHandler
  *      }
@@ -101,27 +103,54 @@
     var addButtons = function (dialog, buttonModel) {
         if (isDefinedAndNotNull(buttonModel)) {
             var buttonWrapper = $('<div class="dialog-buttons"></div>');
-            var button;
             $.each(buttonModel, function (i, buttonConfig) {
-                var clazz = isDefinedAndNotNull(buttonConfig.clazz) ? buttonConfig.clazz : '';
-                if (buttonConfig.color) {
-                    button = $('<div class="button ' + clazz + '" style="color:' + buttonConfig.color.text + '; background:' + buttonConfig.color.base + ';"><span>' + buttonConfig.buttonText + '</span></div>');
-                    button.hover(function () {
-                        $(this).css("background-color", buttonConfig.color.hover);
-                    }, function () {
-                        $(this).css("background-color", buttonConfig.color.base);
-                    });
-                } else {
-                    button = $('<div class="button ' + clazz + '"><span>' + buttonConfig.buttonText + '</span></div>');
+                var isDisabled = function () {
+                    return typeof buttonConfig.disabled === 'function' && buttonConfig.disabled.call() === true;
+                };
+
+                // create the button
+                var button = $('<div class="button"></div>').append($('<span></span>').text(buttonConfig.buttonText));
+
+                // add the class if specified
+                if (isDefinedAndNotNull(buttonConfig.clazz)) {
+                    button.addClass(buttonConfig.clazz);
                 }
-                button.click(function () {
-                    var handler = $(this).data('handler');
-                    if (isDefinedAndNotNull(handler) && typeof handler.click === 'function') {
-                        handler.click.call(dialog);
+
+                // set the color if specified
+                if (isDefinedAndNotNull(buttonConfig.color)) {
+                    button.css({
+                        'background': buttonConfig.color.base,
+                        'color': buttonConfig.color.text
+                    });
+                }
+
+                // check if the button should be disabled
+                if (isDisabled()) {
+                    button.addClass('disabled-button');
+                } else {
+                    // enable custom hover if specified
+                    if (isDefinedAndNotNull(buttonConfig.color)) {
+                        button.hover(function () {
+                            $(this).css("background-color", buttonConfig.color.hover);
+                        }, function () {
+                            $(this).css("background-color", buttonConfig.color.base);
+                        });
                     }
-                }).data('handler', buttonConfig.handler).appendTo(buttonWrapper);
+
+                    button.click(function () {
+                        var handler = $(this).data('handler');
+                        if (isDefinedAndNotNull(handler) && typeof handler.click === 'function') {
+                            handler.click.call(dialog);
+                        }
+                    });
+                }
+
+                // add the button to the wrapper
+                button.data('handler', buttonConfig.handler).appendTo(buttonWrapper);
             });
-            buttonWrapper.appendTo(dialog);
+
+            // store the button model to refresh later
+            dialog.append(buttonWrapper).data('buttonModel', buttonModel);
         }
     };
 
@@ -255,6 +284,22 @@
                     // add the new buttons
                     addButtons(dialog, buttons);
                 }
+            });
+        },
+
+        /**
+         * Refreshes the buttons with the existing model.
+         */
+        refreshButtons: function () {
+            return this.each(function () {
+                var dialog = $(this);
+                var buttons = dialog.data('buttonModel');
+
+                // remove the current buttons
+                dialog.children('.dialog-buttons').remove();
+
+                // add the new buttons
+                addButtons(dialog, buttons);
             });
         },
 

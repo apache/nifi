@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.service;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.authorization.Resource;
@@ -118,6 +119,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.ControllerService, getIdentifier(), getName());
+    }
+
+    @Override
+    public boolean isRestricted() {
+        return getControllerServiceImplementation().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

@@ -312,7 +312,7 @@ public class FileAuthorizerTest {
 
         // verify user3's policies
         final Map<String,Set<RequestAction>> user3Policies = getResourceActions(policies, user3);
-        assertEquals(5, user3Policies.size());
+        assertEquals(6, user3Policies.size());
 
         assertTrue(user3Policies.containsKey(ResourceType.Flow.getValue()));
         assertEquals(1, user3Policies.get(ResourceType.Flow.getValue()).size());
@@ -502,7 +502,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(11, policies.size());
+        assertEquals(12, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -540,7 +540,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(7, policies.size());
+        assertEquals(8, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -578,7 +578,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(7, policies.size());
+        assertEquals(8, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 

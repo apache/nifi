@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -55,6 +56,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     @Override
     public Resource getResource() {
         return ResourceFactory.getComponentResource(ResourceType.ReportingTask, getIdentifier(), getName());
+    }
+
+    @Override
+    public boolean isRestricted() {
+        return getReportingTask().getClass().isAnnotationPresent(Restricted.class);
     }
 
     @Override

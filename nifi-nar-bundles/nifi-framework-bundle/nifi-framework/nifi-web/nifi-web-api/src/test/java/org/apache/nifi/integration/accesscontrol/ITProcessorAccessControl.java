@@ -19,6 +19,7 @@ package org.apache.nifi.integration.accesscontrol;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
+import org.apache.nifi.integration.util.RestrictedProcessor;
 import org.apache.nifi.integration.util.SourceTestProcessor;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -397,6 +398,43 @@ public class ITProcessorAccessControl {
     @Test
     public void testNoneUserDeleteProcessor() throws Exception {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
+    }
+
+    /**
+     * Tests attempt to create a restricted processor.
+     *
+     * @throws Exception if there is an error creating this processor
+     */
+    @Test
+    public void testCreateRestrictedProcessor() throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/processors";
+
+        // create the processor
+        ProcessorDTO processor = new ProcessorDTO();
+        processor.setName("restricted");
+        processor.setType(RestrictedProcessor.class.getName());
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(READ_WRITE_CLIENT_ID);
+        revision.setVersion(0L);
+
+        // create the entity body
+        ProcessorEntity entity = new ProcessorEntity();
+        entity.setRevision(revision);
+        entity.setComponent(processor);
+
+        // perform the request as a user with read/write but no restricted access
+        ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
+
+        // ensure the request is successful
+        assertEquals(403, response.getStatus());
+
+        // perform the request as a user with read/write and restricted access
+        response = helper.getPrivilegedUser().testPost(url, entity);
+
+        // ensure the request is successful
+        assertEquals(201, response.getStatus());
     }
 
     private ProcessorEntity getRandomProcessor(final NiFiTestUser user) throws Exception {

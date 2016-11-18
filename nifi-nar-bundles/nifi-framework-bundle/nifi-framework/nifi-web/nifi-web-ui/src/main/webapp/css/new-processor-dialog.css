@@ -87,3 +87,11 @@
 #processor-type-filter {
     width: 200px;
 }
+
+/*
+    Restricted
+*/
+
+div.view-usage-restriction {
+    color: #ba554a !important;
+}

@@ -91,6 +91,10 @@ nf.Common = (function () {
         value: 'provenance',
         description: 'Allows users to submit a Provenance Search and request Event Lineage'
     }, {
+        text: 'access restricted components',
+        value: 'restricted-components',
+        description: 'Allows users to create/modify restricted components assuming otherwise sufficient permissions'
+    }, {
         text: 'access all policies',
         value: 'policies',
         description: 'Allows users to view/modify the policies for all components'
@@ -155,6 +159,32 @@ nf.Common = (function () {
          * The current user.
          */
         currentUser: undefined,
+
+        /**
+         * Formats type of a component for a new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        typeFormatter: function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            // restriction
+            if (nf.Common.isBlank(dataContext.usageRestriction) === false) {
+                markup += '<div class="view-usage-restriction fa fa-shield"></div><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            } else {
+                markup += '<div class="fa"></div>';
+            }
+
+            // type
+            markup += value;
+
+            return markup;
+        },
 
         /**
          * Sets the current user.
@@ -266,6 +296,19 @@ nf.Common = (function () {
         canAccessProvenance: function () {
             if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
                 return nf.Common.currentUser.provenancePermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can access restricted comopnents.
+         *
+         * @returns {boolean}
+         */
+        canAccessRestrictedComponents: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.restrictedComponentsPermissions.canWrite === true;
             } else {
                 return false;
             }

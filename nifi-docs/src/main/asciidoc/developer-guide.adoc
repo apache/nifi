@@ -565,6 +565,23 @@ for instance, they should not be
 relied upon for critical business logic.
 
 
+[[restricted]]
+=== Restricted
+
+A Restricted component is one that can be used to execute arbitrary unsanitized code provided by the operator
+through the NiFi REST API/UI or can be used to obtain or alter data on the NiFi host system using the NiFi OS
+credentials. These components could be used by an otherwise authorized NiFi user to go beyond the intended use of
+the application, escalate privilege, or could expose data about the internals of the NiFi process or the host
+system. All of these capabilities should be considered privileged, and admins should be aware of these
+capabilities and explicitly enable them for a subset of trusted users.
+
+A Processor, Controller Service, or Reporting Task can be marked with the @Restricted annotation. This
+will result in the component being treated as restricted and will require a user to be explicitly added to the
+list of users who can access restricted components. Once a user is permitted to access restricted components,
+they will be allowed to create and modify those components assuming all other permissions are permitted.
+Without access to restricted components, a user will be still be aware these types of components exist but will
+be unable to create or modify them even with otherwise sufficient permissions.
+
 [[state_manager]]
 === State Manager
 

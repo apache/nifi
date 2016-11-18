@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
+import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -615,12 +615,18 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestProcessorEntity,
                 lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestProcessor.getType());
+                    if (authorizable.isRestricted()) {
+                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                    }
 
                     final ProcessorConfigDTO config = requestProcessor.getConfig();
                     if (config != null && config.getProperties() != null) {
-                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getProcessorByType(requestProcessor.getType());
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
                     }
                 },
@@ -2129,11 +2135,17 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestControllerServiceEntity,
                 lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestControllerService.getType());
+                    if (authorizable.isRestricted()) {
+                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
+                    }
 
                     if (requestControllerService.getProperties() != null) {
-                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
                     }
                 },
