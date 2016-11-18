@@ -175,6 +175,18 @@ text.processor-icon {
     font-size: 30px;
 }
 
+circle.restricted-background {
+    visibility: hidden;
+    fill: rgba(255, 255, 255, 0.90);
+}
+
+text.restricted {
+    visibility: hidden;
+    font-family: FontAwesome;
+    font-size: 12px;
+    fill: #ba554a;
+}
+
 text.run-status-icon {
     font-size: 13px;
 }

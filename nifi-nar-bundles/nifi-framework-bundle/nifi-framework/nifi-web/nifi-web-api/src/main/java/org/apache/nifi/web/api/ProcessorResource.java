@@ -25,7 +25,7 @@ import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
+import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -448,7 +448,7 @@ public class ProcessorResource extends ApplicationResource {
                 lookup -> {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getProcessor(id);
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessor(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
 
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();

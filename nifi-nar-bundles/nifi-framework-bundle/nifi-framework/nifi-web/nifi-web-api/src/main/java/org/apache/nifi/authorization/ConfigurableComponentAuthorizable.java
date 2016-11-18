@@ -22,13 +22,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 /**
  * Authorizable for a component that references a ControllerService.
  */
-public interface ControllerServiceReferencingComponentAuthorizable {
+public interface ConfigurableComponentAuthorizable {
     /**
      * Returns the base authorizable for this ControllerServiceReference. Non null
      *
      * @return authorizable
      */
     Authorizable getAuthorizable();
+
+    /**
+     * Returns whether or not the underlying configurable component is restricted.
+     *
+     * @return whether or not the underlying configurable component is restricted
+     */
+    boolean isRestricted();
 
     /**
      * Returns the property descriptor for the specified property.

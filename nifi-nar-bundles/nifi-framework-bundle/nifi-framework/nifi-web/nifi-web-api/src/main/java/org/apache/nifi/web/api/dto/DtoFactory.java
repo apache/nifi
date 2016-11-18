@@ -31,6 +31,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -1239,6 +1240,7 @@ public final class DtoFactory {
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(reportingTaskNode.isRestricted());
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1308,6 +1310,7 @@ public final class DtoFactory {
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(controllerServiceNode.isRestricted());
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -2011,6 +2014,11 @@ public final class DtoFactory {
         return dto;
     }
 
+    private String getUsageRestriction(final Class<?> cls) {
+        final Restricted restriction = cls.getAnnotation(Restricted.class);
+        return restriction == null ? null : restriction.value();
+    }
+
     /**
      * Gets the capability description from the specified class.
      */
@@ -2050,6 +2058,7 @@ public final class DtoFactory {
             final DocumentedTypeDTO type = new DocumentedTypeDTO();
             type.setType(cls.getName());
             type.setDescription(getCapabilityDescription(cls));
+            type.setUsageRestriction(getUsageRestriction(cls));
             type.setTags(getTags(cls));
             types.add(type);
         }
@@ -2075,6 +2084,7 @@ public final class DtoFactory {
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(node.isRestricted());
 
         dto.setType(node.getCanonicalClassName());
         dto.setName(node.getName());

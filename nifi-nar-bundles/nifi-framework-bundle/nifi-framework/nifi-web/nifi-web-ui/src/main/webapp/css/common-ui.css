@@ -427,7 +427,13 @@ div.button {
     cursor: pointer;
 }
 
-div.button:hover {
+div.button.disabled-button {
+    color: #a8a8a8 !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+div.button:hover:not(.disabled-button) {
     background-color: #004849;
 }
 

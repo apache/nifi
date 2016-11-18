@@ -333,6 +333,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), WRITE_CODE);
         }
 
+        // grant the user write to restricted components
+        addAccessPolicy(authorizations, ResourceType.RestrictedComponents.getValue(), adminUser.getIdentifier(), WRITE_CODE);
+
         // grant the user read/write access to the /tenants resource
         addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), adminUser.getIdentifier(), READ_CODE);
         addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), adminUser.getIdentifier(), WRITE_CODE);

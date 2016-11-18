@@ -156,6 +156,15 @@ nf.Settings = (function () {
     };
 
     /**
+     * Whether the specified item is selectable.
+     *
+     * @param item reporting task type
+     */
+    var isSelectable = function (item) {
+        return nf.Common.isBlank(item.usageRestriction) || nf.Common.canAccessRestrictedComponents();
+    };
+
+    /**
      * Formatter for the name column.
      *
      * @param {type} row
@@ -406,7 +415,17 @@ nf.Settings = (function () {
         $('#reporting-task-type-filter').on('keyup', function (e) {
             var code = e.keyCode ? e.keyCode : e.which;
             if (code === $.ui.keyCode.ENTER) {
-                addSelectedReportingTask();
+                // get the grid reference
+                var grid = $('#reporting-task-types-table').data('gridInstance');
+                var selected = grid.getSelectedRows();
+
+                if (selected.length > 0) {
+                    // grid configured with multi-select = false
+                    var item = grid.getDataItem(selected[0]);
+                    if (isSelectable(item)) {
+                        addSelectedReportingTask();
+                    }
+                }
             } else {
                 applyReportingTaskTypeFilter();
             }
@@ -414,7 +433,7 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
+            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
             {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
         ];
 
@@ -458,12 +477,21 @@ nf.Settings = (function () {
                     $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
                     $('#selected-reporting-task-name').text(reportingTaskType.label);
                     $('#selected-reporting-task-type').text(reportingTaskType.type);
+
+                    // refresh the buttons based on the current selection
+                    $('#new-reporting-task-dialog').modal('refreshButtons');
                 }
             }
         });
         reportingTaskTypesGrid.onDblClick.subscribe(function (e, args) {
             var reportingTaskType = reportingTaskTypesGrid.getDataItem(args.row);
-            addReportingTask(reportingTaskType.type);
+
+            if (isSelectable(reportingTaskType)) {
+                addReportingTask(reportingTaskType.type);
+            }
+        });
+        reportingTaskTypesGrid.onViewportChanged.subscribe(function (e, args) {
+            nf.Common.cleanUpTooltips($('#reporting-task-types-table'), 'div.view-usage-restriction');
         });
 
         // wire up the dataview to the grid
@@ -481,7 +509,31 @@ nf.Settings = (function () {
         reportingTaskTypesData.syncGridSelection(reportingTaskTypesGrid, true);
 
         // hold onto an instance of the grid
-        $('#reporting-task-types-table').data('gridInstance', reportingTaskTypesGrid);
+        $('#reporting-task-types-table').data('gridInstance', reportingTaskTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var usageRestriction = $(this).find('div.view-usage-restriction');
+            if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                var rowId = $(this).find('span.row-id').text();
+
+                // get the status item
+                var item = reportingTaskTypesData.getItemById(rowId);
+
+                // show the tooltip
+                if (nf.Common.isDefinedAndNotNull(item.usageRestriction)) {
+                    usageRestriction.qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                        content: item.usageRestriction,
+                        position: {
+                            container: $('#summary'),
+                            at: 'bottom right',
+                            my: 'top left',
+                            adjust: {
+                                x: 4,
+                                y: 4
+                            }
+                        }
+                    }));
+                }
+            }
+        });
 
         // load the available reporting tasks
         $.ajax({
@@ -503,6 +555,7 @@ nf.Settings = (function () {
                     label: nf.Common.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     description: nf.Common.escapeHtml(documentedType.description),
+                    usageRestriction: nf.Common.escapeHtml(documentedType.usageRestriction),
                     tags: documentedType.tags.join(', ')
                 });
 
@@ -536,6 +589,17 @@ nf.Settings = (function () {
                         base: '#728E9B',
                         hover: '#004849',
                         text: '#ffffff'
+                    },
+                    disabled: function () {
+                        var selected = reportingTaskTypesGrid.getSelectedRows();
+
+                        if (selected.length > 0) {
+                            // grid configured with multi-select = false
+                            var item = reportingTaskTypesGrid.getDataItem(selected[0]);
+                            return isSelectable(item) === false;
+                        } else {
+                            return false;
+                        }
                     },
                     handler: {
                         click: function () {

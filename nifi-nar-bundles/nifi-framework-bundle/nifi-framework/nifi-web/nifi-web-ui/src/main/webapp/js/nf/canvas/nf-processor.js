@@ -132,6 +132,24 @@ nf.Processor = (function () {
             })
             .text('\ue807');
 
+        // restricted icon background
+        processor.append('circle')
+            .attr({
+                'r': 9,
+                'cx': 12,
+                'cy': 12,
+                'class': 'restricted-background'
+            });
+
+        // restricted icon
+        processor.append('text')
+            .attr({
+                'x': 7.75,
+                'y': 17,
+                'class': 'restricted'
+            })
+            .text('\uf132');
+
         // make processors selectable
         processor.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
     };
@@ -603,8 +621,25 @@ nf.Processor = (function () {
 
                     return color;
                 });
+
+            // restricted component indicator
+            processor.select('circle.restricted-background').style('visibility', showRestricted);
+            processor.select('text.restricted').style('visibility', showRestricted);
         });
     };
+
+    /**
+     * Returns whether the resticted indicator should be shown for a given
+     * @param d
+     * @returns {*}
+     */
+    var showRestricted = function (d) {
+        if (!d.permissions.canRead) {
+            return 'hidden';
+        }
+
+        return d.component.restricted ? 'visible' : 'hidden';
+    }
 
     /**
      * Updates the stats for the processors in the specified selection.

@@ -788,6 +788,7 @@ public class ControllerFacade implements Authorizable {
         final List<Resource> resources = new ArrayList<>();
         resources.add(ResourceFactory.getFlowResource());
         resources.add(ResourceFactory.getSystemResource());
+        resources.add(ResourceFactory.getRestrictedComponentsResource());
         resources.add(ResourceFactory.getControllerResource());
         resources.add(ResourceFactory.getCountersResource());
         resources.add(ResourceFactory.getProvenanceResource());

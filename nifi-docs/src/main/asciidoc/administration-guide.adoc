@@ -481,6 +481,7 @@ Here is a summary of policies assigned to each legacy role if the NiFi instance 
 |view policies                 |*      |     |         |            |      |
 |modify policies               |*      |     |         |            |      |
 |query provenance              |       |     |         |*           |      |
+|access restricted components  |       |*    |         |            |      |
 |view the data                 |       |*    |         |*           |      |*
 |modify the data               |       |*    |         |            |      |*
 |retrieve site-to-site details |       |     |         |            |*     |
@@ -583,6 +584,10 @@ Global access policies govern the following system level authorizations:
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
 |Data Provenance
+
+|access restricted components
+|Allows users to create/modify restricted components assuming otherwise sufficient permissions
+|N/A
 
 |access all policies
 |Allows users to view/modify the policies for all components

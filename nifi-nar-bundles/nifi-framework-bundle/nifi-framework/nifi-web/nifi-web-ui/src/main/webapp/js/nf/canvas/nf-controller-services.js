@@ -40,6 +40,15 @@ nf.ControllerServices = (function () {
     };
 
     /**
+     * Whether the specified item is selectable.
+     *
+     * @param item controller service type
+     */
+    var isSelectable = function (item) {
+        return nf.Common.isBlank(item.usageRestriction) || nf.Common.canAccessRestrictedComponents();
+    };
+
+    /**
      * Get the text out of the filter field. If the filter field doesn't
      * have any text it will contain the text 'filter list' so this method
      * accounts for that.
@@ -254,7 +263,7 @@ nf.ControllerServices = (function () {
     var initNewControllerServiceDialog = function () {
         // initialize the processor type table
         var controllerServiceTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
+            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
             {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
         ];
 
@@ -298,8 +307,14 @@ nf.ControllerServices = (function () {
                     $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
                     $('#selected-controller-service-name').text(controllerServiceType.label);
                     $('#selected-controller-service-type').text(controllerServiceType.type);
+
+                    // refresh the buttons based on the current selection
+                    $('#new-controller-service-dialog').modal('refreshButtons');
                 }
             }
+        });
+        controllerServiceTypesGrid.onViewportChanged.subscribe(function (e, args) {
+            nf.Common.cleanUpTooltips($('#controller-service-types-table'), 'div.view-usage-restriction');
         });
 
         // wire up the dataview to the grid
@@ -317,7 +332,31 @@ nf.ControllerServices = (function () {
         controllerServiceTypesData.syncGridSelection(controllerServiceTypesGrid, true);
 
         // hold onto an instance of the grid
-        $('#controller-service-types-table').data('gridInstance', controllerServiceTypesGrid);
+        $('#controller-service-types-table').data('gridInstance', controllerServiceTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+            var usageRestriction = $(this).find('div.view-usage-restriction');
+            if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                var rowId = $(this).find('span.row-id').text();
+
+                // get the status item
+                var item = controllerServiceTypesData.getItemById(rowId);
+
+                // show the tooltip
+                if (nf.Common.isDefinedAndNotNull(item.usageRestriction)) {
+                    usageRestriction.qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                        content: item.usageRestriction,
+                        position: {
+                            container: $('#summary'),
+                            at: 'bottom right',
+                            my: 'top left',
+                            adjust: {
+                                x: 4,
+                                y: 4
+                            }
+                        }
+                    }));
+                }
+            }
+        });
 
         // load the available controller services
         $.ajax({
@@ -339,6 +378,7 @@ nf.ControllerServices = (function () {
                     label: nf.Common.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     description: nf.Common.escapeHtml(documentedType.description),
+                    usageRestriction: nf.Common.escapeHtml(documentedType.usageRestriction),
                     tags: documentedType.tags.join(', ')
                 });
 
@@ -831,11 +871,22 @@ nf.ControllerServices = (function () {
          * @param {jQuery} serviceTable
          */
         promptNewControllerService: function (controllerServicesUri, serviceTable) {
+            // get the grid reference
+            var grid = $('#controller-service-types-table').data('gridInstance');
+
             // update the keyhandler
             $('#controller-service-type-filter').off('keyup').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
-                    addSelectedControllerService(controllerServicesUri, serviceTable);
+                    var selected = grid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = grid.getDataItem(selected[0]);
+                        if (isSelectable(item)) {
+                            addSelectedControllerService(controllerServicesUri, serviceTable);
+                        }
+                    }
                 } else {
                     applyControllerServiceTypeFilter();
                 }
@@ -848,6 +899,17 @@ nf.ControllerServices = (function () {
                     base: '#728E9B',
                     hover: '#004849',
                     text: '#ffffff'
+                },
+                disabled: function () {
+                    var selected = grid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = grid.getDataItem(selected[0]);
+                        return isSelectable(item) === false;
+                    } else {
+                        return false;
+                    }
                 },
                 handler: {
                     click: function () {
@@ -878,7 +940,10 @@ nf.ControllerServices = (function () {
             // update the dbl click handler and subsrcibe
             dblClick = function(e, args) {
                 var controllerServiceType = controllerServiceTypesGrid.getDataItem(args.row);
-                addControllerService(controllerServicesUri, serviceTable, controllerServiceType.type);
+
+                if (isSelectable(controllerServiceType)) {
+                    addControllerService(controllerServicesUri, serviceTable, controllerServiceType.type);
+                }
             };
             controllerServiceTypesGrid.onDblClick.subscribe(dblClick);
 

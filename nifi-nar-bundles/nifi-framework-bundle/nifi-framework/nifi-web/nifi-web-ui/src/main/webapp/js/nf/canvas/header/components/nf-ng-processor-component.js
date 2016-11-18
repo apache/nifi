@@ -235,6 +235,15 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
         }).fail(nf.Common.handleAjaxError);
     };
 
+    /**
+     * Whether the specified item is selectable.
+     *
+     * @param item process type
+     */
+    var isSelectable = function (item) {
+        return nf.Common.isBlank(item.usageRestriction) || nf.Common.canAccessRestrictedComponents();
+    };
+
     function ProcessorComponent() {
 
         this.icon = 'icon icon-processor';
@@ -257,7 +266,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 init: function () {
                     // initialize the processor type table
                     var processorTypesColumns = [
-                        {id: 'type', name: 'Type', field: 'label', sortable: true, resizable: true},
+                        {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: true, resizable: true},
                         {id: 'tags', name: 'Tags', field: 'tags', sortable: true, resizable: true}
                     ];
                     var processorTypesOptions = {
@@ -319,8 +328,14 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                                 $('#processor-type-name').text(processorType.label).ellipsis();
                                 $('#selected-processor-name').text(processorType.label);
                                 $('#selected-processor-type').text(processorType.type);
+
+                                // refresh the buttons based on the current selection
+                                $('#new-processor-dialog').modal('refreshButtons');
                             }
                         }
+                    });
+                    processorTypesGrid.onViewportChanged.subscribe(function (e, args) {
+                        nf.Common.cleanUpTooltips($('#processor-types-table'), 'div.view-usage-restriction');
                     });
 
                     // wire up the dataview to the grid
@@ -338,7 +353,31 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                     processorTypesData.syncGridSelection(processorTypesGrid, false);
 
                     // hold onto an instance of the grid
-                    $('#processor-types-table').data('gridInstance', processorTypesGrid);
+                    $('#processor-types-table').data('gridInstance', processorTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+                        var usageRestriction = $(this).find('div.view-usage-restriction');
+                        if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                            var rowId = $(this).find('span.row-id').text();
+
+                            // get the status item
+                            var item = processorTypesData.getItemById(rowId);
+
+                            // show the tooltip
+                            if (nf.Common.isDefinedAndNotNull(item.usageRestriction)) {
+                                usageRestriction.qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                                    content: item.usageRestriction,
+                                    position: {
+                                        container: $('#summary'),
+                                        at: 'bottom right',
+                                        my: 'top left',
+                                        adjust: {
+                                            x: 4,
+                                            y: 4
+                                        }
+                                    }
+                                }));
+                            }
+                        }
+                    });
 
                     // load the available processor types, this select is shown in the
                     // new processor dialog when a processor is dragged onto the screen
@@ -362,6 +401,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                                 label: nf.Common.substringAfterLast(type, '.'),
                                 type: type,
                                 description: nf.Common.escapeHtml(documentedType.description),
+                                usageRestriction: nf.Common.escapeHtml(documentedType.usageRestriction),
                                 tags: documentedType.tags.join(', ')
                             });
 
@@ -497,6 +537,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
          */
         promptForProcessorType: function (pt) {
             var self = this;
+
             // handles adding the selected processor at the specified point
             var addProcessor = function () {
                 // get the type of processor currently selected
@@ -525,10 +566,12 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             var gridDoubleClick = function (e, args) {
                 var processorType = grid.getDataItem(args.row);
 
-                $('#selected-processor-name').text(processorType.label);
-                $('#selected-processor-type').text(processorType.type);
+                if (isSelectable(processorType)) {
+                    $('#selected-processor-name').text(processorType.label);
+                    $('#selected-processor-type').text(processorType.type);
 
-                addProcessor();
+                    addProcessor();
+                }
             };
 
             // register a handler for double click events
@@ -541,6 +584,17 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                     base: '#728E9B',
                     hover: '#004849',
                     text: '#ffffff'
+                },
+                disabled: function () {
+                    var selected = grid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = grid.getDataItem(selected[0]);
+                        return isSelectable(item) === false;
+                    } else {
+                        return false;
+                    }
                 },
                 handler: {
                     click: addProcessor
@@ -576,7 +630,15 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             $('#processor-type-filter').focus().off('keyup').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
-                    addProcessor();
+                    var selected = grid.getSelectedRows();
+
+                    if (selected.length > 0) {
+                        // grid configured with multi-select = false
+                        var item = grid.getDataItem(selected[0]);
+                        if (isSelectable(item)) {
+                            addProcessor();
+                        }
+                    }
                 } else {
                     applyFilter();
                 }
