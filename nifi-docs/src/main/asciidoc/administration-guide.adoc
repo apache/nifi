@@ -1151,7 +1151,7 @@ NiFi Clustering is unique and has its own terminology. It's important to underst
 [template="glossary", id="terminology"]
 *Terminology* +
 
-*NiFi Cluster Coordinator*: A NiFi Cluster Cluster Coordinator is the node in a NiFI cluster that is responsible for carrying out
+*NiFi Cluster Coordinator*: A NiFi Cluster Cluster Coordinator is the node in a NiFi cluster that is responsible for carrying out
 tasks to manage which nodes are allowed in the cluster and providing the most up-to-date flow to newly joining nodes. When a
 DataFlow Manager manages a dataflow in a cluster, they are able to do so through the User Interface of any node in the cluster. Any
 change made is then replicated to all nodes in the cluster.
@@ -1432,7 +1432,7 @@ If Kerberos is not already setup in your environment, you can find information o
 https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[_https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html_]
 . This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
 
-Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFI Node and kerberizing a ZooKeeper NiFI client will require that
+Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFi Node and kerberizing a ZooKeeper NiFi client will require that
 Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
 
 [source]
@@ -1603,7 +1603,7 @@ This output can be rather verbose but provides extremely valuable information fo
 === ZooKeeper Migrator
 You can use the NiFi ZooKeeper Migrator to perform the following tasks:
 
-* Move ZooKeeper information from one ZooKeeper cluster to another
+* Moving ZooKeeper information from one ZooKeeper cluster to another
 * Migrating ZooKeeper node ownership
 
 For example, you may want to use the ZooKeeper Migrator when you are:
@@ -1613,7 +1613,7 @@ For example, you may want to use the ZooKeeper Migrator when you are:
 * Upgrading from NiFi 0.x with an external ZooKeeper to NiFi 1.x with the same external ZooKeeper
 * Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
 
-The NiFi ZooKeeper Migrator (`zk-migrator.sh`) is part of the NiFi Toolkit and is downloaded separately from the
+The NiFi ZooKeeper Migrator is part of the NiFi Toolkit and is downloaded separately from the
 link:https://nifi.apache.org/download.html[Apache NiFi download page].
 
 [[zk_migrator_command_line_parameters]]
@@ -1622,7 +1622,7 @@ link:https://nifi.apache.org/download.html[Apache NiFi download page].
 You can use the following command line options with the ZooKeeper Migrator:
 
 * `-a,--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k,--krb-conf` option.
-* `-f,--file <filename>`                        The file to be used for JSON data.  When used with the `-r,--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s,--send` option, the data in the file will be sent to ZooKeeper.
+* `-f,--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r,--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s,--send` option, the data in the file will be sent to ZooKeeper.
 * `-h,--help`                                   Prints help, displays available parameters with descriptions
 * `--ignore-source`                             Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
 * `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
@@ -1642,6 +1642,8 @@ Before you begin, confirm that:
 * You have not started processing any dataflow (to avoid duplicate data processing).
 * If one of the ZooKeeper clusters you are using is configured with Kerberos, you are running the ZooKeeper Migrator from a host that has access to NiFi’s ZooKeeper client jaas configuration file (see <<zk_kerberos_client>> for more information).
 
+===== ZooKeeper Migration Steps
+
 1. Collect the following information:
 
 |====
@@ -1651,10 +1653,10 @@ Before you begin, confirm that:
 |Source ZooKeeper port (*sourceClientPort*)|This can be found in *zookeeper.properties* of the <NiFi installation dir>/conf/zookeeper.properties.  The port is specified in the *clientPort* property.
 |Destination ZooKeeper port (*destinationClientPort*)|This can be found in *zookeeper.properties* of the <NiFi installation dir>/conf/zookeeper.properties.  The port is specified in the *clientPort* property.
 |Export data path|Determine the path that will store a json file containing the export of data from ZooKeeper.  It must be readable and writable by the user running the zk-migrator tool.
-|Source ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFI 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
+|Source ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFi 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
 
 If the state-management.xml specifies Open, no authentication is required.
-|Destination ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFI 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
+|Destination ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFi 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
 
 If the state-management.xml specifies Open, no authentication is required.
 |Root path to which NiFi writes data in Source ZooKeeper (*sourceRootPath*)|This information can be found in <NiFi installation dir>/conf/state-management.xml under the Root Node property in the cluster-provider element. (default: /nifi)
