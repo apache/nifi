@@ -223,11 +223,16 @@ public abstract class CompressableRecordReader implements RecordReader {
     public void close() throws IOException {
         logger.trace("Closing Record Reader for {}", filename);
 
-        dis.close();
-        rawInputStream.close();
-
-        if (tocReader != null) {
-            tocReader.close();
+        try {
+            dis.close();
+        } finally {
+            try {
+                rawInputStream.close();
+            } finally {
+                if (tocReader != null) {
+                    tocReader.close();
+                }
+            }
         }
     }
 
