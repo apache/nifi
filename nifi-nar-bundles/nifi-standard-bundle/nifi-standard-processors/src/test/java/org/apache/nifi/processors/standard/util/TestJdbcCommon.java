@@ -169,7 +169,7 @@ public class TestJdbcCommon {
         assertNotNull(schema);
 
         assertNotNull(schema.getField("ID"));
-        assertNotNull(schema.getField("NOT_VCHARC"));
+        assertNotNull(schema.getField("VCHARC"));
 
         // records name, should be result set first column table name
         assertEquals("TEST", schema.getName());
