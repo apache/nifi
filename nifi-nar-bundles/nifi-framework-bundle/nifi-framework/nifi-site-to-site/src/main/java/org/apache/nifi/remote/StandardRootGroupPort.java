@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
@@ -273,13 +274,15 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     @Override
     public Collection<ValidationResult> getValidationErrors() {
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
-        if (!isValid()) {
-            final ValidationResult error = new ValidationResult.Builder()
-                    .explanation(String.format("Output connection for port '%s' is not defined.", getName()))
-                    .subject(String.format("Port '%s'", getName()))
-                    .valid(false)
-                    .build();
-            validationErrors.add(error);
+        if (getScheduledState() == ScheduledState.STOPPED) {
+            if (!isValid()) {
+                final ValidationResult error = new ValidationResult.Builder()
+                        .explanation(String.format("Output connection for port '%s' is not defined.", getName()))
+                        .subject(String.format("Port '%s'", getName()))
+                        .valid(false)
+                        .build();
+                validationErrors.add(error);
+            }
         }
         return validationErrors;
     }

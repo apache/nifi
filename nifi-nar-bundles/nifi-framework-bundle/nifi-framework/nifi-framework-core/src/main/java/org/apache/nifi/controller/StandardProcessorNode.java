@@ -934,21 +934,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isValid() {
         try {
-            // Processors may go invalid while RUNNING, but only validating while STOPPED is a trade-off
-            // we are willing to make in order to save on validation costs that would be unnecessary most of the time.
-            if (getScheduledState() == ScheduledState.STOPPED) {
-                final ValidationContext validationContext = this.getValidationContextFactory()
-                        .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
+            final ValidationContext validationContext = this.getValidationContextFactory()
+                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
-                final Collection<ValidationResult> validationResults;
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
-                    validationResults = getProcessor().validate(validationContext);
-                }
+            final Collection<ValidationResult> validationResults;
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+                validationResults = getProcessor().validate(validationContext);
+            }
 
-                for (final ValidationResult result : validationResults) {
-                    if (!result.isValid()) {
-                        return false;
-                    }
+            for (final ValidationResult result : validationResults) {
+                if (!result.isValid()) {
+                    return false;
                 }
             }
 
@@ -1001,38 +997,38 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         results.add(result);
                     }
                 }
-            }
 
-            for (final Relationship relationship : getUndefinedRelationships()) {
-                if (!isAutoTerminated(relationship)) {
-                    final ValidationResult error = new ValidationResult.Builder()
-                            .explanation("Relationship '" + relationship.getName()
-                                    + "' is not connected to any component and is not auto-terminated")
-                            .subject("Relationship " + relationship.getName()).valid(false).build();
-                    results.add(error);
+                for (final Relationship relationship : getUndefinedRelationships()) {
+                    if (!isAutoTerminated(relationship)) {
+                        final ValidationResult error = new ValidationResult.Builder()
+                                .explanation("Relationship '" + relationship.getName()
+                                        + "' is not connected to any component and is not auto-terminated")
+                                .subject("Relationship " + relationship.getName()).valid(false).build();
+                        results.add(error);
+                    }
                 }
-            }
 
-            switch (getInputRequirement()) {
-            case INPUT_ALLOWED:
-                break;
-            case INPUT_FORBIDDEN: {
-                final int incomingConnCount = getIncomingNonLoopConnections().size();
-                if (incomingConnCount != 0) {
-                    results.add(new ValidationResult.Builder().explanation(
-                            "Processor does not allow upstream connections but currently has " + incomingConnCount)
-                            .subject("Upstream Connections").valid(false).build());
+                switch (getInputRequirement()) {
+                    case INPUT_ALLOWED:
+                        break;
+                    case INPUT_FORBIDDEN: {
+                        final int incomingConnCount = getIncomingNonLoopConnections().size();
+                        if (incomingConnCount != 0) {
+                            results.add(new ValidationResult.Builder().explanation(
+                                    "Processor does not allow upstream connections but currently has " + incomingConnCount)
+                                    .subject("Upstream Connections").valid(false).build());
+                        }
+                        break;
+                    }
+                    case INPUT_REQUIRED: {
+                        if (getIncomingNonLoopConnections().isEmpty()) {
+                            results.add(new ValidationResult.Builder()
+                                    .explanation("Processor requires an upstream connection but currently has none")
+                                    .subject("Upstream Connections").valid(false).build());
+                        }
+                        break;
+                    }
                 }
-                break;
-            }
-            case INPUT_REQUIRED: {
-                if (getIncomingNonLoopConnections().isEmpty()) {
-                    results.add(new ValidationResult.Builder()
-                            .explanation("Processor requires an upstream connection but currently has none")
-                            .subject("Upstream Connections").valid(false).build());
-                }
-                break;
-            }
             }
         } catch (final Throwable t) {
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString())

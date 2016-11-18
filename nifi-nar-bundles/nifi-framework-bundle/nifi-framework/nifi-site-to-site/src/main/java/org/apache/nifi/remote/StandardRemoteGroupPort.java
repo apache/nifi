@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -367,7 +368,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
             final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
             final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-            logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
+            logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
                 this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
         }
 
@@ -381,31 +382,33 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
     @Override
     public boolean isValid() {
-        return getValidationErrors().isEmpty();
+        return targetExists.get()
+                && (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true);
     }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
         final Collection<ValidationResult> validationErrors = new ArrayList<>();
-        ValidationResult error = null;
-        if (!targetExists.get()) {
-            error = new ValidationResult.Builder()
-                    .explanation(String.format("Remote instance indicates that port '%s' no longer exists.", getName()))
-                    .subject(String.format("Remote port '%s'", getName()))
-                    .valid(false)
-                    .build();
-        } else if (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT && getConnections(Relationship.ANONYMOUS).isEmpty()) {
-            error = new ValidationResult.Builder()
-                    .explanation(String.format("Port '%s' has no outbound connections", getName()))
-                    .subject(String.format("Remote port '%s'", getName()))
-                    .valid(false)
-                    .build();
-        }
+        if (getScheduledState() == ScheduledState.STOPPED) {
+            ValidationResult error = null;
+            if (!targetExists.get()) {
+                error = new ValidationResult.Builder()
+                        .explanation(String.format("Remote instance indicates that port '%s' no longer exists.", getName()))
+                        .subject(String.format("Remote port '%s'", getName()))
+                        .valid(false)
+                        .build();
+            } else if (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT && getConnections(Relationship.ANONYMOUS).isEmpty()) {
+                error = new ValidationResult.Builder()
+                        .explanation(String.format("Port '%s' has no outbound connections", getName()))
+                        .subject(String.format("Remote port '%s'", getName()))
+                        .valid(false)
+                        .build();
+            }
 
-        if (error != null) {
-            validationErrors.add(error);
+            if (error != null) {
+                validationErrors.add(error);
+            }
         }
-
         return validationErrors;
     }
 

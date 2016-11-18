@@ -118,7 +118,7 @@ public class TestStandardProcessorNode {
     }
 
     @Test
-    public void testDisabledValidation() {
+    public void testDisabledValidationErrors() {
         final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
@@ -126,11 +126,11 @@ public class TestStandardProcessorNode {
         final Map<String, String> properties = new HashMap<>();
         properties.put(ModifiesClasspathNoAnnotationProcessor.CLASSPATH_RESOURCE.getName(), "");
         procNode.setProperties(properties);
-        Assert.assertFalse(procNode.isValid());
+        Assert.assertTrue(procNode.getValidationErrors().size() > 0);
 
         // Disabled processors skip property validation
         procNode.disable();
-        Assert.assertTrue(procNode.isValid());
+        Assert.assertFalse(procNode.getValidationErrors().size() > 0);
     }
 
     @Test
