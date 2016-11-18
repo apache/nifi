@@ -346,7 +346,7 @@ public class ConfigMainTest {
         Set<String> extraKeys = new HashSet<>(actual.keySet());
         extraKeys.removeAll(expected.keySet());
         for (String extraKey : extraKeys) {
-            differences.add("Extra key: " + path + extraKey);
+            differences.add("Extra key: " + path + " " + extraKey);
         }
     }
 

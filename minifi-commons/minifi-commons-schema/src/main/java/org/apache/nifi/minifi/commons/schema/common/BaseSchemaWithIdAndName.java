@@ -40,7 +40,7 @@ public abstract class BaseSchemaWithIdAndName extends BaseSchemaWithId implement
     }
 
     public String getWrapperName() {
-        return super.getWrapperName().replace("{name}", StringUtil.isNullOrEmpty(name) ? "unkown" : name);
+        return super.getWrapperName().replace("{name}", StringUtil.isNullOrEmpty(name) ? "unknown" : name);
     }
 
     @Override

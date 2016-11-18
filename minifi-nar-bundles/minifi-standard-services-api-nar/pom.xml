@@ -60,6 +60,7 @@
             <artifactId>nifi-hbase-client-service-api</artifactId>
             <scope>compile</scope>
         </dependency>
+
         <!-- Manage provided dependencies in lib -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -76,5 +77,19 @@
             <artifactId>bcpkix-jdk15on</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

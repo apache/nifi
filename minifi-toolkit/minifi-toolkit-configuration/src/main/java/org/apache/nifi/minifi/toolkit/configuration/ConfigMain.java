@@ -145,9 +145,6 @@ public class ConfigMain {
 
         Set<RemoteProcessGroupDTO> remoteProcessGroups = getAll(allFlowSnippets, FlowSnippetDTO::getRemoteProcessGroups).collect(Collectors.toSet());
 
-        // RPGs with no name get Target URI as name
-        remoteProcessGroups.stream().filter(r -> StringUtil.isNullOrEmpty(r.getName())).forEach(r -> r.setName(r.getTargetUri()));
-
         Map<String, String> connectableNameMap = getAll(allFlowSnippets, FlowSnippetDTO::getProcessors).collect(Collectors.toMap(ComponentDTO::getId, ProcessorDTO::getName));
 
         for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {

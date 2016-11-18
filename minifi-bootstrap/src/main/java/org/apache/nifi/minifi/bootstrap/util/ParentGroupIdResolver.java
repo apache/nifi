@@ -65,7 +65,7 @@ public class ParentGroupIdResolver {
     protected static void getRemoteInputPortParentIdMap(ProcessGroupSchema processGroupSchema, Map<String, String> output) {
         for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : processGroupSchema.getRemoteProcessingGroups()) {
             for (RemoteInputPortSchema remoteInputPortSchema : remoteProcessingGroupSchema.getInputPorts()) {
-                output.put(remoteInputPortSchema.getId(), remoteProcessingGroupSchema.getName());
+                output.put(remoteInputPortSchema.getId(), remoteProcessingGroupSchema.getId());
             }
         }
         processGroupSchema.getProcessGroupSchemas().forEach(p -> getRemoteInputPortParentIdMap(p, output));

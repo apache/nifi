@@ -248,6 +248,11 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
                 <version>${logback.version}</version>
                 <scope>provided</scope>
@@ -580,6 +585,26 @@ limitations under the License.
                 <artifactId>bcpkix-jdk15on</artifactId>
                 <version>1.54</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>4.4.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore-nio</artifactId>
+                <version>4.4.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-client-dto</artifactId>
+                <version>${org.apache.nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpasyncclient</artifactId>
+                <version>4.1.1</version>
             </dependency>
 
             <!-- Test Dependencies -->

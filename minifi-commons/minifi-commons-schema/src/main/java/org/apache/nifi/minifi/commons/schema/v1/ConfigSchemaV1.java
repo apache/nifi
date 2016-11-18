@@ -77,7 +77,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
     private SecurityPropertiesSchema securityProperties;
     private List<ProcessorSchemaV1> processors;
     private List<ConnectionSchemaV1> connections;
-    private List<RemoteProcessingGroupSchema> remoteProcessingGroups;
+    private List<RemoteProcessingGroupSchemaV1> remoteProcessingGroups;
     private ProvenanceReportingSchema provenanceReportingProperties;
 
     private ProvenanceRepositorySchema provenanceRepositorySchema;
@@ -95,7 +95,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         processors = convertListToType(getOptionalKeyAsType(map, PROCESSORS_KEY, List.class, TOP_LEVEL_NAME, new ArrayList<>()), PROCESSORS_KEY, ProcessorSchemaV1.class, TOP_LEVEL_NAME);
 
         remoteProcessingGroups = convertListToType(getOptionalKeyAsType(map, REMOTE_PROCESSING_GROUPS_KEY, List.class, TOP_LEVEL_NAME, new ArrayList<>()), "remote processing group",
-                RemoteProcessingGroupSchema.class, REMOTE_PROCESSING_GROUPS_KEY);
+                RemoteProcessingGroupSchemaV1.class, REMOTE_PROCESSING_GROUPS_KEY);
 
         connections = convertListToType(getOptionalKeyAsType(map, CONNECTIONS_KEY, List.class, TOP_LEVEL_NAME, new ArrayList<>()), CONNECTIONS_KEY, ConnectionSchemaV1.class, TOP_LEVEL_NAME);
 
@@ -117,7 +117,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
 
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_NAMES, processorNames);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_NAMES, connections.stream().map(ConnectionSchemaV1::getName).collect(Collectors.toList()));
-        checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESSING_GROUP_NAMES, remoteProcessingGroups.stream().map(RemoteProcessingGroupSchema::getName)
+        checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESSING_GROUP_NAMES, remoteProcessingGroups.stream().map(RemoteProcessingGroupSchemaV1::getName)
                 .collect(Collectors.toList()));
 
         Set<String> connectableNames = new HashSet<>(processorNames);
@@ -214,6 +214,19 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         return connectionSchemas;
     }
 
+    protected List<RemoteProcessingGroupSchema> getRemoteProcessingGroupSchemas() {
+        Set<UUID> ids = new HashSet<>();
+        List<RemoteProcessingGroupSchema> rpgSchemas= new ArrayList<>(remoteProcessingGroups.size());
+
+        for (RemoteProcessingGroupSchemaV1 rpg : remoteProcessingGroups) {
+            RemoteProcessingGroupSchema rpgSchema = rpg.convert();
+            rpgSchema.setId(getUniqueId(ids, rpgSchema.getName()));
+            rpgSchemas.add(rpgSchema);
+        }
+
+        return rpgSchemas;
+
+    }
     @Override
     public ConfigSchema convert() {
         Map<String, Object> map = new HashMap<>();
@@ -229,7 +242,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         putListIfNotNull(map, PROCESSORS_KEY, processorSchemas);
         List<String> validationIssues = getValidationIssues();
         putListIfNotNull(map, CONNECTIONS_KEY, getConnectionSchemas(processorSchemas, validationIssues));
-        putListIfNotNull(map, REMOTE_PROCESSING_GROUPS_KEY, remoteProcessingGroups);
+        putListIfNotNull(map, REMOTE_PROCESSING_GROUPS_KEY, getRemoteProcessingGroupSchemas());
         putIfNotNull(map, PROVENANCE_REPORTING_KEY, provenanceReportingProperties);
         return new ConfigSchema(map, validationIssues);
     }

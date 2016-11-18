@@ -193,7 +193,7 @@ public class ConfigTransformerTest {
     }
 
     private void testRemoteProcessGroups(Element element, RemoteProcessingGroupSchema remoteProcessingGroupSchema) throws XPathExpressionException {
-        assertEquals(remoteProcessingGroupSchema.getName(), getText(element, "id"));
+        assertEquals(remoteProcessingGroupSchema.getId(), getText(element, "id"));
         assertEquals(remoteProcessingGroupSchema.getName(), getText(element, "name"));
         assertEquals(remoteProcessingGroupSchema.getComment(), getText(element, "comment"));
         assertEquals(remoteProcessingGroupSchema.getUrl(), getText(element, "url"));

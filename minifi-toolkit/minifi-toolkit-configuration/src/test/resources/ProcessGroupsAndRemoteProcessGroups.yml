@@ -174,7 +174,8 @@ Process Groups:
       flowfile expiration: 0 sec
       queue prioritizer class: ''
     Remote Processing Groups:
-    - name: http://localhost:9091/nifi
+    - id: 21a651bb-0158-1000-0000-000000000000
+      name: ''
       url: http://localhost:9091/nifi
       comment: ''
       timeout: 30 sec
@@ -232,7 +233,8 @@ Process Groups:
     flowfile expiration: 0 sec
     queue prioritizer class: ''
   Remote Processing Groups:
-  - name: http://localhost:9090/nifi
+  - id: 21a4e2f0-0158-1000-0000-000000000000
+    name: ''
     url: http://localhost:9090/nifi
     comment: ''
     timeout: 30 sec

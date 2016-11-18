@@ -41,16 +41,18 @@ public class ParentGroupIdResolverTest {
         configLines.add("MiNiFi Config Version: 2");
         configLines.add("Remote Processing Groups:");
         configLines.add("- name: rpgOne");
+        configLines.add("  id: rpgOneId");
         configLines.add("  Input Ports:");
         configLines.add("  - id: one");
         configLines.add("Process Groups:");
         configLines.add("- Remote Processing Groups:");
         configLines.add("  - name: rpgTwo");
+        configLines.add("    id: rpgTwoId");
         configLines.add("    Input Ports:");
         configLines.add("    - id: two");
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
-        assertEquals("rpgOne", parentGroupIdResolver.getRemoteInputPortParentId("one"));
-        assertEquals("rpgTwo", parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertEquals("rpgOneId", parentGroupIdResolver.getRemoteInputPortParentId("one"));
+        assertEquals("rpgTwoId", parentGroupIdResolver.getRemoteInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
@@ -132,6 +134,7 @@ public class ParentGroupIdResolverTest {
 
     @Test
     public void testFunnelParentId() throws IOException, SchemaLoaderException {
+        StringBuilder sb = new StringBuilder();
         List<String> configLines = new ArrayList<>();
         configLines.add("MiNiFi Config Version: 2");
         configLines.add("Funnels:");

@@ -82,7 +82,8 @@ Connections:
   flowfile expiration: 60 sec
   queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
 Remote Processing Groups:
-- name: NiFi Flow
+- id: 8644cbcc-a45c-40e0-964d-4d243afcbbb2
+  name: NiFi Flow
   url: https://localhost:8090/nifi
   comment: ''
   timeout: 30 secs

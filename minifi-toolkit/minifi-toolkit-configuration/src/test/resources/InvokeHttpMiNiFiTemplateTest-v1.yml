@@ -249,7 +249,7 @@ Connections:
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 Remote Processing Groups:
-- name: http://nifi:8080/nifi
+- name: ''
   url: http://nifi:8080/nifi
   comment: ''
   timeout: 30 sec

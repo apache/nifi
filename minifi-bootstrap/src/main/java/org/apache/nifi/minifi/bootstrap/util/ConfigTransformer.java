@@ -78,8 +78,9 @@ import java.util.zip.GZIPOutputStream;
 
 public final class ConfigTransformer {
     // Underlying version of NIFI will be using
-    public static final String NIFI_VERSION = "0.6.1";
+    public static final String NIFI_VERSION = "1.0.0";
     public static final String ROOT_GROUP = "Root-Group";
+    public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
@@ -471,7 +472,7 @@ public final class ConfigTransformer {
             addTextElement(taskElement, "id", "Provenance-Reporting");
             addTextElement(taskElement, "name", "Site-To-Site-Provenance-Reporting");
             addTextElement(taskElement, "comment", provenanceProperties.getComment());
-            addTextElement(taskElement, "class", "org.apache.nifi.minifi.provenance.reporting.ProvenanceReportingTask");
+            addTextElement(taskElement, "class", DEFAULT_PROV_REPORTING_TASK_CLASS);
             addTextElement(taskElement, "schedulingPeriod", provenanceProperties.getSchedulingPeriod());
             addTextElement(taskElement, "scheduledState", "RUNNING");
             addTextElement(taskElement, "schedulingStrategy", provenanceProperties.getSchedulingStrategy());
@@ -479,7 +480,7 @@ public final class ConfigTransformer {
             Map<String, Object> attributes = new HashMap<>();
             attributes.put("Destination URL", provenanceProperties.getDestinationUrl());
             attributes.put("Input Port Name", provenanceProperties.getPortName());
-            attributes.put("MiNiFi URL", provenanceProperties.getOriginatingUrl());
+            attributes.put("Instance URL", provenanceProperties.getOriginatingUrl());
             attributes.put("Compress Events", provenanceProperties.getUseCompression());
             attributes.put("Batch Size", provenanceProperties.getBatchSize());
             attributes.put("Communications Timeout", provenanceProperties.getTimeout());
@@ -524,7 +525,7 @@ public final class ConfigTransformer {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("remoteProcessGroup");
             parentElement.appendChild(element);
-            addTextElement(element, "id", remoteProcessingGroupProperties.getName());
+            addTextElement(element, "id", remoteProcessingGroupProperties.getId());
             addTextElement(element, "name", remoteProcessingGroupProperties.getName());
             addPosition(element);
             addTextElement(element, "comment", remoteProcessingGroupProperties.getComment());

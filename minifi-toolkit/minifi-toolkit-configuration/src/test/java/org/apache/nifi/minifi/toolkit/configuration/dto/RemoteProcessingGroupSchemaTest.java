@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -37,6 +38,7 @@ import static org.junit.Assert.assertNull;
 
 public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProcessingGroupSchema, RemoteProcessGroupDTO> {
     private final RemoteInputPortSchemaTest remoteInputPortSchemaTest;
+    private String testId = UUID.randomUUID().toString();
     private String testName = "testName";
     private String testUrl = "testUrl";
     private String testComment = "testComment";
@@ -53,6 +55,7 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
         remoteInputPortSchemaTest.setup();
 
         dto = new RemoteProcessGroupDTO();
+        dto.setId(testId);
         dto.setName(testName);
         dto.setTargetUri(testUrl);
 
@@ -66,6 +69,7 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
 
         map = new HashMap<>();
 
+        map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(RemoteProcessingGroupSchema.URL_KEY, testUrl);
         map.put(CommonPropertyKeys.INPUT_PORTS_KEY, new ArrayList<>(Arrays.asList(remoteInputPortSchemaTest.map)));
@@ -75,10 +79,17 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
     }
 
     @Test
+    public void testNoId() {
+        dto.setId(null);
+        map.remove(CommonPropertyKeys.ID_KEY);
+        assertDtoAndMapConstructorAreSame(1);
+    }
+
+    @Test
     public void testNoName() {
         dto.setName(null);
         map.remove(CommonPropertyKeys.NAME_KEY);
-        assertDtoAndMapConstructorAreSame(1);
+        assertDtoAndMapConstructorAreSame(0);
     }
 
     @Test

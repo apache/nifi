@@ -40,6 +40,7 @@ public class RemoteProcessingGroupSchemaFunction implements Function<RemoteProce
     @Override
     public RemoteProcessingGroupSchema apply(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         Map<String, Object> map = new HashMap<>();
+        map.put(CommonPropertyKeys.ID_KEY, remoteProcessGroupDTO.getId());
         map.put(CommonPropertyKeys.NAME_KEY, remoteProcessGroupDTO.getName());
         map.put(RemoteProcessingGroupSchema.URL_KEY, remoteProcessGroupDTO.getTargetUri());
 

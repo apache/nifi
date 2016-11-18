@@ -47,7 +47,7 @@ public class BaseSchemaWithId extends BaseSchema implements WritableSchema {
     }
 
     public String getWrapperName() {
-        return wrapperName.replace("{id}", StringUtil.isNullOrEmpty(id) ? "unkown" : id);
+        return wrapperName.replace("{id}", StringUtil.isNullOrEmpty(id) ? "unknown" : id);
     }
 
     @Override
