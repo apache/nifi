@@ -30,7 +30,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
+import org.apache.nifi.authorization.ConfigurableComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -283,8 +283,12 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestReportingTask.getType());
+                    if (authorizable.isRestricted()) {
+                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
+
                     if (requestReportingTask.getProperties() != null) {
-                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
                     }
                 },
@@ -376,8 +380,12 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestControllerService.getType());
+                    if (authorizable.isRestricted()) {
+                        lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
+
                     if (requestControllerService.getProperties() != null) {
-                        final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
                     }
                 },

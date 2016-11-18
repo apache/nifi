@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -62,6 +63,8 @@ import java.util.Set;
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
+    private static final Authorizable RESTRICTED_COMPONENTS_AUTHORIZABLE = new RestrictedComponentsAuthorizable();
+
     private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
         @Override
         public Authorizable getParentAuthorizable() {
@@ -134,12 +137,17 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getProcessor(final String id) {
+    public ConfigurableComponentAuthorizable getProcessor(final String id) {
         final ProcessorNode processorNode = processorDAO.getProcessor(id);
-        return new ControllerServiceReferencingComponentAuthorizable() {
+        return new ConfigurableComponentAuthorizable() {
             @Override
             public Authorizable getAuthorizable() {
                 return processorNode;
+            }
+
+            @Override
+            public boolean isRestricted() {
+                return processorNode.isRestricted();
             }
 
             @Override
@@ -155,13 +163,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getProcessorByType(String type) {
+    public ConfigurableComponentAuthorizable getProcessorByType(String type) {
         try {
             final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(type);
-            return new ControllerServiceReferencingComponentAuthorizable() {
+            return new ConfigurableComponentAuthorizable() {
                 @Override
                 public Authorizable getAuthorizable() {
                     return processorNode;
+                }
+
+                @Override
+                public boolean isRestricted() {
+                    return processorNode.isRestricted();
                 }
 
                 @Override
@@ -328,12 +341,17 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getControllerService(final String id) {
+    public ConfigurableComponentAuthorizable getControllerService(final String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
-        return new ControllerServiceReferencingComponentAuthorizable() {
+        return new ConfigurableComponentAuthorizable() {
             @Override
             public Authorizable getAuthorizable() {
                 return controllerService;
+            }
+
+            @Override
+            public boolean isRestricted() {
+                return controllerService.isRestricted();
             }
 
             @Override
@@ -349,13 +367,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getControllerServiceByType(String type) {
+    public ConfigurableComponentAuthorizable getControllerServiceByType(String type) {
         try {
             final ControllerServiceNode controllerService = controllerFacade.createTemporaryControllerService(type);
-            return new ControllerServiceReferencingComponentAuthorizable() {
+            return new ConfigurableComponentAuthorizable() {
                 @Override
                 public Authorizable getAuthorizable() {
                     return controllerService;
+                }
+
+                @Override
+                public boolean isRestricted() {
+                    return controllerService.isRestricted();
                 }
 
                 @Override
@@ -417,12 +440,17 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getReportingTask(final String id) {
+    public ConfigurableComponentAuthorizable getReportingTask(final String id) {
         final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(id);
-        return new ControllerServiceReferencingComponentAuthorizable() {
+        return new ConfigurableComponentAuthorizable() {
             @Override
             public Authorizable getAuthorizable() {
                 return reportingTaskNode;
+            }
+
+            @Override
+            public boolean isRestricted() {
+                return reportingTaskNode.isRestricted();
             }
 
             @Override
@@ -438,13 +466,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ControllerServiceReferencingComponentAuthorizable getReportingTaskByType(String type) {
+    public ConfigurableComponentAuthorizable getReportingTaskByType(String type) {
         try {
             final ReportingTaskNode reportingTask = controllerFacade.createTemporaryReportingTask(type);
-            return new ControllerServiceReferencingComponentAuthorizable() {
+            return new ConfigurableComponentAuthorizable() {
                 @Override
                 public Authorizable getAuthorizable() {
                     return reportingTask;
+                }
+
+                @Override
+                public boolean isRestricted() {
+                    return reportingTask.isRestricted();
                 }
 
                 @Override
@@ -603,17 +636,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getController();
                 break;
             case Counters:
-                authorizable = new Authorizable() {
-                    @Override
-                    public Authorizable getParentAuthorizable() {
-                        return null;
-                    }
-
-                    @Override
-                    public Resource getResource() {
-                        return ResourceFactory.getCountersResource();
-                    }
-                };
+                authorizable = getCounters();
                 break;
             case Flow:
                 authorizable = new Authorizable() {
@@ -629,17 +652,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 };
                 break;
             case Provenance:
-                authorizable = new Authorizable() {
-                    @Override
-                    public Authorizable getParentAuthorizable() {
-                        return null;
-                    }
-
-                    @Override
-                    public Resource getResource() {
-                        return ResourceFactory.getProvenanceResource();
-                    }
-                };
+                authorizable = getProvenance();
                 break;
             case Proxy:
                 authorizable = new Authorizable() {
@@ -655,7 +668,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 };
                 break;
             case Policy:
-                authorizable = POLICIES_AUTHORIZABLE;
+                authorizable = getPolicies();
                 break;
             case Resource:
                 authorizable = new Authorizable() {
@@ -671,7 +684,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 };
                 break;
             case SiteToSite:
-                // TODO - new site-to-site and port specific site-to-site
                 authorizable = new Authorizable() {
                     @Override
                     public Authorizable getParentAuthorizable() {
@@ -685,20 +697,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 };
                 break;
             case System:
-                authorizable = new Authorizable() {
-                    @Override
-                    public Authorizable getParentAuthorizable() {
-                        return null;
-                    }
-
-                    @Override
-                    public Resource getResource() {
-                        return ResourceFactory.getSystemResource();
-                    }
-                };
+                authorizable = getSystem();
                 break;
             case Tenant:
                 authorizable = getTenant();
+                break;
+            case RestrictedComponents:
+                authorizable = getRestrictedComponents();
                 break;
         }
 
@@ -718,6 +723,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public Authorizable getConnectable(String id) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
         return group.findConnectable(id);
+    }
+
+    @Override
+    public Authorizable getRestrictedComponents() {
+        return RESTRICTED_COMPONENTS_AUTHORIZABLE;
     }
 
     @Override

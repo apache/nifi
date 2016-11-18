@@ -16,25 +16,14 @@
  */
 package org.apache.nifi.processors.script;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.script.Bindings;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
-import javax.script.SimpleBindings;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -43,7 +32,20 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
-@Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
+import javax.script.Bindings;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+@Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "restricted"})
 @CapabilityDescription("Experimental - Executes a script given the flow file and a process session.  The script is responsible for "
         + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
         + "the script. If the handling is incomplete or incorrect, the session will be rolled back. Experimental: "
@@ -54,6 +56,7 @@ import org.apache.nifi.util.StringUtils;
         supportsExpressionLanguage = true,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value "
                 + "specified by the Dynamic Property's value")
+@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
 public class ExecuteScript extends AbstractScriptProcessor {
 
     private String scriptToRun = null;

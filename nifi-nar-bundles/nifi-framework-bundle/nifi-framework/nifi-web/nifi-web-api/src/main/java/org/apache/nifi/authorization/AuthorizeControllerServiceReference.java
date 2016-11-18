@@ -38,7 +38,7 @@ public final class AuthorizeControllerServiceReference {
      * @param authorizer authorizer
      * @param lookup lookup
      */
-    public static void authorizeControllerServiceReferences(final Map<String, String> proposedProperties, final ControllerServiceReferencingComponentAuthorizable authorizable,
+    public static void authorizeControllerServiceReferences(final Map<String, String> proposedProperties, final ConfigurableComponentAuthorizable authorizable,
                                                             final Authorizer authorizer, final AuthorizableLookup lookup) {
 
         // only attempt to authorize if properties are changing

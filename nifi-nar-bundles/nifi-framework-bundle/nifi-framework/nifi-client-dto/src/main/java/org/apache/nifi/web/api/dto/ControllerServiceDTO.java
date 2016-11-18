@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
+import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import javax.xml.bind.annotation.XmlType;
-
-import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A Controller Service that can be shared by other components
@@ -37,6 +35,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     private String comments;
     private String state;
     private Boolean persistsState;
+    private Boolean restricted;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -102,6 +101,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setPersistsState(Boolean persistsState) {
         this.persistsState = persistsState;
+    }
+
+    /**
+     * @return whether this controller service requires elevated privileges
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service requires elevated privileges."
+    )
+    public Boolean getRestricted() {
+        return restricted;
+    }
+
+    public void setRestricted(Boolean restricted) {
+        this.restricted = restricted;
     }
 
     /**

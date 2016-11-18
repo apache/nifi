@@ -40,14 +40,12 @@ Browser Support
 |Browser  |Version
 |Chrome   |Current and Current - 1
 |FireFox  |Current and Current - 1
-|Edge     |Current
+|Edge     |Current and Current - 1
 |Safari   |Current and Current - 1
 |======================
 
 Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if
 the current stable release is 45.X then the officially supported versions will be 45.X and 44.X.
-
-Current indicates that the UI is supported in the current stable release of that browser.
 
 The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested
 against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
@@ -195,6 +193,7 @@ The available global access policies are:
 |view the UI   |Allows users to view the UI
 |access the controller  |Allows users to view and modify the controller including reporting tasks, Controller Services, and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
+|access restricted components     |Allows users to create/modify restricted components assuming otherwise sufficient permissions
 |access all policies   |Allows users to view and modify the policies for all components
 |access users/groups   |Allows users view and modify the users and user groups
 |retrieve site-to-site details | Allows other NiFi instances to retrieve Site-To-Site details
@@ -269,6 +268,17 @@ Tags are selected, only those Processors that contain all of those Tags are show
 Processors that allow us to ingest data via HTTP, we can select both the `http` Tag and the `ingest` Tag:
 
 image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
+
+Restricted components will be marked with a
+image:restricted.png["Restricted"]
+icon next to their name. These are components that can be used to execute arbitrary unsanitized code provided by the operator
+through the NiFi REST API/UI or can be used to obtain or alter data on the NiFi host system using the NiFi OS credentials.
+These components could be used by an otherwise authorized NiFi user to go beyond the intended use of the application, escalate
+privilege, or could expose data about the internals of the NiFi process or the host system. All of these capabilities should
+be considered privileged, and admins should be aware of these capabilities and explicitly enable them for a subset of trusted users.
+
+Before a user is allowed to create and modify restricted components they must be granted access to restricted components. Refer to
+<<UI-with-multi-tenant-authorization,multi-tenant>> documentation.
 
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.

@@ -36,6 +36,7 @@ public class CurrentUserEntity extends Entity {
     private PermissionsDTO controllerPermissions;
     private PermissionsDTO policiesPermissions;
     private PermissionsDTO systemPermissions;
+    private PermissionsDTO restrictedComponentsPermissions;
 
     /**
      * @return the user identity being serialized
@@ -131,5 +132,17 @@ public class CurrentUserEntity extends Entity {
 
     public void setSystemPermissions(PermissionsDTO systemPermissions) {
         this.systemPermissions = systemPermissions;
+    }
+
+    /**
+     * @return permissions for accessing the restricted components
+     */
+    @ApiModelProperty("Permissions for accessing restricted components. Note: the read permission are not used and will always be false.")
+    public PermissionsDTO getRestrictedComponentsPermissions() {
+        return restrictedComponentsPermissions;
+    }
+
+    public void setRestrictedComponentsPermissions(PermissionsDTO restrictedComponentsPermissions) {
+        this.restrictedComponentsPermissions = restrictedComponentsPermissions;
     }
 }

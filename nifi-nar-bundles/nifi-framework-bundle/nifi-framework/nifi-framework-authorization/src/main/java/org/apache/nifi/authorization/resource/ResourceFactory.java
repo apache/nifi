@@ -142,6 +142,18 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource RESTRICTED_COMPONENTS_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.RestrictedComponents.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Restricted Components";
+        }
+    };
+
     private final static Resource TENANT_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -239,6 +251,15 @@ public final class ResourceFactory {
      */
     public static Resource getSystemResource() {
         return SYSTEM_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for accessing restricted components.
+     *
+     * @return The restricted components resource
+     */
+    public static Resource getRestrictedComponentsResource() {
+        return RESTRICTED_COMPONENTS_RESOURCE;
     }
 
     /**

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.documentation.html;
 
-import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
-import static org.junit.Assert.assertEquals;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.ControllerServiceWithLogger;
@@ -36,6 +30,12 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.junit.Assert.assertEquals;
 
 public class HtmlDocumentationWriterTest {
 
@@ -77,6 +77,9 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "PKCS12");
         assertContains(results, "Sensitive Property: true");
 
+        // restricted
+        assertContains(results, "controller service restriction description");
+
         // verify the right OnRemoved and OnShutdown methods were called
         Assert.assertEquals(0, controllerService.getOnRemovedArgs());
         Assert.assertEquals(0, controllerService.getOnRemovedNoArgs());
@@ -113,6 +116,9 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "Specifies whether or not to show the difference in values between the current status and the previous status");
         assertContains(results, "true");
         assertContains(results, "false");
+
+        // restricted
+        assertContains(results, "reporting task restriction description");
 
         // verify the right OnRemoved and OnShutdown methods were called
         Assert.assertEquals(0, reportingTask.getOnRemovedArgs());

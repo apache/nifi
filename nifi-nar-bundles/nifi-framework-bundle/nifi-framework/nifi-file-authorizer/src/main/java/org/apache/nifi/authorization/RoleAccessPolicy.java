@@ -72,6 +72,7 @@ public final class RoleAccessPolicy {
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_ACTION));
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), WRITE_ACTION));
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.System.getValue(), READ_ACTION));
+        dfmPolicies.add(new RoleAccessPolicy(ResourceType.RestrictedComponents.getValue(), WRITE_ACTION));
         if (rootGroupId != null) {
             dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
             dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));

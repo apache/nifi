@@ -17,10 +17,11 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import javax.xml.bind.annotation.XmlType;
 
 /**
  * Details for a processor within this NiFi.
@@ -38,6 +39,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsEventDriven;
     private Boolean supportsBatching;
     private Boolean persistsState;
+    private Boolean restricted;
     private String inputRequirement;
 
     private ProcessorConfigDTO config;
@@ -135,6 +137,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setPersistsState(Boolean persistsState) {
         this.persistsState = persistsState;
+    }
+
+    /**
+     * @return whether this processor requires elevated privileges
+     */
+    @ApiModelProperty(
+            value = "Whether the processor requires elevated privileges."
+    )
+    public Boolean getRestricted() {
+        return restricted;
+    }
+
+    public void setRestricted(Boolean restricted) {
+        this.restricted = restricted;
     }
 
     /**
