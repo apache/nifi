@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.properties
 
-import ch.qos.logback.classic.spi.LoggingEvent
-import ch.qos.logback.core.AppenderBase
 import org.apache.commons.lang3.SystemUtils
+import org.apache.log4j.AppenderSkeleton
+import org.apache.log4j.spi.LoggingEvent
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
@@ -2308,7 +2308,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines == encryptedLines
-        assert TestAppender.events.any { it =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
+        assert TestAppender.events.any { it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
     }
 
     @Test
@@ -2337,7 +2337,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert serializedLines.findAll { it }.isEmpty()
-        assert TestAppender.events.any { it =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
+        assert TestAppender.events.any { it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out" }
     }
 
     @Test
@@ -2618,8 +2618,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 }
 
-public class TestAppender extends AppenderBase<LoggingEvent> {
-    static List<LoggingEvent> events = new ArrayList<>();
+public class TestAppender extends AppenderSkeleton {
+    static final List<LoggingEvent> events = new ArrayList<>();
 
     @Override
     protected void append(LoggingEvent e) {
@@ -2632,5 +2632,14 @@ public class TestAppender extends AppenderBase<LoggingEvent> {
         synchronized (events) {
             events.clear();
         }
+    }
+
+    @Override
+    void close() {
+    }
+
+    @Override
+    boolean requiresLayout() {
+        return false
     }
 }
