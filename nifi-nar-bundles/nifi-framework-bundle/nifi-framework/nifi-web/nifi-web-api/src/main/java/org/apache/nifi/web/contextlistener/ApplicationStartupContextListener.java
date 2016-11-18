@@ -98,29 +98,39 @@ public class ApplicationStartupContextListener implements ServletContextListener
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
         ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(sce.getServletContext());
+
+        logger.info("Initiating shutdown of flow service...");
+        shutdown(ctx.getBean("flowService", FlowService.class), ctx.getBean("requestReplicator", RequestReplicator.class));
+        logger.info("Flow service termination completed.");
+    }
+
+    private void shutdown(final FlowService flowService, final RequestReplicator requestReplicator) {
         try {
-            logger.info("Initiating shutdown of flow service...");
-            shutdown(ctx.getBean("flowService", FlowService.class), ctx.getBean("requestReplicator", RequestReplicator.class));
-            logger.info("Flow service termination completed.");
+            // ensure the flow service is terminated
+            if (flowService != null && flowService.isRunning()) {
+                flowService.stop(false);
+            }
         } catch (final Exception e) {
-            String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
+            final String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
             if (logger.isDebugEnabled()) {
                 logger.warn(msg, e);
             } else {
                 logger.warn(msg);
             }
         }
-    }
 
-    private void shutdown(final FlowService flowService, final RequestReplicator requestReplicator) {
-        // ensure the flow service is terminated
-        if (flowService != null && flowService.isRunning()) {
-            flowService.stop(false);
-        }
-
-        // ensure the request replicator is shutdown
-        if (requestReplicator != null) {
-            requestReplicator.shutdown();
+        try {
+            // ensure the request replicator is shutdown
+            if (requestReplicator != null) {
+                requestReplicator.shutdown();
+            }
+        } catch (final Exception e) {
+            final String msg = "Problem occurred ensuring request replicator was properly terminated due to " + e;
+            if (logger.isDebugEnabled()) {
+                logger.warn(msg, e);
+            } else {
+                logger.warn(msg);
+            }
         }
     }
 }
