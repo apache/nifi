@@ -38,5 +38,6 @@
 		<module>nifi-site-to-site-client</module>
 		<module>nifi-hl7-query-language</module>
         <module>nifi-hadoop-utils</module>
+        <module>nifi-schema-utils</module>
     </modules>
 </project>

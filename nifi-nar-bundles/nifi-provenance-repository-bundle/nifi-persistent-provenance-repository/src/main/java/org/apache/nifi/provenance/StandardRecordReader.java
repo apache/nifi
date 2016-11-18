@@ -17,178 +17,36 @@
 package org.apache.nifi.provenance;
 
 import java.io.DataInputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
-import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.CompressableRecordReader;
 import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.ByteCountingInputStream;
-import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandardRecordReader implements RecordReader {
+public class StandardRecordReader extends CompressableRecordReader {
     private static final Logger logger = LoggerFactory.getLogger(StandardRecordReader.class);
     private static final Pattern UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
-
-    private final ByteCountingInputStream rawInputStream;
-    private final String filename;
-    private final int serializationVersion;
-    private final boolean compressed;
-    private final TocReader tocReader;
-    private final int headerLength;
-    private final int maxAttributeChars;
-
-    private DataInputStream dis;
-    private ByteCountingInputStream byteCountingIn;
 
     public StandardRecordReader(final InputStream in, final String filename, final int maxAttributeChars) throws IOException {
         this(in, filename, null, maxAttributeChars);
     }
 
     public StandardRecordReader(final InputStream in, final String filename, final TocReader tocReader, final int maxAttributeChars) throws IOException {
+        super(in, filename, tocReader, maxAttributeChars);
         logger.trace("Creating RecordReader for {}", filename);
-
-        rawInputStream = new ByteCountingInputStream(in);
-        this.maxAttributeChars = maxAttributeChars;
-
-        final InputStream limitedStream;
-        if ( tocReader == null ) {
-            limitedStream = rawInputStream;
-        } else {
-            final long offset1 = tocReader.getBlockOffset(1);
-            if ( offset1 < 0 ) {
-                limitedStream = rawInputStream;
-            } else {
-                limitedStream = new LimitingInputStream(rawInputStream, offset1 - rawInputStream.getBytesConsumed());
-            }
-        }
-
-        final InputStream readableStream;
-        if (filename.endsWith(".gz")) {
-            readableStream = new BufferedInputStream(new GZIPInputStream(limitedStream));
-            compressed = true;
-        } else {
-            readableStream = new BufferedInputStream(limitedStream);
-            compressed = false;
-        }
-
-        byteCountingIn = new ByteCountingInputStream(readableStream);
-        dis = new DataInputStream(byteCountingIn);
-
-        final String repoClassName = dis.readUTF();
-        final int serializationVersion = dis.readInt();
-        headerLength = repoClassName.getBytes(StandardCharsets.UTF_8).length + 2 + 4; // 2 bytes for string length, 4 for integer.
-
-        if (serializationVersion < 1 || serializationVersion > 9) {
-            throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion + " and supported versions are 1-9");
-        }
-
-        this.serializationVersion = serializationVersion;
-        this.filename = filename;
-        this.tocReader = tocReader;
-    }
-
-    @Override
-    public void skipToBlock(final int blockIndex) throws IOException {
-        if ( tocReader == null ) {
-            throw new IllegalStateException("Cannot skip to block " + blockIndex + " for Provenance Log " + filename + " because no Table-of-Contents file was found for this Log");
-        }
-
-        if ( blockIndex < 0 ) {
-            throw new IllegalArgumentException("Cannot skip to block " + blockIndex + " because the value is negative");
-        }
-
-        if ( blockIndex == getBlockIndex() ) {
-            return;
-        }
-
-        final long offset = tocReader.getBlockOffset(blockIndex);
-        if ( offset < 0 ) {
-            throw new IOException("Unable to find block " + blockIndex + " in Provenance Log " + filename);
-        }
-
-        final long curOffset = rawInputStream.getBytesConsumed();
-
-        final long bytesToSkip = offset - curOffset;
-        if ( bytesToSkip >= 0 ) {
-            try {
-                StreamUtils.skip(rawInputStream, bytesToSkip);
-                logger.debug("Skipped stream from offset {} to {} ({} bytes skipped)", curOffset, offset, bytesToSkip);
-            } catch (final IOException e) {
-                throw new IOException("Failed to skip to offset " + offset + " for block " + blockIndex + " of Provenance Log " + filename, e);
-            }
-
-            resetStreamForNextBlock();
-        }
-    }
-
-    private void resetStreamForNextBlock() throws IOException {
-        final InputStream limitedStream;
-        if ( tocReader == null ) {
-            limitedStream = rawInputStream;
-        } else {
-            final long offset = tocReader.getBlockOffset(1 + getBlockIndex());
-            if ( offset < 0 ) {
-                limitedStream = rawInputStream;
-            } else {
-                limitedStream = new LimitingInputStream(rawInputStream, offset - rawInputStream.getBytesConsumed());
-            }
-        }
-
-        final InputStream readableStream;
-        if (compressed) {
-            readableStream = new BufferedInputStream(new GZIPInputStream(limitedStream));
-        } else {
-            readableStream = new BufferedInputStream(limitedStream);
-        }
-
-        byteCountingIn = new ByteCountingInputStream(readableStream, rawInputStream.getBytesConsumed());
-        dis = new DataInputStream(byteCountingIn);
     }
 
 
-    @Override
-    public TocReader getTocReader() {
-        return tocReader;
-    }
-
-    @Override
-    public boolean isBlockIndexAvailable() {
-        return tocReader != null;
-    }
-
-    @Override
-    public int getBlockIndex() {
-        if ( tocReader == null ) {
-            throw new IllegalStateException("Cannot determine Block Index because no Table-of-Contents could be found for Provenance Log " + filename);
-        }
-
-        return tocReader.getBlockIndex(rawInputStream.getBytesConsumed());
-    }
-
-    @Override
-    public long getBytesConsumed() {
-        return byteCountingIn.getBytesConsumed();
-    }
-
-    private StandardProvenanceEventRecord readPreVersion6Record() throws IOException {
-        final long startOffset = byteCountingIn.getBytesConsumed();
-
-        if (!isData()) {
-            return null;
-        }
-
+    private StandardProvenanceEventRecord readPreVersion6Record(final DataInputStream dis, final int serializationVersion) throws IOException {
+        final long startOffset = getBytesConsumed();
         final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder();
 
         final long eventId = dis.readLong();
@@ -254,7 +112,7 @@ public class StandardRecordReader implements RecordReader {
         builder.setAttributes(Collections.<String, String>emptyMap(), attrs);
         builder.setCurrentContentClaim(null, null, null, null, fileSize);
 
-        builder.setStorageLocation(filename, startOffset);
+        builder.setStorageLocation(getFilename(), startOffset);
 
         final StandardProvenanceEventRecord record = builder.build();
         record.setEventId(eventId);
@@ -262,17 +120,18 @@ public class StandardRecordReader implements RecordReader {
     }
 
     @Override
-    public StandardProvenanceEventRecord nextRecord() throws IOException {
+    public StandardProvenanceEventRecord nextRecord(final DataInputStream dis, final int serializationVersion) throws IOException {
+        if (serializationVersion > StandardRecordWriter.SERIALIZATION_VERISON) {
+            throw new IllegalArgumentException("Unable to deserialize record because the version is "
+                + serializationVersion + " and supported versions are 1-" + StandardRecordWriter.SERIALIZATION_VERISON);
+        }
+
         // Schema changed drastically in version 6 so we created a new method to handle old records
         if (serializationVersion < 6) {
-            return readPreVersion6Record();
+            return readPreVersion6Record(dis, serializationVersion);
         }
 
-        final long startOffset = byteCountingIn.getBytesConsumed();
-
-        if (!isData()) {
-            return null;
-        }
+        final long startOffset = getBytesConsumed();
 
         final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder();
 
@@ -288,7 +147,7 @@ public class StandardRecordReader implements RecordReader {
         if (serializationVersion < 9){
             final int numLineageIdentifiers = dis.readInt();
             for (int i = 0; i < numLineageIdentifiers; i++) {
-                readUUID(dis); //skip identifiers
+                readUUID(dis, serializationVersion); //skip identifiers
             }
         }
 
@@ -303,7 +162,7 @@ public class StandardRecordReader implements RecordReader {
         builder.setComponentId(readNullableString(dis));
         builder.setComponentType(readNullableString(dis));
 
-        final String uuid = readUUID(dis);
+        final String uuid = readUUID(dis, serializationVersion);
         builder.setFlowFileUUID(uuid);
         builder.setDetails(readNullableString(dis));
 
@@ -335,12 +194,12 @@ public class StandardRecordReader implements RecordReader {
         if (eventType == ProvenanceEventType.FORK || eventType == ProvenanceEventType.JOIN || eventType == ProvenanceEventType.CLONE || eventType == ProvenanceEventType.REPLAY) {
             final int numParents = dis.readInt();
             for (int i = 0; i < numParents; i++) {
-                builder.addParentUuid(readUUID(dis));
+                builder.addParentUuid(readUUID(dis, serializationVersion));
             }
 
             final int numChildren = dis.readInt();
             for (int i = 0; i < numChildren; i++) {
-                builder.addChildUuid(readUUID(dis));
+                builder.addChildUuid(readUUID(dis, serializationVersion));
             }
         } else if (eventType == ProvenanceEventType.RECEIVE) {
             builder.setTransitUri(readNullableString(dis));
@@ -357,7 +216,7 @@ public class StandardRecordReader implements RecordReader {
 
         builder.setFlowFileEntryDate(flowFileEntryDate);
         builder.setLineageStartDate(lineageStartDate);
-        builder.setStorageLocation(filename, startOffset);
+        builder.setStorageLocation(getFilename(), startOffset);
 
         final StandardProvenanceEventRecord record = builder.build();
         record.setEventId(eventId);
@@ -373,8 +232,8 @@ public class StandardRecordReader implements RecordReader {
             final String truncatedValue;
             if (value == null) {
                 truncatedValue = null;
-            } else if (value.length() > maxAttributeChars) {
-                truncatedValue = value.substring(0, maxAttributeChars);
+            } else if (value.length() > getMaxAttributeLength()) {
+                truncatedValue = value.substring(0, getMaxAttributeLength());
             } else {
                 truncatedValue = value;
             }
@@ -385,8 +244,8 @@ public class StandardRecordReader implements RecordReader {
         return attrs;
     }
 
-    private String readUUID(final DataInputStream in) throws IOException {
-        if ( serializationVersion < 8 ) {
+    private String readUUID(final DataInputStream in, final int serializationVersion) throws IOException {
+        if (serializationVersion < 8) {
             final long msb = in.readLong();
             final long lsb = in.readLong();
             return new UUID(msb, lsb).toString();
@@ -426,81 +285,5 @@ public class StandardRecordReader implements RecordReader {
         final byte[] strBytes = new byte[length];
         StreamUtils.fillBuffer(in, strBytes);
         return new String(strBytes, "UTF-8");
-    }
-
-    private boolean isData() throws IOException {
-        byteCountingIn.mark(1);
-        int nextByte = byteCountingIn.read();
-        byteCountingIn.reset();
-
-        if ( nextByte < 0 ) {
-            try {
-                resetStreamForNextBlock();
-            } catch (final EOFException eof) {
-                return false;
-            }
-
-            byteCountingIn.mark(1);
-            nextByte = byteCountingIn.read();
-            byteCountingIn.reset();
-        }
-
-        return nextByte >= 0;
-    }
-
-    @Override
-    public long getMaxEventId() throws IOException {
-        if ( tocReader != null ) {
-            final long lastBlockOffset = tocReader.getLastBlockOffset();
-            skipToBlock(tocReader.getBlockIndex(lastBlockOffset));
-        }
-
-        ProvenanceEventRecord record;
-        ProvenanceEventRecord lastRecord = null;
-        try {
-            while ((record = nextRecord()) != null) {
-                lastRecord = record;
-            }
-        } catch (final EOFException eof) {
-            // This can happen if we stop NIFi while the record is being written.
-            // This is OK, we just ignore this record. The session will not have been
-            // committed, so we can just process the FlowFile again.
-        }
-
-        return lastRecord == null ? -1L : lastRecord.getEventId();
-    }
-
-    @Override
-    public void close() throws IOException {
-        logger.trace("Closing Record Reader for {}", filename);
-
-        dis.close();
-        rawInputStream.close();
-
-        if ( tocReader != null ) {
-            tocReader.close();
-        }
-    }
-
-    @Override
-    public void skip(final long bytesToSkip) throws IOException {
-        StreamUtils.skip(dis, bytesToSkip);
-    }
-
-    @Override
-    public void skipTo(final long position) throws IOException {
-        // we are subtracting headerLength from the number of bytes consumed because we used to
-        // consider the offset of the first record "0" - now we consider it whatever position it
-        // it really is in the stream.
-        final long currentPosition = byteCountingIn.getBytesConsumed() - headerLength;
-        if (currentPosition == position) {
-            return;
-        }
-        if (currentPosition > position) {
-            throw new IOException("Cannot skip to byte offset " + position + " in stream because already at byte offset " + currentPosition);
-        }
-
-        final long toSkip = position - currentPosition;
-        StreamUtils.skip(dis, toSkip);
     }
 }

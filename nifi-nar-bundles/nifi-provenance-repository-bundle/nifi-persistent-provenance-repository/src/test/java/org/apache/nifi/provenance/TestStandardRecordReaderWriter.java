@@ -16,174 +16,106 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.apache.nifi.provenance.TestUtil.createFlowFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.provenance.toc.StandardTocReader;
-import org.apache.nifi.provenance.toc.StandardTocWriter;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.toc.NopTocWriter;
 import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.BeforeClass;
+import org.apache.nifi.stream.io.DataOutputStream;
+import org.apache.nifi.stream.io.NullOutputStream;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class TestStandardRecordReaderWriter {
-    @BeforeClass
-    public static void setLogLevel() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
-    }
-
-    private ProvenanceEventRecord createEvent() {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("filename", "1.txt");
-        attributes.put("uuid", UUID.randomUUID().toString());
-
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setEventTime(System.currentTimeMillis());
-        builder.setEventType(ProvenanceEventType.RECEIVE);
-        builder.setTransitUri("nifi://unit-test");
-        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
-        final ProvenanceEventRecord record = builder.build();
-
-        return record;
-    }
-
-    @Test
-    public void testSimpleWriteWithToc() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite");
-        final File tocFile = TocUtil.getTocFile(journalFile);
-        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
-        final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, false, 1024 * 1024);
-
-        writer.writeHeader(1L);
-        writer.writeRecord(createEvent(), 1L);
-        writer.close();
-
-        final TocReader tocReader = new StandardTocReader(tocFile);
-
-        try (final FileInputStream fis = new FileInputStream(journalFile);
-            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
-            assertEquals(0, reader.getBlockIndex());
-            reader.skipToBlock(0);
-            final StandardProvenanceEventRecord recovered = reader.nextRecord();
-            assertNotNull(recovered);
-
-            assertEquals("nifi://unit-test", recovered.getTransitUri());
-            assertNull(reader.nextRecord());
-        }
-
-        FileUtils.deleteFile(journalFile.getParentFile(), true);
-    }
+public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWriter {
 
 
     @Test
-    public void testSingleRecordCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
-        final File tocFile = TocUtil.getTocFile(journalFile);
-        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
-        final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 100);
+    @Ignore("For local testing only")
+    public void testWritePerformance() throws IOException {
+        // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
+        // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
+        // on performance of the repository.
+        final ProvenanceEventRecord event = createEvent();
 
-        writer.writeHeader(1L);
-        writer.writeRecord(createEvent(), 1L);
-        writer.close();
+        final TocWriter tocWriter = new NopTocWriter();
 
-        final TocReader tocReader = new StandardTocReader(tocFile);
+        final int numEvents = 10_000_000;
+        final long startNanos = System.nanoTime();
+        try (final OutputStream nullOut = new NullOutputStream();
+            final RecordWriter writer = new StandardRecordWriter(nullOut, tocWriter, false, 100000)) {
 
-        try (final FileInputStream fis = new FileInputStream(journalFile);
-            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
-            assertEquals(0, reader.getBlockIndex());
-            reader.skipToBlock(0);
-            final StandardProvenanceEventRecord recovered = reader.nextRecord();
-            assertNotNull(recovered);
+            writer.writeHeader(0L);
 
-            assertEquals("nifi://unit-test", recovered.getTransitUri());
-            assertNull(reader.nextRecord());
-        }
-
-        FileUtils.deleteFile(journalFile.getParentFile(), true);
-    }
-
-
-    @Test
-    public void testMultipleRecordsSameBlockCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
-        final File tocFile = TocUtil.getTocFile(journalFile);
-        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
-        // new record each 1 MB of uncompressed data
-        final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 1024 * 1024);
-
-        writer.writeHeader(1L);
-        for (int i=0; i < 10; i++) {
-            writer.writeRecord(createEvent(), i);
-        }
-        writer.close();
-
-        final TocReader tocReader = new StandardTocReader(tocFile);
-
-        try (final FileInputStream fis = new FileInputStream(journalFile);
-            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
-            for (int i=0; i < 10; i++) {
-                assertEquals(0, reader.getBlockIndex());
-
-                // call skipToBlock half the time to ensure that we can; avoid calling it
-                // the other half of the time to ensure that it's okay.
-                if (i <= 5) {
-                    reader.skipToBlock(0);
-                }
-
-                final StandardProvenanceEventRecord recovered = reader.nextRecord();
-                assertNotNull(recovered);
-                assertEquals("nifi://unit-test", recovered.getTransitUri());
+            for (int i = 0; i < numEvents; i++) {
+                writer.writeRecord(event, i);
             }
-
-            assertNull(reader.nextRecord());
         }
 
-        FileUtils.deleteFile(journalFile.getParentFile(), true);
+        final long nanos = System.nanoTime() - startNanos;
+        final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
+        System.out.println("Took " + millis + " millis to write " + numEvents + " events");
     }
-
 
     @Test
-    public void testMultipleRecordsMultipleBlocksCompressed() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
-        final File tocFile = TocUtil.getTocFile(journalFile);
-        final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
-        // new block each 10 bytes
-        final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 100);
+    @Ignore("For local testing only")
+    public void testReadPerformance() throws IOException {
+        // This is a simple micro-benchmarking test so that we can determine how fast the serialization/deserialization is before
+        // making significant changes. This allows us to ensure that changes that we make do not have significant adverse effects
+        // on performance of the repository.
+        final ProvenanceEventRecord event = createEvent();
 
-        writer.writeHeader(1L);
-        for (int i=0; i < 10; i++) {
-            writer.writeRecord(createEvent(), i);
+        final TocReader tocReader = null;
+
+        final byte[] header;
+        try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
+            final DataOutputStream out = new DataOutputStream(headerOut)) {
+            out.writeUTF(PersistentProvenanceRepository.class.getName());
+            out.writeInt(9);
+            header = headerOut.toByteArray();
         }
-        writer.close();
 
-        final TocReader tocReader = new StandardTocReader(tocFile);
+        final byte[] serializedRecord;
+        try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
+            final StandardRecordWriter writer = new StandardRecordWriter(headerOut, null, false, 0)) {
 
-        try (final FileInputStream fis = new FileInputStream(journalFile);
-            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
-            for (int i=0; i < 10; i++) {
-                final StandardProvenanceEventRecord recovered = reader.nextRecord();
-                System.out.println(recovered);
-                assertNotNull(recovered);
-                assertEquals(i, recovered.getEventId());
-                assertEquals("nifi://unit-test", recovered.getTransitUri());
+            writer.writeHeader(1L);
+            headerOut.reset();
+
+            writer.writeRecord(event, 1L);
+            writer.flush();
+            serializedRecord = headerOut.toByteArray();
+        }
+
+        final int numEvents = 10_000_000;
+        final long startNanos = System.nanoTime();
+        try (final InputStream in = new LoopingInputStream(header, serializedRecord);
+            final RecordReader reader = new StandardRecordReader(in, "filename", tocReader, 100000)) {
+
+            for (int i = 0; i < numEvents; i++) {
+                reader.nextRecord();
             }
-
-            assertNull(reader.nextRecord());
         }
 
-        FileUtils.deleteFile(journalFile.getParentFile(), true);
+        final long nanos = System.nanoTime() - startNanos;
+        final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
+        System.out.println("Took " + millis + " millis to read " + numEvents + " events");
     }
+
+    @Override
+    protected RecordWriter createWriter(File file, TocWriter tocWriter, boolean compressed, int uncompressedBlockSize) throws IOException {
+        return new StandardRecordWriter(file, tocWriter, compressed, uncompressedBlockSize);
+    }
+
+    @Override
+    protected RecordReader createReader(InputStream in, String journalFilename, TocReader tocReader, int maxAttributeSize) throws IOException {
+        return new StandardRecordReader(in, journalFilename, tocReader, maxAttributeSize);
+    }
+
 }
