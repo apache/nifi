@@ -38,6 +38,7 @@ import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import org.junit.After;
@@ -310,7 +311,7 @@ public class TestFetchElasticsearch5 {
             if (exceptionToThrow != null) {
                 doThrow(exceptionToThrow).when(getRequestBuilder).execute();
             } else {
-                doReturn(new MockGetRequestBuilderExecutor(documentExists)).when(getRequestBuilder).execute();
+                doReturn(new MockGetRequestBuilderExecutor(documentExists, esHosts.get(0))).when(getRequestBuilder).execute();
             }
             when(mockClient.prepareGet(anyString(), anyString(), anyString())).thenReturn(getRequestBuilder);
 
@@ -326,9 +327,11 @@ public class TestFetchElasticsearch5 {
                 implements ListenableActionFuture<GetResponse> {
 
             boolean documentExists = true;
+            InetSocketAddress address = null;
 
-            public MockGetRequestBuilderExecutor(boolean documentExists) {
+            public MockGetRequestBuilderExecutor(boolean documentExists, InetSocketAddress address) {
                 this.documentExists = documentExists;
+                this.address = address;
             }
 
 
@@ -348,6 +351,9 @@ public class TestFetchElasticsearch5 {
                 when(response.isExists()).thenReturn(documentExists);
                 when(response.getSourceAsBytes()).thenReturn("Success".getBytes());
                 when(response.getSourceAsString()).thenReturn("Success");
+                TransportAddress remoteAddress = mock(TransportAddress.class);
+                when(remoteAddress.getAddress()).thenReturn(address.toString());
+                when(response.remoteAddress()).thenReturn(remoteAddress);
                 return response;
             }
 

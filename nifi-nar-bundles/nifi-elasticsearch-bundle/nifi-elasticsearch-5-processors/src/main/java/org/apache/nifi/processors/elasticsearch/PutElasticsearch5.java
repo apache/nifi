@@ -227,6 +227,7 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                         session.transfer(flowFile, REL_FAILURE);
 
                     } else {
+                        session.getProvenanceReporter().send(flowFile, response.remoteAddress().getAddress());
                         session.transfer(flowFile, REL_SUCCESS);
                     }
                     flowFilesToTransfer.remove(flowFile);

@@ -184,6 +184,7 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
                 logger.debug("Elasticsearch document " + docId + " fetched, routing to success");
                 // The document is JSON, so update the MIME type of the flow file
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
+                session.getProvenanceReporter().fetch(flowFile, getResponse.remoteAddress().getAddress());
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (NoNodeAvailableException
