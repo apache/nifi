@@ -170,7 +170,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(0).assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "2");
     }
-    
+
     @Test
     public void testWithduplicateColumns() throws SQLException {
         // remove previous test database, if any
