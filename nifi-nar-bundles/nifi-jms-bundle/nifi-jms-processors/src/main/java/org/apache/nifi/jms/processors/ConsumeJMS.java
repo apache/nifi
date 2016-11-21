@@ -176,7 +176,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
      */
     private FlowFile updateFlowFileAttributesWithJMSAttributes(Map<String, Object> jmsAttributes, FlowFile flowFile, ProcessSession processSession) {
         Map<String, String> attributes = new HashMap<String, String>();
-        for (Entry<String, Object> entry : jmsAttributes.entrySet()) {
+        for (Entry<String, ? extends Object> entry : jmsAttributes.entrySet()) {
             attributes.put(entry.getKey(), String.valueOf(entry.getValue()));
         }
         flowFile = processSession.putAllAttributes(flowFile, attributes);

@@ -174,9 +174,6 @@ final class JMSConsumer extends JMSWorker {
         return destinationName;
     }
 
-    /**
-     *
-     */
     static class JMSResponse {
         private final byte[] messageBody;
 
