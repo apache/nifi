@@ -46,6 +46,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -180,9 +181,11 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
-                flowFile = session.putAttribute(flowFile, "filename", docId);
-                flowFile = session.putAttribute(flowFile, "es.index", index);
-                flowFile = session.putAttribute(flowFile, "es.type", docType);
+                flowFile = session.putAllAttributes(flowFile, new HashMap<String, String>() {{
+                    put("filename", docId);
+                    put("es.index", index);
+                    put("es.type", docType);
+                }});
                 flowFile = session.write(flowFile, new OutputStreamCallback() {
                     @Override
                     public void process(OutputStream out) throws IOException {

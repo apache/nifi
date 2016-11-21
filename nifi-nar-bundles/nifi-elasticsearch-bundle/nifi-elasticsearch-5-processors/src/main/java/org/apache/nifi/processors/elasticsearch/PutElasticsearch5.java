@@ -199,13 +199,14 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
 
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
-                    logger.error("No value in identifier attribute {} for {}, transferring to failure", new Object[]{id_attribute, file});
+                    logger.warn("No value in identifier attribute {} for {}, transferring to failure", new Object[]{id_attribute, file});
                     flowFilesToTransfer.remove(file);
                     session.transfer(file, REL_FAILURE);
                 } else {
                     session.read(file, new InputStreamCallback() {
                         @Override
                         public void process(final InputStream in) throws IOException {
+                            // For the bulk insert, each document has to be on its own line, so remove all CRLF
                             String json = IOUtils.toString(in, charset)
                                     .replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
 
@@ -227,27 +228,34 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
                 }
             }
 
-            final BulkResponse response = bulk.execute().actionGet();
-            if (response.hasFailures()) {
-                for (final BulkItemResponse item : response.getItems()) {
-                    final FlowFile flowFile = flowFilesToTransfer.get(item.getItemId());
-                    if (item.isFailed()) {
-                        logger.error("Failed to insert {} into Elasticsearch due to {}, transferring to failure",
-                                new Object[]{flowFile, item.getFailure().getMessage()});
-                        session.transfer(flowFile, REL_FAILURE);
+            if (bulk.numberOfActions() > 0) {
+                final BulkResponse response = bulk.execute().actionGet();
+                if (response.hasFailures()) {
+                    // Responses are guaranteed to be in order, remove them in reverse order
+                    BulkItemResponse[] responses = response.getItems();
+                    if (responses != null && responses.length > 0) {
+                        for (int i = responses.length - 1; i >= 0; i--) {
+                            final BulkItemResponse item = responses[i];
+                            final FlowFile flowFile = flowFilesToTransfer.get(item.getItemId());
+                            if (item.isFailed()) {
+                                logger.warn("Failed to insert {} into Elasticsearch due to {}, transferring to failure",
+                                        new Object[]{flowFile, item.getFailure().getMessage()});
+                                session.transfer(flowFile, REL_FAILURE);
 
-                    } else {
-                        session.getProvenanceReporter().send(flowFile, response.remoteAddress().getAddress());
-                        session.transfer(flowFile, REL_SUCCESS);
+                            } else {
+                                session.getProvenanceReporter().send(flowFile, response.remoteAddress().getAddress());
+                                session.transfer(flowFile, REL_SUCCESS);
+                            }
+                            flowFilesToTransfer.remove(flowFile);
+                        }
                     }
-                    flowFilesToTransfer.remove(flowFile);
                 }
-            }
 
-            // Transfer any remaining flowfiles to success
-            for (FlowFile ff : flowFilesToTransfer) {
-                session.getProvenanceReporter().send(ff, response.remoteAddress().getAddress());
-                session.transfer(ff, REL_SUCCESS);
+                // Transfer any remaining flowfiles to success
+                for (FlowFile ff : flowFilesToTransfer) {
+                    session.getProvenanceReporter().send(ff, response.remoteAddress().getAddress());
+                    session.transfer(ff, REL_SUCCESS);
+                }
             }
 
         } catch (NoNodeAvailableException

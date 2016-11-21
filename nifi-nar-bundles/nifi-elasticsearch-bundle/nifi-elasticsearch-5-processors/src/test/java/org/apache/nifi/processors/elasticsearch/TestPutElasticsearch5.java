@@ -140,6 +140,31 @@ public class TestPutElasticsearch5 {
     }
 
     @Test
+    public void testPutElasticSearchOnTriggerBadDocIdentifier() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(false)); // no failures
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.CLUSTER_NAME, "elasticsearch");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.HOSTS, "127.0.0.1:9300");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.PING_TIMEOUT, "5s");
+        runner.setProperty(AbstractElasticsearch5TransportClientProcessor.SAMPLER_INTERVAL, "5s");
+
+        runner.setProperty(PutElasticsearch5.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch5.TYPE, "status");
+        runner.setProperty(PutElasticsearch5.BATCH_SIZE, "1");
+        runner.assertNotValid();
+        runner.setProperty(PutElasticsearch5.ID_ATTRIBUTE, "doc_id2");
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearch5.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testPutElasticSearchOnTriggerWithFailures() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearch5TestProcessor(true)); // simulate failures
         runner.setValidateExpressionUsage(false);
