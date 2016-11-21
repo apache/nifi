@@ -244,19 +244,6 @@
                             actualHeight += 16;
                         });
 
-                        // set the width of each option text
-                        optionList.find('span.combo-option-text').each(function () {
-                            var comboOptionText = $(this);
-                            var offset = 22;
-                            if (comboOptionText.parent().children('div').length > 0) {
-                                offset = 34;
-                            }
-                            if (maxHeight > 0 && actualHeight > maxHeight) {
-                                offset += 20;
-                            }
-                            comboOptionText.width(combo.outerWidth() - offset);
-                        });
-
                         // show the glass pane to catch the click events
                         var comboGlassPane = $('<div class="combo-glass-pane"></div>').one('click', function () {
                             if (comboOptions.length !== 0) {

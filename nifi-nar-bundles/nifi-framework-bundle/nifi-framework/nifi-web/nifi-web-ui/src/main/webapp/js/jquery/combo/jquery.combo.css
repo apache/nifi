@@ -111,3 +111,7 @@ div.combo-nifi-tooltip {
 div.combo-button-normal {
     background-color: #eaeef0;
 }
+
+span.combo-option-text {
+    max-width: 227px;
+}
