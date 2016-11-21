@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * A base class for all Elasticsearch processors
  */
-public abstract class AbstractElasticsearch5Processor extends AbstractProcessor {
+abstract class AbstractElasticsearch5Processor extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("el5-ssl-context-service")

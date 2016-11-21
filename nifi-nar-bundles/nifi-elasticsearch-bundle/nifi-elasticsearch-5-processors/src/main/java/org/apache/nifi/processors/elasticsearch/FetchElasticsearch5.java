@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -108,19 +107,17 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_NOT_FOUND);
-        return Collections.unmodifiableSet(relationships);
-    }
+    static {
+        final Set<Relationship> _rels = new HashSet<>();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        _rels.add(REL_RETRY);
+        _rels.add(REL_NOT_FOUND);
+        relationships = Collections.unmodifiableSet(_rels);
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(CLUSTER_NAME);
         descriptors.add(HOSTS);
@@ -135,17 +132,28 @@ public class FetchElasticsearch5 extends AbstractElasticsearch5TransportClientPr
         descriptors.add(TYPE);
         descriptors.add(CHARSET);
 
-        return Collections.unmodifiableList(descriptors);
-    }
-
-
-    @OnScheduled
-    public void setup(ProcessContext context) {
-        super.setup(context);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
+    }
+
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
+        synchronized (esClient) {
+            if(esClient.get() == null) {
+                super.setup(context);
+            }
+        }
 
         FlowFile flowFile = session.get();
         if (flowFile == null) {

@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -129,17 +128,16 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             .expressionLanguageSupported(true)
             .build();
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_RETRY);
-        return Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    static {
+        final Set<Relationship> _rels = new HashSet<>();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        _rels.add(REL_RETRY);
+        relationships = Collections.unmodifiableSet(_rels);
+
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(CLUSTER_NAME);
         descriptors.add(HOSTS);
@@ -156,16 +154,28 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
         descriptors.add(BATCH_SIZE);
         descriptors.add(INDEX_OP);
 
-        return Collections.unmodifiableList(descriptors);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
-    @OnScheduled
-    public void setup(ProcessContext context) {
-        super.setup(context);
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+
+        synchronized (esClient) {
+            if(esClient.get() == null) {
+                super.setup(context);
+            }
+        }
+
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 

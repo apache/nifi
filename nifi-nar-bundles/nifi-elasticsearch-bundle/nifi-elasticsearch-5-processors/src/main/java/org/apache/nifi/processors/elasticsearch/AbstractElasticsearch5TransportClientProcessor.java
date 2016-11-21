@@ -122,7 +122,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
             .expressionLanguageSupported(true)
             .build();
 
-    protected AtomicReference<Client> esClient = new AtomicReference<>();
+    protected final AtomicReference<Client> esClient = new AtomicReference<>();
     protected List<InetSocketAddress> esHosts;
 
     /**
