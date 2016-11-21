@@ -260,7 +260,12 @@ public class JdbcCommon {
          * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
-            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnName(i)) ? meta.getColumnName(i) : meta.getColumnLabel(i);
+        /**
+        *   as per jdbc 4 specs, getColumnLabel will have the alias for the column, if not it will have the column name.
+        *  so it may be a better option to check for columnlabel first and if in case it is null is someimplementation,
+        *  check for alias. Postgres is the one that has the null column names for calculated fields.
+        */
+            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) :meta.getColumnName(i);
             String columnName = convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {
                 case CHAR:
