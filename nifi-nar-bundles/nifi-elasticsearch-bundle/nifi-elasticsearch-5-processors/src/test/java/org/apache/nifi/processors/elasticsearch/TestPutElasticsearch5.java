@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,6 +34,8 @@ import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import org.junit.After;
@@ -47,7 +48,10 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertNotNull;
@@ -326,14 +330,18 @@ public class TestPutElasticsearch5 {
             this.exceptionToThrow = exceptionToThrow;
         }
 
+
         @Override
-        public void createElasticsearchClient(ProcessContext context) throws ProcessException {
+        protected Client getTransportClient(Settings.Builder settingsBuilder, String xPackPath,
+                                            String username, String password,
+                                            List<InetSocketAddress> esHosts, ComponentLog log)
+                throws MalformedURLException {
             final Client mockClient = mock(Client.class);
             BulkRequestBuilder bulkRequestBuilder = spy(new BulkRequestBuilder(mockClient, BulkAction.INSTANCE));
             if (exceptionToThrow != null) {
                 doThrow(exceptionToThrow).when(bulkRequestBuilder).execute();
             } else {
-                doReturn(new MockBulkRequestBuilderExecutor(responseHasFailures)).when(bulkRequestBuilder).execute();
+                doReturn(new MockBulkRequestBuilderExecutor(responseHasFailures, esHosts.get(0))).when(bulkRequestBuilder).execute();
             }
             when(mockClient.prepareBulk()).thenReturn(bulkRequestBuilder);
 
@@ -355,7 +363,7 @@ public class TestPutElasticsearch5 {
                 }
             });
 
-            esClient.set(mockClient);
+            return mockClient;
         }
 
         private static class MockBulkRequestBuilderExecutor
@@ -363,9 +371,11 @@ public class TestPutElasticsearch5 {
                 implements ListenableActionFuture<BulkResponse> {
 
             boolean responseHasFailures = false;
+            InetSocketAddress address = null;
 
-            public MockBulkRequestBuilderExecutor(boolean responseHasFailures) {
+            public MockBulkRequestBuilderExecutor(boolean responseHasFailures, InetSocketAddress address) {
                 this.responseHasFailures = responseHasFailures;
+                this.address = address;
             }
 
             @Override
@@ -386,6 +396,9 @@ public class TestPutElasticsearch5 {
                 when(item.getItemId()).thenReturn(1);
                 when(item.isFailed()).thenReturn(true);
                 when(response.getItems()).thenReturn(new BulkItemResponse[]{item});
+                TransportAddress remoteAddress = mock(TransportAddress.class);
+                when(remoteAddress.getAddress()).thenReturn(address.toString());
+                when(response.remoteAddress()).thenReturn(remoteAddress);
                 return response;
             }
 

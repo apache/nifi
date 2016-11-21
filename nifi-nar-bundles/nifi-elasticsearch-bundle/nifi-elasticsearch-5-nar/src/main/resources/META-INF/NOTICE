@@ -351,11 +351,6 @@ The following binary components are provided under the Apache Software License v
       The code for the t-digest was originally authored by Ted Dunning
       A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
 
-  (ASLv2) Apache Commons-CLI
-    The following NOTICE information applies:
-      Apache Commons CLI
-      Copyright 2001-2016 The Apache Software Foundation
-
   (ASLv2) Apache Commons Logging
     The following NOTICE information applies:
 
@@ -394,7 +389,7 @@ The following binary components are provided under the Apache Software License v
         This product includes software from the Spring Framework,
         under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
-  (ASLv2) Apache Http Components
+  (ASLv2) Apache HttpComponents
     The following NOTICE information applies:
       Apache HttpComponents Client
       Copyright 1999-2016 The Apache Software Foundation
@@ -409,13 +404,3 @@ The following binary components are provided under the Apache Software License v
 
       This product includes software developed at
       The Apache Software Foundation (http://www.apache.org/).
-
-
-*****************
-Public Domain
-*****************
-
-  The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
-
-
-

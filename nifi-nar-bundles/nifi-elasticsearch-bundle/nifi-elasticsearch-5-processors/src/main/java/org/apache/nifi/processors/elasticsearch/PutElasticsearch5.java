@@ -245,7 +245,10 @@ public class PutElasticsearch5 extends AbstractElasticsearch5TransportClientProc
             }
 
             // Transfer any remaining flowfiles to success
-            session.transfer(flowFilesToTransfer, REL_SUCCESS);
+            for (FlowFile ff : flowFilesToTransfer) {
+                session.getProvenanceReporter().send(ff, response.remoteAddress().getAddress());
+                session.transfer(ff, REL_SUCCESS);
+            }
 
         } catch (NoNodeAvailableException
                 | ElasticsearchTimeoutException
