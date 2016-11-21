@@ -57,7 +57,7 @@ import java.util.regex.Pattern;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"put", "local", "copy", "archive", "files", "filesystem"})
+@Tags({"put", "local", "copy", "archive", "files", "filesystem", "restricted"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
 @SeeAlso({FetchFile.class, GetFile.class})
 @ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to disk.")

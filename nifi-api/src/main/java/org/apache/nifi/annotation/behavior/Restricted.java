@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
  * Marks the usage of a component as restricted to users with elevated privileges.
  * </p>
  * <p>
- * A Restricted component is one that can be used to execute arbitrary unsanitized
+ * A {@code Restricted} component is one that can be used to execute arbitrary unsanitized
  * code provided by the operator through the NiFi REST API/UI or can be used to obtain
  * or alter data on the NiFi host system using the NiFi OS credentials. These components
  * could be used by an otherwise authorized NiFi user to go beyond the intended use of

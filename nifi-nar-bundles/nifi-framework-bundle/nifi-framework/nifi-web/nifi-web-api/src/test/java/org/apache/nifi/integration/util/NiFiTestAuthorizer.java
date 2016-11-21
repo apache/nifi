@@ -39,7 +39,7 @@ public class NiFiTestAuthorizer implements Authorizer {
     public static final String READ_USER_DN = "read@nifi";
     public static final String WRITE_USER_DN = "write@nifi";
     public static final String READ_WRITE_USER_DN = "readwrite@nifi";
-    public static final String RESTRICTED_USER_DN = "restricted@nifi";
+    public static final String PRIVILEGED_USER_DN = "privileged@nifi";
 
     public static final String TOKEN_USER = "user@nifi";
 
@@ -81,7 +81,7 @@ public class NiFiTestAuthorizer implements Authorizer {
 
         // restricted component access
         if (ResourceFactory.getRestrictedComponentsResource().getIdentifier().equals(request.getResource().getIdentifier())) {
-            if (RESTRICTED_USER_DN.equals(request.getIdentity())) {
+            if (PRIVILEGED_USER_DN.equals(request.getIdentity())) {
                 return AuthorizationResult.approved();
             } else {
                 return AuthorizationResult.denied();
@@ -89,14 +89,14 @@ public class NiFiTestAuthorizer implements Authorizer {
         }
 
         // read access
-        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || RESTRICTED_USER_DN.equals(request.getIdentity())) {
+        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || PRIVILEGED_USER_DN.equals(request.getIdentity())) {
             if (RequestAction.READ.equals(request.getAction())) {
                 return AuthorizationResult.approved();
             }
         }
 
         // write access
-        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || RESTRICTED_USER_DN.equals(request.getIdentity())) {
+        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity()) || PRIVILEGED_USER_DN.equals(request.getIdentity())) {
             if (RequestAction.WRITE.equals(request.getAction())) {
                 return AuthorizationResult.approved();
             }

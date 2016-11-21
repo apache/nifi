@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem" })
+@Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem", "restricted" })
 @CapabilityDescription("Deletes a file from HDFS. The file can be provided as an attribute from an incoming FlowFile, "
         + "or a statically set file that is periodically removed. If this processor has an incoming connection, it"
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "

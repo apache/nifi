@@ -17,10 +17,10 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Collection;
-import java.util.Map;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * Component that is capable of reporting internal NiFi state to an external service
@@ -33,6 +33,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private String state;
     private String comments;
     private Boolean persistsState;
+    private Boolean restricted;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -117,6 +118,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setPersistsState(Boolean persistsState) {
         this.persistsState = persistsState;
+    }
+
+    /**
+     * @return whether this reporting task requires elevated privileges
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task requires elevated privileges."
+    )
+    public Boolean getRestricted() {
+        return restricted;
+    }
+
+    public void setRestricted(Boolean restricted) {
+        this.restricted = restricted;
     }
 
     /**

@@ -56,7 +56,7 @@ import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@Tags({"provenance", "lineage", "tracking", "site", "site to site"})
+@Tags({"provenance", "lineage", "tracking", "site", "site to site", "restricted"})
 @CapabilityDescription("Publishes Provenance events using the Site To Site protocol.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 @Restricted("Provides operator the ability send sensitive details contained in Provenance events to any external system.")

@@ -403,7 +403,7 @@ public class ITProcessorAccessControl {
     /**
      * Tests attempt to create a restricted processor.
      *
-     * @throws Exception
+     * @throws Exception if there is an error creating this processor
      */
     @Test
     public void testCreateRestrictedProcessor() throws Exception {
@@ -431,7 +431,7 @@ public class ITProcessorAccessControl {
         assertEquals(403, response.getStatus());
 
         // perform the request as a user with read/write and restricted access
-        response = helper.getRestrictedUser().testPost(url, entity);
+        response = helper.getPrivilegedUser().testPost(url, entity);
 
         // ensure the request is successful
         assertEquals(201, response.getStatus());

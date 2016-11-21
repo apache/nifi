@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * This processor runs a Flume source
  */
 @TriggerSerially
-@Tags({"flume", "hadoop", "get", "source"})
+@Tags({"flume", "hadoop", "get", "source", "restricted"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Execute a Flume source. Each Flume Event is sent to the success relationship as a FlowFile")
 @Restricted("Provides operator the ability to execute arbitrary Flume configurations assuming all permissions that NiFi has.")
