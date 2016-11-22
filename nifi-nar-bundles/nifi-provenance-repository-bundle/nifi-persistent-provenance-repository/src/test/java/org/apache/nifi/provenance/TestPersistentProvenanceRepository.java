@@ -1585,6 +1585,8 @@ public class TestPersistentProvenanceRepository {
         builder.fromFlowFile(createFlowFile(15, 3000L, attributes));
         attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 15);
         repo.registerEvent(builder.build());
+
+        Thread.sleep(3000L);
     }
 
 

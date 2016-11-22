@@ -118,6 +118,7 @@ public class RecordReaders {
                 serializationName = dis.readUTF();
                 bufferedInStream.reset();
             } catch (final EOFException eof) {
+                fis.close();
                 return new EmptyRecordReader();
             }
 
