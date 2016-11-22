@@ -207,7 +207,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         flags.each { String arg ->
-            tool.parse([arg, bootstrapPath] as String[])
+            tool.parse([arg, bootstrapPath, "-n", "nifi.properties"] as String[])
             logger.info("Parsed bootstrap.conf location: ${tool.bootstrapConfPath}")
 
             // Assert
@@ -233,22 +233,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         }
     }
 
-    // TODO: Remove as part of NIFI-2655
-    @Ignore("Remove as part of NIFI-2655")
-    @Test
-    void testParseShouldPopulateDefaultNiFiPropertiesArgument() {
-        // Arrange
-        String niFiPropertiesPath = "conf/nifi.properties"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
-
-        // Assert
-        assert new File(tool.niFiPropertiesPath).getPath() == new File(niFiPropertiesPath).getPath()
-    }
-
     @Test
     void testShouldParseOutputNiFiPropertiesArgument() {
         // Arrange
@@ -264,22 +248,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             // Assert
             assert tool.outputNiFiPropertiesPath == niFiPropertiesPath
         }
-    }
-
-    // TODO: Remove as part of NIFI-2655
-    @Ignore("Remove as part of NIFI-2655")
-    @Test
-    void testParseShouldPopulateDefaultOutputNiFiPropertiesArgument() {
-        // Arrange
-        String niFiPropertiesPath = "conf/nifi.properties"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed output nifi.properties location: ${tool.outputNiFiPropertiesPath}")
-
-        // Assert
-        assert new File(tool.outputNiFiPropertiesPath).getPath() == new File(niFiPropertiesPath).getPath()
     }
 
     @Test
@@ -316,22 +284,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         }
     }
 
-    // TODO: Remove as part of NIFI-2655
-    @Ignore("Remove as part of NIFI-2655")
-    @Test
-    void testParseShouldPopulateDefaultLoginIdentityProvidersArgument() {
-        // Arrange
-        String loginIdentityProvidersPath = "conf/login-identity-providers.xml"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed login-identity-providers.xml location: ${tool.loginIdentityProvidersPath}")
-
-        // Assert
-        assert new File(tool.loginIdentityProvidersPath).getPath() == new File(loginIdentityProvidersPath).getPath()
-    }
-
     @Test
     void testShouldParseOutputLoginIdentityProvidersArgument() {
         // Arrange
@@ -347,22 +299,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             // Assert
             assert tool.outputLoginIdentityProvidersPath == loginIdentityProvidersPath
         }
-    }
-
-    // TODO: Remove as part of NIFI-2655
-    @Ignore("Remove as part of NIFI-2655")
-    @Test
-    void testParseShouldPopulateDefaultOutputLoginIdentityProvidersArgument() {
-        // Arrange
-        String loginIdentityProvidersPath = "conf/login-identity-providers.xml"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed output login-identity-providers.xml location: ${tool.outputLoginIdentityProvidersPath}")
-
-        // Assert
-        assert new File(tool.outputLoginIdentityProvidersPath).getPath() == new File(loginIdentityProvidersPath).getPath()
     }
 
     @Test
@@ -391,7 +327,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         flags.each { String arg ->
-            tool.parse([arg, KEY_HEX] as String[])
+            tool.parse([arg, KEY_HEX, "-n", "nifi.properties"] as String[])
             logger.info("Parsed key: ${tool.keyHex}")
 
             // Assert
@@ -406,12 +342,45 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail {
-            tool.parse("-m -e oldKey -w oldPassword".split(" ") as String[])
+            tool.parse("-m -n nifi.properties -e oldKey -w oldPassword".split(" ") as String[])
         }
         logger.expected(msg)
 
         // Assert
         assert msg =~ "Only one of '-w'/'--oldPassword' and '-e'/'--oldKey' can be used"
+    }
+
+    @Test
+    void testParseShouldFailIfNiFiPropertiesAndLoginIdentityProviderBothMissing() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def invalidArgs = [
+                "-v -m",
+                "-v -s password",
+                "-n",
+                "-l",
+                "-o output-nifi.properties -i output-login-identity-providers.xml",
+                "-f flow.xml.gz",
+        ]
+
+        final String NO_NFP_OR_LIP = "One or both of '-n'/'--${ConfigEncryptionTool.NIFI_PROPERTIES_ARG}' or '-l'/'--${ConfigEncryptionTool.LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${ConfigEncryptionTool.DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified"
+        final String MISSING_NFP_ARGUMENT = "Error parsing command line. (Missing argument for option: n)"
+        final String MISSING_LIP_ARGUMENT = "Error parsing command line. (Missing argument for option: l)"
+        final String MIGRATE_NEEDS_NFP = "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'."
+
+        def ACCEPTABLE_ERROR_MSGS = [NO_NFP_OR_LIP, MISSING_NFP_ARGUMENT, MISSING_LIP_ARGUMENT, MIGRATE_NEEDS_NFP]
+
+        // Act
+        invalidArgs.each { String badArgs ->
+            def msg = shouldFail {
+                tool.parse(badArgs.split(" ") as String[])
+            }
+            logger.expected(msg)
+
+            // Assert
+            assert ACCEPTABLE_ERROR_MSGS.contains(msg)
+        }
     }
 
     @Test
@@ -505,7 +474,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldReadPasswordFromConsoleIfNoKeyPresent() {
         // Arrange
-        def args = [] as String[]
+        def args = ["-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.parse(args)
         logger.info("Using password flag: ${tool.usingPassword}")
@@ -529,7 +498,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldReadKeyFromConsoleIfFlagProvided() {
         // Arrange
-        def args = ["-r"] as String[]
+        def args = ["-r", "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.parse(args)
         logger.info("Using password flag: ${tool.usingPassword}")
@@ -553,7 +522,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldIgnoreRawKeyFlagIfKeyProvided() {
         // Arrange
-        def args = ["-r", "-k", KEY_HEX] as String[]
+        def args = ["-r", "-k", KEY_HEX, "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
@@ -576,7 +545,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldIgnoreRawKeyFlagIfPasswordProvided() {
         // Arrange
-        def args = ["-r", "-p", PASSWORD] as String[]
+        def args = ["-r", "-p", PASSWORD, "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
@@ -952,7 +921,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -983,7 +952,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -1012,7 +981,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -3128,14 +3097,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 String newFlowPassword = passwordProgression[i + 1]
                 logger.info("Migrating from ${existingFlowPassword} to ${newFlowPassword}")
 
-                // Set up assertions for this iteration
-//                exit.expectSystemExitWithStatus(0)
-//                exit.checkAssertionAfterwards(new Assertion() {
-//                    public void checkAssertion() {
-
-//                    }
-//                });
-
                 // Bootstrap path must be provided to decrypt nifi.properties to get SP key
                 String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
 
@@ -3148,8 +3109,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Assert
                 // Get the updated nifi.properties and check the sensitive key
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
-//                        logger.info("Updated nifi.properties:")
-//                        logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
                 String updatedSensitiveKeyLine = updatedPropertiesLines.find { it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY) }
                 logger.info("Updated key line: ${updatedSensitiveKeyLine}")
 
