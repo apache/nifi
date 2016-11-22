@@ -22,6 +22,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
@@ -34,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -44,6 +46,10 @@ public class TestGetFile {
 
     @Test
     public void testWithInaccessibleDir() throws IOException {
+        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
+        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+            return;
+        }
         File inaccessibleDir = new File("target/inaccessible");
         inaccessibleDir.deleteOnExit();
         inaccessibleDir.mkdir();
@@ -62,6 +68,10 @@ public class TestGetFile {
 
     @Test
     public void testWithUnreadableDir() throws IOException {
+        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
+        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+            return;
+        }
         File unreadableDir = new File("target/unreadable");
         unreadableDir.deleteOnExit();
         unreadableDir.mkdir();
@@ -86,6 +96,10 @@ public class TestGetFile {
 
     @Test
     public void testWithUnwritableDir() throws IOException {
+        // Some systems don't support POSIX (Windows) and will fail if run. Should ignore the test in that event
+        if (!FileSystems.getDefault().supportedFileAttributeViews().contains("posix")) {
+            return;
+        }
         File unwritableDir = new File("target/unwritable");
         unwritableDir.deleteOnExit();
         unwritableDir.mkdir();
