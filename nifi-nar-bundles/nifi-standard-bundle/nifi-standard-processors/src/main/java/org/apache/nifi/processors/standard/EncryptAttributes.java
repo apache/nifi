@@ -1,19 +1,3 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.DecoderException;
@@ -21,7 +5,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -33,42 +16,32 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
-import org.apache.nifi.processors.standard.util.crypto.KeyedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.OpenPGPKeyBasedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.OpenPGPPasswordBasedEncryptor;
-import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.*;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
-import org.apache.nifi.util.StopWatch;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
 
+/**
+ * Provides functionality of encrypting attributes with various algorithms.
+ * Note. It'll not modify filename or uuid as they are sensitive and are
+ * internally used by either Algorithm itself or FlowFile repo.
+ */
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@InputRequirement(Requirement.INPUT_REQUIRED)
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG"})
-@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a password and randomly generated salt, or asymmetric encryption using a public and secret key.")
-public class EncryptContent extends AbstractProcessor {
+@CapabilityDescription("Encrypts or Decrypts a FlowFile attributes using either symmetric encryption with a password " +
+        "and randomly generated salt, or asymmetric encryption using a public and secret key.")
+public class EncryptAttributes extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
     public static final String DECRYPT_MODE = "Decrypt";
@@ -76,6 +49,12 @@ public class EncryptContent extends AbstractProcessor {
     private static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
     private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
 
+    public static final PropertyDescriptor ATTRIBUTES_TO_ENCRYPT = new PropertyDescriptor.Builder()
+            .name("Attributes to encrypte")
+            .description("Comma separated list of attributes to encrypt, if empty then it'll encrypt all the " +
+                    "attributes")
+            .required(false)
+            .build();
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
             .description("Specifies whether the content should be encrypted or decrypted")
@@ -201,6 +180,7 @@ public class EncryptContent extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(ATTRIBUTES_TO_ENCRYPT);
         properties.add(MODE);
         properties.add(KEY_DERIVATION_FUNCTION);
         properties.add(ENCRYPTION_ALGORITHM);
@@ -447,14 +427,49 @@ public class EncryptContent extends AbstractProcessor {
         return kdfsForPBECipher;
     }
 
+    protected Map<String, String> buildNewAttributes(FlowFile file, String atrList,
+                                                    EncryptContent.Encryptor encryptor,
+                                                    boolean isToBeEncrypted) throws Exception {
+
+        Map<String, String> oldAttributes = file.getAttributes();
+        Map<String, String> atrToWrite = new HashMap<>();
+        final String filenameAttr = CoreAttributes.FILENAME.key();
+        final String uuidAttr = CoreAttributes.UUID.key();
+
+        if (!StringUtils.isEmpty(atrList)) {
+            // Traverse comma separated list if provided
+            Set<String> atrSet = new HashSet<>(Arrays.asList(atrList));
+            for (String atr : atrSet) {
+                if (!atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
+                    String atrValue = oldAttributes.get(atr);
+                    String newAtrVal = (isToBeEncrypted) ? encryptor.getEncryptedString(atrValue) : encryptor.getDecryptedString(atrValue);
+                    atrToWrite.put(atr, newAtrVal);
+                }
+            }
+        } else {
+            //TODO: filename encryption check only for PGP algos.
+            // encrypt all attributes except filename and uuid.
+            for (String atr : oldAttributes.keySet()) {
+                if (!atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
+                    String atrValue = oldAttributes.get(atr);
+                    String newAtrVal = (isToBeEncrypted) ? encryptor.getEncryptedString(atrValue) : encryptor.getDecryptedString(atrValue);
+                    atrToWrite.put(atr, newAtrVal);
+                }
+            }
+        }
+        return atrToWrite;
+    }
+
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) {
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         final ComponentLog logger = getLogger();
+        final String atrList = context.getProperty(ATTRIBUTES_TO_ENCRYPT).getValue();
         final String method = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(method);
         final String providerName = encryptionMethod.getProvider();
@@ -463,8 +478,9 @@ public class EncryptContent extends AbstractProcessor {
         final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
 
-        Encryptor encryptor;
-        StreamCallback callback;
+        EncryptContent.Encryptor encryptor;
+        Map<String, String> newAtrList;
+
         try {
             if (isPGPAlgorithm(algorithm)) {
                 final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -489,39 +505,14 @@ public class EncryptContent extends AbstractProcessor {
                 encryptor = new PasswordBasedEncryptor(encryptionMethod, passphrase, kdf);
             }
 
-            if (encrypt) {
-                callback = encryptor.getEncryptionCallback();
-            } else {
-                callback = encryptor.getDecryptionCallback();
-            }
+            newAtrList = buildNewAttributes(flowFile, atrList, encryptor, encrypt);
+            FlowFile newFlowFile  = session.putAllAttributes(flowFile,newAtrList);
+            session.transfer(newFlowFile, REL_SUCCESS);
 
         } catch (final Exception e) {
-            logger.error("Failed to initialize {}cryption algorithm because - ", new Object[]{encrypt ? "en" : "de", e});
-            session.rollback();
-            context.yield();
-            return;
-        }
-
-        try {
-            final StopWatch stopWatch = new StopWatch(true);
-            flowFile = session.write(flowFile, callback);
-            logger.info("successfully {}crypted {}", new Object[]{encrypt ? "en" : "de", flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
-        } catch (final ProcessException e) {
-            logger.error("Cannot {}crypt {} - ", new Object[]{encrypt ? "en" : "de", flowFile, e});
+            logger.error(e.getMessage());
             session.transfer(flowFile, REL_FAILURE);
         }
+
     }
-
-    public interface Encryptor {
-        StreamCallback getEncryptionCallback() throws Exception;
-
-        StreamCallback getDecryptionCallback() throws Exception;
-
-        String getEncryptedString(String str) throws Exception;
-
-        String getDecryptedString(String str) throws Exception;
-    }
-
 }

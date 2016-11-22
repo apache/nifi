@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
@@ -35,9 +36,8 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePBEKeyEncryptionMethodGenerat
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 import static org.bouncycastle.openpgp.PGPUtil.getDecoderStream;
 
@@ -64,6 +64,16 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
     @Override
     public StreamCallback getDecryptionCallback() throws Exception {
         return new OpenPGPDecryptCallback(provider, password);
+    }
+
+    @Override
+    public String getEncryptedString(String str) throws Exception {
+        return new OpenPGPEncryptCallback(algorithm, provider, password, filename).getEncryptedString(str);
+    }
+
+    @Override
+    public String getDecryptedString(String str) throws Exception {
+        return new OpenPGPDecryptCallback(provider, password).getDecryptString(str);
     }
 
     private static class OpenPGPDecryptCallback implements StreamCallback {
@@ -129,6 +139,27 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
                 throw new ProcessException(e.getMessage());
             }
         }
+
+        public String getDecryptString(String inputStr) throws IOException {
+            //Initialize string and streams
+            byte[] encryptedBytes = inputStr.getBytes(StandardCharsets.US_ASCII);
+            byte[] decodedBytes = Base64.decodeBase64(encryptedBytes);
+            InputStream in = new ByteArrayInputStream(decodedBytes);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            String decryptedStr = null;
+
+            try {
+                process(in, out);
+                decryptedStr = new String(out.toByteArray(), StandardCharsets.US_ASCII);
+            } catch (IOException e) {
+                throw new ProcessException(e);
+            } finally {
+                in.close();
+                out.close();
+            }
+
+            return decryptedStr;
+        }
     }
 
     private static class OpenPGPEncryptCallback implements StreamCallback {
@@ -153,6 +184,24 @@ public class OpenPGPPasswordBasedEncryptor implements Encryptor {
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }
+        }
+
+        public String getEncryptedString(String inputStr) throws IOException {
+            String encodedStr = null;
+            InputStream in = new ByteArrayInputStream(inputStr.getBytes(StandardCharsets.US_ASCII));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+            try {
+                process(in, out);
+                byte[] encryptedData = out.toByteArray();
+                encodedStr = Base64.encodeBase64String(encryptedData);
+            } catch (IOException e) {
+                throw new ProcessException(e);
+            } finally {
+                in.close();
+                out.close();
+            }
+            return encodedStr;
         }
     }
 }
