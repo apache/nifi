@@ -60,8 +60,6 @@ How to install and start NiFi
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the nifi.sensitive.props.key (see <<system_properties>> below)
 ** Navigate to the <installdir>/bin directory
 ** Double-click run-nifi.bat. This runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-** Alternatively, to start NiFi in the background, double-click start-nifi.bat
-** To stop NiFi running in the background, double-click stop-nifi.bat
 ** To see the current status of NiFi, double-click status-nifi.bat
 
 
