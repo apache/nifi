@@ -167,7 +167,7 @@ public class TestPutElasticsearchHttp {
         runner.assertNotValid();
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testPutElasticSearchOnTriggerWithFailures() throws IOException {
         PutElasticsearchTestProcessor processor = new PutElasticsearchTestProcessor(true);
         processor.setStatus(100, "Should fail");
@@ -183,6 +183,15 @@ public class TestPutElasticsearchHttp {
             put("doc_id", "28039652140");
         }});
         runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
+        runner.clearTransferState();
+
+        processor.setStatus(500, "Should retry");
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_RETRY, 1);
     }
 
     @Test
