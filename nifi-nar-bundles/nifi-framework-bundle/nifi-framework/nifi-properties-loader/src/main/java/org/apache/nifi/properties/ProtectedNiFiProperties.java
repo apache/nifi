@@ -284,7 +284,7 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
      * @param key the key identifying the sensitive property
      * @return the key identifying the protection scheme for the sensitive property
      */
-    public String getProtectionKey(String key) {
+    public static String getProtectionKey(String key) {
         if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException("Cannot find protection key for null key");
         }
