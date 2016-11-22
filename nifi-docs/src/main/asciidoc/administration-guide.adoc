@@ -1002,19 +1002,25 @@ The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is use
 
 You can use the following command line options with the `encrypt-config` tool:
 
-* `-b,--bootstrapConf <arg>`                The bootstrap.conf file to persist master key
-* `-e,--oldKey <arg>`                       The old raw hexadecimal key to use during key migration
-* `-h,--help`                               Prints this usage message
-* `-k,--key <arg>`                          The raw hexadecimal key to use to encrypt the sensitive properties
-* `-m,--migrate`                            If provided, the sensitive properties will be re-encrypted with a new key
-* `-n,--niFiProperties <arg>`               The nifi.properties file containing unprotected config values (will be overwritten)
-* `-o,--outputNiFiProperties <arg>`         The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
-* `-p,--password <arg>`                     The password from which to derive the key to use to encrypt the sensitive properties
-* `-r,--useRawKey`                          If provided, the secure console will prompt for the raw key value in hexadecimal form
-* `-v,--verbose`                            Sets verbose mode (default false)
-* `-w,--oldPassword <arg>`                  The old password from which to derive the key during migration
-* `-l,--loginIdentityProviders <arg>`       The login-identity-providers.xml file containing unprotected config values (will be overwritten)
-* `-i,--outputLoginIdentityProviders <arg>` The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)
+ * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-b`,`--bootstrapConf <arg>`                  The bootstrap.conf file to persist master key
+ * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
+ * `-f`,`--flowXml <arg>`                        The flow.xml.gz file currently protected with old password (will be overwritten)
+ * `-g`,`--outputFlowXml <arg>`                  The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)
+ * `-h`,`--help`                                 Prints this usage message
+ * `-i`,`--outputLoginIdentityProviders <arg>`   The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)
+ * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
+ * `-l`,`--loginIdentityProviders <arg>`         The login-identity-providers.xml file containing unprotected config values (will be overwritten)
+ * `-m`,`--migrate`                              If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key
+ * `-n`,`--niFiProperties <arg>`                 The nifi.properties file containing unprotected config values (will be overwritten)
+ * `-o`,`--outputNiFiProperties <arg>`           The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
+ * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
+ * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
+ * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-v`,`--verbose`                              Sets verbose mode (default false)
+ * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
+ * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified
 
 As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
 

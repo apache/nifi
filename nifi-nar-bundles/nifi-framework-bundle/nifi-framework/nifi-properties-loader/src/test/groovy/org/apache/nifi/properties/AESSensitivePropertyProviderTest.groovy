@@ -447,7 +447,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     @Test
     public void testShouldEncryptArbitraryValues() {
         // Arrange
-        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message"]
+        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message", "nififtw!"]
 
         String key = "2C576A9585DB862F5ECBEE5B4FFFCCA1" //getKeyOfSize(128)
         // key = "0" * 64
