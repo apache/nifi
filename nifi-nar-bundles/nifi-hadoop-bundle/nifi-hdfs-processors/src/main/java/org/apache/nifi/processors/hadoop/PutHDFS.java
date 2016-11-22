@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -67,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * This processor copies FlowFiles to HDFS.
  */
+@RequiresInstanceClassLoading
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "HDFS", "put", "copy", "filesystem", "restricted"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
