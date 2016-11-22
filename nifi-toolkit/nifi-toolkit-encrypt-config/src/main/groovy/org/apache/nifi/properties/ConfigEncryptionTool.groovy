@@ -284,10 +284,9 @@ class ConfigEncryptionTool {
                 logger.info("(dest) flow.xml.gz: \t\t\t\t\t${outputFlowXmlPath}")
             }
 
-            // TODO: Implement in NIFI-2655
-//            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG) && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG)) {
-//                printUsageAndThrow("One of '-n'/'--${NIFI_PROPERTIES_ARG}' or '-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided", ExitCode.INVALID_ARGS)
-//            }
+            if (!commandLine.hasOption(NIFI_PROPERTIES_ARG) && !commandLine.hasOption(LOGIN_IDENTITY_PROVIDERS_ARG) && !commandLine.hasOption(DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG)) {
+                printUsageAndThrow("One or both of '-n'/'--${NIFI_PROPERTIES_ARG}' or '-l'/'--${LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified", ExitCode.INVALID_ARGS)
+            }
 
             if (commandLine.hasOption(MIGRATION_ARG)) {
                 migration = true
@@ -1035,21 +1034,6 @@ class ConfigEncryptionTool {
      */
     private static boolean isSafeToWrite(File fileToWrite) {
         fileToWrite && ((!fileToWrite.exists() && fileToWrite.absoluteFile.parentFile.canWrite()) || (fileToWrite.exists() && fileToWrite.canWrite()))
-    }
-
-    private static String determineDefaultBootstrapConfPath() {
-        String niFiToolkitPath = System.getenv(NIFI_TOOLKIT_HOME) ?: ""
-        "${niFiToolkitPath ? niFiToolkitPath + "/" : ""}conf/bootstrap.conf"
-    }
-
-    private static String determineDefaultNiFiPropertiesPath() {
-        String niFiToolkitPath = System.getenv(NIFI_TOOLKIT_HOME) ?: ""
-        "${niFiToolkitPath ? niFiToolkitPath + "/" : ""}conf/nifi.properties"
-    }
-
-    private static String determineDefaultLoginIdentityProvidersPath() {
-        String niFiToolkitPath = System.getenv(NIFI_TOOLKIT_HOME) ?: ""
-        "${niFiToolkitPath ? niFiToolkitPath + "/" : ""}conf/login-identity-providers.xml"
     }
 
     private static String deriveKeyFromPassword(String password) {
