@@ -328,7 +328,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                         if (itemNodeArray.size() > 0) {
                             // All items are returned whether they succeeded or failed, so iterate through the item array
                             // at the same time as the flow file list, moving each to success or failure accordingly
-                            for (int i = 0; i < itemNodeArray.size(); i++) {
+                            for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
                                 JsonNode itemNode = itemNodeArray.get(i);
                                 FlowFile flowFile = flowFilesToTransfer.remove(i);
                                 int status = itemNode.findPath("status").asInt();
