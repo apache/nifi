@@ -243,13 +243,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-solr-nar</artifactId>
             <type>nar</type>
         </dependency>
-        <!--    Will restore this when the social media nar no longer has a dependency on cat-x twitter4J version
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-social-media-nar</artifactId>
             <type>nar</type>
         </dependency>
-        -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-nar</artifactId>
