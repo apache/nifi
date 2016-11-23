@@ -354,6 +354,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
         // Determine the next sequence number for FlowFiles
+        int numFlowFilesMissingQueue = 0;
         long maxId = minimumSequenceNumber;
         for (final RepositoryRecord record : recordList) {
             final long recordId = serdeFactory.getRecordIdentifier(record);
@@ -363,7 +364,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             final FlowFileRecord flowFile = record.getCurrent();
             final FlowFileQueue queue = record.getOriginalQueue();
-            if (queue != null) {
+            if (queue == null) {
+                numFlowFilesMissingQueue++;
+            } else {
                 queue.put(flowFile);
             }
         }
@@ -371,7 +374,10 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // Set the AtomicLong to 1 more than the max ID so that calls to #getNextFlowFileSequence() will
         // return the appropriate number.
         flowFileSequenceGenerator.set(maxId + 1);
-        logger.info("Successfully restored {} FlowFiles", recordList.size());
+        logger.info("Successfully restored {} FlowFiles", recordList.size() - numFlowFilesMissingQueue);
+        if (numFlowFilesMissingQueue > 0) {
+            logger.warn("On recovery, found {} FlowFiles whose queue no longer exists. These FlowFiles will be dropped.", numFlowFilesMissingQueue);
+        }
 
         final Runnable checkpointRunnable = new Runnable() {
             @Override
