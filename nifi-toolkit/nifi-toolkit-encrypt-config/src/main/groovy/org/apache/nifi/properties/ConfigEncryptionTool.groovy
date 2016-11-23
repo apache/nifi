@@ -1212,6 +1212,8 @@ class ConfigEncryptionTool {
                             AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(tool.keyHex)
                             String encryptedSPK = spp.protect(newFlowPassword)
                             rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
+                            // Manually update the protection scheme or it will be lost
+                            rawProperties.put(ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY), spp.getIdentifierKey())
                             if (tool.isVerbose) {
                                 logger.info("Tool is not configured to encrypt nifi.properties, but the existing nifi.properties is encrypted and flow.xml.gz was migrated, so manually persisting the new encrypted value to nifi.properties")
                             }

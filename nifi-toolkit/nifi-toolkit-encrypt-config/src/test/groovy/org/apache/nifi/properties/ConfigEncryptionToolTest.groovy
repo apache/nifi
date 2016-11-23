@@ -2966,9 +2966,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
         logger.info("Original sensitive values: ${originalSensitiveValues}")
 
+
+        final String SENSITIVE_PROTECTION_KEY = ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
         ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
         def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
         logger.info("Original encrypted values: ${originalEncryptedValues}")
+        String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+        logger.info("Sensitive property key originally protected with ${originalSensitiveKeyProtectionScheme}")
 
         String newFlowPassword = FLOW_PASSWORD
 
@@ -3007,6 +3011,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                         assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
                     }
                 }
+
+                // Check that the protection scheme did not change
+                String sensitiveKeyProtectionScheme = updatedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+                logger.info("Sensitive property key currently protected with ${sensitiveKeyProtectionScheme}")
+                assert sensitiveKeyProtectionScheme == originalSensitiveKeyProtectionScheme
 
                 // Check that bootstrap.conf did not change
                 final List<String> updatedBootstrapLines = bootstrapFile.readLines()
