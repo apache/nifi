@@ -2580,7 +2580,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     cnfeThrown = true;
                     throw cnfe;
                 } finally {
-                    this.bytesWritten += countingOut.getBytesWritten();
+                    writtenToFlowFile = countingOut.getBytesWritten();
+                    this.bytesWritten += writtenToFlowFile;
                     this.bytesRead += countingIn.getBytesRead();
                     recursionSet.remove(source);
 
