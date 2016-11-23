@@ -136,7 +136,7 @@ public class TailFile extends AbstractProcessor {
     static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("tail-mode")
             .displayName("Tailing mode")
-            .description("Mode to use: single file will tail only one gile, multiple file will look for a list of file. In Multiple mode"
+            .description("Mode to use: single file will tail only one file, multiple file will look for a list of file. In Multiple mode"
                     + " the Base directory is required.")
             .expressionLanguageSupported(false)
             .required(true)
@@ -415,7 +415,15 @@ public class TailFile extends AbstractProcessor {
         Collection<File> files = FileUtils.listFiles(new File(baseDir), null, isRecursive);
         List<String> result = new ArrayList<String>();
 
-        String fullRegex = baseDir.endsWith(File.separator) ? baseDir + fileRegex : baseDir + File.separator + fileRegex;
+        String baseDirNoTrailingSeparator = baseDir.endsWith(File.separator) ? baseDir.substring(0, baseDir.length() -1) : baseDir;
+        final String fullRegex;
+        if (File.separator.equals("/")) {
+            // handle unix-style paths
+            fullRegex = baseDirNoTrailingSeparator + File.separator + fileRegex;
+        } else {
+            // handle windows-style paths, need to quote backslash characters
+            fullRegex = baseDirNoTrailingSeparator + Pattern.quote(File.separator) + fileRegex;
+        }
         Pattern p = Pattern.compile(fullRegex);
 
         for(File file : files) {
