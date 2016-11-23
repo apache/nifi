@@ -65,7 +65,7 @@ public class RepositoryRecordFieldMap implements Record {
                 return contentClaimFieldMap;
             case RepositoryRecordSchema.QUEUE_IDENTIFIER:
                 final FlowFileQueue queue = record.getDestination() == null ? record.getOriginalQueue() : record.getDestination();
-                return queue.getIdentifier();
+                return queue == null ? null : queue.getIdentifier();
             default:
                 return null;
         }
