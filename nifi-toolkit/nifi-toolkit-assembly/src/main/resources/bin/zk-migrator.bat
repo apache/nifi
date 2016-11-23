@@ -35,6 +35,6 @@ set LIB_DIR=%~dp0..\classpath;%~dp0..\lib
 
 SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.toolkit.zkmigrator.ZooKeeperMigratorMain
 
-cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %*
+cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* ""
 
 popd
