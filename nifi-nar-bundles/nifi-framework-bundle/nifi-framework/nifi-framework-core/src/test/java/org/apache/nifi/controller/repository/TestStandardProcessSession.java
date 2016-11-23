@@ -277,6 +277,65 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testModifyContentWithStreamCallbackHasCorrectSize() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile original = session.get();
+        assertNotNull(original);
+
+        FlowFile child = session.write(original, (in, out) -> out.write("hello".getBytes()));
+        session.transfer(child);
+        session.commit();
+
+        final FlowFileRecord onQueue = flowFileQueue.poll(Collections.emptySet());
+        assertEquals(5, onQueue.getSize());
+    }
+
+    @Test
+    public void testModifyContentWithOutputStreamCallbackHasCorrectSize() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile original = session.get();
+        assertNotNull(original);
+
+        FlowFile child = session.write(original, out -> out.write("hello".getBytes()));
+        session.transfer(child);
+        session.commit();
+
+        final FlowFileRecord onQueue = flowFileQueue.poll(Collections.emptySet());
+        assertEquals(5, onQueue.getSize());
+    }
+
+    @Test
+    public void testModifyContentWithAppendHasCorrectSize() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile original = session.get();
+        assertNotNull(original);
+
+        FlowFile child = session.append(original, out -> out.write("hello".getBytes()));
+        session.transfer(child);
+        session.commit();
+
+        final FlowFileRecord onQueue = flowFileQueue.poll(Collections.emptySet());
+        assertEquals(5, onQueue.getSize());
+    }
+
+
+
+    @Test
     public void testModifyContentThenRollback() throws IOException {
         assertEquals(0, contentRepo.getExistingClaims().size());
 
