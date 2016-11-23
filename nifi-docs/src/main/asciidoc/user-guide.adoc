@@ -869,7 +869,7 @@ image:nifi-connection-bend-points.png["Connection Bend Points"]
 
 Before trying to start a Processor, it's important to make sure that the Processor's configuration is valid.
 A status indicator is shown in the top-left of the Processor. If the Processor is invalid, the indicator
-will show a red Warning indicator with an exclamation mark indicating that there is a problem:
+will show a yellow Warning indicator with an exclamation mark indicating that there is a problem:
 
 image::invalid-processor.png["Invalid Processor"]
 
