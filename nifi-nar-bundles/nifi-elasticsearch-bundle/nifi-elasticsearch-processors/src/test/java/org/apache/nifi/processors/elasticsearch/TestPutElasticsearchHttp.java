@@ -201,13 +201,15 @@ public class TestPutElasticsearchHttp {
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttp.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttp.TYPE, "status");
-        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearchHttp.BATCH_SIZE, "2");
         runner.setProperty(PutElasticsearchHttp.ID_ATTRIBUTE, "doc_id");
 
         runner.enqueue(docExample);
+        runner.enqueue(docExample);
         runner.run(1, true, true);
 
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttp.REL_FAILURE, 1);
+        runner.assertTransferCount(PutElasticsearchHttp.REL_FAILURE, 1);
+        runner.assertTransferCount(PutElasticsearchHttp.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttp.REL_FAILURE).get(0);
         assertNotNull(out);
     }
@@ -308,12 +310,12 @@ public class TestPutElasticsearchHttp {
                         sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":\"400\",");
                         sb.append("\"error\":{\"type\":\"mapper_parsing_exception\",\"reason\":\"failed to parse [gender]\",");
                         sb.append("\"caused_by\":{\"type\":\"json_parse_exception\",\"reason\":\"Unexpected end-of-input in VALUE_STRING\\n at ");
-                        sb.append("[Source: org.elasticsearch.common.io.stream.InputStreamStreamInput@1a2e3ac4; line: 1, column: 39]\"}}}}");
-                    } else {
-                        sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":");
-                        sb.append(statusCode);
-                        sb.append(",\"_source\":{\"text\": \"This is a test document\"}}}");
+                        sb.append("[Source: org.elasticsearch.common.io.stream.InputStreamStreamInput@1a2e3ac4; line: 1, column: 39]\"}}}},");
                     }
+                    sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":");
+                    sb.append(statusCode);
+                    sb.append(",\"_source\":{\"text\": \"This is a test document\"}}}");
+
                     sb.append("]}");
                     Response mockResponse = new Response.Builder()
                             .request(realRequest)
