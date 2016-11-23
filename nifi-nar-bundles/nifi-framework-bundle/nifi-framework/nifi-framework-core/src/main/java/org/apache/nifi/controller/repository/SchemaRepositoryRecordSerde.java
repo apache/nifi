@@ -38,10 +38,13 @@ import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SchemaRecordReader;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
 import org.apache.nifi.repository.schema.SimpleRecordField;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
 public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<RepositoryRecord> {
+    private static final Logger logger = LoggerFactory.getLogger(SchemaRepositoryRecordSerde.class);
     private static final int MAX_ENCODING_VERSION = 1;
 
     private final RecordSchema writeSchema = RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1;
@@ -154,7 +157,19 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         final String queueId = (String) record.getFieldValue(RepositoryRecordSchema.QUEUE_IDENTIFIER);
         final FlowFileQueue queue = getFlowFileQueue(queueId);
 
-        return new StandardRepositoryRecord(queue, flowFileRecord);
+        final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(queue, flowFileRecord);
+        requireFlowFileQueue(repoRecord, queueId);
+        return repoRecord;
+    }
+
+    private void requireFlowFileQueue(final StandardRepositoryRecord repoRecord, final String queueId) {
+        if (queueId == null || queueId.trim().isEmpty()) {
+            logger.warn("{} does not have a Queue associated with it; this record will be discarded", repoRecord.getCurrent());
+            repoRecord.markForAbort();
+        } else if (repoRecord.getOriginalQueue() == null) {
+            logger.warn("{} maps to unknown Queue {}; this record will be discarded", repoRecord.getCurrent(), queueId);
+            repoRecord.markForAbort();
+        }
     }
 
     private void populateContentClaim(final StandardFlowFileRecord.Builder ffBuilder, final Record record) {
@@ -189,6 +204,9 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         final StandardRepositoryRecord repoRecord = createRecord(record);
         final String swapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
         repoRecord.setSwapLocation(swapLocation);
+
+        final String queueId = (String) record.getFieldValue(RepositoryRecordSchema.QUEUE_IDENTIFIER);
+        requireFlowFileQueue(repoRecord, queueId);
         return repoRecord;
     }
 
