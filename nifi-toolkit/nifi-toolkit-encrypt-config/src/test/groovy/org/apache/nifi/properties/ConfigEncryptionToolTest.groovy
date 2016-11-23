@@ -73,6 +73,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static
     final String PASSWORD_KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? PASSWORD_KEY_HEX_256 : PASSWORD_KEY_HEX_128
 
+    // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
+    private static final String FLOW_PASSWORD_128 = "shortPassword"
+    private static final String FLOW_PASSWORD_256 = "thisIsABadPassword"
+    public static final String FLOW_PASSWORD = isUnlimitedStrengthCryptoAvailable() ? FLOW_PASSWORD_256 : FLOW_PASSWORD_128
+
     private static final int LIP_PASSWORD_LINE_COUNT = 3
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
 
@@ -2746,8 +2751,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
         logger.info("Original sensitive values: ${originalSensitiveValues}")
 
-        // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
-        String newFlowPassword = isUnlimitedStrengthCryptoAvailable() ? "thisIsABadPassword" : "shortPassword"
+        String newFlowPassword = FLOW_PASSWORD
 
         String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-x", "-v", "-s", newFlowPassword]
 
@@ -2966,8 +2970,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
         logger.info("Original encrypted values: ${originalEncryptedValues}")
 
-        // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
-        String newFlowPassword = isUnlimitedStrengthCryptoAvailable() ? "thisIsABadPassword" : "shortPassword"
+        String newFlowPassword = FLOW_PASSWORD
 
         // Bootstrap path must be provided to decrypt nifi.properties to get SP key
         String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
@@ -3223,8 +3226,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String SENSITIVE_VALUE = "thisIsABadPassword"
 
         String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
-        // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
-        String newFlowPassword = isUnlimitedStrengthCryptoAvailable() ? "thisIsABadPassword" : "shortPassword"
+        String newFlowPassword = FLOW_PASSWORD
 
         String xmlContent = workingFile.text
         logger.info("Read flow.xml: \n${xmlContent}")
@@ -3265,8 +3267,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         tool.isVerbose = true
 
         String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
-        // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
-        String newFlowPassword = isUnlimitedStrengthCryptoAvailable() ? "thisIsABadPassword" : "shortPassword"
+        String newFlowPassword = FLOW_PASSWORD
 
         String xmlContent = workingFile.text
         logger.info("Read flow.xml: \n${xmlContent}")
