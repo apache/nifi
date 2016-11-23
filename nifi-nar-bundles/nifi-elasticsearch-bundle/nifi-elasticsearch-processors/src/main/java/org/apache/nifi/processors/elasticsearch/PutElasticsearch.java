@@ -211,17 +211,21 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
 
             final BulkResponse response = bulk.execute().actionGet();
             if (response.hasFailures()) {
-                for (final BulkItemResponse item : response.getItems()) {
-                    final FlowFile flowFile = flowFilesToTransfer.get(item.getItemId());
-                    if (item.isFailed()) {
-                        logger.error("Failed to insert {} into Elasticsearch due to {}, transferring to failure",
-                                new Object[]{flowFile, item.getFailure().getMessage()});
-                        session.transfer(flowFile, REL_FAILURE);
+                // Responses are guaranteed to be in order, remove them in reverse order
+                BulkItemResponse[] responses = response.getItems();
+                if (responses != null && responses.length > 0) {
+                    for (int i = responses.length - 1; i >= 0; i--) {
+                        final FlowFile flowFile = flowFilesToTransfer.get(i);
+                        if (responses[i].isFailed()) {
+                            logger.error("Failed to insert {} into Elasticsearch due to {}, transferring to failure",
+                                    new Object[]{flowFile, responses[i].getFailure().getMessage()});
+                            session.transfer(flowFile, REL_FAILURE);
 
-                    } else {
-                        session.transfer(flowFile, REL_SUCCESS);
+                        } else {
+                            session.transfer(flowFile, REL_SUCCESS);
+                        }
+                        flowFilesToTransfer.remove(flowFile);
                     }
-                    flowFilesToTransfer.remove(flowFile);
                 }
             }
 
