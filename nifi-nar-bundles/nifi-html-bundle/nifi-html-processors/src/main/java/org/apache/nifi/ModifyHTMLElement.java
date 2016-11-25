@@ -98,7 +98,6 @@ public class ModifyHTMLElement extends AbstractHTMLProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(URL);
         descriptors.add(CSS_SELECTOR);
         descriptors.add(HTML_CHARSET);
         descriptors.add(OUTPUT_TYPE);
@@ -122,6 +121,16 @@ public class ModifyHTMLElement extends AbstractHTMLProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
+    }
+
+    /**
+     * This processor used to support URL property, but it has been removed
+     * since it's not required when altering HTML elements.
+     * Support URL as dynamic property so that existing data flow can stay in valid state without modification.
+     */
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return URL;
     }
 
     @Override
