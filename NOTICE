@@ -27,9 +27,3 @@ Copyright 2008-2016 The Apache Software Foundation
 The derived work is adapted from
   release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
 and can be found in the org.apache.hadoop.hive.ql.io.orc package
-
-This includes derived works from the HAPI (MPL 1.1) project (http://hl7api.sourceforge.net/):
-Copyright 2012 University Health Network
-The derived work is adapted from ca.uhn.hapi:hapi-test:2.2 and
-ca.uhn.hapi:hapi-osgi-tests:2.2 and can be found in
-nifi-nar-bundles/nifi-hl7-bundle/nifi-hl7-processors/src/test/java/org/apache/nifi/processors/hl7/TestExtractHL7Attributes.java
