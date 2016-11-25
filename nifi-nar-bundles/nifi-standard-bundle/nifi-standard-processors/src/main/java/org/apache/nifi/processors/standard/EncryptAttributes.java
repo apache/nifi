@@ -50,10 +50,12 @@ public class EncryptAttributes extends AbstractProcessor {
     private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
 
     public static final PropertyDescriptor ATTRIBUTES_TO_ENCRYPT = new PropertyDescriptor.Builder()
-            .name("Attributes to encrypte")
+            .name("Attributes to encrypt")
             .description("Comma separated list of attributes to encrypt, if empty then it'll encrypt all the " +
-                    "attributes")
+                    "attributes. This list is case sensitive and if attribute is not found " +
+                    "then the value will be ignored. ")
             .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
@@ -428,8 +430,8 @@ public class EncryptAttributes extends AbstractProcessor {
     }
 
     protected Map<String, String> buildNewAttributes(FlowFile file, String atrList,
-                                                    EncryptContent.Encryptor encryptor,
-                                                    boolean isToBeEncrypted) throws Exception {
+                                                     EncryptContent.Encryptor encryptor,
+                                                     boolean isToBeEncrypted) throws Exception {
 
         Map<String, String> oldAttributes = file.getAttributes();
         Map<String, String> atrToWrite = new HashMap<>();
@@ -437,8 +439,10 @@ public class EncryptAttributes extends AbstractProcessor {
         final String uuidAttr = CoreAttributes.UUID.key();
 
         if (!StringUtils.isEmpty(atrList)) {
+            //TODO: check for spaces also
             // Traverse comma separated list if provided
-            Set<String> atrSet = new HashSet<>(Arrays.asList(atrList));
+            String[] attrs = atrList.split(",");
+            Set<String> atrSet = new HashSet<>(Arrays.asList(attrs));
             for (String atr : atrSet) {
                 if (!atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
                     String atrValue = oldAttributes.get(atr);
