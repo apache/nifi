@@ -19,7 +19,9 @@ package org.apache.nifi;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -230,6 +232,84 @@ public class TestGetHTMLElement extends AbstractHTMLTest {
 
         List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
         ffs.get(0).assertContentEquals(AUTHOR_NAME);
+    }
+
+    @Test
+    public void testExtractAttributeFromElementRelativeUrl() throws Exception {
+        testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "script");
+        testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
+        testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
+        testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "src");
+
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
+
+        List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
+        ffs.get(0).assertContentEquals("js/scripts.js");
+    }
+
+    @Test
+    public void testExtractAttributeFromElementAbsoluteUrl() throws Exception {
+        testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "script");
+        testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
+        testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
+        testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "abs:src");
+
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
+
+        List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
+        ffs.get(0).assertContentEquals("http://localhost/js/scripts.js");
+    }
+
+    @Test
+    public void testExtractAttributeFromElementAbsoluteUrlWithEL() throws Exception {
+        testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "script");
+        testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
+        testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
+        testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "abs:src");
+        testRunner.setProperty(GetHTMLElement.URL, "${contentUrl}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("contentUrl", "https://example.com/a/b/c/Weather.html");
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath(), attributes);
+        testRunner.run();
+
+        testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
+
+        List<MockFlowFile> ffs = testRunner.getFlowFilesForRelationship(GetHTMLElement.REL_SUCCESS);
+        ffs.get(0).assertContentEquals("https://example.com/a/b/c/js/scripts.js");
+    }
+
+    @Test
+    public void testExtractAttributeFromElementAbsoluteUrlWithEmptyElResult() throws Exception {
+        testRunner.setProperty(GetHTMLElement.CSS_SELECTOR, "script");
+        testRunner.setProperty(GetHTMLElement.DESTINATION, GetHTMLElement.DESTINATION_CONTENT);
+        testRunner.setProperty(GetHTMLElement.OUTPUT_TYPE, GetHTMLElement.ELEMENT_ATTRIBUTE);
+        testRunner.setProperty(GetHTMLElement.ATTRIBUTE_KEY, "abs:src");
+        // Expression Language returns empty string because flow-file doesn't have contentUrl attribute.
+        testRunner.setProperty(GetHTMLElement.URL, "${contentUrl}");
+
+        testRunner.enqueue(new File("src/test/resources/Weather.html").toPath());
+        testRunner.run();
+
+        testRunner.assertTransferCount(GetHTMLElement.REL_SUCCESS, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_INVALID_HTML, 1);
+        testRunner.assertTransferCount(GetHTMLElement.REL_ORIGINAL, 0);
+        testRunner.assertTransferCount(GetHTMLElement.REL_NOT_FOUND, 0);
     }
 
     @Test
