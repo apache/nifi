@@ -12,7 +12,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-# Apache NiFi [![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
+# Apache NiFi [![Build Status](https://travis-ci.org/HandOfGod94/nifi.svg?branch=NIFI-2961_Create-EncryptAttribute-processor)](https://travis-ci.org/HandOfGod94/nifi)
 
 Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
 
