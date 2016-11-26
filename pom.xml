@@ -111,7 +111,7 @@ language governing permissions and limitations under the License. -->
         <repository>
             <id>central</id>
             <!-- This should be at top, it makes maven try the central repo 
-                first and then others and hence faster dep resolution -->
+            first and then others and hence faster dep resolution -->
             <name>Maven Repository</name>
             <url>https://repo1.maven.org/maven2</url>
             <releases>
@@ -1202,20 +1202,20 @@ language governing permissions and limitations under the License. -->
                 <artifactId>nifi-elasticsearch-nar</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
                 <type>nar</type>
-             </dependency>
-             <dependency>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-5-nar</artifactId>
-                 <version>1.1.0-SNAPSHOT</version>
+                <version>1.1.0-SNAPSHOT</version>
                 <type>nar</type>
-             </dependency>
-             <dependency>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-lumberjack-nar</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-             <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-email-nar</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
@@ -1239,13 +1239,13 @@ language governing permissions and limitations under the License. -->
                 <version>1.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	        <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	        <dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-evtx-nar</artifactId>
                 <version>1.1.0-SNAPSHOT</version>
@@ -1477,6 +1477,20 @@ language governing permissions and limitations under the License. -->
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>2.9</version>
+                </plugin>
+                <!-- 
+                  When org.apache:apache:19 is released this plugin definition
+                  won't be needed.  See https://issues.apache.org/jira/browse/MPOM-118
+                -->
+                <plugin>           
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>1.6</version>
+                    <configuration>
+                        <gpgArguments>
+                            <arg>--digest-algo=SHA512</arg>
+                        </gpgArguments>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1865,11 +1879,11 @@ language governing permissions and limitations under the License. -->
         </profile>
         <profile>
             <!-- This profile will disable DocLint which performs strict 
-                JavaDoc processing which was introduced in JDK 8. These are technically errors 
-                in the JavaDoc which we need to eventually address. However, if a release 
-                is performed using JDK 8, the JavaDoc generation would fail. By activating 
-                this profile when running on JDK 8 we can ensure the JavaDocs continue to 
-                generate successfully -->
+            JavaDoc processing which was introduced in JDK 8. These are technically errors 
+            in the JavaDoc which we need to eventually address. However, if a release 
+            is performed using JDK 8, the JavaDoc generation would fail. By activating 
+            this profile when running on JDK 8 we can ensure the JavaDocs continue to 
+            generate successfully -->
             <id>disable-doclint</id>
             <activation>
                 <jdk>1.8</jdk>
@@ -1889,13 +1903,13 @@ language governing permissions and limitations under the License. -->
             </build>
         </profile>
         <!-- The following profiles are here as a convenience for folks that want to build against vendor-specific
-         distributions of the various Hadoop ecosystem libraries.  These will alter which dependencies are sourced
-         in a manner that can adjust the correct LICENSE and NOTICE requirements for any affected jar and the
-         resulting assembly overall.  These L&N impacts are not automatically handled by the build process and are
-         the responsibility of those creating and using the resulting binary artifacts. -->
+        distributions of the various Hadoop ecosystem libraries.  These will alter which dependencies are sourced
+        in a manner that can adjust the correct LICENSE and NOTICE requirements for any affected jar and the
+        resulting assembly overall.  These L&N impacts are not automatically handled by the build process and are
+        the responsibility of those creating and using the resulting binary artifacts. -->
         <profile>
             <!-- This profile adds the Hortonworks repository for resolving Hortonworks Data Platform (HDP)
-                 artifacts for the Hadoop bundles -->
+            artifacts for the Hadoop bundles -->
             <id>hortonworks</id>
             <repositories>
                 <repository>
@@ -1938,7 +1952,7 @@ language governing permissions and limitations under the License. -->
         </profile>
         <profile>
             <!-- This profile will add the MapR repository for resolving MapR Hadoop
-                 artifacts for the Hadoop bundles -->
+            artifacts for the Hadoop bundles -->
             <id>mapr</id>
             <repositories>
                 <repository>
@@ -1962,7 +1976,7 @@ language governing permissions and limitations under the License. -->
         </profile>
         <profile>
             <!-- This profile will add the Cloudera repository for resolving Cloudera Distribution of Hadoop (CDH)
-                 artifacts for the Hadoop bundles -->
+            artifacts for the Hadoop bundles -->
             <id>cloudera</id>
             <repositories>
                 <repository>
