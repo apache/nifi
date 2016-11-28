@@ -85,7 +85,7 @@ public class BootstrapCodec {
 
                 final String secretKey = args[1];
 
-                runner.setNiFiCommandControlPort(port, secretKey);
+                runner.setMiNiFiCommandControlPort(port, secretKey);
                 writer.write("OK");
                 writer.newLine();
                 writer.flush();

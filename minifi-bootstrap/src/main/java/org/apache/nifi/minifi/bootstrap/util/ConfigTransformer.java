@@ -167,6 +167,7 @@ public final class ConfigTransformer {
             writer.println();
             writer.println("nifi.version=" + NIFI_VERSION);
             writer.println("nifi.flow.configuration.file=./conf/flow.xml.gz");
+            writer.println("nifi.flow.configuration.archive.enabled=false");
             writer.println("nifi.flow.configuration.archive.dir=./conf/archive/");
             writer.println("nifi.flowcontroller.autoResumeState=true");
             writer.println("nifi.flowcontroller.graceful.shutdown.period=" + coreProperties.getFlowControllerGracefulShutdownPeriod());

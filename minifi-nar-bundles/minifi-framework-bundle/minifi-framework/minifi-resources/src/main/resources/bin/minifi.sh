@@ -15,16 +15,37 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
-# chkconfig: 2345 20 80
-# description: Apache NiFi - MiNiFi
-#
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-SCRIPT_DIR=$(dirname "$0")
+# Discover the path of the file
+
+
+# Since MacOS X, FreeBSD and some other systems lack gnu readlink, we use a more portable
+# approach based on following StackOverflow comment http://stackoverflow.com/a/1116890/888876
+
+TARGET_FILE=$0
+
+cd $(dirname $TARGET_FILE)
+TARGET_FILE=$(basename $TARGET_FILE)
+
+# Iterate down a (possible) chain of symlinks
+while [ -L "$TARGET_FILE" ]
+do
+    TARGET_FILE=$(readlink $TARGET_FILE)
+    cd $(dirname $TARGET_FILE)
+    TARGET_FILE=$(basename $TARGET_FILE)
+done
+
+# Compute the canonicalized name by finding the physical path
+# for the directory we're in and appending the target file.
+PHYS_DIR=`pwd -P`
+
+SCRIPT_DIR=$PHYS_DIR
 SCRIPT_NAME=$(basename "$0")
-MINIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
 PROGNAME=$(basename "$0")
+
+. "$SCRIPT_DIR"/minifi-env.sh
 
 
 warn() {
@@ -142,22 +163,72 @@ init() {
 
 
 install() {
-        SVC_NAME=minifi
-        if [ "x$2" != "x" ] ; then
-                SVC_NAME=$2
-        fi
+   detectOS
 
-        SVC_FILE="/etc/init.d/${SVC_NAME}"
-        cp "$0" "${SVC_FILE}"
-        sed -i s:MINIFI_HOME=.*:MINIFI_HOME="${MINIFI_HOME}": "${SVC_FILE}"
-        sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "${SVC_FILE}"
-        rm -f "/etc/rc2.d/S65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}"
-        rm -f "/etc/rc2.d/K65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}"
-        echo "Service ${SVC_NAME} installed"
+    if [ "${darwin}" = "true"  ] || [ "${cygwin}" = "true" ]; then
+        echo 'Installing Apache MiNiFi as a service is not supported on OS X or Cygwin.'
+        exit 1
+    fi
+
+    SVC_NAME=minifi
+    if [ "x$2" != "x" ] ; then
+        SVC_NAME=$2
+    fi
+
+    initd_dir='/etc/init.d'
+    SVC_FILE="${initd_dir}/${SVC_NAME}"
+
+    if [ ! -w  "${initd_dir}" ]; then
+        echo "Current user does not have write permissions to ${initd_dir}. Cannot install MiNiFi as a service."
+        exit 1
+    fi
+
+# Create the init script, overwriting anything currently present
+cat <<SERVICEDESCRIPTOR > ${SVC_FILE}
+#!/bin/sh
+
+#
+#    Licensed to the Apache Software Foundation (ASF) under one or more
+#    contributor license agreements.  See the NOTICE file distributed with
+#    this work for additional information regarding copyright ownership.
+#    The ASF licenses this file to You under the Apache License, Version 2.0
+#    (the "License"); you may not use this file except in compliance with
+#    the License.  You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+# chkconfig: 2345 20 80
+# description: Apache NiFi is a dataflow system based on the principles of Flow-Based Programming.
+#
+
+# Make use of the configured NIFI_HOME directory and pass service requests to the nifi.sh executable
+MINIFI_HOME=${MINIFI_HOME}
+bin_dir=\${MINIFI_HOME}/bin
+minifi_executable=\${bin_dir}/minifi.sh
+
+\${minifi_executable} "\$@"
+SERVICEDESCRIPTOR
+
+    if [ ! -f "${SVC_FILE}" ]; then
+        echo "Could not create service file ${SVC_FILE}"
+        exit 1
+    fi
+
+    # Provide the user execute access on the file
+    chmod u+x ${SVC_FILE}
+
+    rm -f "/etc/rc2.d/S65${SVC_NAME}"
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
+    rm -f "/etc/rc2.d/K65${SVC_NAME}"
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
+    echo "Service ${SVC_NAME} installed"
 }
-
 
 run() {
     BOOTSTRAP_CONF_DIR="${MINIFI_HOME}/conf"
@@ -165,7 +236,7 @@ run() {
     MINIFI_LIBS="${MINIFI_HOME}/lib/*"
     BOOTSTRAP_LIBS="${MINIFI_HOME}/lib/bootstrap/*"
 
-    run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
+    run_as=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
     if [ "$run_as" = "$(whoami)" ]; then
         unset run_as
@@ -211,13 +282,24 @@ run() {
     echo "Bootstrap Config File: ${BOOTSTRAP_CONF}"
     echo
 
+
+    #setup directory parameters
+    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.log.dir="\""${MINIFI_LOG_DIR}"\"""
+    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.pid.dir="\""${MINIFI_PID_DIR}"\"""
+    BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.minifi.bootstrap.config.file="\""${BOOTSTRAP_CONF}"\"""
+
+    BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
+
+    RUN_MINIFI_CMD="cd "\""${MINIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.minifi.bootstrap.RunMiNiFi"
+
     # run 'start' in the background because the process will continue to run, monitoring MiNiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        (cd "${MINIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.minifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.minifi.bootstrap.RunMiNiFi $@ &)
+        (eval $RUN_MINIFI_CMD $@ &)
     else
-        (cd "${MINIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.minifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.minifi.bootstrap.RunMiNiFi $@)
+        (eval $RUN_MINIFI_CMD $@)
     fi
+    EXIT_STATUS=$?
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
     # We do this to avoid having logs spewed on the console after running the command and then not giving
@@ -238,11 +320,13 @@ case "$1" in
         ;;
     start|stop|run|status|flowStatus|dump|env)
         main "$@"
+        exit $EXIT_STATUS
         ;;
     restart)
         init
-    run "stop"
-    run "start"
+        run "stop"
+        run "start"
+        exit $EXIT_STATUS
     ;;
     *)
         echo "Usage minifi {start|stop|run|restart|status|flowStatus|dump|install}"
