@@ -47,6 +47,7 @@ import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
+import javax.naming.Context;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -96,11 +97,6 @@ public class LdapProvider implements LoginIdentityProvider {
         setTimeout(configurationContext, baseEnvironment, "Connect Timeout", "com.sun.jndi.ldap.connect.timeout");
         setTimeout(configurationContext, baseEnvironment, "Read Timeout", "com.sun.jndi.ldap.read.timeout");
 
-        // set the base environment is necessary
-        if (!baseEnvironment.isEmpty()) {
-            context.setBaseEnvironmentProperties(baseEnvironment);
-        }
-
         // authentication strategy
         final String rawAuthenticationStrategy = configurationContext.getProperty("Authentication Strategy");
         final LdapAuthenticationStrategy authenticationStrategy;
@@ -126,6 +122,20 @@ public class LdapProvider implements LoginIdentityProvider {
                     case SIMPLE:
                         context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
                         break;
+                    case LDAPS:
+                        context.setAuthenticationStrategy(new SimpleDirContextAuthenticationStrategy());
+
+                        // indicate a secure connection
+                        baseEnvironment.put(Context.SECURITY_PROTOCOL, "ssl");
+
+                        // get the configured ssl context
+                        final SSLContext ldapsSslContext = getConfiguredSslContext(configurationContext);
+                        if (ldapsSslContext != null) {
+                            // initialize the ldaps socket factory prior to use
+                            LdapsSocketFactory.initialize(ldapsSslContext.getSocketFactory());
+                            baseEnvironment.put("java.naming.ldap.factory.socket", LdapsSocketFactory.class.getName());
+                        }
+                        break;
                     case START_TLS:
                         final AbstractTlsDirContextAuthenticationStrategy tlsAuthenticationStrategy = new DefaultTlsDirContextAuthenticationStrategy();
 
@@ -136,49 +146,13 @@ public class LdapProvider implements LoginIdentityProvider {
                             tlsAuthenticationStrategy.setShutdownTlsGracefully(shutdownGracefully);
                         }
 
-                        final String rawKeystore = configurationContext.getProperty("TLS - Keystore");
-                        final String rawKeystorePassword = configurationContext.getProperty("TLS - Keystore Password");
-                        final String rawKeystoreType = configurationContext.getProperty("TLS - Keystore Type");
-                        final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
-                        final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
-                        final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
-                        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
-                        final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
-
-                        final ClientAuth clientAuth;
-                        if (StringUtils.isBlank(rawClientAuth)) {
-                            clientAuth = ClientAuth.NONE;
-                        } else {
-                            try {
-                                clientAuth = ClientAuth.valueOf(rawClientAuth);
-                            } catch (final IllegalArgumentException iae) {
-                                throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                        rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                            }
+                        // get the configured ssl context
+                        final SSLContext startTlsSslContext = getConfiguredSslContext(configurationContext);
+                        if (startTlsSslContext != null) {
+                            tlsAuthenticationStrategy.setSslSocketFactory(startTlsSslContext.getSocketFactory());
                         }
 
-                        // ensure the protocol is specified
-                        if (StringUtils.isBlank(rawProtocol)) {
-                            throw new ProviderCreationException("TLS - Protocol must be specified.");
-                        }
-
-                        try {
-                            final SSLContext sslContext;
-                            if (StringUtils.isBlank(rawKeystore)) {
-                                sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
-                            } else {
-                                if (StringUtils.isBlank(rawTruststore)) {
-                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
-                                } else {
-                                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
-                                }
-                            }
-                            tlsAuthenticationStrategy.setSslSocketFactory(sslContext.getSocketFactory());
-                        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
-                            throw new ProviderCreationException(e.getMessage(), e);
-                        }
-
+                        // set the authentication strategy
                         context.setAuthenticationStrategy(tlsAuthenticationStrategy);
                         break;
                 }
@@ -241,6 +215,11 @@ public class LdapProvider implements LoginIdentityProvider {
             }
         }
 
+        // set the base environment is necessary
+        if (!baseEnvironment.isEmpty()) {
+            context.setBaseEnvironmentProperties(baseEnvironment);
+        }
+
         try {
             // handling initializing beans
             context.afterPropertiesSet();
@@ -267,6 +246,56 @@ public class LdapProvider implements LoginIdentityProvider {
                 throw new ProviderCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));
             }
         }
+    }
+
+    private SSLContext getConfiguredSslContext(final LoginIdentityProviderConfigurationContext configurationContext) {
+        final String rawKeystore = configurationContext.getProperty("TLS - Keystore");
+        final String rawKeystorePassword = configurationContext.getProperty("TLS - Keystore Password");
+        final String rawKeystoreType = configurationContext.getProperty("TLS - Keystore Type");
+        final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
+        final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
+        final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
+        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
+        final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
+
+        // create the ssl context
+        final SSLContext sslContext;
+        try {
+            if (StringUtils.isBlank(rawKeystore) && StringUtils.isBlank(rawTruststore)) {
+                sslContext = null;
+            } else {
+                // ensure the protocol is specified
+                if (StringUtils.isBlank(rawProtocol)) {
+                    throw new ProviderCreationException("TLS - Protocol must be specified.");
+                }
+
+                if (StringUtils.isBlank(rawKeystore)) {
+                    sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
+                } else if (StringUtils.isBlank(rawTruststore)) {
+                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
+                } else {
+                    // determine the client auth if specified
+                    final ClientAuth clientAuth;
+                    if (StringUtils.isBlank(rawClientAuth)) {
+                        clientAuth = ClientAuth.NONE;
+                    } else {
+                        try {
+                            clientAuth = ClientAuth.valueOf(rawClientAuth);
+                        } catch (final IllegalArgumentException iae) {
+                            throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                                    rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
+                        }
+                    }
+
+                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
+                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
+                }
+            }
+        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
+            throw new ProviderCreationException(e.getMessage(), e);
+        }
+
+        return sslContext;
     }
 
     @Override
