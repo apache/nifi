@@ -271,7 +271,7 @@ limitations under the License.
 
     <properties>
         <!--Bootstrap Properties -->
-        <minifi.jvm.heap.mb>512</minifi.jvm.heap.mb>
+        <minifi.jvm.heap.mb>256</minifi.jvm.heap.mb>
         <minifi.jvm.permgen.mb>128</minifi.jvm.permgen.mb>
         <minifi.run.as />
     </properties>
