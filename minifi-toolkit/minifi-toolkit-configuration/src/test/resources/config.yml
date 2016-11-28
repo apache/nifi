@@ -81,7 +81,7 @@ Connections:
   max work queue data size: 1 MB
   flowfile expiration: 60 sec
   queue prioritizer class: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
-Remote Processing Groups:
+Remote Process Groups:
 - id: 94b8e610-b4ed-3ec9-b26f-c839931bf3e3
   name: NiFi Flow
   url: https://localhost:8090/nifi

@@ -172,7 +172,7 @@ Process Groups:
       max work queue data size: 1 GB
       flowfile expiration: 0 sec
       queue prioritizer class: ''
-    Remote Processing Groups:
+    Remote Process Groups:
     - name: http://localhost:9091/nifi
       url: http://localhost:9091/nifi
       comment: ''
@@ -229,7 +229,7 @@ Process Groups:
     max work queue data size: 1 GB
     flowfile expiration: 0 sec
     queue prioritizer class: ''
-  Remote Processing Groups:
+  Remote Process Groups:
   - name: http://localhost:9090/nifi
     url: http://localhost:9090/nifi
     comment: ''
@@ -273,4 +273,4 @@ Connections:
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: ''
-Remote Processing Groups: []
+Remote Process Groups: []

@@ -281,13 +281,14 @@ Connections:
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
-Remote Processing Groups:
+Remote Process Groups:
 - id: d41d8cd9-8f00-3204-a980-0998ecf8427e
   name: ''
   url: http://nifi:8080/nifi
   comment: ''
   timeout: 30 sec
   yield period: 10 sec
+  transport protocol: RAW
   Input Ports:
   - name: response
     id: b23a4621-cf19-42e6-967c-ffd3716e6a24

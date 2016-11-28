@@ -37,7 +37,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.IN
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.OUTPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROCESSORS_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.REMOTE_PROCESSING_GROUPS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.REMOTE_PROCESS_GROUPS_KEY;
 
 public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements WritableSchema, ConvertableSchema<ProcessGroupSchema> {
 
@@ -48,7 +48,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
     private List<ProcessorSchema> processors;
     private List<FunnelSchema> funnels;
     private List<ConnectionSchema> connections;
-    private List<RemoteProcessingGroupSchema> remoteProcessingGroups;
+    private List<RemoteProcessGroupSchema> remoteProcessGroups;
     private List<ProcessGroupSchema> processGroupSchemas;
     private List<PortSchema> inputPortSchemas;
     private List<PortSchema> outputPortSchemas;
@@ -58,7 +58,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
         processors = getOptionalKeyAsList(map, PROCESSORS_KEY, ProcessorSchema::new, wrapperName);
         funnels = getOptionalKeyAsList(map, FUNNELS_KEY, FunnelSchema::new, wrapperName);
-        remoteProcessingGroups = getOptionalKeyAsList(map, REMOTE_PROCESSING_GROUPS_KEY, RemoteProcessingGroupSchema::new, wrapperName);
+        remoteProcessGroups = getOptionalKeyAsList(map, REMOTE_PROCESS_GROUPS_KEY, RemoteProcessGroupSchema::new, wrapperName);
         connections = getOptionalKeyAsList(map, CONNECTIONS_KEY, ConnectionSchema::new, wrapperName);
         inputPortSchemas = getOptionalKeyAsList(map, INPUT_PORTS_KEY, m -> new PortSchema(m, "InputPort(id: {id}, name: {name})"), wrapperName);
         outputPortSchemas = getOptionalKeyAsList(map, OUTPUT_PORTS_KEY, m -> new PortSchema(m, "OutputPort(id: {id}, name: {name})"), wrapperName);
@@ -83,7 +83,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         connections.stream().filter(c -> funnelIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
         addIssuesIfNotNull(processors);
-        addIssuesIfNotNull(remoteProcessingGroups);
+        addIssuesIfNotNull(remoteProcessGroups);
         addIssuesIfNotNull(processGroupSchemas);
         addIssuesIfNotNull(funnels);
         addIssuesIfNotNull(connections);
@@ -102,7 +102,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         putListIfNotNull(result, OUTPUT_PORTS_KEY, outputPortSchemas);
         putListIfNotNull(result, FUNNELS_KEY, funnels);
         putListIfNotNull(result, CONNECTIONS_KEY, connections);
-        putListIfNotNull(result, REMOTE_PROCESSING_GROUPS_KEY, remoteProcessingGroups);
+        putListIfNotNull(result, REMOTE_PROCESS_GROUPS_KEY, remoteProcessGroups);
         return result;
     }
 
@@ -118,8 +118,8 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         return connections;
     }
 
-    public List<RemoteProcessingGroupSchema> getRemoteProcessingGroups() {
-        return remoteProcessingGroups;
+    public List<RemoteProcessGroupSchema> getRemoteProcessGroups() {
+        return remoteProcessGroups;
     }
 
     public List<ProcessGroupSchema> getProcessGroupSchemas() {

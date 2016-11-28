@@ -28,7 +28,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PR
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
-import static org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema.TIMEOUT_KEY;
+import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
 
 /**
  *

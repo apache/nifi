@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.commons.schema.v1;
 
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
@@ -29,10 +29,10 @@ import java.util.Map;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.REMOTE_PROCESSING_GROUPS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.REMOTE_PROCESS_GROUPS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
-public class RemoteProcessingGroupSchemaV1 extends BaseSchema implements ConvertableSchema<RemoteProcessingGroupSchema> {
+public class RemoteProcessGroupSchemaV1 extends BaseSchema implements ConvertableSchema<RemoteProcessGroupSchema> {
     public static final String URL_KEY = "url";
     public static final String TIMEOUT_KEY = "timeout";
 
@@ -48,8 +48,8 @@ public class RemoteProcessingGroupSchemaV1 extends BaseSchema implements Convert
     private String timeout = DEFAULT_TIMEOUT;
     private String yieldPeriod = DEFAULT_YIELD_PERIOD;
 
-    public RemoteProcessingGroupSchemaV1(Map map) {
-        name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESSING_GROUPS_KEY);
+    public RemoteProcessGroupSchemaV1(Map map) {
+        name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESS_GROUPS_KEY);
         String wrapperName = new StringBuilder("RemoteProcessingGroup(name: ").append(StringUtil.isNullOrEmpty(name) ? "unknown" : name).append(")").toString();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
         inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
@@ -65,7 +65,7 @@ public class RemoteProcessingGroupSchemaV1 extends BaseSchema implements Convert
     }
 
     @Override
-    public RemoteProcessingGroupSchema convert() {
+    public RemoteProcessGroupSchema convert() {
         Map<String, Object> result = mapSupplier.get();
         result.put(NAME_KEY, name);
         result.put(URL_KEY, url);
@@ -73,7 +73,7 @@ public class RemoteProcessingGroupSchemaV1 extends BaseSchema implements Convert
         result.put(TIMEOUT_KEY, timeout);
         result.put(YIELD_PERIOD_KEY, yieldPeriod);
         putListIfNotNull(result, INPUT_PORTS_KEY, inputPorts);
-        return new RemoteProcessingGroupSchema(result);
+        return new RemoteProcessGroupSchema(result);
     }
 
     public String getName() {

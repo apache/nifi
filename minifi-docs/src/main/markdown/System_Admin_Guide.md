@@ -235,7 +235,7 @@ stats | The current stats of the RPG. This includes the active threads, sent con
 An example query to get the health, bulletins, input ports and stats of all the RPGS is below.
 
 ```
-minifi.sh flowStatus remoteprocessinggroup:all:health,bulletins,inputports,stats
+minifi.sh flowStatus remoteprocessgroup:all:health,bulletins,inputports,stats
 ```
 
 ### Controller Services
@@ -315,7 +315,7 @@ MiNiFi home: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.
 Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT/conf/bootstrap.conf
 
 FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, validationErrorList=[]}, processorStats=null,
-bulletinList=null}], connectionStatusList=null, remoteProcessingGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null, reportingTaskStatusList=null, errorsGeneratingReport=[]}
+bulletinList=null}], connectionStatusList=null, remoteProcessGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null, reportingTaskStatusList=null, errorsGeneratingReport=[]}
 ```
 
 # Periodic Status Reporters
@@ -345,6 +345,7 @@ parses and upconverts to the current version without issue.
 1. Use ids instead of names for processors, connections.
 2. Allow multiple source relationships for connections.
 3. Support process groups, input ports, output ports
+4. Change Id Key for RPGs from "Remote Processing Groups" to the proper "Remote Process Groups" (not "ing")
 
 ## Flow Controller
 
@@ -496,7 +497,7 @@ Process groups can be nested from the top level.  They can contain other process
 name                                | The name of what this process group will do.
 id                                  | The id of this process group.  This needs to be set to a unique filesystem-friendly value (regex: [A-Za-z0-9_-]+)
 Processors                          | The processors contained in this Process Group. (Defined above)
-Remote Processing Groups            | The remote processing groups contained in this Process Group. (Defined below)
+Remote Process Groups               | The remote process groups contained in this Process Group. (Defined below)
 Connections                         | The connections contained in this Process Group. (Defined below)
 Input Ports                         | The input ports contained in this Process Group. (Defined below)
 Output Ports                        | The output ports contained in this Process Group. (Defined below)
@@ -545,17 +546,18 @@ max work queue data size | This property specifies the maximum amount of data (i
 flowfile expiration      | Indicates how long FlowFiles are allowed to exist in the connection before be expired (automatically removed from the flow).
 queue prioritizer class  | This configuration option specifies the fully qualified java class path of a queue prioritizer to use. If no special prioritizer is desired then it should be left blank. An example value of this property is: org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer
 
-## Remote Processing Groups
+## Remote Process Groups
 
-MiNiFi can be used to send data using the Site to Site protocol (via a Remote Processing Group) or a Processor. These properties configure the Remote Processing Groups that use Site-To-Site to send data to a core instance.
+MiNiFi can be used to send data using the Site to Site protocol (via a Remote Process Group) or a Processor. These properties configure the Remote Process Groups that use Site-To-Site to send data to a core instance.
 
-*Property*   | *Description*
------------- | -------------
-name         | The name of what this Remote Processing Group points to. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
-comment      | A comment about the Remote Processing Group. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
-url          | The URL of the core NiFi instance.
-timeout      | How long MiNiFi should wait before timing out the connection.
-yield period | When communication with this Remote Processing Group fails, it will not be scheduled again for this amount of time.
+*Property*         | *Description*
+-------------------| -------------
+name               | The name of what this Remote Process Group points to. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+comment            | A comment about the Remote Process Group. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+url                | The URL of the core NiFi instance.
+timeout            | How long MiNiFi should wait before timing out the connection.
+yield period       | When communication with this Remote Process Group fails, it will not be scheduled again for this amount of time.
+transport protocol | The transport protocol to use for this Remote Process Group. Can be either "RAW" or "HTTP"
 
 
 #### Input Ports Subsection
@@ -594,6 +596,7 @@ Below are two example config YAML files. The first tails the minifi-app.log, sen
 
 
 ``` yaml
+MiNiFi Config Version: 1
 Flow Controller:
     name: MiNiFi Flow
     comment:

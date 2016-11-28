@@ -150,4 +150,4 @@ Connections:
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: ''
-Remote Processing Groups: []
+Remote Process Groups: []

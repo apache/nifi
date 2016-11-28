@@ -23,7 +23,7 @@ import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CollectionUtil;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
@@ -47,23 +47,23 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
     private final ProcessorSchemaFunction processorSchemaFunction;
     private final ConnectionSchemaFunction connectionSchemaFunction;
     private final FunnelSchemaFunction funnelSchemaFunction;
-    private final RemoteProcessingGroupSchemaFunction remoteProcessingGroupSchemaFunction;
+    private final RemoteProcessGroupSchemaFunction remoteProcessGroupSchemaFunction;
     private final PortSchemaFunction inputPortSchemaFunction;
     private final PortSchemaFunction outputPortSchemaFunction;
 
     public ConfigSchemaFunction() {
-        this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new FunnelSchemaFunction(), new RemoteProcessingGroupSchemaFunction(
+        this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new FunnelSchemaFunction(), new RemoteProcessGroupSchemaFunction(
                 new RemoteInputPortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY));
     }
 
     public ConfigSchemaFunction(FlowControllerSchemaFunction flowControllerSchemaFunction, ProcessorSchemaFunction processorSchemaFunction, ConnectionSchemaFunction connectionSchemaFunction,
-                                FunnelSchemaFunction funnelSchemaFunction, RemoteProcessingGroupSchemaFunction remoteProcessingGroupSchemaFunction, PortSchemaFunction inputPortSchemaFunction,
+                                FunnelSchemaFunction funnelSchemaFunction, RemoteProcessGroupSchemaFunction remoteProcessGroupSchemaFunction, PortSchemaFunction inputPortSchemaFunction,
                                 PortSchemaFunction outputPortSchemaFunction) {
         this.flowControllerSchemaFunction = flowControllerSchemaFunction;
         this.processorSchemaFunction = processorSchemaFunction;
         this.connectionSchemaFunction = connectionSchemaFunction;
         this.funnelSchemaFunction = funnelSchemaFunction;
-        this.remoteProcessingGroupSchemaFunction = remoteProcessingGroupSchemaFunction;
+        this.remoteProcessGroupSchemaFunction = remoteProcessGroupSchemaFunction;
         this.inputPortSchemaFunction = inputPortSchemaFunction;
         this.outputPortSchemaFunction = outputPortSchemaFunction;
     }
@@ -112,10 +112,10 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
                 .map(FunnelSchema::toMap)
                 .collect(Collectors.toList()));
 
-        map.put(CommonPropertyKeys.REMOTE_PROCESSING_GROUPS_KEY, nullToEmpty(snippet.getRemoteProcessGroups()).stream()
-                .map(remoteProcessingGroupSchemaFunction)
-                .sorted(Comparator.comparing(RemoteProcessingGroupSchema::getName))
-                .map(RemoteProcessingGroupSchema::toMap)
+        map.put(CommonPropertyKeys.REMOTE_PROCESS_GROUPS_KEY, nullToEmpty(snippet.getRemoteProcessGroups()).stream()
+                .map(remoteProcessGroupSchemaFunction)
+                .sorted(Comparator.comparing(RemoteProcessGroupSchema::getName))
+                .map(RemoteProcessGroupSchema::toMap)
                 .collect(Collectors.toList()));
 
         map.put(INPUT_PORTS_KEY, nullToEmpty(snippet.getInputPorts()).stream()

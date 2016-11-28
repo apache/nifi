@@ -25,7 +25,7 @@ import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.junit.Before;
@@ -142,9 +142,9 @@ public class ConfigTransformerTest {
         }
 
         NodeList remoteProcessGroupElements = (NodeList) xPathFactory.newXPath().evaluate("remoteProcessGroup", element, XPathConstants.NODESET);
-        assertEquals(processGroupSchema.getRemoteProcessingGroups().size(), remoteProcessGroupElements.getLength());
+        assertEquals(processGroupSchema.getRemoteProcessGroups().size(), remoteProcessGroupElements.getLength());
         for (int i = 0; i < remoteProcessGroupElements.getLength(); i++) {
-            testRemoteProcessGroups((Element) remoteProcessGroupElements.item(i), processGroupSchema.getRemoteProcessingGroups().get(i));
+            testRemoteProcessGroups((Element) remoteProcessGroupElements.item(i), processGroupSchema.getRemoteProcessGroups().get(i));
         }
 
         NodeList funnelElements = (NodeList) xPathFactory.newXPath().evaluate("funnel", element, XPathConstants.NODESET);
@@ -192,7 +192,7 @@ public class ConfigTransformerTest {
         testProperties(element, processorSchema.getProperties());
     }
 
-    private void testRemoteProcessGroups(Element element, RemoteProcessingGroupSchema remoteProcessingGroupSchema) throws XPathExpressionException {
+    private void testRemoteProcessGroups(Element element, RemoteProcessGroupSchema remoteProcessingGroupSchema) throws XPathExpressionException {
         assertEquals(remoteProcessingGroupSchema.getId(), getText(element, "id"));
         assertEquals(remoteProcessingGroupSchema.getName(), getText(element, "name"));
         assertEquals(remoteProcessingGroupSchema.getComment(), getText(element, "comment"));

@@ -208,4 +208,4 @@ Connections:
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
-Remote Processing Groups: []
+Remote Process Groups: []

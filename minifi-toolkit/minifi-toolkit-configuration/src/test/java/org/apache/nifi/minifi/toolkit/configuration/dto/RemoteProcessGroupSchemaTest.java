@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -36,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProcessingGroupSchema, RemoteProcessGroupDTO> {
+public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcessGroupSchema, RemoteProcessGroupDTO> {
     private final RemoteInputPortSchemaTest remoteInputPortSchemaTest;
     private String testId = UUID.randomUUID().toString();
     private String testName = "testName";
@@ -44,9 +44,10 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
     private String testComment = "testComment";
     private String testTimeout = "11 s";
     private String testYieldPeriod = "22 s";
+    private String transportProtocol = "HTTP";
 
-    public RemoteProcessingGroupSchemaTest() {
-        super(new RemoteProcessingGroupSchemaFunction(new RemoteInputPortSchemaFunction()), RemoteProcessingGroupSchema::new);
+    public RemoteProcessGroupSchemaTest() {
+        super(new RemoteProcessGroupSchemaFunction(new RemoteInputPortSchemaFunction()), RemoteProcessGroupSchema::new);
         remoteInputPortSchemaTest = new RemoteInputPortSchemaTest();
     }
 
@@ -66,16 +67,18 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
         dto.setComments(testComment);
         dto.setCommunicationsTimeout(testTimeout);
         dto.setYieldDuration(testYieldPeriod);
+        dto.setTransportProtocol(transportProtocol);
 
         map = new HashMap<>();
 
         map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(CommonPropertyKeys.NAME_KEY, testName);
-        map.put(RemoteProcessingGroupSchema.URL_KEY, testUrl);
+        map.put(RemoteProcessGroupSchema.URL_KEY, testUrl);
         map.put(CommonPropertyKeys.INPUT_PORTS_KEY, new ArrayList<>(Arrays.asList(remoteInputPortSchemaTest.map)));
         map.put(CommonPropertyKeys.COMMENT_KEY, testComment);
-        map.put(RemoteProcessingGroupSchema.TIMEOUT_KEY, testTimeout);
+        map.put(RemoteProcessGroupSchema.TIMEOUT_KEY, testTimeout);
         map.put(CommonPropertyKeys.YIELD_PERIOD_KEY, testYieldPeriod);
+        map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, transportProtocol);
     }
 
     @Test
@@ -95,7 +98,7 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
     @Test
     public void testNoUrl() {
         dto.setTargetUri(null);
-        map.remove(RemoteProcessingGroupSchema.URL_KEY);
+        map.remove(RemoteProcessGroupSchema.URL_KEY);
         assertDtoAndMapConstructorAreSame(1);
     }
 
@@ -116,7 +119,7 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
     @Test
     public void testNoTimeout() {
         dto.setCommunicationsTimeout(null);
-        map.remove(RemoteProcessingGroupSchema.TIMEOUT_KEY);
+        map.remove(RemoteProcessGroupSchema.TIMEOUT_KEY);
         assertDtoAndMapConstructorAreSame(0);
     }
 
@@ -127,8 +130,15 @@ public class RemoteProcessingGroupSchemaTest extends BaseSchemaTester<RemoteProc
         assertDtoAndMapConstructorAreSame(0);
     }
 
+    @Test
+    public void testNoTransportProtocol() {
+        dto.setTransportProtocol(null);
+        map.remove(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY);
+        assertDtoAndMapConstructorAreSame(0);
+    }
+
     @Override
-    public void assertSchemaEquals(RemoteProcessingGroupSchema one, RemoteProcessingGroupSchema two) {
+    public void assertSchemaEquals(RemoteProcessGroupSchema one, RemoteProcessGroupSchema two) {
         assertEquals(one.getName(), two.getName());
         assertEquals(one.getUrl(), two.getUrl());
 

@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -30,19 +30,19 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class RemoteProcessingGroupSchemaFunction implements Function<RemoteProcessGroupDTO, RemoteProcessingGroupSchema> {
+public class RemoteProcessGroupSchemaFunction implements Function<RemoteProcessGroupDTO, RemoteProcessGroupSchema> {
     private final RemoteInputPortSchemaFunction remoteInputPortSchemaFunction;
 
-    public RemoteProcessingGroupSchemaFunction(RemoteInputPortSchemaFunction remoteInputPortSchemaFunction) {
+    public RemoteProcessGroupSchemaFunction(RemoteInputPortSchemaFunction remoteInputPortSchemaFunction) {
         this.remoteInputPortSchemaFunction = remoteInputPortSchemaFunction;
     }
 
     @Override
-    public RemoteProcessingGroupSchema apply(RemoteProcessGroupDTO remoteProcessGroupDTO) {
+    public RemoteProcessGroupSchema apply(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         Map<String, Object> map = new HashMap<>();
         map.put(CommonPropertyKeys.ID_KEY, remoteProcessGroupDTO.getId());
         map.put(CommonPropertyKeys.NAME_KEY, remoteProcessGroupDTO.getName());
-        map.put(RemoteProcessingGroupSchema.URL_KEY, remoteProcessGroupDTO.getTargetUri());
+        map.put(RemoteProcessGroupSchema.URL_KEY, remoteProcessGroupDTO.getTargetUri());
 
         RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
         if (contents != null) {
@@ -56,8 +56,9 @@ public class RemoteProcessingGroupSchemaFunction implements Function<RemoteProce
         }
 
         map.put(CommonPropertyKeys.COMMENT_KEY, remoteProcessGroupDTO.getComments());
-        map.put(RemoteProcessingGroupSchema.TIMEOUT_KEY, remoteProcessGroupDTO.getCommunicationsTimeout());
+        map.put(RemoteProcessGroupSchema.TIMEOUT_KEY, remoteProcessGroupDTO.getCommunicationsTimeout());
         map.put(CommonPropertyKeys.YIELD_PERIOD_KEY, remoteProcessGroupDTO.getYieldDuration());
-        return new RemoteProcessingGroupSchema(map);
+        map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, remoteProcessGroupDTO.getTransportProtocol());
+        return new RemoteProcessGroupSchema(map);
     }
 }

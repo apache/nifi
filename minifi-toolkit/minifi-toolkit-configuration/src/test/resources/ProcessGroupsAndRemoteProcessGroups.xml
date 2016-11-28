@@ -441,7 +441,7 @@ limitations under the License.
           <proxyHost></proxyHost>
           <proxyUser></proxyUser>
           <targetUri>http://localhost:9090/nifi</targetUri>
-          <transportProtocol>RAW</transportProtocol>
+          <transportProtocol>HTTP</transportProtocol>
           <yieldDuration>10 sec</yieldDuration>
         </remoteProcessGroups>
       </contents>

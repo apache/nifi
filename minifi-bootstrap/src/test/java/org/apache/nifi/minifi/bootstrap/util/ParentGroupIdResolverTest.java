@@ -39,13 +39,13 @@ public class ParentGroupIdResolverTest {
     public void testRemoteInputPortParentId() throws IOException, SchemaLoaderException {
         List<String> configLines = new ArrayList<>();
         configLines.add("MiNiFi Config Version: 2");
-        configLines.add("Remote Processing Groups:");
+        configLines.add("Remote Process Groups:");
         configLines.add("- name: rpgOne");
         configLines.add("  id: rpgOneId");
         configLines.add("  Input Ports:");
         configLines.add("  - id: one");
         configLines.add("Process Groups:");
-        configLines.add("- Remote Processing Groups:");
+        configLines.add("- Remote Process Groups:");
         configLines.add("  - name: rpgTwo");
         configLines.add("    id: rpgTwoId");
         configLines.add("    Input Ports:");

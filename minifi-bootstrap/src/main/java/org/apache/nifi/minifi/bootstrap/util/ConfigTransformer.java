@@ -35,7 +35,7 @@ import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
@@ -385,8 +385,8 @@ public final class ConfigTransformer {
                 addProcessGroup(doc, processGroups, child, parentGroupIdResolver);
             }
 
-            for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : processGroupSchema.getRemoteProcessingGroups()) {
-                addRemoteProcessGroup(element, remoteProcessingGroupSchema);
+            for (RemoteProcessGroupSchema remoteProcessGroupSchema : processGroupSchema.getRemoteProcessGroups()) {
+                addRemoteProcessGroup(element, remoteProcessGroupSchema);
             }
 
             for (ConnectionSchema connectionConfig : processGroupSchema.getConnections()) {
@@ -520,21 +520,22 @@ public final class ConfigTransformer {
         parentElement.appendChild(element);
     }
 
-    protected static void addRemoteProcessGroup(final Element parentElement, RemoteProcessingGroupSchema remoteProcessingGroupProperties) throws ConfigurationChangeException {
+    protected static void addRemoteProcessGroup(final Element parentElement, RemoteProcessGroupSchema remoteProcessGroupProperties) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("remoteProcessGroup");
             parentElement.appendChild(element);
-            addTextElement(element, "id", remoteProcessingGroupProperties.getId());
-            addTextElement(element, "name", remoteProcessingGroupProperties.getName());
+            addTextElement(element, "id", remoteProcessGroupProperties.getId());
+            addTextElement(element, "name", remoteProcessGroupProperties.getName());
             addPosition(element);
-            addTextElement(element, "comment", remoteProcessingGroupProperties.getComment());
-            addTextElement(element, "url", remoteProcessingGroupProperties.getUrl());
-            addTextElement(element, "timeout", remoteProcessingGroupProperties.getTimeout());
-            addTextElement(element, "yieldPeriod", remoteProcessingGroupProperties.getYieldPeriod());
+            addTextElement(element, "comment", remoteProcessGroupProperties.getComment());
+            addTextElement(element, "url", remoteProcessGroupProperties.getUrl());
+            addTextElement(element, "timeout", remoteProcessGroupProperties.getTimeout());
+            addTextElement(element, "yieldPeriod", remoteProcessGroupProperties.getYieldPeriod());
             addTextElement(element, "transmitting", "true");
+            addTextElement(element, "transportProtocol", remoteProcessGroupProperties.getTransportProtocol());
 
-            List<RemoteInputPortSchema> remoteInputPorts = remoteProcessingGroupProperties.getInputPorts();
+            List<RemoteInputPortSchema> remoteInputPorts = remoteProcessGroupProperties.getInputPorts();
             for (RemoteInputPortSchema remoteInputPortSchema : remoteInputPorts) {
                 addRemoteGroupPort(element, remoteInputPortSchema);
             }

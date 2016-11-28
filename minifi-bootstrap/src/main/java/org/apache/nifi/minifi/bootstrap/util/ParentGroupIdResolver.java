@@ -21,7 +21,7 @@ package org.apache.nifi.minifi.bootstrap.util;
 
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithId;
 
 import java.util.Collection;
@@ -63,9 +63,9 @@ public class ParentGroupIdResolver {
     }
 
     protected static void getRemoteInputPortParentIdMap(ProcessGroupSchema processGroupSchema, Map<String, String> output) {
-        for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : processGroupSchema.getRemoteProcessingGroups()) {
-            for (RemoteInputPortSchema remoteInputPortSchema : remoteProcessingGroupSchema.getInputPorts()) {
-                output.put(remoteInputPortSchema.getId(), remoteProcessingGroupSchema.getId());
+        for (RemoteProcessGroupSchema remoteProcessGroupSchema : processGroupSchema.getRemoteProcessGroups()) {
+            for (RemoteInputPortSchema remoteInputPortSchema : remoteProcessGroupSchema.getInputPorts()) {
+                output.put(remoteInputPortSchema.getId(), remoteProcessGroupSchema.getId());
             }
         }
         processGroupSchema.getProcessGroupSchemas().forEach(p -> getRemoteInputPortParentIdMap(p, output));

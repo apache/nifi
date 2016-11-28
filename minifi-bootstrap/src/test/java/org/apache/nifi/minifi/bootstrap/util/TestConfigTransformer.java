@@ -117,7 +117,7 @@ public class TestConfigTransformer {
     }
 
     @Test
-    public void doesTransformOnMultipleRemoteProcessingGroups() throws Exception {
+    public void doesTransformOnMultipleRemoteProcessGroups() throws Exception {
         ConfigTransformer.transformConfigFile("./src/test/resources/config-multiple-RPGs.yml", "./target/");
         File nifiPropertiesFile = new File("./target/nifi.properties");
 

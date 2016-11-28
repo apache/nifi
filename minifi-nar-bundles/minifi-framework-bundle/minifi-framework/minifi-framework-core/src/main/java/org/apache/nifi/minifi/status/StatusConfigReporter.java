@@ -213,8 +213,8 @@ public final class StatusConfigReporter {
                 RemoteProcessGroupStatus remoteProcessGroupStatus = remoteProcessGroupStatusMap.get(sections[1]);
                 remoteProcessGroupStatusList.add(parseRemoteProcessGroupStatusRequest(remoteProcessGroupStatus, sections[2], flowController));
             } else {
-                logger.warn("Status for Remote Processing Group with key " + sections[1] + " was requested but one does not exist");
-                throw new StatusRequestException("No Remote Processing Group with key " + sections[1] + " to report status on");
+                logger.warn("Status for Remote Process Group with key " + sections[1] + " was requested but one does not exist");
+                throw new StatusRequestException("No Remote Process Group with key " + sections[1] + " to report status on");
             }
         }
     }

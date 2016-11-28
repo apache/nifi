@@ -151,7 +151,7 @@ Connections:
   max work queue data size: 0 MB
   flowfile expiration: 0 sec
   queue prioritizer class: ''
-Remote Processing Groups:
+Remote Process Groups:
 - name: NiFi Flow
   url: http://localhost:8080/nifi
   comment: ''

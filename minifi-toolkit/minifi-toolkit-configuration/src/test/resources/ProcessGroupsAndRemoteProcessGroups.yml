@@ -173,13 +173,14 @@ Process Groups:
       max work queue data size: 1 GB
       flowfile expiration: 0 sec
       queue prioritizer class: ''
-    Remote Processing Groups:
+    Remote Process Groups:
     - id: 21a651bb-0158-1000-0000-000000000000
       name: ''
       url: http://localhost:9091/nifi
       comment: ''
       timeout: 30 sec
       yield period: 10 sec
+      transport protocol: RAW
       Input Ports:
       - id: 21a39aba-0158-1000-a1a0-1b55bcddcd72
         name: input2
@@ -232,13 +233,14 @@ Process Groups:
     max work queue data size: 1 GB
     flowfile expiration: 0 sec
     queue prioritizer class: ''
-  Remote Processing Groups:
+  Remote Process Groups:
   - id: 21a4e2f0-0158-1000-0000-000000000000
     name: ''
     url: http://localhost:9090/nifi
     comment: ''
     timeout: 30 sec
     yield period: 10 sec
+    transport protocol: HTTP
     Input Ports:
     - id: 21a2fb5e-0158-1000-3b5e-5a7d3aaee01b
       name: input
@@ -278,4 +280,4 @@ Connections:
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: ''
-Remote Processing Groups: []
+Remote Process Groups: []
