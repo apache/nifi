@@ -307,17 +307,17 @@ nifi.security.user.login.identity.provider=ldap-provider
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Description
-|`Authentication Strategy` | How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, or START_TLS.
+|`Authentication Strategy` | How the connection to the LDAP server is authenticated. Possible values are ANONYMOUS, SIMPLE, LDAPS, or START_TLS.
 |`Manager DN` | The DN of the manager that is used to bind to the LDAP server to search for users.
 |`Manager Password` | The password of the manager that is used to bind to the LDAP server to search for users.
-|`TLS - Keystore` | Path to the Keystore that is used when connecting to LDAP using START_TLS.
-|`TLS - Keystore Password` | Password for the Keystore that is used when connecting to LDAP using START_TLS.
-|`TLS - Keystore Type` | Type of the Keystore that is used when connecting to LDAP using START_TLS (i.e. JKS or PKCS12).
-|`TLS - Truststore` | Path to the Truststore that is used when connecting to LDAP using START_TLS.
-|`TLS - Truststore Password` | Password for the Truststore that is used when connecting to LDAP using START_TLS.
-|`TLS - Truststore Type` | Type of the Truststore that is used when connecting to LDAP using START_TLS (i.e. JKS or PKCS12).
-|`TLS - Client Auth` | Client authentication policy when connecting to LDAP using START_TLS. Possible values are REQUIRED, WANT, NONE.
-|`TLS - Protocol` | Protocol to use when connecting to LDAP using START_TLS. (i.e. TLS, TLSv1.1, TLSv1.2, etc).
+|`TLS - Keystore` | Path to the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+|`TLS - Keystore Password` | Password for the Keystore that is used when connecting to LDAP using LDAPS or START_TLS.
+|`TLS - Keystore Type` | Type of the Keystore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+|`TLS - Truststore` | Path to the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+|`TLS - Truststore Password` | Password for the Truststore that is used when connecting to LDAP using LDAPS or START_TLS.
+|`TLS - Truststore Type` | Type of the Truststore that is used when connecting to LDAP using LDAPS or START_TLS (i.e. JKS or PKCS12).
+|`TLS - Client Auth` | Client authentication policy when connecting to LDAP using LDAPS or START_TLS. Possible values are REQUIRED, WANT, NONE.
+|`TLS - Protocol` | Protocol to use when connecting to LDAP using LDAPS or START_TLS. (i.e. TLS, TLSv1.1, TLSv1.2, etc).
 |`TLS - Shutdown Gracefully` | Specifies whether the TLS should be shut down gracefully before the target context is closed. Defaults to false.
 |`Referral Strategy` | Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
 |`Connect Timeout` | Duration of connect timeout. (i.e. 10 secs).
