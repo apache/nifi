@@ -33,10 +33,18 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.crypto.*;
+import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
+import org.apache.nifi.processors.standard.util.crypto.KeyedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.OpenPGPKeyBasedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.OpenPGPPasswordBasedEncryptor;
+import org.apache.nifi.processors.standard.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -44,7 +52,15 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Provides functionality of encrypting attributes with various algorithms.
@@ -63,8 +79,8 @@ public class EncryptAttributes extends AbstractProcessor {
     public static final String ENCRYPT_MODE = "Encrypt";
     public static final String DECRYPT_MODE = "Decrypt";
 
-    private static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
-    private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
+    public static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
+    public static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
 
     public static final PropertyDescriptor ATTRIBUTES_TO_ENCRYPT = new PropertyDescriptor.Builder()
             .name("Attributes to encrypt")
@@ -527,7 +543,7 @@ public class EncryptAttributes extends AbstractProcessor {
             }
 
             newAtrList = buildNewAttributes(flowFile, atrList, encryptor, encrypt);
-            FlowFile newFlowFile  = session.putAllAttributes(flowFile,newAtrList);
+            FlowFile newFlowFile = session.putAllAttributes(flowFile, newAtrList);
             session.transfer(newFlowFile, REL_SUCCESS);
 
         } catch (final Exception e) {
