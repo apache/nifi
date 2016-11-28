@@ -484,7 +484,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // PRIMARY_NODE_ONLY is deprecated, but still exists to handle processors that are still defined with it (they haven't been re-configured with executeNode = PRIMARY).
         processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
-        processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
@@ -698,6 +697,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             flowFileRepository.loadFlowFiles(this, maxIdFromSwapFiles + 1);
+
+            // Begin expiring FlowFiles that are old
+            final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository,
+                flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
+            processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
             // now that we've loaded the FlowFiles, this has restored our ContentClaims' states, so we can tell the
             // ContentRepository to purge superfluous files
