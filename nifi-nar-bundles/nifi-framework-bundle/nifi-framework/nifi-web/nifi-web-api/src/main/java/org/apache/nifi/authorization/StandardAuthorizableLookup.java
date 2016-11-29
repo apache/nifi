@@ -57,6 +57,7 @@ import org.apache.nifi.web.dao.TemplateDAO;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -159,6 +160,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                 return processorNode.getPropertyDescriptor(propertyName);
             }
+
+            @Override
+            public List<PropertyDescriptor> getPropertyDescriptors() {
+                return processorNode.getPropertyDescriptors();
+            }
         };
     }
 
@@ -185,6 +191,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 @Override
                 public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                     return processorNode.getPropertyDescriptor(propertyName);
+                }
+
+                @Override
+                public List<PropertyDescriptor> getPropertyDescriptors() {
+                    return processorNode.getPropertyDescriptors();
                 }
             };
         } catch (final Exception e) {
@@ -363,6 +374,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                 return controllerService.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
             }
+
+            @Override
+            public List<PropertyDescriptor> getPropertyDescriptors() {
+                return controllerService.getControllerServiceImplementation().getPropertyDescriptors();
+            }
         };
     }
 
@@ -389,6 +405,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 @Override
                 public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                     return controllerService.getControllerServiceImplementation().getPropertyDescriptor(propertyName);
+                }
+
+                @Override
+                public List<PropertyDescriptor> getPropertyDescriptors() {
+                    return controllerService.getControllerServiceImplementation().getPropertyDescriptors();
                 }
             };
         } catch (final Exception e) {
@@ -462,6 +483,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                 return reportingTaskNode.getReportingTask().getPropertyDescriptor(propertyName);
             }
+
+            @Override
+            public List<PropertyDescriptor> getPropertyDescriptors() {
+                return reportingTaskNode.getReportingTask().getPropertyDescriptors();
+            }
         };
     }
 
@@ -488,6 +514,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 @Override
                 public PropertyDescriptor getPropertyDescriptor(String propertyName) {
                     return reportingTask.getReportingTask().getPropertyDescriptor(propertyName);
+                }
+
+                @Override
+                public List<PropertyDescriptor> getPropertyDescriptors() {
+                    return reportingTask.getReportingTask().getPropertyDescriptors();
                 }
             };
         } catch (final Exception e) {

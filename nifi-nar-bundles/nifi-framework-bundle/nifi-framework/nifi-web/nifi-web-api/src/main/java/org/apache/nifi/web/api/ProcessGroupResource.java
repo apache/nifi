@@ -1647,7 +1647,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/snippet-instance")
     @ApiOperation(
-            value = "Copies a snippet",
+            value = "Copies a snippet and discards it.",
             response = FlowSnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
@@ -1814,9 +1814,9 @@ public class ProcessGroupResource extends ApplicationResource {
         // ensure write access to the target process group
         lookup.getProcessGroup(groupId).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-        // ensure read permission to every component in the snippet
+        // ensure read permission to every component in the snippet including referenced services
         final Snippet snippet = lookup.getSnippet(snippetId);
-        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true);
     }
 
     /**
@@ -1831,7 +1831,7 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/templates")
     @ApiOperation(
-            value = "Creates a template",
+            value = "Creates a template and discards the specified snippet.",
             response = TemplateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
