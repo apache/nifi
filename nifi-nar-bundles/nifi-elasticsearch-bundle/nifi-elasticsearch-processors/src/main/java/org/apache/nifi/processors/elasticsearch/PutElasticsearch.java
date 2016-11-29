@@ -96,8 +96,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                    AttributeExpression.ResultType.STRING, true))
+            .addValidator(NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
@@ -105,8 +104,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of the operation used to index (index, update, upsert)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                    AttributeExpression.ResultType.STRING, true))
+            .addValidator(NON_EMPTY_EL_VALIDATOR)
             .defaultValue("index")
             .build();
 
@@ -116,20 +114,19 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
+            .expressionLanguageSupported(true)
             .build();
 
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_RETRY);
-        return Collections.unmodifiableSet(relationships);
-    }
+    static {
+        final Set<Relationship> _rels = new HashSet<>();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        _rels.add(REL_RETRY);
+        relationships = Collections.unmodifiableSet(_rels);
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(CLUSTER_NAME);
         descriptors.add(HOSTS);
@@ -146,7 +143,17 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
         descriptors.add(BATCH_SIZE);
         descriptors.add(INDEX_OP);
 
-        return Collections.unmodifiableList(descriptors);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
     }
 
     @OnScheduled
@@ -156,16 +163,16 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
+        final ComponentLog logger = getLogger();
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
 
         final List<FlowFile> flowFiles = session.get(batchSize);
         if (flowFiles.isEmpty()) {
             return;
         }
 
-        final ComponentLog logger = getLogger();
         // Keep track of the list of flow files that need to be transferred. As they are transferred, remove them from the list.
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
         try {
@@ -178,6 +185,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
                 final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
                 final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(file).getValue();
                 final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(file).getValue();
+                final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(file).getValue());
 
                 final String id = file.getAttribute(id_attribute);
                 if (id == null) {
