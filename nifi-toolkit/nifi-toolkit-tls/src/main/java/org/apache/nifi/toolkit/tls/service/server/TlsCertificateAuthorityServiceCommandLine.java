@@ -22,7 +22,6 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
@@ -49,7 +48,6 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
     }
 
     public static void main(String[] args) throws Exception {
-        TlsHelper.addBouncyCastleProvider();
         TlsCertificateAuthorityServiceCommandLine tlsCertificateAuthorityServiceCommandLine = new TlsCertificateAuthorityServiceCommandLine();
         try {
             tlsCertificateAuthorityServiceCommandLine.parse(args);
@@ -57,15 +55,16 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
             System.exit(e.getExitCode().ordinal());
         }
         TlsCertificateAuthorityService tlsCertificateAuthorityService = new TlsCertificateAuthorityService();
-        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJson(),
+        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut(),
                 tlsCertificateAuthorityServiceCommandLine.differentPasswordForKeyAndKeystore());
         System.out.println("Server Started");
         System.out.flush();
     }
 
     public TlsConfig createConfig() throws IOException {
-        if (onlyUseConfigJson()) {
-            try (InputStream inputStream = inputStreamFactory.create(new File(getConfigJson()))) {
+        String configJsonIn = getConfigJsonIn();
+        if (!StringUtils.isEmpty(configJsonIn)) {
+            try (InputStream inputStream = inputStreamFactory.create(new File(configJsonIn))) {
                 TlsConfig tlsConfig = new ObjectMapper().readValue(inputStream, TlsConfig.class);
                 tlsConfig.initDefaults();
                 return tlsConfig;

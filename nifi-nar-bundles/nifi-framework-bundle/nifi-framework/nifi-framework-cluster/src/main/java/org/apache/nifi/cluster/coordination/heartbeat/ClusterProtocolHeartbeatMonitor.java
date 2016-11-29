@@ -133,6 +133,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
     @Override
+    public synchronized void purgeHeartbeats() {
+        logger.debug("Purging old heartbeats");
+        heartbeatMessages.clear();
+    }
+
+    @Override
     public ProtocolMessage handle(final ProtocolMessage msg) throws ProtocolException {
         switch (msg.getType()) {
             case HEARTBEAT:

@@ -64,6 +64,10 @@ public class GetAzureEventHubTest {
         testRunner.assertValid();
         testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME,"2015-12-22T21:55:10.000Z");
         testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_SIZE, "5");
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT,"10000");
+        testRunner.assertValid();
     }
     
     @Test

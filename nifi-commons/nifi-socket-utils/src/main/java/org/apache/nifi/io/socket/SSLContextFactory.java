@@ -33,6 +33,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 
@@ -58,7 +59,7 @@ public class SSLContextFactory {
         truststoreType = properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
 
         // prepare the keystore
-        final KeyStore keyStore = KeyStore.getInstance(keystoreType);
+        final KeyStore keyStore = KeyStoreUtils.getKeyStore(keystoreType);
         final FileInputStream keyStoreStream = new FileInputStream(keystore);
         try {
             keyStore.load(keyStoreStream, keystorePass);
@@ -69,7 +70,7 @@ public class SSLContextFactory {
         keyManagerFactory.init(keyStore, keystorePass);
 
         // prepare the truststore
-        final KeyStore trustStore = KeyStore.getInstance(truststoreType);
+        final KeyStore trustStore = KeyStoreUtils.getTrustStore(truststoreType);
         final FileInputStream trustStoreStream = new FileInputStream(truststore);
         try {
             trustStore.load(trustStoreStream, truststorePass);

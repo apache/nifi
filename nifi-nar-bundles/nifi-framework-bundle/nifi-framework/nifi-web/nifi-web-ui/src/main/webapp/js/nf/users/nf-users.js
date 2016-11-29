@@ -145,6 +145,28 @@ nf.Users = (function () {
                             $('#users-header-text').text(countersTitle);
                         }).fail(nf.Common.handleAjaxError);
                     });
+
+                    $(window).on('resize', function (e) {
+                        // resize dialogs when appropriate
+                        var dialogs = $('.dialog');
+                        for (var i = 0, len = dialogs.length; i < len; i++) {
+                            if ($(dialogs[i]).is(':visible')){
+                                setTimeout(function(dialog){
+                                    dialog.modal('resize');
+                                }, 50, $(dialogs[i]));
+                            }
+                        }
+
+                        // resize grids when appropriate
+                        var gridElements = $('*[class*="slickgrid_"]');
+                        for (var j = 0, len = gridElements.length; j < len; j++) {
+                            if ($(gridElements[j]).is(':visible')){
+                                setTimeout(function(gridElement){
+                                    gridElement.data('gridInstance').resizeCanvas();
+                                }, 50, $(gridElements[j]));
+                            }
+                        }
+                    });
                 });
             });
         }

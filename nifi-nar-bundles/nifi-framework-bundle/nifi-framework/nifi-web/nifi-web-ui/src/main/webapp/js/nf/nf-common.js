@@ -77,7 +77,49 @@ $(document).ready(function () {
 nf.Common = (function () {
     // interval for cancelling token refresh when necessary
     var tokenRefreshInterval = null;
-    
+
+    var policyTypeListing = [{
+        text: 'view the user interface',
+        value: 'flow',
+        description: 'Allows users to view the user interface'
+    }, {
+        text: 'access the controller',
+        value: 'controller',
+        description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
+    }, {
+        text: 'query provenance',
+        value: 'provenance',
+        description: 'Allows users to submit a Provenance Search and request Event Lineage'
+    }, {
+        text: 'access restricted components',
+        value: 'restricted-components',
+        description: 'Allows users to create/modify restricted components assuming otherwise sufficient permissions'
+    }, {
+        text: 'access all policies',
+        value: 'policies',
+        description: 'Allows users to view/modify the policies for all components'
+    }, {
+        text: 'access users/user groups',
+        value: 'tenants',
+        description: 'Allows users to view/modify the users and user groups'
+    }, {
+        text: 'retrieve site-to-site details',
+        value: 'site-to-site',
+        description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
+    }, {
+        text: 'view system diagnostics',
+        value: 'system',
+        description: 'Allows users to view System Diagnostics'
+    }, {
+        text: 'proxy user requests',
+        value: 'proxy',
+        description: 'Allows proxy machines to send requests on the behalf of others'
+    }, {
+        text: 'access counters',
+        value: 'counters',
+        description: 'Allows users to view/modify Counters'
+    }];
+
     return {
         ANONYMOUS_USER_TEXT: 'Anonymous user',
 
@@ -117,6 +159,32 @@ nf.Common = (function () {
          * The current user.
          */
         currentUser: undefined,
+
+        /**
+         * Formats type of a component for a new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        typeFormatter: function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
+
+            // restriction
+            if (nf.Common.isBlank(dataContext.usageRestriction) === false) {
+                markup += '<div class="view-usage-restriction fa fa-shield"></div><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            } else {
+                markup += '<div class="fa"></div>';
+            }
+
+            // type
+            markup += value;
+
+            return markup;
+        },
 
         /**
          * Sets the current user.
@@ -228,6 +296,19 @@ nf.Common = (function () {
         canAccessProvenance: function () {
             if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
                 return nf.Common.currentUser.provenancePermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can access restricted comopnents.
+         *
+         * @returns {boolean}
+         */
+        canAccessRestrictedComponents: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.restrictedComponentsPermissions.canWrite === true;
             } else {
                 return false;
             }
@@ -383,6 +464,20 @@ nf.Common = (function () {
                 }
             }
         },
+
+        /**
+         * Determines the contrast color of a given hex color.
+         *
+         * @param {string} hex  The hex color to test.
+         * @returns {string} The contrasting color string.
+         */
+        determineContrastColor: function (hex){
+            if (parseInt(hex, 16) > 0xffffff/1.5) {
+                return '#000000';
+            }
+            return '#ffffff';
+        },
+
 
         /**
          * Method for handling ajax errors.
@@ -546,9 +641,9 @@ nf.Common = (function () {
          */
         populateField: function (target, value) {
             if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                return $('#' + target).addClass('unset').text('No value previously set');
+                return $('#' + target).addClass('unset').text('No value set');
             } else if (value === '') {
-                return $('#' + target).addClass('blank').text('Empty string previously set');
+                return $('#' + target).addClass('blank').text('Empty string set');
             } else {
                 return $('#' + target).text(value);
             }
@@ -638,12 +733,12 @@ nf.Common = (function () {
         formatValue: function (value) {
             if (nf.Common.isDefinedAndNotNull(value)) {
                 if (value === '') {
-                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string previously set</span>';
+                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string set</span>';
                 } else {
                     return nf.Common.escapeHtml(value);
                 }
             } else {
-                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value previously set</span>';
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value set</span>';
             }
         },
 
@@ -1038,10 +1133,10 @@ nf.Common = (function () {
             if (!nf.Common.isDefinedAndNotNull(rawDateTime)) {
                 return new Date();
             }
-            if (rawDateTime === 'No value previously set') {
+            if (rawDateTime === 'No value set') {
                 return new Date();
             }
-            if (rawDateTime === 'Empty string previously set') {
+            if (rawDateTime === 'Empty string set') {
                 return new Date();
             }
 
@@ -1257,6 +1352,13 @@ nf.Common = (function () {
                 }
             });
             return formattedBulletinEntities;
+        },
+
+        getPolicyTypeListing: function (value) {
+            var nest = d3.nest()
+                .key(function(d) { return d.value; })
+                .map(policyTypeListing, d3.map);
+            return nest.get(value)[0];
         }
     };
 }());

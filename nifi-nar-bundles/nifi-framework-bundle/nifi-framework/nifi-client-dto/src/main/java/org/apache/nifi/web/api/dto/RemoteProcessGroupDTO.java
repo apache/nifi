@@ -284,7 +284,8 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when this remote process group was last refreshed."
+            value = "The timestamp when this remote process group was last refreshed.",
+            dataType = "string"
     )
     public Date getFlowRefreshed() {
         return flowRefreshed;

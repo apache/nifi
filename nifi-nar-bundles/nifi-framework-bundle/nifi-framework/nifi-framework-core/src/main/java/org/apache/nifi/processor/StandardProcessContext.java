@@ -64,8 +64,10 @@ public class StandardProcessContext implements ProcessContext, ControllerService
                 value = desc.getDefaultValue();
             }
 
-            final PreparedQuery pq = Query.prepare(value);
-            preparedQueries.put(desc, pq);
+            if (value != null) {
+                final PreparedQuery pq = Query.prepare(value);
+                preparedQueries.put(desc, pq);
+            }
         }
     }
 

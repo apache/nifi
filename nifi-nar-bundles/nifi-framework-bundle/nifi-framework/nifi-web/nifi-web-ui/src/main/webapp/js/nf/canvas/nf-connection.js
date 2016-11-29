@@ -862,6 +862,20 @@ nf.Connection = (function () {
                                         return '\uf04d';
                                     }
                                 })
+                                .classed('running', function () {
+                                    if (d.component.source.exists === false) {
+                                        return false;
+                                    } else {
+                                        return d.component.source.running;
+                                    }
+                                })
+                                .classed('stopped', function () {
+                                    if (d.component.source.exists === false) {
+                                        return false;
+                                    } else {
+                                        return !d.component.source.running;
+                                    }
+                                })
                                 .classed('is-missing-port', function () {
                                     return d.component.source.exists === false;
                                 });
@@ -955,6 +969,20 @@ nf.Connection = (function () {
                                         return '\uf04b';
                                     } else {
                                         return '\uf04d';
+                                    }
+                                })
+                                .classed('running', function () {
+                                    if (d.component.destination.exists === false) {
+                                        return false;
+                                    } else {
+                                        return d.component.destination.running;
+                                    }
+                                })
+                                .classed('stopped', function () {
+                                    if (d.component.destination.exists === false) {
+                                        return false;
+                                    } else {
+                                        return !d.component.destination.running;
                                     }
                                 })
                                 .classed('is-missing-port', function () {
@@ -1334,7 +1362,11 @@ nf.Connection = (function () {
                 .duration(400)
                 .attr({
                     'width': function (d) {
-                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
+                        if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseBytes)) {
+                            return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseBytes) / 100;
+                        } else {
+                            return 0;
+                        }
                     }
                 }).each('end', function () {
                     backpressurePercentDataSize
@@ -1370,7 +1402,11 @@ nf.Connection = (function () {
                 .duration(400)
                 .attr({
                     'width': function (d) {
-                        return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
+                        if (nf.Common.isDefinedAndNotNull(d.status.aggregateSnapshot.percentUseCount)) {
+                            return (backpressureBarWidth * d.status.aggregateSnapshot.percentUseCount) / 100;
+                        } else {
+                            return 0;
+                        }
                     }
                 }).each('end', function () {
                     backpressurePercentObject

@@ -16,39 +16,12 @@
  */
 package org.apache.nifi.controller;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.net.ssl.SSLContext;
-
+import com.sun.jersey.api.client.ClientHandlerException;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
@@ -206,6 +179,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -234,7 +208,33 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.Objects.requireNonNull;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -481,9 +481,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
+        // PRIMARY_NODE_ONLY is deprecated, but still exists to handle processors that are still defined with it (they haven't been re-configured with executeNode = PRIMARY).
         processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
-        processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
@@ -698,6 +698,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             flowFileRepository.loadFlowFiles(this, maxIdFromSwapFiles + 1);
 
+            // Begin expiring FlowFiles that are old
+            final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository,
+                flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
+            processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
+
             // now that we've loaded the FlowFiles, this has restored our ContentClaims' states, so we can tell the
             // ContentRepository to purge superfluous files
             contentRepository.cleanup();
@@ -731,7 +736,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void notifyComponentsConfigurationRestored() {
         for (final ProcessorNode procNode : getGroup(getRootGroupId()).findAllProcessors()) {
             final Processor processor = procNode.getProcessor();
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
             }
         }
@@ -739,7 +744,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -747,7 +752,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
             final ReportingTask task = taskNode.getReportingTask();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(task.getClass(), task.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, task);
             }
         }
@@ -1046,21 +1051,48 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             creationSuccessful = false;
         }
 
+        final ComponentLog logger = new SimpleProcessLogger(id, processor);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ProcessorNode procNode;
         if (creationSuccessful) {
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties);
+            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties, variableRegistry, logger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties);
+            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties, variableRegistry, logger);
         }
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
 
+        try {
+            final Class<?> procClass = processor.getClass();
+            if(procClass.isAnnotationPresent(DefaultSettings.class)) {
+                DefaultSettings ds = procClass.getAnnotation(DefaultSettings.class);
+                try {
+                    procNode.setYieldPeriod(ds.yieldDuration());
+                } catch(Throwable ex) {
+                    LOG.error(String.format("Error while setting yield period from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+                try {
+
+                    procNode.setPenalizationPeriod(ds.penaltyDuration());
+                } catch(Throwable ex) {
+                    LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+                try {
+                    procNode.setBulletinLevel(ds.bulletinLevel());
+                } catch (Throwable ex) {
+                    LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
+                }
+
+            }
+        } catch (Throwable ex) {
+            LOG.error(String.format("Error while setting default settings from DefaultSettings annotation: %s",ex.getMessage()),ex);
+        }
+
         if (firstTimeAdded) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
@@ -1068,7 +1100,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             if (firstTimeAdded) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), processor.getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
             }
@@ -1082,14 +1114,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type);
+            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type, identifier);
             final Class<?> rawClass;
             if (detectedClassLoaderForType == null) {
                 // try to find from the current class loader
                 rawClass = Class.forName(type);
             } else {
                 // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type));
+                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type, identifier));
             }
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
@@ -1328,7 +1360,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
                 }
@@ -1337,7 +1369,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // invoke any methods annotated with @OnShutdown on Reporting Tasks
             for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
                 final ConfigurationContext configContext = taskNode.getConfigurationContext();
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, taskNode.getReportingTask(), configContext);
                 }
             }
@@ -1609,12 +1641,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final String serviceId = controllerServiceDTO.getId();
                 final ControllerServiceNode serviceNode = getControllerServiceNode(serviceId);
-
-                for (final Map.Entry<String, String> entry : controllerServiceDTO.getProperties().entrySet()) {
-                    if (entry.getValue() != null) {
-                        serviceNode.setProperty(entry.getKey(), entry.getValue());
-                    }
-                }
+                serviceNode.setProperties(controllerServiceDTO.getProperties());
             }
 
             //
@@ -1713,6 +1740,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
                 }
 
+                if (config.getExecutionNode() != null) {
+                    procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
+                }
+
                 // ensure that the scheduling strategy is set prior to these values
                 procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
                 procNode.setScheduldingPeriod(config.getSchedulingPeriod());
@@ -1728,11 +1759,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 if (config.getProperties() != null) {
-                    for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
-                        if (entry.getValue() != null) {
-                            procNode.setProperty(entry.getKey(), entry.getValue());
-                        }
-                    }
+                    procNode.setProperties(config.getProperties());
                 }
 
                 group.addProcessor(procNode);
@@ -2699,16 +2726,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             status.setFlowFilesRemoved(entry.getFlowFilesRemoved());
         }
 
-        // determine the run status and get any validation errors... must check
-        // is valid when not disabled since a processors validity could change due
-        // to environmental conditions (property configured with a file path and
-        // the file being externally removed)
+        // Determine the run status and get any validation error... only validating while STOPPED
+        // is a trade-off we are willing to make, even though processor validity could change due to
+        // environmental conditions (property configured with a file path and the file being externally
+        // removed). This saves on validation costs that would be unnecessary most of the time.
         if (ScheduledState.DISABLED.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Disabled);
-        } else if (!procNode.isValid()) {
-            status.setRunStatus(RunStatus.Invalid);
         } else if (ScheduledState.RUNNING.equals(procNode.getScheduledState())) {
             status.setRunStatus(RunStatus.Running);
+        } else if (!procNode.isValid()) {
+            status.setRunStatus(RunStatus.Invalid);
         } else {
             status.setRunStatus(RunStatus.Stopped);
         }
@@ -2826,7 +2853,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         boolean creationSuccessful = true;
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type);
+            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type, id);
             final Class<?> rawClass;
             if (detectedClassLoader == null) {
                 rawClass = Class.forName(type);
@@ -2851,15 +2878,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
+        final ComponentLog logger = new SimpleProcessLogger(id, task);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry, logger);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry, logger);
         }
 
         taskNode.setName(task.getClass().getSimpleName());
@@ -2875,7 +2903,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + type, ie);
             }
 
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass())) {
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getReportingTask().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
@@ -2929,7 +2957,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         reportingTaskNode.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getReportingTask().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
         }
 
@@ -2947,6 +2975,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         reportingTasks.remove(reportingTaskNode.getIdentifier());
+        ExtensionManager.removeInstanceClassLoaderIfExists(reportingTaskNode.getIdentifier());
     }
 
     @Override
@@ -2966,7 +2995,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (firstTimeAdded) {
             final ControllerService service = serviceNode.getControllerServiceImplementation();
 
-            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass())) {
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(service.getClass(), service.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
             }
         }
@@ -3085,7 +3114,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         service.verifyCanDelete();
 
-        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass())) {
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(service.getControllerServiceImplementation().getClass(), service.getIdentifier())) {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
@@ -3105,6 +3134,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         rootControllerServices.remove(service.getIdentifier());
         getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+        ExtensionManager.removeInstanceClassLoaderIfExists(service.getIdentifier());
 
         LOG.info("{} removed from Flow Controller", service, this);
     }
@@ -3350,6 +3381,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
+
+                // Purge any heartbeats that we already have. If we don't do this, we can have a scenario where we receive heartbeats
+                // from a node, and then another node becomes Cluster Coordinator. As a result, we stop receiving heartbeats. Now that
+                // we are again the Cluster Coordinator, we will detect that there are old heartbeat messages and start disconnecting
+                // nodes due to a lack of heartbeat. By purging the heartbeats here, we remove any old heartbeat messages so that this
+                // does not happen.
+                FlowController.this.heartbeatMonitor.purgeHeartbeats();
             }
         }, participantId);
     }
@@ -3451,17 +3489,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
         final ProcessGroup rootGroup = getGroup(getRootGroupId());
         for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
         }
         for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(serviceNode.getControllerServiceImplementation().getClass(), serviceNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
         }
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass())) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(reportingTaskNode.getReportingTask().getClass(), reportingTaskNode.getIdentifier())) {
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
         }
@@ -3553,7 +3591,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     return null;
                 }
 
-                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, false);
+                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(container, section, identifier, false, false);
                 return new StandardContentClaim(resourceClaim, offset == null ? 0L : offset.longValue());
             }
 
@@ -3579,7 +3617,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(),
-                    provEvent.getPreviousContentClaimIdentifier(), false);
+                provEvent.getPreviousContentClaimIdentifier(), false, false);
             claim = new StandardContentClaim(resourceClaim, provEvent.getPreviousContentClaimOffset());
             offset = provEvent.getPreviousContentClaimOffset() == null ? 0L : provEvent.getPreviousContentClaimOffset();
             size = provEvent.getPreviousFileSize();
@@ -3589,7 +3627,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(),
-                    provEvent.getContentClaimIdentifier(), false);
+                provEvent.getContentClaimIdentifier(), false, false);
 
             claim = new StandardContentClaim(resourceClaim, provEvent.getContentClaimOffset());
             offset = provEvent.getContentClaimOffset() == null ? 0L : provEvent.getContentClaimOffset();
@@ -3682,7 +3720,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false);
+            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false, false);
             final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
 
             if (!contentRepository.isAccessible(contentClaim)) {
@@ -3761,9 +3799,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             throw new IllegalStateException("Cannot replay data from Provenance Event because the Source FlowFile Queue with ID " + event.getSourceQueueIdentifier() + " no longer exists");
         }
 
-        // Create the ContentClaim
-        final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
-                event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false);
+        // Create the ContentClaim. To do so, we first need the appropriate Resource Claim. Because we don't know whether or
+        // not the Resource Claim is still active, we first call ResourceClaimManager.getResourceClaim. If this returns
+        // null, then we know that the Resource Claim is no longer active and can just create a new one that is not writable.
+        // It's critical though that we first call getResourceClaim because otherwise, if the Resource Claim is active and we
+        // create a new one that is not writable, we could end up archiving or destroying the Resource Claim while it's still
+        // being written to by the Content Repository. This is important only because we are creating a FlowFile with this Resource
+        // Claim. If, for instance, we are simply creating the claim to request its content, as in #getContentAvailability, etc.
+        // then this is not necessary.
+        ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(event.getPreviousContentClaimContainer(),
+            event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier());
+        if (resourceClaim == null) {
+            resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
+                event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
+        }
 
         // Increment Claimant Count, since we will now be referencing the Content Claim
         resourceClaimManager.incrementClaimantCount(resourceClaim);
@@ -3825,7 +3874,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         provenanceRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue, flowFileRecord);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+        record.setWorking(flowFileRecord);
         record.setDestination(queue);
         flowFileRepository.updateRepository(Collections.<RepositoryRecord>singleton(record));
 
@@ -3964,19 +4014,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final String rootGroupId = getRootGroupId();
 
         // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
-        // which have the root process group's identifier assigned as the component ID. So, we check if the component ID
-        // is set to the root group and otherwise assume that the ID is that of a component.
+        // which have the root process group's identifier assigned as the component ID, and DROP events, which
+        // could have the connection identifier assigned as the component ID. So, we check if the component ID
+        // is set to the root group and otherwise assume that the ID is that of a connectable or connection.
         final DataAuthorizable authorizable;
         if (rootGroupId.equals(componentId)) {
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
+            // check if the component is a connectable, this should be the case most often
             final Connectable connectable = getRootGroup().findConnectable(componentId);
-
             if (connectable == null) {
-                throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
-            }
+                // if the component id is not a connectable then consider a connection
+                final Connection connection = getRootGroup().findConnection(componentId);
 
-            authorizable = new DataAuthorizable(connectable);
+                if (connection == null) {
+                    throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+                } else {
+                    // authorizable for connection data is associated with the source connectable
+                    authorizable = new DataAuthorizable(connection.getSource());
+                }
+            } else {
+                authorizable = new DataAuthorizable(connectable);
+            }
         }
 
         return authorizable;

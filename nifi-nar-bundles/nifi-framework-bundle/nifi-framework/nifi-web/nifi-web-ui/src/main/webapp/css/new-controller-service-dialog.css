@@ -45,22 +45,23 @@
 }
 
 #controller-service-type-name {
-    font-size: 12px;
-    font-weight: bold;
-    margin-bottom: 2px;
     min-height: 15px;
-    padding: 0px 0px 5px 0px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 #controller-service-type-name-title {
     font-family: Roboto Slab;
-    padding: 20px 0px 10px 0px;
+    padding: 20px 0 5px 0;
+    font-size: 12px;
 }
 
 #controller-service-type-description {
     height: 62px;
-    font-size: 12px;
-    line-height: 16px;
+    font-size: 13px;
+    line-height: 17px;
+    padding-top: 10px;
 }
 
 #controller-service-types-table {

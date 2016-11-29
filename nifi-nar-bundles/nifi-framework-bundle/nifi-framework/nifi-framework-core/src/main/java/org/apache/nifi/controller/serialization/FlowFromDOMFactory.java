@@ -32,6 +32,7 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -372,6 +373,14 @@ public class FlowFromDOMFactory {
             configDto.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN.name());
         } else {
             configDto.setSchedulingStrategy(schedulingStrategyName.trim());
+        }
+
+        // handle execution node
+        final String executionNode = getString(element, "executionNode");
+        if (executionNode == null || executionNode.trim().isEmpty()) {
+            configDto.setExecutionNode(ExecutionNode.ALL.name());
+        } else {
+            configDto.setExecutionNode(executionNode.trim());
         }
 
         final Long runDurationNanos = getOptionalLong(element, "runDurationNanos");

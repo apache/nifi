@@ -21,6 +21,12 @@ import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,8 +44,6 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -48,7 +52,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 
 public class NiFi {
 
-    private static final Logger logger = LoggerFactory.getLogger(NiFi.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FLAG = "-k";
     private final NiFiServer nifiServer;
     private final BootstrapListener bootstrapListener;
@@ -64,15 +68,15 @@ public class NiFi {
         final File kerberosConfigFile = properties.getKerberosConfigurationFile();
         if (kerberosConfigFile != null) {
             final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
-            logger.info("Setting java.security.krb5.conf to {}", new Object[] {kerberosConfigFilePath});
+            LOGGER.info("Setting java.security.krb5.conf to {}", new Object[]{kerberosConfigFilePath});
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(final Thread t, final Throwable e) {
-                logger.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                logger.error("", e);
+                LOGGER.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
+                LOGGER.error("", e);
             }
         });
 
@@ -100,7 +104,7 @@ public class NiFi {
                 throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
         } else {
-            logger.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
+            LOGGER.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
             bootstrapListener = null;
         }
 
@@ -110,8 +114,8 @@ public class NiFi {
         // the working directory, we can be assured that it will attempt to extract the
         // war every time the application starts.
         File webWorkingDir = properties.getWebWorkingDirectory();
-        FileUtils.deleteFilesInDirectory(webWorkingDir, null, logger, true, true);
-        FileUtils.deleteFile(webWorkingDir, logger, 3);
+        FileUtils.deleteFilesInDirectory(webWorkingDir, null, LOGGER, true, true);
+        FileUtils.deleteFile(webWorkingDir, LOGGER, 3);
 
         detectTimingIssues();
 
@@ -147,7 +151,7 @@ public class NiFi {
         nifiServer.setExtensionMapping(extensionMapping);
 
         if (shutdown) {
-            logger.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
+            LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
         } else {
             nifiServer.start();
 
@@ -156,24 +160,38 @@ public class NiFi {
             }
 
             final long endTime = System.nanoTime();
-            logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+            LOGGER.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
         }
+    }
+
+    private static ClassLoader createBootstrapClassLoader() throws IOException {
+        //Get list of files in bootstrap folder
+        final List<URL> urls = new ArrayList<>();
+        Files.list(Paths.get("lib/bootstrap")).forEach(p -> {
+            try {
+                urls.add(p.toUri().toURL());
+            } catch (final MalformedURLException mef) {
+                LOGGER.warn("Unable to load " + p.getFileName() + " due to " + mef, mef);
+            }
+        });
+        //Create the bootstrap classloader
+        return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
     protected void shutdownHook() {
         try {
             this.shutdown = true;
 
-            logger.info("Initiating shutdown of Jetty web server...");
+            LOGGER.info("Initiating shutdown of Jetty web server...");
             if (nifiServer != null) {
                 nifiServer.stop();
             }
             if (bootstrapListener != null) {
                 bootstrapListener.stop();
             }
-            logger.info("Jetty web server shutdown completed (nicely or otherwise).");
+            LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
-            logger.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
+            LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
         }
     }
 
@@ -222,7 +240,7 @@ public class NiFi {
                 service.shutdownNow();
 
                 if (occurrences.get() < minRequiredOccurrences || occurrencesOutOfRange.get() > maxOccurrencesOutOfRange) {
-                    logger.warn("NiFi has detected that this box is not responding within the expected timing interval, which may cause "
+                    LOGGER.warn("NiFi has detected that this box is not responding within the expected timing interval, which may cause "
                             + "Processors to be scheduled erratically. Please see the NiFi documentation for more information.");
                 }
             }
@@ -237,37 +255,49 @@ public class NiFi {
      * @param args things which are ignored
      */
     public static void main(String[] args) {
-        logger.info("Launching NiFi...");
+        LOGGER.info("Launching NiFi...");
         try {
-            NiFiProperties properties = initializeProperties(args);
+            final ClassLoader bootstrap = createBootstrapClassLoader();
+            NiFiProperties properties = initializeProperties(args, bootstrap);
             new NiFi(properties);
         } catch (final Throwable t) {
-            logger.error("Failure to launch NiFi due to " + t, t);
+            LOGGER.error("Failure to launch NiFi due to " + t, t);
         }
     }
 
-    private static NiFiProperties initializeProperties(String[] args) {
+    private static NiFiProperties initializeProperties(final String[] args, final ClassLoader boostrapLoader) {
         // Try to get key
         // If key doesn't exist, instantiate without
         // Load properties
         // If properties are protected and key missing, throw RuntimeException
 
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        final String key;
         try {
-            String key = loadFormattedKey(args);
+            key = loadFormattedKey(args);
             // The key might be empty or null when it is passed to the loader
-            try {
-                NiFiProperties properties = NiFiPropertiesLoader.withKey(key).get();
-                logger.info("Loaded {} properties", properties.size());
-                return properties;
-            } catch (SensitivePropertyProtectionException e) {
-                final String msg = "There was an issue decrypting protected properties";
-                logger.error(msg, e);
-                throw new IllegalArgumentException(msg);
-            }
         } catch (IllegalArgumentException e) {
-            final String msg = "The bootstrap process did not provide a valid key and there are protected properties present in the properties file";
-            logger.error(msg, e);
-            throw new IllegalArgumentException(msg);
+            final String msg = "The bootstrap process did not provide a valid key";
+            throw new IllegalArgumentException(msg, e);
+        }
+        Thread.currentThread().setContextClassLoader(boostrapLoader);
+
+        try {
+            final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.properties.NiFiPropertiesLoader", true, boostrapLoader);
+            final Method withKeyMethod = propsLoaderClass.getMethod("withKey", String.class);
+            final Object loaderInstance = withKeyMethod.invoke(null, key);
+            final Method getMethod = propsLoaderClass.getMethod("get");
+            final NiFiProperties properties = (NiFiProperties) getMethod.invoke(loaderInstance);
+            LOGGER.info("Loaded {} properties", properties.size());
+            return properties;
+        } catch (final IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException reex) {
+            final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
+            throw new IllegalArgumentException(msg, reex);
+        } catch (final RuntimeException e) {
+            final String msg = "There was an issue decrypting protected properties";
+            throw new IllegalArgumentException(msg, e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
     }
 
@@ -293,14 +323,14 @@ public class NiFi {
 
     private static String getKeyFromArgs(List<String> parsedArgs) {
         String key;
-        logger.debug("The bootstrap process provided the " + KEY_FLAG + " flag");
+        LOGGER.debug("The bootstrap process provided the " + KEY_FLAG + " flag");
         int i = parsedArgs.indexOf(KEY_FLAG);
         if (parsedArgs.size() <= i + 1) {
-            logger.error("The bootstrap process passed the {} flag without a key", KEY_FLAG);
+            LOGGER.error("The bootstrap process passed the {} flag without a key", KEY_FLAG);
             throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FLAG + " flag but no key");
         }
         key = parsedArgs.get(i + 1);
-        logger.info("Read property protection key from bootstrap process");
+        LOGGER.info("Read property protection key from bootstrap process");
         return key;
     }
 

@@ -189,22 +189,35 @@ Language supports four different data types:
 
 - *String*: A String is a sequence of characters that can consist of numbers, letters, white space, and
 	special characters.
-- *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language
-	does not provide support for fractional numbers. When converting to numbers from Date data types, they are represented as
+- *Number*: A Number is an whole number comprised of one or more digits (`0` through `9`). When converting to numbers from Date data types, they are represented as
 	the number of milliseconds since midnight GMT on January 1, 1970.
+- *Decimal*: A Decimal is a numeric value that can support decimals and larger values with minimal loss of precision. More precisely it
+    is a double-precision 64-bit IEEE 754 floating point. Due to this minimal loss of precision this data type should not be used for
+    very precise values, such as currency. For more documentation on the range of values stored in this data type
+    refer to this https://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2.3[link]. The following are some examples of the forms of
+    literal decimals that are supported in expression language (the "E" can also be lower-case):
+
+        * 1.1
+        * .1E1
+        * 1.11E-12
+
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
 	type can be converted to/from Strings and numbers. If the whole Expression Language expression is evaluated to be a
 	date then it will be converted to a String with the format: "<Day of Week> <Month> <Day of Month> <Hour>:<Minute>:<Second> <Time Zone> <Year>".
 	Also expressed as "E MMM dd HH:mm:ss z yyyy" in Java SimpleDateFormat format. For example: "Wed Dec 31 12:00:04 UTC 2016".
 - *Boolean*: A Boolean is one of either `true` or `false`.
 
-All attributes are considered to be of type String.
+After evaluating expression language functions, all attributes are stored as type String.
 
 The Expression Language is generally able to automatically coerce a value of one data type to the appropriate
 data type for a function. However, functions do exist to manually coerce a value into a specific data type.
 See the <<type_cast>> section for more information.
 
+Hex values are supported for Number and Decimal types but they must be quoted and prepended with "0x" when being
+interpreted as literals. For example these two expressions are valid (without the quotes or "0x" the expression would fail to run properly):
 
+ - ${literal("0xF"):toNumber()}
+ - ${literal("0xF.Fp10"):toDecimal()}
 
 
 
@@ -1191,9 +1204,9 @@ Each of the following functions will encode a string according the rules of the 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: We can Base64-Encoded an attribute named "payload" by using the Expression 
+*Examples*: We can Base64-Encoded an attribute named "payload" by using the Expression
 	   `${payload:base64Encode()}` If the attribute payload had a value of "admin:admin"
-	    then the Expression  `${payload:base64Encode()}` will return "YWRtaW46YWRtaW4=". 
+	    then the Expression  `${payload:base64Encode()}` will return "YWRtaW46YWRtaW4=".
 
 
 
@@ -1496,6 +1509,10 @@ An empty subject value or a subject value with an invalid JSON document results 
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation
 
+For those functions that support Decimal and Number (whole number) types, the return value type depends on the input types. If either the
+subject or argument are a Decimal then the result will be a Decimal. If both values are Numbers then the result will be a Number. This includes
+Divide. This is to preserve backwards compatibility and to not force rounding errors.
+
 
 [.function]
 === plus
@@ -1503,13 +1520,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
 	coerced into a Number, returns `null`.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to add to the Subject#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:plus(1000)}`
 	will return the value `1100`.
@@ -1523,13 +1540,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Subtracts a numeric value from the Subject.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to subtract from the Subject#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:minus(100)}`
 	will return the value `0`.
@@ -1543,13 +1560,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to multiple the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:multiply(1024)}`
 	will return the value `102400`.
@@ -1560,15 +1577,15 @@ An empty subject value or a subject value with an invalid JSON document results 
 [.function]
 === divide
 
-*Description*: [.description]#Divides a numeric value by the Subject and returns the result, rounded down to the nearest integer.#
+*Description*: [.description]#Divides the Subject by a numeric value and returns the result.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
-	- [.argName]#_Operand_# : [.argDesc]#The value to add divide the Subject by#
+	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:divide(12)}`
 	will return the value `8`.
@@ -1582,13 +1599,13 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Description*: [.description]#Performs a modular division of the Subject by the argument. That is, this function will divide
 	the Subject by the value of the argument and return not the quotient but rather the remainder.#
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Decimal#
 
 *Arguments*:
 
 	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
 
-*Return Type*: [.returnType]#Number#
+*Return Type*: [.returnType]#Number or Decimal (depending on input types)#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:mod(12)}`
 	will return the value `4`.
@@ -1602,7 +1619,9 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
 	second argument can be used to indicate the minimum number of characters to be used. If the converted value
-	has fewer than this number of characters, the number will be padded with leading zeroes.#
+	has fewer than this number of characters, the number will be padded with leading zeroes.
+
+	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
 
 *Subject Type*: [.subject]#Number#
 
@@ -1630,9 +1649,37 @@ An empty subject value or a subject value with an invalid JSON document results 
 |=======================================================================================
 
 [.function]
+=== fromRadix
+
+*Description*: [.description]#Converts the Subject from a specified Radix (or number base) to a base ten whole number. The subject will converted as is, without interpretation, and all characters
+must be valid for the base being converted from. For example converting "0xFF" from hex will not work due to "x" being a invalid hex character.
+
+	If a decimal is passed as the subject, it will first be converted to a whole number and then processed.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_Subject Base_# : [.argDesc]#A Number between 2 and 36 (inclusive)#
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If the "fileSize" attributes has a value of 1234A, then the following Expressions will yield
+	the following results:
+
+
+.toRadix Examples
+|=======================================================================================
+| Expression | Value
+| `${fileSize:fromRadix(11)}` | `17720`
+| `${fileSize:fromRadix(16)}` | `74570`
+| `${fileSize:fromRadix(20)}` | `177290`
+|=======================================================================================
+
+[.function]
 === random
 
-*Description*: [.description]#Returns a random number ( 0 to 2^63 - 1) using an insecure random number generator.#
+*Description*: [.description]#Returns a random whole number ( 0 to 2^63 - 1) using an insecure random number generator.#
 
 *Subject Type*: [.subjectless]#No subject#
 
@@ -1641,6 +1688,33 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Return Type*: [.returnType]#Number#
 
 *Examples*: ${random():mod(10):plus(1)} returns random number between 1 and 10 inclusive.
+
+[.function]
+=== math
+
+*Description*: [.description]#ADVANCED FEATURE. This expression is designed to be used by advanced users only. It utilizes Java Reflection to run arbitrary java.lang.Math static methods. The exact API will depend on the version of Java you are running. The Java 8 API can be found here: https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html
+ +
+In order to run the correct method, the parameter types must be correct. The Expression Language "Number" (whole number) type is interpreted as a Java "long". The "Decimal" type is interpreted as a Java "double". Running the desired method may require calling "toNumber()" or "toDecimal()" in order to "cast" the value to the desired type. This also is important to remember when cascading "math()" calls since the return type depends on the method that was run.#
+
+*Subject Type*: [.subject .subjectless]#Subjectless, Number or Decimal (depending on the desired method to run)#
+
+*Arguments*:
+	- [.argName]#_Method_# : [.argDesc]#The name of the Java Math method to run#
+	- [.argName]#_Optional Argument_# : [.argDesc]#Optional argument that acts as the second parameter to the method.#
+
+*Return Type*: [.returnType]#Number or Decimal (depending on method run)#
+
+*Examples*:
+
+	- ${math("random")} runs Math.random().
+
+	- ${literal(2):toDecimal:math("pow", 2.5)} runs Math.pow(2D,2.5D).
+
+	- ${literal(64):toDouble():math("cbrt"):toNumber():math("max", 5)} runs Math.max((Double.valueOf(Math.cbrt(64D))).longValue(), 5L). Note that the toDecimal() is needed because "cbrt" takes a "double" as input and the "64" will get interpreted as a long. The "toDecimal()" call is necessary to correctly call the method. that the "toNumber()" call is necessary because "cbrt" returns a double and the "max" method is must have parameters of the same type and "5" is interpreted as a long.
+
+	- ${literal(5.4):math("scalb", 2)} runs Math.scalb(5.4, 2). This example is important because NiFi EL treats all whole numbers as "longs" and there is no concept of an "int". "scalb" takes a second parameter of an "int" and it is not overloaded to accept longs so it could not be run without special type handling. In the instance where the Java method cannot be found using parameters of type "double" and "long" the "math()" EL function will attempt to find a Java method with the same name but parameters of "double" and "int".
+
+	- ${first:toDecimal():math("pow", ${second:toDecimal()})} where attributes evaluate to "first" = 2.5 and "second" = 2. This example runs Math.pow(2.5D, 2D). The explicit calls to toDecimal() are important because of the dynamic nature of EL. When creating the flow, the user is unaware if the expression language values will be able to be interpreted as a whole number or not. In this example without the explicit calls "toDecimal" the "math" function would attempt to run a Java method "pow" with types "double" and "long" (which doesn't exist).
 
 [[dates]]
 == Date Manipulation
@@ -1761,22 +1835,32 @@ manipulate the value.
 
 
 
-
-
 [.function]
 === toNumber
 
 *Description*: [.description]#Coerces the Subject into a Number#
 
-*Subject Type*: [.subject]#String#
+*Subject Type*: [.subject]#String, Decimal, or Date#
 
 *Arguments*: No arguments
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: The Expression `${fileSize:toNumber()}` converts the String attribute value of "fileSize" to a number.
+*Examples*: The Expression `${fileSize:toNumber()}` converts the attribute value of "fileSize" to a number.
 
 
+[.function]
+=== toDecimal
+
+*Description*: [.description]#Coerces the Subject into a Decimal#
+
+*Subject Type*: [.subject]#String, Whole Number or Date#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Decimal#
+
+*Examples*: The Expression `${fileSize:toDecimal()}` converts the attribute value of "fileSize" to a decimal.
 
 
 

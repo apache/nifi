@@ -43,11 +43,13 @@ import org.apache.nifi.provenance.ProvenanceReporter;
  * session is always tied to a single processor at any one time and ensures no
  * FlowFile can ever be accessed by any more than one processor at a given time.
  * The session also ensures that all FlowFiles are always accounted for. The
- * creator of a ProcessSession is always required to manage the session.</p>
+ * creator of a ProcessSession is always required to manage the session.
+ * </p>
  *
  * <p>
  * A session is not considered thread safe. The session supports a unit of work
- * that is either committed or rolled back</p>
+ * that is either committed or rolled back
+ * </p>
  *
  * <p>
  * As noted on specific methods and for specific exceptions automated rollback
@@ -55,12 +57,22 @@ import org.apache.nifi.provenance.ProvenanceReporter;
  * situations can result in exceptions yet not cause automated rollback. In
  * these cases the consistency of the repository will be retained but callers
  * will be able to indicate whether it should result in rollback or continue on
- * toward a commit.</p>
+ * toward a commit.
+ * </p>
  *
  * <p>
- * A process session instance may be used continuously. That is, after each
- * commit or rollback, the session can be used again.</p>
- *
+ * A process session has two 'terminal' methods that will result in the process session
+ * being in a 'fresh', containing no knowledge or any FlowFile, as if the session were newly
+ * created. After one of these methods is called, the instance may be used again. The terminal
+ * methods for a Process Session are the {@link #commit()} and {@link #rollback()}. Additionally,
+ * the {@link #migrate(ProcessSession, Collection)} method results in {@code this} containing
+ * no knowledge of any of the FlowFiles that are provided, as if the FlowFiles never existed in
+ * this ProcessSession. After each commit or rollback, the session can be used again. Note, however,
+ * that even if all FlowFiles are migrated via the {@link #migrate(ProcessSession, Collection)} method,
+ * this Process Session is not entirely cleared, as it still has knowledge of Counters that were adjusted
+ * via the {@link #adjustCounter(String, long, boolean)} method. A commit or rollback will clear these
+ * counters, as well.
+ * </p>
  */
 public interface ProcessSession {
 
@@ -109,6 +121,32 @@ public interface ProcessSession {
     void rollback(boolean penalize);
 
     /**
+     * <p>
+     * Migrates ownership of the given FlowFiles from {@code this} to the given {@code newOwner}.
+     * </p>
+     *
+     * <p>
+     * When calling this method, all of the following pre-conditions must be met:
+     * </p>
+     *
+     * <ul>
+     * <li>This method cannot be called from within a callback
+     * (see {@link #write(FlowFile, OutputStreamCallback)}, {@link #write(FlowFile, StreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}, {@link #read(FlowFile, boolean, InputStreamCallback)} for any of
+     * the given FlowFiles.</li>
+     * <li>No InputStream can be open for the content of any of the given FlowFiles (see {@link #read(FlowFile)}).</li>
+     * <li>Each of the FlowFiles provided must be the most up-to-date copy of the FlowFile.</li>
+     * <li>For any provided FlowFile, if the FlowFile has any child (e.g., by calling {@link #create(FlowFile)} and passing the FlowFile
+     * as the argument), then all children that were created must also be in the Collection of provided FlowFiles.</li>
+     * </ul>
+     *
+     * @param newOwner the ProcessSession that is to become the new owner of all FlowFiles
+     *            that currently belong to {@code this}.
+     * @param flowFiles the FlowFiles to migrate
+     */
+    void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles);
+
+    /**
      * Adjusts counter data for the given counter name and takes care of
      * registering the counter if not already present. The adjustment occurs
      * only if and when the ProcessSession is committed.
@@ -116,9 +154,9 @@ public interface ProcessSession {
      * @param name the name of the counter
      * @param delta the delta by which to modify the counter (+ or -)
      * @param immediate if true, the counter will be updated immediately,
-     * without regard to whether the ProcessSession is commit or rolled back;
-     * otherwise, the counter will be incremented only if and when the
-     * ProcessSession is committed.
+     *            without regard to whether the ProcessSession is commit or rolled back;
+     *            otherwise, the counter will be incremented only if and when the
+     *            ProcessSession is committed.
      */
     void adjustCounter(String name, long delta, boolean immediate);
 

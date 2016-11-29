@@ -151,6 +151,31 @@ public class TestJdbcCommon {
     }
 
     @Test
+    public void testCreateSchemaOnlyColumnLabel() throws ClassNotFoundException, SQLException {
+
+        final ResultSet resultSet = mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(2);
+        when(resultSetMetaData.getTableName(1)).thenReturn("TEST");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(resultSetMetaData.getColumnName(1)).thenReturn("");
+        when(resultSetMetaData.getColumnLabel(1)).thenReturn("ID");
+        when(resultSetMetaData.getColumnType(2)).thenReturn(Types.VARCHAR);
+        when(resultSetMetaData.getColumnName(2)).thenReturn("VCHARC");
+        when(resultSetMetaData.getColumnLabel(2)).thenReturn("NOT_VCHARC");
+
+        final Schema schema = JdbcCommon.createSchema(resultSet);
+        assertNotNull(schema);
+
+        assertNotNull(schema.getField("ID"));
+        assertNotNull(schema.getField("NOT_VCHARC"));
+
+        // records name, should be result set first column table name
+        assertEquals("TEST", schema.getName());
+    }
+
+    @Test
     public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         final Statement st = con.createStatement();
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
@@ -425,6 +450,45 @@ public class TestJdbcCommon {
         }
     }
 
+    @Test
+    public void testConvertToAvroStreamForShort() throws SQLException, IOException {
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(metadata.getColumnCount()).thenReturn(1);
+        when(metadata.getColumnType(1)).thenReturn(Types.TINYINT);
+        when(metadata.getColumnName(1)).thenReturn("t_int");
+        when(metadata.getTableName(1)).thenReturn("table");
+
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
+
+        final AtomicInteger counter = new AtomicInteger(1);
+        Mockito.doAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                return counter.getAndDecrement() > 0;
+            }
+        }).when(rs).next();
+
+        final short s = 25;
+        when(rs.getObject(Mockito.anyInt())).thenReturn(s);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        JdbcCommon.convertToAvroStream(rs, baos, false);
+
+        final byte[] serializedBytes = baos.toByteArray();
+
+        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertEquals(Short.toString(s), record.get("t_int").toString());
+            }
+        }
+    }
 
     // many test use Derby as database, so ensure driver is available
     @Test

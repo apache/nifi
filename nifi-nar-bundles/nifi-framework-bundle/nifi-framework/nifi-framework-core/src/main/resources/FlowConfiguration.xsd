@@ -87,6 +87,8 @@
 
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" minOccurs="0" maxOccurs="1" />
 
+            <xs:element name="executionNode" type="ExecutionNode" minOccurs="0" maxOccurs="1" />
+
             <xs:element name="runDurationNanos" type="xs:long" minOccurs="0" maxOccurs="1" />
 
             <!-- properties that must be valid for the processor to execute.
@@ -337,6 +339,13 @@
         </xs:restriction>
     </xs:simpleType>
     
+    <xs:simpleType name="ExecutionNode">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ALL"></xs:enumeration>
+            <xs:enumeration value="PRIMARY"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:complexType name="ControllerServicesType">
         <xs:sequence>
             <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />

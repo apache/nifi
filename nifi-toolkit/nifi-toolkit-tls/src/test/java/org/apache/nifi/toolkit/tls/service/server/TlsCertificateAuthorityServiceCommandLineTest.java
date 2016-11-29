@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.tls.service.server;
 
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +50,8 @@ public class TlsCertificateAuthorityServiceCommandLineTest {
     @Test
     public void testDefaults() throws CommandLineParseException, IOException {
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken);
+        assertEquals(BaseCertificateAuthorityCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut());
+        assertNull(tlsCertificateAuthorityServiceCommandLine.getConfigJsonIn());
         TlsConfig tlsConfig = tlsCertificateAuthorityServiceCommandLine.createConfig();
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, tlsConfig.getCaHostname());
         assertEquals(testToken, tlsConfig.getToken());
@@ -112,5 +115,38 @@ public class TlsCertificateAuthorityServiceCommandLineTest {
         int days = 1234;
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-d", Integer.toString(days));
         assertEquals(days, tlsCertificateAuthorityServiceCommandLine.createConfig().getDays());
+    }
+
+    @Test
+    public void testConfigJsonOut() throws CommandLineParseException {
+        String out = "testJson.out";
+        tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-f", out);
+        assertEquals(out, tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut());
+        assertNull(tlsCertificateAuthorityServiceCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonOutAndUseForBoth() throws CommandLineParseException {
+        String out = "testJson.out";
+        tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-f", out, "-F");
+        assertEquals(out, tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut());
+        assertEquals(out, tlsCertificateAuthorityServiceCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonIn() throws CommandLineParseException {
+        String in = "testJson.in";
+        tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "--" + BaseCertificateAuthorityCommandLine.READ_CONFIG_JSON_ARG, in);
+        assertEquals(BaseCertificateAuthorityCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut());
+        assertEquals(in, tlsCertificateAuthorityServiceCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonInAndOut() throws CommandLineParseException {
+        String out = "testJson.out";
+        String in = "testJson.in";
+        tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-f", out, "--" + BaseCertificateAuthorityCommandLine.READ_CONFIG_JSON_ARG, in);
+        assertEquals(out, tlsCertificateAuthorityServiceCommandLine.getConfigJsonOut());
+        assertEquals(in, tlsCertificateAuthorityServiceCommandLine.getConfigJsonIn());
     }
 }

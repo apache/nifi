@@ -67,6 +67,14 @@ public interface HBaseClientService extends ControllerService {
             .defaultValue("1")
             .build();
 
+    PropertyDescriptor PHOENIX_CLIENT_JAR_LOCATION = new PropertyDescriptor.Builder()
+            .name("Phoenix Client JAR Location")
+            .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .dynamicallyModifiesClasspath(true)
+            .build();
+
     /**
      * Puts a batch of mutations to the given table.
      *

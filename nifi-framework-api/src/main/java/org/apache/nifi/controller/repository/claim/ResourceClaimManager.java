@@ -32,9 +32,21 @@ public interface ResourceClaimManager {
      * @param container of claim
      * @param section of claim
      * @param lossTolerant of claim
+     * @param writable whether or not the claim should be made writable
      * @return new claim
      */
-    ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant);
+    ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant, boolean writable);
+
+    /**
+     * Returns the Resource Claim with the given id, container, and section, if one exists, <code>null</code> otherwise
+     *
+     * @param id of claim
+     * @param container of claim
+     * @param section of claim
+     * @return the existing resource claim or <code>null</code> if none exists
+     */
+    ResourceClaim getResourceClaim(String container, String section, String id);
+
 
     /**
      * @param claim to obtain reference count for

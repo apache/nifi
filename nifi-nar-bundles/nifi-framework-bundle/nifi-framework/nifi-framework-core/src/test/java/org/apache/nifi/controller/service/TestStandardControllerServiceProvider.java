@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
@@ -44,6 +45,7 @@ import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.service.mock.ServiceC;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -88,6 +90,12 @@ public class TestStandardControllerServiceProvider {
         return new StandardProcessScheduler(null, null, stateManagerProvider, variableRegistry, NiFiProperties.createBasicNiFiProperties(null, null));
     }
 
+    private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {
+        Map<String,String> props = new LinkedHashMap<>();
+        props.put(propName, propValue);
+        serviceNode.setProperties(props);
+    }
+
     @Test
     public void testDisableControllerService() {
         final ProcessGroup procGroup = new MockProcessGroup();
@@ -118,7 +126,7 @@ public class TestStandardControllerServiceProvider {
         group.addControllerService(serviceNodeA);
         group.addControllerService(serviceNodeB);
 
-        serviceNodeA.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
+        setProperty(serviceNodeA, ServiceA.OTHER_SERVICE.getName(), "B");
 
         try {
             provider.enableControllerService(serviceNodeA);
@@ -158,7 +166,7 @@ public class TestStandardControllerServiceProvider {
      * https://issues.apache.org/jira/browse/NIFI-1143
      */
     @Test(timeout = 60000)
-    public void testConcurrencyWithEnablingReferencingServicesGraph() {
+    public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
         final ProcessScheduler scheduler = createScheduler();
         for (int i = 0; i < 10000; i++) {
             testEnableReferencingServicesGraph(scheduler);
@@ -195,10 +203,10 @@ public class TestStandardControllerServiceProvider {
         procGroup.addControllerService(serviceNode3);
         procGroup.addControllerService(serviceNode4);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode2, ServiceA.OTHER_SERVICE.getName(), "4");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE_2.getName(), "4");
 
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
@@ -227,7 +235,7 @@ public class TestStandardControllerServiceProvider {
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2", false);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
 
         final Map<String, ControllerServiceNode> nodeMap = new LinkedHashMap<>();
         nodeMap.put("1", serviceNode1);
@@ -257,7 +265,7 @@ public class TestStandardControllerServiceProvider {
 
         // add circular dependency on self.
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "1");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE_2.getName(), "1");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
 
@@ -284,8 +292,8 @@ public class TestStandardControllerServiceProvider {
         // like that.
         nodeMap.clear();
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "3");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "1");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "3");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "1");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("3", serviceNode3);
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
@@ -307,10 +315,10 @@ public class TestStandardControllerServiceProvider {
 
         // Add multiple completely disparate branches.
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
         final ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceB.class.getName(), "5", false);
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "4");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
         nodeMap.put("3", serviceNode3);
@@ -341,8 +349,8 @@ public class TestStandardControllerServiceProvider {
 
         // create 2 branches both dependent on the same service
         nodeMap.clear();
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
         nodeMap.put("3", serviceNode3);
@@ -367,7 +375,9 @@ public class TestStandardControllerServiceProvider {
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
         final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
-                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, NiFiProperties.createBasicNiFiProperties(null, null));
+                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider,
+                NiFiProperties.createBasicNiFiProperties(null, null),
+                VariableRegistry.EMPTY_REGISTRY, Mockito.mock(ComponentLog.class));
 
         final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null, variableRegistry);
         group.addProcessor(procNode);
@@ -422,12 +432,12 @@ public class TestStandardControllerServiceProvider {
         procGroup.addControllerService(E);
         procGroup.addControllerService(F);
 
-        A.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
-        B.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
-        C.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
-        C.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "D");
-        E.setProperty(ServiceA.OTHER_SERVICE.getName(), "A");
-        E.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "F");
+        setProperty(A, ServiceA.OTHER_SERVICE.getName(), "B");
+        setProperty(B, ServiceA.OTHER_SERVICE.getName(), "D");
+        setProperty(C, ServiceA.OTHER_SERVICE.getName(), "B");
+        setProperty(C, ServiceA.OTHER_SERVICE_2.getName(), "D");
+        setProperty(E, ServiceA.OTHER_SERVICE.getName(), "A");
+        setProperty(E, ServiceA.OTHER_SERVICE_2.getName(), "F");
 
         provider.enableControllerServices(Arrays.asList(A, B, C, D, E, F));
 
@@ -465,12 +475,12 @@ public class TestStandardControllerServiceProvider {
         procGroup.addControllerService(D);
         procGroup.addControllerService(F);
 
-        A.setProperty(ServiceC.REQ_SERVICE_1.getName(), "B");
-        A.setProperty(ServiceC.REQ_SERVICE_2.getName(), "D");
-        B.setProperty(ServiceA.OTHER_SERVICE.getName(), "C");
+        setProperty(A, ServiceC.REQ_SERVICE_1.getName(), "B");
+        setProperty(A, ServiceC.REQ_SERVICE_2.getName(), "D");
+        setProperty(B, ServiceA.OTHER_SERVICE.getName(), "C");
 
-        F.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
-        D.setProperty(ServiceA.OTHER_SERVICE.getName(), "C");
+        setProperty(F, ServiceA.OTHER_SERVICE.getName(), "D");
+        setProperty(D, ServiceA.OTHER_SERVICE.getName(), "C");
 
         provider.enableControllerServices(Arrays.asList(C, F, A, B, D));
 
@@ -506,13 +516,13 @@ public class TestStandardControllerServiceProvider {
         procGroup.addControllerService(serviceNode6);
         procGroup.addControllerService(serviceNode7);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
-        serviceNode5.setProperty(ServiceA.OTHER_SERVICE.getName(), "6");
-        serviceNode7.setProperty(ServiceC.REQ_SERVICE_1.getName(), "2");
-        serviceNode7.setProperty(ServiceC.REQ_SERVICE_2.getName(), "3");
+        setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode2, ServiceA.OTHER_SERVICE.getName(), "4");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE_2.getName(), "4");
+        setProperty(serviceNode5, ServiceA.OTHER_SERVICE.getName(), "6");
+        setProperty(serviceNode7, ServiceC.REQ_SERVICE_1.getName(), "2");
+        setProperty(serviceNode7, ServiceC.REQ_SERVICE_2.getName(), "3");
 
         provider.enableControllerServices(Arrays.asList(
                 serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5, serviceNode7));

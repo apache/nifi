@@ -88,6 +88,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -408,11 +409,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
                         .collect(Collectors.toSet());
 
+                final Map<String,String> controllerServiceProps = new HashMap<>();
+
                 for (Map.Entry<PropertyDescriptor, String> propEntry : propertyDescriptors) {
                     final PropertyDescriptor propertyDescriptor = propEntry.getKey();
                     final ControllerServiceNode clone = controllerServiceMapping.get(propEntry.getValue());
-                    reportingTask.setProperty(propertyDescriptor.getName(), clone.getIdentifier());
+                    controllerServiceProps.put(propertyDescriptor.getName(), clone.getIdentifier());
                 }
+
+                reportingTask.setProperties(controllerServiceProps);
             }
         }
     }
@@ -514,14 +519,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(dto.getAnnotationData());
-
-            for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
-                if (entry.getValue() == null) {
-                    reportingTask.removeProperty(entry.getKey());
-                } else {
-                    reportingTask.setProperty(entry.getKey(), entry.getValue());
-                }
-            }
+            reportingTask.setProperties(dto.getProperties());
 
             final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
             final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
@@ -905,6 +903,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
         }
 
+        if (config.getExecutionNode() != null) {
+            procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
+        }
+
         // must set scheduling strategy before these two
         procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
         procNode.setScheduldingPeriod(config.getSchedulingPeriod());
@@ -922,13 +924,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             procNode.setAutoTerminatedRelationships(relationships);
         }
 
-        for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
-            if (entry.getValue() == null) {
-                procNode.removeProperty(entry.getKey());
-            } else {
-                procNode.setProperty(entry.getKey(), entry.getValue());
-            }
-        }
+        procNode.setProperties(config.getProperties());
 
         final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
         if (ScheduledState.RUNNING.equals(scheduledState)) {

@@ -276,6 +276,22 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
+    public void testNifiDnPrefix() throws CommandLineParseException {
+        String testPrefix = "O=apache, CN=";
+        tlsToolkitStandaloneCommandLine.parse("-n", "nifi", "--nifiDnPrefix", testPrefix);
+        StandaloneConfig config = tlsToolkitStandaloneCommandLine.createConfig();
+        assertEquals(testPrefix, config.getDnPrefix());
+    }
+
+    @Test
+    public void testNifiDnSuffix() throws CommandLineParseException {
+        String testSuffix = ", O=apache, OU=nifi";
+        tlsToolkitStandaloneCommandLine.parse("-n", "nifi", "--nifiDnSuffix", testSuffix);
+        StandaloneConfig config = tlsToolkitStandaloneCommandLine.createConfig();
+        assertEquals(testSuffix, config.getDnSuffix());
+    }
+
+    @Test
     public void testClientDnDefault() throws CommandLineParseException {
         tlsToolkitStandaloneCommandLine.parse();
         assertEquals(Collections.emptyList(), tlsToolkitStandaloneCommandLine.createConfig().getClientDns());

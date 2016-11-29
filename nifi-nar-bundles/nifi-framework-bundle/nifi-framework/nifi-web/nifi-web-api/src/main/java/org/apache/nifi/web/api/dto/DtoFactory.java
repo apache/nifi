@@ -31,6 +31,7 @@ import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -42,6 +43,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -107,6 +109,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
@@ -139,9 +142,11 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -193,6 +198,7 @@ public final class DtoFactory {
     private ControllerServiceProvider controllerServiceProvider;
     private EntityFactory entityFactory;
     private Authorizer authorizer;
+    private NiFiProperties properties;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -735,15 +741,32 @@ public final class DtoFactory {
      * @param userGroup user group
      * @return dto
      */
-    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<TenantEntity> users) {
+    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<TenantEntity> users, final Set<AccessPolicySummaryEntity> accessPolicies) {
         if (userGroup == null) {
             return null;
         }
+
+        // convert to access policies to handle backward compatibility due to incorrect
+        // type in the UserGroupDTO
+        final Set<AccessPolicyEntity> policies = accessPolicies.stream().map(summaryEntity -> {
+            final AccessPolicyDTO policy = new AccessPolicyDTO();
+            policy.setId(summaryEntity.getId());
+
+            if (summaryEntity.getPermissions().getCanRead()) {
+                final AccessPolicySummaryDTO summary = summaryEntity.getComponent();
+                policy.setResource(summary.getResource());
+                policy.setAction(summary.getAction());
+                policy.setComponentReference(summary.getComponentReference());
+            }
+
+            return entityFactory.createAccessPolicyEntity(policy, summaryEntity.getRevision(), summaryEntity.getPermissions());
+        }).collect(Collectors.toSet());
 
         final UserGroupDTO dto = new UserGroupDTO();
         dto.setId(userGroup.getIdentifier());
         dto.setUsers(users);
         dto.setIdentity(userGroup.getName());
+        dto.setAccessPolicies(policies);
 
         return dto;
     }
@@ -1217,6 +1240,7 @@ public final class DtoFactory {
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(reportingTaskNode.isRestricted());
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1286,6 +1310,7 @@ public final class DtoFactory {
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(controllerServiceNode.isRestricted());
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -1582,7 +1607,20 @@ public final class DtoFactory {
         return dto;
     }
 
-    public AccessPolicySummaryDTO createAccessPolicySummaryDto(final AccessPolicy accessPolicy) {
+    public ComponentReferenceDTO createComponentReferenceDto(final Authorizable authorizable) {
+        if (authorizable == null || !(authorizable instanceof ComponentAuthorizable)) {
+            return null;
+        }
+
+        final ComponentAuthorizable componentAuthorizable = (ComponentAuthorizable) authorizable;
+        final ComponentReferenceDTO dto = new ComponentReferenceDTO();
+        dto.setId(componentAuthorizable.getIdentifier());
+        dto.setParentGroupId(componentAuthorizable.getProcessGroupIdentifier());
+        dto.setName(authorizable.getResource().getName());
+        return dto;
+    }
+
+    public AccessPolicySummaryDTO createAccessPolicySummaryDto(final AccessPolicy accessPolicy, final ComponentReferenceEntity componentReference) {
         if (accessPolicy == null) {
             return null;
         }
@@ -1591,10 +1629,13 @@ public final class DtoFactory {
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
         dto.setAction(accessPolicy.getAction().toString());
+        dto.setComponentReference(componentReference);
         return dto;
     }
 
-    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy, Set<TenantEntity> userGroups, Set<TenantEntity> users) {
+    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy, final Set<TenantEntity> userGroups,
+                                                 final Set<TenantEntity> users, final ComponentReferenceEntity componentReference) {
+
         if (accessPolicy == null) {
             return null;
         }
@@ -1605,6 +1646,7 @@ public final class DtoFactory {
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
         dto.setAction(accessPolicy.getAction().toString());
+        dto.setComponentReference(componentReference);
         return dto;
     }
 
@@ -1972,6 +2014,11 @@ public final class DtoFactory {
         return dto;
     }
 
+    private String getUsageRestriction(final Class<?> cls) {
+        final Restricted restriction = cls.getAnnotation(Restricted.class);
+        return restriction == null ? null : restriction.value();
+    }
+
     /**
      * Gets the capability description from the specified class.
      */
@@ -2011,6 +2058,7 @@ public final class DtoFactory {
             final DocumentedTypeDTO type = new DocumentedTypeDTO();
             type.setType(cls.getName());
             type.setDescription(getCapabilityDescription(cls));
+            type.setUsageRestriction(getUsageRestriction(cls));
             type.setTags(getTags(cls));
             types.add(type);
         }
@@ -2036,6 +2084,7 @@ public final class DtoFactory {
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(node.isRestricted());
 
         dto.setType(node.getCanonicalClassName());
         dto.setName(node.getName());
@@ -2356,6 +2405,10 @@ public final class DtoFactory {
             garbageCollectionDtos.add(createGarbageCollectionDTO(entry.getKey(), entry.getValue()));
         }
 
+        // version info
+        final SystemDiagnosticsSnapshotDTO.VersionInfoDTO versionInfoDto = createVersionInfoDTO();
+        snapshot.setVersionInfo(versionInfoDto);
+
         return dto;
     }
 
@@ -2392,6 +2445,21 @@ public final class DtoFactory {
         dto.setCollectionCount(garbageCollection.getCollectionCount());
         dto.setCollectionTime(FormatUtils.formatHoursMinutesSeconds(garbageCollection.getCollectionTime(), TimeUnit.MILLISECONDS));
         dto.setCollectionMillis(garbageCollection.getCollectionTime());
+        return dto;
+    }
+
+    public SystemDiagnosticsSnapshotDTO.VersionInfoDTO createVersionInfoDTO() {
+        final SystemDiagnosticsSnapshotDTO.VersionInfoDTO dto = new SystemDiagnosticsSnapshotDTO.VersionInfoDTO();
+        dto.setNiFiVersion(properties.getUiTitle());
+        dto.setJavaVendor(System.getProperty("java.vendor"));
+        dto.setJavaVersion(System.getProperty("java.version"));
+        dto.setOsName(System.getProperty("os.name"));
+        dto.setOsVersion(System.getProperty("os.version"));
+        dto.setOsArchitecture(System.getProperty("os.arch"));
+        dto.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
+        dto.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
+        dto.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
+        dto.setBuildTimestamp(properties.getBuildTimestamp());
         return dto;
     }
 
@@ -2471,6 +2539,7 @@ public final class DtoFactory {
         dto.setComments(procNode.getComments());
         dto.setBulletinLevel(procNode.getBulletinLevel().name());
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
+        dto.setExecutionNode(procNode.getExecutionNode().name());
         dto.setAnnotationData(procNode.getAnnotationData());
 
         // set up the default values for concurrent tasks and scheduling period
@@ -2649,6 +2718,7 @@ public final class DtoFactory {
         copy.setAutoTerminatedRelationships(copy(original.getAutoTerminatedRelationships()));
         copy.setComments(original.getComments());
         copy.setSchedulingStrategy(original.getSchedulingStrategy());
+        copy.setExecutionNode(original.getExecutionNode());
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));
@@ -3062,5 +3132,9 @@ public final class DtoFactory {
 
     public void setBulletinRepository(BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setProperties(final NiFiProperties properties) {
+        this.properties = properties;
     }
 }

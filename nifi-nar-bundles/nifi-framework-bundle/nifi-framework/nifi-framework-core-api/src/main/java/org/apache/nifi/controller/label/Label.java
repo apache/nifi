@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.controller.label;
 
-import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Map;
 
-public interface Label extends Authorizable, Positionable {
+public interface Label extends ComponentAuthorizable, Positionable {
 
     String getIdentifier();
 

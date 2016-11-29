@@ -266,19 +266,19 @@ nf.SummaryTable = (function () {
             var classes = nf.Common.escapeHtml(value.toLowerCase());
             switch(nf.Common.escapeHtml(value.toLowerCase())) {
                 case 'running':
-                    classes += ' fa fa-play';
+                    classes += ' fa fa-play running';
                     break;
                 case 'stopped':
-                    classes += ' fa fa-stop';
+                    classes += ' fa fa-stop stopped';
                     break;
                 case 'enabled':
-                    classes += ' fa fa-flash';
+                    classes += ' fa fa-flash enabled';
                     break;
                 case 'disabled':
-                    classes += ' icon icon-enable-false';
+                    classes += ' icon icon-enable-false disabled';
                     break;
                 case 'invalid':
-                    classes += ' fa fa-warning';
+                    classes += ' fa fa-warning invalid';
                     break;
                 default:
                     classes += '';
@@ -1707,8 +1707,8 @@ nf.SummaryTable = (function () {
             }
 
             // generate the mark up
-            var formattedValue = '<div class="' + transmissionClass + '" style="margin-top: 5px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + transmissionClass + '"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + transmissionLabel + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var transmissionStatusColumn = {
@@ -2010,6 +2010,9 @@ nf.SummaryTable = (function () {
             }, {
                 name: 'System',
                 tabContentId: 'system-tab-content'
+            }, {
+                name: 'Version',
+                tabContentId: 'version-tab-content'
             }]
         });
 
@@ -2112,8 +2115,8 @@ nf.SummaryTable = (function () {
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
-                var aSplit = a[sortDetails.columnId].split(/ \/ /);
-                var bSplit = b[sortDetails.columnId].split(/ \/ /);
+                var aSplit = a[sortDetails.columnId].split(/\(([^)]+)\)/);
+                var bSplit = b[sortDetails.columnId].split(/\(([^)]+)\)/);
                 var mod = sortState[tableId].count % 4;
                 if (mod < 2) {
                     $('#' + tableId + ' span.' + sortDetails.columnId + '-title').addClass('sorted');
@@ -2293,6 +2296,28 @@ nf.SummaryTable = (function () {
                 addStorageUsage(contentRepositoryUsageContainer, contentRepository);
             });
 
+            // Version
+            var versionSpanSelectorToFieldMap = {
+                '#version-nifi': aggregateSnapshot.versionInfo.niFiVersion,
+                '#version-build-tag': aggregateSnapshot.versionInfo.buildTag,
+                '#version-build-timestamp': aggregateSnapshot.versionInfo.buildTimestamp,
+                '#version-build-branch': aggregateSnapshot.versionInfo.buildBranch,
+                '#version-build-revision': aggregateSnapshot.versionInfo.buildRevision,
+                '#version-java-version': aggregateSnapshot.versionInfo.javaVersion,
+                '#version-java-vendor': aggregateSnapshot.versionInfo.javaVendor,
+                '#version-os-name': aggregateSnapshot.versionInfo.osName,
+                '#version-os-version': aggregateSnapshot.versionInfo.osVersion,
+                '#version-os-arch': aggregateSnapshot.versionInfo.osArchitecture
+            };
+            for (versionSpanSelector in versionSpanSelectorToFieldMap) {
+                var dataField = versionSpanSelectorToFieldMap[versionSpanSelector];
+                if (dataField) {
+                    $(versionSpanSelector).text(dataField);
+                } else {
+                    $(versionSpanSelector).text('(not available)').addClass('unset');
+                }
+            }
+
             // update the stats last refreshed timestamp
             $('#system-diagnostics-last-refreshed').text(aggregateSnapshot.statsLastRefreshed);
         }).fail(nf.Common.handleAjaxError);
@@ -2470,6 +2495,7 @@ nf.SummaryTable = (function () {
 
                 // populate the processor details
                 $('#cluster-processor-name').text(processorStatus.name).ellipsis();
+                $('#cluster-processor-type').text(processorStatus.aggregateSnapshot.type).ellipsis();
                 $('#cluster-processor-id').text(processorStatus.id);
                 $('#cluster-processor-group-id').text(processorStatus.groupId);
 
@@ -2526,6 +2552,7 @@ nf.SummaryTable = (function () {
 
                 // populate the processor details
                 $('#cluster-connection-name').text(connectionStatus.name).ellipsis();
+                $('#cluster-connection-type').text('Connection').ellipsis();
                 $('#cluster-connection-id').text(connectionStatus.id);
                 $('#cluster-connection-group-id').text(connectionStatus.groupId);
 
@@ -2586,6 +2613,7 @@ nf.SummaryTable = (function () {
 
                 // populate the input port details
                 $('#cluster-process-group-name').text(processGroupStatus.name).ellipsis();
+                $('#cluster-process-group-type').text('Process Group').ellipsis();
                 $('#cluster-process-group-id').text(processGroupStatus.id);
 
                 // update the stats last refreshed timestamp
@@ -2637,6 +2665,7 @@ nf.SummaryTable = (function () {
 
                 // populate the input port details
                 $('#cluster-input-port-name').text(inputPortStatus.name).ellipsis();
+                $('#cluster-input-port-type').text('Input Port').ellipsis();
                 $('#cluster-input-port-id').text(inputPortStatus.id);
                 $('#cluster-input-port-group-id').text(inputPortStatus.groupId);
 
@@ -2689,6 +2718,7 @@ nf.SummaryTable = (function () {
 
                 // populate the output port details
                 $('#cluster-output-port-name').text(outputPortStatus.name).ellipsis();
+                $('#cluster-output-port-type').text('Output Port').ellipsis();
                 $('#cluster-output-port-id').text(outputPortStatus.id);
                 $('#cluster-output-port-group-id').text(outputPortStatus.groupId);
 
@@ -2743,6 +2773,7 @@ nf.SummaryTable = (function () {
 
                 // populate the remote process group details
                 $('#cluster-remote-process-group-name').text(remoteProcessGroupStatus.name).ellipsis();
+                $('#cluster-remote-process-group-type').text('Remote Process Group').ellipsis();
                 $('#cluster-remote-process-group-id').text(remoteProcessGroupStatus.id);
                 $('#cluster-remote-process-group-group-id').text(remoteProcessGroupStatus.groupId);
 

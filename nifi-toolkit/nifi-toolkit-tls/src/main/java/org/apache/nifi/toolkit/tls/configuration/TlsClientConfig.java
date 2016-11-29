@@ -38,10 +38,12 @@ public class TlsClientConfig extends TlsConfig {
         setCaHostname(tlsConfig.getCaHostname());
         setPort(tlsConfig.getPort());
         setKeyStoreType(tlsConfig.getKeyStoreType());
-        setTrustStoreType(tlsConfig.getKeyStoreType());
         setKeyPairAlgorithm(tlsConfig.getKeyPairAlgorithm());
         setKeySize(tlsConfig.getKeySize());
         setSigningAlgorithm(tlsConfig.getSigningAlgorithm());
+        setDnPrefix(tlsConfig.getDnPrefix());
+        setDnSuffix(tlsConfig.getDnSuffix());
+        setReorderDn(tlsConfig.getReorderDn());
     }
 
 

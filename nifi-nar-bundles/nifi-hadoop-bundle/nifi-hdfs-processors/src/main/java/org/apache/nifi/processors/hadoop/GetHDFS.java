@@ -27,6 +27,7 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -65,7 +66,7 @@ import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
+@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem", "restricted"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
@@ -73,6 +74,7 @@ import java.util.regex.Pattern;
             + "is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and "
             + "a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
 @SeeAlso({PutHDFS.class, ListHDFS.class})
+@Restricted("Provides operator the ability to retrieve and delete any file that NiFi has access to in HDFS or the local filesystem.")
 public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
@@ -415,7 +417,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
             try {
                 final FileSystem hdfs = getFileSystem();
                 // get listing
-                listing = selectFiles(hdfs, processorConfig.getConfiguredRootDirPath(), null);
+                listing = selectFiles(hdfs, new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue()), null);
                 lastPollTime.set(System.currentTimeMillis());
             } finally {
                 listingLock.unlock();
@@ -460,7 +462,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
             if (file.isDirectory() && processorConfig.getRecurseSubdirs()) {
                 files.addAll(selectFiles(hdfs, canonicalFile, filesVisited));
 
-            } else if (!file.isDirectory() && processorConfig.getPathFilter().accept(canonicalFile)) {
+            } else if (!file.isDirectory() && processorConfig.getPathFilter(dir).accept(canonicalFile)) {
                 final long fileAge = System.currentTimeMillis() - file.getModificationTime();
                 if (processorConfig.getMinimumAge() < fileAge && fileAge < processorConfig.getMaximumAge()) {
                     files.add(canonicalFile);
@@ -480,17 +482,14 @@ public class GetHDFS extends AbstractHadoopProcessor {
      */
     protected static class ProcessorConfiguration {
 
-        final private Path configuredRootDirPath;
         final private Pattern fileFilterPattern;
         final private boolean ignoreDottedFiles;
         final private boolean filterMatchBasenameOnly;
         final private long minimumAge;
         final private long maximumAge;
         final private boolean recurseSubdirs;
-        final private PathFilter pathFilter;
 
         ProcessorConfiguration(final ProcessContext context) {
-            configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
             ignoreDottedFiles = context.getProperty(IGNORE_DOTTED_FILES).asBoolean();
             final String fileFilterRegex = context.getProperty(FILE_FILTER_REGEX).getValue();
             fileFilterPattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
@@ -500,37 +499,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
             final Long maxAgeProp = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
             maximumAge = (maxAgeProp == null) ? Long.MAX_VALUE : maxAgeProp;
             recurseSubdirs = context.getProperty(RECURSE_SUBDIRS).asBoolean();
-            pathFilter = new PathFilter() {
-
-                @Override
-                public boolean accept(Path path) {
-                    if (ignoreDottedFiles && path.getName().startsWith(".")) {
-                        return false;
-                    }
-                    final String pathToCompare;
-                    if (filterMatchBasenameOnly) {
-                        pathToCompare = path.getName();
-                    } else {
-                        // figure out portion of path that does not include the provided root dir.
-                        String relativePath = getPathDifference(configuredRootDirPath, path);
-                        if (relativePath.length() == 0) {
-                            pathToCompare = path.getName();
-                        } else {
-                            pathToCompare = relativePath + Path.SEPARATOR + path.getName();
-                        }
-                    }
-
-                    if (fileFilterPattern != null && !fileFilterPattern.matcher(pathToCompare).matches()) {
-                        return false;
-                    }
-                    return true;
-                }
-
-            };
-        }
-
-        public Path getConfiguredRootDirPath() {
-            return configuredRootDirPath;
         }
 
         protected long getMinimumAge() {
@@ -545,8 +513,34 @@ public class GetHDFS extends AbstractHadoopProcessor {
             return recurseSubdirs;
         }
 
-        protected PathFilter getPathFilter() {
-            return pathFilter;
+        protected PathFilter getPathFilter(final Path dir) {
+            return new PathFilter() {
+
+                @Override
+                public boolean accept(Path path) {
+                    if (ignoreDottedFiles && path.getName().startsWith(".")) {
+                        return false;
+                    }
+                    final String pathToCompare;
+                    if (filterMatchBasenameOnly) {
+                        pathToCompare = path.getName();
+                    } else {
+                        // figure out portion of path that does not include the provided root dir.
+                        String relativePath = getPathDifference(dir, path);
+                        if (relativePath.length() == 0) {
+                            pathToCompare = path.getName();
+                        } else {
+                            pathToCompare = relativePath + Path.SEPARATOR + path.getName();
+                        }
+                    }
+
+                    if (fileFilterPattern != null && !fileFilterPattern.matcher(pathToCompare).matches()) {
+                        return false;
+                    }
+                    return true;
+                }
+
+            };
         }
     }
 }

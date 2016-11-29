@@ -164,6 +164,11 @@ The following binary components are provided under the Apache Software License v
       "GCC RUntime Library Exception" 
       http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 
+  (ASLv2) ParCEFone
+    The following NOTICE information applies:
+      ParCEFone
+      Copyright 2016 Fluenda
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -175,6 +180,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.19 - https://jersey.java.net/jersey-server/)
     (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
     (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
 
 *****************
 Common Development and Distribution License v1.0:

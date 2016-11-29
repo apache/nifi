@@ -20,6 +20,9 @@ package org.apache.nifi.web.server;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.nifi.security.util.KeystoreType;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
@@ -80,4 +83,63 @@ public class JettyServerTest {
         verify(contextFactory).setKeyManagerPassword(testKeystorePassword);
     }
 
+    @Test
+    public void testConfigureSslContextFactoryWithJksKeyStore() {
+        // Expect that we will not set provider for jks keystore
+        final Map<String, String> addProps = new HashMap<>();
+        String keyStoreType = KeystoreType.JKS.toString();
+        addProps.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        SslContextFactory contextFactory = mock(SslContextFactory.class);
+
+        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+
+        verify(contextFactory).setKeyStoreType(keyStoreType);
+        verify(contextFactory, never()).setKeyStoreProvider(anyString());
+    }
+
+    @Test
+    public void testConfigureSslContextFactoryWithPkcsKeyStore() {
+        // Expect that we will set Bouncy Castle provider for pkcs12 keystore
+        final Map<String, String> addProps = new HashMap<>();
+        String keyStoreType = KeystoreType.PKCS12.toString();
+        addProps.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        SslContextFactory contextFactory = mock(SslContextFactory.class);
+
+        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+
+        verify(contextFactory).setKeyStoreType(keyStoreType);
+        verify(contextFactory).setKeyStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+    }
+
+    @Test
+    public void testConfigureSslContextFactoryWithJksTrustStore() {
+        // Expect that we will not set provider for jks truststore
+        final Map<String, String> addProps = new HashMap<>();
+        String trustStoreType = KeystoreType.JKS.toString();
+        addProps.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, trustStoreType);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        SslContextFactory contextFactory = mock(SslContextFactory.class);
+
+        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+
+        verify(contextFactory).setTrustStoreType(trustStoreType);
+        verify(contextFactory, never()).setTrustStoreProvider(anyString());
+    }
+
+    @Test
+    public void testConfigureSslContextFactoryWithPkcsTrustStore() {
+        // Expect that we will set Bouncy Castle provider for pkcs12 truststore
+        final Map<String, String> addProps = new HashMap<>();
+        String trustStoreType = KeystoreType.PKCS12.toString();
+        addProps.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, trustStoreType);
+        NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        SslContextFactory contextFactory = mock(SslContextFactory.class);
+
+        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+
+        verify(contextFactory).setTrustStoreType(trustStoreType);
+        verify(contextFactory).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+    }
 }

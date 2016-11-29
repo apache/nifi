@@ -46,6 +46,7 @@
      * 
      * overflow: hidden;
      * white-space: nowrap;
+     * width: 50px (value must be set in 'px')
      * 
      * If multiline is desired, add a 'multiline' class to the element.
      * 

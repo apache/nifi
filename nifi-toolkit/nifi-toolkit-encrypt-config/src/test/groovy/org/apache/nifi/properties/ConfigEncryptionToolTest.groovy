@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.properties
 
-import ch.qos.logback.classic.spi.LoggingEvent
-import ch.qos.logback.core.AppenderBase
-import org.apache.commons.codec.binary.Hex
 import org.apache.commons.lang3.SystemUtils
+import org.apache.log4j.AppenderSkeleton
+import org.apache.log4j.spi.LoggingEvent
+import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.console.TextDevice
 import org.apache.nifi.util.console.TextDevices
-import org.bouncycastle.crypto.generators.SCrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
@@ -42,6 +42,10 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
+import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.PBEParameterSpec
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyException
@@ -61,6 +65,27 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
     public static final String KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? KEY_HEX_256 : KEY_HEX_128
     private static final String PASSWORD = "thisIsABadPassword"
+    // From ConfigEncryptionTool.deriveKeyFromPassword("thisIsABadPassword")
+    private static
+    final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
+    private static final String PASSWORD_KEY_HEX_128 = "2C576A9585DB862F5ECBEE5B4FFFCCA1"
+
+    private static
+    final String PASSWORD_KEY_HEX = isUnlimitedStrengthCryptoAvailable() ? PASSWORD_KEY_HEX_256 : PASSWORD_KEY_HEX_128
+
+    // Known issue documented in NIFI-1465 and NIFI-1255 where the password cannot be > 16 characters without the JCE unlimited strength policies installed
+    private static final String FLOW_PASSWORD_128 = "shortPassword"
+    private static final String FLOW_PASSWORD_256 = "thisIsABadPassword"
+    public static
+    final String FLOW_PASSWORD = isUnlimitedStrengthCryptoAvailable() ? FLOW_PASSWORD_256 : FLOW_PASSWORD_128
+
+    private static final int LIP_PASSWORD_LINE_COUNT = 3
+    private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
+
+    private static final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+    private static final String DEFAULT_PROVIDER = "BC"
+    private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
+    private final String DEFAULT_LEGACY_SENSITIVE_PROPS_KEY = "nififtw!"
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
@@ -69,11 +94,18 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
+
+        setupTmpDir()
+    }
+
+    @AfterClass
+    public static void tearDownOnce() throws Exception {
+        File tmpDir = new File("target/tmp/")
+        tmpDir.delete()
     }
 
     @Before
     public void setUp() throws Exception {
-
     }
 
     @After
@@ -83,6 +115,10 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
         Cipher.getMaxAllowedKeyLength("AES") > 128
+    }
+
+    private static int getKeyLength(String keyHex = KEY_HEX) {
+        keyHex?.size() * 4
     }
 
     private static void printProperties(NiFiProperties properties) {
@@ -137,6 +173,13 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         formattedDate =~ datePattern
     }
 
+    private static File setupTmpDir(String tmpDirPath = "target/tmp/") {
+        File tmpDir = new File(tmpDirPath)
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+        tmpDir
+    }
+
     @Test
     void testShouldPrintHelpMessage() {
         // Arrange
@@ -164,26 +207,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         flags.each { String arg ->
-            tool.parse([arg, bootstrapPath] as String[])
+            tool.parse([arg, bootstrapPath, "-n", "nifi.properties"] as String[])
             logger.info("Parsed bootstrap.conf location: ${tool.bootstrapConfPath}")
 
             // Assert
             assert tool.bootstrapConfPath == bootstrapPath
         }
-    }
-
-    @Test
-    void testParseShouldPopulateDefaultBootstrapConfArgument() {
-        // Arrange
-        String bootstrapPath = "conf/bootstrap.conf"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed bootstrap.conf location: ${tool.bootstrapConfPath}")
-
-        // Assert
-        assert new File(tool.bootstrapConfPath).getPath() == new File(bootstrapPath).getPath()
     }
 
     @Test
@@ -200,21 +229,8 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
             // Assert
             assert tool.niFiPropertiesPath == niFiPropertiesPath
+            assert tool.handlingNiFiProperties
         }
-    }
-
-    @Test
-    void testParseShouldPopulateDefaultNiFiPropertiesArgument() {
-        // Arrange
-        String niFiPropertiesPath = "conf/nifi.properties"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
-
-        // Assert
-        assert new File(tool.niFiPropertiesPath).getPath() == new File(niFiPropertiesPath).getPath()
     }
 
     @Test
@@ -226,26 +242,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         flags.each { String arg ->
-            tool.parse([arg, niFiPropertiesPath] as String[])
+            tool.parse([arg, niFiPropertiesPath, "-n", niFiPropertiesPath] as String[])
             logger.info("Parsed output nifi.properties location: ${tool.outputNiFiPropertiesPath}")
 
             // Assert
             assert tool.outputNiFiPropertiesPath == niFiPropertiesPath
         }
-    }
-
-    @Test
-    void testParseShouldPopulateDefaultOutputNiFiPropertiesArgument() {
-        // Arrange
-        String niFiPropertiesPath = "conf/nifi.properties"
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-
-        // Act
-        tool.parse([] as String[])
-        logger.info("Parsed output nifi.properties location: ${tool.outputNiFiPropertiesPath}")
-
-        // Assert
-        assert new File(tool.outputNiFiPropertiesPath).getPath() == new File(niFiPropertiesPath).getPath()
     }
 
     @Test
@@ -265,6 +267,59 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldParseLoginIdentityProvidersArgument() {
+        // Arrange
+        def flags = ["-l", "--loginIdentityProviders"]
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        flags.each { String arg ->
+            tool.parse([arg, loginIdentityProvidersPath] as String[])
+            logger.info("Parsed login-identity-providers.xml location: ${tool.loginIdentityProvidersPath}")
+
+            // Assert
+            assert tool.loginIdentityProvidersPath == loginIdentityProvidersPath
+            assert tool.handlingLoginIdentityProviders
+        }
+    }
+
+    @Test
+    void testShouldParseOutputLoginIdentityProvidersArgument() {
+        // Arrange
+        def flags = ["-i", "--outputLoginIdentityProviders"]
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        flags.each { String arg ->
+            tool.parse([arg, loginIdentityProvidersPath, "-l", loginIdentityProvidersPath] as String[])
+            logger.info("Parsed output login-identity-providers.xml location: ${tool.outputLoginIdentityProvidersPath}")
+
+            // Assert
+            assert tool.outputLoginIdentityProvidersPath == loginIdentityProvidersPath
+        }
+    }
+
+    @Test
+    void testParseShouldWarnIfLoginIdentityProvidersWillBeOverwritten() {
+        // Arrange
+        String loginIdentityProvidersPath = "conf/login-identity-providers.xml"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        tool.parse("-l ${loginIdentityProvidersPath} -i ${loginIdentityProvidersPath}".split(" ") as String[])
+        logger.info("Parsed login-identity-providers.xml location: ${tool.loginIdentityProvidersPath}")
+        logger.info("Parsed output login-identity-providers.xml location: ${tool.outputLoginIdentityProvidersPath}")
+
+        // Assert
+        assert !TestAppender.events.isEmpty()
+        assert TestAppender.events.any {
+            it.message =~ "The source login-identity-providers.xml and destination login-identity-providers.xml are identical \\[.*\\] so the original will be overwritten"
+        }
+    }
+
+    @Test
     void testShouldParseKeyArgument() {
         // Arrange
         def flags = ["-k", "--key"]
@@ -272,11 +327,80 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Act
         flags.each { String arg ->
-            tool.parse([arg, KEY_HEX] as String[])
+            tool.parse([arg, KEY_HEX, "-n", "nifi.properties"] as String[])
             logger.info("Parsed key: ${tool.keyHex}")
 
             // Assert
             assert tool.keyHex == KEY_HEX
+        }
+    }
+
+    @Test
+    void testParseShouldFailIfMigrationPasswordAndKeyBothProvided() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail {
+            tool.parse("-m -n nifi.properties -e oldKey -w oldPassword".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg =~ "Only one of '-w'/'--oldPassword' and '-e'/'--oldKey' can be used"
+    }
+
+    @Test
+    void testParseShouldFailIfNiFiPropertiesAndLoginIdentityProviderBothMissing() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def invalidArgs = [
+                "-v -m",
+                "-v -s password",
+                "-n",
+                "-l",
+                "-o output-nifi.properties -i output-login-identity-providers.xml",
+                "-f flow.xml.gz",
+        ]
+
+        final String NO_NFP_OR_LIP = "One or both of '-n'/'--${ConfigEncryptionTool.NIFI_PROPERTIES_ARG}' or '-l'/'--${ConfigEncryptionTool.LOGIN_IDENTITY_PROVIDERS_ARG}' must be provided unless '-x'/--'${ConfigEncryptionTool.DO_NOT_ENCRYPT_NIFI_PROPERTIES_ARG}' is specified"
+        final String MISSING_NFP_ARGUMENT = "Error parsing command line. (Missing argument for option: n)"
+        final String MISSING_LIP_ARGUMENT = "Error parsing command line. (Missing argument for option: l)"
+        final String MIGRATE_NEEDS_NFP = "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'."
+
+        def ACCEPTABLE_ERROR_MSGS = [NO_NFP_OR_LIP, MISSING_NFP_ARGUMENT, MISSING_LIP_ARGUMENT, MIGRATE_NEEDS_NFP]
+
+        // Act
+        invalidArgs.each { String badArgs ->
+            def msg = shouldFail {
+                tool.parse(badArgs.split(" ") as String[])
+            }
+            logger.expected(msg)
+
+            // Assert
+            assert ACCEPTABLE_ERROR_MSGS.contains(msg)
+        }
+    }
+
+    @Test
+    void testParseShouldIgnoreMigrationKeyAndPasswordIfMigrationNotEnabled() {
+        // Arrange
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        def argStrings = ["-e oldKey",
+                          "-w oldPassword"]
+
+        // Act
+        argStrings.each { String argString ->
+            argString += " -n any/path"
+            def msg = shouldFail {
+                tool.parse(argString.split(" ") as String[])
+            }
+            logger.expected(msg)
+
+            // Assert
+            assert msg == "'-w'/'--oldPassword' and '-e'/'--oldKey' are ignored unless '-m'/'--migrate' is enabled"
         }
     }
 
@@ -350,7 +474,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldReadPasswordFromConsoleIfNoKeyPresent() {
         // Arrange
-        def args = [] as String[]
+        def args = ["-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.parse(args)
         logger.info("Using password flag: ${tool.usingPassword}")
@@ -363,30 +487,18 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         TextDevice mockConsoleDevice = TextDevices.streamDevice(new ByteArrayInputStream(PASSWORD.bytes), new ByteArrayOutputStream())
 
-        // Mocked for deterministic output and performance in test -- SCrypt is not under test here
-        SCrypt.metaClass.'static'.generate = { byte[] pw, byte[] s, int N, int r, int p, int dkLen ->
-            logger.mock("Mock SCrypt.generate(${Hex.encodeHexString(pw)}, ${Hex.encodeHexString(s)}, ${N}, ${r}, ${p}, ${dkLen})")
-            logger.mock("Returning ${KEY_HEX[0..<dkLen * 2]}")
-            Hex.decodeHex(KEY_HEX[0..<dkLen * 2] as char[])
-        }
-
         // Act
         String readKey = tool.getKey(mockConsoleDevice)
         logger.info("Read key: [${readKey}]")
 
         // Assert
-        assert readKey == KEY_HEX
-        assert tool.keyHex == readKey
-        assert !tool.password
-        assert !tool.usingPassword
-
-        SCrypt.metaClass.'static' = null
+        assert readKey == PASSWORD_KEY_HEX
     }
 
     @Test
     void testShouldReadKeyFromConsoleIfFlagProvided() {
         // Arrange
-        def args = ["-r"] as String[]
+        def args = ["-r", "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
         tool.parse(args)
         logger.info("Using password flag: ${tool.usingPassword}")
@@ -405,15 +517,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assert
         assert readKey == KEY_HEX
-        assert tool.keyHex == readKey
-        assert !tool.password
-        assert !tool.usingPassword
     }
 
     @Test
     void testShouldIgnoreRawKeyFlagIfKeyProvided() {
         // Arrange
-        def args = ["-r", "-k", KEY_HEX] as String[]
+        def args = ["-r", "-k", KEY_HEX, "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
@@ -436,7 +545,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldIgnoreRawKeyFlagIfPasswordProvided() {
         // Arrange
-        def args = ["-r", "-p", PASSWORD] as String[]
+        def args = ["-r", "-p", PASSWORD, "-n", "nifi.properties"] as String[]
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Act
@@ -515,29 +624,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldDeriveKeyFromPassword() {
-        // Arrange
-
-        // Mocked for deterministic output and performance in test -- SCrypt is not under test here
-        SCrypt.metaClass.'static'.generate = { byte[] pw, byte[] s, int N, int r, int p, int dkLen ->
-            logger.mock("Mock SCrypt.generate(${Hex.encodeHexString(pw)}, ${Hex.encodeHexString(s)}, ${N}, ${r}, ${p}, ${dkLen})")
-            logger.mock("Returning ${KEY_HEX[0..<dkLen * 2]}")
-            Hex.decodeHex(KEY_HEX[0..<dkLen * 2] as char[])
-        }
-
-        logger.info("Using password: [${PASSWORD}]")
-
-        // Act
-        String derivedKey = ConfigEncryptionTool.deriveKeyFromPassword(PASSWORD)
-        logger.info("Derived key:  [${derivedKey}]")
-
-        // Assert
-        assert derivedKey == KEY_HEX
-
-        SCrypt.metaClass.'static' = null
-    }
-
-    @Test
     void testShouldActuallyDeriveKeyFromPassword() {
         // Arrange
         logger.info("Using password: [${PASSWORD}]")
@@ -555,28 +641,19 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         // Arrange
         final String PASSWORD_SPACES = "   ${PASSWORD}   "
 
-        def attemptedPasswords = []
-
-        // Mocked for deterministic output and performance in test -- SCrypt is not under test here
-        SCrypt.metaClass.'static'.generate = { byte[] pw, byte[] s, int N, int r, int p, int dkLen ->
-            logger.mock("Mock SCrypt.generate(${Hex.encodeHexString(pw)}, ${Hex.encodeHexString(s)}, ${N}, ${r}, ${p}, ${dkLen})")
-            attemptedPasswords << new String(pw)
-            logger.mock("Returning ${KEY_HEX[0..<dkLen * 2]}")
-            Hex.decodeHex(KEY_HEX[0..<dkLen * 2] as char[])
-        }
+        def attemptedPasswords = [PASSWORD, PASSWORD_SPACES]
 
         // Act
-        [PASSWORD, PASSWORD_SPACES].each { String password ->
+        def derivedKeys = attemptedPasswords.collect { String password ->
             logger.info("Using password: [${password}]")
             String derivedKey = ConfigEncryptionTool.deriveKeyFromPassword(password)
             logger.info("Derived key:  [${derivedKey}]")
+            derivedKey
         }
 
         // Assert
         assert attemptedPasswords.size() == 2
-        assert attemptedPasswords.every { it == PASSWORD }
-
-        SCrypt.metaClass.'static' = null
+        assert derivedKeys.every { it == PASSWORD_KEY_HEX }
     }
 
     @Test
@@ -607,7 +684,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldHandleKeyAndPasswordFlag() {
         // Arrange
-        def args = ["-k", KEY_HEX, "-p", PASSWORD]
+        def args = ["-k", KEY_HEX, "-p", PASSWORD, "-n", ""]
         logger.info("Using args: ${args}")
 
         // Act
@@ -617,7 +694,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg == "Only one of password and key can be used"
+        assert msg == "Only one of '-p'/'--password' and '-k'/'--key' can be used"
     }
 
     @Test
@@ -844,7 +921,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -875,7 +952,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -904,7 +981,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
 
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX]
+        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
         tool.parse(args)
 
         // Act
@@ -1177,7 +1254,14 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             assert updatedLines.contains("${key}=${niFiProperties.getProperty(key)}".toString())
         }
 
-        assert originalLines == updatedLines
+        if (originalLines.size() != updatedLines.size()) {
+            // In situations where the original nifi.properties did not have a protection scheme for nifi.sensitive.props.key, it is added automatically now
+            def differentLines = updatedLines - originalLines
+            assert differentLines.size() == 1
+            assert differentLines.first() == "nifi.sensitive.props.key.protected="
+        } else {
+            assert originalLines == updatedLines
+        }
 
         logger.info("Updated nifi.properties:")
         logger.info("\n" * 2 + updatedLines.join("\n"))
@@ -1212,7 +1296,14 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             assert updatedLines.contains("${key}=${niFiProperties.getProperty(key)}".toString())
         }
 
-        assert originalLines == updatedLines
+        if (originalLines.size() != updatedLines.size()) {
+            // In situations where the original nifi.properties did not have a protection scheme for nifi.sensitive.props.key, it is added automatically now
+            def differentLines = updatedLines - originalLines
+            assert differentLines.size() == 1
+            assert differentLines.first() == "nifi.sensitive.props.key.protected="
+        } else {
+            assert originalLines == updatedLines
+        }
 
         logger.info("Updated nifi.properties:")
         logger.info("\n" * 2 + updatedLines.join("\n"))
@@ -1430,7 +1521,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
         assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
 
-        final String EXPECTED_KEY_HEX = ConfigEncryptionTool.deriveKeyFromPassword(PASSWORD)
+        final String EXPECTED_KEY_HEX = PASSWORD_KEY_HEX
         logger.info("Derived key from password [${PASSWORD}]: ${EXPECTED_KEY_HEX}")
 
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
@@ -1512,7 +1603,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
         assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
 
-        final String EXPECTED_KEY_HEX = ConfigEncryptionTool.deriveKeyFromPassword(PASSWORD)
+        final String EXPECTED_KEY_HEX = PASSWORD_KEY_HEX
         logger.info("Derived key from password [${PASSWORD}]: ${EXPECTED_KEY_HEX}")
 
         final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + EXPECTED_KEY_HEX
@@ -1583,10 +1674,1884 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         // Assertions defined above
     }
+
+    /**
+     * Helper method to execute key migration test for varying combinations of old/new key/password.
+     *
+     * @param scenario a human-readable description of the test scenario
+     * @param scenarioArgs a list of the arguments specific to this scenario to be passed to the tool
+     * @param oldPassword the original password
+     * @param newPassword the new password
+     * @param oldKeyHex the original key hex (if present, original password is ignored; if not, this is derived)
+     * @param newKeyHex the new key hex (if present, new password is ignored; if not, this is derived)
+     */
+    private void performKeyMigration(String scenario, List scenarioArgs, String oldPassword = PASSWORD, String newPassword = PASSWORD.reverse(), String oldKeyHex = "", String newKeyHex = "") {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        // Initial set up
+        File tmpDir = new File("target/tmp/")
+        tmpDir.mkdirs()
+        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE, PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE, PosixFilePermission.OTHERS_EXECUTE])
+
+        String bootstrapPath = isUnlimitedStrengthCryptoAvailable() ? "src/test/resources/bootstrap_with_master_key_password.conf" :
+                "src/test/resources/bootstrap_with_master_key_password_128.conf"
+        File originalKeyFile = new File(bootstrapPath)
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(originalKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+
+        // Perform necessary key derivations
+        if (!oldKeyHex) {
+            oldKeyHex = ConfigEncryptionTool.deriveKeyFromPassword(oldPassword)
+            logger.info("Original key derived from password [${oldPassword}]: \t${oldKeyHex}")
+        } else {
+            logger.info("Original key provided directly: \t${oldKeyHex}")
+        }
+
+        if (!newKeyHex) {
+            newKeyHex = ConfigEncryptionTool.deriveKeyFromPassword(newPassword)
+            logger.info("Migration key derived from password [${newPassword}]: \t${newKeyHex}")
+        } else {
+            logger.info("Migration key provided directly: \t${newKeyHex}")
+        }
+
+        // Reset the source bootstrap.conf file to use the old key (may be derived from old password)
+        final String PASSWORD_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + oldKeyHex
+        assert originalKeyLine == PASSWORD_KEY_LINE
+
+        String inputPropertiesPath = isUnlimitedStrengthCryptoAvailable() ?
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password.properties" :
+                "src/test/resources/nifi_with_sensitive_properties_protected_aes_password_128.properties"
+        File inputPropertiesFile = new File(inputPropertiesPath)
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        outputPropertiesFile.delete()
+
+        // Log original sensitive properties (encrypted with first key)
+        NiFiProperties inputProperties = NiFiPropertiesLoader.withKey(oldKeyHex).load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        final String EXPECTED_NEW_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + newKeyHex
+
+        // Act
+        String[] args = ["-n", inputPropertiesFile.path,
+                         "-b", bootstrapFile.path,
+                         "-o", outputPropertiesFile.path,
+                         "-m",
+                         "-v"]
+
+        List<String> localArgs = args + scenarioArgs
+        logger.info("Running [${scenario}] with args: ${localArgs}")
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                assert outputPropertiesFile.exists()
+                final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was re-encrypted)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                assert updatedProperties.size() >= inputProperties.size()
+                originalSensitiveValues.every { String key, String originalValue ->
+                    assert updatedProperties.getProperty(key) != originalValue
+                }
+
+                // Check that the new NiFiProperties instance matches the output file (values still encrypted)
+                updatedProperties.getPropertyKeys().every { String key ->
+                    assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_NEW_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputPropertiesFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        });
+
+        logger.info("Migrating key (${scenario}) with ${localArgs.join(" ")}")
+        ConfigEncryptionTool.main(localArgs as String[])
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * Ideally all of the combination tests would be a single test with iterative argument lists, but due to the System.exit(), it can only be captured once per test.
+     */
+    @Test
+    public void testShouldMigrateFromPasswordToPassword() {
+        // Arrange
+        String scenario = "password to password"
+        def args = ["-w", PASSWORD, "-p", PASSWORD.reverse()]
+
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, PASSWORD.reverse())
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    public void testShouldMigrateFromPasswordToKey() {
+        // Arrange
+        String scenario = "password to key"
+        def args = ["-w", PASSWORD, "-k", KEY_HEX]
+
+        // Act
+        performKeyMigration(scenario, args, PASSWORD, "", "", KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    public void testShouldMigrateFromKeyToPassword() {
+        // Arrange
+        String scenario = "key to password"
+        def args = ["-e", PASSWORD_KEY_HEX, "-p", PASSWORD.reverse()]
+
+        // Act
+        performKeyMigration(scenario, args, "", PASSWORD.reverse(), PASSWORD_KEY_HEX, "")
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    public void testShouldMigrateFromKeyToKey() {
+        // Arrange
+        String scenario = "key to key"
+        def args = ["-e", PASSWORD_KEY_HEX, "-k", KEY_HEX]
+
+        // Act
+        performKeyMigration(scenario, args, "", "", PASSWORD_KEY_HEX, KEY_HEX)
+
+        // Assert
+
+        // Assertions in common method above
+    }
+
+    @Test
+    void testShouldDecryptLoginIdentityProviders() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-encrypted.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Sanity check for decryption
+        String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
+        String EXPECTED_PASSWORD = "thisIsABadPassword"
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX_128)
+        assert spp.unprotect(cipherText) == EXPECTED_PASSWORD
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+    @Test
+    void testShouldDecryptLoginIdentityProvidersWithMultilineElements() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-encrypted-multiline.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+    @Test
+    void testShouldDecryptLoginIdentityProvidersWithMultipleElementsPerLine() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-encrypted-multiple-per-line.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+
+    @Test
+    void testDecryptLoginIdentityProvidersShouldHandleCommentedElements() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def decryptedLines = tool.decryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
+
+        // Assert
+
+        // If no encrypted properties are found, the original input text is just returned (comments and formatting in tact)
+        assert decryptedLines == lines
+    }
+
+    @Test
+    void testShouldEncryptLoginIdentityProviders() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptLoginIdentityProvidersWithEmptySensitiveElements() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-empty.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
+        assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert populatedPasswordLines.every { it.contains(encryptionScheme) }
+        populatedPasswordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptLoginIdentityProvidersWithMultilineElements() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-multiline.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptLoginIdentityProvidersWithMultipleElementsPerLine() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-multiple-per-line.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert passwordLines.every { it.contains(encryptionScheme) }
+        passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptLoginIdentityProvidersWithRenamedProvider() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-renamed.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-provider" }.empty
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        assert passwordLines.size() == LIP_PASSWORD_LINE_COUNT
+        def populatedPasswordLines = passwordLines.findAll { it =~ />.+</ }
+        assert populatedPasswordLines.every { !it.contains(">thisIsABadPassword<") }
+        assert populatedPasswordLines.every { it.contains(encryptionScheme) }
+        populatedPasswordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct) == PASSWORD
+        }
+    }
+
+    @Test
+    void testEncryptLoginIdentityProvidersShouldHandleCommentedElements() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // Act
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Assert
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        assert encryptedLines == lines
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldRespectComments() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleRenamedProvider() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-populated-renamed.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+        assert lines.findAll { it =~ "ldap-provider" }.empty
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptLoginIdentityProviders(plainXml, KEY_HEX)
+        logger.info("Encrypted XML: \n${encryptedXml}")
+
+        // Act
+        def serializedLines = tool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedXml, workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == LIP_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleCommentedFile() {
+        // Arrange
+        String loginIdentityProvidersPath = "src/test/resources/login-identity-providers-commented.xml"
+        File loginIdentityProvidersFile = new File(loginIdentityProvidersPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        Files.copy(loginIdentityProvidersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = tool.encryptLoginIdentityProviders(lines.join("\n")).split("\n")
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+        assert encryptedLines == lines
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines == encryptedLines
+        assert TestAppender.events.any {
+            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out"
+        }
+    }
+
+    @Test
+    void testSerializeLoginIdentityProvidersAndPreserveFormatShouldHandleEmptyFile() {
+        // Arrange
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-login-identity-providers.xml")
+        workingFile.delete()
+        workingFile.createNewFile()
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        // If no sensitive properties are found, the original input text is just returned (comments and formatting in tact)
+        def encryptedLines = lines
+        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
+
+        // Act
+        def serializedLines = ConfigEncryptionTool.serializeLoginIdentityProvidersAndPreserveFormat(encryptedLines.join("\n"), workingFile)
+        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
+
+        // Assert
+        assert serializedLines.findAll { it }.isEmpty()
+        assert TestAppender.events.any {
+            it.renderedMessage =~ "No provider element with class org.apache.nifi.ldap.LdapProvider found in XML content; the file could be empty or the element may be missing or commented out"
+        }
+    }
+
+    @Test
+    void testShouldPerformFullOperationForLoginIdentityProviders() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
+
+        File inputLIPFile = new File("src/test/resources/login-identity-providers-populated.xml")
+        File outputLIPFile = new File("target/tmp/tmp-lip.xml")
+        outputLIPFile.delete()
+
+        String originalXmlContent = inputLIPFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        String[] args = ["-l", inputLIPFile.path, "-b", bootstrapFile.path, "-i", outputLIPFile.path, "-k", KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final String updatedXmlContent = outputLIPFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
+                    it.@encryption
+                }
+
+                def encryptedValues = updatedParsedXml.provider.find {
+                    it.identifier == 'ldap-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputLIPFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationMigratingLoginIdentityProviders() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        // Start with 128-bit encryption and go to whatever is supported on this system
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_master_key_128.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX_128
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX
+
+        File inputLIPFile = new File("src/test/resources/login-identity-providers-populated-encrypted.xml")
+        File outputLIPFile = new File("target/tmp/tmp-lip.xml")
+        outputLIPFile.delete()
+
+        String originalXmlContent = inputLIPFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        // Migrate from KEY_HEX_128 to PASSWORD_KEY_HEX
+        String[] args = ["-l", inputLIPFile.path, "-b", bootstrapFile.path, "-i", outputLIPFile.path, "-m", "-e", KEY_HEX_128, "-k", PASSWORD_KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final String updatedXmlContent = outputLIPFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+//                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll { it.@encryption }
+
+                def encryptedValues = updatedParsedXml.provider.find {
+                    it.identifier == 'ldap-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputLIPFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testShouldPerformFullOperationForNiFiPropertiesAndLoginIdentityProviders() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + KEY_HEX
+
+        // Set up the NFP file
+        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
+        File outputPropertiesFile = new File("target/tmp/tmp_nifi.properties")
+        outputPropertiesFile.delete()
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(inputPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        // Set up the LIP file
+        File inputLIPFile = new File("src/test/resources/login-identity-providers-populated.xml")
+        File outputLIPFile = new File("target/tmp/tmp-lip.xml")
+        outputLIPFile.delete()
+
+        String originalXmlContent = inputLIPFile.text
+        logger.info("Original XML content: ${originalXmlContent}")
+
+        String[] args = ["-n", inputPropertiesFile.path, "-l", inputLIPFile.path, "-b", bootstrapFile.path, "-i", outputLIPFile.path, "-o", outputPropertiesFile.path, "-k", KEY_HEX, "-v"]
+
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                assert updatedProperties.size() >= inputProperties.size()
+                originalSensitiveValues.every { String key, String originalValue ->
+                    assert updatedProperties.getProperty(key) != originalValue
+                }
+
+                // Check that the new NiFiProperties instance matches the output file (values still encrypted)
+                updatedProperties.getPropertyKeys().every { String key ->
+                    assert updatedPropertiesLines.contains("${key}=${updatedProperties.getProperty(key)}".toString())
+                }
+
+                final String updatedXmlContent = outputLIPFile.text
+                logger.info("Updated XML content: ${updatedXmlContent}")
+
+                // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
+                def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
+                def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
+                assert originalParsedXml != updatedParsedXml
+                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll {
+                    it.@encryption
+                }
+
+                def encryptedValues = updatedParsedXml.provider.find {
+                    it.identifier == 'ldap-provider'
+                }.property.findAll {
+                    it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
+                }
+
+                encryptedValues.each {
+                    assert spp.unprotect(it.text()) == PASSWORD
+                }
+
+                // Check that the comments are still there
+                def trimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
+                def trimmedSerializedLines = updatedXmlContent.split("\n").collect { it.trim() }.findAll { it }
+                assert trimmedLines.size() == trimmedSerializedLines.size()
+
+                // Check that the key was persisted to the bootstrap.conf
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Clean up
+                outputPropertiesFile.deleteOnExit()
+                outputLIPFile.deleteOnExit()
+                bootstrapFile.deleteOnExit()
+                tmpDir.deleteOnExit()
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    @Test
+    void testParseShouldIgnoreFilesIfOverrideFlagPresent() {
+        // Arrange
+        String niFiPropertiesPath = "conf/nifi.properties"
+        String flowXmlPath = "conf/flow.xml.gz"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        tool.parse("-n ${niFiPropertiesPath} -f ${flowXmlPath} -x".split(" ") as String[])
+
+        // Assert
+        assert !tool.handlingNiFiProperties
+        assert !tool.handlingLoginIdentityProviders
+        assert tool.handlingFlowXml
+    }
+
+    @Test
+    void testParseShouldWarnIfFlowXmlWillBeOverwritten() {
+        // Arrange
+        String niFiPropertiesPath = "conf/nifi.properties"
+        String flowXmlPath = "conf/flow.xml.gz"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        tool.parse("-n ${niFiPropertiesPath} -f ${flowXmlPath}".split(" ") as String[])
+        logger.info("Parsed nifi.properties location: ${tool.niFiPropertiesPath}")
+        logger.info("Parsed flow.xml.gz location: ${tool.flowXmlPath}")
+        logger.info("Parsed output flow.xml.gz location: ${tool.outputFlowXmlPath}")
+
+        // Assert
+        assert !TestAppender.events.isEmpty()
+        assert TestAppender.events.any {
+            it.message =~ "The source flow.xml.gz and destination flow.xml.gz are identical \\[.*\\] so the original will be overwritten"
+        }
+    }
+
+    @Test
+    void testParseShouldFailOnFlowWithoutNiFiProperties() {
+        // Arrange
+        String flowXmlPath = "conf/flow.xml.gz"
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Act
+        def msg = shouldFail(CommandLineParseException) {
+            tool.parse("-f ${flowXmlPath} -x".split(" ") as String[])
+        }
+        logger.expected(msg)
+
+        // Assert
+        assert msg == "In order to migrate a flow.xml.gz, a nifi.properties file must also be specified via '-n'/'--niFiProperties'." as String
+    }
+
+    // TODO: Test different algs/providers
+    // TODO: Test reading sensitive props key from console
+    // TODO: All combo scenarios
+    @Test
+    void testShouldPerformFullOperationOnFlowXmlWithoutEncryptedNiFiProperties() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        // Not "handling" NFP, so update in place (not source test resource)
+        String niFiPropertiesTemplatePath = "src/test/resources/nifi_default.properties"
+        File niFiPropertiesFile = new File(niFiPropertiesTemplatePath)
+
+        File workingNiFiPropertiesFile = new File("target/tmp/tmp-nifi.properties")
+        workingNiFiPropertiesFile.delete()
+        Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
+
+        File flowXmlFile = new File("src/test/resources/flow.xml.gz")
+        File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingFlowXmlFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
+
+        // Read the uncompressed version to compare later
+        File originalFlowXmlFile = new File("src/test/resources/flow.xml")
+        final String ORIGINAL_FLOW_XML_CONTENT = originalFlowXmlFile.text
+        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR)
+        final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(workingNiFiPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String newFlowPassword = FLOW_PASSWORD
+
+        String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-x", "-v", "-s", newFlowPassword]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for everything is the same except the sensitive props key
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                assert updatedProperties.size() == inputProperties.size()
+                assert updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY) == newFlowPassword
+                originalSensitiveValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert updatedProperties.getProperty(key) == originalValue
+                    }
+                }
+
+                // Check that bootstrap.conf did not change
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Verify the flow definition
+                def verifyTool = new ConfigEncryptionTool()
+                verifyTool.isVerbose = true
+                verifyTool.flowXmlPath = workingFlowXmlFile.path
+                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+
+                // Check that the flow.xml.gz content changed
+                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+
+                // Verify that the cipher texts decrypt correctly
+                logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
+                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
+                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
+                flowCipherTexts.every {
+                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                }
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * In this scenario, the nifi.properties is not encrypted and the flow.xml.gz is "migrated" from Key X to the same key (the default key).
+     */
+    @Test
+    void testShouldPerformFullOperationOnFlowXmlWithSameSensitivePropsKey() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_master_key.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(emptyKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX
+
+        // Not "handling" NFP, so update in place (not source test resource)
+        String niFiPropertiesTemplatePath = "src/test/resources/nifi_default.properties"
+        File niFiPropertiesFile = new File(niFiPropertiesTemplatePath)
+
+        File workingNiFiPropertiesFile = new File("target/tmp/tmp-nifi.properties")
+        workingNiFiPropertiesFile.delete()
+        Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
+
+        File flowXmlFile = new File("src/test/resources/flow_default_key.xml.gz")
+        File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingFlowXmlFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
+
+        // Read the uncompressed version to compare later
+        File originalFlowXmlFile = new File("src/test/resources/flow_default_key.xml")
+        final String ORIGINAL_FLOW_XML_CONTENT = originalFlowXmlFile.text
+        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR)
+        final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
+
+        NiFiProperties inputProperties = new NiFiPropertiesLoader().load(workingNiFiPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        String newFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
+
+        String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-x", "-v", "-s", newFlowPassword]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                // Check that the output values for everything is the same including the sensitive props key
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                assert updatedProperties.size() == inputProperties.size()
+                originalSensitiveValues.every { String key, String originalValue ->
+                    assert updatedProperties.getProperty(key) == originalValue
+                }
+
+                // Check that bootstrap.conf did not change
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Verify the flow definition
+                def verifyTool = new ConfigEncryptionTool()
+                verifyTool.isVerbose = true
+                verifyTool.flowXmlPath = workingFlowXmlFile.path
+                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+
+                // Check that the flow.xml.gz cipher texts did change (new salt)
+                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+
+                // Verify that the cipher texts decrypt correctly
+                logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
+                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
+                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
+                flowCipherTexts.every {
+                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                }
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * In this scenario, the nifi.properties file has a sensitive key value which is already encrypted. The goal is to provide a new provide a new sensitive key value, perform the migration of the flow.xml.gz, and update nifi.properties with a new encrypted sensitive key value without modifying any other nifi.properties values.
+     */
+    @Test
+    void testShouldPerformFullOperationOnFlowXmlWithPreviouslyEncryptedNiFiProperties() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File passwordKeyFile = new File("src/test/resources/bootstrap_with_master_key_password_128.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(passwordKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+
+        // Not "handling" NFP, so update in place (not source test resource)
+        String niFiPropertiesTemplatePath = "src/test/resources/nifi_with_few_sensitive_properties_protected_aes_password_128.properties"
+        File niFiPropertiesFile = new File(niFiPropertiesTemplatePath)
+
+        File workingNiFiPropertiesFile = new File("target/tmp/tmp-nifi.properties")
+        workingNiFiPropertiesFile.delete()
+        Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
+
+        // Use a flow definition that was encrypted with the hard-coded default SP key
+        File flowXmlFile = new File("src/test/resources/flow_default_key.xml.gz")
+        File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingFlowXmlFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
+
+        // Read the uncompressed version to compare later
+        File originalFlowXmlFile = new File("src/test/resources/flow_default_key.xml")
+        final String ORIGINAL_FLOW_XML_CONTENT = originalFlowXmlFile.text
+        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR)
+        final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
+
+        // Load both the encrypted and decrypted properties to compare later
+        NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(PASSWORD_KEY_HEX_128)
+        NiFiProperties inputProperties = niFiPropertiesLoader.load(workingNiFiPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+
+        final String SENSITIVE_PROTECTION_KEY = ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
+        logger.info("Original encrypted values: ${originalEncryptedValues}")
+        String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+        logger.info("Sensitive property key originally protected with ${originalSensitiveKeyProtectionScheme}")
+
+        String newFlowPassword = FLOW_PASSWORD
+
+        // Bootstrap path must be provided to decrypt nifi.properties to get SP key
+        String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
+
+        exit.checkAssertionAfterwards(new Assertion() {
+            public void checkAssertion() {
+                final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
+                logger.info("Updated nifi.properties:")
+                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
+
+                AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX_128)
+
+                // Check that the output values for everything is the same except the sensitive props key
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                assert updatedProperties.size() == inputProperties.size()
+                String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the encrypted value changed
+                assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the decrypted value is the new password
+                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+
+                // Check that all other values stayed the same
+                originalEncryptedValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert updatedProperties.getProperty(key) == originalValue
+                    }
+                }
+
+                // Check that all other (decrypted) values stayed the same
+                originalSensitiveValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                    }
+                }
+
+                // Check that the protection scheme did not change
+                String sensitiveKeyProtectionScheme = updatedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+                logger.info("Sensitive property key currently protected with ${sensitiveKeyProtectionScheme}")
+                assert sensitiveKeyProtectionScheme == originalSensitiveKeyProtectionScheme
+
+                // Check that bootstrap.conf did not change
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Verify the flow definition
+                def verifyTool = new ConfigEncryptionTool()
+                verifyTool.isVerbose = true
+                verifyTool.flowXmlPath = workingFlowXmlFile.path
+                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+
+                // Check that the flow.xml.gz content changed
+                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+
+                // Verify that the cipher texts decrypt correctly
+                logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
+                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
+                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
+                flowCipherTexts.every {
+                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                }
+            }
+        });
+
+        // Act
+        ConfigEncryptionTool.main(args)
+        logger.info("Invoked #main with ${args.join(" ")}")
+
+        // Assert
+
+        // Assertions defined above
+    }
+
+    /**
+     * In this scenario, the nifi.properties file has a sensitive key value which is already encrypted. The goal is to provide a new provide a new sensitive key value, perform the migration of the flow.xml.gz, and update nifi.properties with a new encrypted sensitive key value without modifying any other nifi.properties values, and repeat this process multiple times to ensure no corruption of the keys.
+     */
+    @Test
+    void testShouldPerformFullOperationOnFlowXmlMultipleTimes() {
+        // Arrange
+        exit.expectSystemExitWithStatus(0)
+
+        File tmpDir = setupTmpDir()
+
+        File passwordKeyFile = new File("src/test/resources/bootstrap_with_master_key_password_128.conf")
+        File bootstrapFile = new File("target/tmp/tmp_bootstrap.conf")
+        bootstrapFile.delete()
+
+        Files.copy(passwordKeyFile.toPath(), bootstrapFile.toPath())
+        final List<String> originalBootstrapLines = bootstrapFile.readLines()
+        String originalKeyLine = originalBootstrapLines.find {
+            it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+        }
+        final String EXPECTED_KEY_LINE = ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+        logger.info("Original key line from bootstrap.conf: ${originalKeyLine}")
+        assert originalKeyLine == ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX + PASSWORD_KEY_HEX_128
+
+        // Not "handling" NFP, so update in place (not source test resource)
+        String niFiPropertiesTemplatePath = "src/test/resources/nifi_with_few_sensitive_properties_protected_aes_password_128.properties"
+        File niFiPropertiesFile = new File(niFiPropertiesTemplatePath)
+
+        File workingNiFiPropertiesFile = new File("target/tmp/tmp-nifi.properties")
+        workingNiFiPropertiesFile.delete()
+        Files.copy(niFiPropertiesFile.toPath(), workingNiFiPropertiesFile.toPath())
+
+        // Use a flow definition that was encrypted with the hard-coded default SP key
+        File flowXmlFile = new File("src/test/resources/flow_default_key.xml.gz")
+        File workingFlowXmlFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingFlowXmlFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFlowXmlFile.toPath())
+
+        // Read the uncompressed version to compare later
+        File originalFlowXmlFile = new File("src/test/resources/flow_default_key.xml")
+        final String ORIGINAL_FLOW_XML_CONTENT = originalFlowXmlFile.text
+        def originalFlowCipherTexts = ORIGINAL_FLOW_XML_CONTENT.findAll(WFXCTR)
+        final int CIPHER_TEXT_COUNT = originalFlowCipherTexts.size()
+
+        // Load both the encrypted and decrypted properties to compare later
+        NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(PASSWORD_KEY_HEX_128)
+        NiFiProperties inputProperties = niFiPropertiesLoader.load(workingNiFiPropertiesFile)
+        logger.info("Loaded ${inputProperties.size()} properties from input file")
+        ProtectedNiFiProperties protectedInputProperties = new ProtectedNiFiProperties(inputProperties)
+        def originalSensitiveValues = protectedInputProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): protectedInputProperties.getProperty(key)] }
+        logger.info("Original sensitive values: ${originalSensitiveValues}")
+
+        final String SENSITIVE_PROTECTION_KEY = ProtectedNiFiProperties.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
+        logger.info("Original encrypted values: ${originalEncryptedValues}")
+        String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+        logger.info("Sensitive property key originally protected with ${originalSensitiveKeyProtectionScheme}")
+
+        // Create a series of passwords with which to encrypt the flow XML, starting with the current password
+        def passwordProgression = [DEFAULT_LEGACY_SENSITIVE_PROPS_KEY] + (0..5).collect { "${FLOW_PASSWORD}${it}" }
+
+        // The master key is not changing
+        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(PASSWORD_KEY_HEX_128)
+
+        // Act
+        passwordProgression.eachWithIndex { String existingFlowPassword, int i ->
+            if (i < passwordProgression.size() - 1) {
+                exit.expectSystemExitWithStatus(0)
+                String newFlowPassword = passwordProgression[i + 1]
+                logger.info("Migrating from ${existingFlowPassword} to ${newFlowPassword}")
+
+                // Bootstrap path must be provided to decrypt nifi.properties to get SP key
+                String[] args = ["-n", workingNiFiPropertiesFile.path, "-f", workingFlowXmlFile.path, "-b", bootstrapFile.path, "-x", "-v", "-s", newFlowPassword]
+
+                def msg = shouldFail {
+                    logger.info("Invoked #main with ${args.join(" ")}")
+                    ConfigEncryptionTool.main(args)
+                }
+                logger.expected(msg)
+
+                // Assert
+                // Get the updated nifi.properties and check the sensitive key
+                final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
+                String updatedSensitiveKeyLine = updatedPropertiesLines.find { it.startsWith(NiFiProperties.SENSITIVE_PROPS_KEY) }
+                logger.info("Updated key line: ${updatedSensitiveKeyLine}")
+
+                // Check that the output values for everything are the same except the sensitive props key
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                assert updatedProperties.size() == inputProperties.size()
+                String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the encrypted value changed
+                assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
+
+                // Check that the decrypted value is the new password
+                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+
+                // Check that all other values stayed the same
+                originalEncryptedValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert updatedProperties.getProperty(key) == originalValue
+                    }
+                }
+
+                // Check that all other (decrypted) values stayed the same
+                originalSensitiveValues.every { String key, String originalValue ->
+                    if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
+                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                    }
+                }
+
+                // Check that the protection scheme did not change
+                String sensitiveKeyProtectionScheme = updatedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
+                logger.info("Sensitive property key currently protected with ${sensitiveKeyProtectionScheme}")
+                assert sensitiveKeyProtectionScheme == originalSensitiveKeyProtectionScheme
+
+                // Check that bootstrap.conf did not change
+                final List<String> updatedBootstrapLines = bootstrapFile.readLines()
+                String updatedKeyLine = updatedBootstrapLines.find {
+                    it.startsWith(ConfigEncryptionTool.BOOTSTRAP_KEY_PREFIX)
+                }
+                logger.info("Updated key line: ${updatedKeyLine}")
+
+                assert updatedKeyLine == EXPECTED_KEY_LINE
+                assert originalBootstrapLines.size() == updatedBootstrapLines.size()
+
+                // Verify the flow definition
+                def verifyTool = new ConfigEncryptionTool()
+                verifyTool.isVerbose = true
+                verifyTool.flowXmlPath = workingFlowXmlFile.path
+                String updatedFlowXmlContent = verifyTool.loadFlowXml()
+
+                // Check that the flow.xml.gz content changed
+                assert updatedFlowXmlContent != ORIGINAL_FLOW_XML_CONTENT
+
+                // Verify that the cipher texts decrypt correctly
+                logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
+                def flowCipherTexts = updatedFlowXmlContent.findAll(WFXCTR)
+                logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
+                assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
+                flowCipherTexts.every {
+                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == "thisIsABadPassword"
+                }
+
+                // Update the "original" flow cipher texts for the next run to the current values
+                originalFlowCipherTexts = flowCipherTexts
+            }
+        }
+    }
+
+    @Test
+    void testDecryptFlowXmlContentShouldVerifyPattern() {
+        // Arrange
+        String existingFlowPassword = "flowPassword"
+        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+        final String DEFAULT_PROVIDER = "BC"
+
+        String sensitivePropertyValue = "thisIsABadProcessorPassword"
+
+        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, existingFlowPassword)
+        String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
+        logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
+
+        def validCipherTexts = (0..4).collect {
+            "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
+        }
+        logger.info("Generated valid cipher texts: \n${validCipherTexts.join("\n")}")
+
+        def invalidCipherTexts = ["enc{}",
+                                  "enc{x}",
+                                  "encx",
+                                  "enc{012}",
+                                  "enc{01",
+                                  "enc{aBc19+===}",
+                                  "enc{aB=c19+}",
+                                  "enc{aB@}",
+                                  "",
+                                  "}",
+                                  "\"",
+                                  ">",
+                                  null]
+
+        // Act
+        def successfulResults = validCipherTexts.collect { String cipherText ->
+            ConfigEncryptionTool.decryptFlowElement(cipherText, existingFlowPassword)
+        }
+
+        def failedResults = invalidCipherTexts.collect { String cipherText ->
+            def msg = shouldFail(SensitivePropertyProtectionException) {
+                ConfigEncryptionTool.decryptFlowElement(cipherText, existingFlowPassword)
+            }
+            logger.expected(msg)
+            msg
+        }
+
+        // Assert
+        assert successfulResults.every { it == sensitivePropertyValue }
+        assert failedResults.every {
+            it =~ /The provided cipher text does not match the expected format 'enc\{0123456789ABCDEF\.\.\.\}'/ ||
+                    it == "The provided cipher text must have an even number of hex characters"
+        }
+    }
+
+    /**
+     * This test verifies that the crypto logic in the tool is compatible with the default {@link StringEncryptor} implementation.
+     */
+    @Test
+    void testShouldDecryptFlowXmlContent() {
+        // Arrange
+        String existingFlowPassword = "flowPassword"
+        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+        final String DEFAULT_PROVIDER = "BC"
+
+        String sensitivePropertyValue = "thisIsABadProcessorPassword"
+
+        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, existingFlowPassword)
+        String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
+        logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
+
+        // Act
+        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
+        logger.info("Decrypted flow element: ${decryptedElement}")
+        String decryptedElementWithDefaultParameters = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword)
+        logger.info("Decrypted flow element: ${decryptedElementWithDefaultParameters}")
+
+        // Assert
+        assert decryptedElement == sensitivePropertyValue
+        assert decryptedElementWithDefaultParameters == sensitivePropertyValue
+    }
+
+    /**
+     * This test verifies that the crypto logic in the tool is compatible with an encrypted value taken from a production flow.xml.gz.
+     */
+    @Test
+    void testShouldDecryptFlowXmlContentFromLegacyFlow() {
+        // Arrange
+
+        // StringEncryptor.DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!" at the time this test
+        // was written and for the encrypted value, but it could change, so don't
+        // reference transitively here
+        String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
+        final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
+        final String DEFAULT_PROVIDER = "BC"
+
+        final String EXPECTED_PLAINTEXT = "thisIsABadPassword"
+
+        final String ENCRYPTED_VALUE_FROM_FLOW = "enc{2032416987A00D9FCD757528D7AE609D7E793CA5F956641DB53E14CDB9BFCD4037B73AC705CD3F5C1C1BDE18B8D7B281}"
+
+        // Act
+        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(ENCRYPTED_VALUE_FROM_FLOW, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
+        logger.info("Decrypted flow element: ${decryptedElement}")
+
+        // Assert
+        assert decryptedElement == EXPECTED_PLAINTEXT
+    }
+
+    @Test
+    void testShouldEncryptFlowXmlContent() {
+        // Arrange
+        String flowPassword = "flowPassword"
+        String sensitivePropertyValue = "thisIsABadProcessorPassword"
+        byte[] saltBytes = "thisIsABadSalt..".bytes
+
+        StringEncryptor sanityEncryptor = new StringEncryptor(DEFAULT_ALGORITHM, DEFAULT_PROVIDER, flowPassword)
+
+        Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
+
+        // Act
+        String encryptedElement = ConfigEncryptionTool.encryptFlowElement(sensitivePropertyValue, saltBytes, encryptionCipher)
+        logger.info("Encrypted flow element: ${encryptedElement}")
+
+        // Assert
+        assert encryptedElement =~ WFXCTR
+        String sanityPlaintext = sanityEncryptor.decrypt(encryptedElement[4..<-1])
+        logger.info("Sanity check value: \t${encryptedElement} -> ${sanityPlaintext}")
+
+        assert sanityPlaintext == sensitivePropertyValue
+    }
+
+    @Test
+    void testShouldEncryptAndDecryptFlowXmlContent() {
+        // Arrange
+        String flowPassword = "flowPassword"
+        String sensitivePropertyValue = "thisIsABadProcessorPassword"
+        byte[] saltBytes = "thisIsABadSalt..".bytes
+
+        Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
+
+        // Act
+        String encryptedElement = ConfigEncryptionTool.encryptFlowElement(sensitivePropertyValue, saltBytes, encryptionCipher)
+        logger.info("Encrypted flow element: ${encryptedElement}")
+
+        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(encryptedElement, flowPassword)
+        logger.info("Decrypted flow element: ${decryptedElement}")
+
+        // Assert
+        assert encryptedElement =~ WFXCTR
+        assert decryptedElement == sensitivePropertyValue
+    }
+
+    private
+    static Cipher generateEncryptionCipher(String password, String algorithm = DEFAULT_ALGORITHM, String provider = DEFAULT_PROVIDER) {
+        Cipher cipher = Cipher.getInstance(algorithm, provider)
+        PBEKeySpec keySpec = new PBEKeySpec(password.chars)
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(algorithm, provider)
+        SecretKey pbeKey = keyFactory.generateSecret(keySpec)
+        byte[] saltBytes = "thisIsABadSalt..".bytes
+        PBEParameterSpec parameterSpec = new PBEParameterSpec(saltBytes, 1000)
+        cipher.init(Cipher.ENCRYPT_MODE, pbeKey, parameterSpec)
+        cipher
+    }
+
+    @Test
+    void testShouldMigrateFlowXmlContent() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        final String SENSITIVE_VALUE = "thisIsABadPassword"
+
+        String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
+        String newFlowPassword = FLOW_PASSWORD
+
+        String xmlContent = workingFile.text
+        logger.info("Read flow.xml: \n${xmlContent}")
+
+        // There are two encrypted passwords in this flow
+        int cipherTextCount = xmlContent.findAll(WFXCTR).size()
+        logger.info("Found ${cipherTextCount} encrypted properties in the original flow.xml content")
+
+        // Act
+        String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, existingFlowPassword, newFlowPassword)
+        logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+
+        // Assert
+        def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+
+        assert newCipherTexts.size() == cipherTextCount
+        newCipherTexts.every {
+            assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == SENSITIVE_VALUE
+        }
+
+        // Ensure that everything else is identical
+        assert migratedXmlContent.replaceAll(WFXCTR, "") ==
+                xmlContent.replaceAll(WFXCTR, "")
+    }
+
+
+    @Test
+    void testShouldMigrateFlowXmlContentMultipleTimes() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        final String SENSITIVE_VALUE = "thisIsABadPassword"
+
+        // Create a series of passwords with which to encrypt the flow XML, starting with the current password
+        def passwordProgression = [DEFAULT_LEGACY_SENSITIVE_PROPS_KEY] + (0..5).collect { "${FLOW_PASSWORD}${it}" }
+
+        String xmlContent = workingFile.text
+//        logger.info("Read flow.xml: \n${xmlContent}")
+
+        // There are two encrypted passwords in this flow
+        final def ORIGINAL_CIPHER_TEXTS = xmlContent.findAll(WFXCTR)
+        logger.info("Cipher texts: \n${ORIGINAL_CIPHER_TEXTS.join("\n")}")
+        final int ORIGINAL_CIPHER_TEXT_COUNT = ORIGINAL_CIPHER_TEXTS.size()
+        logger.info("Found ${ORIGINAL_CIPHER_TEXT_COUNT} encrypted properties in the original flow.xml content")
+
+        String currentXmlContent = xmlContent
+
+        // Act
+        passwordProgression.eachWithIndex { String existingFlowPassword, int i ->
+            if (i < passwordProgression.size() - 1) {
+                String newFlowPassword = passwordProgression[i + 1]
+                logger.info("Migrating from ${existingFlowPassword} to ${newFlowPassword}")
+
+                String migratedXmlContent = tool.migrateFlowXmlContent(currentXmlContent, existingFlowPassword, newFlowPassword)
+//                logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+
+                // Assert
+                def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+                logger.info("Cipher texts for iteration ${i}: \n${newCipherTexts.join("\n")}")
+
+                assert newCipherTexts.size() == ORIGINAL_CIPHER_TEXT_COUNT
+                newCipherTexts.every {
+                    assert ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword) == SENSITIVE_VALUE
+                }
+
+                // Ensure that everything else is identical
+                assert migratedXmlContent.replaceAll(WFXCTR, "") ==
+                        xmlContent.replaceAll(WFXCTR, "")
+
+                // Update the "source" XML content for the next iteration
+                currentXmlContent = migratedXmlContent
+            }
+        }
+    }
+
+    @Test
+    void testMigrateFlowXmlContentShouldUseConstantSalt() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
+        String newFlowPassword = FLOW_PASSWORD
+
+        String xmlContent = workingFile.text
+        logger.info("Read flow.xml: \n${xmlContent}")
+
+        // There are two encrypted passwords in this flow
+        int cipherTextCount = xmlContent.findAll(WFXCTR).size()
+        logger.info("Found ${cipherTextCount} encrypted properties in the original flow.xml content")
+
+        // Act
+        String migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, existingFlowPassword, newFlowPassword)
+        logger.info("Migrated flow.xml: \n${migratedXmlContent}")
+
+        // Assert
+        def newCipherTexts = migratedXmlContent.findAll(WFXCTR)
+
+        assert newCipherTexts.size() == cipherTextCount
+
+        // Check that the same salt was used on all output
+        String saltHex = newCipherTexts.first()[4..<36]
+        logger.info("First detected salt: ${saltHex}")
+        newCipherTexts.every {
+            assert it[4..<36] == saltHex
+        }
+    }
+
+    @Test
+    void testShouldLoadFlowXmlContent() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        String flowXmlGzPath = "src/test/resources/flow.xml.gz"
+        File flowXmlGzFile = new File(flowXmlGzPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        File workingGzFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingGzFile.delete()
+        Files.copy(flowXmlGzFile.toPath(), workingGzFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+        tool.flowXmlPath = workingGzFile.path
+
+        String xmlContent = workingFile.text
+        logger.info("Read flow.xml: \n${xmlContent}")
+
+        // Act
+        String readXmlContent = tool.loadFlowXml()
+        logger.info("Loaded flow.xml.gz: \n${readXmlContent}")
+
+        // Assert
+        assert readXmlContent == xmlContent
+    }
+
+    @Test
+    void testShouldWriteFlowXmlToFile() {
+        // Arrange
+        String flowXmlPath = "src/test/resources/flow.xml"
+        File flowXmlFile = new File(flowXmlPath)
+
+        String flowXmlGzPath = "src/test/resources/flow.xml.gz"
+        File flowXmlGzFile = new File(flowXmlGzPath)
+
+        File tmpDir = setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-flow.xml")
+        workingFile.delete()
+        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
+        File workingGzFile = new File("target/tmp/tmp-flow.xml.gz")
+        workingGzFile.delete()
+        Files.copy(flowXmlGzFile.toPath(), workingGzFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+        tool.outputFlowXmlPath = workingGzFile.path.replaceAll("flow.xml.gz", "output.xml.gz")
+
+        String xmlContent = workingFile.text
+        logger.info("Read flow.xml: \n${xmlContent}")
+
+        // Act
+        tool.writeFlowXmlToFile(xmlContent)
+
+        // Assert
+
+        // Set the input path to what was just written and rely on the separately-tested load method to uncompress and read the contents
+        tool.flowXmlPath = tool.outputFlowXmlPath
+        assert tool.loadFlowXml() == xmlContent
+    }
+
+    // TODO: Test with 128/256-bit available
 }
 
-public class TestAppender extends AppenderBase<LoggingEvent> {
-    static List<LoggingEvent> events = new ArrayList<>();
+public class TestAppender extends AppenderSkeleton {
+    static final List<LoggingEvent> events = new ArrayList<>();
 
     @Override
     protected void append(LoggingEvent e) {
@@ -1599,5 +3564,14 @@ public class TestAppender extends AppenderBase<LoggingEvent> {
         synchronized (events) {
             events.clear();
         }
+    }
+
+    @Override
+    void close() {
+    }
+
+    @Override
+    boolean requiresLayout() {
+        return false
     }
 }

@@ -104,6 +104,7 @@ nf.ProcessorDetails = (function () {
                         nf.Common.clearField('read-only-yield-duration');
                         nf.Common.clearField('read-only-run-duration');
                         nf.Common.clearField('read-only-bulletin-level');
+                        nf.Common.clearField('read-only-execution-node');
                         nf.Common.clearField('read-only-execution-status');
                         nf.Common.clearField('read-only-processor-comments');
 
@@ -157,8 +158,9 @@ nf.ProcessorDetails = (function () {
 
                     var showRunSchedule = true;
 
-                    // make the scheduling strategy human readable
                     var schedulingStrategy = details.config['schedulingStrategy'];
+
+                    // make the scheduling strategy human readable
                     if (schedulingStrategy === 'EVENT_DRIVEN') {
                         showRunSchedule = false;
                         schedulingStrategy = 'Event driven';
@@ -176,6 +178,22 @@ nf.ProcessorDetails = (function () {
                         $('#read-only-run-schedule').show();
                     } else {
                         $('#read-only-run-schedule').hide();
+                    }
+
+                    var executionNode = details.config['executionNode'];
+
+                    // only show the execution-node when applicable
+                    if (nf.Canvas.isClustered() || executionNode === 'PRIMARY') {
+                        if (executionNode === 'ALL') {
+                            executionNode = "All nodes";
+                        } else if (executionNode === 'PRIMARY') {
+                            executionNode = "Primary node only";
+                        }
+                        nf.Common.populateField('read-only-execution-node', executionNode);
+
+                        $('#read-only-execution-node-options').show();
+                    } else {
+                        $('#read-only-execution-node-options').hide();
                     }
 
                     // load the relationship list

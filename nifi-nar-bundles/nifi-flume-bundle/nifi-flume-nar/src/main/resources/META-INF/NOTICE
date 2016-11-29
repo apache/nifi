@@ -175,12 +175,6 @@ The following binary components are provided under the Apache Software License v
        Jetty Web Container
        Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
 
-  (ASLv2) Twitter4J
-    The following NOTICE information applies:
-      Copyright 2007 Yusuke Yamamoto
-      
-      Twitter4J includes software from JSON.org to parse JSON response from the Twitter API. You can see the license term at http://www.JSON.org/license.html
-
   (ASLv2) Apache Velocity
     The following NOTICE information applies:
       Apache Velocity

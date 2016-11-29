@@ -112,15 +112,19 @@ public class TestPutElasticsearch {
         runner.setProperty(AbstractElasticsearchTransportClientProcessor.SAMPLER_INTERVAL, "5s");
         runner.setProperty(PutElasticsearch.INDEX, "doc");
         runner.setProperty(PutElasticsearch.TYPE, "status");
-        runner.setProperty(PutElasticsearch.BATCH_SIZE, "1");
+        runner.setProperty(PutElasticsearch.BATCH_SIZE, "2");
         runner.setProperty(PutElasticsearch.ID_ATTRIBUTE, "doc_id");
 
         runner.enqueue(docExample, new HashMap<String, String>() {{
             put("doc_id", "28039652140");
         }});
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652141");
+        }});
         runner.run(1, true, true);
 
-        runner.assertAllFlowFilesTransferred(PutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(PutElasticsearch.REL_FAILURE, 1);
+        runner.assertTransferCount(PutElasticsearch.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearch.REL_FAILURE).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
@@ -349,10 +353,16 @@ public class TestPutElasticsearch {
             public BulkResponse get() throws InterruptedException, ExecutionException {
                 BulkResponse response = mock(BulkResponse.class);
                 when(response.hasFailures()).thenReturn(responseHasFailures);
-                BulkItemResponse item = mock(BulkItemResponse.class);
-                when(item.getItemId()).thenReturn(1);
-                when(item.isFailed()).thenReturn(true);
-                when(response.getItems()).thenReturn(new BulkItemResponse[]{item});
+                BulkItemResponse item1 = mock(BulkItemResponse.class);
+                BulkItemResponse item2 = mock(BulkItemResponse.class);
+                when(item1.getItemId()).thenReturn(1);
+                when(item1.isFailed()).thenReturn(true);
+                BulkItemResponse.Failure failure = mock(BulkItemResponse.Failure.class);
+                when(failure.getMessage()).thenReturn("Bad message");
+                when(item1.getFailure()).thenReturn(failure);
+                when(item2.getItemId()).thenReturn(2);
+                when(item2.isFailed()).thenReturn(false);
+                when(response.getItems()).thenReturn(new BulkItemResponse[]{item1, item2});
                 return response;
             }
 

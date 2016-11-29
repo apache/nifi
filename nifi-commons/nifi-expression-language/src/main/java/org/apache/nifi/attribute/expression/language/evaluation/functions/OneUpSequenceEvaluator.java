@@ -20,17 +20,17 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberQueryResult;
 
-public class OneUpSequenceEvaluator extends NumberEvaluator {
+public class OneUpSequenceEvaluator extends WholeNumberEvaluator {
 
     private static final AtomicLong value = new AtomicLong(0L);
 
     @Override
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        return new NumberQueryResult(value.getAndIncrement());
+        return new WholeNumberQueryResult(value.getAndIncrement());
     }
 
     @Override

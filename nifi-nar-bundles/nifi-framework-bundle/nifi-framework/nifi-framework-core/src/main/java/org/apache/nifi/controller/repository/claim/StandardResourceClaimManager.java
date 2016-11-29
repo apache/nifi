@@ -29,29 +29,39 @@ import org.slf4j.LoggerFactory;
 
 public class StandardResourceClaimManager implements ResourceClaimManager {
 
-    private static final ConcurrentMap<ResourceClaim, AtomicInteger> claimantCounts = new ConcurrentHashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(StandardResourceClaimManager.class);
-
-    private static final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
+    private final ConcurrentMap<ResourceClaim, ClaimCount> claimantCounts = new ConcurrentHashMap<>();
+    private final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
 
     @Override
-    public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant) {
-        return new StandardResourceClaim(this, container, section, id, lossTolerant);
+    public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant, final boolean writable) {
+        final StandardResourceClaim claim = new StandardResourceClaim(this, container, section, id, lossTolerant);
+        if (!writable) {
+            claim.freeze();
+        }
+        return claim;
     }
 
-    private static AtomicInteger getCounter(final ResourceClaim claim) {
+    @Override
+    public ResourceClaim getResourceClaim(final String container, final String section, final String id) {
+        final ResourceClaim tempClaim = new StandardResourceClaim(this, container, section, id, false);
+        final ClaimCount count = claimantCounts.get(tempClaim);
+        return (count == null) ? null : count.getClaim();
+    }
+
+    private AtomicInteger getCounter(final ResourceClaim claim) {
         if (claim == null) {
             return null;
         }
 
-        AtomicInteger counter = claimantCounts.get(claim);
+        ClaimCount counter = claimantCounts.get(claim);
         if (counter != null) {
-            return counter;
+            return counter.getCount();
         }
 
-        counter = new AtomicInteger(0);
-        final AtomicInteger existingCounter = claimantCounts.putIfAbsent(claim, counter);
-        return existingCounter == null ? counter : existingCounter;
+        counter = new ClaimCount(claim, new AtomicInteger(0));
+        final ClaimCount existingCounter = claimantCounts.putIfAbsent(claim, counter);
+        return existingCounter == null ? counter.getCount() : existingCounter.getCount();
     }
 
     @Override
@@ -61,8 +71,8 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
 
         synchronized (claim) {
-            final AtomicInteger counter = claimantCounts.get(claim);
-            return counter == null ? 0 : counter.get();
+            final ClaimCount counter = claimantCounts.get(claim);
+            return counter == null ? 0 : counter.getCount().get();
         }
     }
 
@@ -73,20 +83,23 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
 
         synchronized (claim) {
-            final AtomicInteger counter = claimantCounts.get(claim);
+            final ClaimCount counter = claimantCounts.get(claim);
             if (counter == null) {
                 logger.warn("Decrementing claimant count for {} but claimant count is not known. Returning -1", claim);
                 return -1;
             }
 
-            final int newClaimantCount = counter.decrementAndGet();
+            final int newClaimantCount = counter.getCount().decrementAndGet();
             if (newClaimantCount < 0) {
                 logger.error("Decremented claimant count for {} to {}", claim, newClaimantCount);
             } else {
                 logger.debug("Decrementing claimant count for {} to {}", claim, newClaimantCount);
             }
 
-            if (newClaimantCount == 0) {
+            // If the claim is no longer referenced, we want to remove it. We consider the claim to be "no longer referenced"
+            // if the count is 0 and it is no longer writable (if it's writable, it may still be writable by the Content Repository,
+            // even though no existing FlowFile is referencing the claim).
+            if (newClaimantCount == 0 && !claim.isWritable()) {
                 removeClaimantCount(claim);
             }
             return newClaimantCount;
@@ -177,5 +190,30 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         }
 
         ((StandardResourceClaim) claim).freeze();
+
+        synchronized (claim) {
+            if (getClaimantCount(claim) == 0) {
+                claimantCounts.remove(claim);
+            }
+        }
+    }
+
+
+    private static final class ClaimCount {
+        private final ResourceClaim claim;
+        private final AtomicInteger count;
+
+        public ClaimCount(final ResourceClaim claim, final AtomicInteger count) {
+            this.claim = claim;
+            this.count = count;
+        }
+
+        public AtomicInteger getCount() {
+            return count;
+        }
+
+        public ResourceClaim getClaim() {
+            return claim;
+        }
     }
 }

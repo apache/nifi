@@ -25,27 +25,32 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class MultiplyEvaluator extends NumberEvaluator {
 
-    private final Evaluator<Long> subject;
-    private final Evaluator<Long> multiplyValue;
+    private final Evaluator<Number> subject;
+    private final Evaluator<Number> multiplyValue;
 
-    public MultiplyEvaluator(final Evaluator<Long> subject, final Evaluator<Long> multiplyValue) {
+    public MultiplyEvaluator(final Evaluator<Number> subject, final Evaluator<Number> multiplyValue) {
         this.subject = subject;
         this.multiplyValue = multiplyValue;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final Long subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
+        final Number subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Long multiply = multiplyValue.evaluate(attributes).getValue();
+        final Number multiply = multiplyValue.evaluate(attributes).getValue();
         if (multiply == null) {
             return new NumberQueryResult(null);
         }
 
-        final long result = subjectValue * multiply;
+        final Number result;
+        if (subjectValue instanceof Double || multiply instanceof Double){
+            result = subjectValue.doubleValue() * multiply.doubleValue();
+        } else {
+            result = subjectValue.longValue() * multiply.longValue();
+        }
         return new NumberQueryResult(result);
     }
 

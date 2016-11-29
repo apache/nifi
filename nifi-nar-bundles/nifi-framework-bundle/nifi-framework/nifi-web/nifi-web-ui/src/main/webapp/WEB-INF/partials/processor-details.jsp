@@ -123,6 +123,18 @@
                         </div>
                         <div class="clear"></div>
                     </div>
+                    <div id="read-only-execution-node-options" class="setting">
+                        <div class="execution-node-setting">
+                            <div class="setting-name">
+                                Execution
+                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                            </div>
+                            <div class="setting-field">
+                                <span id="read-only-execution-node"></span>
+                            </div>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">

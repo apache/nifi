@@ -52,7 +52,8 @@ public class ClusterDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp the report was generated."
+            value = "The timestamp the report was generated.",
+            dataType = "string"
     )
     public Date getGenerated() {
         return generated;

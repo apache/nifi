@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -47,6 +47,28 @@ language governing permissions and limitations under the License. -->
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                    <shortRevisionLength>7</shortRevisionLength>
+                    <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+                    <revisionOnScmFailure />
+                    <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
+                    <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -303,6 +325,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-elasticsearch-5-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-lumberjack-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -314,11 +341,11 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-amqp-nar</artifactId>
-	        <type>nar</type>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.apache.nifi</groupId>
-	        <artifactId>nifi-splunk-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-splunk-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -346,16 +373,16 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-hive-nar</artifactId>
             <type>nar</type>
         </dependency>
-	    <dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site-reporting-nar</artifactId>
             <type>nar</type>
-      	</dependency>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mqtt-nar</artifactId>
-	        <type>nar</type>
-	    </dependency>
+            <type>nar</type>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snmp-nar</artifactId>
@@ -374,6 +401,21 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-windows-event-log-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-websocket-services-api-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-websocket-services-jetty-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-websocket-processors-nar</artifactId>
             <type>nar</type>
         </dependency>
     </dependencies>
@@ -486,6 +528,11 @@ language governing permissions and limitations under the License. -->
                                                     <destination>nifi.sh</destination>
                                                     <filter>true</filter>
                                                 </source>
+                                                <source>
+                                                    <location>${project.build.directory}/generated-resources/bin/nifi-env.sh</location>
+                                                    <destination>nifi-env.sh</destination>
+                                                    <filter>true</filter>
+                                                </source>
                                             </sources>
                                         </mapping>
                                         <mapping>
@@ -501,22 +548,43 @@ language governing permissions and limitations under the License. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                         </mapping>
+                                        <!-- The lib excludes and lib/bootstrap includes are computed by looking at the desired contents of
+                                        lib vs the desired contents of bootstrap directories.  The bootstrap directory should be comprised of explicitly
+                                        included items as found from the lib/bootstrap of a non rpm build and the lib folder should be specific excludes
+                                        being those which we want in bootstrap and NOT in lib. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                             <dependency>
                                                 <excludes>
-                                                    <exclude>org.apache.nifi:nifi-bootstrap</exclude>
-                                                    <exclude>org.apache.nifi:nifi-resources</exclude>
-                                                    <exclude>org.apache.nifi:nifi-docs</exclude>
-                                                    <exclude>commons-io:commons-io</exclude>
+                                                    <exclude>org.bouncycastle:bcprov-jdk15on</exclude>
                                                     <exclude>org.apache.commons:commons-lang3</exclude>
-                                                    <exclude>org.antlr:antlr-runtime</exclude>
-                                                    <exclude>javax.activation:activation</exclude>
+                                                    <!-- must be in lib <exclude>org.slf4j:jul-to-slf4j</exclude> -->
+                                                    <!-- must be in lib <exclude>ch.qos.logback:logback-classic</exclude> -->
                                                     <exclude>javax.mail:mail</exclude>
+                                                    <!-- must be in lib <exclude>org.apache.nifi:nifi-api</exclude> -->
+                                                    <exclude>org.apache.nifi:nifi-bootstrap</exclude>
+                                                    <exclude>org.apache.nifi:nifi-expression-language</exclude>
+                                                    <exclude>org.apache.nifi:nifi-processor-utils</exclude>
+                                                    <!-- must be in lib <exclude>org.apache.nifi:nifi-properties</exclude> -->
+                                                    <exclude>org.apache.nifi:nifi-properties-loader</exclude>
+                                                    <!-- must be in lib <exclude>org.slf4j:slf4j-api</exclude> -->
+                                                    <exclude>javax.activation:activation</exclude>
+                                                    <exclude>org.antlr:antlr-runtime</exclude>
+                                                    <exclude>asm:asm</exclude>
+                                                    <exclude>net.minidev:asm</exclude>
+                                                    <exclude>org.bouncycastle:bcpkix-jdk15on</exclude>
+                                                    <exclude>commons-io:commons-io</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                                                    <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                                    <exclude>com.jayway.jsonpath:json-path</exclude>
+                                                    <exclude>net.minidev:json-smart</exclude>
+                                                    <!-- must be in lib <exclude>ch.qos.logback:logback-core</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-security-utils</exclude>
                                                     <exclude>org.apache.nifi:nifi-utils</exclude>
-                                                    <exclude>org.apache.nifi:nifi-processor-utils</exclude>
-                                                    <exclude>org.apache.nifi:nifi-expression-language</exclude>
+                                                    <!-- Items to not include which are also not in bootstrap -->
+                                                    <exclude>org.apache.nifi:nifi-resources</exclude>
+                                                    <exclude>org.apache.nifi:nifi-docs</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>
@@ -524,20 +592,32 @@ language governing permissions and limitations under the License. -->
                                             <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
                                             <dependency>
                                                 <includes>
-                                                    <include>commons-io:commons-io</include>
+                                                    <include>org.bouncycastle:bcprov-jdk15on</include>
                                                     <include>org.apache.commons:commons-lang3</include>
-                                                    <include>org.antlr:antlr-runtime</include>
-                                                    <include>javax.activation:activation</include>
+                                                    <!-- already in lib <include>org.slf4j:jul-to-slf4j</include> -->
+                                                    <include>ch.qos.logback:logback-classic</include>
                                                     <include>javax.mail:mail</include>
+                                                    <include>org.apache.nifi:nifi-api</include>
+                                                    <include>org.apache.nifi:nifi-bootstrap</include>
+                                                    <include>org.apache.nifi:nifi-expression-language</include>
+                                                    <include>org.apache.nifi:nifi-processor-utils</include>
+                                                    <!-- already in lib <include>org.apache.nifi:nifi-properties</include> -->
+                                                    <include>org.apache.nifi:nifi-properties-loader</include>
+                                                    <include>org.slf4j:slf4j-api</include>
+                                                    <include>javax.activation:activation</include>
+                                                    <include>org.antlr:antlr-runtime</include>
+                                                    <include>asm:asm</include>
+                                                    <include>net.minidev:asm</include>
+                                                    <include>org.bouncycastle:bcpkix-jdk15on</include>
+                                                    <include>commons-io:commons-io</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-annotations</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-core</include>
+                                                    <include>com.fasterxml.jackson.core:jackson-databind</include>
+                                                    <include>com.jayway.jsonpath:json-path</include>
+                                                    <include>net.minidev:json-smart</include>
+                                                    <include>ch.qos.logback:logback-core</include>
                                                     <include>org.apache.nifi:nifi-security-utils</include>
                                                     <include>org.apache.nifi:nifi-utils</include>
-                                                    <include>org.apache.nifi:nifi-processor-utils</include>
-                                                    <include>org.apache.nifi:nifi-expression-language</include>
-                                                    <include>org.apache.nifi:nifi-bootstrap</include>
-                                                    <include>org.apache.nifi:nifi-api</include>
-                                                    <include>org.slf4j:slf4j-api</include>
-                                                    <include>ch.qos.logback:logback-classic</include>
-                                                    <include>ch.qos.logback:logback-core</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
@@ -608,6 +688,19 @@ language governing permissions and limitations under the License. -->
                     <artifactId>nifi-ranger-resources</artifactId>
                 </dependency>
             </dependencies>
+        </profile>
+        <profile>
+            <id>build-info-no-git</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <file>
+                    <missing>../.git/HEAD</missing>
+                </file>
+            </activation>
+            <properties>
+                <buildRevision />
+                <buildBranch />
+            </properties>
         </profile>
     </profiles>
 </project>

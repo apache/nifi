@@ -16,20 +16,13 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -41,16 +34,24 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem" })
+@Tags({ "hadoop", "HDFS", "delete", "remove", "filesystem", "restricted" })
 @CapabilityDescription("Deletes a file from HDFS. The file can be provided as an attribute from an incoming FlowFile, "
         + "or a statically set file that is periodically removed. If this processor has an incoming connection, it"
         + "will ignore running on a periodic basis and instead rely on incoming FlowFiles to trigger a delete. "
         + "Optionally, you may specify use a wildcard character to match multiple files or directories.")
+@Restricted("Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 public class DeleteHDFS extends AbstractHadoopProcessor {
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

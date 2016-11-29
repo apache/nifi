@@ -1,0 +1,54 @@
+[
+  {
+    "connectString": "127.0.0.1:62406",
+    "path": "/nifi",
+    "auth": [
+      110,
+      105,
+      102,
+      105,
+      58,
+      110,
+      105,
+      102,
+      105
+    ]
+  },
+  {
+    "path": "/nifi",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 2,
+      "mzxid": 2,
+      "ctime": 1478010596964,
+      "mtime": 1478010596964,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 2
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "digest",
+          "id": "nifi:RuSeH3tpzgba3p9WrG/UpiSIsGg\u003d"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  }
+]

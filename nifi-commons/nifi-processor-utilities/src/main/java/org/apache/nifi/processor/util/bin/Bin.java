@@ -17,20 +17,20 @@
 package org.apache.nifi.processor.util.bin;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.FlowFileSessionWrapper;
 
 /**
  * Note: {@code Bin} objects are NOT thread safe. If multiple threads access a {@code Bin}, the caller must synchronize
  * access.
  */
 public class Bin {
-
+    private final ProcessSession session;
     private final long creationMomentEpochNs;
     private final long minimumSizeBytes;
     private final long maximumSizeBytes;
@@ -39,13 +39,14 @@ public class Bin {
     private volatile int maximumEntries = Integer.MAX_VALUE;
     private final String fileCountAttribute;
 
-    final List<FlowFileSessionWrapper> binContents = new ArrayList<>();
+    final List<FlowFile> binContents = new ArrayList<>();
     long size;
     int successiveFailedOfferings = 0;
 
     /**
      * Constructs a new bin
      *
+     * @param session the session
      * @param minSizeBytes min bytes
      * @param maxSizeBytes max bytes
      * @param minEntries min entries
@@ -53,7 +54,8 @@ public class Bin {
      * @param fileCountAttribute num files
      * @throws IllegalArgumentException if the min is not less than or equal to the max.
      */
-    public Bin(final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
+    public Bin(final ProcessSession session, final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
+        this.session = session;
         this.minimumSizeBytes = minSizeBytes;
         this.maximumSizeBytes = maxSizeBytes;
         this.minimumEntries = minEntries;
@@ -64,6 +66,10 @@ public class Bin {
         if (minSizeBytes > maxSizeBytes) {
             throw new IllegalArgumentException();
         }
+    }
+
+    public ProcessSession getSession() {
+        return session;
     }
 
     /**
@@ -132,7 +138,9 @@ public class Bin {
         }
 
         size += flowFile.getSize();
-        binContents.add(new FlowFileSessionWrapper(flowFile, session));
+
+        session.migrate(getSession(), Collections.singleton(flowFile));
+        binContents.add(flowFile);
         successiveFailedOfferings = 0;
         return true;
     }
@@ -157,7 +165,7 @@ public class Bin {
     /**
      * @return the underlying list of flow files within this bin
      */
-    public List<FlowFileSessionWrapper> getContents() {
+    public List<FlowFile> getContents() {
         return binContents;
     }
 

@@ -369,6 +369,11 @@ public class TestAbstractHeartbeatMonitor {
             heartbeats.remove(nodeId);
         }
 
+        @Override
+        public synchronized void purgeHeartbeats() {
+            heartbeats.clear();
+        }
+
         void waitForProcessed() throws InterruptedException {
             synchronized (mutex) {
                 mutex.wait();

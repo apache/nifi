@@ -53,7 +53,8 @@ public class BulletinBoardDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when this report was generated."
+            value = "The timestamp when this report was generated.",
+            dataType = "string"
     )
     public Date getGenerated() {
         return generated;

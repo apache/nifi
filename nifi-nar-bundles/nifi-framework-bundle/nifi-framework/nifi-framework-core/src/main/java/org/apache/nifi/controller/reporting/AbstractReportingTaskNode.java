@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.controller.reporting;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -33,10 +27,18 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
 
@@ -50,27 +52,26 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private volatile String comment;
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
 
-    protected final VariableRegistry variableRegistry;
-
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
-        final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-        final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry) {
+                                     final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
+                                     final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry,
+                                     final ComponentLog logger) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
-            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry);
+            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry, logger);
     }
 
 
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
-            final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-        final ValidationContextFactory validationContextFactory,
-        final String componentType, final String componentCanonicalClass, VariableRegistry variableRegistry) {
+                                     final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
+                                     final ValidationContextFactory validationContextFactory,
+                                     final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
+                                     final ComponentLog logger) {
 
-        super(reportingTask, id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
+        super(reportingTask, id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, logger);
         this.reportingTask = reportingTask;
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
-        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -115,7 +116,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), variableRegistry);
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), getVariableRegistry());
     }
 
     @Override
@@ -134,17 +135,6 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public void setScheduledState(final ScheduledState state) {
         this.scheduledState = state;
     }
-
-    @Override
-    public void setProperty(final String name, final String value) {
-        super.setProperty(name, value);
-    }
-
-    @Override
-    public boolean removeProperty(String name) {
-        return super.removeProperty(name);
-    }
-
 
     public boolean isDisabled() {
         return scheduledState == ScheduledState.DISABLED;
@@ -249,7 +239,16 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
 
     @Override
-    protected String getProcessGroupIdentifier() {
+    public String getProcessGroupIdentifier() {
         return null;
+    }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors(Set<String> serviceIdentifiersNotToValidate) {
+        Collection<ValidationResult> results = null;
+        if (getScheduledState() == ScheduledState.STOPPED) {
+            results = super.getValidationErrors(serviceIdentifiersNotToValidate);
+        }
+        return results != null ? results : Collections.emptySet();
     }
 }

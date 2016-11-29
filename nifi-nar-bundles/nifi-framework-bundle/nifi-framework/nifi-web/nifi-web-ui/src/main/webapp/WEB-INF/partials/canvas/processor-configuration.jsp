@@ -162,6 +162,18 @@
                         </div>
                         <div class="clear"></div>
                     </div>
+                    <div id="execution-node-options" class="setting">
+                        <div class="execution-node-setting">
+                            <div class="setting-name">
+                                Execution
+                                <div class="fa fa-question-circle" alt="Info" title="The node(s) that this processor will be scheduled to run on."></div>
+                            </div>
+                            <div class="setting-field">
+                                <div id="execution-node-combo"></div>
+                            </div>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div id="run-duration-setting-container" class="settings-right">

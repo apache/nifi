@@ -49,7 +49,8 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "the time of the nodes's last heartbeat.",
-            readOnly = true
+            readOnly = true,
+            dataType = "string"
     )
     public Date getHeartbeat() {
         return heartbeat;
@@ -65,7 +66,8 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "The time of the node's last connection request.",
-            readOnly = true
+            readOnly = true,
+            dataType = "string"
     )
     public Date getConnectionRequested() {
         return connectionRequested;
@@ -202,7 +204,8 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "The time at which this Node was last refreshed.",
-            readOnly = true
+            readOnly = true,
+            dataType = "string"
     )
     public Date getNodeStartTime() {
         return nodeStartTime;

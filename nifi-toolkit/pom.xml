@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-toolkit</artifactId>
     <packaging>pom</packaging>
@@ -26,6 +26,7 @@
         <module>nifi-toolkit-tls</module>
         <module>nifi-toolkit-encrypt-config</module>
         <module>nifi-toolkit-s2s</module>
+        <module>nifi-toolkit-zookeeper-migrator</module>
         <module>nifi-toolkit-assembly</module>
     </modules>
     <dependencyManagement>
@@ -44,4 +45,10 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+        </dependency>
+    </dependencies>
 </project>

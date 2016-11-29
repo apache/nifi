@@ -60,8 +60,6 @@ How to install and start NiFi
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the nifi.sensitive.props.key (see <<system_properties>> below)
 ** Navigate to the <installdir>/bin directory
 ** Double-click run-nifi.bat. This runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-** Alternatively, to start NiFi in the background, double-click start-nifi.bat
-** To stop NiFi running in the background, double-click stop-nifi.bat
 ** To see the current status of NiFi, double-click status-nifi.bat
 
 
@@ -139,12 +137,12 @@ NiFi provides several different configuration options for security purposes. The
 |==================================================================================================================================================
 | Property Name | Description
 |`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
-|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.keystorePasswd` | The password for the Keystore.
 |`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi. If not set, all who
                             attempt to connect will be provided access as the 'Anonymous' user.
-|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
 |`nifi.security.needClientAuth` | Specifies whether or not connecting clients must authenticate themselves. Specifically this property is used
                                 by the NiFi cluster protocol. If the Truststore properties are not set, this must be `false`. Otherwise, a value
@@ -173,6 +171,8 @@ TLS Generation Toolkit
 ~~~~~~~~~~~~~~~~~~~~~~
 
 In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
+
+Note: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
 
 The `tls-toolkit` command line tool has two primary modes of operation:
 
@@ -293,6 +293,7 @@ Below is an example and description of configuring a Login Identity Provider tha
     <property name="User Search Base"></property>
     <property name="User Search Filter"></property>
 
+    <property name="Identity Strategy">USE_DN</property>
     <property name="Authentication Expiration">12 hours</property>
 </provider>
 ----
@@ -324,6 +325,8 @@ nifi.security.user.login.identity.provider=ldap-provider
 |`Url` | Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
 |`User Search Base` | Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
 |`User Search Filter` | Filter for searching for users against the 'User Search Base'. (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
+|`Identity Strategy` | Strategy to identify users. Possible values are USE_DN and USE_USERNAME. The default functionality if this property is missing is USE_DN in order to retain backward
+compatibility. USE_DN will use the full DN of the user entry if possible. USE_USERNAME will use the username the user logged in with.
 |`Authentication Expiration` | The duration of how long the user authentication is valid for. If the user never logs out, they will be required to log back in following this duration.
 |==================================================================================================================================================
 
@@ -415,7 +418,7 @@ Here is an example LDAP entry using the name John Smith:
 </authorizers>
 ----
 
-Here is a example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
+Here is an example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
 
 ----
 <authorizer>
@@ -433,7 +436,7 @@ Here is a example Kerberos entry using the name John Smith and realm `NIFI.APACH
 </authorizers>
 ----
 
-After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'authorizations.xml' file during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
+After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'users.xml' and 'authorizations.xml' files during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
 
 NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the flow.xml.gz is generated.  If the NiFi instance is an upgrade from an existing flow.xml.gz or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
 
@@ -458,7 +461,7 @@ Here is an example entry:
 </authorizers>
 ----
 
-After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'authorizations.xml' file.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
+After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'users.xml' and 'authorizations.xml' files.  Once the application starts, users who previously had a legacy Administrator role can access the UI and begin managing users, groups, and policies.
 
 Here is a summary of policies assigned to each legacy role if the NiFi instance has an existing flow.xml.gz:
 
@@ -476,6 +479,7 @@ Here is a summary of policies assigned to each legacy role if the NiFi instance 
 |view policies                 |*      |     |         |            |      |
 |modify policies               |*      |     |         |            |      |
 |query provenance              |       |     |         |*           |      |
+|access restricted components  |       |*    |         |            |      |
 |view the data                 |       |*    |         |*           |      |*
 |modify the data               |       |*    |         |            |      |*
 |retrieve site-to-site details |       |     |         |            |*     |
@@ -579,6 +583,10 @@ Global access policies govern the following system level authorizations:
 |Allows users to submit a Provenance Search and request Event Lineage
 |Data Provenance
 
+|access restricted components
+|Allows users to create/modify restricted components assuming otherwise sufficient permissions
+|N/A
+
 |access all policies
 |Allows users to view/modify the policies for all components
 |Policies
@@ -648,6 +656,8 @@ You can override an inherited policy (as described in the <<moving-a-processor>>
 
 NOTE: “View the policies” and “modify the policies” component-level access policies are an exception to this inherited behavior. When a user is added to either policy, they are added to the current list of administrators. They do not override higher level administrators. For this reason, only component specific administrators are displayed for the “view the policies” and “modify the policies" access policies.
 
+NOTE:  You cannot modify the users/groups on an inherited policy.  Users and groups can only be added or removed from a parent policy or an override policy.
+
 [[access-policy-config-examples]]
 Access Policy Configuration Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -679,8 +689,13 @@ To allow User2 to move the GenerateFlowFile processor in the dataflow and only t
   image:processor-modify-policy.png["Processor Modify Policy"]
   The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
-4. Select the Override link in the policy inheritance message to create a replacement policy.
-5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+4. Select the Override link in the policy inheritance message.  When creating the replacement policy, you are given a choice to override with a copy of the inherited policy or an empty policy.
+
+image:override_policy_copy_empty.png["Create Override Policy"]
+
+Select the Override button to create a copy.
+[start=5]
+5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK.
 
 image:processor-replacement-modify-policy.png["Processor Replacement Modify Policy"]
 
@@ -699,8 +714,8 @@ In the “Moving a Processor” example above, User2 was added to the “modify 
   image:processor-view-policy.png["Processor View Policy"]
   The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
-4. Select the Override link in the policy inheritance message to create a replacement policy.
-5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+4. Select the Override link in the policy inheritance message, keep the default of Copy policy and select the Override button.
+5. On the override policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 in the User Identity field and select OK.
 
 image:processor-replacement-view-policy.png["Processor Replacement View Policy"]
 
@@ -721,8 +736,8 @@ image:user2-no-connection.png["User2 No Connection"]
 
 This is because:
 
-* User2 does not have modify access on the process group and is therefore not able to create a connection.
-* Even though User2 has view and modify access to the source component (GenerateFlowFile), User2 does not have any access policy on the destination component (LogAttribute).
+* User2 does not have modify access on the process group.
+* Even though User2 has view and modify access to the source component (GenerateFlowFile), User2 does not have an access policy on the destination component (LogAttribute).
 
 To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 
@@ -730,7 +745,7 @@ To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "modify the component” from the policy drop-down.
   image:process-group-modify-policy.png["Process Group Modify Policy"]
-  [start=4]
+[start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
@@ -766,7 +781,7 @@ To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
 3. Select "view the component” from the policy drop-down.
   image:process-group-view-policy.png["Process Group View Policy"]
-  [start=4]
+[start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
@@ -987,14 +1002,25 @@ The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is use
 
 You can use the following command line options with the `encrypt-config` tool:
 
-* `-b,--bootstrapConf <arg>`          The bootstrap.conf file to persist master key
-* `-h,--help`                         Prints this usage message
-* `-k,--key <arg>`                    The raw hexadecimal key to use to encrypt the sensitive properties (the key can be entered with spaces or '-' delimiters to assist manual entry -- these will be ignored)
-* `-n,--niFiProperties <arg>`         The 'nifi.properties' file containing unprotected config values (will be overwritten by default unless `-o` is provided)
-* `-o,--outputNiFiProperties <arg>`   The destination 'nifi.properties' file containing protected config values (will not modify input 'nifi.properties')
-* `-p,--password <arg>`               The password from which to derive the key to use to encrypt the sensitive properties
-* `-r,--useRawKey`                    If provided, the secure console will prompt for the raw key value in hexadecimal form
-* `-v,--verbose`                      Sets verbose mode (default false)
+ * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-b`,`--bootstrapConf <arg>`                  The bootstrap.conf file to persist master key
+ * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
+ * `-f`,`--flowXml <arg>`                        The flow.xml.gz file currently protected with old password (will be overwritten)
+ * `-g`,`--outputFlowXml <arg>`                  The destination flow.xml.gz file containing protected config values (will not modify input flow.xml.gz)
+ * `-h`,`--help`                                 Prints this usage message
+ * `-i`,`--outputLoginIdentityProviders <arg>`   The destination login-identity-providers.xml file containing protected config values (will not modify input login-identity-providers.xml)
+ * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
+ * `-l`,`--loginIdentityProviders <arg>`         The login-identity-providers.xml file containing unprotected config values (will be overwritten)
+ * `-m`,`--migrate`                              If provided, the nifi.properties and/or login-identity-providers.xml sensitive properties will be re-encrypted with a new key
+ * `-n`,`--niFiProperties <arg>`                 The nifi.properties file containing unprotected config values (will be overwritten)
+ * `-o`,`--outputNiFiProperties <arg>`           The destination nifi.properties file containing protected config values (will not modify input nifi.properties)
+ * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
+ * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
+ * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in flow.xml.gz
+ * `-v`,`--verbose`                              Sets verbose mode (default false)
+ * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
+ * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in flow.xml.gz will be re-encrypted with a new key but the nifi.properties and/or login-identity-providers.xml files will not be modified
 
 As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
 
@@ -1055,6 +1081,30 @@ Sensitive configuration values are encrypted by the tool by default, however you
 
 If the 'nifi.properties' file already has valid protected values, those property values are not modified by the tool.
 
+When applied to 'login-identity-providers.xml', the property elements are updated with an `encryption` attribute:
+
+----
+<!-- LDAP Provider -->
+<provider>
+       <identifier>ldap-provider</identifier>
+       <class>org.apache.nifi.ldap.LdapProvider</class>
+       <property name="Authentication Strategy">START_TLS</property>
+       <property name="Manager DN">someuser</property>
+       <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
+       <property name="TLS - Keystore"></property>
+       <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
+       <property name="TLS - Keystore Type"></property>
+      ...
+   </provider>
+----
+
+In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update `bootstrap.conf` with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
+
+* old key -> new key
+* old key -> new password
+* old password -> new key
+* old password -> new password
+
 [[encrypt-config_password]]
 Password Key Derivation
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1113,7 +1163,7 @@ NiFi Clustering is unique and has its own terminology. It's important to underst
 [template="glossary", id="terminology"]
 *Terminology* +
 
-*NiFi Cluster Coordinator*: A NiFi Cluster Cluster Coordinator is the node in a NiFI cluster that is responsible for carrying out
+*NiFi Cluster Coordinator*: A NiFi Cluster Cluster Coordinator is the node in a NiFi cluster that is responsible for carrying out
 tasks to manage which nodes are allowed in the cluster and providing the most up-to-date flow to newly joining nodes. When a
 DataFlow Manager manages a dataflow in a cluster, they are able to do so through the User Interface of any node in the cluster. Any
 change made is then replicated to all nodes in the cluster.
@@ -1394,7 +1444,7 @@ If Kerberos is not already setup in your environment, you can find information o
 https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html[_https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Managing_Smart_Cards/Configuring_a_Kerberos_5_Server.html_]
 . This guide assumes that Kerberos already has been installed in the environment in which NiFi is running.
 
-Note, the following procedures for kerberizing an Embedded Zookeeper server in your NiFI Node and kerberizing a zookeeper NiFI client will require that
+Note, the following procedures for kerberizing an Embedded ZooKeeper server in your NiFi Node and kerberizing a ZooKeeper NiFi client will require that
 Kerberos client libraries be installed. This is accomplished in Fedora-based Linux distributions via:
 
 [source]
@@ -1561,7 +1611,99 @@ java.arg.16=-Dsun.security.krb5.debug=true
 This will cause the debug output to be written to the NiFi Bootstrap log file. By default, this is located at _$NIFI_HOME/logs/nifi-bootstrap.log_.
 This output can be rather verbose but provides extremely valuable information for troubleshooting Kerberos failures.
 
+[[zookeeper_migrator]]
+=== ZooKeeper Migrator
+You can use the NiFi ZooKeeper Migrator to perform the following tasks:
 
+* Moving ZooKeeper information from one ZooKeeper cluster to another
+* Migrating ZooKeeper node ownership
+
+For example, you may want to use the ZooKeeper Migrator when you are:
+
+* Upgrading from NiFi 0.x to NiFi 1.x in which embedded ZooKeepers are used
+* Migrating from an embedded ZooKeeper in NiFi 0.x or 1.x to an external ZooKeeper
+* Upgrading from NiFi 0.x with an external ZooKeeper to NiFi 1.x with the same external ZooKeeper
+* Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
+
+The NiFi ZooKeeper Migrator is part of the NiFi Toolkit and is downloaded separately from the
+link:https://nifi.apache.org/download.html[Apache NiFi download page].
+
+[[zk_migrator_command_line_parameters]]
+==== zk-migrator.sh Command Line Parameters
+
+You can use the following command line options with the ZooKeeper Migrator:
+
+* `-a,--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k,--krb-conf` option.
+* `-f,--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r,--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s,--send` option, the data in the file will be sent to ZooKeeper.
+* `-h,--help`                                   Prints help, displays available parameters with descriptions
+* `--ignore-source`                             Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
+* `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
+* `-r,--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f,--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s,--send` option.
+* `-s,--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f,--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z,--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r,--receive` option.
+* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server to use, specified by a  connection string with path, in the format of _host:port/znode/path_.
+
+[[migrating_between_source_destination_zookeepers]]
+==== Migrating Between Source and Destination ZooKeepers
+
+Before you begin, confirm that:
+
+* You have installed the destination ZooKeeper cluster.
+* You have installed and configured a NiFi cluster to use the destination ZooKeeper cluster.
+* If you are migrating ZooKeepers due to upgrading NiFi from 0.x to 1.x,, you have already followed appropriate NiFi upgrade steps.
+* You have configured Kerberos as needed.
+* You have not started processing any dataflow (to avoid duplicate data processing).
+* If one of the ZooKeeper clusters you are using is configured with Kerberos, you are running the ZooKeeper Migrator from a host that has access to NiFi’s ZooKeeper client jaas configuration file (see <<zk_kerberos_client>> for more information).
+
+===== ZooKeeper Migration Steps
+
+1. Collect the following information:
+
+|====
+|*Required Information*|*Description*
+|Source ZooKeeper hostname (*sourceHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in <NiFi installation dir>/conf/zookeeper.properties.  Any of the hostnames declared in the *server.N* properties can be used.
+|Destination ZooKeeper hostname (*destinationHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in <NiFi installation dir>/conf/zookeeper.properties.  Any of the hostnames declared in the *server.N* properties can be used.
+|Source ZooKeeper port (*sourceClientPort*)|This can be found in *zookeeper.properties* of the <NiFi installation dir>/conf/zookeeper.properties.  The port is specified in the *clientPort* property.
+|Destination ZooKeeper port (*destinationClientPort*)|This can be found in *zookeeper.properties* of the <NiFi installation dir>/conf/zookeeper.properties.  The port is specified in the *clientPort* property.
+|Export data path|Determine the path that will store a json file containing the export of data from ZooKeeper.  It must be readable and writable by the user running the zk-migrator tool.
+|Source ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFi 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
+
+If the state-management.xml specifies Open, no authentication is required.
+|Destination ZooKeeper Authentication Information|This information is in <NiFi installation dir>/conf/state-management.xml. For NiFi 0.x, if Creator Only is specified in state-management.xml, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
+
+If the state-management.xml specifies Open, no authentication is required.
+|Root path to which NiFi writes data in Source ZooKeeper (*sourceRootPath*)|This information can be found in <NiFi installation dir>/conf/state-management.xml under the Root Node property in the cluster-provider element. (default: /nifi)
+|Root path to which NiFi writes data in Destination ZooKeeper (*destinationRootPath*)|This information can be found in <NiFi installation dir>/conf/state-management.xml under the Root Node property in the cluster-provider element.
+|====
+[start=2]
+2. Stop all processors in the NiFi flow.  If you are migrating between two NiFi installations, the flows on both must be stopped.
+3. Export the NiFi component data from the source ZooKeeper.  The following command reads from the specified ZooKeeper running on the given hostname:port, using the provided path to the data, and authenticates with ZooKeeper using the given username and password.  The data read from ZooKeeper is written to the file provided.
+
+* For NiFi 0.x
+** For an open ZooKeeper:
+*** zk-migrator.sh -r -z *sourceHostname:sourceClientPort*/*sourceRootPath*/components -f /*path*/*to*/*export*/*zk-source-data.json*
+** For a ZooKeeper using username:password for authentication:
+*** zk-migrator.sh -r -z *sourceHostname:sourceClientPort*/*sourceRootPath*/components -a <username:password> -f /*path*/*to*/*export*/*zk-source-data.json*
+* For NiFi 1.x
+** For an open ZooKeeper:
+*** zk-migrator.sh -r -z *sourceHostname:sourceClientPort*/*sourceRootPath*/components -f /*path*/*to*/*export*/*zk-source-data.json*
+** For a ZooKeeper using Kerberos for authentication:
+*** zk-migrator.sh -r -z *sourceHostname:sourceClientPort*/*sourceRootPath*/components -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
+
+4. (Optional) If you have used the  new NiFi installation to do any processing, you can also export its ZooKeeper data as a backup prior to performing the migration.
+
+* For an open ZooKeeper:
+** zk-migrator.sh -r -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -f /*path*/*to*/*export*/*zk-destination-backup-data.json*
+* For a ZooKeeper using Kerberos for authentication:
+** zk-migrator.sh -r -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-destination-backup-data.json*
+
+5. Migrate the ZooKeeper data to the destination ZooKeeper. If the source and destination ZooKeepers are the same, the `--ignore-source` option can be added to the following examples.
+
+* For an open ZooKeeper:
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -f /*path*/*to*/*export*/*zk-source-data.json*
+* For a ZooKeeper using Kerberos for authentication:
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
+
+6. Once the migration has completed successfully, start the processors in the NiFi flow.  Processing should continue from the point at which it was stopped when the NiFi flow was stopped.
 
 [[bootstrap_properties]]
 Bootstrap Properties

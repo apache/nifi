@@ -17,24 +17,10 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -52,11 +38,27 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input"})
+@Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input", "restricted"})
 @CapabilityDescription("Reads the contents of a file from disk and streams it into the contents of an incoming FlowFile. Once this is done, the file is optionally moved elsewhere or deleted "
     + "to help keep the file system organized.")
 @SeeAlso({GetFile.class, PutFile.class, ListFile.class})
+@Restricted("Provides operator the ability to read from and delete any file that NiFi has access to.")
 public class FetchFile extends AbstractProcessor {
     static final AllowableValue COMPLETION_NONE = new AllowableValue("None", "None", "Leave the file as-is");
     static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Moves the file to the directory specified by the <Move Destination Directory> property");
@@ -183,8 +185,14 @@ public class FetchFile extends AbstractProcessor {
         final LogLevel levelPermDenied = LogLevel.valueOf(context.getProperty(PERM_DENIED_LOG_LEVEL).getValue());
         final File file = new File(filename);
 
-        // Verify that file exists
-        if (!file.exists()) {
+        // Verify that file system is reachable and file exists
+        Path filePath = file.toPath();
+        if (!Files.exists(filePath) && !Files.notExists(filePath)){ // see https://docs.oracle.com/javase/tutorial/essential/io/check.html for more details
+            getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the existence of the file cannot be verified; routing to failure",
+                    new Object[] {file, flowFile});
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
+        } else if (!Files.exists(filePath)) {
             getLogger().log(levelFileNotFound, "Could not fetch file {} from file system for {} because the file does not exist; routing to not.found", new Object[] {file, flowFile});
             session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
             session.transfer(session.penalize(flowFile), REL_NOT_FOUND);

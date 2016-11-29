@@ -188,7 +188,7 @@
 
                             // this is option is enabled register appropriate listeners
                             if (option.disabled === true) {
-                                optionElement.addClass('unset disabled');
+                                optionElement.addClass('unset disabled-option');
                             } else {
                                 optionElement.click(function () {
                                     //remove active styles
@@ -242,19 +242,6 @@
                             }
 
                             actualHeight += 16;
-                        });
-
-                        // set the width of each option text
-                        optionList.find('span.combo-option-text').each(function () {
-                            var comboOptionText = $(this);
-                            var offset = 22;
-                            if (comboOptionText.parent().children('div').length > 0) {
-                                offset = 34;
-                            }
-                            if (maxHeight > 0 && actualHeight > maxHeight) {
-                                offset += 20;
-                            }
-                            comboOptionText.width(combo.outerWidth() - offset);
                         });
 
                         // show the glass pane to catch the click events

@@ -87,7 +87,8 @@ public class DropRequestDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The timestamp when the query was submitted."
+            value = "The timestamp when the query was submitted.",
+            dataType = "string"
     )
     public Date getSubmissionTime() {
         return submissionTime;
@@ -144,7 +145,8 @@ public class DropRequestDTO {
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     @ApiModelProperty(
-            value = "The last time this drop request was updated."
+            value = "The last time this drop request was updated.",
+            dataType = "string"
     )
     public Date getLastUpdated() {
         return lastUpdated;

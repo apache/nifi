@@ -223,14 +223,14 @@ nf.RemoteProcessGroupPorts = (function () {
                     if (port.exists === true) {
                         transmissionSwitch = (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
                     } else {
-                        (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
+                        (nf.ng.Bridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
                     }
                 }
             } else {
                 if (port.transmitting === true) {
                     (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
                 } else {
-                    (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
+                    (nf.ng.Bridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
                 }
             }
 
@@ -359,7 +359,7 @@ nf.RemoteProcessGroupPorts = (function () {
             if (port.transmitting === true) {
                 (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
             } else {
-                (nf.ng.Bridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
+                (nf.ng.Bridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nf.ng.Bridge.rootScope)).appendTo(portContainerEditContainer);
             }
         }
 
@@ -383,7 +383,7 @@ nf.RemoteProcessGroupPorts = (function () {
         var concurrentTasksContainer = $('<div class="concurrent-task-container"></div>').appendTo(portContainerDetailsContainer);
 
         // concurrent tasks
-        var concurrentTasks = $('<div class="setting-value"></div>').append($('<div id="' + portId + '-concurrent-tasks"></div>').text(port.concurrentlySchedulableTaskCount));
+        var concurrentTasks = $('<div class="setting-field"></div>').append($('<div id="' + portId + '-concurrent-tasks"></div>').text(port.concurrentlySchedulableTaskCount));
 
         // add this ports concurrent tasks
         $('<div>' +
@@ -410,7 +410,7 @@ nf.RemoteProcessGroupPorts = (function () {
             '<div class="setting-name">' +
             'Compressed' +
             '</div>' +
-            '<div class="setting-value">' +
+            '<div class="setting-field">' +
             '<div id="' + portId + '-compression">' + compressionLabel + '</div>' +
             '</div>' +
             '</div>').appendTo(compressionContainer);
@@ -420,6 +420,9 @@ nf.RemoteProcessGroupPorts = (function () {
 
         // apply ellipsis where appropriate
         portContainer.find('.ellipsis').ellipsis();
+
+        // inform Angular app values have changed
+        nf.ng.Bridge.digest();
     };
 
     /**
@@ -509,6 +512,10 @@ nf.RemoteProcessGroupPorts = (function () {
                             createPortOption(inputPortContainer, inputPort, 'input');
                         });
 
+                        if (nf.Common.isEmpty(connectedInputPorts) && nf.Common.isEmpty(disconnectedInputPorts)) {
+                            $('<div class="unset"></div>').text("No ports to display").appendTo(inputPortContainer);
+                        }
+
                         var connectedOutputPorts = [];
                         var disconnectedOutputPorts = [];
 
@@ -522,15 +529,19 @@ nf.RemoteProcessGroupPorts = (function () {
                             }
                         });
 
-                        // add all connected input ports
+                        // add all connected output ports
                         $.each(connectedOutputPorts, function (_, outputPort) {
                             createPortOption(outputPortContainer, outputPort, 'output');
                         });
 
-                        // add all disconnected input ports
+                        // add all disconnected output ports
                         $.each(disconnectedOutputPorts, function (_, outputPort) {
                             createPortOption(outputPortContainer, outputPort, 'output');
                         });
+
+                        if (nf.Common.isEmpty(connectedOutputPorts) && nf.Common.isEmpty(disconnectedOutputPorts)) {
+                            $('<div class="unset"></div>').text("No ports to display").appendTo(outputPortContainer);
+                        }
                     }
 
                     // show the details

@@ -16,14 +16,21 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Collection;
-import java.util.Map;
-
-import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ComponentAuthorizable;
+import org.apache.nifi.authorization.resource.RestrictedComponentsAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 
-public interface ConfiguredComponent extends Authorizable {
+import java.util.Collection;
+import java.util.Map;
+
+public interface ConfiguredComponent extends ComponentAuthorizable {
 
     public String getIdentifier();
 
@@ -35,25 +42,7 @@ public interface ConfiguredComponent extends Authorizable {
 
     public void setAnnotationData(String data);
 
-    /**
-     * Sets the property with the given name to the given value
-     *
-     * @param name the name of the property to update
-     * @param value the value to update the property to
-     */
-    public void setProperty(String name, String value);
-
-    /**
-     * Removes the property and value for the given property name if a
-     * descriptor and value exists for the given name. If the property is
-     * optional its value might be reset to default or will be removed entirely
-     * if was a dynamic property.
-     *
-     * @param name the property to remove
-     * @return true if removed; false otherwise
-     * @throws java.lang.IllegalArgumentException if the name is null
-     */
-    public boolean removeProperty(String name);
+    public void setProperties(Map<String, String> properties);
 
     public Map<PropertyDescriptor, String> getProperties();
 
@@ -75,4 +64,38 @@ public interface ConfiguredComponent extends Authorizable {
      * @return the Canonical Class Name of the component
      */
     String getCanonicalClassName();
+
+    /**
+     * @return whether or not the underlying implementation is restricted
+     */
+    boolean isRestricted();
+
+    @Override
+    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
+        // is not a modification request, we just want to use the normal rules
+        if (RequestAction.WRITE.equals(action) && isRestricted()) {
+            final RestrictedComponentsAuthorizable restrictedComponentsAuthorizable = new RestrictedComponentsAuthorizable();
+            final AuthorizationResult result = restrictedComponentsAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user, resourceContext);
+            if (Result.Denied.equals(result.getResult())) {
+                return result;
+            }
+        }
+
+        // defer to the base authorization check
+        return ComponentAuthorizable.super.checkAuthorization(authorizer, action, user, resourceContext);
+    }
+
+    @Override
+    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        // if this is a modification request and the reporting task is restricted ensure the user has elevated privileges. if this
+        // is not a modification request, we just want to use the normal rules
+        if (RequestAction.WRITE.equals(action) && isRestricted()) {
+            final RestrictedComponentsAuthorizable restrictedComponentsAuthorizable = new RestrictedComponentsAuthorizable();
+            restrictedComponentsAuthorizable.authorize(authorizer, RequestAction.WRITE, user, resourceContext);
+        }
+
+        // defer to the base authorization check
+        ComponentAuthorizable.super.authorize(authorizer, action, user, resourceContext);
+    }
 }

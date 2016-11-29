@@ -30,7 +30,6 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -97,11 +96,6 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     private String requestedDn;
     private KeyPair certificateKeyPair;
 
-    @BeforeClass
-    public static void before() {
-        TlsHelper.addBouncyCastleProvider();
-    }
-
     @Before
     public void setup() throws Exception {
         testToken = "testToken";
@@ -126,7 +120,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             return new PrintWriter(response);
         });
         caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
-        requestedDn = TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
+        requestedDn = new TlsConfig().calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
         certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         testPemEncodedCsr = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);

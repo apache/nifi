@@ -25,7 +25,7 @@ nf.ProcessorConfiguration = (function () {
     /**
      * Gets the available scheduling strategies based on the specified processor.
      *
-     * @param {type} processor
+     * @param {object} processor
      * @returns {Array}
      */
     var getSchedulingStrategies = function (processor) {
@@ -53,17 +53,11 @@ nf.ProcessorConfiguration = (function () {
         }
 
         // conditionally support event driven
-        if (nf.Canvas.isClustered()) {
+        if (processor.config['schedulingStrategy'] === 'PRIMARY_NODE_ONLY') {
             strategies.push({
                 text: 'On primary node',
                 value: 'PRIMARY_NODE_ONLY',
-                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule.'
-            });
-        } else if (processor.config['schedulingStrategy'] === 'PRIMARY_NODE_ONLY') {
-            strategies.push({
-                text: 'On primary node',
-                value: 'PRIMARY_NODE_ONLY',
-                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule.',
+                description: 'Processor will be scheduled on the primary node on an interval defined by the run schedule. This option has been deprecated, please use the Execution setting below.',
                 disabled: true
             });
         }
@@ -76,6 +70,25 @@ nf.ProcessorConfiguration = (function () {
         });
 
         return strategies;
+    };
+
+    /**
+     * Gets the available execution nodes based on the specified processor.
+     *
+     * @param {object} processor
+     * @returns {Array}
+     */
+    var getExecutionNodeOptions = function (processor) {
+        return [{
+            text: 'All nodes',
+            value: 'ALL',
+            description: 'Processor will be scheduled to run on all nodes'
+        }, {
+            text: 'Primary node',
+            value: 'PRIMARY',
+            description: 'Processor will be scheduled to run only on the primary node',
+            disabled: !nf.Canvas.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+        }];
     };
 
     /**
@@ -200,6 +213,9 @@ nf.ProcessorConfiguration = (function () {
             return true;
         }
 
+        if ($('#execution-node-combo').combo('getSelectedOption').value !== (details.config['executionNode'] + '')) {
+            return true;
+        }
         if ($('#processor-name').val() !== details['name']) {
             return true;
         }
@@ -263,6 +279,7 @@ nf.ProcessorConfiguration = (function () {
             processorConfigDto['schedulingPeriod'] = schedulingPeriod.val();
         }
 
+        processorConfigDto['executionNode'] = $('#execution-node-combo').combo('getSelectedOption').value;
         processorConfigDto['penaltyDuration'] = $('#penalty-duration').val();
         processorConfigDto['yieldDuration'] = $('#yield-duration').val();
         processorConfigDto['bulletinLevel'] = $('#bulletin-level-combo').combo('getSelectedOption').value;
@@ -629,11 +646,13 @@ nf.ProcessorConfiguration = (function () {
                         value: processor.config['bulletinLevel']
                     });
 
+                    var schedulingStrategy = processor.config['schedulingStrategy'];
+
                     // initialize the scheduling strategy
                     $('#scheduling-strategy-combo').combo({
                         options: getSchedulingStrategies(processor),
                         selectedOption: {
-                            value: processor.config['schedulingStrategy']
+                            value: schedulingStrategy
                         },
                         select: function (selectedOption) {
                             // show the appropriate panel
@@ -659,6 +678,23 @@ nf.ProcessorConfiguration = (function () {
                         }
                     });
 
+                    var executionNode = processor.config['executionNode'];
+
+                    // initialize the execution node combo
+                    $('#execution-node-combo').combo({
+                        options: getExecutionNodeOptions(processor),
+                        selectedOption: {
+                            value: executionNode
+                        }
+                    });
+
+                    // show the execution node option if we're cluster or we're currently configured to run on the primary node only
+                    if (nf.Canvas.isClustered() || executionNode === 'PRIMARY') {
+                        $('#execution-node-options').show();
+                    } else {
+                        $('#execution-node-options').hide();
+                    }
+
                     // initialize the concurrentTasks
                     var defaultConcurrentTasks = processor.config['defaultConcurrentTasks'];
                     $('#timer-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['TIMER_DRIVEN']);
@@ -667,9 +703,9 @@ nf.ProcessorConfiguration = (function () {
 
                     // get the appropriate concurrent tasks field
                     var concurrentTasks;
-                    if (processor.config['schedulingStrategy'] === 'EVENT_DRIVEN') {
+                    if (schedulingStrategy === 'EVENT_DRIVEN') {
                         concurrentTasks = $('#event-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
-                    } else if (processor.config['schedulingStrategy'] === 'CRON_DRIVEN') {
+                    } else if (schedulingStrategy === 'CRON_DRIVEN') {
                         concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
                     } else {
                         concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);

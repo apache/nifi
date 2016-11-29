@@ -156,7 +156,8 @@ public class BulletinDTO {
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     @ApiModelProperty(
-            value = "When this bulletin was generated."
+            value = "When this bulletin was generated.",
+            dataType = "string"
     )
     public Date getTimestamp() {
         return timestamp;

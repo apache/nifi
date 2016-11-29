@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -153,7 +153,7 @@
         <nifi.cluster.node.read.timeout>5 sec</nifi.cluster.node.read.timeout>
         <nifi.cluster.firewall.file />
         <nifi.cluster.flow.election.max.wait.time>5 mins</nifi.cluster.flow.election.max.wait.time>
-        <nifi.cluster.flow.election.max.candidates></nifi.cluster.flow.election.max.candidates>
+        <nifi.cluster.flow.election.max.candidates />
 
         <nifi.cluster.request.replication.claim.timeout>15 secs</nifi.cluster.request.replication.claim.timeout>
 
@@ -170,6 +170,13 @@
         <nifi.kerberos.spnego.principal />
         <nifi.kerberos.spnego.keytab.location />
         <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
+
+        <!-- nifi.properties: build info -->
+        <nifi.build.tag>${project.scm.tag}</nifi.build.tag>
+        <nifi.build.timestamp>${maven.build.timestamp}</nifi.build.timestamp>
+        <!-- buildRevision and buildBranch provided by buildnumber-maven-plugin or build-info-read-properties profile -->
+        <nifi.build.branch>${buildBranch}</nifi.build.branch>
+        <nifi.build.revision>${buildRevision}</nifi.build.revision>
     </properties>
     <build>
         <plugins>

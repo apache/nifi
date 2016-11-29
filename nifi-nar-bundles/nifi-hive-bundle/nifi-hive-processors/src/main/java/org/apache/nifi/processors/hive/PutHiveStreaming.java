@@ -379,7 +379,7 @@ public class PutHiveStreaming extends AbstractProcessor {
         final AtomicInteger successfulRecordCount = new AtomicInteger(0);
         List<HiveStreamingRecord> successfulRecords = new LinkedList<>();
         final FlowFile inputFlowFile = flowFile;
-        final AtomicBoolean incomingFlowFileTransferred = new AtomicBoolean(false);
+        final AtomicBoolean processingFailure = new AtomicBoolean(false);
 
         // Create output flow files and their Avro writers
         AtomicReference<FlowFile> successFlowFile = new AtomicReference<>(session.create(inputFlowFile));
@@ -543,11 +543,9 @@ public class PutHiveStreaming extends AbstractProcessor {
                 } catch (IOException ioe) {
                     // The Avro file is invalid (or may not be an Avro file at all), send it to failure
                     log.error("The incoming flow file can not be read as an Avro file, routing to failure", ioe);
-                    session.transfer(inputFlowFile, REL_FAILURE);
-                    incomingFlowFileTransferred.set(true);
+                    processingFailure.set(true);
                 }
             });
-
 
             if (recordCount.get() > 0) {
                 if (successfulRecordCount.get() > 0) {
@@ -578,7 +576,9 @@ public class PutHiveStreaming extends AbstractProcessor {
             failureFlowFile.set(null);
 
             // If we got here, we've processed the outgoing flow files correctly, so remove the incoming one if necessary
-            if (!incomingFlowFileTransferred.get()) {
+            if (processingFailure.get()) {
+                session.transfer(inputFlowFile, REL_FAILURE);
+            } else {
                 session.remove(flowFile);
             }
 

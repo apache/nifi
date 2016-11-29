@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -334,5 +335,10 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAWSCredentialsPr
 
         return isConsistent;
 
+    }
+
+    @OnStopped
+    public void onStopped() {
+        this.dynamoDB = null;
     }
 }

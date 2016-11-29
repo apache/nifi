@@ -64,4 +64,28 @@ public interface ResourceClaim extends Comparable<ResourceClaim> {
      * @return <code>true</code> if the Resource Claim is in use, <code>false</code> otherwise
      */
     boolean isInUse();
+
+
+    /**
+     * Provides the natural ordering for ResourceClaim objects. By default they are sorted by their id, then container, then section
+     *
+     * @param other other claim
+     * @return x such that x <= -1 if this is less than other;
+     *         x=0 if this.equals(other);
+     *         x >= 1 if this is greater than other
+     */
+    @Override
+    default int compareTo(final ResourceClaim other) {
+        final int idComparison = getId().compareTo(other.getId());
+        if (idComparison != 0) {
+            return idComparison;
+        }
+
+        final int containerComparison = getContainer().compareTo(other.getContainer());
+        if (containerComparison != 0) {
+            return containerComparison;
+        }
+
+        return getSection().compareTo(other.getSection());
+    }
 }

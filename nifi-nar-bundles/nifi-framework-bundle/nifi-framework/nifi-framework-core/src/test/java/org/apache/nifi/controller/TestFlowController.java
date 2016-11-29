@@ -46,16 +46,19 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
 
 public class TestFlowController {
 
@@ -326,5 +329,32 @@ public class TestFlowController {
         assertTrue(service.equals(service));
         assertFalse(service.equals(serviceNode));
     }
+
+    @Test
+    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
+        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor");
+        assertEquals(5,p_scheduled.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
+        assertEquals("1 sec",p_scheduled.getYieldPeriod());
+        assertEquals("30 sec",p_scheduled.getPenalizationPeriod());
+        assertEquals(LogLevel.WARN,p_scheduled.getBulletinLevel());
+    }
+
+    @Test
+    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
+
+        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor");
+        assertEquals("5 sec",p_settings.getYieldPeriod());
+        assertEquals("1 min",p_settings.getPenalizationPeriod());
+        assertEquals(LogLevel.DEBUG,p_settings.getBulletinLevel());
+        assertEquals(1,p_settings.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.TIMER_DRIVEN,p_settings.getSchedulingStrategy());
+        assertEquals("0 sec",p_settings.getSchedulingPeriod());
+    }
+
+
+
+
 
 }

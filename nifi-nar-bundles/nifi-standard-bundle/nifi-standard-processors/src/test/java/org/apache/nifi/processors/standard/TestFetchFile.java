@@ -48,6 +48,19 @@ public class TestFetchFile {
     }
 
     @Test
+    public void notFound() throws IOException {
+        final File sourceFile = new File("notFound");
+
+        final TestRunner runner = TestRunners.newTestRunner(new FetchFile());
+        runner.setProperty(FetchFile.FILENAME, sourceFile.getAbsolutePath());
+        runner.setProperty(FetchFile.COMPLETION_STRATEGY, FetchFile.COMPLETION_NONE.getValue());
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(FetchFile.REL_NOT_FOUND, 1);
+    }
+
+    @Test
     public void testSimpleSuccess() throws IOException {
         final File sourceFile = new File("target/1.txt");
         final byte[] content = "Hello, World!".getBytes();

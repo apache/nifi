@@ -295,6 +295,9 @@ nf.Actions = (function () {
                 // select only the component/connection in question
                 selection.classed('selected', true);
                 nf.Actions.center(selection);
+
+                // inform Angular app that values have changed
+                nf.ng.Bridge.digest();
             }
         },
 
@@ -1104,7 +1107,7 @@ nf.Actions = (function () {
 
                 var color;
                 if (allProcessors) {
-                    color = nf.Processor.defaultColor();
+                    color = nf.Processor.defaultFillColor();
                 } else {
                     color = nf.Label.defaultColor();
                 }

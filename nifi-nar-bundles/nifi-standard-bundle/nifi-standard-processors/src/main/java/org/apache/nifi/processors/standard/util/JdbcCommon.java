@@ -166,7 +166,9 @@ public class JdbcCommon {
                         // direct put to avro record results:
                         // org.apache.avro.AvroRuntimeException: Unknown datum type java.lang.Byte
                         rec.put(i - 1, ((Byte) value).intValue());
-
+                    } else if(value instanceof Short) {
+                        //MS SQL returns TINYINT as a Java Short, which Avro doesn't understand.
+                        rec.put(i - 1, ((Short) value).intValue());
                     } else if (value instanceof BigDecimal) {
                         // Avro can't handle BigDecimal as a number - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
                         rec.put(i - 1, value.toString());
@@ -258,7 +260,13 @@ public class JdbcCommon {
          * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
-            String columnName = convertNames ? normalizeNameForAvro(meta.getColumnName(i)) : meta.getColumnName(i);
+        /**
+        *   as per jdbc 4 specs, getColumnLabel will have the alias for the column, if not it will have the column name.
+        *  so it may be a better option to check for columnlabel first and if in case it is null is someimplementation,
+        *  check for alias. Postgres is the one that has the null column names for calculated fields.
+        */
+            String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) :meta.getColumnName(i);
+            String columnName = convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:

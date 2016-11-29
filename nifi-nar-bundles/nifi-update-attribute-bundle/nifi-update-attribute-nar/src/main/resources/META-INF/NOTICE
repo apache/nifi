@@ -18,10 +18,8 @@ The following binary components are provided under the Apache Software License v
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
-  (ASLv2) JSON-SMART
+  (ASLv2) Apache Commons IO
     The following NOTICE information applies:
-      Copyright 2011 JSON-SMART authors
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
 
-  (ASLv2) JsonPath
-    The following NOTICE information applies:
-      Copyright 2011 JsonPath authors

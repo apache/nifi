@@ -17,10 +17,12 @@
 
 package org.apache.nifi.toolkit.tls.service.client;
 
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +61,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        Assert.assertEquals(TlsConfig.calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
+        Assert.assertEquals(new TlsConfig().calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsConfig.DEFAULT_KEY_STORE_TYPE.toLowerCase(), clientConfig.getKeyStore());
         assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());
@@ -71,7 +73,8 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         assertEquals(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, clientConfig.getKeyPairAlgorithm());
         assertEquals(testToken, clientConfig.getToken());
         assertEquals(TlsConfig.DEFAULT_PORT, clientConfig.getPort());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigJson());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigJsonOut());
+        assertNull(tlsCertificateAuthorityClientCommandLine.getConfigJsonIn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CERTIFICATE_DIRECTORY, tlsCertificateAuthorityClientCommandLine.getCertificateDirectory());
     }
 
@@ -127,16 +130,43 @@ public class TlsCertificateAuthorityClientCommandLineTest {
 
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
         assertEquals(testType, clientConfig.getKeyStoreType());
-        assertEquals(testType, clientConfig.getTrustStoreType());
+        String trustStoreType = KeystoreType.JKS.toString().toLowerCase();
+        assertEquals(trustStoreType, clientConfig.getTrustStoreType());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + testType.toLowerCase(), clientConfig.getKeyStore());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + testType.toLowerCase(), clientConfig.getTrustStore());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + trustStoreType, clientConfig.getTrustStore());
     }
 
     @Test
-    public void testConfigFile() throws CommandLineParseException {
+    public void testConfigJsonOut() throws CommandLineParseException {
         String testPath = "/1/2/3/4";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-f", testPath);
-        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJson());
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJsonOut());
+        assertNull(tlsCertificateAuthorityClientCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonOutAndUseForBoth() throws CommandLineParseException {
+        String testPath = "/1/2/3/4";
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-f", testPath, "-F");
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJsonOut());
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonIn() throws CommandLineParseException {
+        String testPath = "/1/2/3/4";
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "--" + BaseCertificateAuthorityCommandLine.READ_CONFIG_JSON_ARG, testPath);
+        assertEquals(BaseCertificateAuthorityCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigJsonOut());
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJsonIn());
+    }
+
+    @Test
+    public void testConfigJsonInAndOut() throws CommandLineParseException {
+        String testPath = "/1/2/3/4";
+        String testIn = "/2/3/4/5";
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-f", testPath, "--" + BaseCertificateAuthorityCommandLine.READ_CONFIG_JSON_ARG, testIn);
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJsonOut());
+        assertEquals(testIn, tlsCertificateAuthorityClientCommandLine.getConfigJsonIn());
     }
 
     @Test

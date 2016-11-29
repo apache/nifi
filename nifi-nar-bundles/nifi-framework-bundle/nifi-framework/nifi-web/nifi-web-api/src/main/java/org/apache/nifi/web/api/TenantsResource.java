@@ -38,7 +38,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
@@ -164,6 +163,10 @@ public class TenantsResource extends ApplicationResource {
 
         if (requestUserEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("User ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestUserEntity.getComponent().getIdentity())) {
+            throw new IllegalArgumentException("User identity must be specified.");
         }
 
         if (isReplicateRequest()) {
@@ -551,6 +554,10 @@ public class TenantsResource extends ApplicationResource {
             throw new IllegalArgumentException("User group ID cannot be specified.");
         }
 
+        if (StringUtils.isBlank(requestUserGroupEntity.getComponent().getIdentity())) {
+            throw new IllegalArgumentException("User group identity must be specified.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestUserGroupEntity);
         }
@@ -864,19 +871,19 @@ public class TenantsResource extends ApplicationResource {
     // ------------
 
     /**
-     * Searches the cluster for a node with a given address.
+     * Searches for a tenant with a given identity.
      *
-     * @param value Search value that will be matched against a node's address
-     * @return Nodes that match the specified criteria
+     * @param value Search value that will be matched against a user/group identity
+     * @return Tenants match the specified criteria
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-results")
     @ApiOperation(
-            value = "Searches the cluster for a node with the specified address",
+            value = "Searches for a tenant with the specified identity",
             notes = NON_GUARANTEED_ENDPOINT,
-            response = ClusterSearchResultsEntity.class,
+            response = TenantsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /tenants", type = "")
             }
@@ -892,7 +899,7 @@ public class TenantsResource extends ApplicationResource {
     )
     public Response searchCluster(
             @ApiParam(
-                    value = "Node address to search for.",
+                    value = "Identity to search for.",
                     required = true
             )
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
@@ -925,6 +932,7 @@ public class TenantsResource extends ApplicationResource {
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userEntity.getPermissions());
+                entity.setRevision(userEntity.getRevision());
                 entity.setId(userEntity.getId());
                 entity.setComponent(tenant);
 
@@ -942,6 +950,7 @@ public class TenantsResource extends ApplicationResource {
 
                 final TenantEntity entity = new TenantEntity();
                 entity.setPermissions(userGroupEntity.getPermissions());
+                entity.setRevision(userGroupEntity.getRevision());
                 entity.setId(userGroupEntity.getId());
                 entity.setComponent(tenant);
 

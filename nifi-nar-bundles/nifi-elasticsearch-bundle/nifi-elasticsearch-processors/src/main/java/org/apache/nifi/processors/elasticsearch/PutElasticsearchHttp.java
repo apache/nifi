@@ -328,7 +328,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                         if (itemNodeArray.size() > 0) {
                             // All items are returned whether they succeeded or failed, so iterate through the item array
                             // at the same time as the flow file list, moving each to success or failure accordingly
-                            for (int i = 0; i < itemNodeArray.size(); i++) {
+                            for (int i = itemNodeArray.size() - 1; i >= 0; i--) {
                                 JsonNode itemNode = itemNodeArray.get(i);
                                 FlowFile flowFile = flowFilesToTransfer.remove(i);
                                 int status = itemNode.findPath("status").asInt();
@@ -358,9 +358,15 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     session.transfer(flowFilesToTransfer, REL_FAILURE);
                     context.yield();
                 }
-            } else {
-                // Something went wrong during the bulk update, throw a ProcessException to indicate rollback
-                throw new ProcessException("Received error code " + statusCode + " from Elasticsearch API");
+            } else if (statusCode / 100 == 5) {
+                // 5xx -> RETRY, but a server error might last a while, so yield
+                logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to retry. This is likely a server problem, yielding...",
+                        new Object[]{statusCode, getResponse.message()});
+                session.transfer(flowFilesToTransfer, REL_RETRY);
+                context.yield();
+            } else {  // 1xx, 3xx, 4xx, etc. -> NO RETRY
+                logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", new Object[]{statusCode, getResponse.message()});
+                session.transfer(flowFilesToTransfer, REL_FAILURE);
             }
         }
     }

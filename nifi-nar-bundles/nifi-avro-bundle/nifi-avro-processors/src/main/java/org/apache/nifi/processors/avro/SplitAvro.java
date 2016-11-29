@@ -267,7 +267,8 @@ public class SplitAvro extends AbstractProcessor {
                         }
 
                         // while records are left, start a new split by spawning a FlowFile
-                        while (reader.hasNext()) {
+                        final AtomicReference<Boolean> hasNextHolder = new AtomicReference<Boolean>(reader.hasNext());
+                        while (hasNextHolder.get()) {
                             FlowFile childFlowFile = session.create(originalFlowFile);
                             childFlowFile = session.write(childFlowFile, new OutputStreamCallback() {
                                 @Override
@@ -277,11 +278,13 @@ public class SplitAvro extends AbstractProcessor {
 
                                         // append to the current FlowFile until no more records, or splitSize is reached
                                         int recordCount = 0;
-                                        while (reader.hasNext() && recordCount < splitSize) {
+                                        while (hasNextHolder.get() && recordCount < splitSize) {
                                             recordHolder.set(reader.next(recordHolder.get()));
                                             splitWriter.write(recordHolder.get());
                                             recordCount++;
+                                            hasNextHolder.set(reader.hasNext());
                                         }
+
                                         splitWriter.flush();
                                     } finally {
                                         splitWriter.close();

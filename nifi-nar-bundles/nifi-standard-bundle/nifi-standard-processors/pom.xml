@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -155,7 +155,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>1.7</version>
+            <version>1.14</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -169,10 +169,10 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
         </dependency>
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-		</dependency>
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-mapper-asl</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>
@@ -242,7 +242,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-utils</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
+            <version>1.2.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>net.sf.supercsv</groupId>
@@ -250,9 +250,15 @@ language governing permissions and limitations under the License. -->
             <version>2.4.0</version>
         </dependency>
         <dependency>
-            <groupId>org.everit.json</groupId>
-            <artifactId>org.everit.json.schema</artifactId>
-            <version>1.4.0</version>
+            <groupId>com.fluenda</groupId>
+            <artifactId>ParCEFone</artifactId>
+            <version>1.2.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
@@ -279,9 +285,6 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.csv</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-sample-schema.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-object-sample.json</exclude>
-                        <exclude>src/test/resources/TestJson/json-object-sample-schema.json</exclude>
                         <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>

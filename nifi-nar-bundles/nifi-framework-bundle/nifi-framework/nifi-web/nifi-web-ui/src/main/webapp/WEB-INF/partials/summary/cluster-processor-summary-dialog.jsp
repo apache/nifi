@@ -27,9 +27,10 @@
                 <div id="cluster-processor-icon"></div>
                 <div id="cluster-processor-details">
                     <div id="cluster-processor-name"></div>
-                    <div id="cluster-processor-id"></div>
+                    <div id="cluster-processor-type"></div>
                     <div id="cluster-processor-group-id" class="hidden"></div>
                 </div>
+                <div id="cluster-processor-id"></div>
             </div>
         </div>
         <div id="cluster-processor-summary-table"></div>

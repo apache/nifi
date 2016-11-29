@@ -25,9 +25,7 @@
         </div>
         <div class="setting">
             <div class="setting-name">Description</div>
-            <div class="setting-field">
-                <div id="component-state-description" class="ellipsis multiline"></div>
-            </div>
+            <div id="component-state-description" class="ellipsis multiline"></div>
         </div>
         <div>
             <div id="component-state-partial-results-container" class="hidden">

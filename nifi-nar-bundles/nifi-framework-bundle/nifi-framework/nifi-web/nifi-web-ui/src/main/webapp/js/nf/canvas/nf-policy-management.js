@@ -40,9 +40,9 @@ nf.PolicyManagement = (function () {
 
         $('#search-users-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Search users',
+            headerText: 'Add Users/Groups',
             buttons: [{
-                buttonText: 'Ok',
+                buttonText: 'Add',
                 color: {
                     base: '#728E9B',
                     hover: '#004849',
@@ -50,85 +50,31 @@ nf.PolicyManagement = (function () {
                 },
                 handler: {
                     click: function () {
-                        var tenantSearchTerm = $('#search-users-field').val();
+                        // add to table and update policy
+                        var policyGrid = $('#policy-table').data('gridInstance');
+                        var policyData = policyGrid.getData();
 
-                        // create the search request
-                        $.ajax({
-                            type: 'GET',
-                            data: {
-                                q: tenantSearchTerm
-                            },
-                            dataType: 'json',
-                            url: config.urls.searchTenants
-                        }).done(function (response) {
-                            var selectedUsers = $.map(response.users, function (user) {
-                                return $.extend({
-                                    type: 'user'
-                                }, user);
-                            });
-                            var selectedGroups = $.map(response.userGroups, function (userGroup) {
-                                return $.extend({
-                                    type: 'group'
-                                }, userGroup);
-                            });
+                        // begin the update
+                        policyData.beginUpdate();
 
-                            var selectedUser = [];
-                            selectedUser = selectedUser.concat(selectedUsers, selectedGroups);
-
-                            // add the user to the policy table
-                            var addUser = function (user) {
-                                // add to table and update policy
-                                var policyGrid = $('#policy-table').data('gridInstance');
-                                var policyData = policyGrid.getData();
-
-                                // begin the update
-                                policyData.beginUpdate();
-
-                                // remove the user
-                                policyData.addItem(user);
-
-                                // end the update
-                                policyData.endUpdate();
-
-                                // update the policy
-                                updatePolicy();
-                            };
-
-                            // ensure the search found some results
-                            if (!$.isArray(selectedUser) || selectedUser.length === 0) {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'User Search',
-                                    dialogContent: 'No users match \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                });
-                            } else if (selectedUser.length > 1) {
-                                var exactMatch = false;
-
-                                // look for an exact match
-                                $.each(selectedUser, function (_, userEntity) {
-                                    if (userEntity.component.identity === tenantSearchTerm) {
-                                        addUser(userEntity);
-                                        exactMatch = true;
-                                        return false;
-                                    }
-                                });
-
-                                // if there is an exact match, use it
-                                if (exactMatch) {
-                                    // close the dialog
-                                    $('#search-users-dialog').modal('hide');
-                                } else {
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'User Search',
-                                        dialogContent: 'More than one user matches \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                    });
-                                }
-                            } else if (selectedUser.length === 1) {
-                                addUser(selectedUser[0]);
-
-                                // close the dialog
-                                $('#search-users-dialog').modal('hide');
-                            }
+                        // add all users/groups
+                        $.each(getTenantsToAdd($('#allowed-users')), function (_, user) {
+                            // remove the user
+                            policyData.addItem(user);
                         });
+                        $.each(getTenantsToAdd($('#allowed-groups')), function (_, group) {
+                            // remove the user
+                            policyData.addItem(group);
+                        });
+
+                        // end the update
+                        policyData.endUpdate();
+
+                        // update the policy
+                        updatePolicy();
+
+                        // close the dialog
+                        $('#search-users-dialog').modal('hide');
                     }
                 }
             },
@@ -150,9 +96,16 @@ nf.PolicyManagement = (function () {
                 close: function () {
                     // reset the search fields
                     $('#search-users-field').userSearchAutocomplete('reset').val('');
-                    $('#selected-user-id').text('');
+
+                    // clear the selected users/groups
+                    $('#allowed-users, #allowed-groups').empty();
                 }
             }
+        });
+
+        // listen for removal requests
+        $(document).on('click', 'div.remove-allowed-entity', function () {
+            $(this).closest('li').remove();
         });
 
         // configure the user auto complete
@@ -169,18 +122,25 @@ nf.PolicyManagement = (function () {
                 // results are normalized into a single element array
                 var searchResults = items[0];
 
+                var allowedGroups = getAllAllowedGroups();
+                var allowedUsers = getAllAllowedUsers();
+
                 var self = this;
                 $.each(searchResults.userGroups, function (_, tenant) {
-                    self._renderGroup(ul, {
-                        label: tenant.component.identity,
-                        value: tenant.component.identity
-                    });
+                    // see if this match is not already selected
+                    if ($.inArray(tenant.id, allowedGroups) === -1) {
+                        self._renderGroup(ul, $.extend({
+                            type: 'group'
+                        }, tenant));
+                    }
                 });
                 $.each(searchResults.users, function (_, tenant) {
-                    self._renderUser(ul, {
-                        label: tenant.component.identity,
-                        value: tenant.component.identity
-                    });
+                    // see if this match is not already selected
+                    if ($.inArray(tenant.id, allowedUsers) === -1) {
+                        self._renderUser(ul, $.extend({
+                            type: 'user'
+                        }, tenant));
+                    }
                 });
 
                 // ensure there were some results
@@ -190,14 +150,14 @@ nf.PolicyManagement = (function () {
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
-                ul.width($('#search-users-field').width() + 6);
+                ul.width($('#search-users-field').outerWidth() - 6);
             },
             _renderUser: function (ul, match) {
-                var userContent = $('<a></a>').text(match.label);
+                var userContent = $('<a></a>').text(match.component.identity);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(userContent).appendTo(ul);
             },
             _renderGroup: function (ul, match) {
-                var groupLabel = $('<span></span>').text(match.label);
+                var groupLabel = $('<span></span>').text(match.component.identity);
                 var groupContent = $('<a></a>').append('<div class="fa fa-users" style="margin-right: 5px;"></div>').append(groupLabel);
                 return $('<li></li>').data('ui-autocomplete-item', match).append(groupContent).appendTo(ul);
             }
@@ -224,10 +184,110 @@ nf.PolicyManagement = (function () {
                 }).done(function (searchResponse) {
                     response(searchResponse);
                 });
+            },
+            select: function (event, ui) {
+                addAllowedTenant(ui.item);
+
+                // reset the search field
+                $(this).val('');
+
+                // stop event propagation
+                return false;
             }
         });
     };
-    
+
+    /**
+     * Gets all allowed groups including those already in the policy and those selected while searching (not yet saved).
+     *
+     * @returns {Array}
+     */
+    var getAllAllowedGroups = function () {
+        var policyGrid = $('#policy-table').data('gridInstance');
+        var policyData = policyGrid.getData();
+
+        var userGroups = [];
+
+        // consider existing groups in the policy table
+        var items = policyData.getItems();
+        $.each(items, function (_, item) {
+            if (item.type === 'group') {
+                userGroups.push(item.id);
+            }
+        });
+
+        // also consider groups already selected in the search users dialog
+        $.each(getTenantsToAdd($('#allowed-groups')), function (_, group) {
+            userGroups.push(group.id);
+        });
+
+        return userGroups;
+    };
+
+    /**
+     * Gets the user groups that will be added upon applying the changes.
+     *
+     * @param {jQuery} container
+     * @returns {Array}
+     */
+    var getTenantsToAdd = function (container) {
+        var tenants = [];
+
+        // also consider groups already selected in the search users dialog
+        container.children('li').each(function (_, allowedTenant) {
+            var tenant = $(allowedTenant).data('tenant');
+            if (nf.Common.isDefinedAndNotNull(tenant)) {
+                tenants.push(tenant);
+            }
+        });
+
+        return tenants;
+    };
+
+    /**
+     * Gets all allowed users including those already in the policy and those selected while searching (not yet saved).
+     *
+     * @returns {Array}
+     */
+    var getAllAllowedUsers = function () {
+        var policyGrid = $('#policy-table').data('gridInstance');
+        var policyData = policyGrid.getData();
+
+        var users = [];
+
+        // consider existing users in the policy table
+        var items = policyData.getItems();
+        $.each(items, function (_, item) {
+            if (item.type === 'user') {
+                users.push(item.id);
+            }
+        });
+
+        // also consider users already selected in the search users dialog
+        $.each(getTenantsToAdd($('#allowed-users')), function (_, user) {
+            users.push(user.id);
+        });
+
+        return users;
+    };
+
+    /**
+     * Added the specified tenant to the listing of users/groups which will be added when applied.
+     *
+     * @param allowedTenant user/group to add
+     */
+    var addAllowedTenant = function (allowedTenant) {
+        var allowedTenants = allowedTenant.type === 'user' ? $('#allowed-users') : $('#allowed-groups');
+
+        // append the user
+        var tenant = $('<span></span>').addClass('allowed-entity ellipsis').text(allowedTenant.component.identity).ellipsis();
+        var tenantAction = $('<div></div>').addClass('remove-allowed-entity fa fa-trash');
+        $('<li></li>').data('tenant', allowedTenant).append(tenant).append(tenantAction).appendTo(allowedTenants);
+    };
+
+    /**
+     * Initializes the policy table.
+     */
     var initPolicyTable = function () {
         $('#override-policy-dialog').modal({
             headerText: 'Override Policy',
@@ -279,43 +339,17 @@ nf.PolicyManagement = (function () {
 
         // policy type listing
         $('#policy-type-list').combo({
-            options: [{
-                text: 'view the user interface',
-                value: 'flow',
-                description: 'Allows users to view the user interface'
-            }, {
-                text: 'access the controller',
-                value: 'controller',
-                description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
-            }, {
-                text: 'query provenance',
-                value: 'provenance',
-                description: 'Allows users to submit a Provenance Search and request Event Lineage'
-            }, {
-                text: 'access all policies',
-                value: 'policies',
-                description: 'Allows users to view/modify the policies for all components'
-            }, {
-                text: 'access users/user groups',
-                value: 'tenants',
-                description: 'Allows users to view/modify the users and user groups'
-            }, {
-                text: 'retrieve site-to-site details',
-                value: 'site-to-site',
-                description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
-            }, {
-                text: 'view system diagnostics',
-                value: 'system',
-                description: 'Allows users to view System Diagnostics'
-            }, {
-                text: 'proxy user requests',
-                value: 'proxy',
-                description: 'Allows proxy machines to send requests on the behalf of others'
-            }, {
-                text: 'access counters',
-                value: 'counters',
-                description: 'Allows users to view/modify Counters'
-            }],
+            options: [
+                nf.Common.getPolicyTypeListing('flow'),
+                nf.Common.getPolicyTypeListing('controller'),
+                nf.Common.getPolicyTypeListing('provenance'),
+                nf.Common.getPolicyTypeListing('restricted-components'),
+                nf.Common.getPolicyTypeListing('policies'),
+                nf.Common.getPolicyTypeListing('tenants'),
+                nf.Common.getPolicyTypeListing('site-to-site'),
+                nf.Common.getPolicyTypeListing('system'),
+                nf.Common.getPolicyTypeListing('proxy'),
+                nf.Common.getPolicyTypeListing('counters')],
             select: function (option) {
                 if (initialized) {
                     // record the policy type
@@ -331,7 +365,7 @@ nf.PolicyManagement = (function () {
                         $('#controller-policy-target').hide();
 
                         // record the action
-                        if (option.value === 'proxy') {
+                        if (option.value === 'proxy' || option.value === 'restricted-components') {
                             $('#selected-policy-action').text('write');
                         } else {
                             $('#selected-policy-action').text('read');
@@ -456,9 +490,8 @@ nf.PolicyManagement = (function () {
 
             // see if the user has permissions for the current policy
             var currentEntity = $('#policy-table').data('policy');
-            var resourceComponentId = nf.Common.substringAfterLast(currentEntity.component.resource, '/');
-            var selectedComponentId = $('#selected-policy-component-id').text();
-            if (currentEntity.permissions.canWrite === true && resourceComponentId === selectedComponentId) {
+            var isPolicyEditable = $('#delete-policy-button').is(':disabled') === false;
+            if (currentEntity.permissions.canWrite === true && isPolicyEditable) {
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
@@ -608,8 +641,10 @@ nf.PolicyManagement = (function () {
      */
     var promptToDeletePolicy = function () {
         nf.Dialog.showYesNoDialog({
-            headerText: 'Update Policy',
-            dialogContent: 'Are you sure you want to delete this policy?',
+            headerText: 'Delete Policy',
+            dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy if applicable.',
+            yesText: 'Delete',
+            noText: 'Cancel',
             yesHandler: function () {
                 deletePolicy();
             }
@@ -636,7 +671,7 @@ nf.PolicyManagement = (function () {
             });
         } else {
             nf.Dialog.showOkDialog({
-                headerText: 'Update Policy',
+                headerText: 'Delete Policy',
                 dialogContent: 'No policy selected'
             });
         }
@@ -725,8 +760,16 @@ nf.PolicyManagement = (function () {
 
             // build the mark up
             return $('<span>Showing effective policy inherited from Process Group </span>').append($('<span class="link"></span>').text(processGroupName).on('click', function () {
+                // close the shell
                 $('#shell-close-button').click();
-                nf.CanvasUtils.enterGroup(processGroupId);
+
+                // load the correct group and unselect everything if necessary
+                nf.CanvasUtils.enterGroup(processGroupId).done(function () {
+                    nf.CanvasUtils.getSelection().classed('selected', false);
+
+                    // inform Angular app that values have changed
+                    nf.ng.Bridge.digest();
+                });
             })).append('<span>.</span>');
         }
     };
@@ -1356,7 +1399,7 @@ nf.PolicyManagement = (function () {
 
             if (policyType === 'controller') {
                 $('#selected-policy-action').text($('#controller-policy-target').combo('getSelectedOption').value);
-            } else if (policyType === 'proxy') {
+            } else if (policyType === 'proxy' || policyType === 'restricted-components') {
                 $('#selected-policy-action').text('write');
             } else {
                 $('#selected-policy-action').text('read');

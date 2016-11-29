@@ -25,27 +25,32 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class PlusEvaluator extends NumberEvaluator {
 
-    private final Evaluator<Long> subject;
-    private final Evaluator<Long> plusValue;
+    private final Evaluator<Number> subject;
+    private final Evaluator<Number> plusValue;
 
-    public PlusEvaluator(final Evaluator<Long> subject, final Evaluator<Long> plusValue) {
+    public PlusEvaluator(final Evaluator<Number> subject, final Evaluator<Number> plusValue) {
         this.subject = subject;
         this.plusValue = plusValue;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final Long subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Number> evaluate(final Map<String, String> attributes) {
+        final Number subjectValue = subject.evaluate(attributes).getValue();
         if (subjectValue == null) {
             return new NumberQueryResult(null);
         }
 
-        final Long plus = plusValue.evaluate(attributes).getValue();
+        final Number plus = plusValue.evaluate(attributes).getValue();
         if (plus == null) {
             return new NumberQueryResult(null);
         }
 
-        final long result = subjectValue + plus;
+        final Number result;
+        if (subjectValue instanceof Double || plus instanceof Double){
+            result = subjectValue.doubleValue() + plus.doubleValue();
+        } else {
+            result = subjectValue.longValue() + plus.longValue();
+        }
         return new NumberQueryResult(result);
     }
 

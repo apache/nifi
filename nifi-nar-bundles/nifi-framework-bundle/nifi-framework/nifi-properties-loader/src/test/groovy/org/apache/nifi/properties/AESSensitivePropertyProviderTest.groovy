@@ -239,6 +239,36 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
+    public void testShouldUnprotectValueWithWhitespace() throws Exception {
+        // Arrange
+        final String PLAINTEXT = "This is a plaintext value"
+
+        Map<Integer, Cipher> encryptionCiphers = KEY_SIZES.collectEntries { int keySize ->
+            byte[] iv = new byte[IV_LENGTH]
+            secureRandom.nextBytes(iv)
+            [(keySize): getCipher(true, keySize, iv)]
+        }
+
+        Map<Integer, String> CIPHER_TEXTS = encryptionCiphers.collectEntries { Map.Entry<Integer, Cipher> e ->
+            String iv = encoder.encodeToString(e.value.getIV())
+            String cipherText = encoder.encodeToString(e.value.doFinal(PLAINTEXT.getBytes(StandardCharsets.UTF_8)))
+            [(e.key): "${iv}||${cipherText}"]
+        }
+        CIPHER_TEXTS.each { key, ct -> logger.expected("Cipher text for ${key} length key: ${ct}") }
+
+        // Act
+        Map<Integer, String> plaintexts = CIPHER_TEXTS.collectEntries { int keySize, String cipherText ->
+            SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
+            logger.info("Initialized ${spp.name} with key size ${keySize}")
+            [(keySize): spp.unprotect("\t" + cipherText + "\n")]
+        }
+        plaintexts.each { ks, pt -> logger.info("Decrypted for ${ks} length key: ${pt}") }
+
+        // Assert
+        assert plaintexts.every { int ks, String pt -> pt == PLAINTEXT }
+    }
+
+    @Test
     public void testShouldHandleUnprotectMalformedValue() throws Exception {
         // Arrange
         final String PLAINTEXT = "This is a plaintext value"
@@ -352,18 +382,21 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGetImplementationKeyWithDifferentMaxKeyLengths() throws Exception {
+    public void testShouldGetIdentifierKeyWithDifferentMaxKeyLengths() throws Exception {
         // Arrange
-        final int MAX_KEY_SIZE = getAvailableKeySizes().max()
-        final String EXPECTED_IMPL_KEY = "aes/gcm/${MAX_KEY_SIZE}"
-        logger.expected("Implementation key: ${EXPECTED_IMPL_KEY}")
+        def keys = getAvailableKeySizes().collectEntries { int keySize ->
+            [(keySize): getKeyOfSize(keySize)]
+        }
+        logger.info("Keys: ${keys}")
 
         // Act
-        String key = new AESSensitivePropertyProvider(getKeyOfSize(MAX_KEY_SIZE)).getIdentifierKey()
-        logger.info("Implementation key: ${key}")
+        keys.each { int size, String key ->
+            String identifierKey = new AESSensitivePropertyProvider(key).getIdentifierKey()
+            logger.info("Identifier key: ${identifierKey} for size ${size}")
 
-        // Assert
-        assert key == EXPECTED_IMPL_KEY
+            // Assert
+            assert identifierKey =~ /aes\/gcm\/${size}/
+        }
     }
 
     @Test
@@ -414,9 +447,9 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
     @Test
     public void testShouldEncryptArbitraryValues() {
         // Arrange
-        def values = ["thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message"]
+        def values = ["thisIsABadPassword", "thisIsABadSensitiveKeyPassword", "thisIsABadKeystorePassword", "thisIsABadKeyPassword", "thisIsABadTruststorePassword", "This is an encrypted banner message", "nififtw!"]
 
-        String key = getKeyOfSize(128)
+        String key = "2C576A9585DB862F5ECBEE5B4FFFCCA1" //getKeyOfSize(128)
         // key = "0" * 64
 
         SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)
