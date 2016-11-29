@@ -33,13 +33,14 @@ goto startMiNifi
 :startMiNifi
 set MINIFI_ROOT=%~dp0..\
 pushd "%MINIFI_ROOT%"
-set LIB_DIR=lib\bootstrap
+set BOOTSTRAP_LIB_DIR=lib\bootstrap
+set LIB_DIR=lib
 set CONF_DIR=conf
 
 set BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
 set JAVA_ARGS=-Dorg.apache.nifi.minifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
 
-set JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.minifi.bootstrap.RunNiFiMi
+set JAVA_PARAMS=-cp %CONF_DIR%;%BOOTSTRAP_LIB_DIR%\*;%LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.minifi.bootstrap.RunMiNiFi
 set BOOTSTRAP_ACTION=status
 
 cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %BOOTSTRAP_ACTION%
