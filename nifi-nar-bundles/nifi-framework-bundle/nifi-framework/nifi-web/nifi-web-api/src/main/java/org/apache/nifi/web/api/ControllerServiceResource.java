@@ -704,8 +704,11 @@ public class ControllerServiceResource extends ApplicationResource {
                 requestControllerServiceEntity,
                 requestRevision,
                 lookup -> {
-                    final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
-                    controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final ConfigurableComponentAuthorizable controllerService = lookup.getControllerService(id);
+                    controllerService.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // verify any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerService, authorizer, lookup);
                 },
                 () -> serviceFacade.verifyDeleteControllerService(id),
                 (revision, controllerServiceEntity) -> {

@@ -373,14 +373,9 @@ public class ProcessGroupResource extends ApplicationResource {
                     final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
 
-                    // ensure write to the process group
-                    final Authorizable processGroup = processGroupAuthorizable.getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
-
-                    // ensure write to all encapsulated components
-                    processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(encaupsulatedAuthorizable -> {
-                        encaupsulatedAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                    });
+                    // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
+                    // read to any referenced services by encapsulated components
+                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true);
                 },
                 () -> serviceFacade.verifyDeleteProcessGroup(id),
                 (revision, processGroupEntity) -> {
