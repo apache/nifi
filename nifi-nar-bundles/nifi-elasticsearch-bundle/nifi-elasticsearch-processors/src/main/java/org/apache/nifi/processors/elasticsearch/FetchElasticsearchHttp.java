@@ -131,19 +131,17 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_NOT_FOUND);
-        return Collections.unmodifiableSet(relationships);
-    }
+    static {
+        final Set<Relationship> _rels = new HashSet<>();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        _rels.add(REL_RETRY);
+        _rels.add(REL_NOT_FOUND);
+        relationships = Collections.unmodifiableSet(_rels);
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(ES_URL);
         descriptors.add(PROP_SSL_CONTEXT_SERVICE);
@@ -156,9 +154,18 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         descriptors.add(TYPE);
         descriptors.add(FIELDS);
 
-        return Collections.unmodifiableList(descriptors);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
     @OnScheduled
     public void setup(ProcessContext context) {
@@ -194,7 +201,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 : null;
 
         // Authentication
-        final String username = context.getProperty(USERNAME).getValue();
+        final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
 
         final ComponentLog logger = getLogger();
@@ -204,7 +211,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
 
             // read the url property from the context
-            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).getValue());
+            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ES_URL).evaluateAttributeExpressions().getValue());
             final URL url = buildRequestURL(urlstr, docId, index, docType, fields);
             final long startNanos = System.nanoTime();
 
