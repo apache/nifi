@@ -62,6 +62,35 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
+    public void testFetchElasticsearchOnTriggerEL() throws IOException {
+        runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(FetchElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+        runner.assertValid();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
+        runner.assertValid();
+
+        runner.setVariable("es.url", "http://127.0.0.1:9200");
+        runner.setVariable("connect.timeout", "5s");
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
     public void testFetchElasticsearchOnTrigger() throws IOException {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setValidateExpressionUsage(true);

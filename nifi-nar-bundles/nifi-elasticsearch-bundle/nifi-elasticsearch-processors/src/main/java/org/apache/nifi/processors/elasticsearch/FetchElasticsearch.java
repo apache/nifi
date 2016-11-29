@@ -105,18 +105,17 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
             .build();
 
 
-    @Override
-    public Set<Relationship> getRelationships() {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_RETRY);
-        relationships.add(REL_NOT_FOUND);
-        return Collections.unmodifiableSet(relationships);
-    }
+    private static final Set<Relationship> relationships;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    static {
+        final Set<Relationship> _rels = new HashSet<>();
+        _rels.add(REL_SUCCESS);
+        _rels.add(REL_FAILURE);
+        _rels.add(REL_RETRY);
+        _rels.add(REL_NOT_FOUND);
+        relationships = Collections.unmodifiableSet(_rels);
+
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(CLUSTER_NAME);
         descriptors.add(HOSTS);
@@ -131,9 +130,18 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
         descriptors.add(TYPE);
         descriptors.add(CHARSET);
 
-        return Collections.unmodifiableList(descriptors);
+        propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
+    }
 
     @OnScheduled
     public void setup(ProcessContext context) {
@@ -151,7 +159,7 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(flowFile).getValue();
         final String docId = context.getProperty(DOC_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
         try {
