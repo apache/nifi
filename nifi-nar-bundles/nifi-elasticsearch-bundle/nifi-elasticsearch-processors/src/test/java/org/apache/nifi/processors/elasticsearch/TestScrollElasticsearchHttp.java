@@ -78,6 +78,30 @@ public class TestScrollElasticsearchHttp {
         runAndVerifySuccess();
     }
 
+    @Test
+    public void testScrollElasticsearchOnTrigger_withNoInput_EL() throws IOException {
+        runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
+
+        runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.QUERY,
+                "source:WZ AND identifier:\"${identifier}\"");
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.PAGE_SIZE, "2");
+        runner.assertValid();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.CONNECT_TIMEOUT, "${connect.timeout}");
+        runner.assertValid();
+
+        runner.setVariable("es.url", "http://127.0.0.1:9200");
+
+        runner.setIncomingConnection(false);
+        runAndVerifySuccess();
+    }
+
     private void runAndVerifySuccess() {
         runner.enqueue("".getBytes(), new HashMap<String, String>() {
             {
