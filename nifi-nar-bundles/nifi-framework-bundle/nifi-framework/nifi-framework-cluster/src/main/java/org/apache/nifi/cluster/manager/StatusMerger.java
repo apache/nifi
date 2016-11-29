@@ -307,6 +307,8 @@ public class StatusMerger {
 
         merge(target.getAggregateSnapshot(), targetReadablePermission, toMerge.getAggregateSnapshot(), toMergeReadablePermission);
 
+        target.setTransmitting(Boolean.TRUE.equals(target.isTransmitting()) || Boolean.TRUE.equals(toMerge.isTransmitting()));
+
         if (target.getNodeSnapshots() != null) {
             final NodePortStatusSnapshotDTO nodeSnapshot = new NodePortStatusSnapshotDTO();
             nodeSnapshot.setStatusSnapshot(toMerge.getAggregateSnapshot());
