@@ -31,6 +31,40 @@ import java.util.Objects;
 public final class AuthorizeControllerServiceReference {
 
     /**
+     * Authorizes any referenced controller services from the specified configurable component.
+     *
+     * @param authorizable authorizable that may reference a controller service
+     * @param authorizer authorizer
+     * @param lookup lookup
+     */
+    public static void authorizeControllerServiceReferences(final ConfigurableComponentAuthorizable authorizable, final Authorizer authorizer,
+                                                            final AuthorizableLookup lookup, final boolean authorizeTransitiveServices) {
+
+        // consider each property when looking for service references
+        authorizable.getPropertyDescriptors().stream().forEach(descriptor -> {
+            // if this descriptor identifies a controller service
+            if (descriptor.getControllerServiceDefinition() != null) {
+                // get the service id
+                final String serviceId = authorizable.getValue(descriptor);
+
+                // authorize the service if configured
+                if (serviceId != null) {
+                    try {
+                        final ConfigurableComponentAuthorizable currentServiceAuthorizable = lookup.getControllerService(serviceId);
+                        currentServiceAuthorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+                        if (authorizeTransitiveServices) {
+                            authorizeControllerServiceReferences(currentServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+                        }
+                    } catch (ResourceNotFoundException e) {
+                        // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
+                    }
+                }
+            }
+        });
+    }
+
+    /**
      * Authorizes the proposed properties for the specified authorizable.
      *
      * @param proposedProperties proposed properties

@@ -374,7 +374,7 @@ public class ReportingTaskResource extends ApplicationResource {
             response = ReportingTaskEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -464,7 +464,8 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "Deletes a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -508,8 +509,11 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestReportingTaskEntity,
                 requestRevision,
                 lookup -> {
-                    final Authorizable reportingTask = lookup.getReportingTask(id).getAuthorizable();
-                    reportingTask.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final ConfigurableComponentAuthorizable reportingTask = lookup.getReportingTask(id);
+                    reportingTask.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // verify any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(reportingTask, authorizer, lookup, false);
                 },
                 () -> serviceFacade.verifyDeleteReportingTask(id),
                 (revision, reportingTaskEntity) -> {

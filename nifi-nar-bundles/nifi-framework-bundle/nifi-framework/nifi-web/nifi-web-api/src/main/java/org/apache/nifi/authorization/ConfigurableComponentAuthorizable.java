@@ -19,6 +19,8 @@ package org.apache.nifi.authorization;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.PropertyDescriptor;
 
+import java.util.List;
+
 /**
  * Authorizable for a component that references a ControllerService.
  */
@@ -44,6 +46,13 @@ public interface ConfigurableComponentAuthorizable {
      * @return property descriptor
      */
     PropertyDescriptor getPropertyDescriptor(String propertyName);
+
+    /**
+     * Returns the property descriptors for this configurable component.
+     *
+     * @return property descriptors
+     */
+    List<PropertyDescriptor> getPropertyDescriptors();
 
     /**
      * Returns the current value of the specified property.

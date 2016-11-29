@@ -32,9 +32,73 @@ public interface ProcessGroupAuthorizable {
     Authorizable getAuthorizable();
 
     /**
-     * The authorizables for all encapsulated components. Non null
+     * The authorizables for all encapsulated processors. Non null
      *
-     * @return all encapsulated authorizables
+     * @return all encapsulated processors
      */
-    Set<Authorizable> getEncapsulatedAuthorizables();
+    Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors();
+
+    /**
+     * The authorizables for all encapsulated connections. Non null
+     *
+     * @return all encapsulated connections
+     */
+    Set<Authorizable> getEncapsulatedConnections();
+
+    /**
+     * The authorizables for all encapsulated input ports. Non null
+     *
+     * @return all encapsulated input ports
+     */
+    Set<Authorizable> getEncapsulatedInputPorts();
+
+    /**
+     * The authorizables for all encapsulated output ports. Non null
+     *
+     * @return all encapsulated output ports
+     */
+    Set<Authorizable> getEncapsulatedOutputPorts();
+
+    /**
+     * The authorizables for all encapsulated funnels. Non null
+     *
+     * @return all encapsulated funnels
+     */
+    Set<Authorizable> getEncapsulatedFunnels();
+
+    /**
+     * The authorizables for all encapsulated labels. Non null
+     *
+     * @return all encapsulated labels
+     */
+    Set<Authorizable> getEncapsulatedLabels();
+
+    /**
+     * The authorizables for all encapsulated process groups. Non null
+     *
+     * @return all encapsulated process groups
+     */
+    Set<Authorizable> getEncapsulatedProcessGroups();
+
+    /**
+     * The authorizables for all encapsulated remote process groups. Non null
+     *
+     * @return all encapsulated remote process groups
+     */
+    Set<Authorizable> getEncapsulatedRemoteProcessGroups();
+
+    /**
+     * The authorizables for all encapsulated templates. Non null
+     *
+     * @return all encapsulated templates
+     */
+    Set<Authorizable> getEncapsulatedTemplates();
+
+    /**
+     * The authorizables for all encapsulated input ports. Non null
+     *
+     * @return all encapsulated input ports
+     */
+    Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices();
+
 }

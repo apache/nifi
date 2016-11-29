@@ -16,49 +16,52 @@
  */
 package org.apache.nifi.controller;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import org.apache.nifi.persistence.StandardSnippetDeserializer;
+import org.apache.nifi.persistence.StandardSnippetSerializer;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.DataOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.persistence.StandardSnippetDeserializer;
-import org.apache.nifi.persistence.StandardSnippetSerializer;
+import java.util.concurrent.TimeUnit;
 
 public class SnippetManager {
 
-    private final ConcurrentMap<String, StandardSnippet> snippetMap = new ConcurrentHashMap<>();
+    private final Cache<String, StandardSnippet> snippetMap = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
-    public void addSnippet(final StandardSnippet snippet) {
-        final StandardSnippet oldSnippet = this.snippetMap.putIfAbsent(snippet.getId(), snippet);
-        if (oldSnippet != null) {
+    public synchronized void addSnippet(final StandardSnippet snippet) {
+        if (snippetMap.getIfPresent(snippet.getId()) != null) {
             throw new IllegalStateException("Snippet with ID " + snippet.getId() + " already exists");
         }
+        snippetMap.put(snippet.getId(), snippet);
     }
 
-    public void removeSnippet(final StandardSnippet snippet) {
-        if (!snippetMap.remove(snippet.getId(), snippet)) {
+    public synchronized void removeSnippet(final StandardSnippet snippet) {
+        if (snippetMap.getIfPresent(snippet.getId()) == null) {
             throw new IllegalStateException("Snippet is not contained in this SnippetManager");
         }
+        snippetMap.invalidate(snippet.getId());
     }
 
-    public StandardSnippet getSnippet(final String identifier) {
-        return snippetMap.get(identifier);
+    public synchronized StandardSnippet getSnippet(final String identifier) {
+        return snippetMap.getIfPresent(identifier);
     }
 
-    public Collection<StandardSnippet> getSnippets() {
-        return snippetMap.values();
+    public synchronized Collection<StandardSnippet> getSnippets() {
+        return Collections.unmodifiableCollection(snippetMap.asMap().values());
     }
 
-    public void clear() {
-        snippetMap.clear();
+    public synchronized void clear() {
+        snippetMap.invalidateAll();
     }
 
     public static List<StandardSnippet> parseBytes(final byte[] bytes) {
