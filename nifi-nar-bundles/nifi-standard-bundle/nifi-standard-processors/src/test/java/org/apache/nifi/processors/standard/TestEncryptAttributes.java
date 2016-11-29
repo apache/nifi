@@ -43,7 +43,7 @@ public class TestEncryptAttributes {
 
     // Initialize some common property values which will be used for setting up processor
     private static final EncryptionMethod[] ENCRYPTION_METHODS = EncryptionMethod.values();
-    private static final String PASSWORD = "Hello, World!";
+    final String RAW_HEX_KEY= "abababababababababababababababab";
     private static final String PRIVATE_KEYRING = "src/test/resources/TestEncryptContent/secring.gpg";
     private static final String PUBLIC_KEYRING = "src/test/resources/TestEncryptContent/pubring.gpg";
     private static final String PRIVATE_KEYRING_PASSPHRASE = "PASSWORD";
@@ -60,15 +60,19 @@ public class TestEncryptAttributes {
     @Test
     public void testRoundTrip() {
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptAttributes());
-        testRunner.setProperty(EncryptAttributes.PASSWORD, PASSWORD);
-        testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
-        testRunner.setProperty(EncryptAttributes.ALLOW_WEAK_CRYPTO, EncryptAttributes.WEAK_CRYPTO_ALLOWED_NAME);
 
         for (final EncryptionMethod encryptionMethod : ENCRYPTION_METHODS) {
             if (encryptionMethod.isUnlimitedStrength())
                 continue;
-            if (encryptionMethod.isKeyedCipher())
-                continue;
+            if (encryptionMethod.isKeyedCipher()){
+                testRunner.setProperty(EncryptAttributes.RAW_KEY_HEX, RAW_HEX_KEY);
+                testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
+            }
+            else {
+                testRunner.setProperty(EncryptAttributes.PASSWORD, "short");
+                testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
+                testRunner.setProperty(EncryptAttributes.ALLOW_WEAK_CRYPTO, EncryptAttributes.WEAK_CRYPTO_ALLOWED_NAME);
+            }
 
             logger.info("Attempting {}", encryptionMethod.name());
             testRunner.setProperty(EncryptAttributes.ENCRYPTION_ALGORITHM, encryptionMethod.name());
@@ -125,68 +129,36 @@ public class TestEncryptAttributes {
 
     }
 
-
     @Test
-    public void testKeyedCipherRoundTrip() {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptAttributes());
-        final String RAW_HEX_KEY= "abababababababababababababababab";
-        testRunner.setProperty(EncryptAttributes.RAW_KEY_HEX, RAW_HEX_KEY);
-        testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
+    public void testInvalidAttributeList() {
+        logger.info("Testing invalidAttributes");
 
-        for(final EncryptionMethod encryptionMethod: ENCRYPTION_METHODS) {
-            if(encryptionMethod.isKeyedCipher()) {
-                logger.info("Attempting {}", encryptionMethod.name());
-                testRunner.setProperty(EncryptAttributes.ENCRYPTION_ALGORITHM,encryptionMethod.name());
-                testRunner.setProperty(EncryptAttributes.MODE, EncryptAttributes.ENCRYPT_MODE);
+        final TestRunner runner = TestRunners.newTestRunner(new EncryptAttributes());
 
-                //create FlowFile and pass it to processor
-                ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-                FlowFile ff = session.create();
-                final Map<String, String> initialAttrs = ff.getAttributes();
+        runner.setProperty(EncryptAttributes.ATTRIBUTES_TO_ENCRYPT,"val1,val2");
+        runner.setProperty(EncryptAttributes.MODE, EncryptAttributes.ENCRYPT_MODE);
+        runner.setProperty(EncryptAttributes.PASSWORD,"helloworld");
+        runner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
 
-                //Enqueue and process it
-                testRunner.enqueue(ff);
-                testRunner.clearTransferState();    //TODO:cleanProvenanceState?
-                testRunner.run();
-                testRunner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
+        //Create session and FlowFile
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+        Map<String,String> initAttrs = ff.getAttributes();
 
-                //get new attributes
-                MockFlowFile encryptedAttributesFlowFile = testRunner.getFlowFilesForRelationship(EncryptAttributes.REL_SUCCESS).get(0);
-                final Map<String, String> encryptedAttrs = encryptedAttributesFlowFile.getAttributes();
+        //setup runner
+        runner.assertQueueEmpty();
+        runner.enqueue(ff);
+        runner.clearTransferState();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
 
-                //Check for each attributes
-                for (String attr : initialAttrs.keySet()) {
-                    //Since we are not encrypting filename and uuid
-                    if (!attr.equals(FILENAME_ATTR_KEY)
-                            && !attr.equals(UUID_ATTR_KEY)) {
-                        Assert.assertNotEquals("Encryption of " + attr + " was not successful",
-                                initialAttrs.get(attr), encryptedAttrs.get(attr));
-                    }
-                }
+        //Get FlowFile attributes and check for attributes modification
+        MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(EncryptAttributes.REL_SUCCESS).get(0);
+        Map<String,String> finalAttrs = mockFlowFile.getAttributes();
 
-                //perform decryption
-                testRunner.assertQueueEmpty();
-                testRunner.setProperty(EncryptAttributes.MODE, EncryptAttributes.DECRYPT_MODE);
-                testRunner.enqueue(encryptedAttributesFlowFile);
-                testRunner.clearTransferState();
-                testRunner.run();
-                testRunner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
+        //Since the given attributes were not present in FlowFile.
+        Assert.assertTrue(initAttrs.equals(finalAttrs));
 
-                //get Decrypted Attributes
-                MockFlowFile decryptedAttributesFlowFile = testRunner.getFlowFilesForRelationship(EncryptAttributes.REL_SUCCESS).get(0);
-                final Map<String, String> decryptedAttrs = decryptedAttributesFlowFile.getAttributes();
-
-                for (String attr : decryptedAttrs.keySet()) {
-                    if (!attr.equals(FILENAME_ATTR_KEY)
-                            && !attr.equals(UUID_ATTR_KEY)) {
-                        Assert.assertNotEquals("Decryption of " + attr + " was not successful", encryptedAttrs.get(attr), decryptedAttrs.get(attr));
-                    }
-                    Assert.assertEquals("Decryption of " + attr + " was not successful",
-                            initialAttrs.get(attr), decryptedAttrs.get(attr));
-                }
-
-                logger.info("Test complete for {}", encryptionMethod.name());
-            }
-        }
+        logger.info("Test Complete");
     }
 }

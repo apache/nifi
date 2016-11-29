@@ -477,7 +477,7 @@ public class EncryptAttributes extends AbstractProcessor {
             String[] attrs = atrList.split(",");
             Set<String> atrSet = new HashSet<>(Arrays.asList(attrs));
             for (String atr : atrSet) {
-                if (!atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
+                if (oldAttributes.containsKey(atr) && !atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
                     String atrValue = oldAttributes.get(atr);
                     String newAtrVal = (isToBeEncrypted) ? encryptor.getEncryptedString(atrValue) : encryptor.getDecryptedString(atrValue);
                     atrToWrite.put(atr, newAtrVal);
