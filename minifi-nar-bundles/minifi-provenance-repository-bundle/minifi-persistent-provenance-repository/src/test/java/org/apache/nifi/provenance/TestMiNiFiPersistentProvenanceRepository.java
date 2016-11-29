@@ -16,30 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.apache.nifi.provenance.TestUtil.createFlowFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
@@ -57,9 +33,28 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.zip.GZIPOutputStream;
+
+import static org.apache.nifi.provenance.TestUtil.createFlowFile;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestMiNiFiPersistentProvenanceRepository {
 
@@ -557,113 +552,6 @@ public class TestMiNiFiPersistentProvenanceRepository {
         // Ensure that no errors were reported.
         assertEquals(0, reportedEvents.size());
     }
-
-
-    @Test
-    public void testBehaviorOnOutOfMemory() throws IOException, InterruptedException {
-        final RepositoryConfiguration config = createConfiguration();
-        config.setMaxEventFileLife(3, TimeUnit.MINUTES);
-        config.setJournalCount(4);
-
-        // Create a repository that overrides the createWriters() method so that we can return writers that will throw
-        // OutOfMemoryError where we want to
-        final AtomicBoolean causeOOME = new AtomicBoolean(false);
-        repo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
-            @Override
-            protected RecordWriter[] createWriters(RepositoryConfiguration config, long initialRecordId) throws IOException {
-                final RecordWriter[] recordWriters = super.createWriters(config, initialRecordId);
-
-                // Spy on each of the writers so that a call to writeUUID throws an OutOfMemoryError if we set the
-                // causeOOME flag to true
-                final StandardRecordWriter[] spiedWriters = new StandardRecordWriter[recordWriters.length];
-                for (int i = 0; i < recordWriters.length; i++) {
-                    final StandardRecordWriter writer = (StandardRecordWriter) recordWriters[i];
-
-                    spiedWriters[i] = Mockito.spy(writer);
-                    Mockito.doAnswer(new Answer<Object>() {
-                        @Override
-                        public Object answer(final InvocationOnMock invocation) throws Throwable {
-                            if (causeOOME.get()) {
-                                throw new OutOfMemoryError();
-                            } else {
-                                writer.writeUUID(invocation.getArgumentAt(0, DataOutputStream.class), invocation.getArgumentAt(1, String.class));
-                            }
-                            return null;
-                        }
-                    }).when(spiedWriters[i]).writeUUID(Mockito.any(DataOutputStream.class), Mockito.any(String.class));
-                }
-
-                // return the writers that we are spying on
-                return spiedWriters;
-            }
-        };
-        repo.initialize(getEventReporter(), null, null);
-
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
-
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setEventTime(System.currentTimeMillis());
-        builder.setEventType(ProvenanceEventType.RECEIVE);
-        builder.setTransitUri("nifi://unit-test");
-        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
-        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
-        builder.setComponentId("1234");
-        builder.setComponentType("dummy processor");
-
-        // first make sure that we are able to write to the repo successfully.
-        for (int i = 0; i < 4; i++) {
-            final ProvenanceEventRecord record = builder.build();
-            repo.registerEvent(record);
-        }
-
-        // cause OOME to occur
-        causeOOME.set(true);
-
-        // write 4 times to make sure that we mark all partitions as dirty
-        for (int i = 0; i < 4; i++) {
-            final ProvenanceEventRecord record = builder.build();
-            try {
-                repo.registerEvent(record);
-                Assert.fail("Expected OutOfMmeoryError but was able to register event");
-            } catch (final OutOfMemoryError oome) {
-            }
-        }
-
-        // now that all partitions are dirty, ensure that as we keep trying to write, we get an IllegalStateException
-        // and that we don't corrupt the repository by writing partial records
-        for (int i = 0; i < 8; i++) {
-            final ProvenanceEventRecord record = builder.build();
-            try {
-                repo.registerEvent(record);
-                Assert.fail("Expected OutOfMmeoryError but was able to register event");
-            } catch (final IllegalStateException ise) {
-            }
-        }
-
-        // close repo so that we can create a new one to recover records
-        repo.close();
-
-        // make sure we can recover
-        final MiNiFiPersistentProvenanceRepository recoveryRepo = new MiNiFiPersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
-            @Override
-            protected Set<File> recoverJournalFiles() throws IOException {
-                try {
-                    return super.recoverJournalFiles();
-                } catch (final IOException ioe) {
-                    Assert.fail("Failed to recover properly");
-                    return null;
-                }
-            }
-        };
-
-        try {
-            recoveryRepo.initialize(getEventReporter(), null, null);
-        } finally {
-            recoveryRepo.close();
-        }
-    }
-
 
     private static class ReportedEvent {
         private final Severity severity;

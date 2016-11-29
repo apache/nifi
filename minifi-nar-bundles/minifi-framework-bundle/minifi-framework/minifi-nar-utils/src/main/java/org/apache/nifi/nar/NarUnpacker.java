@@ -50,7 +50,7 @@ import java.util.jar.Manifest;
  */
 public final class NarUnpacker {
 
-    private static final Logger logger = LoggerFactory.getLogger(org.apache.nifi.nar.NarUnpacker.class);
+    private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static String HASH_FILENAME = "nar-md5sum";
     private static final FileFilter NAR_FILTER = new FileFilter() {
         @Override
@@ -72,14 +72,16 @@ public final class NarUnpacker {
             final List<File> narFiles = new ArrayList<>();
 
             // make sure the nar directories are there and accessible
-            FileUtils.ensureDirectoryExistAndCanAccess(frameworkWorkingDir);
-            FileUtils.ensureDirectoryExistAndCanAccess(extensionsWorkingDir);
-            FileUtils.ensureDirectoryExistAndCanAccess(docsWorkingDir);
+            FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+            FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
+            FileUtils.ensureDirectoryExistAndCanReadAndWrite(docsWorkingDir);
 
             for (Path narLibraryDir : narLibraryDirs) {
 
                 File narDir = narLibraryDir.toFile();
-                FileUtils.ensureDirectoryExistAndCanAccess(narDir);
+
+                // Test if the source NARs can be read
+                FileUtils.ensureDirectoryExistAndCanRead(narDir);
 
                 File[] dirFiles = narDir.listFiles(NAR_FILTER);
                 if (dirFiles != null) {
@@ -170,7 +172,7 @@ public final class NarUnpacker {
     }
 
     private static void mapExtensions(final File workingDirectory, final File docsDirectory,
-            final ExtensionMapping mapping) throws IOException {
+                                      final ExtensionMapping mapping) throws IOException {
         final File[] directoryContents = workingDirectory.listFiles();
         if (directoryContents != null) {
             for (final File file : directoryContents) {
@@ -256,7 +258,7 @@ public final class NarUnpacker {
     }
 
     private static void unpackDocumentation(final File jar, final File docsDirectory,
-            final ExtensionMapping extensionMapping) throws IOException {
+                                            final ExtensionMapping extensionMapping) throws IOException {
         // determine the components that may have documentation
         determineDocumentedNiFiComponents(jar, extensionMapping);
 
@@ -298,7 +300,7 @@ public final class NarUnpacker {
     }
 
     private static void determineDocumentedNiFiComponents(final File jar,
-            final ExtensionMapping extensionMapping) throws IOException {
+                                                          final ExtensionMapping extensionMapping) throws IOException {
         try (final JarFile jarFile = new JarFile(jar)) {
             final JarEntry processorEntry = jarFile
                     .getJarEntry("META-INF/services/org.apache.nifi.processor.Processor");
@@ -317,7 +319,7 @@ public final class NarUnpacker {
     }
 
     private static List<String> determineDocumentedNiFiComponents(final JarFile jarFile,
-            final JarEntry jarEntry) throws IOException {
+                                                                  final JarEntry jarEntry) throws IOException {
         final List<String> componentNames = new ArrayList<>();
 
         if (jarEntry == null) {
@@ -325,8 +327,8 @@ public final class NarUnpacker {
         }
 
         try (final InputStream entryInputStream = jarFile.getInputStream(jarEntry);
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(
-                        entryInputStream))) {
+             final BufferedReader reader = new BufferedReader(new InputStreamReader(
+                     entryInputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 final String trimmedLine = line.trim();
@@ -355,7 +357,7 @@ public final class NarUnpacker {
      */
     private static void makeFile(final InputStream inputStream, final File file) throws IOException {
         try (final InputStream in = inputStream;
-                final FileOutputStream fos = new FileOutputStream(file)) {
+             final FileOutputStream fos = new FileOutputStream(file)) {
             byte[] bytes = new byte[65536];
             int numRead;
             while ((numRead = in.read(bytes)) != -1) {

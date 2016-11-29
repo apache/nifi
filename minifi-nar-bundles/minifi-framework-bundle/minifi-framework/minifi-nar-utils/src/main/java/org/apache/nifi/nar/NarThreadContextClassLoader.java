@@ -203,11 +203,25 @@ public class NarThreadContextClassLoader extends URLClassLoader {
                 return typeDefinition.cast(desiredClass.newInstance());
             }
             Constructor<?> constructor = null;
+
             try {
                 constructor = desiredClass.getConstructor(NiFiProperties.class);
-                return typeDefinition.cast(constructor.newInstance(nifiProperties));
-            } catch (final NoSuchMethodException | InvocationTargetException ex) {
-                return typeDefinition.cast(desiredClass.newInstance());
+            } catch (NoSuchMethodException nsme) {
+                try {
+                    constructor = desiredClass.getConstructor();
+                } catch (NoSuchMethodException nsme2) {
+                    throw new IllegalStateException("Failed to find constructor which takes NiFiProperties as argument as well as the default constructor on "
+                            + desiredClass.getName(), nsme2);
+                }
+            }
+            try {
+                if (constructor.getParameterTypes().length == 0) {
+                    return typeDefinition.cast(constructor.newInstance());
+                } else {
+                    return typeDefinition.cast(constructor.newInstance(nifiProperties));
+                }
+            } catch (InvocationTargetException ite) {
+                throw new IllegalStateException("Failed to instantiate a component due to (see target exception)", ite);
             }
         } finally {
             Thread.currentThread().setContextClassLoader(originalClassLoader);

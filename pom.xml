@@ -95,7 +95,7 @@ limitations under the License.
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2016</inceptionYear>
         <org.slf4j.version>1.7.12</org.slf4j.version>
-        <org.apache.nifi.version>1.0.0</org.apache.nifi.version>
+        <org.apache.nifi.version>1.1.0</org.apache.nifi.version>
         <logback.version>1.1.7</logback.version>
         <jetty.version>9.3.9.v20160517</jetty.version>
         <jersey.version>1.19</jersey.version>
