@@ -410,7 +410,7 @@ nf.Port = (function () {
         updated.select('text.port-transmission-icon')
             .attr({
                 'font-family': function (d) {
-                    if (d.status.aggregateSnapshot.transmitting === true) {
+                    if (d.status.transmitting === true) {
                         return 'FontAwesome';
                     } else {
                         return 'flowfont';
@@ -418,21 +418,21 @@ nf.Port = (function () {
                 }
             })
             .text(function (d) {
-                if (d.status.aggregateSnapshot.transmitting === true) {
+                if (d.status.transmitting === true) {
                     return '\uf140';
                 } else {
                     return '\ue80a';
                 }
             })
             .classed('transmitting', function (d) {
-                if (d.status.aggregateSnapshot.transmitting === true) {
+                if (d.status.transmitting === true) {
                     return true;
                 } else {
                     return false;
                 }
             })
             .classed('not-transmitting', function (d) {
-                if (d.status.aggregateSnapshot.transmitting !== true) {
+                if (d.status.transmitting !== true) {
                     return true;
                 } else {
                     return false;
