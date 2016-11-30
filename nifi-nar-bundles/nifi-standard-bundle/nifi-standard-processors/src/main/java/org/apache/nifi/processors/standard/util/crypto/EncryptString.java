@@ -38,7 +38,7 @@ public class EncryptString {
      * @param str Base64 encoded encrypted String
      * @param encryptor Encryptor which will be used for decryption
      * @return decrypted string of charset US-ASCII
-     * @throws Exception
+     * @throws Exception exception if couldn't process streams converted from strings
      */
     public static String performDecryption(String str, EncryptContent.Encryptor encryptor) throws Exception {
         //Initialize string and streams
@@ -67,7 +67,7 @@ public class EncryptString {
      * @param str String to be encrypted
      * @param encryptor Encryptor which will be used for encryption
      * @return Base64 encode string after performing encryption
-     * @throws Exception
+     * @throws Exception exception if couldn't process streams converted from strings
      */
     public static String performEncryption(String str, EncryptContent.Encryptor encryptor) throws Exception {
         String encodedEncryptedStr = null;

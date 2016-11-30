@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent;
@@ -52,8 +51,10 @@ import org.bouncycastle.openpgp.operator.jcajce.JcePublicKeyKeyEncryptionMethodG
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Date;

@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.processors.standard.util.crypto;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processors.standard.EncryptAttributes;
 import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.PBEKeySpec;
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
 
 public class PasswordBasedEncryptor implements Encryptor {
