@@ -115,15 +115,13 @@ config.sh transform input_file output_file
 **Result:** Once you have your config.yml file in the minifi/conf directory, launch that instance of MiNiFi and your dataflow begins automatically.
 
 ##Using Processors Not Packaged with MiNiFi
-MiNiFi is shipped with the following processors:
+MiNiFi is able to use following processors out of the box:
 * UpdateAttribute
 * AttributesToJSON
 * Base64EncodeContent
 * CompressContent
 * ControlRate
 * ConvertCharacterSet
-* DetectDuplicate
-* DistributeLoad
 * DuplicateFlowFile
 * EncryptContent
 * EvaluateJsonPath
@@ -131,10 +129,8 @@ MiNiFi is shipped with the following processors:
 * EvaluateXPath
 * EvaluateXQuery
 * ExecuteProcess
-* ExecuteSQL
 * ExecuteStreamCommand
 * ExtractText
-* FetchDistributedMapCache
 * FetchFile
 * FetchSFTP
 * GenerateFlowFile
@@ -144,8 +140,6 @@ MiNiFi is shipped with the following processors:
 * GetJMSQueue
 * GetJMSTopic
 * GetSFTP
-* HandleHttpRequest
-* HandleHttpResponse
 * HashAttribute
 * HashContent
 * IdentifyMimeType
@@ -163,15 +157,12 @@ MiNiFi is shipped with the following processors:
 * MonitorActivity
 * ParseSyslog
 * PostHTTP
-* PutDistributedMapCache
 * PutEmail
 * PutFTP
 * PutFile
 * PutJMS
 * PutSFTP
-* PutSQL
 * PutSyslog
-* QueryDatabaseTable
 * ReplaceText
 * ReplaceTextWithMapping
 * RouteOnAttribute
@@ -193,6 +184,10 @@ If you want to create a dataflow with a processor not shipped with MiNiFi, you c
 1. Set up your dataflow as described above.
 2. Copy the desired NAR file into the MiNiFi lib directory.
 3. Restart your MiNiFi instance.
+
+**Note:** Currently only the StandardSSLContextService is supported as a controller service. It is created automatically if the the "Security Properties" section is set and can be referenced in the processor configuration using the ID "SSL-Context-Service".
+
+
 
 # Securing your Dataflow
 You can secure your MiNiFi dataflow using keystore or trust store SSL protocols, however, this information is not automatically generated. You will need to generate your security configuration information yourself.
@@ -272,9 +267,10 @@ You can load a new dataflow for a MiNiFi instance to run:
 
 ## Stopping MiNiFi
 
-You can MiNiFi at any time.
+You can stop MiNiFi at any time.
 
 Stopping MiNiFi:
+
 1. From a terminal window, navigate to the MiNiFi installation directory.
 2. Enter:
 ```
@@ -282,6 +278,7 @@ bin/minifi.sh stop
 ```
 
 Stopping MiNiFi as a service:
+
 1. From a terminal window, enter:
 ```
 sudo service minifi stop
