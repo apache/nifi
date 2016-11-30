@@ -396,7 +396,7 @@ public class ProcessorResource extends ApplicationResource {
             response = ProcessorEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = ""),
-                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -487,7 +487,8 @@ public class ProcessorResource extends ApplicationResource {
             value = "Deletes a processor",
             response = ProcessorEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
