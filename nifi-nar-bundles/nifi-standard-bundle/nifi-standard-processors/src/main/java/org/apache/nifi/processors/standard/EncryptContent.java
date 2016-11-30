@@ -518,10 +518,6 @@ public class EncryptContent extends AbstractProcessor {
         StreamCallback getEncryptionCallback() throws Exception;
 
         StreamCallback getDecryptionCallback() throws Exception;
-
-        String getEncryptedString(String str) throws Exception;
-
-        String getDecryptedString(String str) throws Exception;
     }
 
 }

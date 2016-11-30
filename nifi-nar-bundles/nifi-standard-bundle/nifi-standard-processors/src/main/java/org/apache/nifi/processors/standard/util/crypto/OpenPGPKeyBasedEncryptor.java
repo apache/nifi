@@ -93,16 +93,6 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         return new OpenPGPDecryptCallback(provider, keyring, passphrase);
     }
 
-    @Override
-    public String getEncryptedString(String str) throws Exception {
-        return new OpenPGPEncryptCallback(algorithm, provider, keyring, userId, filename).getEncryptedString(str);
-    }
-
-    @Override
-    public String getDecryptedString(String str) throws Exception {
-        return new OpenPGPDecryptCallback(provider, keyring, passphrase).getDecryptString(str);
-    }
-
     /**
      * Returns true if the passphrase is valid.
      * <p>
@@ -318,28 +308,6 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
                 }
             }
         }
-
-        public String getDecryptString(String inputStr) throws IOException {
-            //Initialize string and streams
-            byte[] encryptedBytes = inputStr.getBytes(StandardCharsets.US_ASCII);
-            byte[] decodedBytes = Base64.decodeBase64(encryptedBytes);
-            InputStream in = new ByteArrayInputStream(decodedBytes);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            String decryptedStr = null;
-
-            try {
-                process(in, out);
-                decryptedStr = new String(out.toByteArray(), StandardCharsets.US_ASCII);
-            } catch (IOException e) {
-                throw new ProcessException(e);
-            } finally {
-                in.close();
-                out.close();
-            }
-
-            return decryptedStr;
-        }
-
     }
 
     private static class OpenPGPEncryptCallback implements StreamCallback {
@@ -405,24 +373,6 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
             } catch (Exception e) {
                 throw new ProcessException(e.getMessage());
             }
-        }
-
-        public String getEncryptedString(String inputStr) throws IOException {
-            String encodedStr = null;
-            InputStream in = new ByteArrayInputStream(inputStr.getBytes(StandardCharsets.US_ASCII));
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-            try {
-                process(in, out);
-                byte[] encryptedData = out.toByteArray();
-                encodedStr = Base64.encodeBase64String(encryptedData);
-            } catch (IOException e) {
-                throw new ProcessException(e);
-            } finally {
-                in.close();
-                out.close();
-            }
-            return encodedStr;
         }
     }
 }

@@ -41,6 +41,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
+import org.apache.nifi.processors.standard.util.crypto.EncryptString;
 import org.apache.nifi.processors.standard.util.crypto.KeyedEncryptor;
 import org.apache.nifi.processors.standard.util.crypto.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.processors.standard.util.crypto.OpenPGPPasswordBasedEncryptor;
@@ -479,7 +480,7 @@ public class EncryptAttributes extends AbstractProcessor {
             for (String atr : atrSet) {
                 if (oldAttributes.containsKey(atr) && !atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
                     String atrValue = oldAttributes.get(atr);
-                    String newAtrVal = (isToBeEncrypted) ? encryptor.getEncryptedString(atrValue) : encryptor.getDecryptedString(atrValue);
+                    String newAtrVal = (isToBeEncrypted) ? EncryptString.performEncryption(atrValue, encryptor) : EncryptString.performDecryption(atrValue, encryptor);
                     atrToWrite.put(atr, newAtrVal);
                 }
             }
@@ -489,7 +490,7 @@ public class EncryptAttributes extends AbstractProcessor {
             for (String atr : oldAttributes.keySet()) {
                 if (!atr.equals(filenameAttr) && !atr.equals(uuidAttr)) {
                     String atrValue = oldAttributes.get(atr);
-                    String newAtrVal = (isToBeEncrypted) ? encryptor.getEncryptedString(atrValue) : encryptor.getDecryptedString(atrValue);
+                    String newAtrVal = (isToBeEncrypted) ? EncryptString.performEncryption(atrValue, encryptor) : EncryptString.performDecryption(atrValue, encryptor);
                     atrToWrite.put(atr, newAtrVal);
                 }
             }
