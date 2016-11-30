@@ -2135,7 +2135,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getProcessorByType(requestControllerService.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, user);
                     }
