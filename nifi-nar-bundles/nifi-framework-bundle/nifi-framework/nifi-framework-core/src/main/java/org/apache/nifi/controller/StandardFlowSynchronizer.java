@@ -1091,7 +1091,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final List<Element> remoteProcessGroupNodeList = getChildrenByTagName(processGroupElement, "remoteProcessGroup");
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
             final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
-            final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUri());
+            final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUris());
             remoteGroup.setComments(remoteGroupDto.getComments());
             remoteGroup.setPosition(toPosition(remoteGroupDto.getPosition()));
             final String name = remoteGroupDto.getName();

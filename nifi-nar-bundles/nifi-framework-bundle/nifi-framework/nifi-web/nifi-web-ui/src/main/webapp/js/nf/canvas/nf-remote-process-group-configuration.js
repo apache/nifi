@@ -106,7 +106,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                         // clear the remote process group details
                         $('#remote-process-group-id').text('');
                         $('#remote-process-group-name').text('');
-                        $('#remote-process-group-url').text('');
+                        $('#remote-process-group-urls').text('');
                         $('#remote-process-group-timeout').val('');
                         $('#remote-process-group-yield-duration').val('');
                         $('#remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
@@ -144,7 +144,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 // populate the port settings
                 $('#remote-process-group-id').text(selectionData.id);
                 $('#remote-process-group-name').text(selectionData.component.name);
-                $('#remote-process-group-url').text(selectionData.component.targetUri);
+                $('#remote-process-group-urls').text(selectionData.component.targetUris);
 
                 // populate the text fields
                 $('#remote-process-group-timeout').val(selectionData.component.communicationsTimeout);

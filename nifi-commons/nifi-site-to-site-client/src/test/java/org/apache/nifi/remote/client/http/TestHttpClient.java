@@ -80,6 +80,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -730,10 +731,10 @@ public class TestHttpClient {
         final URI uri = server.getURI();
 
         try (
-                SiteToSiteClient client = getDefaultBuilder()
-                        .url("http://" + uri.getHost() + ":" + uri.getPort() + "/wrong")
-                        .portName("input-running")
-                        .build()
+            SiteToSiteClient client = getDefaultBuilder()
+                .url("http://" + uri.getHost() + ":" + uri.getPort() + "/wrong")
+                .portName("input-running")
+                .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
 
@@ -805,6 +806,24 @@ public class TestHttpClient {
                 final SiteToSiteClient client = getDefaultBuilder()
                     .portName("input-running")
                     .build()
+        ) {
+            testSend(client);
+        }
+
+    }
+
+    @Test
+    public void testSendSuccessMultipleUrls() throws Exception {
+
+        final Set<String> urls = new LinkedHashSet<>();
+        urls.add("http://localhost:9999");
+        urls.add("http://localhost:" + httpConnector.getLocalPort() + "/nifi");
+
+        try (
+                final SiteToSiteClient client = getDefaultBuilder()
+                        .urls(urls)
+                        .portName("input-running")
+                        .build()
         ) {
             testSend(client);
         }

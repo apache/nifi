@@ -47,7 +47,7 @@ public class SocketClient extends AbstractSiteToSiteClient {
         super(config);
 
         final int commsTimeout = (int) config.getTimeout(TimeUnit.MILLISECONDS);
-        pool = new EndpointConnectionPool(clusterUrl,
+        pool = new EndpointConnectionPool(
                 createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
                 commsTimeout,
                 (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),

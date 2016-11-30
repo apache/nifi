@@ -73,7 +73,6 @@ public class EndpointConnectionPool implements PeerStatusProvider {
     private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
 
     private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
-    private final URI clusterUrl;
 
     private final Set<EndpointConnection> activeConnections = Collections.synchronizedSet(new HashSet<>());
 
@@ -85,17 +84,14 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     private volatile int commsTimeout;
     private volatile boolean shutdown = false;
-    private volatile Set<PeerStatus> lastFetchedQueryablePeers;
 
     private final SiteInfoProvider siteInfoProvider;
     private final PeerSelector peerSelector;
 
-    public EndpointConnectionPool(final URI clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
+    public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
             final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider) {
-        Objects.requireNonNull(clusterUrl, "URL cannot be null");
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
 
-        this.clusterUrl = clusterUrl;
         this.remoteDestination = remoteDestination;
         this.sslContext = sslContext;
         this.eventReporter = eventReporter;
@@ -156,6 +152,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         SocketClientProtocol protocol = null;
         EndpointConnection connection;
         Peer peer = null;
+        URI clusterUrl = siteInfoProvider.getActiveClusterUrl();
 
         do {
             final List<EndpointConnection> addBack = new ArrayList<>();
@@ -361,7 +358,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     @Override
     public PeerDescription getBootstrapPeerDescription() throws IOException {
-        final String hostname = clusterUrl.getHost();
+        final String hostname = siteInfoProvider.getActiveClusterUrl().getHost();
         final Integer port = siteInfoProvider.getSiteToSitePort();
         if (port == null) {
             throw new IOException("Remote instance of NiFi is not configured to allow RAW Socket site-to-site communications");
@@ -375,6 +372,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
     public Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException {
         final String hostname = peerDescription.getHostname();
         final int port = peerDescription.getPort();
+        final URI clusterUrl = siteInfoProvider.getActiveClusterUrl();
 
         final PeerDescription clusterPeerDescription = new PeerDescription(hostname, port, clusterUrl.toString().startsWith("https://"));
         final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
@@ -522,7 +520,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     @Override
     public String toString() {
-        return "EndpointConnectionPool[Cluster URL=" + clusterUrl + "]";
+        return "EndpointConnectionPool[Cluster URL=" + siteInfoProvider.getClusterUrls() + "]";
     }
 
     private class IdEnrichedRemoteDestination implements RemoteDestination {

@@ -246,7 +246,8 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "name", remoteRef.getName());
         addPosition(element, remoteRef.getPosition());
         addTextElement(element, "comment", remoteRef.getComments());
-        addTextElement(element, "url", remoteRef.getTargetUri().toString());
+        addTextElement(element, "url", remoteRef.getTargetUri());
+        addTextElement(element, "urls", remoteRef.getTargetUris());
         addTextElement(element, "timeout", remoteRef.getCommunicationsTimeout());
         addTextElement(element, "yieldPeriod", remoteRef.getYieldDuration());
         addTextElement(element, "transmitting", String.valueOf(remoteRef.isTransmitting()));

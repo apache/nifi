@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -92,12 +91,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             throw new IOException("Remote instance of NiFi is not configured to allow HTTP site-to-site communications");
         }
 
-        final URI clusterUrl;
-        try {
-            clusterUrl = new URI(config.getUrl());
-        } catch (final URISyntaxException e) {
-            throw new IllegalArgumentException("Specified clusterUrl was: " + config.getUrl(), e);
-        }
+        final URI clusterUrl = siteInfoProvider.getActiveClusterUrl();
 
         return new PeerDescription(clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort(), siteInfoProvider.isSecure());
     }
@@ -135,8 +129,14 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
             final CommunicationsSession commSession = new HttpCommunicationsSession();
             final String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
-            final String clusterUrl = config.getUrl();
-            final Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
+            final StringBuilder clusterUrls = new StringBuilder();
+            config.getUrls().forEach(url -> {
+                if (clusterUrls.length() > 0) {
+                    clusterUrls.append(",");
+                    clusterUrls.append(url);
+                }
+            });
+            final Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrls.toString());
 
             final int penaltyMillis = (int) config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
             String portId = config.getPortIdentifier();

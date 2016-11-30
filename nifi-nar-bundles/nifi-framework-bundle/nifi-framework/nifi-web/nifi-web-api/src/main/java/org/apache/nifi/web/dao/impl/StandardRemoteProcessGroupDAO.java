@@ -75,13 +75,13 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Remote Process Group is being added.");
         }
 
-        final String rawTargetUri = remoteProcessGroupDTO.getTargetUri();
-        if (rawTargetUri == null) {
-            throw new IllegalArgumentException("Cannot add a Remote Process Group without specifying the Target URI");
+        final String targetUris = remoteProcessGroupDTO.getTargetUris();
+        if (targetUris == null || targetUris.length() == 0) {
+            throw new IllegalArgumentException("Cannot add a Remote Process Group without specifying the Target URI(s)");
         }
 
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), rawTargetUri);
+        RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
 
         // set other properties
         updateRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupDTO);
