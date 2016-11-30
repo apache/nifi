@@ -39,7 +39,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
@@ -108,7 +107,7 @@ public class TestStandardRemoteGroupPort {
 
         doReturn(true).when(remoteGroup).isTransmitting();
         doReturn(protocol).when(remoteGroup).getTransportProtocol();
-        doReturn(new URI(REMOTE_CLUSTER_URL)).when(remoteGroup).getTargetUri();
+        doReturn(REMOTE_CLUSTER_URL).when(remoteGroup).getTargetUri();
         doReturn(siteToSiteClient).when(port).getSiteToSiteClient();
         doReturn(transaction).when(siteToSiteClient).createTransaction(eq(direction));
         doReturn(eventReporter).when(remoteGroup).getEventReporter();

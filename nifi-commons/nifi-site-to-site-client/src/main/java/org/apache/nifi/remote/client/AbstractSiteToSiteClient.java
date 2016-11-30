@@ -16,30 +16,19 @@
  */
 package org.apache.nifi.remote.client;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractSiteToSiteClient implements SiteToSiteClient {
 
     protected final SiteToSiteClientConfig config;
     protected final SiteInfoProvider siteInfoProvider;
-    protected final URI clusterUrl;
 
     public AbstractSiteToSiteClient(final SiteToSiteClientConfig config) {
         this.config = config;
 
-        try {
-            Objects.requireNonNull(config.getUrl(), "URL cannot be null");
-            clusterUrl = new URI(config.getUrl());
-        } catch (final URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid Cluster URL: " + config.getUrl());
-        }
-
         final int commsTimeout = (int) config.getTimeout(TimeUnit.MILLISECONDS);
         siteInfoProvider = new SiteInfoProvider();
-        siteInfoProvider.setClusterUrl(clusterUrl);
+        siteInfoProvider.setClusterUrls(config.getUrls());
         siteInfoProvider.setSslContext(config.getSslContext());
         siteInfoProvider.setConnectTimeoutMillis(commsTimeout);
         siteInfoProvider.setReadTimeoutMillis(commsTimeout);

@@ -41,7 +41,7 @@ nf.RemoteProcessGroupDetails = (function () {
                         // clear the remote process group details
                         nf.Common.clearField('read-only-remote-process-group-id');
                         nf.Common.clearField('read-only-remote-process-group-name');
-                        nf.Common.clearField('read-only-remote-process-group-url');
+                        nf.Common.clearField('read-only-remote-process-group-urls');
                         nf.Common.clearField('read-only-remote-process-group-timeout');
                         nf.Common.clearField('read-only-remote-process-group-yield-duration');
                         nf.Common.clearField('read-only-remote-process-group-transport-protocol');
@@ -67,7 +67,7 @@ nf.RemoteProcessGroupDetails = (function () {
                 // populate the port settings
                 nf.Common.populateField('read-only-remote-process-group-id', selectionData.id);
                 nf.Common.populateField('read-only-remote-process-group-name', selectionData.component.name);
-                nf.Common.populateField('read-only-remote-process-group-url', selectionData.component.targetUri);
+                nf.Common.populateField('read-only-remote-process-group-urls', selectionData.component.targetUris);
                 nf.Common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
                 nf.Common.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
                 nf.Common.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);

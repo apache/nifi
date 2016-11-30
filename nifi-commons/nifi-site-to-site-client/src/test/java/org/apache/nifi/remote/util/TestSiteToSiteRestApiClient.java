@@ -16,119 +16,163 @@
  */
 package org.apache.nifi.remote.util;
 
-import org.apache.nifi.events.EventReporter;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.Iterator;
+import java.util.Set;
+
+import static org.apache.nifi.remote.util.SiteToSiteRestApiClient.parseClusterUrls;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestSiteToSiteRestApiClient {
 
+    private static void assertSingleUri(final String expected, final Set<String> urls) {
+        Assert.assertEquals(1, urls.size());
+        Assert.assertEquals(expected, urls.iterator().next().toString());
+    }
+
     @Test
     public void testResolveBaseUrlHttp() throws Exception{
-
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
-
-        final String baseUrl = apiClient.resolveBaseUrl("http://nifi.example.com/nifi");
-        Assert.assertEquals("http://nifi.example.com/nifi-api", baseUrl);
+        assertSingleUri("http://nifi.example.com/nifi-api", parseClusterUrls("http://nifi.example.com/nifi"));
     }
 
     @Test
     public void testResolveBaseUrlHttpSub() throws Exception{
-
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
-
-        final String baseUrl = apiClient.resolveBaseUrl("http://nifi.example.com/foo/bar/baz/nifi");
-        Assert.assertEquals("http://nifi.example.com/foo/bar/baz/nifi-api", baseUrl);
+        assertSingleUri("http://nifi.example.com/foo/bar/baz/nifi-api", parseClusterUrls("http://nifi.example.com/foo/bar/baz/nifi"));
     }
 
     @Test
     public void testResolveBaseUrlHttpPort() {
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
-
-        final String baseUrl = apiClient.resolveBaseUrl("http://nifi.example.com:8080/nifi");
-        Assert.assertEquals("http://nifi.example.com:8080/nifi-api", baseUrl);
+        assertSingleUri("http://nifi.example.com:8080/nifi-api", parseClusterUrls("http://nifi.example.com:8080/nifi"));
     }
 
     @Test
     public void testResolveBaseUrlHttps() throws Exception{
-
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
-
-        final String baseUrl = apiClient.resolveBaseUrl("https://nifi.example.com/nifi");
-        Assert.assertEquals("https://nifi.example.com/nifi-api", baseUrl);
+        assertSingleUri("https://nifi.example.com/nifi-api", parseClusterUrls("https://nifi.example.com/nifi"));
     }
 
     @Test
     public void testResolveBaseUrlHttpsPort() {
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
-
-        final String baseUrl = apiClient.resolveBaseUrl("https://nifi.example.com:8443/nifi");
-        Assert.assertEquals("https://nifi.example.com:8443/nifi-api", baseUrl);
+        assertSingleUri("https://nifi.example.com:8443/nifi-api", parseClusterUrls("https://nifi.example.com:8443/nifi"));
     }
 
     @Test
     public void testResolveBaseUrlLeniency() {
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
 
         String expectedUri = "http://localhost:8080/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080 "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" http://localhost:8080 "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/nifi/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/nifi/ "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" http://localhost:8080/nifi/ "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/nifi-api"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/nifi-api/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080 "));
+        assertSingleUri(expectedUri, parseClusterUrls(" http://localhost:8080 "));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/nifi/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/nifi/ "));
+        assertSingleUri(expectedUri, parseClusterUrls(" http://localhost:8080/nifi/ "));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/nifi-api/"));
 
         expectedUri = "http://localhost/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost/nifi-api"));
 
         expectedUri = "http://localhost:8080/some/path/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" http://localhost:8080/some/path"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path/nifi/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path/nifi-api"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("http://localhost:8080/some/path/nifi-api/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path"));
+        assertSingleUri(expectedUri, parseClusterUrls(" http://localhost:8080/some/path"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path "));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path/nifi/"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("http://localhost:8080/some/path/nifi-api/"));
     }
 
     @Test
     public void testResolveBaseUrlLeniencyHttps() {
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(null, null, EventReporter.NO_OP);
 
         String expectedUri = "https://localhost:8443/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443 "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" https://localhost:8443 "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/nifi/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/nifi/ "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" https://localhost:8443/nifi/ "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/nifi-api"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/nifi-api/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443 "));
+        assertSingleUri(expectedUri, parseClusterUrls(" https://localhost:8443 "));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/nifi/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/nifi/ "));
+        assertSingleUri(expectedUri, parseClusterUrls(" https://localhost:8443/nifi/ "));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/nifi-api/"));
 
         expectedUri = "https://localhost/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost/nifi-api"));
 
         expectedUri = "https://localhost:8443/some/path/nifi-api";
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl(" https://localhost:8443/some/path"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path "));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path/nifi"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path/nifi/"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path/nifi-api"));
-        assertEquals(expectedUri, apiClient.resolveBaseUrl("https://localhost:8443/some/path/nifi-api/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path"));
+        assertSingleUri(expectedUri, parseClusterUrls(" https://localhost:8443/some/path"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path "));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path/nifi"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path/nifi/"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path/nifi-api"));
+        assertSingleUri(expectedUri, parseClusterUrls("https://localhost:8443/some/path/nifi-api/"));
     }
 
+    @Test
+    public void testGetUrlsEmpty() throws Exception {
+        try {
+            parseClusterUrls(null);
+            fail("Should fail if cluster URL was not specified.");
+        } catch (IllegalArgumentException e) {
+        }
+
+        try {
+            parseClusterUrls("");
+            fail("Should fail if cluster URL was not specified.");
+        } catch (IllegalArgumentException e) {
+        }
+    }
+
+    @Test
+    public void testGetUrlsOne() throws Exception {
+        final Set<String> urls = parseClusterUrls("http://localhost:8080/nifi");
+
+        Assert.assertEquals(1, urls.size());
+        Assert.assertEquals("http://localhost:8080/nifi-api", urls.iterator().next());
+    }
+
+    @Test
+    public void testGetUrlsThree() throws Exception {
+        final Set<String> urls = parseClusterUrls("http://host1:8080/nifi,http://host2:8080/nifi,http://host3:8080/nifi");
+
+        Assert.assertEquals(3, urls.size());
+        final Iterator<String> iterator = urls.iterator();
+        Assert.assertEquals("http://host1:8080/nifi-api", iterator.next());
+        Assert.assertEquals("http://host2:8080/nifi-api", iterator.next());
+        Assert.assertEquals("http://host3:8080/nifi-api", iterator.next());
+    }
+
+    @Test
+    public void testGetUrlsDifferentProtocols() throws Exception {
+
+        try {
+            parseClusterUrls("http://host1:8080/nifi,https://host2:8080/nifi,http://host3:8080/nifi");
+            fail("Should fail if cluster URLs contain different protocols.");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("Different protocols"));
+        }
+    }
+
+    @Test
+    public void testGetUrlsMalformed() throws Exception {
+
+        try {
+            parseClusterUrls("http://host1:8080/nifi,host&2:8080,http://host3:8080/nifi");
+            fail("Should fail if cluster URLs contain illegal URL.");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage().contains("malformed"));
+        }
+    }
 }

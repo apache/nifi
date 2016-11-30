@@ -236,7 +236,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
 
             // create the remote process group details
             FlowChangeRemoteProcessGroupDetails remoteProcessGroupDetails = new FlowChangeRemoteProcessGroupDetails();
-            remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri().toString());
+            remoteProcessGroupDetails.setUri(remoteProcessGroup.getTargetUri());
 
             // save the actions if necessary
             if (!details.isEmpty()) {
