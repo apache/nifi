@@ -19,6 +19,9 @@ package org.apache.nifi.util;
 import java.security.SecureRandom;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * IMPORTANT: This component is not part of public API!
  * ====================================================
@@ -48,6 +51,7 @@ import java.util.UUID;
  * </p>
  */
 public class ComponentIdGenerator {
+    private static final Logger logger = LoggerFactory.getLogger(ComponentIdGenerator.class);
 
     public static final Object lock = new Object();
 
@@ -97,6 +101,8 @@ public class ComponentIdGenerator {
         long clockSequenceHi = clockSequence;
         clockSequenceHi <<= 48;
         lsb = clockSequenceHi | lsb;
-        return new UUID(time, lsb);
+        final UUID uuid = new UUID(time, lsb);
+        logger.debug("Generating UUID {} for msb={}, lsb={}, ensureUnique={}", uuid, msb, lsb, ensureUnique);
+        return uuid;
     }
 }
