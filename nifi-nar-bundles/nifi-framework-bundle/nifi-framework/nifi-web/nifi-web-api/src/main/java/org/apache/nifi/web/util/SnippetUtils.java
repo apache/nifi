@@ -110,6 +110,7 @@ public final class SnippetUtils {
         }
 
         final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
+        final Set<ControllerServiceDTO> allServicesReferenced = new HashSet<>();
 
         // add any processors
         final Set<ProcessorDTO> processors = new LinkedHashSet<>();
@@ -122,7 +123,10 @@ public final class SnippetUtils {
                 processors.add(dtoFactory.createProcessorDto(processor));
 
                 if (includeControllerServices) {
-                    controllerServices.addAll(getControllerServices(processor.getProperties()));
+                    // Include all referenced services that are not already included in this snippet.
+                    getControllerServices(processor.getProperties()).stream()
+                        .filter(svc -> allServicesReferenced.add(svc))
+                        .forEach(svc -> controllerServices.add(svc));
                 }
             }
         }
@@ -199,7 +203,7 @@ public final class SnippetUtils {
                 final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
                 processGroups.add(childGroupDto);
 
-                addControllerServices(childGroup, childGroupDto);
+                addControllerServices(childGroup, childGroupDto, allServicesReferenced);
             }
         }
 
@@ -241,7 +245,7 @@ public final class SnippetUtils {
         return snippetDto;
     }
 
-    private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto) {
+    private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto, final Set<ControllerServiceDTO> allServicesReferenced) {
         final FlowSnippetDTO contents = dto.getContents();
         if (contents == null) {
             return;
@@ -250,8 +254,10 @@ public final class SnippetUtils {
         final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
-            final Set<ControllerServiceDTO> servicesForProcessor = getControllerServices(procNode.getProperties());
-            controllerServices.addAll(servicesForProcessor);
+            // Include all referenced services that are not already included in this snippet.
+            getControllerServices(procNode.getProperties()).stream()
+                .filter(svc -> allServicesReferenced.add(svc))
+                .forEach(svc -> controllerServices.add(svc));
         }
 
         contents.setControllerServices(controllerServices);
@@ -266,7 +272,7 @@ public final class SnippetUtils {
                 continue;
             }
 
-            addControllerServices(childGroup, childDto);
+            addControllerServices(childGroup, childDto, allServicesReferenced);
         }
     }
 
@@ -826,6 +832,7 @@ public final class SnippetUtils {
                 uuid = new UUID(msb, seedId.getLeastSignificantBits());
             }
         }
+        logger.debug("Generating UUID {} from currentId={}, seed={}, isCopy={}", uuid, currentId, seed, isCopy);
         return uuid.toString();
     }
 
