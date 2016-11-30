@@ -12,15 +12,15 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Apache NiFi
     The following NOTICE information applies:
-      Apache NiFi
-      Copyright 2014-2016 The Apache Software Foundation
+        Apache NiFi
+        Copyright 2014-2016 The Apache Software Foundation
 
-      This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
 
-      This product includes the following work from the Apache Hadoop project:
+        This product includes the following work from the Apache Hadoop project:
 
-      BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+        BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
 
   (ASLv2) Jetty
     The following NOTICE information applies:
@@ -293,6 +293,10 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Avro
       Copyright 2009-2013 The Apache Software Foundation
+
+  (ASLv2) Jasypt
+    The following NOTICE information applies:
+	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
 
   (ASLv2) Snappy Java
     The following NOTICE information applies:
@@ -591,6 +595,43 @@ The following binary components are provided under the Apache Software License v
       is a distributed tracing system that is Apache 2.0 Licensed.
       Copyright 2012 Twitter, Inc.
 
+  (ASLv2) Jettison
+    The following NOTICE information applies:
+         Copyright 2006 Envoi Solutions LLC
+
+    (ASLv2) Apache Curator
+      The following NOTICE information applies:
+        Curator Framework
+        Copyright 2011-2014 The Apache Software Foundation
+
+        Curator Client
+        Copyright 2011-2014 The Apache Software Foundation
+
+        Curator Recipes
+        Copyright 2011-2014 The Apache Software Foundation
+
+
+    (ASLv2) Quartz
+      The following NOTICE information applies:
+        Copyright Declaration:
+        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
+
+        Trademark and Patent declaration
+        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
+        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
+
+        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
+
+        Third Party declaration
+        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
+        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
+        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
+        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
+
+        Confidentiality Disclaimer:
+        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
+        Contact GitHub API Training Shop Blog About
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -629,6 +670,15 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.0.1 - http://jax-rs-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-repackaged-guava (org.glassfish.jersey.bundles.repackaged:jersey-guava:bundle:2.19 - https://jersey.java.net/project/project/jersey-guava/)
+
+************************
+Common Development and Distribution License 1.0
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.0. See project link for details.
+
+    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+    (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
 
 ************************
 Eclipse Public License 1.0
