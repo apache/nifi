@@ -1805,7 +1805,7 @@ public class ControllerFacade implements Authorizable {
         addIfAppropriate(searchStr, group.getIdentifier(), "Id", matches);
         addIfAppropriate(searchStr, group.getName(), "Name", matches);
         addIfAppropriate(searchStr, group.getComments(), "Comments", matches);
-        addIfAppropriate(searchStr, group.getTargetUri().toString(), "URL", matches);
+        addIfAppropriate(searchStr, group.getTargetUris(), "URLs", matches);
 
         // consider the transmission status
         if ((StringUtils.containsIgnoreCase("transmitting", searchStr) || StringUtils.containsIgnoreCase("transmission enabled", searchStr)) && group.isTransmitting()) {

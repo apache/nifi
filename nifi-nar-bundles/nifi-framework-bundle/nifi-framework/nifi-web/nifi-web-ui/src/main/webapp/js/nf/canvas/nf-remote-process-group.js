@@ -499,7 +499,7 @@ nf.RemoteProcessGroup = (function () {
                             remoteProcessGroupUri.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the remote process group name as necessary
-                            nf.CanvasUtils.ellipsis(remoteProcessGroupUri, d.component.targetUri);
+                            nf.CanvasUtils.ellipsis(remoteProcessGroupUri, d.component.targetUris);
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });

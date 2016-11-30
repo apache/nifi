@@ -252,6 +252,7 @@ public class FlowFromDOMFactory {
         dto.setId(getString(element, "id"));
         dto.setName(getString(element, "name"));
         dto.setTargetUri(getString(element, "url"));
+        dto.setTargetUris(getString(element, "urls"));
         dto.setTransmitting(getBoolean(element, "transmitting"));
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setCommunicationsTimeout(getString(element, "timeout"));

@@ -35,7 +35,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class TestSiteToSiteClient {
 
@@ -128,10 +130,23 @@ public class TestSiteToSiteClient {
 
         try {
             SiteToSiteClientConfig clientConfig2 = kryo.readObject(input, SiteToSiteClient.StandardSiteToSiteClientConfig.class);
-            Assert.assertEquals(clientConfig.getUrl(), clientConfig2.getUrl());
+            Assert.assertEquals(clientConfig.getUrls(), clientConfig2.getUrls());
         } finally {
             input.close();
         }
+    }
+
+    @Test
+    public void testGetUrlBackwardCompatibility() {
+        final Set<String> urls = new LinkedHashSet<>();
+        urls.add("http://node1:8080/nifi");
+        urls.add("http://node2:8080/nifi");
+        final SiteToSiteClientConfig config = new SiteToSiteClient.Builder()
+                .urls(urls)
+                .buildConfig();
+
+        Assert.assertEquals("http://node1:8080/nifi", config.getUrl());
+        Assert.assertEquals(urls, config.getUrls());
     }
 
 }
