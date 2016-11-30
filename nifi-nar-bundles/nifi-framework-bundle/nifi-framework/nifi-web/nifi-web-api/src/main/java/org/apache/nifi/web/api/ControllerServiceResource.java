@@ -709,7 +709,7 @@ public class ControllerServiceResource extends ApplicationResource {
                     controllerService.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerService, authorizer, lookup);
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerService, authorizer, lookup, false);
                 },
                 () -> serviceFacade.verifyDeleteControllerService(id),
                 (revision, controllerServiceEntity) -> {

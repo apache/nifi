@@ -513,7 +513,7 @@ public class ReportingTaskResource extends ApplicationResource {
                     reportingTask.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(reportingTask, authorizer, lookup);
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(reportingTask, authorizer, lookup, false);
                 },
                 () -> serviceFacade.verifyDeleteReportingTask(id),
                 (revision, reportingTaskEntity) -> {

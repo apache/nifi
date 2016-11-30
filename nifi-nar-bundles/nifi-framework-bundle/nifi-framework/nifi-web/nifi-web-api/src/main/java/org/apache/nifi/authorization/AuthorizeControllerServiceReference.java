@@ -37,7 +37,9 @@ public final class AuthorizeControllerServiceReference {
      * @param authorizer authorizer
      * @param lookup lookup
      */
-    public static void authorizeControllerServiceReferences(final ConfigurableComponentAuthorizable authorizable, final Authorizer authorizer, final AuthorizableLookup lookup) {
+    public static void authorizeControllerServiceReferences(final ConfigurableComponentAuthorizable authorizable, final Authorizer authorizer,
+                                                            final AuthorizableLookup lookup, final boolean authorizeTransitiveServices) {
+
         // consider each property when looking for service references
         authorizable.getPropertyDescriptors().stream().forEach(descriptor -> {
             // if this descriptor identifies a controller service
@@ -48,8 +50,12 @@ public final class AuthorizeControllerServiceReference {
                 // authorize the service if configured
                 if (serviceId != null) {
                     try {
-                        final Authorizable currentServiceAuthorizable = lookup.getControllerService(serviceId).getAuthorizable();
-                        currentServiceAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                        final ConfigurableComponentAuthorizable currentServiceAuthorizable = lookup.getControllerService(serviceId);
+                        currentServiceAuthorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+                        if (authorizeTransitiveServices) {
+                            authorizeControllerServiceReferences(currentServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
+                        }
                     } catch (ResourceNotFoundException e) {
                         // ignore if the resource is not found, if the referenced service was previously deleted, it should not stop this action
                     }

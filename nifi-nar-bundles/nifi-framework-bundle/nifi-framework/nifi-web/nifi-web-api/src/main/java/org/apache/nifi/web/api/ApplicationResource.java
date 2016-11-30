@@ -444,7 +444,8 @@ public abstract class ApplicationResource {
      * @param authorizeControllerServices   whether to authorize controller services
      */
     protected void authorizeProcessGroup(final ProcessGroupAuthorizable processGroupAuthorizable, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
-                                         final boolean authorizeReferencedServices, final boolean authorizeTemplates, final boolean authorizeControllerServices) {
+                                         final boolean authorizeReferencedServices, final boolean authorizeTemplates,
+                                         final boolean authorizeControllerServices, final boolean authorizeTransitiveServices) {
 
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
@@ -458,7 +459,7 @@ public abstract class ApplicationResource {
 
             // authorize any referenced services if necessary
             if (authorizeReferencedServices) {
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup);
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
         });
         processGroupAuthorizable.getEncapsulatedConnections().forEach(authorize);
@@ -482,7 +483,7 @@ public abstract class ApplicationResource {
 
                 // authorize any referenced services if necessary
                 if (authorizeReferencedServices) {
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup);
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerServiceAuthorizable, authorizer, lookup, authorizeTransitiveServices);
                 }
             });
         }
@@ -495,14 +496,15 @@ public abstract class ApplicationResource {
      * @param lookup     lookup
      * @param action     action
      */
-    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action, final boolean authorizeReferencedServices) {
+    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
+                                    final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
         // authorize each component in the specified snippet
         snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
         });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(processorAuthorizable -> {
@@ -511,7 +513,7 @@ public abstract class ApplicationResource {
 
             // authorize any referenced services if necessary
             if (authorizeReferencedServices) {
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup);
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
         });
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);

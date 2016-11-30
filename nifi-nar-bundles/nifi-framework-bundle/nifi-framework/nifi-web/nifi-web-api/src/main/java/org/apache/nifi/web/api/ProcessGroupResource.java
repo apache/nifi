@@ -375,7 +375,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
                     // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
                     // read to any referenced services by encapsulated components
-                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true);
+                    authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false);
                 },
                 () -> serviceFacade.verifyDeleteProcessGroup(id),
                 (revision, processGroupEntity) -> {
@@ -1687,7 +1687,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestCopySnippetEntity,
                 lookup -> {
-                    authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId());
+                    authorizeSnippetUsage(lookup, groupId, requestCopySnippetEntity.getSnippetId(), false);
                 },
                 null,
                 copySnippetRequestEntity -> {
@@ -1805,13 +1805,13 @@ public class ProcessGroupResource extends ApplicationResource {
     // templates
     // ---------
 
-    private void authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId) {
+    private void authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId, final boolean authorizeTransitiveServices) {
         // ensure write access to the target process group
         lookup.getProcessGroup(groupId).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // ensure read permission to every component in the snippet including referenced services
         final Snippet snippet = lookup.getSnippet(snippetId);
-        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true);
+        authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ, true, authorizeTransitiveServices);
     }
 
     /**
@@ -1866,7 +1866,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 serviceFacade,
                 requestCreateTemplateRequestEntity,
                 lookup -> {
-                    authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId());
+                    authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId(), true);
                 },
                 () -> serviceFacade.verifyCanAddTemplate(groupId, requestCreateTemplateRequestEntity.getName()),
                 createTemplateRequestEntity -> {

@@ -110,7 +110,7 @@ public class SnippetResource extends ApplicationResource {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. additionally,
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
-            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false);
+            authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
         });
         snippetRequest.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
@@ -269,7 +269,7 @@ public class SnippetResource extends ApplicationResource {
 
                     // ensure write permission to every component in the snippet excluding referenced services
                     final Snippet snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false);
                 },
                 () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, snippetEntity) -> {
@@ -332,7 +332,7 @@ public class SnippetResource extends ApplicationResource {
                 lookup -> {
                     // ensure write permission to every component in the snippet excluding referenced services
                     final Snippet snippet = lookup.getSnippet(snippetId);
-                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true);
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false);
                 },
                 () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
                 (revisions, entity) -> {

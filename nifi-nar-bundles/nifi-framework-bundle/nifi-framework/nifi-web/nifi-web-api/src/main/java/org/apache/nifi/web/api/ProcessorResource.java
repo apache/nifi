@@ -535,7 +535,7 @@ public class ProcessorResource extends ApplicationResource {
                     processor.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processor, authorizer, lookup);
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processor, authorizer, lookup, false);
                 },
                 () -> serviceFacade.verifyDeleteProcessor(id),
                 (revision, processorEntity) -> {
