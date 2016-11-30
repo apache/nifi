@@ -179,7 +179,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     // clear the remote process group details
                     $('#remote-process-group-ports-id').text('');
                     $('#remote-process-group-ports-name').text('');
-                    $('#remote-process-group-ports-url').text('');
+                    $('#remote-process-group-ports-urls').text('');
 
                     // clear any tooltips
                     var dialog = $('#remote-process-group-ports');
@@ -484,7 +484,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     // populate the port settings
                     $('#remote-process-group-ports-id').text(remoteProcessGroup.id);
                     $('#remote-process-group-ports-name').text(remoteProcessGroup.name);
-                    $('#remote-process-group-ports-url').text(remoteProcessGroup.targetUri);
+                    $('#remote-process-group-ports-urls').text(remoteProcessGroup.targetUris);
 
                     // get the contents
                     var remoteProcessGroupContents = remoteProcessGroup.contents;

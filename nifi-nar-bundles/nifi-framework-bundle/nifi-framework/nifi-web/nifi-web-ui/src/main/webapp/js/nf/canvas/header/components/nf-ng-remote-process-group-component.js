@@ -34,7 +34,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                 }
             }),
             'component': {
-                'targetUri': $('#new-remote-process-group-uri').val(),
+                'targetUris': $('#new-remote-process-group-uris').val(),
                 'position': {
                     'x': pt.x,
                     'y': pt.y
@@ -125,7 +125,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                     headerText: 'Add Remote Process Group',
                     handler: {
                         close: function () {
-                            $('#new-remote-process-group-uri').val('');
+                            $('#new-remote-process-group-uris').val('');
                             $('#new-remote-process-group-timeout').val(defaultTimeout);
                             $('#new-remote-process-group-yield-duration').val(defaultYieldDuration);
                             $('#new-remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
@@ -265,7 +265,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
             this.modal.show();
 
             // set the focus and key handlers
-            $('#new-remote-process-group-uri').focus().off('keyup').on('keyup', function (e) {
+            $('#new-remote-process-group-uris').focus().off('keyup').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
                     addRemoteProcessGroup();

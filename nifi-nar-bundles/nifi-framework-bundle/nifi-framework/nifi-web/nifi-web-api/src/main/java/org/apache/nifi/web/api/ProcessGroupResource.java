@@ -36,6 +36,7 @@ import org.apache.nifi.authorization.TemplateAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
@@ -1356,31 +1357,12 @@ public class ProcessGroupResource extends ApplicationResource {
                     // set the processor id as appropriate
                     remoteProcessGroupDTO.setId(generateUuid());
 
-                    // parse the uri
-                    final URI uri;
-                    try {
-                        uri = URI.create(remoteProcessGroupDTO.getTargetUri());
-                    } catch (final IllegalArgumentException e) {
-                        throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroupDTO.getTargetUri());
-                    }
+                    // parse the uri to check if the uri is valid
+                    final String targetUris = remoteProcessGroupDTO.getTargetUris();
+                    SiteToSiteRestApiClient.parseClusterUrls(targetUris);
 
-                    // validate each part of the uri
-                    if (uri.getScheme() == null || uri.getHost() == null) {
-                        throw new IllegalArgumentException("The specified remote process group URL is malformed: " + remoteProcessGroupDTO.getTargetUri());
-                    }
-
-                    if (!(uri.getScheme().equalsIgnoreCase("http") || uri.getScheme().equalsIgnoreCase("https"))) {
-                        throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + remoteProcessGroupDTO.getTargetUri());
-                    }
-
-                    // normalize the uri to the other controller
-                    String controllerUri = uri.toString();
-                    if (controllerUri.endsWith("/")) {
-                        controllerUri = StringUtils.substringBeforeLast(controllerUri, "/");
-                    }
-
-                    // since the uri is valid, use the normalized version
-                    remoteProcessGroupDTO.setTargetUri(controllerUri);
+                    // since the uri is valid, use it
+                    remoteProcessGroupDTO.setTargetUris(targetUris);
 
                     // create the remote process group
                     final Revision revision = getRevision(remoteProcessGroupEntity, remoteProcessGroupDTO.getId());
