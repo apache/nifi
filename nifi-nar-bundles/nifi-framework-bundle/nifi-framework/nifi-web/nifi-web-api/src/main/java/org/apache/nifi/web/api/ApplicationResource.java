@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -40,7 +41,6 @@ import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.exception.BadRequestException;
@@ -462,12 +462,12 @@ public abstract class ApplicationResource {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
         });
-        processGroupAuthorizable.getEncapsulatedConnections().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedConnections().stream().map(connection -> connection.getAuthorizable()).forEach(authorize);
         processGroupAuthorizable.getEncapsulatedInputPorts().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedOutputPorts().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedFunnels().forEach(authorize);
         processGroupAuthorizable.getEncapsulatedLabels().forEach(authorize);
-        processGroupAuthorizable.getEncapsulatedProcessGroups().forEach(authorize);
+        processGroupAuthorizable.getEncapsulatedProcessGroups().stream().map(group -> group.getAuthorizable()).forEach(authorize);
         processGroupAuthorizable.getEncapsulatedRemoteProcessGroups().forEach(authorize);
 
         // authorize templates if necessary
@@ -496,18 +496,19 @@ public abstract class ApplicationResource {
      * @param lookup     lookup
      * @param action     action
      */
-    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
+    protected void authorizeSnippet(final SnippetAuthorizable snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action,
                                     final boolean authorizeReferencedServices, final boolean authorizeTransitiveServices) {
+
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
         // authorize each component in the specified snippet
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+        snippet.getSelectedProcessGroups().stream().forEach(processGroupAuthorizable -> {
             // note - we are not authorizing templates or controller services as they are not considered when using this snippet. however,
             // referenced services are considered so those are explicitly authorized when authorizing a processor
             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, authorizeReferencedServices, false, false, authorizeTransitiveServices);
         });
-        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
-        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(processorAuthorizable -> {
+        snippet.getSelectedRemoteProcessGroups().stream().forEach(authorize);
+        snippet.getSelectedProcessors().stream().forEach(processorAuthorizable -> {
             // authorize the processor
             authorize.accept(processorAuthorizable.getAuthorizable());
 
@@ -516,10 +517,11 @@ public abstract class ApplicationResource {
                 AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processorAuthorizable, authorizer, lookup, authorizeTransitiveServices);
             }
         });
-        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
-        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
-        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+        snippet.getSelectedInputPorts().stream().forEach(authorize);
+        snippet.getSelectedOutputPorts().stream().forEach(authorize);
+        snippet.getSelectedConnections().stream().forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
+        snippet.getSelectedFunnels().stream().forEach(authorize);
+        snippet.getSelectedLabels().stream().forEach(authorize);
     }
 
     /**

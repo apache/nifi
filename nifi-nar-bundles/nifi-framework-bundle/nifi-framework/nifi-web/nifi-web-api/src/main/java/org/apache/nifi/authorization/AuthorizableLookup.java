@@ -17,7 +17,6 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.controller.Snippet;
 
 public interface AuthorizableLookup {
 
@@ -201,7 +200,7 @@ public interface AuthorizableLookup {
      * @param id template id
      * @return authorizable
      */
-    Authorizable getTemplate(String id);
+    TemplateAuthorizable getTemplate(String id);
 
     /**
      * Get the authorizable connectable.
@@ -217,7 +216,7 @@ public interface AuthorizableLookup {
      * @param id snippet id
      * @return snippet of authorizable's
      */
-    Snippet getSnippet(String id);
+    SnippetAuthorizable getSnippet(String id);
 
     /**
      * Get the {@link Authorizable} that represents the resource of users and user groups.
