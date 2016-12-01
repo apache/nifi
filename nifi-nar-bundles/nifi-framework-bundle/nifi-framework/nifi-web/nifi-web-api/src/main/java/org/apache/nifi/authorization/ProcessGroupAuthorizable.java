@@ -43,7 +43,7 @@ public interface ProcessGroupAuthorizable {
      *
      * @return all encapsulated connections
      */
-    Set<Authorizable> getEncapsulatedConnections();
+    Set<ConnectionAuthorizable> getEncapsulatedConnections();
 
     /**
      * The authorizables for all encapsulated input ports. Non null
@@ -78,7 +78,7 @@ public interface ProcessGroupAuthorizable {
      *
      * @return all encapsulated process groups
      */
-    Set<Authorizable> getEncapsulatedProcessGroups();
+    Set<ProcessGroupAuthorizable> getEncapsulatedProcessGroups();
 
     /**
      * The authorizables for all encapsulated remote process groups. Non null

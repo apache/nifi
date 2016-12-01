@@ -26,9 +26,9 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.SnippetAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SnippetDTO;
@@ -106,8 +106,8 @@ public class SnippetResource extends ApplicationResource {
     private void authorizeSnippetRequest(final SnippetDTO snippetRequest, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
+        // note - we are not authorizing templates or controller services as they are not considered when using this snippet
         snippetRequest.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
-            // note - we are not authorizing templates or controller services as they are not considered when using this snippet. additionally,
             // we are not checking referenced services since we do not know how this snippet will be used. these checks should be performed
             // in a subsequent action with this snippet
             authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, action, false, false, false, false);
@@ -116,8 +116,9 @@ public class SnippetResource extends ApplicationResource {
         snippetRequest.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
         snippetRequest.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
         snippetRequest.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippetRequest.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
+        snippetRequest.getConnections().keySet().stream().map(id -> lookup.getConnection(id).getAuthorizable()).forEach(authorize);
         snippetRequest.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+        snippetRequest.getLabels().keySet().stream().map(id -> lookup.getLabel(id)).forEach(authorize);
     }
 
     /**
@@ -160,6 +161,10 @@ public class SnippetResource extends ApplicationResource {
 
         if (requestSnippetEntity.getSnippet().getId() != null) {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
+        }
+
+        if (requestSnippetEntity.getSnippet().getParentGroupId() == null) {
+            throw new IllegalArgumentException("The parent Process Group of the snippet must be specified.");
         }
 
         if (isReplicateRequest()) {
@@ -268,7 +273,7 @@ public class SnippetResource extends ApplicationResource {
                     }
 
                     // ensure write permission to every component in the snippet excluding referenced services
-                    final Snippet snippet = lookup.getSnippet(snippetId);
+                    final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
                     authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, false, false);
                 },
                 () -> serviceFacade.verifyUpdateSnippet(requestSnippetDTO, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
@@ -331,7 +336,7 @@ public class SnippetResource extends ApplicationResource {
                 requestRevisions,
                 lookup -> {
                     // ensure write permission to every component in the snippet excluding referenced services
-                    final Snippet snippet = lookup.getSnippet(snippetId);
+                    final SnippetAuthorizable snippet = lookup.getSnippet(snippetId);
                     authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE, true, false);
                 },
                 () -> serviceFacade.verifyDeleteSnippet(snippetId, requestRevisions.stream().map(rev -> rev.getComponentId()).collect(Collectors.toSet())),
