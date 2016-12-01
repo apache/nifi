@@ -119,12 +119,12 @@ class PermissionBasedStatusMergerSpec extends Specification {
         target                                                             | targetCanRead |
                 toMerge                                                            | toMergeCanRead ||
                 expectedDto
-        new PortStatusDTO(groupId: 'real', id: 'real', name: 'real')       | true          |
-                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false          ||
-                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden')
-        new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false         |
-                new PortStatusDTO(groupId: 'real', id: 'real', name: 'real')       | true           ||
-                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden')
+        new PortStatusDTO(groupId: 'real', id: 'real', name: 'real', transmitting: 'false')       | true          |
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', transmitting: 'false') | false          ||
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', transmitting: 'false')
+        new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', transmitting: 'false') | false         |
+                new PortStatusDTO(groupId: 'real', id: 'real', name: 'real', transmitting: 'false')       | true           ||
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', transmitting: 'false')
     }
 
     def "Merge PortStatusSnapshotDTO"() {
