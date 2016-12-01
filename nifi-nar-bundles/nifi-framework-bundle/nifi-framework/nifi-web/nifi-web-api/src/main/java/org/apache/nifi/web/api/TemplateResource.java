@@ -122,7 +122,7 @@ public class TemplateResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable template = lookup.getTemplate(id);
+            final Authorizable template = lookup.getTemplate(id).getAuthorizable();
             template.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -196,7 +196,7 @@ public class TemplateResource extends ApplicationResource {
                 serviceFacade,
                 requestTemplateEntity,
                 lookup -> {
-                    final Authorizable template = lookup.getTemplate(id);
+                    final Authorizable template = lookup.getTemplate(id).getAuthorizable();
                     template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
