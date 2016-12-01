@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
@@ -41,6 +42,8 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -55,6 +58,7 @@ import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.TemplateDAO;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -221,91 +225,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public ConnectionAuthorizable getConnection(final String id) {
         final Connection connection = connectionDAO.getConnection(id);
-        return new ConnectionAuthorizable() {
-            @Override
-            public Authorizable getAuthorizable() {
-                return connection;
-            }
-
-            @Override
-            public Connectable getSource() {
-                return connection.getSource();
-            }
-
-            @Override
-            public Connectable getDestination() {
-                return connection.getDestination();
-            }
-
-            @Override
-            public ProcessGroup getParentGroup() {
-                return connection.getProcessGroup();
-            }
-        };
+        return new StandardConnectionAuthorizable(connection);
     }
 
     @Override
     public ProcessGroupAuthorizable getProcessGroup(final String id) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
-
-        return new ProcessGroupAuthorizable() {
-            @Override
-            public Authorizable getAuthorizable() {
-                return processGroup;
-            }
-
-            @Override
-            public Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors() {
-                return processGroup.findAllProcessors().stream().map(
-                        processorNode -> new ProcessorConfigurableComponentAuthorizable(processorNode)).collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedConnections() {
-                return processGroup.findAllConnections().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedInputPorts() {
-                return processGroup.findAllInputPorts().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedOutputPorts() {
-                return processGroup.findAllOutputPorts().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedFunnels() {
-                return processGroup.findAllFunnels().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedLabels() {
-                return processGroup.findAllLabels().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedProcessGroups() {
-                return processGroup.findAllProcessGroups().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedRemoteProcessGroups() {
-                return processGroup.findAllRemoteProcessGroups().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<Authorizable> getEncapsulatedTemplates() {
-                return processGroup.findAllTemplates().stream().collect(Collectors.toSet());
-            }
-
-            @Override
-            public Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices() {
-                return processGroup.findAllControllerServices().stream().map(
-                        controllerServiceNode -> new ControllerServiceConfigurableComponentAuthorizable(controllerServiceNode)).collect(Collectors.toSet());
-            }
-        };
+        return new StandardProcessGroupAuthorizable(processGroup);
     }
 
     @Override
@@ -411,8 +337,75 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Snippet getSnippet(final String id) {
-        return snippetDAO.getSnippet(id);
+    public SnippetAuthorizable getSnippet(final String id) {
+        final Snippet snippet = snippetDAO.getSnippet(id);
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(snippet.getParentGroupId());
+
+        return new SnippetAuthorizable() {
+            @Override
+            public Set<ConfigurableComponentAuthorizable> getSelectedProcessors() {
+                return processGroup.getProcessors().stream()
+                        .filter(processor -> snippet.getProcessors().containsKey(processor.getIdentifier()))
+                        .map(processor -> getProcessor(processor.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<ConnectionAuthorizable> getSelectedConnections() {
+                return processGroup.getConnections().stream()
+                        .filter(connection -> snippet.getConnections().containsKey(connection.getIdentifier()))
+                        .map(connection -> getConnection(connection.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<Authorizable> getSelectedInputPorts() {
+                return processGroup.getInputPorts().stream()
+                        .filter(inputPort -> snippet.getInputPorts().containsKey(inputPort.getIdentifier()))
+                        .map(inputPort -> getInputPort(inputPort.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<Authorizable> getSelectedOutputPorts() {
+                return processGroup.getOutputPorts().stream()
+                        .filter(outputPort -> snippet.getOutputPorts().containsKey(outputPort.getIdentifier()))
+                        .map(outputPort -> getOutputPort(outputPort.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<Authorizable> getSelectedFunnels() {
+                return processGroup.getFunnels().stream()
+                        .filter(funnel -> snippet.getFunnels().containsKey(funnel.getIdentifier()))
+                        .map(funnel -> getFunnel(funnel.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<Authorizable> getSelectedLabels() {
+                return processGroup.getLabels().stream()
+                        .filter(label -> snippet.getLabels().containsKey(label.getIdentifier()))
+                        .map(label -> getLabel(label.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<ProcessGroupAuthorizable> getSelectedProcessGroups() {
+                return processGroup.getProcessGroups().stream()
+                        .filter(processGroup -> snippet.getProcessGroups().containsKey(processGroup.getIdentifier()))
+                        .map(processGroup -> getProcessGroup(processGroup.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<Authorizable> getSelectedRemoteProcessGroups() {
+                return processGroup.getRemoteProcessGroups().stream()
+                        .filter(remoteProcessGroup -> snippet.getRemoteProcessGroups().containsKey(remoteProcessGroup.getIdentifier()))
+                        .map(remoteProcessGroup -> getRemoteProcessGroup(remoteProcessGroup.getIdentifier()))
+                        .collect(Collectors.toSet());
+            }
+        };
     }
 
     @Override
@@ -530,7 +523,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getReportingTask(componentId).getAuthorizable();
                 break;
             case Template:
-                authorizable = getTemplate(componentId);
+                authorizable = getTemplate(componentId).getAuthorizable();
                 break;
             case Data:
                 authorizable = controllerFacade.getDataAuthorizable(componentId);
@@ -629,9 +622,62 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return authorizable;
     }
 
+    /**
+     * Creates temporary instances of all processors and controller services found in the specified snippet.
+     *
+     * @param snippet               snippet
+     * @param processors            processors
+     * @param controllerServices    controller services
+     */
+    private void createTemporaryProcessorsAndControllerServices(final FlowSnippetDTO snippet,
+                                                                final Set<ConfigurableComponentAuthorizable> processors,
+                                                                final Set<ConfigurableComponentAuthorizable> controllerServices) {
+
+        if (snippet == null) {
+            return;
+        }
+
+        if (snippet.getProcessors() != null) {
+            processors.addAll(snippet.getProcessors().stream().map(processor -> getProcessorByType(processor.getType())).collect(Collectors.toSet()));
+        }
+
+        if (snippet.getControllerServices() != null) {
+            controllerServices.addAll(snippet.getControllerServices().stream().map(controllerService -> getControllerServiceByType(controllerService.getType())).collect(Collectors.toSet()));
+        }
+
+        if (snippet.getProcessGroups() != null) {
+            snippet.getProcessGroups().stream().forEach(group -> createTemporaryProcessorsAndControllerServices(group.getContents(), processors, controllerServices));
+        }
+    }
+
     @Override
-    public Authorizable getTemplate(final String id) {
-        return templateDAO.getTemplate(id);
+    public TemplateAuthorizable getTemplate(final String id) {
+        final Template template = templateDAO.getTemplate(id);
+        final TemplateDTO contents = template.getDetails();
+
+        // templates are immutable so we can pre-compute all encapsulated processors and controller services
+        final Set<ConfigurableComponentAuthorizable> processors = new HashSet<>();
+        final Set<ConfigurableComponentAuthorizable> controllerServices = new HashSet<>();
+
+        // find all processors and controller services
+        createTemporaryProcessorsAndControllerServices(contents.getSnippet(), processors, controllerServices);
+
+        return new TemplateAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return template;
+            }
+
+            @Override
+            public Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors() {
+                return processors;
+            }
+
+            @Override
+            public Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices() {
+                return controllerServices;
+            }
+        };
     }
 
     @Override
@@ -643,6 +689,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getRestrictedComponents() {
         return RESTRICTED_COMPONENTS_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getSystem() {
+        return SYSTEM_AUTHORIZABLE;
     }
 
     /**
@@ -753,9 +804,99 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     }
 
-    @Override
-    public Authorizable getSystem() {
-        return SYSTEM_AUTHORIZABLE;
+    private static class StandardProcessGroupAuthorizable implements ProcessGroupAuthorizable {
+        private final ProcessGroup processGroup;
+
+        public StandardProcessGroupAuthorizable(ProcessGroup processGroup) {
+            this.processGroup = processGroup;
+        }
+
+        @Override
+        public Authorizable getAuthorizable() {
+            return processGroup;
+        }
+
+        @Override
+        public Set<ConfigurableComponentAuthorizable> getEncapsulatedProcessors() {
+            return processGroup.findAllProcessors().stream().map(
+                    processorNode -> new ProcessorConfigurableComponentAuthorizable(processorNode)).collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<ConnectionAuthorizable> getEncapsulatedConnections() {
+            return processGroup.findAllConnections().stream().map(
+                    connection -> new StandardConnectionAuthorizable(connection)).collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedInputPorts() {
+            return processGroup.findAllInputPorts().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedOutputPorts() {
+            return processGroup.findAllOutputPorts().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedFunnels() {
+            return processGroup.findAllFunnels().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedLabels() {
+            return processGroup.findAllLabels().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<ProcessGroupAuthorizable> getEncapsulatedProcessGroups() {
+            return processGroup.findAllProcessGroups().stream().map(
+                    group -> new StandardProcessGroupAuthorizable(group)).collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedRemoteProcessGroups() {
+            return processGroup.findAllRemoteProcessGroups().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<Authorizable> getEncapsulatedTemplates() {
+            return processGroup.findAllTemplates().stream().collect(Collectors.toSet());
+        }
+
+        @Override
+        public Set<ConfigurableComponentAuthorizable> getEncapsulatedControllerServices() {
+            return processGroup.findAllControllerServices().stream().map(
+                    controllerServiceNode -> new ControllerServiceConfigurableComponentAuthorizable(controllerServiceNode)).collect(Collectors.toSet());
+        }
+    }
+
+    private static class StandardConnectionAuthorizable implements ConnectionAuthorizable {
+        private final Connection connection;
+
+        public StandardConnectionAuthorizable(Connection connection) {
+            this.connection = connection;
+        }
+
+        @Override
+        public Authorizable getAuthorizable() {
+            return connection;
+        }
+
+        @Override
+        public Connectable getSource() {
+            return connection.getSource();
+        }
+
+        @Override
+        public Connectable getDestination() {
+            return connection.getDestination();
+        }
+
+        @Override
+        public ProcessGroup getParentGroup() {
+            return connection.getProcessGroup();
+        }
     }
 
     public void setProcessorDAO(ProcessorDAO processorDAO) {
