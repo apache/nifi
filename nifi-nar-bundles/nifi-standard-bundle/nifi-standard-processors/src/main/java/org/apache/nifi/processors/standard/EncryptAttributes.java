@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -41,7 +42,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.crypto.CipherUtility;
-import org.apache.nifi.processors.standard.util.crypto.EncryptString;
 import org.apache.nifi.processors.standard.util.crypto.KeyedEncryptor;
 import org.apache.nifi.processors.standard.util.crypto.OpenPGPKeyBasedEncryptor;
 import org.apache.nifi.processors.standard.util.crypto.OpenPGPPasswordBasedEncryptor;
@@ -50,6 +50,10 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.Security;
 import java.text.Normalizer;
@@ -463,9 +467,9 @@ public class EncryptAttributes extends AbstractProcessor {
         return kdfsForPBECipher;
     }
 
-    protected Map<String, String> buildNewAttributes(FlowFile file, String atrList,
-                                                     EncryptContent.Encryptor encryptor,
-                                                     boolean isToBeEncrypted) throws Exception {
+    private Map<String, String> buildNewAttributes(FlowFile file, String atrList,
+                                                   EncryptContent.Encryptor encryptor,
+                                                   boolean isToBeEncrypted) throws Exception {
 
         Map<String, String> oldAttributes = file.getAttributes();
         Map<String, String> atrToWrite = new HashMap<>();
@@ -552,5 +556,55 @@ public class EncryptAttributes extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
         }
 
+    }
+
+    private static class EncryptString {
+
+        /**
+         * Performs decryption with given input string and encryptor.
+         * The input must be of Base64 encoded string.
+         *
+         * @param str       Base64 encoded encrypted String
+         * @param encryptor Encryptor which will be used for decryption
+         * @return decrypted string of charset US-ASCII
+         * @throws Exception exception if couldn't process streams converted from strings
+         */
+        static String performDecryption(String str, EncryptContent.Encryptor encryptor) throws Exception {
+            //Initialize string and streams
+            byte[] encryptedBytes = str.getBytes(StandardCharsets.US_ASCII);
+            byte[] decodedBytes = Base64.decodeBase64(encryptedBytes);
+            String decryptedStr;
+
+            try (InputStream in = new ByteArrayInputStream(decodedBytes); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                encryptor.getDecryptionCallback().process(in, out);
+                decryptedStr = new String(out.toByteArray(), StandardCharsets.US_ASCII);
+            } catch (IOException e) {
+                throw new ProcessException(e);
+            }
+
+            return decryptedStr;
+        }
+
+        /**
+         * Performs encryption with given input string. The final encrypted string is
+         * encoded to Base64 to prevent data loss
+         *
+         * @param str       String to be encrypted
+         * @param encryptor Encryptor which will be used for encryption
+         * @return Base64 encode string after performing encryption
+         * @throws Exception exception if couldn't process streams converted from strings
+         */
+        static String performEncryption(String str, EncryptContent.Encryptor encryptor) throws Exception {
+            String encodedEncryptedStr;
+
+            try (InputStream in = new ByteArrayInputStream(str.getBytes(StandardCharsets.US_ASCII)); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                encryptor.getEncryptionCallback().process(in, out);
+                byte[] encryptedData = out.toByteArray();
+                encodedEncryptedStr = Base64.encodeBase64String(encryptedData);
+            } catch (IOException e) {
+                throw new ProcessException(e);
+            }
+            return encodedEncryptedStr;
+        }
     }
 }
