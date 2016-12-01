@@ -531,6 +531,7 @@ This section describes:
 
 * How to create users and groups
 * How access policies are used to define authorizations
+* How to view policies that are set on a user
 * How to configure access policies by walking through specific examples
 
 NOTE: Instructions requiring interaction with the UI assume the application is being accessed by User1, a user with administrator privileges, such as the “Initial Admin Identity” user or a converted legacy admin user (see <<authorizers-setup>>).
@@ -657,6 +658,20 @@ You can override an inherited policy (as described in the <<moving-a-processor>>
 NOTE: “View the policies” and “modify the policies” component-level access policies are an exception to this inherited behavior. When a user is added to either policy, they are added to the current list of administrators. They do not override higher level administrators. For this reason, only component specific administrators are displayed for the “view the policies” and “modify the policies" access policies.
 
 NOTE:  You cannot modify the users/groups on an inherited policy.  Users and groups can only be added or removed from a parent policy or an override policy.
+
+[[viewing-policies-users]]
+Viewing Policies on Users
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+From the UI, select “Users” from the Global Menu. This opens the NiFi Users dialog.
+
+image:user-policies.png["User Policies Window"]
+
+Select the View User Policies icon (image:iconUserPolicies.png["User Policies Icon"]).
+
+image:user-policies-detail.png["User Policies Detail"]
+
+The User Policies window displays the global and component level policies that have been set for the chosen user.  Select the Go To icon (image:iconGoTo.png["Go To Icon"]) to navigate to that component in the canvas.
 
 [[access-policy-config-examples]]
 Access Policy Configuration Examples
