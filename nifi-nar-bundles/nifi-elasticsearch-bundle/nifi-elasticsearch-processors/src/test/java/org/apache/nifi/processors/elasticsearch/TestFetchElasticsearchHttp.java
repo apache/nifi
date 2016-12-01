@@ -62,7 +62,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTrigger() throws IOException {
+    public void testFetchElasticsearchOnTriggerEL() throws IOException {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
@@ -91,7 +91,7 @@ public class TestFetchElasticsearchHttp {
     }
 
     @Test
-    public void testFetchElasticsearchOnTriggerEL() throws IOException {
+    public void testFetchElasticsearchOnTrigger() throws IOException {
         runner = TestRunners.newTestRunner(new FetchElasticsearchHttpTestProcessor(true)); // all docs are found
         runner.setValidateExpressionUsage(true);
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");

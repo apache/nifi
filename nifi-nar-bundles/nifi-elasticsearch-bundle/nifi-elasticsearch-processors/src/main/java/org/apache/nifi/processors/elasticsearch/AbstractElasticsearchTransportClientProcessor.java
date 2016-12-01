@@ -142,7 +142,7 @@ public abstract class AbstractElasticsearchTransportClientProcessor extends Abst
             final String pingTimeout = context.getProperty(PING_TIMEOUT).evaluateAttributeExpressions().getValue();
             final String samplerInterval = context.getProperty(SAMPLER_INTERVAL).evaluateAttributeExpressions().getValue();
             final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-            final String password = context.getProperty(PASSWORD).getValue();
+            final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
             final SSLContextService sslService =
                     context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);

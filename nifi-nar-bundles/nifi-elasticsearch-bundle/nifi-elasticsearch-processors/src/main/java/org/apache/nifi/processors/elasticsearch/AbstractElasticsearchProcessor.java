@@ -36,11 +36,11 @@ import java.util.Set;
  */
 public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
 
-    protected static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {
+    static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {
         if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
             return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
         }
-        return new ValidationResult.Builder().subject(subject).input(value).valid(value != null && !value.isEmpty()).explanation(subject + " cannot be empty").build();
+        return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, value, context);
     };
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -74,6 +74,7 @@ public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     protected abstract void createElasticsearchClient(ProcessContext context) throws ProcessException;

@@ -257,7 +257,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         final ComponentLog logger = getLogger();
 
@@ -288,6 +288,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
                         logger, startNanos, targetIsContent);
                 fromIndex += pageSize;
+                getResponse.close();
             } while (numResults > 0 && !hitLimit);
 
             if (flowFile != null) {

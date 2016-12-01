@@ -209,10 +209,10 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         }
 
         final String id_attribute = context.getProperty(ID_ATTRIBUTE).getValue();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
+
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
 
         OkHttpClient okHttpClient = getClient();
@@ -234,6 +234,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
         for (FlowFile file : flowFiles) {
             final String index = context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue();
+            final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(file).getValue());
             if (StringUtils.isEmpty(index)) {
                 logger.error("No value for index in for {}, transferring to failure", new Object[]{id_attribute, file});
                 flowFilesToTransfer.remove(file);
@@ -377,6 +378,7 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 logger.warn("Elasticsearch returned code {} with message {}, transferring flow file to failure", new Object[]{statusCode, getResponse.message()});
                 session.transfer(flowFilesToTransfer, REL_FAILURE);
             }
+            getResponse.close();
         }
     }
 }

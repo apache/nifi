@@ -202,10 +202,11 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         final ComponentLog logger = getLogger();
 
+        Response getResponse = null;
 
         try {
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
@@ -215,7 +216,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             final URL url = buildRequestURL(urlstr, docId, index, docType, fields);
             final long startNanos = System.nanoTime();
 
-            final Response getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "GET", null);
+            getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "GET", null);
             final int statusCode = getResponse.code();
 
             if (isSuccess(statusCode)) {
@@ -297,6 +298,10 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 session.remove(flowFile);
             }
             context.yield();
+        } finally {
+            if (getResponse != null) {
+                getResponse.close();
+            }
         }
     }
 

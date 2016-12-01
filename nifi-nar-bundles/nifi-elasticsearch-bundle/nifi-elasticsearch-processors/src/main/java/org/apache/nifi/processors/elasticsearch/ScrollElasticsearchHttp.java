@@ -237,7 +237,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
 
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
+        final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
 
         final ComponentLog logger = getLogger();
 
@@ -255,6 +255,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, scrollurl,
                         username, password, "GET", null);
                 this.getPage(getResponse, scrollurl, context, session, flowFile, logger, startNanos);
+                getResponse.close();
             } else {
                 logger.debug("Querying {}/{} from Elasticsearch: {}", new Object[] { index,
                         docType, query });
@@ -267,6 +268,7 @@ public class ScrollElasticsearchHttp extends AbstractElasticsearchHttpProcessor 
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 this.getPage(getResponse, queryUrl, context, session, flowFile, logger, startNanos);
+                getResponse.close();
             }
 
         } catch (IOException ioe) {
