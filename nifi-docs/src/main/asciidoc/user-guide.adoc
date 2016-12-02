@@ -296,7 +296,9 @@ While the options available from the context menu vary, the following options ar
 
 - *Configure*: This option allows the user to establish or change the configuration of the Processor. (See <<Configuring_a_Processor>>.)
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
-- *Stats*: This option opens a graphical representation of the Processor's statistical information over time.
+- *Status History*: This option opens a graphical representation of the Processor's statistical information over time.
+- *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
+- *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *Data provenance*: This option displays the NiFi Data Provenance table, with information about  data provenance events for the FlowFiles routed through that Processor
 - *Usage*: This option takes the user to the Processor's usage documentation.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
@@ -351,7 +353,9 @@ While the options available from the context menu vary, the following options ar
 - *Enter group*: This option allows the user to enter the Process Group. It is also possible to double-click on the Process Group to enter it.
 - *Start*: This option allows the user to start a Process Group.
 - *Stop*: This option allows the user to stop a Process Group.
-- *Stats*: This option opens a graphical representation of the Process Group's statistical information over time.
+- *Status History*: This option opens a graphical representation of the Process Group's statistical information over time.
+- *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Process Group.
+- *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
 - *Center in view*: This option centers the view of the canvas on the given Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Process Group.
@@ -369,7 +373,7 @@ how busy each node is. This information is then used to load balance the data th
 then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to
 recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
 
-Once a Remote Process Group has been dragged onto the canvas, the user may interact with it by right-clicking on the Remote Process Group and selecting an option from
+Once you have dragged a Remote Process Group onto the canvas, you can may interact with it by right-clicking on the Remote Process Group and selecting an option from
 context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
 image::nifi-rpg-menu.png["Remote Process Group Menu"]
@@ -380,7 +384,7 @@ While the options available from the context menu vary, the following options ar
 - *Remote Ports*: This option allows the user to see input ports and/or output ports that exist on the remote instance of NiFi that the Remote Process Group is connected to. Note that if the Site-to-Site configuration is secure, only the ports that the connecting NiFi has been given accessed to will be visible.
 - *Enable transmission*: Makes the transmission of data between NiFi instances active. (See <<Remote_Group_Transmission>> )
 - *Disable transmission*: Disables the transmission of data between NiFi instances.
-- *Stats*: This option opens a graphical representation of the Remote Process Group's statistical information over time.
+- *Status History*: This option opens a graphical representation of the Remote Process Group's statistical information over time.
 - *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Remote Process Group.
 - *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Remote Process Group.
 - *Refresh*: This option refreshes the view of the status of the remote NiFi instance.
@@ -1041,10 +1045,10 @@ In order to start a component, the following conditions must be met:
 - The component must have no active tasks. For more information about active tasks, see the ``Anatomy of ...''
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
-Components can be started by selecting all of the components to start and then clicking the Start icon (
-image:iconRun.png["Start"]
+Components can be started by selecting all of the components to start and then clicking the Start button (
+image:buttonStart.png["Start"]
 ) in the
-Actions Toolbar or by right-clicking a single component and choosing Start from the context menu.
+Operate Palette or by right-clicking a single component and choosing Start from the context menu.
 
 If starting a Process Group, all components within that Process Group (including child Process Groups) will
 be started, with the exception of those components that are invalid or disabled.
@@ -1057,9 +1061,9 @@ image:iconRun.png["Run"]
 === Stopping a Component
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
-and clicking Stop from the context menu, or by selecting the component and clicking the Stop icon (
-image:iconStop.png["Stop"]
-) in the Actions Toolbar.
+and clicking Stop from the context menu, or by selecting the component and clicking the Stop button (
+image:buttonStop.png["Stop"]
+) in the Operate Palette.
 
 If a Process Group is stopped, all of the components within the Process Group (including child Process Groups)
 will be stopped.
@@ -1081,9 +1085,9 @@ intentionally not running and those that may have been stopped temporarily (for 
 configuration) and inadvertently were never restarted.
 
 When it is desirable to re-enable a component, it can be enabled by selecting the component and
-clicking the Enable icon (
-image:iconEnable.png["Enable"]
-) in the Actions Toolbar. This is available only when the selected component or components are disabled.
+clicking the Enable button (
+image:buttonEnable.png["Enable"]
+) in the Operate Palette. This is available only when the selected component or components are disabled.
 Alternatively, a component can be enabled by checking the checkbox next  to the ``Enabled'' option in
 the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
 
@@ -1093,9 +1097,9 @@ image:iconAlert.png["Invalid"]
 image:iconStop.png["Stopped"]
 ), depending on whether or not the component is valid.
 
-A component is then disabled by selecting the component and clicking the Disable icon (
-image:iconDisable.png["Disable"]
-) in the Actions Toolbar, or by clearing the checkbox next to the ``Enabled'' option in the Settings tab
+A component is then disabled by selecting the component and clicking the Disable button (
+image:buttonDisable.png["Disable"]
+) in the Operate Palette, or by clearing the checkbox next to the ``Enabled'' option in the Settings tab
 of the Processor configuration dialog or the configuration dialog for a Port.
 
 Only Ports and Processors can be enabled and disabled.
@@ -1463,8 +1467,8 @@ The Summary page also includes the following elements:
 	may change the Process Group that the user is currently in. This icon is not available if the Summary page has been opened
 	in a new browser tab or window (by clicking the ``Pop Out'' button, as described below).
 
-- *Stats History*: Clicking the Stats History icon will open a new dialog that shows a historical view of the statistics that
-	are rendered for this component. See the section <<Stats_History>> for more information.
+- *Status History*: Clicking the Status History icon will open a new dialog that shows a historical view of the statistics that
+	are rendered for this component. See the section <<Status_History>> for more information.
 
 - *Refresh*: The Refresh button allows the user to refresh the information displayed without closing the dialog and opening it
 	again. The time at which the information was last refreshed is shown just to the right of the Refresh button. The information
@@ -1490,19 +1494,19 @@ The Summary page also includes the following elements:
 
 
 
-[[Stats_History]]
+[[Status_History]]
 === Historical Statistics of a Component
 
 While the Summary table and the canvas show numeric statistics pertaining to the performance of a component over the
 past five minutes, it is often useful to have a view of historical statistics as well. This information is available
-by right-clicking on a component and choosing the ``Stats'' menu option or by clicking on the Stats History in the Summary page (see <<Summary_Page>>
+by right-clicking on a component and choosing the ``Status History'' menu option or by clicking on the Status History in the Summary page (see <<Summary_Page>>
 for more information).
 
 The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours. For specific
 configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
-When the Stats dialog is opened, it provides a graph of historical statistics:
+When the Status History dialog is opened, it provides a graph of historical statistics:
 
-image::stats-history.png["Stats History"]
+image::stats-history.png["Status History"]
 
 The left-hand side of the dialog provides information about the component that the stats are for, as well as a textual
 representation of the statistics being graphed. The following information is provided on the left-hand side:
