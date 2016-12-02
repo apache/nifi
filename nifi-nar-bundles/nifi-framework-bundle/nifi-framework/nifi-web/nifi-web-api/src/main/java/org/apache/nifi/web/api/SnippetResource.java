@@ -163,6 +163,10 @@ public class SnippetResource extends ApplicationResource {
             throw new IllegalArgumentException("Snippet ID cannot be specified.");
         }
 
+        if (requestSnippetEntity.getSnippet().getParentGroupId() == null) {
+            throw new IllegalArgumentException("The parent Process Group of the snippet must be specified.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, requestSnippetEntity);
         }
