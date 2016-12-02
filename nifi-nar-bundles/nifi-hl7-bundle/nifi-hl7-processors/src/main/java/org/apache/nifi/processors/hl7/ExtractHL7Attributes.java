@@ -196,8 +196,8 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             final Map<String, String> attributes = getAttributes(message, useSegmentNames, parseSegmentFields);
             flowFile = session.putAllAttributes(flowFile, attributes);
             getLogger().debug("Added the following attributes for {}: {}", new Object[]{flowFile, attributes});
-        } catch (final HL7Exception e) {
-            getLogger().error("Failed to extract attributes from {} due to {}", new Object[]{flowFile, e});
+        } catch (final Throwable t) {
+            getLogger().error("Failed to extract attributes from {} due to {}", new Object[]{flowFile, t}, t);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
