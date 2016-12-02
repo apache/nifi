@@ -18,7 +18,7 @@ rem
 
 rem Set environment variables
 
-call nifi-env.bat
+call %~sdp0\nifi-env.bat
 
 rem Use JAVA_HOME if it's set; otherwise, just use java
 
