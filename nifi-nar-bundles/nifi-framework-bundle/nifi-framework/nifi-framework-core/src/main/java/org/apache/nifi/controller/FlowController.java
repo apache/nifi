@@ -1226,13 +1226,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * given URI
      *
      * @param id group id
-     * @param uri group uri
+     * @param uris group uris, multiple url can be specified in comma-separated format
      * @return new group
      * @throws NullPointerException if either argument is null
      * @throws IllegalArgumentException if <code>uri</code> is not a valid URI.
      */
-    public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uri) {
-        return new StandardRemoteProcessGroup(requireNonNull(id).intern(), requireNonNull(uri).intern(), null, this, sslContext, nifiProperties);
+    public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
+        return new StandardRemoteProcessGroup(requireNonNull(id).intern(), uris, null, this, sslContext, nifiProperties);
     }
 
     public ProcessGroup getRootGroup() {
@@ -1769,7 +1769,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Remote Process Groups
             //
             for (final RemoteProcessGroupDTO remoteGroupDTO : dto.getRemoteProcessGroups()) {
-                final RemoteProcessGroup remoteGroup = createRemoteProcessGroup(remoteGroupDTO.getId(), remoteGroupDTO.getTargetUri());
+                final RemoteProcessGroup remoteGroup = createRemoteProcessGroup(remoteGroupDTO.getId(), remoteGroupDTO.getTargetUris());
                 remoteGroup.setComments(remoteGroupDTO.getComments());
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
@@ -2608,7 +2608,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
         status.setGroupId(remoteGroup.getProcessGroup().getIdentifier());
         status.setName(isRemoteProcessGroupAuthorized ? remoteGroup.getName() : remoteGroup.getIdentifier());
-        status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri().toString() : null);
+        status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri() : null);
 
         long lineageMillis = 0L;
         int flowFilesRemoved = 0;

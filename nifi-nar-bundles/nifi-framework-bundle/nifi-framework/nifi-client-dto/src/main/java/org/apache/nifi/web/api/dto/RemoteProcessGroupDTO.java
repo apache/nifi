@@ -31,6 +31,7 @@ import java.util.Date;
 public class RemoteProcessGroupDTO extends ComponentDTO {
 
     private String targetUri;
+    private String targetUris;
     private Boolean targetSecure;
 
     private String name;
@@ -74,13 +75,58 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     }
 
     /**
-     * @return target uri of this remote process group
+     * @return target uri of this remote process group.
+     * If target uri is not set, but uris are set, then returns the first url in the urls.
+     * If neither target uri nor uris are set, then returns null.
      */
     @ApiModelProperty(
-            value = "The target URI of the remote process group."
+            value = "The target URI of the remote process group." +
+                    " If target uri is not set, but uris are set, then returns the first url in the urls." +
+                    " If neither target uri nor uris are set, then returns null."
     )
     public String getTargetUri() {
+        if (targetUri == null || targetUri.length() == 0) {
+            synchronized (this) {
+                if (targetUri == null || targetUri.length() == 0) {
+                    if (targetUris != null && targetUris.length() > 0) {
+                        if (targetUris.indexOf(',') > -1) {
+                            targetUri = targetUris.substring(0, targetUris.indexOf(','));
+                        } else {
+                            targetUri = targetUris;
+                        }
+                    }
+                }
+            }
+        }
+
         return this.targetUri;
+    }
+
+    public void setTargetUris(String targetUris) {
+        this.targetUris = targetUris;
+    }
+
+    /**
+     * @return target uris of this remote process group
+     * If targetUris was not set but target uri was set, then returns a collection containing the single uri.
+     * If neither target uris nor uri were set, then returns null.
+     */
+    @ApiModelProperty(
+            value = "The target URI of the remote process group." +
+                    " If target uris is not set but target uri is set," +
+                    " then returns a collection containing the single target uri." +
+                    " If neither target uris nor uris are set, then returns null."
+    )
+    public String getTargetUris() {
+        if (targetUris == null || targetUris.length() == 0) {
+            synchronized (this) {
+                if (targetUris == null || targetUris.length() == 0) {
+                    targetUris = targetUri;
+                }
+            }
+        }
+
+        return this.targetUris;
     }
 
     /**

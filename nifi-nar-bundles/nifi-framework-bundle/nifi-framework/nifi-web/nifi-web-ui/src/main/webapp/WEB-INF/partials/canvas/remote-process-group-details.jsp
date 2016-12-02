@@ -30,9 +30,9 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">URL</div>
+            <div class="setting-name">URLs</div>
             <div class="setting-field">
-                <span id="read-only-remote-process-group-url"></span>
+                <span id="read-only-remote-process-group-urls"></span>
             </div>
         </div>
         <div class="setting">
