@@ -21,6 +21,7 @@ import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.apache.nifi.processor.ProcessContext;
@@ -38,8 +39,10 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.HashMap;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -112,6 +115,34 @@ public class TestFetchElasticsearchHttp {
         final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
+    public void testFetchElasticsearchOnTriggerNoType() throws IOException {
+        final String ES_URL = "http://127.0.0.1:9200";
+        final String DOC_ID = "28039652140";
+        FetchElasticsearchHttpTestProcessor processor = new FetchElasticsearchHttpTestProcessor(true);
+        runner = TestRunners.newTestRunner(processor); // all docs are found
+        runner.setValidateExpressionUsage(true);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, ES_URL);
+
+        runner.setProperty(FetchElasticsearchHttp.INDEX, "doc");
+        runner.assertNotValid();
+        runner.setProperty(FetchElasticsearchHttp.DOC_ID, "${doc_id}");
+        runner.assertValid();
+
+        runner.enqueue(docExample, new HashMap<String, String>() {{
+            put("doc_id", DOC_ID);
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(FetchElasticsearchHttp.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearchHttp.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", DOC_ID);
+        assertEquals("URL doesn't match expected value when type is not supplied",
+                "http://127.0.0.1:9200" + "/doc/_all/" + DOC_ID,
+                processor.getURL().toString());
     }
 
     @Test
@@ -272,6 +303,8 @@ public class TestFetchElasticsearchHttp {
         int statusCode = 200;
         String statusMessage = "OK";
 
+        URL url = null;
+
         FetchElasticsearchHttpTestProcessor(boolean documentExists) {
             this.documentExists = documentExists;
         }
@@ -313,6 +346,16 @@ public class TestFetchElasticsearchHttp {
                     return call;
                 }
             });
+        }
+
+        @Override
+        protected Response sendRequestToElasticsearch(OkHttpClient client, URL url, String username, String password, String verb, RequestBody body) throws IOException {
+            this.url = url;
+            return super.sendRequestToElasticsearch(client, url, username, password, verb, body);
+        }
+
+        public URL getURL() {
+            return url;
         }
 
         protected OkHttpClient getClient() {

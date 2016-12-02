@@ -104,8 +104,7 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
             .name("fetch-es-index")
             .displayName("Index")
-            .description("The name of the index to read from. If the property is set "
-                    + "to _all, the query will match across all indexes.")
+            .description("The name of the index to read from.")
             .required(true)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -310,10 +309,8 @@ public class FetchElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             throw new MalformedURLException("Base URL cannot be null");
         }
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder();
-        builder.addPathSegment((StringUtils.isEmpty(index)) ? "_all" : index);
-        if (!StringUtils.isEmpty(type)) {
-            builder.addPathSegment(type);
-        }
+        builder.addPathSegment(index);
+        builder.addPathSegment((StringUtils.isEmpty(type)) ? "_all" : type);
         builder.addPathSegment(docId);
         if (!StringUtils.isEmpty(fields)) {
             String trimmedFields = Stream.of(fields.split(",")).map(String::trim).collect(Collectors.joining(","));
