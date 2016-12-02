@@ -102,7 +102,7 @@ run() {
     sudo_cmd_prefix=""
     if $cygwin; then
         NIFI_TOOLKIT_HOME=$(cygpath --path --windows "${NIFI_TOOLKIT_HOME}")
-        CLASSPATH="$NIFI_TOOLKIT_HOME/classpath";$(cygpath --path --windows "${LIBS}")
+        CLASSPATH="$NIFI_TOOLKIT_HOME/classpath;$(cygpath --path --windows "${LIBS}")"
     else
         CLASSPATH="$NIFI_TOOLKIT_HOME/classpath:${LIBS}"
     fi
