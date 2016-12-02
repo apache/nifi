@@ -37,4 +37,3 @@ SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms128m -Xmx256m %JAVA_ARGS% org.apache.nifi.to
 
 cmd.exe /C ""%JAVA_EXE%" %JAVA_PARAMS% %* ""
 
-popd
