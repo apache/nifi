@@ -248,6 +248,8 @@ run() {
         fi;
 
         NIFI_HOME=$(cygpath --path --windows "${NIFI_HOME}")
+        NIFI_LOG_DIR=$(cygpath --path --windows "${NIFI_LOG_DIR}")
+        NIFI_PID_DIR=$(cygpath --path --windows "${NIFI_PID_DIR}")
         BOOTSTRAP_CONF=$(cygpath --path --windows "${BOOTSTRAP_CONF}")
         BOOTSTRAP_CONF_DIR=$(cygpath --path --windows "${BOOTSTRAP_CONF_DIR}")
         BOOTSTRAP_LIBS=$(cygpath --path --windows "${BOOTSTRAP_LIBS}")
