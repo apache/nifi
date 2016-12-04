@@ -309,6 +309,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
                 }
             }
         }
+
     }
 
     private static class OpenPGPEncryptCallback implements StreamCallback {

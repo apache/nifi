@@ -65,8 +65,7 @@ public class TestEncryptAttributes {
             if (encryptionMethod.isKeyedCipher()){
                 testRunner.setProperty(EncryptAttributes.RAW_KEY_HEX, RAW_HEX_KEY);
                 testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name());
-            }
-            else {
+            } else {
                 testRunner.setProperty(EncryptAttributes.PASSWORD, "short");
                 testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
                 testRunner.setProperty(EncryptAttributes.ALLOW_WEAK_CRYPTO, EncryptAttributes.WEAK_CRYPTO_ALLOWED_NAME);
