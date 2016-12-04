@@ -21,54 +21,57 @@ import java.util.regex.Pattern;
 
 public class NumberParsing {
 
-
     public static enum ParseResultType {
         NOT_NUMBER, WHOLE_NUMBER, DECIMAL;
     }
-    private static final String Digits     = "(\\p{Digit}+)";
+    private static final String OptionalSign  = "[\\-\\+]?";
 
-    // Double regex according to Oracle documentation: http://docs.oracle.com/javase/6/docs/api/java/lang/Double.html#valueOf%28java.lang.String%29
-    private static final String HexDigits  = "(\\p{XDigit}+)";
-    // an exponent is 'e' or 'E' followed by an optionally
-    // signed decimal integer.
-    private static final String Exp        = "[eE][+-]?"+Digits;
-    private static final String fpRegex    =
-            ("[\\x00-\\x20]*"+  // Optional leading "whitespace"
-                    "[+-]?(" + // Optional sign character
-                    "NaN|" +           // "NaN" string
-                    "Infinity|" +      // "Infinity" string
+    private static final String Infinity = "(Infinity)";
+    private static final String NotANumber = "(NaN)";
 
-                    // A decimal floating-point string representing a finite positive
-                    // number without a leading sign has at most five basic pieces:
-                    // Digits . Digits ExponentPart FloatTypeSuffix
-                    //
-                    // Since this method allows integer-only strings as input
-                    // in addition to strings of floating-point literals, the
-                    // two sub-patterns below are simplifications of the grammar
-                    // productions from the Java Language Specification, 2nd
-                    // edition, section 3.10.2.
+    // Base 10
+    private static final String Base10Digits  = "\\d+";
+    private static final String Base10Decimal  = "\\." + Base10Digits;
+    private static final String OptionalBase10Decimal  = Base10Decimal + "?";
 
-                    // Digits ._opt Digits_opt ExponentPart_opt FloatTypeSuffix_opt
-                    "((("+Digits+"(\\.)?("+Digits+"?)("+Exp+")?)|"+
+    private static final String Base10Exponent      = "[eE]" + OptionalSign + Base10Digits;
+    private static final String OptionalBase10Exponent = "(" + Base10Exponent + ")?";
 
-                    // . Digits ExponentPart_opt FloatTypeSuffix_opt
-                    "(\\.("+Digits+")("+Exp+")?)|"+
+    // Hex
+    private static final String HexIdentifier = "0[xX]";
 
-                    // Hexadecimal strings
-                    "((" +
-                    // 0[xX] HexDigits ._opt BinaryExponent FloatTypeSuffix_opt
-                    "(0[xX]" + HexDigits + "(\\.)?)|" +
+    private static final String HexDigits     = "[0-9a-fA-F]+";
+    private static final String HexDecimal = "\\." + HexDigits;
+    private static final String OptionalHexDecimal = HexDecimal + "?";
 
-                    // 0[xX] HexDigits_opt . HexDigits BinaryExponent FloatTypeSuffix_opt
-                    "(0[xX]" + HexDigits + "?(\\.)" + HexDigits + ")" +
+    private static final String HexExponent      = "[pP]" + OptionalSign + Base10Digits;
+    private static final String OptionalHexExponent = "(" + HexExponent + ")?";
 
-                    ")[pP][+-]?" + Digits + "))" +
-                    "[fFdD]?))" +
-                    "[\\x00-\\x20]*");// Optional trailing "whitespace"
+    // Written according to the "Floating Point Literal" specification as outlined here: http://docs.oracle.com/javase/specs/jls/se8/html/jls-3.html#jls-3.10.2
 
-    private static final Pattern DOUBLE_PATTERN = Pattern.compile(fpRegex);
+    private static final String  doubleRegex =
+            OptionalSign +
+            "(" +
+                Infinity + "|" +
+                NotANumber + "|"+
+                "(" + Base10Digits + Base10Decimal + ")" + "|" +
+                "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
+                "(" + Base10Decimal + OptionalBase10Exponent + ")" + "|" +
+                // The case of a hex number with a decimal portion but no exponent is not supported by "parseDouble" and throws a NumberFormatException
+                "(" + HexIdentifier + HexDigits + "\\.?" + HexExponent + ")" + "|" + // The case of a hex numeral with a "." but no decimal values is valid.
+                "(" + HexIdentifier + HexDigits + OptionalHexDecimal + HexExponent + ")" + "|" +
+                "(" + HexIdentifier + HexDecimal + OptionalHexExponent + ")" +
+            ")";
 
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("-?((\\d+)|(0[xX]" + HexDigits + "))");
+    private static final String numberRegex =
+            OptionalSign +
+            "(" +
+                Base10Digits + "|" +
+                HexIdentifier + HexDigits +
+            ")";
+
+    private static final Pattern DOUBLE_PATTERN = Pattern.compile(doubleRegex);
+    private static final Pattern NUMBER_PATTERN = Pattern.compile(numberRegex);
 
     private NumberParsing(){
     }
