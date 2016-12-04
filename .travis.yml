@@ -40,5 +40,5 @@ before_install:
 install:
   - mvn -q -T 2.0C clean install -DskipTests
 
-#script:
-#  - mvn -Pcontrib-check verify
+script:
+  - mvn -Pcontrib-check verify
