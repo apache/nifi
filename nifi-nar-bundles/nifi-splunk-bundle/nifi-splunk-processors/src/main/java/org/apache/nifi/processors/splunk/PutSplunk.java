@@ -185,7 +185,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
         // if TCP and we don't end in a new line then add one
         final String protocol = context.getProperty(PROTOCOL).getValue();
         if (protocol.equals(TCP_VALUE.getValue())) {
-            final byte[] buf = baos.getUnderlyingBuffer();
+            final byte[] buf = baos.toByteArray();
             if (buf[baos.size() - 1] != NEW_LINE_CHAR) {
                 baos.write(NEW_LINE_CHAR);
             }
@@ -281,6 +281,9 @@ public class PutSplunk extends AbstractPutEventProcessor {
             });
 
             messageBatch.setNumMessages(messagesSent.get());
+        } catch (final IOException ioe) {
+            // Since this can be thrown only from closing the ByteArrayOutputStream(), we have already
+            // completed everything that we need to do, so there's nothing really to be done here
         }
     }
 
@@ -299,7 +302,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
             return null;
         }
 
-        final byte[] buf = baos.getUnderlyingBuffer();
+        final byte[] buf = baos.toByteArray();
 
         // if TCP and we don't already end with a new line then add one
         if (protocol.equals(TCP_VALUE.getValue()) && buf[length - 1] != NEW_LINE_CHAR) {
@@ -311,7 +314,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
             message[message.length - 1] = NEW_LINE_CHAR;
             return message;
         } else {
-            return Arrays.copyOfRange(baos.getUnderlyingBuffer(), 0, length);
+            return Arrays.copyOfRange(baos.toByteArray(), 0, length);
         }
     }
 
