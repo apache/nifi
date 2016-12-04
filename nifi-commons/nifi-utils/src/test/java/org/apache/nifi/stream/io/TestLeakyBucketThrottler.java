@@ -107,8 +107,8 @@ public class TestLeakyBucketThrottler {
             assertTrue(elapsed < 7000);
 
             // ensure bytes were copied out appropriately
-            assertEquals(3 * (2 * 1024 * 1024 + 1), baos.getBufferLength());
-            assertEquals((byte) 'A', baos.getUnderlyingBuffer()[baos.getBufferLength() - 1]);
+            assertEquals(3 * (2 * 1024 * 1024 + 1), baos.size());
+            assertEquals((byte) 'A', baos.toByteArray()[baos.size() - 1]);
         }
     }
 

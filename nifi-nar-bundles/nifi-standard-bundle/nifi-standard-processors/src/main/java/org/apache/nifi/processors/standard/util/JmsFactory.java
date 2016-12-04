@@ -185,7 +185,11 @@ public class JmsFactory {
             baos.write(byteBuffer, 0, byteCount);
         }
 
-        baos.close();
+        try {
+            baos.close();
+        } catch (final IOException ioe) {
+        }
+
         return baos.toByteArray();
     }
 
