@@ -184,11 +184,12 @@ public class PutSplunk extends AbstractPutEventProcessor {
 
         // if TCP and we don't end in a new line then add one
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        if (protocol.equals(TCP_VALUE.getValue())) {
-            final byte[] buf = baos.toByteArray();
-            if (buf[baos.size() - 1] != NEW_LINE_CHAR) {
-                baos.write(NEW_LINE_CHAR);
-            }
+        byte[] buf = baos.toByteArray();
+        if (protocol.equals(TCP_VALUE.getValue()) && buf[buf.length - 1] != NEW_LINE_CHAR) {
+            final byte[] updatedBuf = new byte[buf.length + 1];
+            System.arraycopy(buf, 0, updatedBuf, 0, buf.length);
+            updatedBuf[updatedBuf.length - 1] = NEW_LINE_CHAR;
+            buf = updatedBuf;
         }
 
         // create a message batch of one message and add to active batches
@@ -198,7 +199,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
 
         // attempt to send the data and add the appropriate range
         try {
-            sender.send(baos.toByteArray());
+            sender.send(buf);
             messageBatch.addSuccessfulRange(0L, flowFile.getSize());
         } catch (IOException e) {
             messageBatch.addFailedRange(0L, flowFile.getSize(), e);
