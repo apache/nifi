@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import static java.lang.Double.NEGATIVE_INFINITY;
+import static java.lang.Double.NaN;
+import static java.lang.Double.POSITIVE_INFINITY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -1063,8 +1066,118 @@ public class TestQuery {
         verifyEquals("${literal(5.5):toDecimal()}", attributes, 5.5D);
         verifyEquals("${literal('0xF.Fp10'):toDecimal()}", attributes, 0xF.Fp10D);
 
-        verifyEquals("${literal('0xABC'):toNumber()}", attributes, 0xABCL);
-        verifyEquals("${literal('-0xABC'):toNumber()}", attributes, -0xABCL);
+        verifyEquals("${literal('0x1234567890ABCDEF'):toNumber()}", attributes, 0x1234567890ABCDEFL);
+        verifyEquals("${literal('-0x1234567890ABCDEF'):toNumber()}", attributes, -0x1234567890ABCDEFL);
+
+        verifyEquals("${literal('-0x1234567890abcdef'):toNumber()}", attributes, -0x1234567890abcdefL);
+        verifyEquals("${literal('0x1234567890abcdef'):toNumber()}", attributes, 0x1234567890abcdefL);
+    }
+
+    @Test
+    public void testDecimalParsing() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        // Test decimal format X.X
+        verifyEquals("${literal(5.5):toDecimal()}", attributes, 5.5D);
+        verifyEquals("${literal('-12.5'):toDecimal()}", attributes, -12.5D);
+        verifyEquals("${literal('+12.5'):toDecimal()}", attributes, 12.5D);
+
+        // Test decimal format X.XEX with positive exponent
+        verifyEquals("${literal('-12.5E2'):toDecimal()}", attributes, -12.5E2D);
+        verifyEquals("${literal('-12.5e2'):toDecimal()}", attributes, -12.5e2D);
+        verifyEquals("${literal('-12.5e+2'):toDecimal()}", attributes, -12.5e+2D);
+        verifyEquals("${literal('12.5E+2'):toDecimal()}", attributes, 12.5E+2D);
+        verifyEquals("${literal('+12.5e+2'):toDecimal()}", attributes, +12.5e+2D);
+        verifyEquals("${literal('+12.5E2'):toDecimal()}", attributes, +12.5E2D);
+        verifyEquals("${literal('-12.5e2'):toDecimal()}", attributes, -12.5e2D);
+        verifyEquals("${literal('12.5E2'):toDecimal()}", attributes, 12.5E2D);
+        verifyEquals("${literal('+12.5e2'):toDecimal()}", attributes, +12.5e2D);
+
+        // Test decimal format X.XEX with negative exponent
+        verifyEquals("${literal('-12.5E-2'):toDecimal()}", attributes, -12.5E-2D);
+        verifyEquals("${literal('12.5E-2'):toDecimal()}", attributes, 12.5E-2D);
+        verifyEquals("${literal('+12.5e-2'):toDecimal()}", attributes, +12.5e-2D);
+
+        // Test decimal format .X
+        verifyEquals("${literal('.5'):toDecimal()}", attributes, .5D);
+        verifyEquals("${literal('.5'):toDecimal()}", attributes, .5D);
+        verifyEquals("${literal('-.5'):toDecimal()}", attributes, -0.5D);
+        verifyEquals("${literal('+.5'):toDecimal()}", attributes, .5D);
+
+        // Test decimal format .XEX with positive exponent
+        verifyEquals("${literal('-.5E2'):toDecimal()}", attributes, -.5E2D);
+        verifyEquals("${literal('-.5E2'):toDecimal()}", attributes, -.5E2D);
+        verifyEquals("${literal('-.5e+2'):toDecimal()}", attributes, -.5e+2D);
+        verifyEquals("${literal('.5E+2'):toDecimal()}", attributes, .5E+2D);
+        verifyEquals("${literal('+.5e+2'):toDecimal()}", attributes, +.5e+2D);
+        verifyEquals("${literal('+.5E2'):toDecimal()}", attributes, +.5E2D);
+        verifyEquals("${literal('-.5e2'):toDecimal()}", attributes, -.5e2D);
+        verifyEquals("${literal('.5E2'):toDecimal()}", attributes, .5E2D);
+        verifyEquals("${literal('+.5e2'):toDecimal()}", attributes, +.5e2D);
+
+        // Test decimal format .XEX with negative exponent
+        verifyEquals("${literal('-.5E-2'):toDecimal()}", attributes, -.5E-2D);
+        verifyEquals("${literal('.5e-2'):toDecimal()}", attributes, .5e-2D);
+        verifyEquals("${literal('+.5E-2'):toDecimal()}", attributes, +.5E-2D);
+
+        // Verify allowed values
+        verifyEquals("${literal('9876543210.0123456789e123'):toDecimal()}", attributes, 9876543210.0123456789e123D);
+
+        verifyEmpty("${literal('A.1e123'):toDecimal()}", attributes);
+        verifyEmpty("${literal('0.Ae123'):toDecimal()}", attributes);
+        verifyEmpty("${literal('0.1eA'):toDecimal()}", attributes);
+
+        // --------- Hex format ------//
+
+        // Test Hex format X.
+        verifyEquals("${literal('0xF1.p2'):toDecimal()}", attributes, 0xF1.p2D);
+        verifyEquals("${literal('+0xF1.P2'):toDecimal()}", attributes, +0xF1.p2D);
+        verifyEquals("${literal('-0xF1.p2'):toDecimal()}", attributes, -0xF1.p2D);
+
+        // Test Hex format X.XEX with positive exponent
+        verifyEquals("${literal('-0xF1.5Bp2'):toDecimal()}", attributes, -0xF1.5Bp2D);
+        verifyEquals("${literal('-0xF1.5BP2'):toDecimal()}", attributes, -0xF1.5BP2D);
+        verifyEquals("${literal('-0xF1.5BP+2'):toDecimal()}", attributes, -0xF1.5Bp+2D);
+        verifyEquals("${literal('0xF1.5BP+2'):toDecimal()}", attributes, 0xF1.5BP+2D);
+        verifyEquals("${literal('+0xF1.5Bp+2'):toDecimal()}", attributes, +0xF1.5Bp+2D);
+        verifyEquals("${literal('+0xF1.5BP2'):toDecimal()}", attributes, +0xF1.5BP2D);
+        verifyEquals("${literal('-0xF1.5Bp2'):toDecimal()}", attributes, -0xF1.5Bp2D);
+        verifyEquals("${literal('0xF1.5BP2'):toDecimal()}", attributes, 0xF1.5BP2D);
+        verifyEquals("${literal('+0xF1.5Bp2'):toDecimal()}", attributes, +0xF1.5Bp2D);
+
+        // Test decimal format X.XEX with negative exponent
+        verifyEquals("${literal('-0xF1.5BP-2'):toDecimal()}", attributes, -0xF1.5BP-2D);
+        verifyEquals("${literal('0xF1.5BP-2'):toDecimal()}", attributes, 0xF1.5BP-2D);
+        verifyEquals("${literal('+0xF1.5Bp-2'):toDecimal()}", attributes, +0xF1.5Bp-2D);
+
+        // Test decimal format .XEX with positive exponent
+        verifyEquals("${literal('0x.5BP0'):toDecimal()}", attributes, 0x.5BP0D);
+        verifyEquals("${literal('-0x.5BP0'):toDecimal()}", attributes, -0x.5BP0D);
+        verifyEquals("${literal('-0x.5BP+2'):toDecimal()}", attributes, -0x.5BP+2D);
+        verifyEquals("${literal('0x.5BP+2'):toDecimal()}", attributes, 0x.5BP+2D);
+        verifyEquals("${literal('+0x.5Bp+2'):toDecimal()}", attributes, +0x.5Bp+2D);
+        verifyEquals("${literal('+0x.5BP2'):toDecimal()}", attributes, +0x.5BP2D);
+        verifyEquals("${literal('-0x.5Bp2'):toDecimal()}", attributes, -0x.5Bp2D);
+        verifyEquals("${literal('0x.5BP2'):toDecimal()}", attributes, 0x.5BP2D);
+        verifyEquals("${literal('+0x.5Bp+2'):toDecimal()}", attributes, +0x.5Bp2D);
+
+        // Test decimal format .XEX with negative exponent
+        verifyEquals("${literal('-0x.5BP-2'):toDecimal()}", attributes, -0x.5BP-2D);
+        verifyEquals("${literal('0x.5Bp-2'):toDecimal()}", attributes, 0x.5Bp-2D);
+        verifyEquals("${literal('+0x.5BP-2'):toDecimal()}", attributes, +0x.5BP-2D);
+
+        // Verify allowed values
+        verifyEquals("${literal('0xFEDCBA9876543210.0123456789ABCDEFp123'):toDecimal()}", attributes, 0xFEDCBA9876543210.0123456789ABCDEFp123D);
+        verifyEquals("${literal('0xfedcba9876543210.0123456789abcdefp123'):toDecimal()}", attributes, 0xfedcba9876543210.0123456789abcdefp123D);
+        verifyEmpty("${literal('0xG.1p123'):toDecimal()}", attributes);
+        verifyEmpty("${literal('0x1.Gp123'):toDecimal()}", attributes);
+        verifyEmpty("${literal('0x1.1pA'):toDecimal()}", attributes);
+        verifyEmpty("${literal('0x1.1'):toDecimal()}", attributes);
+
+        // Special cases
+        verifyEquals("${literal('" + Double.toString(POSITIVE_INFINITY) + "'):toDecimal():plus(1):plus(2)}", attributes, POSITIVE_INFINITY);
+        verifyEquals("${literal('" + Double.toString(NEGATIVE_INFINITY) + "'):toDecimal():plus(1):plus(2)}", attributes, NEGATIVE_INFINITY);
+        verifyEquals("${literal('" + Double.toString(NaN) + "'):toDecimal():plus(1):plus(2)}", attributes, NaN);
     }
 
     @Test
@@ -1566,6 +1679,11 @@ public class TestQuery {
         }
 
         assertEquals(expectedResult, result.getValue());
+    }
+
+    private void verifyEmpty(final String expression, final Map<String, String> attributes) {
+        Query.validateExpression(expression, false);
+        assertEquals(String.valueOf(""), Query.evaluateExpressions(expression, attributes, null));
     }
 
     private String getResourceAsString(String resourceName) throws IOException {
