@@ -38,8 +38,6 @@ import java.util.Map;
 public class TestEncryptAttributes {
 
     private static final Logger logger = LoggerFactory.getLogger(TestEncryptAttributes.class);
-    private static final String TEST_ATTRIBUTE_KEY = "TestAttribute";
-    private static final String TEST_ATTRIBUTE_VALUE = "TestValue";
 
     // Initialize some common property values which will be used for setting up processor
     private static final EncryptionMethod[] ENCRYPTION_METHODS = EncryptionMethod.values();

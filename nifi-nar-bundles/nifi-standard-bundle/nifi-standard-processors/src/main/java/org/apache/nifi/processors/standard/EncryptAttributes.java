@@ -90,8 +90,9 @@ public class EncryptAttributes extends AbstractProcessor {
     public static final PropertyDescriptor ATTRIBUTES_TO_ENCRYPT = new PropertyDescriptor.Builder()
             .name("Attributes to encrypt")
             .description("Comma separated list of attributes to encrypt, if empty then it'll encrypt all the " +
-                    "attributes. This list is case sensitive and if attribute is not found " +
-                    "then the value will be ignored. ")
+                    "attributes including CoreAttributes EXCEPT filename and uuid. " +
+                    "This list is case sensitive and if attribute is not found " +
+                    "then the value will be ignored. " )
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
