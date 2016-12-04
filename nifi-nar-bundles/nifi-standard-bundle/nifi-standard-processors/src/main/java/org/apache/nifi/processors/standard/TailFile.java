@@ -810,11 +810,12 @@ public class TailFile extends AbstractProcessor {
                     byte ch = buffer.get(i);
 
                     switch (ch) {
-                        case '\n':
+                        case '\n': {
                             baos.write(ch);
                             seenCR = false;
                             baos.writeTo(out);
-                            checksum.update(baos.getUnderlyingBuffer(), 0, baos.size());
+                            final byte[] baosBuffer = baos.toByteArray();
+                            checksum.update(baosBuffer, 0, baos.size());
                             if (getLogger().isTraceEnabled()) {
                                 getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
                             }
@@ -823,15 +824,18 @@ public class TailFile extends AbstractProcessor {
                             rePos = pos + i + 1;
                             linesRead++;
                             break;
-                        case '\r':
+                        }
+                        case '\r': {
                             baos.write(ch);
                             seenCR = true;
                             break;
-                        default:
+                        }
+                        default: {
                             if (seenCR) {
                                 seenCR = false;
                                 baos.writeTo(out);
-                                checksum.update(baos.getUnderlyingBuffer(), 0, baos.size());
+                                final byte[] baosBuffer = baos.toByteArray();
+                                checksum.update(baosBuffer, 0, baos.size());
                                 if (getLogger().isTraceEnabled()) {
                                     getLogger().trace("Checksum updated to {}", new Object[]{checksum.getValue()});
                                 }
@@ -843,6 +847,7 @@ public class TailFile extends AbstractProcessor {
                             } else {
                                 baos.write(ch);
                             }
+                        }
                     }
                 }
 

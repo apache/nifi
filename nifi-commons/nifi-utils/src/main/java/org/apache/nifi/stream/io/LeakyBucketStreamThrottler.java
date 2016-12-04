@@ -95,11 +95,11 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
             public int read() throws IOException {
                 final ByteArrayOutputStream baos = new ByteArrayOutputStream(1);
                 LeakyBucketStreamThrottler.this.copy(toWrap, baos, 1L);
-                if (baos.getBufferLength() < 1) {
+                if (baos.size() < 1) {
                     return -1;
                 }
 
-                return baos.getUnderlyingBuffer()[0] & 0xFF;
+                return baos.toByteArray()[0] & 0xFF;
             }
 
             @Override
@@ -124,7 +124,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
                 if (copied == 0) {
                     return -1;
                 }
-                System.arraycopy(baos.getUnderlyingBuffer(), 0, b, off, copied);
+                System.arraycopy(baos.toByteArray(), 0, b, off, copied);
                 return copied;
             }
 
