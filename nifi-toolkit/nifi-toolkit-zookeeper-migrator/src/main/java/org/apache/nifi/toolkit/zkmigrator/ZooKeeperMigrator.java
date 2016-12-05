@@ -121,6 +121,7 @@ class ZooKeeperMigrator {
             final int readCount = readsDone.size();
             LOGGER.info("{} {} read from {}", readCount, readCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
+        closeZooKeeper(zooKeeper);
     }
 
     void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
@@ -199,6 +200,7 @@ class ZooKeeperMigrator {
             LOGGER.info("{} {} transferred to {}", writeCount, writeCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
         jsonReader.close();
+        closeZooKeeper(zooKeeper);
     }
 
     private Stream<String> streamPaths(ZooKeeperNode node) {
@@ -301,19 +303,29 @@ class ZooKeeperMigrator {
         try {
             connected = connectionLatch.await(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            closeZooKeeper(zooKeeper);
+            Thread.currentThread().interrupt(); // preserve interrupt
             throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
         }
 
         if (!connected) {
+            closeZooKeeper(zooKeeper);
             throw new IOException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
         }
-
 
         if (authMode.equals(AuthMode.DIGEST)) {
             zooKeeper.addAuthInfo(SCHEME_DIGEST, authData);
         }
         return zooKeeper;
+    }
+
+    private void closeZooKeeper(ZooKeeper zooKeeper) {
+        try {
+            zooKeeper.close();
+        } catch (InterruptedException e) {
+            LOGGER.warn("could not close ZooKeeper client due to interrupt", e);
+            Thread.currentThread().interrupt(); // preserve interrupt
+        }
     }
 
     ZooKeeperEndpointConfig getZooKeeperEndpointConfig() {
