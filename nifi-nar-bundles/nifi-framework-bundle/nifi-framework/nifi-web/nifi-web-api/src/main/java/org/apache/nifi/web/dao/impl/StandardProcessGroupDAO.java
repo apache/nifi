@@ -80,7 +80,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
         final Set<Connectable> connectables = new HashSet<>(componentIds.size());
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findConnectable(componentId);
+            final Connectable connectable = group.findLocalConnectable(componentId);
             if (connectable == null) {
                 throw new ResourceNotFoundException("Unable to find component with id " + componentId);
             }
@@ -103,7 +103,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
         for (final String componentId : componentIds) {
-            final Connectable connectable = group.findConnectable(componentId);
+            final Connectable connectable = group.findLocalConnectable(componentId);
             if (ScheduledState.RUNNING.equals(state)) {
                 if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
                     connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);

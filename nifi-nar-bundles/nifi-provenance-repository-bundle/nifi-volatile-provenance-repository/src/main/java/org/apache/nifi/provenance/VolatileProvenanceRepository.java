@@ -256,7 +256,11 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
 
         final Authorizable eventAuthorizable;
         try {
-            eventAuthorizable = resourceFactory.createDataAuthorizable(event.getComponentId());
+            if (event.isRemotePortType()) {
+                eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
+            } else {
+                eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
+            }
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
@@ -270,7 +274,12 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
             return;
         }
 
-        final Authorizable eventAuthorizable = resourceFactory.createDataAuthorizable(event.getComponentId());
+        final Authorizable eventAuthorizable;
+        if (event.isRemotePortType()) {
+            eventAuthorizable = resourceFactory.createRemoteDataAuthorizable(event.getComponentId());
+        } else {
+            eventAuthorizable = resourceFactory.createLocalDataAuthorizable(event.getComponentId());
+        }
         eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
     }
 

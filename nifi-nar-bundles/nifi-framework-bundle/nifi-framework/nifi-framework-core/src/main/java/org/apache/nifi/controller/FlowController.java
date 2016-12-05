@@ -4010,7 +4010,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public Authorizable createDataAuthorizable(final String componentId) {
+    public Authorizable createLocalDataAuthorizable(final String componentId) {
         final String rootGroupId = getRootGroupId();
 
         // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
@@ -4022,7 +4022,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             authorizable = new DataAuthorizable(getRootGroup());
         } else {
             // check if the component is a connectable, this should be the case most often
-            final Connectable connectable = getRootGroup().findConnectable(componentId);
+            final Connectable connectable = getRootGroup().findLocalConnectable(componentId);
             if (connectable == null) {
                 // if the component id is not a connectable then consider a connection
                 final Connection connection = getRootGroup().findConnection(componentId);
@@ -4036,6 +4036,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             } else {
                 authorizable = new DataAuthorizable(connectable);
             }
+        }
+
+        return authorizable;
+    }
+
+    @Override
+    public Authorizable createRemoteDataAuthorizable(String remoteGroupPortId) {
+        final DataAuthorizable authorizable;
+
+        final RemoteGroupPort remoteGroupPort = getRootGroup().findRemoteGroupPort(remoteGroupPortId);
+        if (remoteGroupPort == null) {
+            throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+        } else {
+            // authorizable for remote group ports should be the remote process group
+            authorizable = new DataAuthorizable(remoteGroupPort.getRemoteProcessGroup());
         }
 
         return authorizable;
