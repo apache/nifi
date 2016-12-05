@@ -46,7 +46,9 @@ import java.util.List;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -284,8 +286,38 @@ class ZooKeeperMigrator {
     }
 
     private ZooKeeper getZooKeeper(ZooKeeperEndpointConfig zooKeeperEndpointConfig, AuthMode authMode, byte[] authData) throws IOException {
+        CountDownLatch connectionLatch = new CountDownLatch(1);
         ZooKeeper zooKeeper = new ZooKeeper(zooKeeperEndpointConfig.getConnectString(), 3000, watchedEvent -> {
+            LOGGER.warn("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
+            switch (watchedEvent.getType()) {
+                case None:
+                    switch (watchedEvent.getState()) {
+                        case SyncConnected:
+                            connectionLatch.countDown();
+                            break;
+                        case Expired:
+                        case AuthFailed:
+                        case ConnectedReadOnly:
+                        case SaslAuthenticated:
+                        case Disconnected:
+                            break;
+                    }
+            }
         });
+
+        final boolean connected;
+        try {
+            connected = connectionLatch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
+        }
+
+        if (!connected) {
+            throw new RuntimeException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
+        }
+
+
         if (authMode.equals(AuthMode.DIGEST)) {
             zooKeeper.addAuthInfo(SCHEME_DIGEST, authData);
         }
