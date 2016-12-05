@@ -662,16 +662,17 @@ nf.nfel = (function() {
                             }
 
                             return argumentStringResult;
-                        } else if (stream.match(/^(([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?)|((\.[0-9]+)([eE][+-]?([0-9])+)?)|(([0-9]+)([eE][+-]?([0-9])+))/)) {
+                        } else if (stream.match(/^[-\+]?((([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?)|((\.[0-9]+)([eE][+-]?([0-9])+)?)|(([0-9]+)([eE][+-]?([0-9])+)))/)) {
                             // -------------
                             // Decimal value
                             // -------------
                             // This matches the following ANTLR spec for deciamls
                             //
-                            // DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?    ^([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?
-                            //             | '.' ('0'..'9')+ EXP?
-                            //             | ('0'..'9')+ EXP;
+                            // DECIMAL :     OP? ('0'..'9')+ '.' ('0'..'9')* EXP?    ^([0-9]+\.[0-9]*)([eE][+-]?([0-9])+)?
+                            //             | OP? '.' ('0'..'9')+ EXP?
+                            //             | OP? ('0'..'9')+ EXP;
                             //
+                            // fragment OP: ('+'|'-');
                             // fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
                             // change context back to arguments
@@ -679,7 +680,7 @@ nf.nfel = (function() {
 
                             // style for decimal (use same as number)
                             return 'number';
-                        } else if (stream.match(/^-?[0-9]+/)) {
+                        } else if (stream.match(/^[-\+]?[0-9]+/)) {
                             // -------------
                             // integer value
                             // -------------
