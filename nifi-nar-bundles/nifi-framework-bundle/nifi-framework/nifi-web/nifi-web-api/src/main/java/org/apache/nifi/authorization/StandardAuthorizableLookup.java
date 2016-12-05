@@ -40,6 +40,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.PortAuthorizationResult;
+import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -683,7 +684,14 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getConnectable(String id) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
-        return group.findConnectable(id);
+        final Connectable connectable = group.findConnectable(id);
+
+        // remote group ports are authorized according to their RPG
+        if (connectable instanceof RemoteGroupPort) {
+            return ((RemoteGroupPort) connectable).getRemoteProcessGroup();
+        } else {
+            return connectable;
+        }
     }
 
     @Override
@@ -889,8 +897,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getSourceData() {
+            return new DataAuthorizable(connection.getSourceAuthorizable());
+        }
+
+        @Override
         public Connectable getDestination() {
             return connection.getDestination();
+        }
+
+        @Override
+        public Authorizable getDestinationData() {
+            return new DataAuthorizable(connection.getDestinationAuthorizable());
         }
 
         @Override

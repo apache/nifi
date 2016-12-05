@@ -4034,7 +4034,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     authorizable = new DataAuthorizable(connection.getSource());
                 }
             } else {
-                authorizable = new DataAuthorizable(connectable);
+                // authorizable for remote group ports should be the remote process group
+                if (connectable instanceof RemoteGroupPort) {
+                    authorizable = new DataAuthorizable(((RemoteGroupPort) connectable).getRemoteProcessGroup());
+                } else {
+                    authorizable = new DataAuthorizable(connectable);
+                }
             }
         }
 
