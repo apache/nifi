@@ -662,7 +662,13 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getLocalConnectable(String id) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
-        return group.findLocalConnectable(id);
+        final Connectable connectable = group.findLocalConnectable(id);
+
+        if (connectable == null) {
+            throw new ResourceNotFoundException("Unable to find component with id " + id);
+        }
+
+        return connectable;
     }
 
     @Override
