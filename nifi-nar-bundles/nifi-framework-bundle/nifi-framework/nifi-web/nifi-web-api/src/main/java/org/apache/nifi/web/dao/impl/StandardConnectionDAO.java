@@ -398,14 +398,28 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
 
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connectable sourceConnectable = rootGroup.findConnectable(sourceDto.getId());
+        Connectable sourceConnectable = rootGroup.findLocalConnectable(sourceDto.getId());
         if (sourceConnectable == null) {
-            throw new IllegalArgumentException("The specified source for the connection does not exist");
+            sourceConnectable = rootGroup.findRemoteGroupPort(sourceDto.getId());
+
+            // ensure the source connectable was found
+            if (sourceConnectable == null) {
+                throw new IllegalArgumentException("The specified source for the connection does not exist");
+            } else if (!ConnectableType.REMOTE_OUTPUT_PORT.name().equals(sourceDto.getType())) {
+                throw new IllegalArgumentException("The specified source for the connection is not a valid type");
+            }
         }
 
-        final Connectable destinationConnectable = rootGroup.findConnectable(destinationDto.getId());
+        Connectable destinationConnectable = rootGroup.findLocalConnectable(destinationDto.getId());
         if (destinationConnectable == null) {
-            throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            destinationConnectable = rootGroup.findRemoteGroupPort(destinationDto.getId());
+
+            // ensure the destination connectable was found
+            if (destinationConnectable == null) {
+                throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            } else if (!ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationDto.getType())) {
+                throw new IllegalArgumentException("The specified destination for the connection is not a valid type");
+            }
         }
     }
 

@@ -239,7 +239,7 @@ public class ConnectionResource extends ApplicationResource {
                             if (ConnectableType.REMOTE_INPUT_PORT.equals(destinationConnectableType)) {
                                 newDestinationAuthorizable = lookup.getRemoteProcessGroup(requestConnection.getDestination().getGroupId());
                             } else {
-                                newDestinationAuthorizable = lookup.getConnectable(requestConnection.getDestination().getId());
+                                newDestinationAuthorizable = lookup.getLocalConnectable(requestConnection.getDestination().getId());
                             }
 
                             // verify access of the new destination (current destination was already authorized as part of the connection check)

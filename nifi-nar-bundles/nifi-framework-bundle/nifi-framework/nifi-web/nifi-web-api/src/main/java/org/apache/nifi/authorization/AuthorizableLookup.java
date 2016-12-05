@@ -203,12 +203,12 @@ public interface AuthorizableLookup {
     TemplateAuthorizable getTemplate(String id);
 
     /**
-     * Get the authorizable connectable.
+     * Get the authorizable connectable. Note this does not include RemoteGroupPorts.
      *
      * @param id connectable id
      * @return authorizable
      */
-    Authorizable getConnectable(String id);
+    Authorizable getLocalConnectable(String id);
 
     /**
      * Get the snippet of authorizable's.

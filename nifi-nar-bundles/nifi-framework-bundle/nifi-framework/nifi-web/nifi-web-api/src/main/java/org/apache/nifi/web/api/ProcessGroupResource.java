@@ -1551,7 +1551,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     if (ConnectableType.REMOTE_OUTPUT_PORT.equals(sourceConnectableType)) {
                         source = lookup.getRemoteProcessGroup(requestConnection.getSource().getGroupId());
                     } else {
-                        source = lookup.getConnectable(requestConnection.getSource().getId());
+                        source = lookup.getLocalConnectable(requestConnection.getSource().getId());
                     }
 
                     // ensure write access to the source
@@ -1565,7 +1565,7 @@ public class ProcessGroupResource extends ApplicationResource {
                     if (ConnectableType.REMOTE_INPUT_PORT.equals(destinationConnectableType)) {
                         destination = lookup.getRemoteProcessGroup(requestConnection.getDestination().getGroupId());
                     } else {
-                        destination = lookup.getConnectable(requestConnection.getDestination().getId());
+                        destination = lookup.getLocalConnectable(requestConnection.getDestination().getId());
                     }
 
                     // ensure write access to the destination

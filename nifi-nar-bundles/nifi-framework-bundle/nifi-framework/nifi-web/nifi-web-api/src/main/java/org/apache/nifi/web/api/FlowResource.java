@@ -651,7 +651,7 @@ public class FlowResource extends ApplicationResource {
 
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
-                        final Authorizable connectable = lookup.getConnectable(componentId);
+                        final Authorizable connectable = lookup.getLocalConnectable(componentId);
                         connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
