@@ -302,11 +302,11 @@ class ZooKeeperMigrator {
             connected = connectionLatch.await(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
+            throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
         }
 
         if (!connected) {
-            throw new RuntimeException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
+            throw new IOException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
         }
 
 
