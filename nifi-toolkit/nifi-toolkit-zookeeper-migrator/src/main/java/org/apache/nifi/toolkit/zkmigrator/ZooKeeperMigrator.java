@@ -27,6 +27,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
@@ -134,7 +135,7 @@ class ZooKeeperMigrator {
         LOGGER.info("Source data was obtained from ZooKeeper: {}", sourceZooKeeperEndpointConfig);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath()),
                 "Source ZooKeeper %s from %s is invalid", sourceZooKeeperEndpointConfig, zkData);
-        Preconditions.checkArgument(    !(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
+        Preconditions.checkArgument(!(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
                 "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
@@ -291,19 +292,8 @@ class ZooKeeperMigrator {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
             }
-            switch (watchedEvent.getType()) {
-                case None:
-                    switch (watchedEvent.getState()) {
-                        case SyncConnected:
-                            connectionLatch.countDown();
-                            break;
-                        case Expired:
-                        case AuthFailed:
-                        case ConnectedReadOnly:
-                        case SaslAuthenticated:
-                        case Disconnected:
-                            break;
-                    }
+            if (watchedEvent.getType().equals(Watcher.Event.EventType.None) && watchedEvent.getState().equals(Watcher.Event.KeeperState.SyncConnected)) {
+                connectionLatch.countDown();
             }
         });
 
