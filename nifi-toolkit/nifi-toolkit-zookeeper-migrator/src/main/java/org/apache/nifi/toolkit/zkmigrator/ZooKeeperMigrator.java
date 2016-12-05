@@ -288,7 +288,9 @@ class ZooKeeperMigrator {
     private ZooKeeper getZooKeeper(ZooKeeperEndpointConfig zooKeeperEndpointConfig, AuthMode authMode, byte[] authData) throws IOException {
         CountDownLatch connectionLatch = new CountDownLatch(1);
         ZooKeeper zooKeeper = new ZooKeeper(zooKeeperEndpointConfig.getConnectString(), 3000, watchedEvent -> {
-            LOGGER.warn("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
+            }
             switch (watchedEvent.getType()) {
                 case None:
                     switch (watchedEvent.getState()) {
