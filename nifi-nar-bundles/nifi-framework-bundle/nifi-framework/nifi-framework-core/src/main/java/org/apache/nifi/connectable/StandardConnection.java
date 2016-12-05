@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.connectable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -51,6 +40,19 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.remote.RemoteGroupPort;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Models a connection between connectable components. A connection may contain
@@ -138,19 +140,49 @@ public final class StandardConnection implements Connection {
     }
 
     @Override
+    public Authorizable getSourceAuthorizable() {
+        final Connectable sourceConnectable = getSource();
+        final Authorizable sourceAuthorizable;
+
+        // if the source is a remote group port, authorize according to the RPG
+        if (sourceConnectable instanceof RemoteGroupPort) {
+            sourceAuthorizable = ((RemoteGroupPort) sourceConnectable).getRemoteProcessGroup();
+        } else {
+            sourceAuthorizable = sourceConnectable;
+        }
+
+        return sourceAuthorizable;
+    }
+
+    @Override
+    public Authorizable getDestinationAuthorizable() {
+        final Connectable destinationConnectable = getDestination();
+        final Authorizable destinationAuthorizable;
+
+        // if the destination is a remote group port, authorize according to the RPG
+        if (destinationConnectable instanceof RemoteGroupPort) {
+            destinationAuthorizable = ((RemoteGroupPort) destinationConnectable).getRemoteProcessGroup();
+        } else {
+            destinationAuthorizable = destinationConnectable;
+        }
+
+        return destinationAuthorizable;
+    }
+
+    @Override
     public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         if (user == null) {
             return AuthorizationResult.denied("Unknown user");
         }
 
         // check the source
-        final AuthorizationResult sourceResult = getSource().checkAuthorization(authorizer, action, user, resourceContext);
+        final AuthorizationResult sourceResult = getSourceAuthorizable().checkAuthorization(authorizer, action, user, resourceContext);
         if (Result.Denied.equals(sourceResult.getResult())) {
             return sourceResult;
         }
 
         // check the destination
-        return getDestination().checkAuthorization(authorizer, action, user, resourceContext);
+        return getDestinationAuthorizable().checkAuthorization(authorizer, action, user, resourceContext);
     }
 
     @Override
@@ -159,8 +191,8 @@ public final class StandardConnection implements Connection {
             throw new AccessDeniedException("Unknown user");
         }
 
-        getSource().authorize(authorizer, action, user, resourceContext);
-        getDestination().authorize(authorizer, action, user, resourceContext);
+        getSourceAuthorizable().authorize(authorizer, action, user, resourceContext);
+        getDestinationAuthorizable().authorize(authorizer, action, user, resourceContext);
     }
 
     @Override

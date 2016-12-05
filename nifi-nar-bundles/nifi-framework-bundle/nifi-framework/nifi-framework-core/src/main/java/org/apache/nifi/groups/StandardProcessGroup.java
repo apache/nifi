@@ -1482,11 +1482,11 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Connectable findConnectable(final String identifier) {
-        return findConnectable(identifier, this);
+    public Connectable findLocalConnectable(final String identifier) {
+        return findLocalConnectable(identifier, this);
     }
 
-    private static Connectable findConnectable(final String identifier, final ProcessGroup group) {
+    private static Connectable findLocalConnectable(final String identifier, final ProcessGroup group) {
         final ProcessorNode procNode = group.getProcessor(identifier);
         if (procNode != null) {
             return procNode;
@@ -1507,6 +1507,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             return funnel;
         }
 
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final Connectable childGroupConnectable = findLocalConnectable(identifier, childGroup);
+            if (childGroupConnectable != null) {
+                return childGroupConnectable;
+            }
+        }
+
+        return null;
+    }
+
+    public RemoteGroupPort findRemoteGroupPort(final String identifier) {
+        return findRemoteGroupPort(identifier, this);
+    }
+
+    private static RemoteGroupPort findRemoteGroupPort(final String identifier, final ProcessGroup group) {
         for (final RemoteProcessGroup remoteGroup : group.getRemoteProcessGroups()) {
             final RemoteGroupPort remoteInPort = remoteGroup.getInputPort(identifier);
             if (remoteInPort != null) {
@@ -1520,9 +1535,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            final Connectable childGroupConnectable = findConnectable(identifier, childGroup);
-            if (childGroupConnectable != null) {
-                return childGroupConnectable;
+            final RemoteGroupPort childGroupRemoteGroupPort = findRemoteGroupPort(identifier, childGroup);
+            if (childGroupRemoteGroupPort != null) {
+                return childGroupRemoteGroupPort;
             }
         }
 

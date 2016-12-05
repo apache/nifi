@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao.impl;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
@@ -134,7 +135,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
             // get the attributes and ensure appropriate access
             final Map<String, String> attributes = flowFile.getAttributes();
-            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            final Authorizable dataAuthorizable = new DataAuthorizable(connection.getSourceAuthorizable());
             dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser(), attributes);
 
             return flowFile;
@@ -397,14 +398,29 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
 
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connectable sourceConnectable = rootGroup.findConnectable(sourceDto.getId());
-        if (sourceConnectable == null) {
-            throw new IllegalArgumentException("The specified source for the connection does not exist");
+
+        if (ConnectableType.REMOTE_OUTPUT_PORT.name().equals(sourceDto.getType())) {
+            final Connectable sourceConnectable = rootGroup.findRemoteGroupPort(sourceDto.getId());
+            if (sourceConnectable == null) {
+                throw new IllegalArgumentException("The specified source for the connection does not exist");
+            }
+        } else {
+            final Connectable sourceConnectable = rootGroup.findLocalConnectable(sourceDto.getId());
+            if (sourceConnectable == null) {
+                throw new IllegalArgumentException("The specified source for the connection does not exist");
+            }
         }
 
-        final Connectable destinationConnectable = rootGroup.findConnectable(destinationDto.getId());
-        if (destinationConnectable == null) {
-            throw new IllegalArgumentException("The specified destination for the connection does not exist");
+        if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationDto.getType())) {
+            final Connectable destinationConnectable = rootGroup.findRemoteGroupPort(destinationDto.getId());
+            if (destinationConnectable == null) {
+                throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            }
+        } else {
+            final Connectable destinationConnectable = rootGroup.findLocalConnectable(destinationDto.getId());
+            if (destinationConnectable == null) {
+                throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            }
         }
     }
 
@@ -625,7 +641,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
             // get the attributes and ensure appropriate access
             final Map<String, String> attributes = flowFile.getAttributes();
-            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            final Authorizable dataAuthorizable = new DataAuthorizable(connection.getSourceAuthorizable());
             dataAuthorizable.authorize(authorizer, RequestAction.READ, user, attributes);
 
             // get the filename and fall back to the identifier (should never happen)

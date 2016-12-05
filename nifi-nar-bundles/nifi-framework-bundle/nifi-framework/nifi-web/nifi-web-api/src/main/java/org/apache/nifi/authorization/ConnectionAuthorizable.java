@@ -39,11 +39,25 @@ public interface ConnectionAuthorizable {
     Connectable getSource();
 
     /**
+     * Returns the data authorizable for the source of the connection.
+     *
+     * @return source data authorizable
+     */
+    Authorizable getSourceData();
+
+    /**
      * Returns the destination.
      *
      * @return destination
      */
     Connectable getDestination();
+
+    /**
+     * Returns the data authorizable for the destination of the connection.
+     *
+     * @return destination data authorizable
+     */
+    Authorizable getDestinationData();
 
     /**
      * Returns the parent process group.
