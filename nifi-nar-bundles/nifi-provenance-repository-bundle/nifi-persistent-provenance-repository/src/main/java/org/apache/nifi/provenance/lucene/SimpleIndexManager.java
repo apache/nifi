@@ -158,8 +158,11 @@ public class SimpleIndexManager implements IndexManager {
             } else if (count.getCount() <= 1) {
                 // we are finished with this writer.
                 logger.debug("Decrementing count for Index Writer for {} to {}; Closing writer", indexingDirectory, count.getCount() - 1);
-                writer.commit();
-                count.close();
+                try {
+                    writer.commit();
+                } finally {
+                    count.close();
+                }
             } else {
                 // decrement the count.
                 logger.debug("Decrementing count for Index Writer for {} to {}", indexingDirectory, count.getCount() - 1);
