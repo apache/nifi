@@ -27,6 +27,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
@@ -46,7 +47,9 @@ import java.util.List;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -132,7 +135,7 @@ class ZooKeeperMigrator {
         LOGGER.info("Source data was obtained from ZooKeeper: {}", sourceZooKeeperEndpointConfig);
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath()),
                 "Source ZooKeeper %s from %s is invalid", sourceZooKeeperEndpointConfig, zkData);
-        Preconditions.checkArgument(    !(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
+        Preconditions.checkArgument(!(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
                 "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
@@ -284,12 +287,43 @@ class ZooKeeperMigrator {
     }
 
     private ZooKeeper getZooKeeper(ZooKeeperEndpointConfig zooKeeperEndpointConfig, AuthMode authMode, byte[] authData) throws IOException {
+        CountDownLatch connectionLatch = new CountDownLatch(1);
         ZooKeeper zooKeeper = new ZooKeeper(zooKeeperEndpointConfig.getConnectString(), 3000, watchedEvent -> {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
+            }
+            if (watchedEvent.getType().equals(Watcher.Event.EventType.None) && watchedEvent.getState().equals(Watcher.Event.KeeperState.SyncConnected)) {
+                connectionLatch.countDown();
+            }
         });
+
+        final boolean connected;
+        try {
+            connected = connectionLatch.await(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            closeZooKeeper(zooKeeper);
+            Thread.currentThread().interrupt(); // preserve interrupt
+            throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
+        }
+
+        if (!connected) {
+            closeZooKeeper(zooKeeper);
+            throw new IOException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
+        }
+
         if (authMode.equals(AuthMode.DIGEST)) {
             zooKeeper.addAuthInfo(SCHEME_DIGEST, authData);
         }
         return zooKeeper;
+    }
+
+    private void closeZooKeeper(ZooKeeper zooKeeper) {
+        try {
+            zooKeeper.close();
+        } catch (InterruptedException e) {
+            LOGGER.warn("could not close ZooKeeper client due to interrupt", e);
+            Thread.currentThread().interrupt(); // preserve interrupt
+        }
     }
 
     ZooKeeperEndpointConfig getZooKeeperEndpointConfig() {
