@@ -24,6 +24,9 @@ import java.util.Map;
  */
 public interface ProvenanceEventRecord {
 
+    String REMOTE_INPUT_PORT_TYPE = "Remote Input Port";
+    String REMOTE_OUTPUT_PORT_TYPE = "Remote Output Port";
+
     /**
      * @return a unique ID for this Provenance Event. Depending on the
      * implementation, the Event ID may be set to -1 until the event has been
@@ -99,6 +102,14 @@ public interface ProvenanceEventRecord {
      * created this Provenance Event
      */
     String getComponentType();
+
+    /**
+     * @return whether this event originated from a remote group port
+     */
+    default boolean isRemotePortType() {
+        final String componentType = getComponentType();
+        return REMOTE_INPUT_PORT_TYPE.equals(componentType) || REMOTE_OUTPUT_PORT_TYPE.equals(componentType);
+    }
 
     /**
      * @return a URI that provides information about the System and Protocol

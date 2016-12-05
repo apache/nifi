@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.controller.reporting;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
@@ -42,6 +37,11 @@ import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.Severity;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public class StandardReportingContext implements ReportingContext, ControllerServiceLookup {
 
@@ -95,7 +95,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connectable connectable = rootGroup.findConnectable(componentId);
+        final Connectable connectable = rootGroup.findLocalConnectable(componentId);
         if (connectable == null) {
             throw new IllegalStateException("Cannot create Component-Level Bulletin because no component can be found with ID " + componentId);
         }

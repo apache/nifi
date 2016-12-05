@@ -16,31 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.ByteArrayInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -78,6 +53,31 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -164,10 +164,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 componentType = "Output Port";
                 break;
             case REMOTE_INPUT_PORT:
-                componentType = "Remote Input Port";
+                componentType = ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE;
                 break;
             case REMOTE_OUTPUT_PORT:
-                componentType = "Remote Output Port";
+                componentType = ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE;
                 break;
             case FUNNEL:
                 componentType = "Funnel";

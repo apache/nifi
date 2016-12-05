@@ -38,7 +38,6 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -240,18 +239,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getRemoteProcessGroupInputPort(final String remoteProcessGroupId, final String id) {
-        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
-        return remoteProcessGroup.getInputPort(id);
-    }
-
-    @Override
-    public Authorizable getRemoteProcessGroupOutputPort(final String remoteProcessGroupId, final String id) {
-        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
-        return remoteProcessGroup.getOutputPort(id);
-    }
-
-    @Override
     public Authorizable getLabel(final String id) {
         return labelDAO.getLabel(id);
     }
@@ -414,11 +401,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getData(final String id) {
-        return controllerFacade.getDataAuthorizable(id);
-    }
-
-    @Override
     public Authorizable getPolicies() {
         return POLICIES_AUTHORIZABLE;
     }
@@ -524,9 +506,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 break;
             case Template:
                 authorizable = getTemplate(componentId).getAuthorizable();
-                break;
-            case Data:
-                authorizable = controllerFacade.getDataAuthorizable(componentId);
                 break;
         }
 
@@ -681,9 +660,15 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getConnectable(String id) {
+    public Authorizable getLocalConnectable(String id) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
-        return group.findConnectable(id);
+        final Connectable connectable = group.findLocalConnectable(id);
+
+        if (connectable == null) {
+            throw new ResourceNotFoundException("Unable to find component with id " + id);
+        }
+
+        return connectable;
     }
 
     @Override
@@ -889,8 +874,18 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
+        public Authorizable getSourceData() {
+            return new DataAuthorizable(connection.getSourceAuthorizable());
+        }
+
+        @Override
         public Connectable getDestination() {
             return connection.getDestination();
+        }
+
+        @Override
+        public Authorizable getDestinationData() {
+            return new DataAuthorizable(connection.getDestinationAuthorizable());
         }
 
         @Override
