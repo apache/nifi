@@ -40,7 +40,7 @@ public class NumberParsing {
     // Hex
     private static final String HexIdentifier = "0[xX]";
 
-    private static final String HexDigits     = "[0-9A-F]+";
+    private static final String HexDigits     = "[0-9a-fA-F]+";
     private static final String HexDecimal = "\\." + HexDigits;
     private static final String OptionalHexDecimal = HexDecimal + "?";
 

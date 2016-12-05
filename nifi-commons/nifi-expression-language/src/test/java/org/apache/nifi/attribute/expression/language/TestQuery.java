@@ -1068,6 +1068,9 @@ public class TestQuery {
 
         verifyEquals("${literal('0x1234567890ABCDEF'):toNumber()}", attributes, 0x1234567890ABCDEFL);
         verifyEquals("${literal('-0x1234567890ABCDEF'):toNumber()}", attributes, -0x1234567890ABCDEFL);
+
+        verifyEquals("${literal('-0x1234567890abcdef'):toNumber()}", attributes, -0x1234567890abcdefL);
+        verifyEquals("${literal('0x1234567890abcdef'):toNumber()}", attributes, 0x1234567890abcdefL);
     }
 
     @Test
@@ -1165,6 +1168,7 @@ public class TestQuery {
 
         // Verify allowed values
         verifyEquals("${literal('0xFEDCBA9876543210.0123456789ABCDEFp123'):toDecimal()}", attributes, 0xFEDCBA9876543210.0123456789ABCDEFp123D);
+        verifyEquals("${literal('0xfedcba9876543210.0123456789abcdefp123'):toDecimal()}", attributes, 0xfedcba9876543210.0123456789abcdefp123D);
         verifyEmpty("${literal('0xG.1p123'):toDecimal()}", attributes);
         verifyEmpty("${literal('0x1.Gp123'):toDecimal()}", attributes);
         verifyEmpty("${literal('0x1.1pA'):toDecimal()}", attributes);
