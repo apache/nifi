@@ -36,6 +36,7 @@ import org.apache.nifi.authorization.TemplateAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -1505,8 +1506,32 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("The source of the connection must be specified.");
         }
 
+        if (requestConnection.getSource().getType() == null) {
+            throw new IllegalArgumentException("The type of the source of the connection must be specified.");
+        }
+
+        final ConnectableType sourceConnectableType;
+        try {
+            sourceConnectableType = ConnectableType.valueOf(requestConnection.getSource().getType());
+        } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("Unrecognized source type %s. Expected values are [%s]",
+                    requestConnection.getSource().getType(), StringUtils.join(ConnectableType.values(), ", ")));
+        }
+
         if (requestConnection.getDestination() == null || requestConnection.getDestination().getId() == null) {
             throw new IllegalArgumentException("The destination of the connection must be specified.");
+        }
+
+        if (requestConnection.getDestination().getType() == null) {
+            throw new IllegalArgumentException("The type of the destination of the connection must be specified.");
+        }
+
+        final ConnectableType destinationConnectableType;
+        try {
+            destinationConnectableType = ConnectableType.valueOf(requestConnection.getDestination().getType());
+        } catch (final IllegalArgumentException e) {
+            throw new IllegalArgumentException(String.format("Unrecognized destination type %s. Expected values are [%s]",
+                    requestConnection.getDestination().getType(), StringUtils.join(ConnectableType.values(), ", ")));
         }
 
         if (isReplicateRequest()) {
@@ -1521,15 +1546,29 @@ public class ProcessGroupResource extends ApplicationResource {
                     final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                     processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
+                    // explicitly handle RPGs differently as the connectable id can be ambiguous if self referencing
+                    final Authorizable source;
+                    if (ConnectableType.REMOTE_OUTPUT_PORT.equals(sourceConnectableType)) {
+                        source = lookup.getRemoteProcessGroup(requestConnection.getSource().getGroupId());
+                    } else {
+                        source = lookup.getLocalConnectable(requestConnection.getSource().getId());
+                    }
+
                     // ensure write access to the source
-                    final Authorizable source = lookup.getConnectable(requestConnection.getSource().getId());
                     if (source == null) {
                         throw new ResourceNotFoundException("Cannot find source component with ID [" + requestConnection.getSource().getId() + "]");
                     }
                     source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
+                    // explicitly handle RPGs differently as the connectable id can be ambiguous if self referencing
+                    final Authorizable destination;
+                    if (ConnectableType.REMOTE_INPUT_PORT.equals(destinationConnectableType)) {
+                        destination = lookup.getRemoteProcessGroup(requestConnection.getDestination().getGroupId());
+                    } else {
+                        destination = lookup.getLocalConnectable(requestConnection.getDestination().getId());
+                    }
+
                     // ensure write access to the destination
-                    final Authorizable destination = lookup.getConnectable(requestConnection.getDestination().getId());
                     if (destination == null) {
                         throw new ResourceNotFoundException("Cannot find destination component with ID [" + requestConnection.getDestination().getId() + "]");
                     }

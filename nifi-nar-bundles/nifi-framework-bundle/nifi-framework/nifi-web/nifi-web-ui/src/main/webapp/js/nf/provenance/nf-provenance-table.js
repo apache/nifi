@@ -614,7 +614,8 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
             }
 
             // conditionally support going to the component
-            if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId)) {
+            var isRemotePort = dataContext.componentType === 'Remote Input Port' || dataContext.componentType === 'Remote Output Port';
+            if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId) && isRemotePort === false) {
                 markup += '&nbsp;<div class="pointer go-to fa fa-long-arrow-right" title="Go To"></div>';
             }
 

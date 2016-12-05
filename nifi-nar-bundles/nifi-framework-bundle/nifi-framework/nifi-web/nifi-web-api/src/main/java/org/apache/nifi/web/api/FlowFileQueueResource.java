@@ -331,7 +331,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 requestConnectionEntity,
                 lookup -> {
                     final ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
                     dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyListQueue(id),
@@ -400,7 +400,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-            final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+            final Authorizable dataAuthorizable = connAuth.getSourceData();
             dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -465,7 +465,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 new ListingEntity(connectionId, listingRequestId),
                 lookup -> {
                     final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
                     dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 null,
@@ -554,7 +554,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 requestConnectionEntity,
                 lookup -> {
                     final ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
                     dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
@@ -623,7 +623,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-            final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+            final Authorizable dataAuthorizable = connAuth.getSourceData();
             dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
@@ -688,7 +688,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 new DropEntity(connectionId, dropRequestId),
                 lookup -> {
                     final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
-                    final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                    final Authorizable dataAuthorizable = connAuth.getSourceData();
                     dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,

@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -203,8 +204,14 @@ public class ConnectionResource extends ApplicationResource {
                     + "requested resource (%s).", requestConnection.getId(), id));
         }
 
-        if (requestConnection.getDestination() != null && requestConnection.getDestination().getId() == null) {
-            throw new IllegalArgumentException("When specifying a destination component, the destination id is required.");
+        if (requestConnection.getDestination() != null) {
+            if (requestConnection.getDestination().getId() == null) {
+                throw new IllegalArgumentException("When specifying a destination component, the destination id is required.");
+            }
+
+            if (requestConnection.getDestination().getType() == null) {
+                throw new IllegalArgumentException("When specifying a destination component, the type of the destination is required.");
+            }
         }
 
         if (isReplicateRequest()) {
@@ -224,9 +231,23 @@ public class ConnectionResource extends ApplicationResource {
                     // if a destination has been specified and is different
                     final Connectable currentDestination = connAuth.getDestination();
                     if (requestConnection.getDestination() != null && !currentDestination.getIdentifier().equals(requestConnection.getDestination().getId())) {
-                        // verify access of the new destination (current destination was already authorized as part of the connection check)
-                        final Authorizable newDestinationAuthorizable = lookup.getConnectable(requestConnection.getDestination().getId());
-                        newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        try {
+                            final ConnectableType destinationConnectableType = ConnectableType.valueOf(requestConnection.getDestination().getType());
+
+                            // explicitly handle RPGs differently as the connectable id can be ambiguous if self referencing
+                            final Authorizable newDestinationAuthorizable;
+                            if (ConnectableType.REMOTE_INPUT_PORT.equals(destinationConnectableType)) {
+                                newDestinationAuthorizable = lookup.getRemoteProcessGroup(requestConnection.getDestination().getGroupId());
+                            } else {
+                                newDestinationAuthorizable = lookup.getLocalConnectable(requestConnection.getDestination().getId());
+                            }
+
+                            // verify access of the new destination (current destination was already authorized as part of the connection check)
+                            newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        } catch (final IllegalArgumentException e) {
+                            throw new IllegalArgumentException(String.format("Unrecognized destination type %s. Excepted values are [%s]",
+                                    requestConnection.getDestination().getType(), StringUtils.join(ConnectableType.values(), ", ")));
+                        }
 
                         // verify access of the parent group (this is the same check that is performed when creating the connection)
                         connAuth.getParentGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());

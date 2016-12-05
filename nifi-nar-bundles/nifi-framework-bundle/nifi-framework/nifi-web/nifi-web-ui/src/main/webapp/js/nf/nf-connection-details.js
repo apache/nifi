@@ -116,6 +116,8 @@ nf.ConnectionDetails = (function () {
                 $('#read-only-connection-source-label').text('From output');
                 $('#read-only-connection-source').text(source.name);
                 $('#read-only-connection-source-group-name').text(remoteProcessGroup.name);
+
+                deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
                     // populate source processor details
