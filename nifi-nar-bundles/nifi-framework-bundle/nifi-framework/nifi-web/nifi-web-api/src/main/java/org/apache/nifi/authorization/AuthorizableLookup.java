@@ -116,24 +116,6 @@ public interface AuthorizableLookup {
     Authorizable getRemoteProcessGroup(String id);
 
     /**
-     * Get the authorizable RemoteProcessGroup input port.
-     *
-     * @param remoteProcessGroupId remote process group id
-     * @param id input port id
-     * @return authorizable
-     */
-    Authorizable getRemoteProcessGroupInputPort(String remoteProcessGroupId, String id);
-
-    /**
-     * Get the authorizable RemoteProcessGroup output port.
-     *
-     * @param remoteProcessGroupId remote process group id
-     * @param id output port id
-     * @return authorizable
-     */
-    Authorizable getRemoteProcessGroupOutputPort(String remoteProcessGroupId, String id);
-
-    /**
      * Get the authorizable Label.
      *
      * @param id label id

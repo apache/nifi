@@ -38,7 +38,6 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -237,18 +236,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getRemoteProcessGroup(final String id) {
         return remoteProcessGroupDAO.getRemoteProcessGroup(id);
-    }
-
-    @Override
-    public Authorizable getRemoteProcessGroupInputPort(final String remoteProcessGroupId, final String id) {
-        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
-        return remoteProcessGroup.getInputPort(id);
-    }
-
-    @Override
-    public Authorizable getRemoteProcessGroupOutputPort(final String remoteProcessGroupId, final String id) {
-        final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
-        return remoteProcessGroup.getOutputPort(id);
     }
 
     @Override
