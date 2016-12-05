@@ -1320,16 +1320,6 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Gets an authorizable for proveance events for a given component id.
-     *
-     * @param componentId component id
-     * @return authorizable
-     */
-    public Authorizable getLocalDataAuthorizable(final String componentId) {
-        return flowController.createLocalDataAuthorizable(componentId);
-    }
-
-    /**
      * Creates a ProvenanceEventDTO for the specified ProvenanceEventRecord.
      *
      * @param event event
@@ -1460,7 +1450,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         final RemoteGroupPort remoteGroupPort = root.findRemoteGroupPort(dto.getComponentId());
-        if (connectable != null) {
+        if (remoteGroupPort != null) {
             dto.setGroupId(remoteGroupPort.getProcessGroupIdentifier());
             dto.setComponentName(remoteGroupPort.getName());
             return;

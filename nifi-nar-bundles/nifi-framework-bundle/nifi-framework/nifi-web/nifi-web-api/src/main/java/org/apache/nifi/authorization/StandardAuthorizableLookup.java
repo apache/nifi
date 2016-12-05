@@ -414,11 +414,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getData(final String id) {
-        return controllerFacade.getLocalDataAuthorizable(id);
-    }
-
-    @Override
     public Authorizable getPolicies() {
         return POLICIES_AUTHORIZABLE;
     }
