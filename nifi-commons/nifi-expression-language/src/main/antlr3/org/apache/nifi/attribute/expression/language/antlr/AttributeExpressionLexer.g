@@ -77,12 +77,13 @@ COLON	: ':';
 COMMA	: ',';
 DOT		: '.';
 SEMICOLON : ';';
-WHOLE_NUMBER	: ('0'..'9')+;
+WHOLE_NUMBER : OP? ('0'..'9')+;
 
-DECIMAL :    ('0'..'9')+ '.' ('0'..'9')* EXP?
-           | '.' ('0'..'9')+ EXP?
-           | ('0'..'9')+ EXP;
+DECIMAL :    OP? ('0'..'9')+ '.' ('0'..'9')* EXP?
+           | OP? '.' ('0'..'9')+ EXP?
+           | OP? ('0'..'9')+ EXP;
 
+fragment OP: ('+'|'-');
 fragment EXP : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
 
 TRUE	: 'true';

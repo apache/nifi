@@ -1063,7 +1063,13 @@ public class TestQuery {
         verifyEquals("${literal(\"5.5\")}", attributes, "5.5");
 
         verifyEquals("${literal(5.5):toNumber()}", attributes, 5L);
+        verifyEquals("${literal(-5.5):toNumber()}", attributes, -5L);
+        verifyEquals("${literal(+5.5):toNumber()}", attributes, 5L);
+
         verifyEquals("${literal(5.5):toDecimal()}", attributes, 5.5D);
+        verifyEquals("${literal(-5.5):toDecimal()}", attributes, -5.5D);
+        verifyEquals("${literal(+5.5):toDecimal()}", attributes, 5.5D);
+
         verifyEquals("${literal('0xF.Fp10'):toDecimal()}", attributes, 0xF.Fp10D);
 
         verifyEquals("${literal('0x1234567890ABCDEF'):toNumber()}", attributes, 0x1234567890ABCDEFL);
@@ -1079,49 +1085,49 @@ public class TestQuery {
 
         // Test decimal format X.X
         verifyEquals("${literal(5.5):toDecimal()}", attributes, 5.5D);
-        verifyEquals("${literal('-12.5'):toDecimal()}", attributes, -12.5D);
-        verifyEquals("${literal('+12.5'):toDecimal()}", attributes, 12.5D);
+        verifyEquals("${literal(-12.5):toDecimal()}", attributes, -12.5D);
+        verifyEquals("${literal(+12.5):toDecimal()}", attributes, 12.5D);
 
         // Test decimal format X.XEX with positive exponent
-        verifyEquals("${literal('-12.5E2'):toDecimal()}", attributes, -12.5E2D);
-        verifyEquals("${literal('-12.5e2'):toDecimal()}", attributes, -12.5e2D);
-        verifyEquals("${literal('-12.5e+2'):toDecimal()}", attributes, -12.5e+2D);
-        verifyEquals("${literal('12.5E+2'):toDecimal()}", attributes, 12.5E+2D);
-        verifyEquals("${literal('+12.5e+2'):toDecimal()}", attributes, +12.5e+2D);
-        verifyEquals("${literal('+12.5E2'):toDecimal()}", attributes, +12.5E2D);
-        verifyEquals("${literal('-12.5e2'):toDecimal()}", attributes, -12.5e2D);
-        verifyEquals("${literal('12.5E2'):toDecimal()}", attributes, 12.5E2D);
-        verifyEquals("${literal('+12.5e2'):toDecimal()}", attributes, +12.5e2D);
+        verifyEquals("${literal(-12.5E2):toDecimal()}", attributes, -12.5E2D);
+        verifyEquals("${literal(-12.5e2):toDecimal()}", attributes, -12.5e2D);
+        verifyEquals("${literal(-12.5e+2):toDecimal()}", attributes, -12.5e+2D);
+        verifyEquals("${literal(12.5E+2):toDecimal()}", attributes, 12.5E+2D);
+        verifyEquals("${literal(+12.5e+2):toDecimal()}", attributes, +12.5e+2D);
+        verifyEquals("${literal(+12.5E2):toDecimal()}", attributes, +12.5E2D);
+        verifyEquals("${literal(-12.5e2):toDecimal()}", attributes, -12.5e2D);
+        verifyEquals("${literal(12.5E2):toDecimal()}", attributes, 12.5E2D);
+        verifyEquals("${literal(+12.5e2):toDecimal()}", attributes, +12.5e2D);
 
         // Test decimal format X.XEX with negative exponent
-        verifyEquals("${literal('-12.5E-2'):toDecimal()}", attributes, -12.5E-2D);
-        verifyEquals("${literal('12.5E-2'):toDecimal()}", attributes, 12.5E-2D);
-        verifyEquals("${literal('+12.5e-2'):toDecimal()}", attributes, +12.5e-2D);
+        verifyEquals("${literal(-12.5E-2):toDecimal()}", attributes, -12.5E-2D);
+        verifyEquals("${literal(12.5E-2):toDecimal()}", attributes, 12.5E-2D);
+        verifyEquals("${literal(+12.5e-2):toDecimal()}", attributes, +12.5e-2D);
 
         // Test decimal format .X
-        verifyEquals("${literal('.5'):toDecimal()}", attributes, .5D);
-        verifyEquals("${literal('.5'):toDecimal()}", attributes, .5D);
-        verifyEquals("${literal('-.5'):toDecimal()}", attributes, -0.5D);
-        verifyEquals("${literal('+.5'):toDecimal()}", attributes, .5D);
+        verifyEquals("${literal(.5):toDecimal()}", attributes, .5D);
+        verifyEquals("${literal(.5):toDecimal()}", attributes, .5D);
+        verifyEquals("${literal(-.5):toDecimal()}", attributes, -0.5D);
+        verifyEquals("${literal(+.5):toDecimal()}", attributes, .5D);
 
         // Test decimal format .XEX with positive exponent
-        verifyEquals("${literal('-.5E2'):toDecimal()}", attributes, -.5E2D);
-        verifyEquals("${literal('-.5E2'):toDecimal()}", attributes, -.5E2D);
-        verifyEquals("${literal('-.5e+2'):toDecimal()}", attributes, -.5e+2D);
-        verifyEquals("${literal('.5E+2'):toDecimal()}", attributes, .5E+2D);
-        verifyEquals("${literal('+.5e+2'):toDecimal()}", attributes, +.5e+2D);
-        verifyEquals("${literal('+.5E2'):toDecimal()}", attributes, +.5E2D);
-        verifyEquals("${literal('-.5e2'):toDecimal()}", attributes, -.5e2D);
-        verifyEquals("${literal('.5E2'):toDecimal()}", attributes, .5E2D);
-        verifyEquals("${literal('+.5e2'):toDecimal()}", attributes, +.5e2D);
+        verifyEquals("${literal(-.5E2):toDecimal()}", attributes, -.5E2D);
+        verifyEquals("${literal(-.5E2):toDecimal()}", attributes, -.5E2D);
+        verifyEquals("${literal(-.5e+2):toDecimal()}", attributes, -.5e+2D);
+        verifyEquals("${literal(.5E+2):toDecimal()}", attributes, .5E+2D);
+        verifyEquals("${literal(+.5e+2):toDecimal()}", attributes, +.5e+2D);
+        verifyEquals("${literal(+.5E2):toDecimal()}", attributes, +.5E2D);
+        verifyEquals("${literal(-.5e2):toDecimal()}", attributes, -.5e2D);
+        verifyEquals("${literal(.5E2):toDecimal()}", attributes, .5E2D);
+        verifyEquals("${literal(+.5e2):toDecimal()}", attributes, +.5e2D);
 
         // Test decimal format .XEX with negative exponent
-        verifyEquals("${literal('-.5E-2'):toDecimal()}", attributes, -.5E-2D);
-        verifyEquals("${literal('.5e-2'):toDecimal()}", attributes, .5e-2D);
-        verifyEquals("${literal('+.5E-2'):toDecimal()}", attributes, +.5E-2D);
+        verifyEquals("${literal(-.5E-2):toDecimal()}", attributes, -.5E-2D);
+        verifyEquals("${literal(.5e-2):toDecimal()}", attributes, .5e-2D);
+        verifyEquals("${literal(+.5E-2):toDecimal()}", attributes, +.5E-2D);
 
         // Verify allowed values
-        verifyEquals("${literal('9876543210.0123456789e123'):toDecimal()}", attributes, 9876543210.0123456789e123D);
+        verifyEquals("${literal(9876543210.0123456789e123):toDecimal()}", attributes, 9876543210.0123456789e123D);
 
         verifyEmpty("${literal('A.1e123'):toDecimal()}", attributes);
         verifyEmpty("${literal('0.Ae123'):toDecimal()}", attributes);
