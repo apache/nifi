@@ -166,7 +166,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .description("If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method " +
                     "when state does not contain a value for the variable.")
             .required(false)
-            .defaultValue("0")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -265,6 +264,14 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
+
+        if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)){
+            String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
+            if (initValue == null){
+                reasons.add(new ValidationResult.Builder().subject(STATEFUL_VARIABLES_INIT_VALUE.getDisplayName()).valid(false)
+                        .explanation("initial state value much be set if the processor is configured to store state.").build());
+            }
+        }
 
         Criteria criteria = null;
         try {

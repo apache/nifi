@@ -120,12 +120,14 @@ public class TestUpdateAttribute {
     }
 
     @Test
-    public void testDefaultState() throws Exception {
+    public void testBasicState() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty("count", "${getStateValue('count'):plus(1)}");
         runner.setProperty("sum", "${getStateValue('sum'):plus(${pencils})}");
 
+        runner.assertNotValid();
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
         runner.assertValid();
 
         final Map<String, String> attributes2 = new HashMap<>();
@@ -193,6 +195,7 @@ public class TestUpdateAttribute {
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
         runner.setAnnotationData(serialize(criteria));
 
         final Map<String, String> attributes = new HashMap<>();
@@ -226,6 +229,7 @@ public class TestUpdateAttribute {
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
         runner.setAnnotationData(serialize(criteria));
         runner.setProperty("maxValue", "${getStateValue('maxValue')}");
 
@@ -294,6 +298,7 @@ public class TestUpdateAttribute {
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty(UpdateAttribute.DELETE_ATTRIBUTES, "badValue");
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
         runner.setAnnotationData(serialize(criteria));
         runner.setProperty("maxValue", "${getStateValue('maxValue')}");
         runner.setProperty("theCount", "${getStateValue('theCount'):plus(1)}");
