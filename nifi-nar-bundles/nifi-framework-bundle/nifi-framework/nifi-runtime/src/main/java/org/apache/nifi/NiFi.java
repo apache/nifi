@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
@@ -36,12 +37,14 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
@@ -55,7 +58,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class NiFi {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
-    private static final String KEY_FLAG = "-k";
+    private static final String KEY_FILE_FLAG = "-K";
     private final NiFiServer nifiServer;
     private final BootstrapListener bootstrapListener;
 
@@ -307,39 +310,73 @@ public class NiFi {
         String key = null;
         List<String> parsedArgs = parseArgs(args);
         // Check if args contain protection key
-        if (parsedArgs.contains(KEY_FLAG)) {
-            key = getKeyFromArgs(parsedArgs);
-
+        if (parsedArgs.contains(KEY_FILE_FLAG)) {
+            key = getKeyFromKeyFileAndPrune(parsedArgs);
             // Format the key (check hex validity and remove spaces)
             key = formatHexKey(key);
-            if (!isHexKeyValid(key)) {
-                throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
-            }
 
-            return key;
-        } else {
-            // throw new IllegalStateException("No key provided from bootstrap");
+        }
+
+        if (null == key) {
             return "";
+        } else if (!isHexKeyValid(key)) {
+          throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
+        } else {
+          return key;
         }
     }
 
-    private static String getKeyFromArgs(List<String> parsedArgs) {
-        String key;
-        LOGGER.debug("The bootstrap process provided the " + KEY_FLAG + " flag");
-        int i = parsedArgs.indexOf(KEY_FLAG);
+    private static String getKeyFromKeyFileAndPrune(List<String> parsedArgs) {
+        String key = null;
+        LOGGER.debug("The bootstrap process provided the " + KEY_FILE_FLAG + " flag");
+        int i = parsedArgs.indexOf(KEY_FILE_FLAG);
         if (parsedArgs.size() <= i + 1) {
-            LOGGER.error("The bootstrap process passed the {} flag without a key", KEY_FLAG);
-            throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FLAG + " flag but no key");
+            LOGGER.error("The bootstrap process passed the {} flag without a filename", KEY_FILE_FLAG);
+            throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FILE_FLAG + " flag but no key");
         }
-        key = parsedArgs.get(i + 1);
-        LOGGER.info("Read property protection key from bootstrap process");
+        try {
+          String passwordfile_path = parsedArgs.get(i + 1);
+          // Slurp in the contents of the file:
+          byte[] encoded = Files.readAllBytes(Paths.get(passwordfile_path));
+          key = new String(encoded,StandardCharsets.UTF_8);
+          if (0 == key.length())
+            throw new IllegalArgumentException("Key in keyfile " + passwordfile_path + " yielded an empty key");
+
+          LOGGER.info("Now overwriting file in "+passwordfile_path);
+
+          // Overwrite the contents of the file (to avoid littering file system
+          // unlinked with key material):
+          File password_file = new File(passwordfile_path);
+          FileWriter overwriter = new FileWriter(password_file,false);
+
+          // Construe a random pad:
+          Random r = new Random();
+          StringBuffer sb = new StringBuffer();
+          // Note on correctness: this pad is longer, but equally sufficient.
+          while(sb.length() < encoded.length){
+            sb.append(Integer.toHexString(r.nextInt()));
+          }
+          String pad = sb.toString();
+          LOGGER.info("Overwriting key material with pad: "+pad);
+          overwriter.write(pad);
+          overwriter.close();
+
+          LOGGER.info("Removing/unlinking file: "+passwordfile_path);
+          password_file.delete();
+
+        } catch (IOException e) {
+          LOGGER.error("Caught IOException while retrieving the "+KEY_FILE_FLAG+"-passed keyfile; aborting: "+e.toString());
+          System.exit(1);
+        }
+
+        LOGGER.info("Read property protection key from key file provided by bootstrap process");
         return key;
     }
 
     private static List<String> parseArgs(String[] args) {
         List<String> parsedArgs = new ArrayList<>(Arrays.asList(args));
         for (int i = 0; i < parsedArgs.size(); i++) {
-            if (parsedArgs.get(i).startsWith(KEY_FLAG + " ")) {
+            if (parsedArgs.get(i).startsWith(KEY_FILE_FLAG + " ")) {
                 String[] split = parsedArgs.get(i).split(" ", 2);
                 parsedArgs.set(i, split[0]);
                 parsedArgs.add(i + 1, split[1]);
