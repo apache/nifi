@@ -121,7 +121,6 @@ class ZooKeeperMigrator {
             final int readCount = readsDone.size();
             LOGGER.info("{} {} read from {}", readCount, readCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
-        closeZooKeeper(zooKeeper);
     }
 
     void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
@@ -200,7 +199,6 @@ class ZooKeeperMigrator {
             LOGGER.info("{} {} transferred to {}", writeCount, writeCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
         jsonReader.close();
-        closeZooKeeper(zooKeeper);
     }
 
     private Stream<String> streamPaths(ZooKeeperNode node) {
