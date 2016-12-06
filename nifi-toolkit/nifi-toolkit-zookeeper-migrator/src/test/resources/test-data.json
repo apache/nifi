@@ -61,7 +61,7 @@
       "version": 0,
       "cversion": 0,
       "aversion": 0,
-      "ephemeralOwner": 96836130884026368,
+      "ephemeralOwner": 0,
       "dataLength": 9,
       "numChildren": 0,
       "pzxid": 4
@@ -75,7 +75,7 @@
         }
       }
     ],
-    "ephemeralOwner": 96836130884026368
+    "ephemeralOwner": 0
   },
   {
     "path": "/nifi/2",
