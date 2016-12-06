@@ -102,9 +102,9 @@ run() {
     sudo_cmd_prefix=""
     if $cygwin; then
         MINIFI_TOOLKIT_HOME=$(cygpath --path --windows "${MINIFI_TOOLKIT_HOME}")
-        CLASSPATH=$(cygpath --path --windows "${LIBS}")
+        CLASSPATH="$MINIFI_TOOLKIT_HOME/classpath;$(cygpath --path --windows "${LIBS}")"
     else
-        CLASSPATH="${LIBS}"
+        CLASSPATH="$MINIFI_TOOLKIT_HOME/classpath:${LIBS}"
     fi
 
     echo

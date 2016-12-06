@@ -18,7 +18,7 @@ rem
 
 rem Set environment variables
 
-call minifi-env.bat
+call %~sdp0\minifi-env.bat
 
 rem Use JAVA_HOME if it's set; otherwise, just use java
 
