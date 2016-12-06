@@ -221,9 +221,8 @@ class ZooKeeperMigratorTest extends Specification {
         when: "data is sent to the same zookeeper as the the source zookeeper without ignore source"
         ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath] as String[])
 
-        then: "verify that a runtime exception is thrown with an illegal argument exception as the cause"
-        def e = thrown(RuntimeException)
-        e.cause.class == IllegalArgumentException
+        then: "verify that an illegal argument exception is thrown"
+        thrown(IllegalArgumentException)
 
         when: "data is sent to the same zookeeper as the source zookeeper with ignore source option is set"
         ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath, '--ignore-source'] as String[])

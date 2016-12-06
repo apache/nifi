@@ -121,6 +121,7 @@ class ZooKeeperMigrator {
             final int readCount = readsDone.size();
             LOGGER.info("{} {} read from {}", readCount, readCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
+        closeZooKeeper(zooKeeper);
     }
 
     void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
@@ -199,6 +200,7 @@ class ZooKeeperMigrator {
             LOGGER.info("{} {} transferred to {}", writeCount, writeCount == 1 ? "node" : "nodes", zooKeeperEndpointConfig);
         }
         jsonReader.close();
+        closeZooKeeper(zooKeeper);
     }
 
     private Stream<String> streamPaths(ZooKeeperNode node) {
@@ -212,7 +214,10 @@ class ZooKeeperMigrator {
             final String childPath = Joiner.on('/').skipNulls().join(path.equals("/") ? "" : path, s);
             try {
                 return getNode(zooKeeper, childPath);
-            } catch (Exception e) {
+            } catch (InterruptedException | KeeperException e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
                 throw new RuntimeException(String.format("unable to discover sub-tree from %s", childPath), e);
             }
         }).collect(Collectors.toList()));
@@ -229,7 +234,10 @@ class ZooKeeperMigrator {
             data = zooKeeper.getData(path, false, stat);
             acls = zooKeeper.getACL(path, stat);
             ephemeralOwner = stat.getEphemeralOwner();
-        } catch (Exception e) {
+        } catch (InterruptedException | KeeperException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(String.format("unable to get data, ACLs, and stats from %s for node at path %s", zooKeeper, path), e);
         }
         return new DataStatAclNode(path, data, stat, acls, ephemeralOwner);
@@ -257,6 +265,7 @@ class ZooKeeperMigrator {
                 throw new RuntimeException(String.format("unable to create node at path %s, ZooKeeper returned %s", path, e.code()), e);
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(String.format("unable to create node at path %s", path), e);
         }
     }
@@ -280,7 +289,10 @@ class ZooKeeperMigrator {
             zooKeeper.setData(node.getPath(), node.getData(), -1);
             zooKeeper.setACL(node.getPath(), node.getAcls(), -1);
             LOGGER.info("transferred node {} in {}", node, zooKeeperEndpointConfig);
-        } catch (Exception e) {
+        } catch (InterruptedException | KeeperException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(String.format("unable to transmit data to %s for path %s", zooKeeper, node.getPath()), e);
         }
         return node.getStat();
@@ -302,13 +314,13 @@ class ZooKeeperMigrator {
             connected = connectionLatch.await(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             closeZooKeeper(zooKeeper);
-            Thread.currentThread().interrupt(); // preserve interrupt
+            Thread.currentThread().interrupt();
             throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
         }
 
         if (!connected) {
             closeZooKeeper(zooKeeper);
-            throw new IOException(String.format("unable to connect to %s, state is %s", zooKeeperEndpointConfig, zooKeeper.getState()));
+            throw new IOException(String.format("unable to connect to %s", zooKeeperEndpointConfig));
         }
 
         if (authMode.equals(AuthMode.DIGEST)) {
@@ -322,7 +334,7 @@ class ZooKeeperMigrator {
             zooKeeper.close();
         } catch (InterruptedException e) {
             LOGGER.warn("could not close ZooKeeper client due to interrupt", e);
-            Thread.currentThread().interrupt(); // preserve interrupt
+            Thread.currentThread().interrupt();
         }
     }
 
