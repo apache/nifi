@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1027,19 +1028,24 @@ public class RunNiFi {
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
         cmd.add("org.apache.nifi.NiFi");
         if (props.containsKey(NIFI_BOOTSTRAP_SENSITIVE_KEY) && !StringUtils.isBlank(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY))) {
-            cmd.add("-k " + props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
+            File password_file = new File(confDir, "sensitive.key");
+
+            // Restrict permissions:
+            password_file.setReadable(false,false);
+            password_file.setReadable(true,true);
+            password_file.setWritable(false,false);
+            password_file.setWritable(true,true);
+            FileWriter sensitive_key_writer = new FileWriter(password_file,false);
+            sensitive_key_writer.write(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
+            sensitive_key_writer.close();
+            cmd.add("-K " + password_file.getAbsolutePath());
         }
 
         builder.command(cmd);
 
         final StringBuilder cmdBuilder = new StringBuilder();
         for (final String s : cmd) {
-            // Mask the key
-            if (s.startsWith("-k ")) {
-                cmdBuilder.append("-k ****");
-            } else {
-                cmdBuilder.append(s).append(" ");
-            }
+          cmdBuilder.append(s).append(" ");
         }
 
         cmdLogger.info("Starting Apache NiFi...");
