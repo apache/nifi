@@ -277,11 +277,12 @@ public class ConfigMainTest {
         Map<String, Object> templateMap = ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream(name + ".xml")).toMap();
         Map<String, Object> yamlMap = SchemaLoader.loadYamlAsMap(getClass().getClassLoader().getResourceAsStream(name + ".yml"));
         assertNoMapDifferences(templateMap, yamlMap);
+        testV2YmlIfPresent(name, yamlMap);
         testV1YmlIfPresent(name, yamlMap);
     }
 
     private InputStream upgradeAndReturn(String name) throws FileNotFoundException {
-        InputStream yamlV1Stream = getClass().getClassLoader().getResourceAsStream(name + "-v1.yml");
+        InputStream yamlV1Stream = getClass().getClassLoader().getResourceAsStream(name);
         if (yamlV1Stream == null) {
             return null;
         }
@@ -292,8 +293,30 @@ public class ConfigMainTest {
         return new ByteArrayInputStream(outputStream.toByteArray());
     }
 
+    private void testV2YmlIfPresent(String name, Map<String, Object> yamlMap) throws IOException, SchemaLoaderException {
+        InputStream upgradedInputStream = upgradeAndReturn(name + "-v2.yml");
+        if (upgradedInputStream != null) {
+            ConvertableSchema<ConfigSchema> configSchemaConvertableSchema = SchemaLoader.loadConvertableSchemaFromYaml(upgradedInputStream);
+            ConfigSchema configSchemaUpgradedFromV2 = configSchemaConvertableSchema.convert();
+
+            ConfigSchema configSchemaFromCurrent = new ConfigSchema(yamlMap);
+            ConfigSchema.getAllProcessGroups(configSchemaFromCurrent.getProcessGroupSchema()).stream().flatMap(p -> p.getRemoteProcessGroups().stream()).forEach(r -> {
+                clearProxyInfo(r);
+            });
+
+            assertNoMapDifferences(configSchemaUpgradedFromV2.toMap(), configSchemaFromCurrent.toMap());
+        }
+    }
+
+    private void clearProxyInfo(RemoteProcessGroupSchema remoteProcessGroupSchema) {
+        remoteProcessGroupSchema.setProxyHost(RemoteProcessGroupSchema.DEFAULT_PROXY_HOST);
+        remoteProcessGroupSchema.setProxyPort(RemoteProcessGroupSchema.DEFAULT_PROXY_PORT);
+        remoteProcessGroupSchema.setProxyUser(RemoteProcessGroupSchema.DEFAULT_PROXY_USER);
+        remoteProcessGroupSchema.setProxyPassword(RemoteProcessGroupSchema.DEFAULT_PROXY_PASSWORD);
+    }
+
     private void testV1YmlIfPresent(String name, Map<String, Object> yamlMap) throws IOException, SchemaLoaderException {
-        InputStream upgradedInputStream = upgradeAndReturn(name);
+        InputStream upgradedInputStream = upgradeAndReturn(name + "-v1.yml");
         if (upgradedInputStream != null) {
             ConvertableSchema<ConfigSchema> configSchemaConvertableSchema = SchemaLoader.loadConvertableSchemaFromYaml(upgradedInputStream);
             ConfigSchema configSchemaUpgradedFromV1 = configSchemaConvertableSchema.convert();
@@ -341,6 +364,11 @@ public class ConfigMainTest {
                 v1Connection.setSourceId(v1IdToCurrentIdMap.get(v1Connection.getSourceId()));
                 v1Connection.setDestinationId(v1IdToCurrentIdMap.get(v1Connection.getDestinationId()));
             }
+
+            ConfigSchema.getAllProcessGroups(configSchemaFromCurrent.getProcessGroupSchema()).stream().flatMap(p -> p.getRemoteProcessGroups().stream()).forEach(r -> {
+                clearProxyInfo(r);
+                r.setTransportProtocol(RemoteProcessGroupSchema.TransportProtocolOptions.RAW.name());
+            });
             Map<String, Object> v1YamlMap = configSchemaUpgradedFromV1.toMap();
             assertNoMapDifferences(v1YamlMap, configSchemaFromCurrent.toMap());
         }

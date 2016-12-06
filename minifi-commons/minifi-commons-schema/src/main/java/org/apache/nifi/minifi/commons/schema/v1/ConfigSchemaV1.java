@@ -33,6 +33,7 @@ import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.CollectionOverlap;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 
@@ -160,13 +161,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
 
         if (processors != null) {
             processors.stream().forEachOrdered(p -> processorNameToIdMap.put(p.getName(), p.getId()));
-
-            Set<String> processorNames = new HashSet<>();
-            processors.stream().map(ProcessorSchema::getName).forEachOrdered(n -> {
-                if (!processorNames.add(n)) {
-                    duplicateProcessorNames.add(n);
-                }
-            });
+            duplicateProcessorNames = new CollectionOverlap<>(processors.stream().map(ProcessorSchema::getName)).getDuplicates();
         }
 
         Set<String> remoteInputPortIds = new HashSet<>();

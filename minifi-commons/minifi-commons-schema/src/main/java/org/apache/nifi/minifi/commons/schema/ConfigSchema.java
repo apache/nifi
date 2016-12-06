@@ -18,18 +18,16 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.CollectionOverlap;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMPONENT_STATUS_REPO_KEY;
@@ -121,27 +119,22 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_OUTPUT_PORT_IDS, allOutputPortIds);
 
         // Potential connection sources and destinations need to have unique ids
-        OverlapResults<String> overlapResults = findOverlap(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds), new HashSet<>(allOutputPortIds),
-                new HashSet<>(allFunnelIds));
-        if (overlapResults.duplicates.size() > 0) {
-            addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.duplicates.stream().sorted().collect(Collectors.joining(", ")));
+        CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds),
+                new HashSet<>(allOutputPortIds), new HashSet<>(allFunnelIds));
+        if (overlapResults.getDuplicates().size() > 0) {
+            addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.getDuplicates().stream().sorted().collect(Collectors.joining(", ")));
         }
 
         allConnectionSchemas.forEach(c -> {
             String destinationId = c.getDestinationId();
-            if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.seen.contains(destinationId)) {
+            if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.getElements().contains(destinationId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_DESTINATION_ID + destinationId);
             }
             String sourceId = c.getSourceId();
-            if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.seen.contains(sourceId)) {
+            if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.getElements().contains(sourceId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_SOURCE_ID + sourceId);
             }
         });
-    }
-
-    protected static <T> OverlapResults<T> findOverlap(Collection<T>... collections) {
-        Set<T> seen = new HashSet<>();
-        return new OverlapResults<>(seen, Arrays.stream(collections).flatMap(c -> c.stream()).sequential().filter(s -> !seen.add(s)).collect(Collectors.toSet()));
     }
 
     public static List<ProcessGroupSchema> getAllProcessGroups(ProcessGroupSchema processGroupSchema) {
@@ -214,15 +207,5 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
     @Override
     public ConfigSchema convert() {
         return this;
-    }
-
-    private static class OverlapResults<T> {
-        private final Set<T> seen;
-        private final Set<T> duplicates;
-
-        private OverlapResults(Set<T> seen, Set<T> duplicates) {
-            this.seen = seen;
-            this.duplicates = duplicates;
-        }
     }
 }

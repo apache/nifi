@@ -27,19 +27,14 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class BaseSchema implements Schema {
     public static final String IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED = "it was not found and it is required";
     public static final String EMPTY_NAME = "empty_name";
-
-    public static final Pattern ID_REPLACE_PATTERN = Pattern.compile("[^A-Za-z0-9_-]");
 
     protected final Supplier<Map<String, Object>> mapSupplier;
 
@@ -99,7 +94,7 @@ public abstract class BaseSchema implements Schema {
 
     <T> T getKeyAsType(Map valueMap, String key, Class<T> targetClass, String wrapperName, boolean required, T defaultValue) {
         Object value = valueMap.get(key);
-        if (value == null) {
+        if (value == null || (targetClass != String.class && "".equals(value))) {
             if (defaultValue != null) {
                 return defaultValue;
             } else if(required) {
@@ -175,7 +170,7 @@ public abstract class BaseSchema implements Schema {
     }
 
     private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {
-        if (obj == null) {
+        if (obj == null || (targetClass != String.class && "".equals(obj))) {
             if (required){
                 addValidationIssue(key, wrapperName, "it is a required property but was not found");
             } else {
@@ -220,15 +215,9 @@ public abstract class BaseSchema implements Schema {
 
     public static void checkForDuplicates(Consumer<String> duplicateMessageConsumer, String errorMessagePrefix, List<String> strings) {
         if (strings != null) {
-            Set<String> seen = new HashSet<>();
-            Set<String> duplicates = new TreeSet<>();
-            for (String string : strings) {
-                if (!seen.add(string)) {
-                    duplicates.add(String.valueOf(string));
-                }
-            }
-            if (duplicates.size() > 0) {
-                duplicateMessageConsumer.accept(errorMessagePrefix + duplicates.stream().collect(Collectors.joining(", ")));
+            CollectionOverlap<String> collectionOverlap = new CollectionOverlap<>(strings);
+            if (collectionOverlap.getDuplicates().size() > 0) {
+                duplicateMessageConsumer.accept(errorMessagePrefix + collectionOverlap.getDuplicates().stream().collect(Collectors.joining(", ")));
             }
         }
     }

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 3
+MiNiFi Config Version: 2
 Flow Controller:
   name: InvokeHttpMiNiFiTemplateTest2
   comment: ''
@@ -166,7 +166,6 @@ Processors:
   Properties:
     Delete Attributes Expression:
     q: nifi
-Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []
@@ -290,10 +289,6 @@ Remote Process Groups:
   timeout: 30 sec
   yield period: 10 sec
   transport protocol: HTTP
-  proxy host: proxy.server
-  proxy port: 8675
-  proxy user: username
-  proxy password: ''
   Input Ports:
   - name: response
     id: b23a4621-cf19-42e6-967c-ffd3716e6a24

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 3
+MiNiFi Config Version: 2
 Flow Controller:
   name: Simple TailFile To RPG
   comment: ''
@@ -77,7 +77,6 @@ Processors:
     tailfile-maximum-age: 24 hours
     tailfile-recursive-lookup: 'false'
     tailfile-rolling-strategy: Fixed name
-Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []
@@ -101,10 +100,6 @@ Remote Process Groups:
   timeout: 30 sec
   yield period: 10 sec
   transport protocol: RAW
-  proxy host: ''
-  proxy port: ''
-  proxy user: ''
-  proxy password: ''
   Input Ports:
   - id: aca664f8-0158-1000-a139-92485891d349
     name: test2

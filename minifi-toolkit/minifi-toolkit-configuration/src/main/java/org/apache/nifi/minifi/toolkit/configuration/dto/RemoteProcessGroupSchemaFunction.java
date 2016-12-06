@@ -59,6 +59,10 @@ public class RemoteProcessGroupSchemaFunction implements Function<RemoteProcessG
         map.put(RemoteProcessGroupSchema.TIMEOUT_KEY, remoteProcessGroupDTO.getCommunicationsTimeout());
         map.put(CommonPropertyKeys.YIELD_PERIOD_KEY, remoteProcessGroupDTO.getYieldDuration());
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, remoteProcessGroupDTO.getTransportProtocol());
+        map.put(RemoteProcessGroupSchema.PROXY_HOST_KEY, remoteProcessGroupDTO.getProxyHost());
+        map.put(RemoteProcessGroupSchema.PROXY_PORT_KEY, remoteProcessGroupDTO.getProxyPort());
+        map.put(RemoteProcessGroupSchema.PROXY_USER_KEY, remoteProcessGroupDTO.getProxyUser());
+        map.put(RemoteProcessGroupSchema.PROXY_PASSWORD_KEY, remoteProcessGroupDTO.getProxyPassword());
         return new RemoteProcessGroupSchema(map);
     }
 }

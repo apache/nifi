@@ -349,6 +349,7 @@ parses and upconverts to the current version without issue.
 
 ### Version 2 -> Version 3 changes
 1. Added support for Controller Services.
+2. Added support for Site-To-Site over proxy.
 
 ## Flow Controller
 
@@ -582,7 +583,7 @@ queue prioritizer class  | This configuration option specifies the fully qualifi
 
 ## Remote Process Groups
 
-MiNiFi can be used to send data using the Site to Site protocol (via a Remote Process Group) or a Processor. These properties configure the Remote Process Groups that use Site-To-Site to send data to a core instance.
+MiNiFi can be used to send data using the Site to Site protocol (via a Remote Process Group) or a Processor. These properties configure the Remote Process Groups that use Site-To-Site to send data to a core instance.  The proxy settings are for HTTP Site-To-Site.
 
 *Property*         | *Description*
 -------------------| -------------
@@ -592,6 +593,10 @@ url                | The URL of the core NiFi instance.
 timeout            | How long MiNiFi should wait before timing out the connection.
 yield period       | When communication with this Remote Process Group fails, it will not be scheduled again for this amount of time.
 transport protocol | The transport protocol to use for this Remote Process Group. Can be either "RAW" or "HTTP"
+proxy host         | The hostname of the proxy server
+proxy port         | The port to connect to on the proxy server
+proxy user         | The user name on the proxy server
+proxy password     | The password for the proxy server
 
 
 #### Input Ports Subsection

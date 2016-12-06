@@ -637,10 +637,11 @@ limitations under the License.
           <useCompression>false</useCompression>
         </inputPorts>
       </contents>
-      <proxyHost/>
-      <proxyUser/>
+      <proxyHost>proxy.server</proxyHost>
+      <proxyPort>8675</proxyPort>
+      <proxyUser>username</proxyUser>
       <targetUri>http://nifi:8080/nifi</targetUri>
-      <transportProtocol>RAW</transportProtocol>
+      <transportProtocol>HTTP</transportProtocol>
       <yieldDuration>10 sec</yieldDuration>
     </remoteProcessGroups>
   </snippet>

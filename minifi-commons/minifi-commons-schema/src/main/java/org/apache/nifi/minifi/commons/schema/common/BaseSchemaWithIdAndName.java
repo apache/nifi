@@ -23,7 +23,7 @@ import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
-public abstract class BaseSchemaWithIdAndName extends BaseSchemaWithId implements WritableSchema {
+public class BaseSchemaWithIdAndName extends BaseSchemaWithId implements WritableSchema {
     private String name;
 
     public BaseSchemaWithIdAndName(Map map, String wrapperName) {

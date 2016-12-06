@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.bootstrap.util;
 
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
 import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
@@ -569,6 +570,14 @@ public final class ConfigTransformer {
             addTextElement(element, "yieldPeriod", remoteProcessGroupProperties.getYieldPeriod());
             addTextElement(element, "transmitting", "true");
             addTextElement(element, "transportProtocol", remoteProcessGroupProperties.getTransportProtocol());
+            addTextElement(element, "proxyHost", remoteProcessGroupProperties.getProxyHost());
+            if (remoteProcessGroupProperties.getProxyPort() != null) {
+                addTextElement(element, "proxyPort", Integer.toString(remoteProcessGroupProperties.getProxyPort()));
+            }
+            addTextElement(element, "proxyUser", remoteProcessGroupProperties.getProxyUser());
+            if (!StringUtils.isEmpty(remoteProcessGroupProperties.getProxyPassword())) {
+                addTextElement(element, "proxyPassword", remoteProcessGroupProperties.getProxyPassword());
+            }
 
             List<RemoteInputPortSchema> remoteInputPorts = remoteProcessGroupProperties.getInputPorts();
             for (RemoteInputPortSchema remoteInputPortSchema : remoteInputPorts) {

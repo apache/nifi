@@ -33,18 +33,15 @@ import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.CollectionOverlap;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
-import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMPONENT_STATUS_REPO_KEY;
@@ -56,7 +53,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PR
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
 
-public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, ConvertableSchema<ConfigSchema> {
+public class ConfigSchemaV2 extends BaseSchema implements ConvertableSchema<ConfigSchema> {
     public static final int CONFIG_VERSION = 2;
     public static final String VERSION = "MiNiFi Config Version";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_INPUT_PORT_IDS = "Found the following duplicate remote input port ids: ";
@@ -71,6 +68,7 @@ public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, Conver
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS = "Found the following duplicate funnel ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESS_GROUP_NAMES = "Found the following duplicate remote process group names: ";
     public static String TOP_LEVEL_NAME = "top level";
+
     private FlowControllerSchema flowControllerProperties;
     private CorePropertiesSchema coreProperties;
     private FlowFileRepositorySchema flowfileRepositoryProperties;
@@ -79,7 +77,6 @@ public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, Conver
     private SecurityPropertiesSchema securityProperties;
     private ProcessGroupSchemaV2 processGroupSchema;
     private ProvenanceReportingSchema provenanceReportingProperties;
-
     private ProvenanceRepositorySchema provenanceRepositorySchema;
 
     public ConfigSchemaV2(Map map) {
@@ -133,27 +130,22 @@ public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, Conver
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_OUTPUT_PORT_IDS, allOutputPortIds);
 
         // Potential connection sources and destinations need to have unique ids
-        OverlapResults<String> overlapResults = findOverlap(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds), new HashSet<>(allOutputPortIds),
-                new HashSet<>(allFunnelIds));
-        if (overlapResults.duplicates.size() > 0) {
-            addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.duplicates.stream().sorted().collect(Collectors.joining(", ")));
+        CollectionOverlap<String> overlapResults = new CollectionOverlap<>(new HashSet<>(allProcessorIds), new HashSet<>(allRemoteInputPortIds), new HashSet<>(allInputPortIds),
+                new HashSet<>(allOutputPortIds), new HashSet<>(allFunnelIds));
+        if (overlapResults.getDuplicates().size() > 0) {
+            addValidationIssue(FOUND_THE_FOLLOWING_DUPLICATE_IDS + overlapResults.getDuplicates().stream().sorted().collect(Collectors.joining(", ")));
         }
 
         allConnectionSchemas.forEach(c -> {
             String destinationId = c.getDestinationId();
-            if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.seen.contains(destinationId)) {
+            if (!StringUtil.isNullOrEmpty(destinationId) && !overlapResults.getElements().contains(destinationId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_DESTINATION_ID + destinationId);
             }
             String sourceId = c.getSourceId();
-            if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.seen.contains(sourceId)) {
+            if (!StringUtil.isNullOrEmpty(sourceId) && !overlapResults.getElements().contains(sourceId)) {
                 addValidationIssue(CONNECTION_WITH_ID + c.getId() + HAS_INVALID_SOURCE_ID + sourceId);
             }
         });
-    }
-
-    protected static <T> OverlapResults<T> findOverlap(Collection<T>... collections) {
-        Set<T> seen = new HashSet<>();
-        return new OverlapResults<>(seen, Arrays.stream(collections).flatMap(c -> c.stream()).sequential().filter(s -> !seen.add(s)).collect(Collectors.toSet()));
     }
 
     public static List<ProcessGroupSchemaV2> getAllProcessGroups(ProcessGroupSchemaV2 processGroupSchema) {
@@ -167,7 +159,13 @@ public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, Conver
         processGroupSchema.getProcessGroupSchemas().forEach(p -> addProcessGroups(p, result));
     }
 
-    public Map<String, Object> toMap() {
+    @Override
+    public int getVersion() {
+        return CONFIG_VERSION;
+    }
+
+    @Override
+    public ConfigSchema convert() {
         Map<String, Object> result = mapSupplier.get();
         result.put(VERSION, getVersion());
         putIfNotNull(result, FLOW_CONTROLLER_PROPS_KEY, flowControllerProperties);
@@ -179,64 +177,6 @@ public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, Conver
         putIfNotNull(result, SECURITY_PROPS_KEY, securityProperties);
         result.putAll(processGroupSchema.toMap());
         putIfNotNull(result, PROVENANCE_REPORTING_KEY, provenanceReportingProperties);
-        return result;
-    }
-
-    public FlowControllerSchema getFlowControllerProperties() {
-        return flowControllerProperties;
-    }
-
-    public CorePropertiesSchema getCoreProperties() {
-        return coreProperties;
-    }
-
-    public FlowFileRepositorySchema getFlowfileRepositoryProperties() {
-        return flowfileRepositoryProperties;
-    }
-
-    public ContentRepositorySchema getContentRepositoryProperties() {
-        return contentRepositoryProperties;
-    }
-
-    public SecurityPropertiesSchema getSecurityProperties() {
-        return securityProperties;
-    }
-
-    public ProcessGroupSchemaV2 getProcessGroupSchema() {
-        return processGroupSchema;
-    }
-
-    public ProvenanceReportingSchema getProvenanceReportingProperties() {
-        return provenanceReportingProperties;
-    }
-
-    public ComponentStatusRepositorySchema getComponentStatusRepositoryProperties() {
-        return componentStatusRepositoryProperties;
-    }
-
-    public ProvenanceRepositorySchema getProvenanceRepositorySchema() {
-        return provenanceRepositorySchema;
-    }
-
-    @Override
-    public int getVersion() {
-        return CONFIG_VERSION;
-    }
-
-    @Override
-    public ConfigSchema convert() {
-        Map<String, Object> map = this.toMap();
-        List<String> validationIssues = getValidationIssues();
-        return new ConfigSchema(map, validationIssues);
-    }
-
-    private static class OverlapResults<T> {
-        private final Set<T> seen;
-        private final Set<T> duplicates;
-
-        private OverlapResults(Set<T> seen, Set<T> duplicates) {
-            this.seen = seen;
-            this.duplicates = duplicates;
-        }
+        return new ConfigSchema(result, getValidationIssues());
     }
 }

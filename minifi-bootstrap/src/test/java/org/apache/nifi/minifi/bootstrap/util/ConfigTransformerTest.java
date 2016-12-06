@@ -119,6 +119,21 @@ public class ConfigTransformerTest {
         testConfigFileTransform("config-funnel-and-rpg.yml");
     }
 
+    @Test
+    public void testRpgTransform() throws Exception {
+        testConfigFileTransform("config-multiple-RPGs.yml");
+    }
+
+    @Test
+    public void testRpgProxyNoPassTransform() throws Exception {
+        testConfigFileTransform("InvokeHttpMiNiFiProxyNoPasswordTemplateTest.yml");
+    }
+
+    @Test
+    public void testRpgProxyPassTransform() throws Exception {
+        testConfigFileTransform("InvokeHttpMiNiFiProxyPasswordTemplateTest.yml");
+    }
+
     public void testConfigFileTransform(String configFile) throws Exception {
         ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(ConfigTransformerTest.class.getClassLoader().getResourceAsStream(configFile));
 
@@ -215,7 +230,12 @@ public class ConfigTransformerTest {
         assertEquals(remoteProcessingGroupSchema.getUrl(), getText(element, "url"));
         assertEquals(remoteProcessingGroupSchema.getTimeout(), getText(element, "timeout"));
         assertEquals(remoteProcessingGroupSchema.getYieldPeriod(), getText(element, "yieldPeriod"));
-
+        assertEquals(remoteProcessingGroupSchema.getTransportProtocol(), getText(element, "transportProtocol"));
+        assertEquals(remoteProcessingGroupSchema.getProxyHost(), getText(element, "proxyHost"));
+        String proxyPortText = getText(element, "proxyPort");
+        assertEquals(remoteProcessingGroupSchema.getProxyPort(), StringUtil.isNullOrEmpty(proxyPortText) ? null : Integer.parseInt(proxyPortText));
+        assertEquals(remoteProcessingGroupSchema.getProxyUser(), getText(element, "proxyUser"));
+        assertEquals(remoteProcessingGroupSchema.getProxyPassword(), getText(element, "proxyPassword"));
 
         NodeList inputPortElements = (NodeList) xPathFactory.newXPath().evaluate("inputPort", element, XPathConstants.NODESET);
         assertEquals(remoteProcessingGroupSchema.getInputPorts().size(), inputPortElements.getLength());
