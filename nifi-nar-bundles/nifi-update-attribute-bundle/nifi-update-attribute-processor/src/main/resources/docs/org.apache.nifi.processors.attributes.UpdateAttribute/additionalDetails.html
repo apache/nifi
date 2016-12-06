@@ -269,7 +269,7 @@
             All Actions will be stored as stateful attributes as well as being added to FlowFiles. Using the "Advanced Usage" it is possible to keep track of things like a maximum value of the
             flow so far. This would be done by having a condition of "${getStateValue("maxValue"):lt(${value})}" and an action of attribute:"maxValue", value:"${value}".
 
-            The "Stateful Variables Initial Value" property is used to initialize the stateful variables. Some logic rules will require a very high initial value, like using the Advanced rules to
+            The "Stateful Variables Initial Value" property is used to initialize the stateful variables and is required to be set if running statefully. Some logic rules will require a very high initial value, like using the Advanced rules to
             determine the minimum value.
 
 
