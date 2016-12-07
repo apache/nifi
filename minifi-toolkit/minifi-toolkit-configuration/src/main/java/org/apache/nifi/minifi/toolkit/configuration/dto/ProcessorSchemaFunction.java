@@ -29,8 +29,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CollectionUtil.nullToEmpty;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ANNOTATION_DATA_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 
@@ -42,7 +45,7 @@ public class ProcessorSchemaFunction implements Function<ProcessorDTO, Processor
         Map<String, Object> map = new HashMap<>();
         map.put(NAME_KEY, processorDTO.getName());
         map.put(ID_KEY, processorDTO.getId());
-        map.put(ProcessorSchema.CLASS_KEY, processorDTO.getType());
+        map.put(CLASS_KEY, processorDTO.getType());
         map.put(SCHEDULING_STRATEGY_KEY, processorDTOConfig.getSchedulingStrategy());
         map.put(SCHEDULING_PERIOD_KEY, processorDTOConfig.getSchedulingPeriod());
 
@@ -57,11 +60,11 @@ public class ProcessorSchemaFunction implements Function<ProcessorDTO, Processor
                 .filter(RelationshipDTO::isAutoTerminate)
                 .map(RelationshipDTO::getName)
                 .collect(Collectors.toList()));
-        map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(nullToEmpty(processorDTOConfig.getProperties())));
+        map.put(PROPERTIES_KEY, new HashMap<>(nullToEmpty(processorDTOConfig.getProperties())));
 
         String annotationData = processorDTOConfig.getAnnotationData();
         if(annotationData != null && !annotationData.isEmpty()) {
-            map.put(ProcessorSchema.ANNOTATION_DATA_KEY, annotationData);
+            map.put(ANNOTATION_DATA_KEY, annotationData);
         }
 
         return new ProcessorSchema(map);

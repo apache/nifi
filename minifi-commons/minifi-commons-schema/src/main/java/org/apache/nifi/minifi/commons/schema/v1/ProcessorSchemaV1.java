@@ -28,21 +28,21 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.CLASS_KEY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_MAX_CONCURRENT_TASKS;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_PENALIZATION_PERIOD;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_RUN_DURATION_NANOS;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_YIELD_DURATION;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.IT_IS_NOT_A_VALID_SCHEDULING_STRATEGY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.PENALIZATION_PERIOD_KEY;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.PROCESSOR_PROPS_KEY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.RUN_DURATION_NANOS_KEY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.isSchedulingStrategy;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROCESSORS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
@@ -73,7 +73,7 @@ public class ProcessorSchemaV1 extends BaseSchema implements ConvertableSchema<P
         yieldPeriod = getOptionalKeyAsType(map, YIELD_PERIOD_KEY, String.class, PROCESSORS_KEY, DEFAULT_YIELD_DURATION);
         runDurationNanos = getOptionalKeyAsType(map, RUN_DURATION_NANOS_KEY, Number.class, PROCESSORS_KEY, DEFAULT_RUN_DURATION_NANOS);
         autoTerminatedRelationshipsList = getOptionalKeyAsType(map, AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, List.class, PROCESSORS_KEY, DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST);
-        properties = getOptionalKeyAsType(map, PROCESSOR_PROPS_KEY, Map.class, PROCESSORS_KEY, DEFAULT_PROPERTIES);
+        properties = getOptionalKeyAsType(map, PROPERTIES_KEY, Map.class, PROCESSORS_KEY, DEFAULT_PROPERTIES);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class ProcessorSchemaV1 extends BaseSchema implements ConvertableSchema<P
         map.put(YIELD_PERIOD_KEY, yieldPeriod);
         map.put(RUN_DURATION_NANOS_KEY, runDurationNanos);
         map.put(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, autoTerminatedRelationshipsList);
-        map.put(PROCESSOR_PROPS_KEY, new HashMap<>(properties));
+        map.put(PROPERTIES_KEY, new HashMap<>(properties));
         return new ProcessorSchema(map);
     }
 

@@ -166,8 +166,8 @@ limitations under the License.
             <artifactId>nifi-framework-core-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi.minifi</groupId>
-            <artifactId>minifi-standard-services-api-nar</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -186,12 +186,6 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-persistent-provenance-repository</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-site-to-site-reporting-task</artifactId>
-            <version>1.0.0</version>
-            <scope>compile</scope>
         </dependency>
 
         <!-- Provided in NiFi so must include here too -->
@@ -213,6 +207,10 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

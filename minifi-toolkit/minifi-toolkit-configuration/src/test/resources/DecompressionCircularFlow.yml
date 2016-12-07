@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 2
+MiNiFi Config Version: 3
 Flow Controller:
   name: DecompressionCircularFlow2
   comment: ''
@@ -187,6 +187,7 @@ Processors:
     Compression Level:
     Mode: decompress
     Update Filename:
+Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []

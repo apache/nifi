@@ -32,6 +32,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ANNOTATION_DATA_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.junit.Assert.assertEquals;
 
 public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, ProcessorDTO> {
@@ -110,7 +113,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         map = new HashMap<>();
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(CommonPropertyKeys.ID_KEY, testId);
-        map.put(ProcessorSchema.CLASS_KEY, testProcessorClass);
+        map.put(CLASS_KEY, testProcessorClass);
         map.put(CommonPropertyKeys.SCHEDULING_STRATEGY_KEY, testSchedulingStrategy);
         map.put(CommonPropertyKeys.SCHEDULING_PERIOD_KEY, testSchedulingPeriod);
         map.put(CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY, testMaxConcurrentTasks);
@@ -118,8 +121,8 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         map.put(CommonPropertyKeys.YIELD_PERIOD_KEY, testYieldDuration);
         map.put(ProcessorSchema.RUN_DURATION_NANOS_KEY, testRunDurationNanos);
         map.put(ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, Arrays.asList(testRelationship));
-        map.put(ProcessorSchema.PROCESSOR_PROPS_KEY, new HashMap<>(properties));
-        map.put(ProcessorSchema.ANNOTATION_DATA_KEY, testAnnotationData);
+        map.put(PROPERTIES_KEY, new HashMap<>(properties));
+        map.put(ANNOTATION_DATA_KEY, testAnnotationData);
     }
 
     @Test
@@ -139,7 +142,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
     @Test
     public void testNoProcessorClass() {
         dto.setType(null);
-        map.remove(ProcessorSchema.CLASS_KEY);
+        map.remove(CLASS_KEY);
         assertDtoAndMapConstructorAreSame(1);
     }
 
@@ -203,14 +206,14 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
     @Test
     public void testNoProperties() {
         config.setProperties(null);
-        map.remove(ProcessorSchema.PROCESSOR_PROPS_KEY);
+        map.remove(PROPERTIES_KEY);
         assertDtoAndMapConstructorAreSame(0);
     }
 
     @Test
     public void testNoAnnotationData() {
         config.setAnnotationData(null);
-        map.remove(ProcessorSchema.ANNOTATION_DATA_KEY);
+        map.remove(ANNOTATION_DATA_KEY);
         assertDtoAndMapConstructorAreSame(0);
     }
 

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 2
+MiNiFi Config Version: 3
 Flow Controller:
   name: StressTestFramework
   comment: ''
@@ -98,6 +98,7 @@ Processors:
     Delete Attributes Expression:
     property 1: value 1
     property 2: value 2 ${nextInt()}
+Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []

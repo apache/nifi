@@ -20,6 +20,7 @@ package org.apache.nifi.minifi.bootstrap.util;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
 import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
@@ -140,6 +141,11 @@ public class ConfigTransformerTest {
         for (int i = 0; i < processorElements.getLength(); i++) {
             testProcessor((Element) processorElements.item(i), processGroupSchema.getProcessors().get(i));
         }
+        NodeList controllerServiceElements = (NodeList) xPathFactory.newXPath().evaluate("controllerService", element, XPathConstants.NODESET);
+        assertEquals(processGroupSchema.getControllerServices().size(), controllerServiceElements.getLength());
+        for (int i = 0; i < controllerServiceElements.getLength(); i++) {
+            testControllerService((Element) controllerServiceElements.item(i), processGroupSchema.getControllerServices().get(i));
+        }
 
         NodeList remoteProcessGroupElements = (NodeList) xPathFactory.newXPath().evaluate("remoteProcessGroup", element, XPathConstants.NODESET);
         assertEquals(processGroupSchema.getRemoteProcessGroups().size(), remoteProcessGroupElements.getLength());
@@ -188,8 +194,18 @@ public class ConfigTransformerTest {
         assertEquals(processorSchema.getYieldPeriod(), getText(element, "yieldPeriod"));
         assertEquals(processorSchema.getSchedulingStrategy(), getText(element, "schedulingStrategy"));
         assertEquals(processorSchema.getRunDurationNanos().toString(), getText(element, "runDurationNanos"));
+        assertEquals(processorSchema.getAnnotationData(), getText(element, "annotationData"));
 
         testProperties(element, processorSchema.getProperties());
+    }
+
+    private void testControllerService(Element element, ControllerServiceSchema controllerServiceSchema) throws XPathExpressionException {
+        assertEquals(controllerServiceSchema.getId(), getText(element, "id"));
+        assertEquals(controllerServiceSchema.getName(), getText(element, "name"));
+        assertEquals(controllerServiceSchema.getServiceClass(), getText(element, "class"));
+        assertEquals(controllerServiceSchema.getAnnotationData(), getText(element, "annotationData"));
+
+        testProperties(element, controllerServiceSchema.getProperties());
     }
 
     private void testRemoteProcessGroups(Element element, RemoteProcessGroupSchema remoteProcessingGroupSchema) throws XPathExpressionException {

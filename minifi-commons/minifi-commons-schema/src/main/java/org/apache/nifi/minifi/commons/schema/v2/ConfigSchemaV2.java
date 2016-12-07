@@ -15,8 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.commons.schema;
+package org.apache.nifi.minifi.commons.schema.v2;
 
+import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.ContentRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.CorePropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
+import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
+import org.apache.nifi.minifi.commons.schema.PortSchema;
+import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
+import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
+import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
@@ -41,8 +56,8 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PR
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
 
-public class ConfigSchema extends BaseSchema implements WritableSchema, ConvertableSchema<ConfigSchema> {
-    public static final int CONFIG_VERSION = 3;
+public class ConfigSchemaV2 extends BaseSchema implements WritableSchema, ConvertableSchema<ConfigSchema> {
+    public static final int CONFIG_VERSION = 2;
     public static final String VERSION = "MiNiFi Config Version";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_INPUT_PORT_IDS = "Found the following duplicate remote input port ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_INPUT_PORT_IDS = "Found the following duplicate input port ids: ";
@@ -52,7 +67,6 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
     public static final String HAS_INVALID_SOURCE_ID = " has invalid source id ";
     public static final String HAS_INVALID_DESTINATION_ID = " has invalid destination id ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_IDS = "Found the following duplicate processor ids: ";
-    public static final String FOUND_THE_FOLLOWING_DUPLICATE_CONTROLLER_SERVICE_IDS = "Found the following duplicate controller service ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_IDS = "Found the following duplicate connection ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS = "Found the following duplicate funnel ids: ";
     public static final String FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESS_GROUP_NAMES = "Found the following duplicate remote process group names: ";
@@ -63,16 +77,16 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
     private ContentRepositorySchema contentRepositoryProperties;
     private ComponentStatusRepositorySchema componentStatusRepositoryProperties;
     private SecurityPropertiesSchema securityProperties;
-    private ProcessGroupSchema processGroupSchema;
+    private ProcessGroupSchemaV2 processGroupSchema;
     private ProvenanceReportingSchema provenanceReportingProperties;
 
     private ProvenanceRepositorySchema provenanceRepositorySchema;
 
-    public ConfigSchema(Map map) {
+    public ConfigSchemaV2(Map map) {
         this(map, Collections.emptyList());
     }
 
-    public ConfigSchema(Map map, List<String> validationIssues) {
+    public ConfigSchemaV2(Map map, List<String> validationIssues) {
         validationIssues.stream().forEach(this::addValidationIssue);
         flowControllerProperties = getMapAsType(map, FLOW_CONTROLLER_PROPS_KEY, FlowControllerSchema.class, TOP_LEVEL_NAME, true);
 
@@ -83,7 +97,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         componentStatusRepositoryProperties = getMapAsType(map, COMPONENT_STATUS_REPO_KEY, ComponentStatusRepositorySchema.class, TOP_LEVEL_NAME, false);
         securityProperties = getMapAsType(map, SECURITY_PROPS_KEY, SecurityPropertiesSchema.class, TOP_LEVEL_NAME, false);
 
-        processGroupSchema = new ProcessGroupSchema(map, TOP_LEVEL_NAME);
+        processGroupSchema = new ProcessGroupSchemaV2(map, TOP_LEVEL_NAME);
 
         provenanceReportingProperties = getMapAsType(map, PROVENANCE_REPORTING_KEY, ProvenanceReportingSchema.class, TOP_LEVEL_NAME, false, false);
 
@@ -97,12 +111,11 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         addIssuesIfNotNull(provenanceReportingProperties);
         addIssuesIfNotNull(provenanceRepositorySchema);
 
-        List<ProcessGroupSchema> allProcessGroups = getAllProcessGroups(processGroupSchema);
+        List<ProcessGroupSchemaV2> allProcessGroups = getAllProcessGroups(processGroupSchema);
         List<ConnectionSchema> allConnectionSchemas = allProcessGroups.stream().flatMap(p -> p.getConnections().stream()).collect(Collectors.toList());
         List<RemoteProcessGroupSchema> allRemoteProcessGroups = allProcessGroups.stream().flatMap(p -> p.getRemoteProcessGroups().stream()).collect(Collectors.toList());
 
         List<String> allProcessorIds = allProcessGroups.stream().flatMap(p -> p.getProcessors().stream()).map(ProcessorSchema::getId).collect(Collectors.toList());
-        List<String> allControllerServiceIds = allProcessGroups.stream().flatMap(p -> p.getControllerServices().stream()).map(ControllerServiceSchema::getId).collect(Collectors.toList());
         List<String> allFunnelIds = allProcessGroups.stream().flatMap(p -> p.getFunnels().stream()).map(FunnelSchema::getId).collect(Collectors.toList());
         List<String> allConnectionIds = allConnectionSchemas.stream().map(ConnectionSchema::getId).collect(Collectors.toList());
         List<String> allRemoteProcessGroupNames = allRemoteProcessGroups.stream().map(RemoteProcessGroupSchema::getName).collect(Collectors.toList());
@@ -112,7 +125,6 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         List<String> allOutputPortIds = allProcessGroups.stream().flatMap(p -> p.getOutputPortSchemas().stream()).map(PortSchema::getId).collect(Collectors.toList());
 
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_PROCESSOR_IDS, allProcessorIds);
-        checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_CONTROLLER_SERVICE_IDS, allControllerServiceIds);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_FUNNEL_IDS, allFunnelIds);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_CONNECTION_IDS, allConnectionIds);
         checkForDuplicates(this::addValidationIssue, FOUND_THE_FOLLOWING_DUPLICATE_REMOTE_PROCESS_GROUP_NAMES, allRemoteProcessGroupNames);
@@ -144,13 +156,13 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return new OverlapResults<>(seen, Arrays.stream(collections).flatMap(c -> c.stream()).sequential().filter(s -> !seen.add(s)).collect(Collectors.toSet()));
     }
 
-    public static List<ProcessGroupSchema> getAllProcessGroups(ProcessGroupSchema processGroupSchema) {
-        List<ProcessGroupSchema> result = new ArrayList<>();
+    public static List<ProcessGroupSchemaV2> getAllProcessGroups(ProcessGroupSchemaV2 processGroupSchema) {
+        List<ProcessGroupSchemaV2> result = new ArrayList<>();
         addProcessGroups(processGroupSchema, result);
         return result;
     }
 
-    private static void addProcessGroups(ProcessGroupSchema processGroupSchema, List<ProcessGroupSchema> result) {
+    private static void addProcessGroups(ProcessGroupSchemaV2 processGroupSchema, List<ProcessGroupSchemaV2> result) {
         result.add(processGroupSchema);
         processGroupSchema.getProcessGroupSchemas().forEach(p -> addProcessGroups(p, result));
     }
@@ -190,7 +202,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         return securityProperties;
     }
 
-    public ProcessGroupSchema getProcessGroupSchema() {
+    public ProcessGroupSchemaV2 getProcessGroupSchema() {
         return processGroupSchema;
     }
 
@@ -213,7 +225,9 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
 
     @Override
     public ConfigSchema convert() {
-        return this;
+        Map<String, Object> map = this.toMap();
+        List<String> validationIssues = getValidationIssues();
+        return new ConfigSchema(map, validationIssues);
     }
 
     private static class OverlapResults<T> {

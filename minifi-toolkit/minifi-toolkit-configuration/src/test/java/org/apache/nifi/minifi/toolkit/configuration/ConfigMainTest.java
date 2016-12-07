@@ -208,6 +208,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTripNestedControllerServices() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("NestedControllerServices");
+    }
+
+    @Test
     public void testSuccessTransformProcessGroup() throws IOException, JAXBException, SchemaLoaderException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithProcessGroup.xml")).toMap();
     }

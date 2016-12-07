@@ -17,6 +17,9 @@
 
 package org.apache.nifi.minifi.commons.schema.common;
 
+import java.util.Collections;
+import java.util.Map;
+
 public class CommonPropertyKeys {
     public static final String CORE_PROPS_KEY = "Core Properties";
     public static final String FLOWFILE_REPO_KEY = "FlowFile Repository";
@@ -32,6 +35,7 @@ public class CommonPropertyKeys {
     public static final String REMOTE_PROCESS_GROUPS_KEY = "Remote Process Groups";
     public static final String INPUT_PORTS_KEY = "Input Ports";
     public static final String OUTPUT_PORTS_KEY = "Output Ports";
+    public static final String CONTROLLER_SERVICES_KEY = "Controller Services";
     public static final String FUNNELS_KEY = "Funnels";
     public static final String PROVENANCE_REPO_KEY = "Provenance Repository";
 
@@ -46,7 +50,12 @@ public class CommonPropertyKeys {
     public static final String SCHEDULING_STRATEGY_KEY = "scheduling strategy";
     public static final String SCHEDULING_PERIOD_KEY = "scheduling period";
     public static final String USE_COMPRESSION_KEY = "use compression";
+    public static final String PROPERTIES_KEY = "Properties";
+    public static final String CLASS_KEY = "class";
+    public static final String TYPE_KEY = "type";
+    public static final String ANNOTATION_DATA_KEY = "annotation data";
 
+    public static final Map<String, Object> DEFAULT_PROPERTIES = Collections.emptyMap();
     private CommonPropertyKeys() {
     }
 }

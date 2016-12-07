@@ -17,8 +17,15 @@
  *
  */
 
-package org.apache.nifi.minifi.commons.schema;
+package org.apache.nifi.minifi.commons.schema.v2;
 
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.FunnelSchema;
+import org.apache.nifi.minifi.commons.schema.PortSchema;
+import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
@@ -32,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONNECTIONS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CONTROLLER_SERVICES_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FUNNELS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
@@ -40,32 +48,30 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.OU
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROCESSORS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.REMOTE_PROCESS_GROUPS_KEY;
 
-public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements WritableSchema, ConvertableSchema<ProcessGroupSchema> {
+public class ProcessGroupSchemaV2 extends BaseSchemaWithIdAndName implements WritableSchema, ConvertableSchema<ProcessGroupSchema> {
 
     public static final String PROCESS_GROUPS_KEY = "Process Groups";
     public static final String ID_DEFAULT = "Root-Group";
 
     private String comment;
     private List<ProcessorSchema> processors;
-    private List<ControllerServiceSchema> controllerServiceSchemas;
     private List<FunnelSchema> funnels;
     private List<ConnectionSchema> connections;
     private List<RemoteProcessGroupSchema> remoteProcessGroups;
-    private List<ProcessGroupSchema> processGroupSchemas;
+    private List<ProcessGroupSchemaV2> processGroupSchemas;
     private List<PortSchema> inputPortSchemas;
     private List<PortSchema> outputPortSchemas;
 
-    public ProcessGroupSchema(Map map, String wrapperName) {
+    public ProcessGroupSchemaV2(Map map, String wrapperName) {
         super(map, wrapperName);
 
         processors = getOptionalKeyAsList(map, PROCESSORS_KEY, ProcessorSchema::new, wrapperName);
-        controllerServiceSchemas = getOptionalKeyAsList(map, CONTROLLER_SERVICES_KEY, ControllerServiceSchema::new, wrapperName);
         funnels = getOptionalKeyAsList(map, FUNNELS_KEY, FunnelSchema::new, wrapperName);
         remoteProcessGroups = getOptionalKeyAsList(map, REMOTE_PROCESS_GROUPS_KEY, RemoteProcessGroupSchema::new, wrapperName);
         connections = getOptionalKeyAsList(map, CONNECTIONS_KEY, ConnectionSchema::new, wrapperName);
         inputPortSchemas = getOptionalKeyAsList(map, INPUT_PORTS_KEY, m -> new PortSchema(m, "InputPort(id: {id}, name: {name})"), wrapperName);
         outputPortSchemas = getOptionalKeyAsList(map, OUTPUT_PORTS_KEY, m -> new PortSchema(m, "OutputPort(id: {id}, name: {name})"), wrapperName);
-        processGroupSchemas = getOptionalKeyAsList(map, PROCESS_GROUPS_KEY, m -> new ProcessGroupSchema(m, "ProcessGroup(id: {id}, name: {name})"), wrapperName);
+        processGroupSchemas = getOptionalKeyAsList(map, PROCESS_GROUPS_KEY, m -> new ProcessGroupSchemaV2(m, "ProcessGroup(id: {id}, name: {name})"), wrapperName);
 
         if (ConfigSchema.TOP_LEVEL_NAME.equals(wrapperName)) {
             if (inputPortSchemas.size() > 0) {
@@ -86,7 +92,6 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         connections.stream().filter(c -> funnelIds.contains(c.getSourceId())).forEachOrdered(c -> c.setNeedsSourceRelationships(false));
 
         addIssuesIfNotNull(processors);
-        addIssuesIfNotNull(controllerServiceSchemas);
         addIssuesIfNotNull(remoteProcessGroups);
         addIssuesIfNotNull(processGroupSchemas);
         addIssuesIfNotNull(funnels);
@@ -101,7 +106,6 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         }
         StringUtil.doIfNotNullOrEmpty(getName(), name -> result.put(NAME_KEY, name));
         putListIfNotNull(result, PROCESSORS_KEY, processors);
-        putListIfNotNull(result, CONTROLLER_SERVICES_KEY, controllerServiceSchemas);
         putListIfNotNull(result, PROCESS_GROUPS_KEY, processGroupSchemas);
         putListIfNotNull(result, INPUT_PORTS_KEY, inputPortSchemas);
         putListIfNotNull(result, OUTPUT_PORTS_KEY, outputPortSchemas);
@@ -113,10 +117,6 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
     public List<ProcessorSchema> getProcessors() {
         return processors;
-    }
-
-    public List<ControllerServiceSchema> getControllerServices() {
-        return controllerServiceSchemas;
     }
 
     public List<FunnelSchema> getFunnels() {
@@ -131,7 +131,7 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         return remoteProcessGroups;
     }
 
-    public List<ProcessGroupSchema> getProcessGroupSchemas() {
+    public List<ProcessGroupSchemaV2> getProcessGroupSchemas() {
         return processGroupSchemas;
     }
 
@@ -158,7 +158,9 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
 
     @Override
     public ProcessGroupSchema convert() {
-        return this;
+        Map<String, Object> map = this.toMap();
+        map.put(CONTROLLER_SERVICES_KEY, DEFAULT_PROPERTIES);
+        return new ProcessGroupSchema(map, getWrapperName());
     }
 
     @Override

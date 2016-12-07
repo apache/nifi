@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
 import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
@@ -45,6 +46,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.OU
 public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema> {
     private final FlowControllerSchemaFunction flowControllerSchemaFunction;
     private final ProcessorSchemaFunction processorSchemaFunction;
+    private final ControllerServiceSchemaFunction controllerServiceSchemaFunction;
     private final ConnectionSchemaFunction connectionSchemaFunction;
     private final FunnelSchemaFunction funnelSchemaFunction;
     private final RemoteProcessGroupSchemaFunction remoteProcessGroupSchemaFunction;
@@ -53,12 +55,12 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
 
     public ConfigSchemaFunction() {
         this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new FunnelSchemaFunction(), new RemoteProcessGroupSchemaFunction(
-                new RemoteInputPortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY));
+                new RemoteInputPortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY), new ControllerServiceSchemaFunction());
     }
 
     public ConfigSchemaFunction(FlowControllerSchemaFunction flowControllerSchemaFunction, ProcessorSchemaFunction processorSchemaFunction, ConnectionSchemaFunction connectionSchemaFunction,
                                 FunnelSchemaFunction funnelSchemaFunction, RemoteProcessGroupSchemaFunction remoteProcessGroupSchemaFunction, PortSchemaFunction inputPortSchemaFunction,
-                                PortSchemaFunction outputPortSchemaFunction) {
+                                PortSchemaFunction outputPortSchemaFunction, ControllerServiceSchemaFunction controllerServiceSchemaFunction) {
         this.flowControllerSchemaFunction = flowControllerSchemaFunction;
         this.processorSchemaFunction = processorSchemaFunction;
         this.connectionSchemaFunction = connectionSchemaFunction;
@@ -66,6 +68,7 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
         this.remoteProcessGroupSchemaFunction = remoteProcessGroupSchemaFunction;
         this.inputPortSchemaFunction = inputPortSchemaFunction;
         this.outputPortSchemaFunction = outputPortSchemaFunction;
+        this.controllerServiceSchemaFunction = controllerServiceSchemaFunction;
     }
 
     @Override
@@ -98,6 +101,12 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
                 .map(processorSchemaFunction)
                 .sorted(Comparator.comparing(ProcessorSchema::getName))
                 .map(ProcessorSchema::toMap)
+                .collect(Collectors.toList()));
+
+        map.put(CommonPropertyKeys.CONTROLLER_SERVICES_KEY, nullToEmpty(snippet.getControllerServices()).stream()
+                .map(controllerServiceSchemaFunction)
+                .sorted(Comparator.comparing(ControllerServiceSchema::getName))
+                .map(ControllerServiceSchema::toMap)
                 .collect(Collectors.toList()));
 
         map.put(CommonPropertyKeys.CONNECTIONS_KEY, nullToEmpty(snippet.getConnections()).stream()

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 2
+MiNiFi Config Version: 3
 Flow Controller:
   name: InvokeHttpMiNiFiTemplateTest2
   comment: ''
@@ -166,6 +166,7 @@ Processors:
   Properties:
     Delete Attributes Expression:
     q: nifi
+Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []

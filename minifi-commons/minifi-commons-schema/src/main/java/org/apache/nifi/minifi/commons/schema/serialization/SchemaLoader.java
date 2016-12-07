@@ -22,6 +22,7 @@ import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.v1.ConfigSchemaV1;
+import org.apache.nifi.minifi.commons.schema.v2.ConfigSchemaV2;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 
@@ -40,6 +41,7 @@ public class SchemaLoader {
         result.put(String.valueOf((Object) null), ConfigSchemaV1::new);
         result.put("", ConfigSchemaV1::new);
         result.put(Integer.toString(ConfigSchemaV1.CONFIG_VERSION), ConfigSchemaV1::new);
+        result.put(Integer.toString(ConfigSchemaV2.CONFIG_VERSION), ConfigSchemaV2::new);
         result.put(Integer.toString(ConfigSchema.CONFIG_VERSION), ConfigSchema::new);
         return result;
     }

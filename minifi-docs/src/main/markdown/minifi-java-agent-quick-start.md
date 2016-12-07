@@ -102,7 +102,7 @@ You can use the MiNiFi Toolkit, located in your MiNiFi installation directory, a
 1. Launch NiFi
 2. Create a dataflow.
 3. Convert your dataflow into a template.
-4. Download your template as an .xml file. For more information on working with templates, see the [Templates](http://docs.hortonworks.com/HDPDocuments/HDF2/HDF-2.0.0/bk_user-guide/content/templates.html) section in the *User Guide*.
+4. Download your template as an .xml file. For more information on working with templates, see the [Templates](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#templates) section in the *User Guide*.
 5. From the MiNiFi Toolkit, run the following command to turn your .xml file into a .yml file:
 ```
 config.sh transform input_file output_file
@@ -180,13 +180,28 @@ MiNiFi is able to use following processors out of the box:
 * UnpackContent
 * ValidateXml
 
+MiNiFi is able to use the StandardSSLContextService out of the box.
+
 If you want to create a dataflow with a processor not shipped with MiNiFi, you can do so.
 1. Set up your dataflow as described above.
 2. Copy the desired NAR file into the MiNiFi lib directory.
 3. Restart your MiNiFi instance.
 
-**Note:** Currently only the StandardSSLContextService is supported as a controller service. It is created automatically if the the "Security Properties" section is set and can be referenced in the processor configuration using the ID "SSL-Context-Service".
-
+**Note:** The following processors are also a part of the default distribution but require adding a NAR for a Controller Service not packaged by default. The processors are grouped by the NAR that is required.
+* nifi-dbcp-service-nar
+  * ConvertJSONToSQL
+  * PutSQL
+  * GenerateTableFetch
+  * ListDatabaseTable
+  * QueryDatabaseTable
+  * ExecuteSQL
+* nifi-distributed-cache-services-nar
+  * DetectDuplicate
+  * FetchDistributedMapCache
+  * PutDistributedMapCache
+* nifi-http-context-map-nar
+  * HandleHttpRequest
+  * HandleHttpResponse
 
 
 # Securing your Dataflow

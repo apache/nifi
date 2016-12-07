@@ -37,7 +37,7 @@ After a new configuration has been pulled/received the Ingestors use a Different
 
 After a new config is determined to be new, the MiNiFi agent will attempt to restart. The bootstrap first saves the old config into a swap file. The bootstrap monitors the agent as it restarts and if it fails it will roll back to the old config. If it succeeds then the swap file will be deleted and the agent will start processing using the new config.
 
-Note: Data left in connections when the agent attempts to restart will either be mapped to a connection with the same ID in the new config, or orphaned and deleted.
+**Note:** Data left in connections when the agent attempts to restart will either be mapped to a connection with the same ID in the new config, or orphaned and deleted.
 
 The configuration for Warm-Redeploy is done in the bootstrap.conf and primarily revolve around the Config Change Ingestors. The configuration in the bootstrap.conf is done using the "nifi.minifi.notifier.ingestors" key followed by the full path name of the desired Ingestor implementation to run. Use a comma separated list  to define more than one Ingestor implementation. For example:
 
@@ -69,7 +69,7 @@ class name: org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeI
 
 This Config Change Ingestor sets up a light-weight Jetty HTTP(S) REST service in order to listen to HTTP(S) requests. A potential new configuration is sent via a POST request with the BODY being the potential new config.
 
-NOTE: The encoding is expected to be Unicode and the exact version specified by the BOM mark ('UTF-8','UTF-16BE' or 'UTF-16LE'). If there is no BOM mark, then UTF-8 is used.
+**Note:** The encoding is expected to be Unicode and the exact version specified by the BOM mark ('UTF-8','UTF-16BE' or 'UTF-16LE'). If there is no BOM mark, then UTF-8 is used.
 
 Here is an example post request using 'curl' hitting the local machine on pot 8338 and it is executed with the config file "config.yml" in the directory the command is run from:
 
@@ -330,7 +330,7 @@ Alternatively, the MiNiFi Toolkit Converter can aid in creating a config.yml fro
 tool can be downloaded from http://nifi.apache.org/minifi/download.html under the `MiNiFi Toolkit Binaries` section.  Information on the toolkit's usage is
 available at https://nifi.apache.org/minifi/minifi-toolkit.html.
 
-NOTE: Note that values for periods of time and data sizes must include the unit of measure,
+**Note:** Values for periods of time and data sizes must include the unit of measure,
 for example "10 sec" or "10 MB", not simply "10".
 
 ## Versioning
@@ -344,8 +344,11 @@ parses and upconverts to the current version without issue.
 
 1. Use ids instead of names for processors, connections.
 2. Allow multiple source relationships for connections.
-3. Support process groups, input ports, output ports
-4. Change Id Key for RPGs from "Remote Processing Groups" to the proper "Remote Process Groups" (not "ing")
+3. Added support for process groups, and internal input ports an output ports.
+4. Change Id Key for RPGs from "Remote Processing Groups" to the proper "Remote Process Groups" (not "ing").
+
+### Version 2 -> Version 3 changes
+1. Added support for Controller Services.
 
 ## Flow Controller
 
@@ -418,7 +421,7 @@ always sync                       | If set to _true_, any change to the reposito
 --------------------------------  | -------------
 provenance rollover time          | The amount of time to wait before rolling over the latest data provenance information so that it is available to be accessed by components. The default value is 1 min.
 
-## *Component Status Repository*
+## Component Status Repository
 
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These
 properties govern how that tool works.
@@ -434,7 +437,7 @@ of 576.
 buffer size       | Specifies the buffer size for the Component Status Repository. The default value is 1440.
 snapshot frequency | This value indicates how often to present a snapshot of the components' status history. The default value is 1 min.
 
-## *Security Properties*
+## Security Properties
 
 These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the
 Security Configuration section of this Administrator's Guide.
@@ -450,6 +453,8 @@ truststore type     | The truststore type. It is blank by default.
 truststore password | The truststore password. It is blank by default.
 ssl protocol        | The protocol to use when communicating via https. Necessary to transfer provenance securely.
 
+**Note:** A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" if "ssl protocol" is configured.
+
 #### Sensitive Properties Subsection
 
 Some properties for processors are marked as _sensitive_ and should be encrypted. These following properties will be used to encrypt the properties while in use by MiNiFi. This will currently *not* be used to encrypt properties in the config file.
@@ -462,7 +467,7 @@ provider   | The sensitive property provider. The default value is BC.
 
 ## Processors
 
-The current implementation of MiNiFi supports multiple processors. the "Processors" subsection is a list of these processors. Each processor must specify these properties. They are the basic configuration general to all processor implementations. Make sure that all relationships for a processor are accounted for in the auto-terminated relationship list or are used in a connection.
+The current implementation of MiNiFi supports multiple processors. The "Processors" subsection is a list of these processors. Each processor must specify these properties. They are the basic configuration general to all processor implementations. Make sure that all relationships for a processor are accounted for in the auto-terminated relationship list or are used in a connection.
 
 *Property*                          | *Description*
 ----------------------------------- | -------------
@@ -487,6 +492,35 @@ Within the Processor Configuration section, there is the `Properties` subsection
         Rolling Filename Pattern: nifi-app*
         State File: ./conf/state/tail-file
         Initial Start Position: Beginning of File
+
+
+### Controller Services
+
+The current implementation of MiNiFi supports Controller Services. The "Controller Services" subsection is a list of these services. Each Controller Service must specify the following properties. They are the basic configuration general to all Controller Service implementations.
+
+*Property* | *Description*
+------ | -----------
+name                                | The name of what this Controller Service will do. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+id                                  | The id of this Controller Service. This must be a valid UUID. To reference this Controller Service in the properties of another component, this ID is used.
+type                                | The fully qualified java class name of the processor to run. For example for the standard StandardSSLContextService processor would be: org.apache.nifi.ssl.StandardSSLContextService
+
+**Note:** If the "Security Properties" is configured with an "ssl protocol" then a StandardSSLContextService will be made automatically with the ID "SSL-Context-Service".
+
+
+#### Controller Service Properties
+
+Within the Controller Service Configuration section, there is the `Properties` subsection. The keys and values in this section are the property names and values for the service. For example the StandardSSLContextService would have a section like this:
+
+    Properties:
+      Keystore Filename: /tmp/localhost/keystore.jks
+      Keystore Password: keystorePassword
+      Keystore Type: JKS
+      SSL Protocol: TLS
+      Truststore Filename: /tmp/truststore.jks
+      Truststore Password: truststorePassword
+      Truststore Type: JKS
+      key-password: keyPassword
+
 
 ## Process Groups
 
@@ -588,7 +622,7 @@ use compression      | Indicates whether or not to compress the events when bein
 timeout              | How long MiNiFi should wait before timing out the connection.
 batch size           | Specifies how many records to send in a single batch, at most. This should be significantly above the expected amount of records generated between scheduling. If it is not, then there is the potential for the Provenance reporting to lag behind event generation and never catch up.
 
-
+**Note:** In order to send via HTTPS, the "Security Properties" must be fully configured. A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" and used by the Provenance Reporting.
 
 # Example Config File
 

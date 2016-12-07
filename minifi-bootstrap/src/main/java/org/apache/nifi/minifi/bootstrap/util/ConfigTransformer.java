@@ -25,6 +25,7 @@ import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.ContentRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.ControllerServiceSchema;
 import org.apache.nifi.minifi.commons.schema.CorePropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
 import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
@@ -309,7 +310,11 @@ public final class ConfigTransformer {
 
             SecurityPropertiesSchema securityProperties = configSchema.getSecurityProperties();
             if (securityProperties.useSSL()) {
-                final Element controllerServicesNode = doc.createElement("controllerServices");
+                Element controllerServicesNode = doc.getElementById("controllerServices");
+                if(controllerServicesNode == null) {
+                    controllerServicesNode = doc.createElement("controllerServices");
+                }
+
                 rootNode.appendChild(controllerServicesNode);
                 addSSLControllerService(controllerServicesNode, securityProperties);
             }
@@ -356,6 +361,31 @@ public final class ConfigTransformer {
         }
     }
 
+    protected static void addControllerService(final Element element, ControllerServiceSchema controllerServiceSchema) throws ConfigurationChangeException {
+        try {
+            final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
+            addTextElement(serviceElement, "id", controllerServiceSchema.getId());
+            addTextElement(serviceElement, "name", controllerServiceSchema.getName());
+            addTextElement(serviceElement, "comment", "");
+            addTextElement(serviceElement, "class", controllerServiceSchema.getServiceClass());
+
+            addTextElement(serviceElement, "enabled", "true");
+
+            Map<String, Object> attributes = controllerServiceSchema.getProperties();
+
+            addConfiguration(serviceElement, attributes);
+
+            String annotationData = controllerServiceSchema.getAnnotationData();
+            if(annotationData != null && !annotationData.isEmpty()) {
+                addTextElement(element, "annotationData", annotationData);
+            }
+
+            element.appendChild(serviceElement);
+        } catch (Exception e) {
+            throw new ConfigurationChangeException("Failed to parse the config YAML while trying to create an SSL Controller Service", e);
+        }
+    }
+
     protected static void addProcessGroup(Document doc, Element element, ProcessGroupSchema processGroupSchema, ParentGroupIdResolver parentGroupIdResolver) throws ConfigurationChangeException {
         try {
             String processGroupId = processGroupSchema.getId();
@@ -392,6 +422,10 @@ public final class ConfigTransformer {
 
             for (ConnectionSchema connectionConfig : processGroupSchema.getConnections()) {
                 addConnection(element, connectionConfig, parentGroupIdResolver);
+            }
+
+            for (ControllerServiceSchema controllerServiceSchema : processGroupSchema.getControllerServices()) {
+                addControllerService(element, controllerServiceSchema);
             }
         } catch (ConfigurationChangeException e) {
             throw e;

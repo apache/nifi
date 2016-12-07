@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 2
+MiNiFi Config Version: 3
 Flow Controller:
   name: CsvToJsonWorking
   comment: ''
@@ -148,6 +148,7 @@ Processors:
   - success
   Properties:
     Delete Attributes Expression:
+Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []

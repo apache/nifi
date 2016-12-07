@@ -30,18 +30,18 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.CLASS_KEY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_MAX_CONCURRENT_TASKS;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_PENALIZATION_PERIOD;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_RUN_DURATION_NANOS;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.DEFAULT_YIELD_DURATION;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.PENALIZATION_PERIOD_KEY;
-import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.PROCESSOR_PROPS_KEY;
 import static org.apache.nifi.minifi.commons.schema.ProcessorSchema.RUN_DURATION_NANOS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
@@ -109,7 +109,7 @@ public class ProcessorSchemaV1Test {
         map.put(YIELD_PERIOD_KEY, testYieldPeriod);
         map.put(RUN_DURATION_NANOS_KEY, testRunDurationNanos);
         map.put(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, testAutoTerminatedRelationships);
-        map.put(PROCESSOR_PROPS_KEY, testProperties);
+        map.put(PROPERTIES_KEY, testProperties);
         return map;
     }
 
@@ -235,7 +235,7 @@ public class ProcessorSchemaV1Test {
     @Test
     public void testNoProperties() {
         Map<String, Object> map = createMap();
-        map.remove(PROCESSOR_PROPS_KEY);
+        map.remove(PROPERTIES_KEY);
         assertEquals(DEFAULT_PROPERTIES, createSchema(map, 0).convert().getProperties());
     }
 }

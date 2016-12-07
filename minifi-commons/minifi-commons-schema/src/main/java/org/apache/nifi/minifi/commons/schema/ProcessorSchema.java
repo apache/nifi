@@ -25,25 +25,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ANNOTATION_DATA_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.DEFAULT_PROPERTIES;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
 public class ProcessorSchema extends BaseSchemaWithIdAndName {
-    public static final String CLASS_KEY = "class";
     public static final String PENALIZATION_PERIOD_KEY = "penalization period";
     public static final String RUN_DURATION_NANOS_KEY = "run duration nanos";
     public static final String AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY = "auto-terminated relationships list";
-    public static final String PROCESSOR_PROPS_KEY = "Properties";
-    public static final String ANNOTATION_DATA_KEY = "annotation data";
 
     public static final int DEFAULT_MAX_CONCURRENT_TASKS = 1;
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
     public static final String DEFAULT_YIELD_DURATION = "1 sec";
     public static final long DEFAULT_RUN_DURATION_NANOS = 0;
     public static final List<String> DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST = Collections.emptyList();
-    public static final Map<String, Object> DEFAULT_PROPERTIES = Collections.emptyMap();
     public static final String IT_IS_NOT_A_VALID_SCHEDULING_STRATEGY = "it is not a valid scheduling strategy";
 
     private String processorClass;
@@ -72,7 +72,7 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         yieldPeriod = getOptionalKeyAsType(map, YIELD_PERIOD_KEY, String.class, wrapperName, DEFAULT_YIELD_DURATION);
         runDurationNanos = getOptionalKeyAsType(map, RUN_DURATION_NANOS_KEY, Number.class, wrapperName, DEFAULT_RUN_DURATION_NANOS);
         autoTerminatedRelationshipsList = getOptionalKeyAsType(map, AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, List.class, wrapperName, DEFAULT_AUTO_TERMINATED_RELATIONSHIPS_LIST);
-        properties = getOptionalKeyAsType(map, PROCESSOR_PROPS_KEY, Map.class, wrapperName, DEFAULT_PROPERTIES);
+        properties = getOptionalKeyAsType(map, PROPERTIES_KEY, Map.class, wrapperName, DEFAULT_PROPERTIES);
 
         annotationData = getOptionalKeyAsType(map, ANNOTATION_DATA_KEY, String.class, wrapperName, "");
     }
@@ -97,7 +97,7 @@ public class ProcessorSchema extends BaseSchemaWithIdAndName {
         result.put(YIELD_PERIOD_KEY, yieldPeriod);
         result.put(RUN_DURATION_NANOS_KEY, runDurationNanos);
         result.put(AUTO_TERMINATED_RELATIONSHIPS_LIST_KEY, autoTerminatedRelationshipsList);
-        result.put(PROCESSOR_PROPS_KEY, new TreeMap<>(properties));
+        result.put(PROPERTIES_KEY, new TreeMap<>(properties));
 
         if(annotationData != null && !annotationData.isEmpty()) {
             result.put(ANNOTATION_DATA_KEY, annotationData);

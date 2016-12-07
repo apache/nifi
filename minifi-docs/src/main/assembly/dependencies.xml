@@ -28,6 +28,13 @@
             <filtered>true</filtered>
         </file>
         <file>
+            <source>${project.build.directory}/markdown/minifi-java-agent-quick-start.md</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>System_Admin_Guide.md</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
             <source>./LICENSE</source>
             <outputDirectory>./</outputDirectory>
             <destName>LICENSE</destName>

@@ -65,6 +65,14 @@ public class SchemaLoaderTest {
     }
 
     @Test
+    public void testMinimalConfigV3Version() throws IOException, SchemaLoaderException {
+        Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v3.yml"));
+        yamlAsMap.put(ConfigSchema.VERSION, ConfigSchema.CONFIG_VERSION);
+        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
+        validateMinimalConfigVersion1Parse(configSchema);
+    }
+
+    @Test
     public void testUnsupportedVersion() throws IOException, SchemaLoaderException {
         Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, "9999999");
@@ -72,7 +80,7 @@ public class SchemaLoaderTest {
             SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
             fail();
         } catch (SchemaLoaderException e) {
-            assertEquals("YAML configuration version 9999999 not supported.  Supported versions: 1, 2", e.getMessage());
+            assertEquals("YAML configuration version 9999999 not supported.  Supported versions: 1, 2, 3", e.getMessage());
         }
     }
 
