@@ -506,6 +506,12 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                 throw new ProtocolException(this + " Received unexpected Response Code from peer " + peer + " : " + confirmTransactionResponse + "; expected 'Confirm Transaction' Response Code");
         }
 
+        // For routing purposes, downstream consumers often need to reference Flowfile's originating system
+        for (FlowFile flowFile : transaction.getFlowFilesSent()){
+          flowFile = session.putAttribute(flowFile, "remote.host", peer.getHost());
+          flowFile = session.putAttribute(flowFile, "remote.address", peer.getHost() + ":" + peer.getPort());
+        }
+
         // Commit the session so that we have persisted the data
         session.commit();
 
