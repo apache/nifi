@@ -252,7 +252,7 @@ public class AccessResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
-            throw new AccessDeniedException("Unable to determine user details.");
+            throw new AccessDeniedException("No user authenticated in the request.");
         }
 
         final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());
@@ -297,7 +297,7 @@ public class AccessResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
-            throw new AccessDeniedException("Unable to determine user details.");
+            throw new AccessDeniedException("No user authenticated in the request.");
         }
 
         final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());

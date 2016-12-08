@@ -28,7 +28,7 @@ public class AuthorizationResult {
     }
 
     private static final AuthorizationResult APPROVED = new AuthorizationResult(Result.Approved, null);
-    private static final AuthorizationResult RESOURCE_NOT_FOUND = new AuthorizationResult(Result.ResourceNotFound, null);
+    private static final AuthorizationResult RESOURCE_NOT_FOUND = new AuthorizationResult(Result.ResourceNotFound, "Not authorized for the requested resource.");
 
     private final Result result;
     private final String explanation;
@@ -42,6 +42,10 @@ public class AuthorizationResult {
     private AuthorizationResult(Result result, String explanation) {
         if (Result.Denied.equals(result) && explanation == null) {
             throw new IllegalArgumentException("An explanation is required when the authorization request is denied.");
+        }
+
+        if (Result.ResourceNotFound.equals(result) && explanation == null) {
+            throw new IllegalArgumentException("An explanation is required when the authorization request is resource not found.");
         }
 
         this.result = result;
@@ -83,7 +87,7 @@ public class AuthorizationResult {
      * @return a new denied AuthorizationResult
      */
     public static AuthorizationResult denied() {
-        return denied("Access is denied");
+        return denied(AuthorizationRequest.DEFAULT_EXPLANATION);
     }
 
     /**

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,6 +40,11 @@ public class TestAbstractPolicyBasedAuthorizer {
         @Override
         public String getName() {
             return "resource1";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "description1";
         }
     };
 

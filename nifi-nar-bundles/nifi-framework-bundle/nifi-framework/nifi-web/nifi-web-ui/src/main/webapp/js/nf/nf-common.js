@@ -514,7 +514,7 @@ nf.Common = (function () {
                 if (xhr.status === 401) {
                     $('#message-title').text('Unauthorized');
                 } else if (xhr.status === 403) {
-                    $('#message-title').text('Access Denied');
+                    $('#message-title').text('Insufficient Permissions');
                 } else if (xhr.status === 409) {
                     $('#message-title').text('Invalid State');
                 } else {
@@ -535,10 +535,15 @@ nf.Common = (function () {
                 return;
             }
 
-            // status code 400, 403, 404, and 409 are expected response codes for common errors.
-            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
+            // status code 400, 404, and 409 are expected response codes for common errors.
+            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
                 nf.Dialog.showOkDialog({
                     headerText: 'Error',
+                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                });
+            } else if (xhr.status === 403) {
+                nf.Dialog.showOkDialog({
+                    headerText: 'Insufficient Permissions',
                     dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {

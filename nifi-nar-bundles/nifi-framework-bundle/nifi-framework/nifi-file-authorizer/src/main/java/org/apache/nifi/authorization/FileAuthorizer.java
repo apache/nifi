@@ -447,8 +447,12 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // convert any access controls on ports to the appropriate policies
         for (PortDTO portDTO : ports) {
-            final boolean isInputPort = portDTO.getType() != null && portDTO.getType().equals("inputPort");
-            final Resource resource = ResourceFactory.getDataTransferResource(isInputPort, portDTO.getId(), portDTO.getName());
+            final Resource resource;
+            if (portDTO.getType() != null && portDTO.getType().equals("inputPort")) {
+                resource = ResourceFactory.getDataTransferResource(ResourceFactory.getComponentResource(ResourceType.InputPort, portDTO.getId(), portDTO.getName()));
+            } else {
+                resource = ResourceFactory.getDataTransferResource(ResourceFactory.getComponentResource(ResourceType.OutputPort, portDTO.getId(), portDTO.getName()));
+            }
 
             if (portDTO.getUserAccessControl() != null) {
                 for (String userAccessControl : portDTO.getUserAccessControl()) {

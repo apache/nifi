@@ -963,6 +963,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     public String getName() {
                         return resourceIdentifier;
                     }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "User " + userId;
+                    }
                 },
                 () -> userDAO.deleteUser(userId),
                 false, // no user specific policies to remove
@@ -993,6 +998,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     public String getName() {
                         return resourceIdentifier;
                     }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "User Group " + userGroupId;
+                    }
                 },
                 () -> userGroupDAO.deleteUserGroup(userGroupId),
                 false, // no user group specific policies to remove
@@ -1019,6 +1029,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     @Override
                     public String getName() {
                         return accessPolicy.getResource();
+                    }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "Policy " + accessPolicyId;
                     }
                 },
                 () -> accessPolicyDAO.deleteAccessPolicy(accessPolicyId),
@@ -2514,6 +2529,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .accessAttempt(false)
                 .action(RequestAction.WRITE)
                 .userContext(userContext)
+                .explanationSupplier(() -> "Unable to retrieve port details.")
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -2679,6 +2695,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         @Override
                         public String getName() {
                             return resource;
+                        }
+
+                        @Override
+                        public String getSafeDescription() {
+                            return "Policy " + resource;
                         }
                     };
                 }
@@ -3100,7 +3121,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createStatusHistoryEntity(dto, permissions);
     }
 
-    private boolean authorizeAction(final Action action) {
+    private AuthorizationResult authorizeAction(final Action action) {
         final String sourceId = action.getSourceId();
         final Component type = action.getSourceType();
 
@@ -3149,12 +3170,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
-            return false;
+            return AuthorizationResult.denied("The component of this action is no longer in the data flow.");
         }
 
         // perform the authorization
-        final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        return Result.Approved.equals(result.getResult());
+        return authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
     }
 
     @Override
@@ -3178,7 +3198,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (history.getActions() != null) {
             final List<ActionEntity> actionEntities = new ArrayList<>();
             for (final Action action : history.getActions()) {
-                actionEntities.add(entityFactory.createActionEntity(dtoFactory.createActionDto(action), authorizeAction(action)));
+                final AuthorizationResult result = authorizeAction(action);
+                actionEntities.add(entityFactory.createActionEntity(dtoFactory.createActionDto(action), Result.Approved.equals(result.getResult())));
             }
             historyDto.setActions(actionEntities);
         }
@@ -3197,9 +3218,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException(String.format("Unable to find action with id '%s'.", actionId));
         }
 
-        final boolean authorized = authorizeAction(action);
+        final AuthorizationResult result = authorizeAction(action);
+        final boolean authorized = Result.Approved.equals(result.getResult());
         if (!authorized) {
-            throw new AccessDeniedException("Access is denied.");
+            throw new AccessDeniedException(result.getExplanation());
         }
 
         // return the action

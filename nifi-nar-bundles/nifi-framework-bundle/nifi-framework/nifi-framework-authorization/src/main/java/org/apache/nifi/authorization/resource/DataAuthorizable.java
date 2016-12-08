@@ -62,7 +62,7 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
     @Override
     public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         if (user == null) {
-            return AuthorizationResult.denied("Unknown user");
+            return AuthorizationResult.denied("Unknown user.");
         }
 
         AuthorizationResult result = null;
@@ -100,7 +100,7 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
     @Override
     public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
         if (user == null) {
-            throw new AccessDeniedException("Unknown user");
+            throw new AccessDeniedException("Unknown user.");
         }
 
         // calculate the dn chain

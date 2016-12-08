@@ -108,12 +108,12 @@ public class ProvenanceResource extends ApplicationResource {
                 .accessAttempt(true)
                 .action(RequestAction.READ)
                 .userContext(userContext)
+                .explanationSupplier(() -> "Unable to query provenance.")
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
-            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-            throw new AccessDeniedException(message);
+            throw new AccessDeniedException(result.getExplanation());
         }
     }
 
