@@ -68,8 +68,9 @@ nf.RemoteProcessGroupPorts = (function () {
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // TODO - update the revision
-                                // nf.Client.setRevision(response.revision);
+                                // Update the RemoteProcessGroup revision.
+                                // RemotePorts share revision with parent RemoteProcessGroup.
+                                remoteProcessGroupData.revision = response.revision;
 
                                 // get the response
                                 var remotePort = response.remoteProcessGroupPort;
@@ -298,8 +299,9 @@ nf.RemoteProcessGroupPorts = (function () {
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
-                        // TODO - update the revision
-                        // nf.Client.setRevision(response.revision);
+                        // Update the RemoteProcessGroup revision.
+                        // RemotePorts share revision with parent RemoteProcessGroup.
+                        remoteProcessGroupData.revision = response.revision;
 
                         // get the response
                         var remotePort = response.remoteProcessGroupPort;
