@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,6 +39,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
@@ -338,6 +341,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
+
+            final Map<String,String> attributes = new HashMap<>(3);
+            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), transaction.getCommunicant().getHost());
+            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(),
+                    transaction.getCommunicant().getHost() + ":" + transaction.getCommunicant().getPort());
+
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
             flowFile = session.importFrom(dataPacket.getData(), flowFile);
             final long receiveNanos = System.nanoTime() - start;
             flowFilesReceived.add(flowFile);
