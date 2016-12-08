@@ -109,6 +109,7 @@ div.relationship-description {
 #run-duration-slider {
     margin-top: 5px;
     border-radius: 0;
+    margin-right: 2px;
 }
 
 #run-duration-slider .ui-slider-handle {

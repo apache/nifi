@@ -53,8 +53,8 @@ nf.ConnectionDetails = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 var processor = response.component;
-                var processorName = $('<div class="label"></div>').text(processor.name);
-                var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
+                var processorName = $('<div class="label"></div>').text(processor.name).addClass('ellipsis').attr('title', processor.name);
+                var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', nf.Common.substringAfterLast(processor.type, '.'));
 
                 // populate source processor details
                 $('#read-only-connection-source-label').text('From processor');
@@ -64,8 +64,8 @@ nf.ConnectionDetails = (function () {
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
-                    var processorName = $('<div class="label"></div>').text(source.name);
-                    var processorType = $('<div></div>').text('Processor');
+                    var processorName = $('<div class="label"></div>').text(source.name).addClass('ellipsis').attr('title', source.name);
+                    var processorType = $('<div></div>').text('Processor').addClass('ellipsis').attr('title', 'Processor');
 
                     // populate source processor details
                     $('#read-only-connection-source-label').text('From processor');
@@ -90,7 +90,7 @@ nf.ConnectionDetails = (function () {
     var initializeSourceFunnel = function (groupId, groupName, source) {
         return $.Deferred(function (deferred) {
             $('#read-only-connection-source-label').text('From funnel');
-            $('#read-only-connection-source').append('funnel');
+            $('#read-only-connection-source').text('funnel').attr('title', 'funnel');
             $('#read-only-connection-source-group-name').text(groupName);
             deferred.resolve();
         }).promise();
@@ -114,7 +114,7 @@ nf.ConnectionDetails = (function () {
 
                 // populate source port details
                 $('#read-only-connection-source-label').text('From output');
-                $('#read-only-connection-source').text(source.name);
+                $('#read-only-connection-source').text(source.name).attr('title', source.name);
                 $('#read-only-connection-source-group-name').text(remoteProcessGroup.name);
 
                 deferred.resolve();
@@ -122,7 +122,7 @@ nf.ConnectionDetails = (function () {
                 if (xhr.status === 403) {
                     // populate source processor details
                     $('#read-only-connection-source-label').text('From output');
-                    $('#read-only-connection-source').append(source.name);
+                    $('#read-only-connection-source').text(source.name).attr('title', source.name);
                     $('#read-only-connection-source-group-name').text(source.groupId);
 
                     deferred.resolve();
@@ -145,7 +145,7 @@ nf.ConnectionDetails = (function () {
             if (groupId === source.groupId) {
                 // populate source port details
                 $('#read-only-connection-source-label').text('From input');
-                $('#read-only-connection-source').text(source.name);
+                $('#read-only-connection-source').text(source.name).attr('title', source.name);
                 $('#read-only-connection-source-group-name').text(groupName);
 
                 deferred.resolve();
@@ -159,7 +159,7 @@ nf.ConnectionDetails = (function () {
 
                     // populate source port details
                     $('#read-only-connection-source-label').text('From output');
-                    $('#read-only-connection-source').text(source.name);
+                    $('#read-only-connection-source').text(source.name).attr('title', source.name);
                     $('#read-only-connection-source-group-name').text(processGroup.name);
 
                     deferred.resolve();
@@ -167,7 +167,7 @@ nf.ConnectionDetails = (function () {
                     if (xhr.status === 403) {
                         // populate source processor details
                         $('#read-only-connection-source-label').text('From output');
-                        $('#read-only-connection-source').append(source.name);
+                        $('#read-only-connection-source').text(source.name).attr('title', source.name);
                         $('#read-only-connection-source-group-name').text(source.groupId);
 
                         deferred.resolve();
@@ -213,8 +213,8 @@ nf.ConnectionDetails = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 var processor = response.component;
-                var processorName = $('<div class="label"></div>').text(processor.name);
-                var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
+                var processorName = $('<div class="label"></div>').text(processor.name).addClass('ellipsis').attr('title', processor.name);
+                var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', nf.Common.substringAfterLast(processor.type, '.'));
 
                 // populate destination processor details
                 $('#read-only-connection-target-label').text('To processor');
@@ -224,8 +224,8 @@ nf.ConnectionDetails = (function () {
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
-                    var processorName = $('<div class="label"></div>').text(destination.name);
-                    var processorType = $('<div></div>').text('Processor');
+                    var processorName = $('<div class="label"></div>').text(destination.name).addClass('ellipsis').attr('title', destination.name);
+                    var processorType = $('<div></div>').text('Processor').addClass('ellipsis').attr('title', 'Processor');
 
                     // populate destination processor details
                     $('#read-only-connection-target-label').text('To processor');
@@ -250,7 +250,7 @@ nf.ConnectionDetails = (function () {
     var initializeDestinationFunnel = function (groupId, groupName, destination) {
         return $.Deferred(function (deferred) {
             $('#read-only-connection-target-label').text('To funnel');
-            $('#read-only-connection-target').append('funnel');
+            $('#read-only-connection-target').text('funnel').attr('title', 'funnel');
             $('#read-only-connection-target-group-name').text(groupName);
             deferred.resolve();
         }).promise();
@@ -274,7 +274,7 @@ nf.ConnectionDetails = (function () {
 
                 // populate source port details
                 $('#read-only-connection-target-label').text('To input');
-                $('#read-only-connection-target').text(destination.name);
+                $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                 $('#read-only-connection-target-group-name').text(remoteProcessGroup.name);
 
                 deferred.resolve();
@@ -282,7 +282,7 @@ nf.ConnectionDetails = (function () {
                 if (xhr.status === 403) {
                     // populate source port details
                     $('#read-only-connection-target-label').text('To input');
-                    $('#read-only-connection-target').append(destination.name);
+                    $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                     $('#read-only-connection-target-group-name').text(destination.groupId);
 
                     deferred.resolve();
@@ -305,7 +305,7 @@ nf.ConnectionDetails = (function () {
             if (groupId === destination.groupId) {
                 // populate destination port details
                 $('#read-only-connection-target-label').text('To output');
-                $('#read-only-connection-target').text(destination.name);
+                $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                 $('#read-only-connection-target-group-name').text(groupName);
 
                 deferred.resolve();
@@ -319,7 +319,7 @@ nf.ConnectionDetails = (function () {
 
                     // populate destination port details
                     $('#read-only-connection-target-label').text('To input');
-                    $('#read-only-connection-target').text(destination.name);
+                    $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                     $('#read-only-connection-target-group-name').text(processGroup.name);
 
                     deferred.resolve();
@@ -327,7 +327,7 @@ nf.ConnectionDetails = (function () {
                     if (xhr.status === 403) {
                         // populate source port details
                         $('#read-only-connection-target-label').text('To input');
-                        $('#read-only-connection-target').append(destination.name);
+                        $('#read-only-connection-target').text(destination.name).attr('title', destination.name);
                         $('#read-only-connection-target-group-name').text(destination.groupId);
 
                         deferred.resolve();
