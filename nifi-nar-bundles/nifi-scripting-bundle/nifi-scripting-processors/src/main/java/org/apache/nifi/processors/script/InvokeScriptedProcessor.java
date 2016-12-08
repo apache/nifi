@@ -47,6 +47,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,7 +80,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
     private volatile File kerberosServiceKeytab = null;
-    private volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+    volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
     /**
      * Returns the valid relationships for this processor as supplied by the
@@ -135,7 +136,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             }
         }
         List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        supportedPropertyDescriptors.addAll(scriptingComponentHelper.descriptors);
+        supportedPropertyDescriptors.addAll(scriptingComponentHelper.getDescriptors());
 
         final Processor instance = processor.get();
         if (instance != null) {
@@ -204,10 +205,10 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         }
 
         if (scriptNeedsReload.get() || processor.get() == null) {
-            if (ScriptingComponentHelper.isFile(scriptingComponentHelper.scriptPath)) {
-                reloadScriptFile(scriptingComponentHelper.scriptPath);
+            if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
+                reloadScriptFile(scriptingComponentHelper.getScriptPath());
             } else {
-                reloadScriptBody(scriptingComponentHelper.scriptBody);
+                reloadScriptBody(scriptingComponentHelper.getScriptBody());
             }
             scriptNeedsReload.set(false);
         }
@@ -226,13 +227,13 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         final ComponentLog logger = getLogger();
         final Processor instance = processor.get();
 
-        if (ScriptingComponentHelper.SCRIPT_FILE.equals(descriptor)
-                || ScriptingComponentHelper.SCRIPT_BODY.equals(descriptor)
-                || ScriptingComponentHelper.MODULES.equals(descriptor)
-                || ScriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+        if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
+                || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
+                || ScriptingComponentUtils.MODULES.equals(descriptor)
+                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
             // Need to reset scriptEngine if the value has changed
-            if (ScriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+            if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
                 scriptEngine = null;
             }
         } else if (instance != null) {
@@ -298,7 +299,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                     .subject("ScriptValidation")
                     .valid(false)
                     .explanation("Unable to load script due to " + e)
-                    .input(scriptingComponentHelper.scriptPath)
+                    .input(scriptingComponentHelper.getScriptPath())
                     .build());
         }
 
@@ -327,9 +328,9 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 final Invocable invocable = (Invocable) scriptEngine;
 
                 // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.scriptEngineName.toLowerCase());
+                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.modules);
+                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
                 } else {
                     // evaluate the script
                     scriptEngine.eval(scriptBody);
@@ -410,7 +411,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                     .subject("ScriptValidation")
                     .valid(false)
                     .explanation("Unable to load script due to " + ex.getLocalizedMessage())
-                    .input(scriptingComponentHelper.scriptPath)
+                    .input(scriptingComponentHelper.getScriptPath())
                     .build());
         }
 
@@ -440,14 +441,14 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             return commonValidationResults;
         }
 
-        scriptingComponentHelper.scriptEngineName = context.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE).getValue();
-        scriptingComponentHelper.scriptPath = context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptingComponentHelper.scriptBody = context.getProperty(ScriptingComponentHelper.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentHelper.MODULES).getValue();
+        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
+        scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
+        scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            scriptingComponentHelper.modules = modulePath.split(",");
+            scriptingComponentHelper.setModules(modulePath.split(","));
         } else {
-            scriptingComponentHelper.modules = new String[0];
+            scriptingComponentHelper.setModules(new String[0]);
         }
         setup();
 
@@ -475,7 +476,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                         .subject("Validation")
                         .valid(false)
                         .explanation("An error occurred calling validate in the configured script Processor.")
-                        .input(context.getProperty(scriptingComponentHelper.SCRIPT_FILE).getValue())
+                        .input(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).getValue())
                         .build());
                 return results;
             }
@@ -528,7 +529,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 instance.onTrigger(context, sessionFactory);
             } catch (final ProcessException e) {
                 final String message = String.format("An error occurred executing the configured Processor [%s]: %s",
-                        context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).getValue(), e);
+                        context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).getValue(), e);
                 log.error(message);
                 throw e;
             }

@@ -21,7 +21,9 @@ import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
+import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.processors.script.ScriptingComponentHelper
+import org.apache.nifi.processors.script.ScriptingComponentUtils
 import org.apache.nifi.provenance.ProvenanceEventBuilder
 import org.apache.nifi.provenance.ProvenanceEventRecord
 import org.apache.nifi.provenance.ProvenanceEventRepository
@@ -56,10 +58,11 @@ import static org.mockito.Mockito.when
  * Unit tests for ScriptedReportingTask.
  */
 @RunWith(JUnit4.class)
-public class ScriptedReportingTaskGroovyTest {
+class ScriptedReportingTaskGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ScriptedReportingTaskGroovyTest)
     def task
     def runner
+    def scriptingComponent
 
 
     @BeforeClass
@@ -74,6 +77,7 @@ public class ScriptedReportingTaskGroovyTest {
     void setUp() {
         task = new MockScriptedReportingTask()
         runner = TestRunners
+        scriptingComponent = (AccessibleScriptingComponentHelper) task
     }
 
     @Test
@@ -100,13 +104,13 @@ public class ScriptedReportingTaskGroovyTest {
 
         // Mock the ConfigurationContext for setup(...)
         def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE))
+        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_FILE))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_provenance_events.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_BODY))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentHelper.MODULES))
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
                 .thenReturn(new MockPropertyValue(null))
 
         // Set up ReportingContext
@@ -159,13 +163,13 @@ public class ScriptedReportingTaskGroovyTest {
 
         // Mock the ConfigurationContext for setup(...)
         def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE))
+        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
                 .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_FILE))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
                 .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_vm_stats.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentHelper.SCRIPT_BODY))
+        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
                 .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentHelper.MODULES))
+        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
                 .thenReturn(new MockPropertyValue(null))
 
         // Set up ReportingContext
@@ -193,13 +197,18 @@ public class ScriptedReportingTaskGroovyTest {
 
     }
 
-    class MockScriptedReportingTask extends ScriptedReportingTask {
+    class MockScriptedReportingTask extends ScriptedReportingTask implements AccessibleScriptingComponentHelper {
         def getScriptEngine() {
             return scriptingComponentHelper.engineQ.poll()
         }
 
         def offerScriptEngine(engine) {
-            this.scriptingComponentHelper.engineQ.offer(engine)
+            scriptingComponentHelper.engineQ.offer(engine)
+        }
+
+        @Override
+        ScriptingComponentHelper getScriptingComponentHelper() {
+            return this.@scriptingComponentHelper
         }
     }
 

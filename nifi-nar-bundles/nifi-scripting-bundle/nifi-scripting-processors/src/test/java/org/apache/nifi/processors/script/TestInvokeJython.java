@@ -52,8 +52,8 @@ public class TestInvokeJython extends BaseScriptTest {
     public void testAlwaysInvalid() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
 
         final Collection<ValidationResult> results = ((MockProcessContext) runner.getProcessContext()).validate();
         Assert.assertEquals(1L, results.size());
@@ -72,8 +72,8 @@ public class TestInvokeJython extends BaseScriptTest {
     public void testUpdateAttributeFromProcessorPropertyAndFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jython/test_update_attribute.py");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_update_attribute.py");
         runner.setProperty("for-attributes", "value-1");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -102,9 +102,9 @@ public class TestInvokeJython extends BaseScriptTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jython/test_reader.py");
-        runner.setProperty(ScriptingComponentHelper.MODULES, "target/test/resources/jython");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_reader.py");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -124,9 +124,9 @@ public class TestInvokeJython extends BaseScriptTest {
     public void testCompressor() throws Exception {
         final TestRunner one = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         one.setValidateExpressionUsage(false);
-        one.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        one.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jython/test_compress.py");
-        one.setProperty(ScriptingComponentHelper.MODULES, "target/test/resources/jython");
+        one.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        one.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_compress.py");
+        one.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython");
         one.setProperty("mode", "compress");
 
         one.assertValid();
@@ -138,9 +138,9 @@ public class TestInvokeJython extends BaseScriptTest {
 
         final TestRunner two = TestRunners.newTestRunner(new InvokeScriptedProcessor());
         two.setValidateExpressionUsage(false);
-        two.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        two.setProperty(ScriptingComponentHelper.MODULES, "target/test/resources/jython");
-        two.setProperty(ScriptingComponentHelper.SCRIPT_FILE, "target/test/resources/jython/test_compress.py");
+        two.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        two.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jython");
+        two.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_compress.py");
         two.setProperty("mode", "decompress");
 
         two.assertValid();
@@ -160,9 +160,9 @@ public class TestInvokeJython extends BaseScriptTest {
     @Test
     public void testInvalidConfiguration() throws Exception {
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_ENGINE, "python");
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_FILE, TEST_RESOURCE_LOCATION);
-        runner.setProperty(ScriptingComponentHelper.SCRIPT_BODY, "body");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION);
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "body");
 
         runner.assertNotValid();
     }

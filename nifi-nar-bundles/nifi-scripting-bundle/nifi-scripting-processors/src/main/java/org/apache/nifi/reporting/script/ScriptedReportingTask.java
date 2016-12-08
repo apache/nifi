@@ -30,6 +30,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.processors.script.ScriptingComponentHelper;
+import org.apache.nifi.processors.script.ScriptingComponentUtils;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.util.StringUtils;
@@ -57,8 +58,8 @@ import java.util.Map;
 public class ScriptedReportingTask extends AbstractReportingTask {
 
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
-    protected volatile String scriptToRun = null;
-    protected volatile VirtualMachineMetrics vmMetrics;
+    private volatile String scriptToRun = null;
+    private volatile VirtualMachineMetrics vmMetrics;
 
     /**
      * Returns a list of property descriptors supported by this processor. The list always includes properties such as
@@ -75,7 +76,7 @@ public class ScriptedReportingTask extends AbstractReportingTask {
             }
         }
 
-        return Collections.unmodifiableList(scriptingComponentHelper.descriptors);
+        return Collections.unmodifiableList(scriptingComponentHelper.getDescriptors());
     }
 
     /**
@@ -109,22 +110,23 @@ public class ScriptedReportingTask extends AbstractReportingTask {
      */
     @OnScheduled
     public void setup(final ConfigurationContext context) {
-        scriptingComponentHelper.scriptEngineName = context.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE).getValue();
-        scriptingComponentHelper.scriptPath = context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptingComponentHelper.scriptBody = context.getProperty(ScriptingComponentHelper.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentHelper.MODULES).getValue();
+        scriptingComponentHelper.setScriptEngineName(context.getProperty(scriptingComponentHelper.SCRIPT_ENGINE).getValue());
+        scriptingComponentHelper.setScriptPath(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue());
+        scriptingComponentHelper.setScriptBody(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue());
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
-            scriptingComponentHelper.modules = modulePath.split(",");
+            scriptingComponentHelper.setModules(modulePath.split(","));
         } else {
-            scriptingComponentHelper.modules = new String[0];
+            scriptingComponentHelper.setModules(new String[0]);
         }
         // Create a script engine for each possible task
         scriptingComponentHelper.setup(1, getLogger());
-        scriptToRun = scriptingComponentHelper.scriptBody;
+        scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
-            if (scriptToRun == null && scriptingComponentHelper.scriptPath != null) {
-                try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.scriptPath)) {
+            String scriptPath = scriptingComponentHelper.getScriptPath();
+            if (scriptToRun == null && scriptPath != null) {
+                try (final FileInputStream scriptStream = new FileInputStream(scriptPath)) {
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
@@ -174,11 +176,11 @@ public class ScriptedReportingTask extends AbstractReportingTask {
 
                 // Execute any engine-specific configuration before the script is evaluated
                 ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.scriptEngineName.toLowerCase());
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.modules);
+                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
                 } else {
                     scriptEngine.eval(scriptToRun);
                 }

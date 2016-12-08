@@ -72,11 +72,11 @@ import java.util.Set;
 public class ExecuteScript extends AbstractSessionFactoryProcessor {
 
     // Constants maintained for backwards compatibility
-    public static final Relationship REL_SUCCESS = ScriptingComponentHelper.REL_SUCCESS;
-    public static final Relationship REL_FAILURE = ScriptingComponentHelper.REL_FAILURE;
+    public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
+    public static final Relationship REL_FAILURE = ScriptingComponentUtils.REL_FAILURE;
 
     private String scriptToRun = null;
-    private volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+    volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
 
     /**
@@ -107,7 +107,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
             }
         }
 
-        return Collections.unmodifiableList(scriptingComponentHelper.descriptors);
+        return Collections.unmodifiableList(scriptingComponentHelper.getDescriptors());
     }
 
     /**
@@ -146,11 +146,11 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
         // Create a script engine for each possible task
         int maxTasks = context.getMaxConcurrentTasks();
         scriptingComponentHelper.setup(maxTasks, getLogger());
-        scriptToRun = scriptingComponentHelper.scriptBody;
+        scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
-            if (scriptToRun == null && scriptingComponentHelper.scriptPath != null) {
-                try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.scriptPath)) {
+            if (scriptToRun == null && scriptingComponentHelper.getScriptPath() != null) {
+                try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.getScriptPath())) {
                     scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
                 }
             }
@@ -211,11 +211,11 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor {
 
                 // Execute any engine-specific configuration before the script is evaluated
                 ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.scriptEngineName.toLowerCase());
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
 
                 // Evaluate the script with the configurator (if it exists) or the engine
                 if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.modules);
+                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
                 } else {
                     scriptEngine.eval(scriptToRun);
                 }

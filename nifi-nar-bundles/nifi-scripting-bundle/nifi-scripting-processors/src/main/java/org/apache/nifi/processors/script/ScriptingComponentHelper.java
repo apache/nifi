@@ -47,10 +47,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 /**
@@ -58,54 +55,60 @@ import org.apache.nifi.util.StringUtils;
  */
 public class ScriptingComponentHelper {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles that were successfully processed")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("FlowFiles that failed to be processed")
-            .build();
-
-    public static PropertyDescriptor SCRIPT_ENGINE;
-
-    public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder()
-            .name("Script File")
-            .required(false)
-            .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(new StandardValidators.FileExistsValidator(true))
-            .expressionLanguageSupported(true)
-            .build();
-
-    public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
-            .name("Script Body")
-            .required(false)
-            .description("Body of script to execute. Only one of Script File or Script Body may be used")
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(false)
-            .build();
-
-    public static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
-            .name("Module Directory")
-            .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
-            .required(false)
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    public PropertyDescriptor SCRIPT_ENGINE;
 
     // A map from engine name to a custom configurator for that engine
     public final Map<String, ScriptEngineConfigurator> scriptEngineConfiguratorMap = new ConcurrentHashMap<>();
     public final AtomicBoolean isInitialized = new AtomicBoolean(false);
 
     public Map<String, ScriptEngineFactory> scriptEngineFactoryMap;
-    public String scriptEngineName;
-    public String scriptPath;
-    public String scriptBody;
-    public String[] modules;
-    public List<PropertyDescriptor> descriptors;
+    private String scriptEngineName;
+    private String scriptPath;
+    private String scriptBody;
+    private String[] modules;
+    private List<PropertyDescriptor> descriptors;
 
     public BlockingQueue<ScriptEngine> engineQ = null;
+
+    public String getScriptEngineName() {
+        return scriptEngineName;
+    }
+
+    public void setScriptEngineName(String scriptEngineName) {
+        this.scriptEngineName = scriptEngineName;
+    }
+
+    public String getScriptPath() {
+        return scriptPath;
+    }
+
+    public void setScriptPath(String scriptPath) {
+        this.scriptPath = scriptPath;
+    }
+
+    public String getScriptBody() {
+        return scriptBody;
+    }
+
+    public void setScriptBody(String scriptBody) {
+        this.scriptBody = scriptBody;
+    }
+
+    public String[] getModules() {
+        return modules;
+    }
+
+    public void setModules(String[] modules) {
+        this.modules = modules;
+    }
+
+    public List<PropertyDescriptor> getDescriptors() {
+        return descriptors;
+    }
+
+    public void setDescriptors(List<PropertyDescriptor> descriptors) {
+        this.descriptors = descriptors;
+    }
 
     /**
      * Custom validation for ensuring exactly one of Script File or Script Body is populated
@@ -120,7 +123,7 @@ public class ScriptingComponentHelper {
 
         // Verify that exactly one of "script file" or "script body" is set
         Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(SCRIPT_BODY))) {
+        if (StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_FILE)) == StringUtils.isEmpty(propertyMap.get(ScriptingComponentUtils.SCRIPT_BODY))) {
             results.add(new ValidationResult.Builder().valid(false).explanation(
                     "Exactly one of Script File or Script Body must be set").build());
         }
@@ -175,9 +178,9 @@ public class ScriptingComponentHelper {
             descriptors.add(SCRIPT_ENGINE);
         }
 
-        descriptors.add(SCRIPT_FILE);
-        descriptors.add(SCRIPT_BODY);
-        descriptors.add(MODULES);
+        descriptors.add(ScriptingComponentUtils.SCRIPT_FILE);
+        descriptors.add(ScriptingComponentUtils.SCRIPT_BODY);
+        descriptors.add(ScriptingComponentUtils.MODULES);
 
         isInitialized.set(true);
     }
@@ -278,11 +281,11 @@ public class ScriptingComponentHelper {
         }
     }
 
-    public void setupVariables(ProcessContext context) {
-        scriptEngineName = context.getProperty(ScriptingComponentHelper.SCRIPT_ENGINE).getValue();
-        scriptPath = context.getProperty(ScriptingComponentHelper.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        scriptBody = context.getProperty(ScriptingComponentHelper.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentHelper.MODULES).getValue();
+    void setupVariables(ProcessContext context) {
+        scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
+        scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
+        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).getValue();
         if (!StringUtils.isEmpty(modulePath)) {
             modules = modulePath.split(",");
         } else {
@@ -307,7 +310,7 @@ public class ScriptingComponentHelper {
         return factory.getScriptEngine();
     }
 
-    public void stop() {
+    void stop() {
         if (engineQ != null) {
             engineQ.clear();
         }
