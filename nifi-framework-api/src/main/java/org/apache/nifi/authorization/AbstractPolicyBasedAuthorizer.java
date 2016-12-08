@@ -158,8 +158,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
             return AuthorizationResult.approved();
         }
 
-
-        return AuthorizationResult.denied();
+        return AuthorizationResult.denied(request.getExplanationSupplier().get());
     }
 
     /**

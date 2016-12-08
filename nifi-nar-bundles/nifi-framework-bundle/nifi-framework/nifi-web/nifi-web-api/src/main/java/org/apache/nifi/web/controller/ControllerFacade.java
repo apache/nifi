@@ -1241,7 +1241,7 @@ public class ControllerFacade implements Authorizable {
     private AuthorizationResult checkAuthorizationForReplay(final ProvenanceEventRecord event) {
         // if the connection id isn't specified, then the replay wouldn't be available anyways and we have nothing to authorize against so deny it`
         if (event.getSourceQueueIdentifier() == null) {
-            return AuthorizationResult.denied();
+            return AuthorizationResult.denied("The connection id in the provenance event is unknown.");
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -1272,7 +1272,7 @@ public class ControllerFacade implements Authorizable {
     private void authorizeReplay(final ProvenanceEventRecord event) {
         // if the connection id isn't specified, then the replay wouldn't be available anyways and we have nothing to authorize against so deny it`
         if (event.getSourceQueueIdentifier() == null) {
-            throw new AccessDeniedException("The connection id is unknown.");
+            throw new AccessDeniedException("The connection id in the provenance event is unknown.");
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();

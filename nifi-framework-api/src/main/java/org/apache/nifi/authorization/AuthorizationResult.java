@@ -83,7 +83,7 @@ public class AuthorizationResult {
      * @return a new denied AuthorizationResult
      */
     public static AuthorizationResult denied() {
-        return denied("Access is denied");
+        return denied(AuthorizationRequest.DEFAULT_EXPLANATION);
     }
 
     /**
