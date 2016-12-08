@@ -20,6 +20,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -37,6 +38,7 @@ import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +47,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -448,7 +451,16 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final long transferNanos = System.nanoTime() - startNanos;
             final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
             final String sourceSystemFlowFileUuid = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
-            flowFile = session.putAttribute(flowFile, CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+
+            final String host = StringUtils.isEmpty(peer.getHost()) ? "unknown" : peer.getHost();
+            final String port = peer.getPort() <= 0 ? "unknown" : String.valueOf(peer.getPort());
+
+            final Map<String,String> attributes = new HashMap<>(4);
+            attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
+            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
+
+            flowFile = session.putAllAttributes(flowFile, attributes);
 
             final String transitUri = createTransitUri(peer, sourceSystemFlowFileUuid);
             session.getProvenanceReporter().receive(flowFile, transitUri, sourceSystemFlowFileUuid == null
@@ -504,12 +516,6 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
                 throw new IOException(this + " Received a BadChecksum response from peer " + peer);
             default:
                 throw new ProtocolException(this + " Received unexpected Response Code from peer " + peer + " : " + confirmTransactionResponse + "; expected 'Confirm Transaction' Response Code");
-        }
-
-        // For routing purposes, downstream consumers often need to reference Flowfile's originating system
-        for (FlowFile flowFile : transaction.getFlowFilesSent()){
-          flowFile = session.putAttribute(flowFile, "remote.host", peer.getHost());
-          flowFile = session.putAttribute(flowFile, "remote.address", peer.getHost() + ":" + peer.getPort());
         }
 
         // Commit the session so that we have persisted the data

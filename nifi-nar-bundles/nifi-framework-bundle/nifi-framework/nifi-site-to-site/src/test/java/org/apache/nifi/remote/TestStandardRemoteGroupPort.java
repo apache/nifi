@@ -176,7 +176,7 @@ public class TestStandardRemoteGroupPort {
             // Return null when it gets called second time.
             doReturn(dataPacket).doReturn(null).when(this.transaction).receive();
 
-            doReturn(flowFile).when(session).putAllAttributes(eq(flowFile), eq(attributes));
+            doReturn(flowFile).doReturn(flowFile).when(session).putAllAttributes(eq(flowFile), any(Map.class));
             doReturn(flowFile).when(session).importFrom(any(InputStream.class), eq(flowFile));
 
             port.onTrigger(context, session);
@@ -244,7 +244,7 @@ public class TestStandardRemoteGroupPort {
         // Return null when it's called second time.
         doReturn(dataPacket).doReturn(null).when(transaction).receive();
 
-        doReturn(flowFile).when(session).putAllAttributes(eq(flowFile), eq(attributes));
+        doReturn(flowFile).doReturn(flowFile).when(session).putAllAttributes(eq(flowFile), any(Map.class));
         doReturn(flowFile).when(session).importFrom(any(InputStream.class), eq(flowFile));
 
         port.onTrigger(context, session);
