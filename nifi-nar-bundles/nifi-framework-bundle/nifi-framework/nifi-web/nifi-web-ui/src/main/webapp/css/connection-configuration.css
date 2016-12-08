@@ -46,7 +46,6 @@ div.connection-terminal-label {
 #relationship-names {
     padding: 2px;
     height: 150px;
-    width: 274px;
     overflow-y: auto;
     overflow-x: hidden; 
     border: 0 solid #cccccc;
@@ -61,7 +60,6 @@ div.available-relationship-container {
 #connection-configuration div.relationship-name {
     display: inline-block;
     line-height: normal;
-    width: 240px;
 }
 
 #connection-name-container {
