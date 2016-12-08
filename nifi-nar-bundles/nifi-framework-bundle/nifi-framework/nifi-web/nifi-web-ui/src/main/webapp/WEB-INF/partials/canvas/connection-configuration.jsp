@@ -95,7 +95,7 @@
                     <div id="read-only-output-port-source" class="setting hidden">
                         <div class="setting-name">From output</div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="read-only-output-port-name"></div>
+                            <div id="read-only-output-port-name" class="ellipsis"></div>
                         </div>
                     </div>
                     <div id="output-port-source" class="setting hidden">
@@ -107,21 +107,21 @@
                     <div id="input-port-source" class="setting hidden">
                         <div class="setting-name">From input</div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="input-port-source-name" class="label"></div>
+                            <div id="input-port-source-name" class="label ellipsis"></div>
                         </div>
                     </div>
                     <div id="funnel-source" class="setting hidden">
                         <div class="setting-name">From funnel</div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="funnel-source-name" class="label">funnel</div>
+                            <div id="funnel-source-name" class="label ellipsis" title="funnel">funnel</div>
                         </div>
                     </div>
                     <div id="processor-source" class="setting hidden">
                         <div class="setting-name">From processor</div>
                         <div class="setting-field connection-terminal-label">
                             <div id="processor-source-details">
-                                <div id="processor-source-name" class="label"></div>
-                                <div id="processor-source-type"></div>
+                                <div id="processor-source-name" class="label ellipsis"></div>
+                                <div id="processor-source-type" class="ellipsis"></div>
                             </div>
                         </div>
                     </div>
@@ -149,21 +149,21 @@
                     <div id="output-port-destination" class="setting hidden">
                         <div class="setting-name">To output</div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="output-port-destination-name" class="label"></div>
+                            <div id="output-port-destination-name" class="label ellipsis"></div>
                         </div>
                     </div>
                     <div id="funnel-destination" class="setting hidden">
                         <div class="setting-name">To funnel</div>
                         <div class="setting-field connection-terminal-label">
-                            <div id="funnel-source-name" class="label">funnel</div>
+                            <div id="funnel-destination-name" class="label ellipsis" title="funnel">funnel</div>
                         </div>
                     </div>
                     <div id="processor-destination" class="setting hidden">
                         <div class="setting-name">To processor</div>
                         <div class="setting-field connection-terminal-label">
                             <div id="processor-destination-details">
-                                <div id="processor-destination-name" class="label"></div>
-                                <div id="processor-destination-type"></div>
+                                <div id="processor-destination-name" class="label ellipsis"></div>
+                                <div id="processor-destination-type" class="ellipsis"></div>
                             </div>
                         </div>
                     </div>
