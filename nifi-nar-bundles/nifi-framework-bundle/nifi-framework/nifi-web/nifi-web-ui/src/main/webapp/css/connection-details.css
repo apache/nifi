@@ -35,11 +35,9 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding: 2px 2px 0;
-    width: 274px;
 }
 
 #connection-details div.relationship-name {
     display: inline-block;
     line-height: normal;
-    width: 240px;
 }

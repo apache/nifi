@@ -162,6 +162,7 @@ ul.links span.header-link-over {
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ellipsis.multiline {
