@@ -2218,6 +2218,8 @@ the connection a failure. The default value is _5 secs_.
 from the remote node before considering the communication with the node a failure. The default value is _5 secs_.
 |nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
+|nifi.cluster.flow.election.max.wait.time|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default is _5 min_. Note that the time starts as soon as the first vote is cast.
+|nifi.cluster.flow.election.max.candidates|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach at least this number of nodes in the cluster.
 |====
 
 [[claim_management]]
