@@ -580,11 +580,16 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         final int size = list.size();
-        for(int i = 0; i < size; i++) {
-            buffer.append(list.get(i).toString());
-            if(i != size - 1) {
+        int i = 0;
+        for (Object item : list) {
+            if (item != null) {
+                buffer.append(item.toString());
+            }
+
+            if (i < size - 1) {
                 buffer.append((char) csvPref.getDelimiterChar());
             }
+            i++;
         }
 
         return buffer.toString().getBytes();
