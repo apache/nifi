@@ -67,7 +67,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     private final Map<String, String> previousAttributes;
     private final Map<String, String> updatedAttributes;
 
-    private volatile long eventId;
+    private volatile long eventId = -1L;
 
     private StandardProvenanceEventRecord(final Builder builder) {
         this.eventTime = builder.eventTime;
@@ -369,12 +369,20 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             return false;
         }
 
-        if (a == null && b != null) {
+        if (a == null && b != null && !b.isEmpty()) {
             return true;
         }
 
-        if (a != null && b == null) {
+        if (a == null && b.isEmpty()) {
+            return false;
+        }
+
+        if (a != null && !a.isEmpty() && b == null) {
             return true;
+        }
+
+        if (a.isEmpty() && b == null) {
+            return false;
         }
 
         if (a.size() != b.size()) {

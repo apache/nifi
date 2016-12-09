@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UTFDataFormatException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.provenance.serialization.CompressableRecordWriter;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.stream.io.DataOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,15 +46,16 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
     private final File file;
 
 
-    public StandardRecordWriter(final File file, final TocWriter writer, final boolean compressed, final int uncompressedBlockSize) throws IOException {
-        super(file, writer, compressed, uncompressedBlockSize);
+    public StandardRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed, final int uncompressedBlockSize) throws IOException {
+        super(file, idGenerator, writer, compressed, uncompressedBlockSize);
         logger.trace("Creating Record Writer for {}", file.getName());
 
         this.file = file;
     }
 
-    public StandardRecordWriter(final OutputStream out, final TocWriter tocWriter, final boolean compressed, final int uncompressedBlockSize) throws IOException {
-        super(out, tocWriter, compressed, uncompressedBlockSize);
+    public StandardRecordWriter(final OutputStream out, final String storageLocation, final AtomicLong idGenerator, final TocWriter tocWriter,
+        final boolean compressed, final int uncompressedBlockSize) throws IOException {
+        super(out, storageLocation, idGenerator, tocWriter, compressed, uncompressedBlockSize);
         this.file = null;
     }
 

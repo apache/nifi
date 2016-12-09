@@ -100,7 +100,7 @@ public class StandardFunnel implements Funnel {
         yieldPeriod = new AtomicReference<>("250 millis");
         yieldExpiration = new AtomicLong(0L);
         schedulingPeriod = new AtomicReference<>("0 millis");
-        schedulingNanos = new AtomicLong(30000);
+        schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         name = new AtomicReference<>("Funnel");
     }
 

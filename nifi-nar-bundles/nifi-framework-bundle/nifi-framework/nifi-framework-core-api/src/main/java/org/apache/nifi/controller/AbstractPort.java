@@ -111,7 +111,7 @@ public abstract class AbstractPort implements Port {
         yieldPeriod = new AtomicReference<>("1 sec");
         yieldExpiration = new AtomicLong(0L);
         schedulingPeriod = new AtomicReference<>("0 millis");
-        schedulingNanos = new AtomicLong(30000);
+        schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 

@@ -152,6 +152,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.provenance.IdentifierLookup;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -233,10 +234,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider,
+    QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider, IdentifierLookup {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -454,7 +457,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         try {
             this.provenanceRepository = createProvenanceRepository(nifiProperties);
-            this.provenanceRepository.initialize(createEventReporter(bulletinRepository), authorizer, this);
+            this.provenanceRepository.initialize(createEventReporter(bulletinRepository), authorizer, this, this);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
         }
@@ -3884,6 +3887,39 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         queue.put(flowFileRecord);
 
         return replayEvent;
+    }
+
+    @Override
+    public List<String> getComponentIdentifiers() {
+        final List<String> componentIds = new ArrayList<>();
+        getGroup(getRootGroupId()).findAllProcessors().stream()
+            .forEach(proc -> componentIds.add(proc.getIdentifier()));
+        getGroup(getRootGroupId()).getInputPorts().stream()
+            .forEach(port -> componentIds.add(port.getIdentifier()));
+        getGroup(getRootGroupId()).getOutputPorts().stream()
+            .forEach(port -> componentIds.add(port.getIdentifier()));
+
+        return componentIds;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public List<String> getComponentTypes() {
+        final Set<Class> procClasses = ExtensionManager.getExtensions(Processor.class);
+        final List<String> componentTypes = new ArrayList<>(procClasses.size() + 2);
+        componentTypes.add(ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE);
+        componentTypes.add(ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE);
+        procClasses.stream()
+            .map(procClass -> procClass.getSimpleName())
+            .forEach(componentType -> componentTypes.add(componentType));
+        return componentTypes;
+    }
+
+    @Override
+    public List<String> getQueueIdentifiers() {
+        return getAllQueues().stream()
+            .map(q -> q.getIdentifier())
+            .collect(Collectors.toList());
     }
 
     public boolean isConnected() {

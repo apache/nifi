@@ -16,64 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.provenance.expiration.ExpirationAction;
-import org.apache.nifi.provenance.expiration.FileRemovalAction;
-import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
-import org.apache.nifi.provenance.lineage.FlowFileLineage;
-import org.apache.nifi.provenance.lineage.Lineage;
-import org.apache.nifi.provenance.lineage.LineageComputationType;
-import org.apache.nifi.provenance.lucene.DeleteIndexAction;
-import org.apache.nifi.provenance.lucene.FieldNames;
-import org.apache.nifi.provenance.lucene.IndexManager;
-import org.apache.nifi.provenance.lucene.IndexSearch;
-import org.apache.nifi.provenance.lucene.IndexingAction;
-import org.apache.nifi.provenance.lucene.LineageQuery;
-import org.apache.nifi.provenance.lucene.LuceneUtil;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
-import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QueryResult;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.serialization.RecordWriters;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.RingBuffer;
-import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
-import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
-import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
-import org.apache.nifi.util.timebuffer.LongEntityAccess;
-import org.apache.nifi.util.timebuffer.TimedBuffer;
-import org.apache.nifi.util.timebuffer.TimedCountSize;
-import org.apache.nifi.util.timebuffer.TimestampedLong;
-import org.apache.nifi.web.ResourceNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileFilter;
@@ -82,7 +24,6 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -118,6 +59,69 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.expiration.ExpirationAction;
+import org.apache.nifi.provenance.expiration.FileRemovalAction;
+import org.apache.nifi.provenance.index.EventIndexWriter;
+import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
+import org.apache.nifi.provenance.lineage.FlowFileLineage;
+import org.apache.nifi.provenance.lineage.Lineage;
+import org.apache.nifi.provenance.lineage.LineageComputationType;
+import org.apache.nifi.provenance.lucene.DeleteIndexAction;
+import org.apache.nifi.provenance.lucene.DocsReader;
+import org.apache.nifi.provenance.lucene.DocumentToEventConverter;
+import org.apache.nifi.provenance.lucene.FieldNames;
+import org.apache.nifi.provenance.lucene.IndexManager;
+import org.apache.nifi.provenance.lucene.IndexSearch;
+import org.apache.nifi.provenance.lucene.IndexingAction;
+import org.apache.nifi.provenance.lucene.LineageQuery;
+import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QueryResult;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.serialization.RecordWriters;
+import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.util.NamedThreadFactory;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.RingBuffer;
+import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.timebuffer.CountSizeEntityAccess;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
+import org.apache.nifi.util.timebuffer.TimedCountSize;
+import org.apache.nifi.util.timebuffer.TimestampedLong;
+import org.apache.nifi.web.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PersistentProvenanceRepository implements ProvenanceRepository {
 
@@ -209,7 +213,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     public PersistentProvenanceRepository(final NiFiProperties nifiProperties) throws IOException {
-        this(createRepositoryConfiguration(nifiProperties), 10000);
+        this(RepositoryConfiguration.create(nifiProperties), 10000);
     }
 
     public PersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
@@ -220,7 +224,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         this.configuration = configuration;
         this.maxAttributeChars = configuration.getMaxAttributeChars();
 
-        for (final File file : configuration.getStorageDirectories()) {
+        for (final File file : configuration.getStorageDirectories().values()) {
             final Path storageDirectory = file.toPath();
             final Path journalDirectory = storageDirectory.resolve("journals");
 
@@ -234,7 +238,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         this.maxPartitionMillis = configuration.getMaxEventFileLife(TimeUnit.MILLISECONDS);
         this.maxPartitionBytes = configuration.getMaxEventFileCapacity();
         this.indexConfig = new IndexConfiguration(configuration);
-        this.indexManager = new SimpleIndexManager();
+        this.indexManager = new SimpleIndexManager(configuration);
         this.alwaysSync = configuration.isAlwaysSync();
         this.rolloverCheckMillis = rolloverCheckMillis;
 
@@ -254,7 +258,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
-    public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
+    public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
+        final IdentifierLookup idLookup) throws IOException {
         writeLock.lock();
         try {
             if (initialized.getAndSet(true)) {
@@ -325,82 +330,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
     }
 
-    private static RepositoryConfiguration createRepositoryConfiguration(final NiFiProperties nifiProperties) throws IOException {
-        final Map<String, Path> storageDirectories = nifiProperties.getProvenanceRepositoryPaths();
-        if (storageDirectories.isEmpty()) {
-            storageDirectories.put("provenance_repository", Paths.get("provenance_repository"));
-        }
-        final String storageTime = nifiProperties.getProperty(NiFiProperties.PROVENANCE_MAX_STORAGE_TIME, "24 hours");
-        final String storageSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_MAX_STORAGE_SIZE, "1 GB");
-        final String rolloverTime = nifiProperties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_TIME, "5 mins");
-        final String rolloverSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_SIZE, "100 MB");
-        final String shardSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE, "500 MB");
-        final int queryThreads = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_QUERY_THREAD_POOL_SIZE, 2);
-        final int indexThreads = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_INDEX_THREAD_POOL_SIZE, 1);
-        final int journalCount = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_JOURNAL_COUNT, 16);
-
-        final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
-        final long maxStorageBytes = DataUnit.parseDataSize(storageSize, DataUnit.B).longValue();
-        final long rolloverMillis = FormatUtils.getTimeDuration(rolloverTime, TimeUnit.MILLISECONDS);
-        final long rolloverBytes = DataUnit.parseDataSize(rolloverSize, DataUnit.B).longValue();
-
-        final boolean compressOnRollover = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER));
-        final String indexedFieldString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
-        final String indexedAttrString = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
-
-        final Boolean alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty("nifi.provenance.repository.always.sync", "false"));
-
-        final int defaultMaxAttrChars = 65536;
-        final String maxAttrLength = nifiProperties.getProperty("nifi.provenance.repository.max.attribute.length", String.valueOf(defaultMaxAttrChars));
-        int maxAttrChars;
-        try {
-            maxAttrChars = Integer.parseInt(maxAttrLength);
-            // must be at least 36 characters because that's the length of the uuid attribute,
-            // which must be kept intact
-            if (maxAttrChars < 36) {
-                maxAttrChars = 36;
-                logger.warn("Found max attribute length property set to " + maxAttrLength + " but minimum length is 36; using 36 instead");
-            }
-        } catch (final Exception e) {
-            maxAttrChars = defaultMaxAttrChars;
-        }
-
-        final List<SearchableField> searchableFields = SearchableFieldParser.extractSearchableFields(indexedFieldString, true);
-        final List<SearchableField> searchableAttributes = SearchableFieldParser.extractSearchableFields(indexedAttrString, false);
-
-        // We always want to index the Event Time.
-        if (!searchableFields.contains(SearchableFields.EventTime)) {
-            searchableFields.add(SearchableFields.EventTime);
-        }
-
-        final RepositoryConfiguration config = new RepositoryConfiguration();
-        for (final Path path : storageDirectories.values()) {
-            config.addStorageDirectory(path.toFile());
-        }
-        config.setCompressOnRollover(compressOnRollover);
-        config.setSearchableFields(searchableFields);
-        config.setSearchableAttributes(searchableAttributes);
-        config.setMaxEventFileCapacity(rolloverBytes);
-        config.setMaxEventFileLife(rolloverMillis, TimeUnit.MILLISECONDS);
-        config.setMaxRecordLife(storageMillis, TimeUnit.MILLISECONDS);
-        config.setMaxStorageCapacity(maxStorageBytes);
-        config.setQueryThreadPoolSize(queryThreads);
-        config.setIndexThreadPoolSize(indexThreads);
-        config.setJournalCount(journalCount);
-        config.setMaxAttributeChars(maxAttrChars);
-
-        if (shardSize != null) {
-            config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
-        }
-
-        config.setAlwaysSync(alwaysSync);
-
-        return config;
-    }
 
     // protected in order to override for unit tests
     protected RecordWriter[] createWriters(final RepositoryConfiguration config, final long initialRecordId) throws IOException {
-        final List<File> storageDirectories = config.getStorageDirectories();
+        final List<File> storageDirectories = new ArrayList<>(config.getStorageDirectories().values());
 
         final RecordWriter[] writers = new RecordWriter[config.getJournalCount()];
         for (int i = 0; i < config.getJournalCount(); i++) {
@@ -408,7 +341,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             final File journalDirectory = new File(storageDirectory, "journals");
             final File journalFile = new File(journalDirectory, String.valueOf(initialRecordId) + ".journal." + i);
 
-            writers[i] = RecordWriters.newSchemaRecordWriter(journalFile, false, false);
+            writers[i] = RecordWriters.newSchemaRecordWriter(journalFile, idGenerator, false, false);
             writers[i].writeHeader(initialRecordId);
         }
 
@@ -460,7 +393,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         return Result.Approved.equals(result.getResult());
     }
 
-    protected void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
+    public void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
         if (authorizer == null) {
             return;
         }
@@ -474,11 +407,11 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
     }
 
-    private List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {
+    public List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {
         return events.stream().filter(event -> isAuthorized(event, user)).collect(Collectors.<ProvenanceEventRecord>toList());
     }
 
-    private Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events, final NiFiUser user) {
+    public Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events, final NiFiUser user) {
         return events.stream().map(event -> isAuthorized(event, user) ? event : new PlaceholderProvenanceEvent(event)).collect(Collectors.toSet());
     }
 
@@ -594,7 +527,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         long minIndexedId = Long.MAX_VALUE;
 
         final List<File> filesToRecover = new ArrayList<>();
-        for (final File file : configuration.getStorageDirectories()) {
+        for (final File file : configuration.getStorageDirectories().values()) {
             final File[] matchingFiles = file.listFiles(new FileFilter() {
                 @Override
                 public boolean accept(final File pathname) {
@@ -780,10 +713,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 try {
                     long recordsWritten = 0L;
                     for (final ProvenanceEventRecord nextRecord : records) {
-                        final long eventId = idGenerator.getAndIncrement();
-                        bytesWritten += writer.writeRecord(nextRecord, eventId);
+                        final StorageSummary persistedEvent = writer.writeRecord(nextRecord);
+                        bytesWritten += persistedEvent.getSerializedLength();
                         recordsWritten++;
-                        logger.trace("Wrote record with ID {} to {}", eventId, writer);
+                        logger.trace("Wrote record with ID {} to {}", persistedEvent.getEventId(), writer);
                     }
 
                     writer.flush();
@@ -1175,7 +1108,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
      */
     private List<File> getAllIndexDirectories() {
         final List<File> allIndexDirs = new ArrayList<>();
-        for (final File storageDir : configuration.getStorageDirectories()) {
+        for (final File storageDir : configuration.getStorageDirectories().values()) {
             final File[] indexDirs = storageDir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(final File dir, final String name) {
@@ -1237,7 +1170,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     protected int getJournalCount() {
         // determine how many 'journals' we have in the journals directories
         int journalFileCount = 0;
-        for (final File storageDir : configuration.getStorageDirectories()) {
+        for (final File storageDir : configuration.getStorageDirectories().values()) {
             final File journalsDir = new File(storageDir, "journals");
             final File[] journalFiles = journalsDir.listFiles();
             if (journalFiles != null) {
@@ -1313,7 +1246,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
             // Choose a storage directory to store the merged file in.
             final long storageDirIdx = storageDirectoryIndex.getAndIncrement();
-            final List<File> storageDirs = configuration.getStorageDirectories();
+            final List<File> storageDirs = new ArrayList<>(configuration.getStorageDirectories().values());
             final File storageDir = storageDirs.get((int) (storageDirIdx % storageDirs.size()));
 
             Future<?> future = null;
@@ -1479,8 +1412,8 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         final Map<String, List<File>> journalMap = new HashMap<>();
 
         // Map journals' basenames to the files with that basename.
-        final List<File> storageDirs = configuration.getStorageDirectories();
-        for (final File storageDir : configuration.getStorageDirectories()) {
+        final List<File> storageDirs = new ArrayList<>(configuration.getStorageDirectories().values());
+        for (final File storageDir : storageDirs) {
             final File journalDir = new File(storageDir, "journals");
             if (!journalDir.exists()) {
                 continue;
@@ -1729,7 +1662,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
             // loop over each entry in the map, persisting the records to the merged file in order, and populating the map
             // with the next entry from the journal file from which the previous record was written.
-            try (final RecordWriter writer = RecordWriters.newSchemaRecordWriter(writerFile, configuration.isCompressOnRollover(), true)) {
+            try (final RecordWriter writer = RecordWriters.newSchemaRecordWriter(writerFile, idGenerator, configuration.isCompressOnRollover(), true)) {
                 writer.writeHeader(minEventId);
 
                 final IndexingAction indexingAction = createIndexingAction();
@@ -1741,7 +1674,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 final AtomicBoolean finishedAdding = new AtomicBoolean(false);
                 final List<Future<?>> futures = new ArrayList<>();
 
-                final IndexWriter indexWriter = getIndexManager().borrowIndexWriter(indexingDirectory);
+                final EventIndexWriter indexWriter = getIndexManager().borrowIndexWriter(indexingDirectory);
                 try {
                     final ExecutorService exec = Executors.newFixedThreadPool(configuration.getIndexThreadPoolSize(), new ThreadFactory() {
                         @Override
@@ -1772,7 +1705,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                                                 continue;
                                             }
 
-                                            indexingAction.index(tuple.getKey(), indexWriter, tuple.getValue());
+                                            indexingAction.index(tuple.getKey(), indexWriter.getIndexWriter(), tuple.getValue());
                                         } catch (final Throwable t) {
                                             logger.error("Failed to index Provenance Event for " + writerFile + " to " + indexingDirectory, t);
                                             if (indexingFailureCount.incrementAndGet() >= MAX_INDEXING_FAILURE_COUNT) {
@@ -1795,7 +1728,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                             final StandardProvenanceEventRecord record = entry.getKey();
                             final RecordReader reader = entry.getValue();
 
-                            writer.writeRecord(record, record.getEventId());
+                            writer.writeRecord(record);
                             final int blockIndex = writer.getTocWriter().getCurrentBlockIndex();
 
                             boolean accepted = false;
@@ -1879,7 +1812,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                         }
                     }
                 } finally {
-                    getIndexManager().returnIndexWriter(indexingDirectory, indexWriter);
+                    getIndexManager().returnIndexWriter(indexWriter);
                 }
 
                 indexConfig.setMaxIdIndexed(maxId);
@@ -1945,7 +1878,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
      * events indexed, etc.
      */
     protected IndexingAction createIndexingAction() {
-        return new IndexingAction(this);
+        return new IndexingAction(configuration.getSearchableFields(), configuration.getSearchableAttributes());
     }
 
     private StandardProvenanceEventRecord truncateAttributes(final StandardProvenanceEventRecord original) {
@@ -2322,7 +2255,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             if (event == null) {
                 final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1, userId);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.emptyList(), 0L);
                 return submission;
             }
 
@@ -2359,9 +2292,9 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
             if (event == null) {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1, userId);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.emptyList(), 1, userId);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.emptyList(), 0L);
                 return submission;
             }
 
@@ -2642,11 +2575,21 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             }
 
             try {
-                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this,
-                        getIndexManager(), indexDir, null, flowFileUuids, maxAttributeChars);
+                final DocumentToEventConverter converter = new DocumentToEventConverter() {
+                    @Override
+                    public Set<ProvenanceEventRecord> convert(TopDocs topDocs, IndexReader indexReader) throws IOException {
+                        // Always authorized. We do this because we need to pull back the event, regardless of whether or not
+                        // the user is truly authorized, because instead of ignoring unauthorized events, we want to replace them.
+                        final EventAuthorizer authorizer = EventAuthorizer.GRANT_ALL;
+                        final DocsReader docsReader = new DocsReader();
+                        return docsReader.read(topDocs, authorizer, indexReader, getAllLogFiles(), new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
+                    }
+                };
+
+                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(getIndexManager(), indexDir, null, flowFileUuids, converter);
 
                 final StandardLineageResult result = submission.getResult();
-                result.update(replaceUnauthorizedWithPlaceholders(matchingRecords, user));
+                result.update(replaceUnauthorizedWithPlaceholders(matchingRecords, user), matchingRecords.size());
 
                 logger.info("Successfully created Lineage for FlowFiles with UUIDs {} in {} milliseconds; Lineage contains {} nodes and {} edges",
                         flowFileUuids, result.getComputationTime(TimeUnit.MILLISECONDS), result.getNodes().size(), result.getEdges().size());
@@ -2666,7 +2609,6 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     }
 
     private class RemoveExpiredQueryResults implements Runnable {
-
         @Override
         public void run() {
             try {
@@ -2695,24 +2637,6 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 logger.error("Failed to expire Provenance Query Results due to {}", t.toString());
                 logger.error("", t);
             }
-        }
-    }
-
-    private static class NamedThreadFactory implements ThreadFactory {
-
-        private final AtomicInteger counter = new AtomicInteger(0);
-        private final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
-        private final String namePrefix;
-
-        public NamedThreadFactory(final String namePrefix) {
-            this.namePrefix = namePrefix;
-        }
-
-        @Override
-        public Thread newThread(final Runnable r) {
-            final Thread thread = defaultThreadFactory.newThread(r);
-            thread.setName(namePrefix + "-" + counter.incrementAndGet());
-            return thread;
         }
     }
 }

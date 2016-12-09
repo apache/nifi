@@ -82,6 +82,13 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         return procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || !Connectables.hasNonLoopConnection(procNode) || Connectables.flowFilesQueued(procNode);
     }
 
+    private boolean isBackPressureEngaged() {
+        return procNode.getIncomingConnections().stream()
+            .filter(con -> con.getSource() == procNode)
+            .map(con -> con.getFlowFileQueue())
+            .anyMatch(queue -> queue.isFull());
+    }
+
     @Override
     public Boolean call() {
         // make sure processor is not yielded
@@ -127,6 +134,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
         scheduleState.incrementActiveThreadCount();
 
         final long startNanos = System.nanoTime();
+        final long finishIfBackpressureEngaged = startNanos + (batchNanos / 25L);
         final long finishNanos = startNanos + batchNanos;
         int invocationCount = 0;
         try {
@@ -140,9 +148,15 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                         return false;
                     }
 
-                    if (System.nanoTime() > finishNanos) {
+                    final long nanoTime = System.nanoTime();
+                    if (nanoTime > finishNanos) {
                         return false;
                     }
+
+                    if (nanoTime > finishIfBackpressureEngaged && isBackPressureEngaged()) {
+                        return false;
+                    }
+
 
                     if (!isWorkToDo(procNode)) {
                         break;

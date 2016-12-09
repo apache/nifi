@@ -69,47 +69,47 @@ public class EventRecord implements Record {
     @Override
     public Object getFieldValue(final String fieldName) {
         switch (fieldName) {
-            case EventRecordFields.Names.EVENT_IDENTIFIER:
+            case EventFieldNames.EVENT_IDENTIFIER:
                 return eventId;
-            case EventRecordFields.Names.ALTERNATE_IDENTIFIER:
+            case EventFieldNames.ALTERNATE_IDENTIFIER:
                 return event.getAlternateIdentifierUri();
-            case EventRecordFields.Names.CHILD_UUIDS:
+            case EventFieldNames.CHILD_UUIDS:
                 return event.getChildUuids();
-            case EventRecordFields.Names.COMPONENT_ID:
+            case EventFieldNames.COMPONENT_ID:
                 return event.getComponentId();
-            case EventRecordFields.Names.COMPONENT_TYPE:
+            case EventFieldNames.COMPONENT_TYPE:
                 return event.getComponentType();
-            case EventRecordFields.Names.CONTENT_CLAIM:
+            case EventFieldNames.CONTENT_CLAIM:
                 return contentClaimRecord;
-            case EventRecordFields.Names.EVENT_DETAILS:
+            case EventFieldNames.EVENT_DETAILS:
                 return event.getDetails();
-            case EventRecordFields.Names.EVENT_DURATION:
+            case EventFieldNames.EVENT_DURATION:
                 return event.getEventDuration();
-            case EventRecordFields.Names.EVENT_TIME:
+            case EventFieldNames.EVENT_TIME:
                 return event.getEventTime();
-            case EventRecordFields.Names.EVENT_TYPE:
+            case EventFieldNames.EVENT_TYPE:
                 return event.getEventType().name();
-            case EventRecordFields.Names.FLOWFILE_ENTRY_DATE:
+            case EventFieldNames.FLOWFILE_ENTRY_DATE:
                 return event.getFlowFileEntryDate();
-            case EventRecordFields.Names.FLOWFILE_UUID:
+            case EventFieldNames.FLOWFILE_UUID:
                 return event.getFlowFileUuid();
-            case EventRecordFields.Names.LINEAGE_START_DATE:
+            case EventFieldNames.LINEAGE_START_DATE:
                 return event.getLineageStartDate();
-            case EventRecordFields.Names.PARENT_UUIDS:
+            case EventFieldNames.PARENT_UUIDS:
                 return event.getParentUuids();
-            case EventRecordFields.Names.PREVIOUS_ATTRIBUTES:
+            case EventFieldNames.PREVIOUS_ATTRIBUTES:
                 return event.getPreviousAttributes();
-            case EventRecordFields.Names.PREVIOUS_CONTENT_CLAIM:
+            case EventFieldNames.PREVIOUS_CONTENT_CLAIM:
                 return previousClaimRecord;
-            case EventRecordFields.Names.RELATIONSHIP:
+            case EventFieldNames.RELATIONSHIP:
                 return event.getRelationship();
-            case EventRecordFields.Names.SOURCE_QUEUE_IDENTIFIER:
+            case EventFieldNames.SOURCE_QUEUE_IDENTIFIER:
                 return event.getSourceQueueIdentifier();
-            case EventRecordFields.Names.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER:
+            case EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER:
                 return event.getSourceSystemFlowFileIdentifier();
-            case EventRecordFields.Names.TRANSIT_URI:
+            case EventFieldNames.TRANSIT_URI:
                 return event.getTransitUri();
-            case EventRecordFields.Names.UPDATED_ATTRIBUTES:
+            case EventFieldNames.UPDATED_ATTRIBUTES:
                 return event.getUpdatedAttributes();
         }
 
@@ -119,48 +119,52 @@ public class EventRecord implements Record {
     @SuppressWarnings("unchecked")
     public static StandardProvenanceEventRecord getEvent(final Record record, final String storageFilename, final long storageByteOffset, final int maxAttributeLength) {
         final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder();
-        builder.setAlternateIdentifierUri((String) record.getFieldValue(EventRecordFields.Names.ALTERNATE_IDENTIFIER));
-        builder.setChildUuids((List<String>) record.getFieldValue(EventRecordFields.Names.CHILD_UUIDS));
-        builder.setComponentId((String) record.getFieldValue(EventRecordFields.Names.COMPONENT_ID));
-        builder.setComponentType((String) record.getFieldValue(EventRecordFields.Names.COMPONENT_TYPE));
-        builder.setDetails((String) record.getFieldValue(EventRecordFields.Names.EVENT_DETAILS));
-        builder.setEventDuration((Long) record.getFieldValue(EventRecordFields.Names.EVENT_DURATION));
-        builder.setEventTime((Long) record.getFieldValue(EventRecordFields.Names.EVENT_TIME));
-        builder.setEventType(ProvenanceEventType.valueOf((String) record.getFieldValue(EventRecordFields.Names.EVENT_TYPE)));
-        builder.setFlowFileEntryDate((Long) record.getFieldValue(EventRecordFields.Names.FLOWFILE_ENTRY_DATE));
-        builder.setFlowFileUUID((String) record.getFieldValue(EventRecordFields.Names.FLOWFILE_UUID));
-        builder.setLineageStartDate((Long) record.getFieldValue(EventRecordFields.Names.LINEAGE_START_DATE));
-        builder.setParentUuids((List<String>) record.getFieldValue(EventRecordFields.Names.PARENT_UUIDS));
-        builder.setPreviousAttributes(truncateAttributes((Map<String, String>) record.getFieldValue(EventRecordFields.Names.PREVIOUS_ATTRIBUTES), maxAttributeLength));
-        builder.setEventId((Long) record.getFieldValue(EventRecordFields.Names.EVENT_IDENTIFIER));
-        builder.setRelationship((String) record.getFieldValue(EventRecordFields.Names.RELATIONSHIP));
-        builder.setSourceQueueIdentifier((String) record.getFieldValue(EventRecordFields.Names.SOURCE_QUEUE_IDENTIFIER));
-        builder.setSourceSystemFlowFileIdentifier((String) record.getFieldValue(EventRecordFields.Names.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER));
-        builder.setTransitUri((String) record.getFieldValue(EventRecordFields.Names.TRANSIT_URI));
-        builder.setUpdatedAttributes(truncateAttributes((Map<String, String>) record.getFieldValue(EventRecordFields.Names.UPDATED_ATTRIBUTES), maxAttributeLength));
+        builder.setAlternateIdentifierUri((String) record.getFieldValue(EventFieldNames.ALTERNATE_IDENTIFIER));
+        builder.setChildUuids((List<String>) record.getFieldValue(EventFieldNames.CHILD_UUIDS));
+        builder.setComponentId((String) record.getFieldValue(EventFieldNames.COMPONENT_ID));
+        builder.setComponentType((String) record.getFieldValue(EventFieldNames.COMPONENT_TYPE));
+        builder.setDetails((String) record.getFieldValue(EventFieldNames.EVENT_DETAILS));
+        builder.setEventDuration((Long) record.getFieldValue(EventFieldNames.EVENT_DURATION));
+        builder.setEventTime((Long) record.getFieldValue(EventFieldNames.EVENT_TIME));
+        builder.setEventType(ProvenanceEventType.valueOf((String) record.getFieldValue(EventFieldNames.EVENT_TYPE)));
+        builder.setFlowFileEntryDate((Long) record.getFieldValue(EventFieldNames.FLOWFILE_ENTRY_DATE));
+        builder.setFlowFileUUID((String) record.getFieldValue(EventFieldNames.FLOWFILE_UUID));
+        builder.setLineageStartDate((Long) record.getFieldValue(EventFieldNames.LINEAGE_START_DATE));
+        builder.setParentUuids((List<String>) record.getFieldValue(EventFieldNames.PARENT_UUIDS));
+        builder.setPreviousAttributes(truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.PREVIOUS_ATTRIBUTES), maxAttributeLength));
+        builder.setRelationship((String) record.getFieldValue(EventFieldNames.RELATIONSHIP));
+        builder.setSourceQueueIdentifier((String) record.getFieldValue(EventFieldNames.SOURCE_QUEUE_IDENTIFIER));
+        builder.setSourceSystemFlowFileIdentifier((String) record.getFieldValue(EventFieldNames.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER));
+        builder.setTransitUri((String) record.getFieldValue(EventFieldNames.TRANSIT_URI));
+        builder.setUpdatedAttributes(truncateAttributes((Map<String, String>) record.getFieldValue(EventFieldNames.UPDATED_ATTRIBUTES), maxAttributeLength));
+
+        final Long eventId = (Long) record.getFieldValue(EventFieldNames.EVENT_IDENTIFIER);
+        if (eventId != null) {
+            builder.setEventId(eventId);
+        }
 
         builder.setStorageLocation(storageFilename, storageByteOffset);
 
-        final Record currentClaimRecord = (Record) record.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM);
+        final Record currentClaimRecord = (Record) record.getFieldValue(EventFieldNames.CONTENT_CLAIM);
         if (currentClaimRecord == null) {
             builder.setCurrentContentClaim(null, null, null, null, 0L);
         } else {
             builder.setCurrentContentClaim(
-                (String) currentClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_CONTAINER),
-                (String) currentClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_SECTION),
-                (String) currentClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_IDENTIFIER),
-                (Long) currentClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_OFFSET),
-                (Long) currentClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_SIZE));
+                (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
+                (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),
+                (String) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_IDENTIFIER),
+                (Long) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
+                (Long) currentClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
         }
 
-        final Record previousClaimRecord = (Record) record.getFieldValue(EventRecordFields.Names.PREVIOUS_CONTENT_CLAIM);
+        final Record previousClaimRecord = (Record) record.getFieldValue(EventFieldNames.PREVIOUS_CONTENT_CLAIM);
         if (previousClaimRecord != null) {
             builder.setPreviousContentClaim(
-                (String) previousClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_CONTAINER),
-                (String) previousClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_SECTION),
-                (String) previousClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_IDENTIFIER),
-                (Long) previousClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_OFFSET),
-                (Long) previousClaimRecord.getFieldValue(EventRecordFields.Names.CONTENT_CLAIM_SIZE));
+                (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_CONTAINER),
+                (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SECTION),
+                (String) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_IDENTIFIER),
+                (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_OFFSET),
+                (Long) previousClaimRecord.getFieldValue(EventFieldNames.CONTENT_CLAIM_SIZE));
         }
 
         return builder.build();

@@ -29,14 +29,14 @@ import java.util.UUID;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.nifi.provenance.index.EventIndexSearcher;
+import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -67,47 +67,47 @@ public class TestCachingIndexManager {
     public void test() throws IOException {
         // Create and IndexWriter and add a document to the index, then close the writer.
         // This gives us something that we can query.
-        final IndexWriter writer = manager.borrowIndexWriter(indexDir);
+        final EventIndexWriter writer = manager.borrowIndexWriter(indexDir);
         final Document doc = new Document();
         doc.add(new StringField("unit test", "true", Store.YES));
-        writer.addDocument(doc);
-        manager.returnIndexWriter(indexDir, writer);
+        writer.index(doc, 1000);
+        manager.returnIndexWriter(writer);
 
         // Get an Index Searcher that we can use to query the index.
-        final IndexSearcher cachedSearcher = manager.borrowIndexSearcher(indexDir);
+        final EventIndexSearcher cachedSearcher = manager.borrowIndexSearcher(indexDir);
 
         // Ensure that we get the expected results.
         assertCount(cachedSearcher, 1);
 
         // While we already have an Index Searcher, get a writer for the same index.
         // This will cause the Index Searcher to be marked as poisoned.
-        final IndexWriter writer2 = manager.borrowIndexWriter(indexDir);
+        final EventIndexWriter writer2 = manager.borrowIndexWriter(indexDir);
 
         // Obtain a new Index Searcher with the writer open. This Index Searcher should *NOT*
         // be the same as the previous searcher because the new one will be a Near-Real-Time Index Searcher
         // while the other is not.
-        final IndexSearcher nrtSearcher = manager.borrowIndexSearcher(indexDir);
+        final EventIndexSearcher nrtSearcher = manager.borrowIndexSearcher(indexDir);
         assertNotSame(cachedSearcher, nrtSearcher);
 
         // Ensure that we get the expected query results.
         assertCount(nrtSearcher, 1);
 
         // Return the writer, so that there is no longer an active writer for the index.
-        manager.returnIndexWriter(indexDir, writer2);
+        manager.returnIndexWriter(writer2);
 
         // Ensure that we still get the same result.
         assertCount(cachedSearcher, 1);
-        manager.returnIndexSearcher(indexDir, cachedSearcher);
+        manager.returnIndexSearcher(cachedSearcher);
 
         // Ensure that our near-real-time index searcher still gets the same result.
         assertCount(nrtSearcher, 1);
-        manager.returnIndexSearcher(indexDir, nrtSearcher);
+        manager.returnIndexSearcher(nrtSearcher);
     }
 
-    private void assertCount(final IndexSearcher searcher, final int count) throws IOException {
+    private void assertCount(final EventIndexSearcher searcher, final int count) throws IOException {
         final BooleanQuery query = new BooleanQuery();
         query.add(new BooleanClause(new TermQuery(new Term("unit test", "true")), Occur.MUST));
-        final TopDocs topDocs = searcher.search(query, count * 10);
+        final TopDocs topDocs = searcher.getIndexSearcher().search(query, count * 10);
         assertNotNull(topDocs);
         assertEquals(1, topDocs.totalHits);
     }

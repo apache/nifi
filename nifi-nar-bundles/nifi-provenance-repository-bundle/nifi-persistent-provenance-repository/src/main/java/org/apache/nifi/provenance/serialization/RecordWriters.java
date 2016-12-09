@@ -18,6 +18,7 @@ package org.apache.nifi.provenance.serialization;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
@@ -27,13 +28,14 @@ import org.apache.nifi.provenance.toc.TocWriter;
 public class RecordWriters {
     private static final int DEFAULT_COMPRESSION_BLOCK_SIZE = 1024 * 1024; // 1 MB
 
-    public static RecordWriter newSchemaRecordWriter(final File file, final boolean compressed, final boolean createToc) throws IOException {
-        return newSchemaRecordWriter(file, compressed, createToc, DEFAULT_COMPRESSION_BLOCK_SIZE);
+    public static RecordWriter newSchemaRecordWriter(final File file, final AtomicLong idGenerator, final boolean compressed, final boolean createToc) throws IOException {
+        return newSchemaRecordWriter(file, idGenerator, compressed, createToc, DEFAULT_COMPRESSION_BLOCK_SIZE);
     }
 
-    public static RecordWriter newSchemaRecordWriter(final File file, final boolean compressed, final boolean createToc, final int compressionBlockBytes) throws IOException {
+    public static RecordWriter newSchemaRecordWriter(final File file, final AtomicLong idGenerator, final boolean compressed, final boolean createToc,
+        final int compressionBlockBytes) throws IOException {
         final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
-        return new ByteArraySchemaRecordWriter(file, tocWriter, compressed, compressionBlockBytes);
+        return new ByteArraySchemaRecordWriter(file, idGenerator, tocWriter, compressed, compressionBlockBytes);
     }
 
 }

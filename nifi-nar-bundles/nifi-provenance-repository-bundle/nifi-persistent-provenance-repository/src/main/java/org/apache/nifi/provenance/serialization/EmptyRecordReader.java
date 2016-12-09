@@ -18,7 +18,9 @@
 package org.apache.nifi.provenance.serialization;
 
 import java.io.IOException;
+import java.util.Optional;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
 
@@ -68,5 +70,15 @@ public class EmptyRecordReader implements RecordReader {
     @Override
     public long getMaxEventId() throws IOException {
         return 0;
+    }
+
+    @Override
+    public Optional<ProvenanceEventRecord> skipToEvent(long eventId) throws IOException {
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean isData() {
+        return false;
     }
 }
