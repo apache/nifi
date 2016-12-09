@@ -34,10 +34,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -56,8 +61,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import java.util.HashMap;
-import java.util.Map;
 
 public class TestFileSystemRepository {
 
@@ -86,6 +89,38 @@ public class TestFileSystemRepository {
     @After
     public void shutdown() throws IOException {
         repository.shutdown();
+    }
+
+    @Test
+    public void testWritePerformance() throws IOException {
+        final long bytesToWrite = 1_000_000_000L;
+        final int contentSize = 100;
+
+        final int iterations = (int) (bytesToWrite / contentSize);
+        final byte[] content = new byte[contentSize];
+        final Random random = new Random();
+        random.nextBytes(content);
+
+        //        final ContentClaimWriteCache cache = new ContentClaimWriteCache(repository);
+
+        final long start = System.nanoTime();
+        for (int i = 0; i < iterations; i++) {
+            final ContentClaim claim = repository.create(false);
+            try (final OutputStream out = repository.write(claim)) {
+                out.write(content);
+            }
+            //            final ContentClaim claim = cache.getContentClaim();
+            //            try (final OutputStream out = cache.write(claim)) {
+            //                out.write(content);
+            //            }
+        }
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        final long mb = bytesToWrite / (1024 * 1024);
+        final long seconds = millis / 1000L;
+        final double mbps = (double) mb / (double) seconds;
+        System.out.println("Took " + millis + " millis to write " + contentSize + " bytes " + iterations + " times (total of "
+            + NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite) + " bytes) for a write rate of " + mbps + " MB/s");
     }
 
     @Test

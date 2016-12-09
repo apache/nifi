@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.provenance.toc;
 
-import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+
+import org.apache.nifi.stream.io.StreamUtils;
 
 /**
  * Standard implementation of TocReader.
@@ -38,27 +39,29 @@ public class StandardTocReader implements TocReader {
     private final boolean compressed;
     private final long[] offsets;
     private final long[] firstEventIds;
+    private final File file;
 
     public StandardTocReader(final File file) throws IOException {
-        try (final FileInputStream fis = new FileInputStream(file);
-                final DataInputStream dis = new DataInputStream(fis)) {
+        this.file = file;
+        final long fileLength = file.length();
+        if (fileLength < 2) {
+            throw new EOFException();
+        }
 
-            final int version = dis.read();
-            if ( version < 0 ) {
-                throw new EOFException();
-            }
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            final byte[] buffer = new byte[(int) fileLength];
+            StreamUtils.fillBuffer(fis, buffer);
 
-            final int compressionFlag = dis.read();
-            if ( compressionFlag < 0 ) {
-                throw new EOFException();
-            }
+            final int version = buffer[0];
+            final int compressionFlag = buffer[1];
 
             if ( compressionFlag == 0 ) {
                 compressed = false;
             } else if ( compressionFlag == 1 ) {
                 compressed = true;
             } else {
-                throw new IOException("Table of Contents appears to be corrupt: could not read 'compression flag' from header; expected value of 0 or 1 but got " + compressionFlag);
+                throw new IOException("Table of Contents file " + file + " appears to be corrupt: could not read 'compression flag' from header; "
+                    + "expected value of 0 or 1 but got " + compressionFlag);
             }
 
             final int blockInfoBytes;
@@ -72,7 +75,7 @@ public class StandardTocReader implements TocReader {
                     break;
             }
 
-            final int numBlocks = (int) ((file.length() - 2) / blockInfoBytes);
+            final int numBlocks = (buffer.length - 2) / blockInfoBytes;
             offsets = new long[numBlocks];
 
             if ( version > 1 ) {
@@ -81,19 +84,38 @@ public class StandardTocReader implements TocReader {
                 firstEventIds = new long[0];
             }
 
+            int index = 2;
             for (int i=0; i < numBlocks; i++) {
-                offsets[i] = dis.readLong();
+                offsets[i] = readLong(buffer, index);
+                index += 8;
 
                 if ( version > 1 ) {
-                    firstEventIds[i] = dis.readLong();
+                    firstEventIds[i] = readLong(buffer, index);
+                    index += 8;
                 }
             }
         }
     }
 
+    private long readLong(final byte[] buffer, final int offset) {
+        return ((long) buffer[offset] << 56) +
+            ((long) (buffer[offset + 1] & 0xFF) << 48) +
+            ((long) (buffer[offset + 2] & 0xFF) << 40) +
+            ((long) (buffer[offset + 3] & 0xFF) << 32) +
+            ((long) (buffer[offset + 4] & 0xFF) << 24) +
+            ((long) (buffer[offset + 5] & 0xFF) << 16) +
+            ((long) (buffer[offset + 6] & 0xFF) << 8) +
+            (buffer[offset + 7] & 0xFF);
+    }
+
     @Override
     public boolean isCompressed() {
         return compressed;
+    }
+
+    @Override
+    public File getFile() {
+        return file;
     }
 
     @Override
@@ -105,6 +127,15 @@ public class StandardTocReader implements TocReader {
     }
 
     @Override
+    public long getFirstEventIdForBlock(final int blockIndex) {
+        if (blockIndex >= firstEventIds.length) {
+            return -1L;
+        }
+
+        return firstEventIds[blockIndex];
+    }
+
+    @Override
     public long getLastBlockOffset() {
         if ( offsets.length == 0 ) {
             return 0L;
@@ -113,7 +144,7 @@ public class StandardTocReader implements TocReader {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 
     @Override
@@ -151,5 +182,10 @@ public class StandardTocReader implements TocReader {
         // None of the blocks start with an Event ID greater than the provided ID.
         // Therefore, if the event is present, it must be in the last block.
         return firstEventIds.length - 1;
+    }
+
+    @Override
+    public String toString() {
+        return "StandardTocReader[file=" + file + ", compressed=" + compressed + "]";
     }
 }

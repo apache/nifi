@@ -911,6 +911,7 @@ public class FileSystemRepository implements ContentRepository {
                 }
 
                 bytesWritten += len;
+
                 scc.setLength(bytesWritten + initialLength);
             }
 

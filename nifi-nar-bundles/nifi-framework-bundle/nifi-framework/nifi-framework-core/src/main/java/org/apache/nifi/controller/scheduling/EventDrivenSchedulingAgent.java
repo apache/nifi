@@ -83,7 +83,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
         for (int i = 0; i < maxThreadCount; i++) {
             final Runnable eventDrivenTask = new EventDrivenTask(workerQueue);
-            flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 30000, TimeUnit.NANOSECONDS);
+            flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 1L, TimeUnit.NANOSECONDS);
         }
     }
 
@@ -132,7 +132,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             final int tasksToAdd = maxThreadCount - oldMax;
             for (int i = 0; i < tasksToAdd; i++) {
                 final Runnable eventDrivenTask = new EventDrivenTask(workerQueue);
-                flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 30000, TimeUnit.NANOSECONDS);
+                flowEngine.scheduleWithFixedDelay(eventDrivenTask, 0L, 1L, TimeUnit.NANOSECONDS);
             }
         }
     }

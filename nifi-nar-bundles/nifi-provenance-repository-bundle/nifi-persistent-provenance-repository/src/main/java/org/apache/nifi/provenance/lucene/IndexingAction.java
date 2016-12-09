@@ -19,6 +19,7 @@ package org.apache.nifi.provenance.lucene;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.document.Document;
@@ -28,23 +29,22 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.search.SearchableField;
 
 public class IndexingAction {
-    private final Set<SearchableField> nonAttributeSearchableFields;
-    private final Set<SearchableField> attributeSearchableFields;
+    private final Set<SearchableField> searchableEventFields;
+    private final Set<SearchableField> searchableAttributeFields;
 
-    public IndexingAction(final PersistentProvenanceRepository repo) {
-        attributeSearchableFields = Collections.unmodifiableSet(new HashSet<>(repo.getConfiguration().getSearchableAttributes()));
-        nonAttributeSearchableFields = Collections.unmodifiableSet(new HashSet<>(repo.getConfiguration().getSearchableFields()));
+    public IndexingAction(final List<SearchableField> searchableEventFields, final List<SearchableField> searchableAttributes) {
+        this.searchableEventFields = Collections.unmodifiableSet(new HashSet<>(searchableEventFields));
+        this.searchableAttributeFields = Collections.unmodifiableSet(new HashSet<>(searchableAttributes));
     }
 
     private void addField(final Document doc, final SearchableField field, final String value, final Store store) {
-        if (value == null || (!field.isAttribute() && !nonAttributeSearchableFields.contains(field))) {
+        if (value == null || (!field.isAttribute() && !searchableEventFields.contains(field))) {
             return;
         }
 
@@ -67,7 +67,7 @@ public class IndexingAction {
         addField(doc, SearchableFields.SourceQueueIdentifier, record.getSourceQueueIdentifier(), Store.NO);
         addField(doc, SearchableFields.TransitURI, record.getTransitUri(), Store.NO);
 
-        for (final SearchableField searchableField : attributeSearchableFields) {
+        for (final SearchableField searchableField : searchableAttributeFields) {
             addField(doc, searchableField, LuceneUtil.truncateIndexField(record.getAttribute(searchableField.getSearchableFieldName())), Store.NO);
         }
 

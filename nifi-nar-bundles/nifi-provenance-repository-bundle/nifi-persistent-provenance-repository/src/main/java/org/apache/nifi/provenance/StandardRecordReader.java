@@ -32,6 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StandardRecordReader extends CompressableRecordReader {
+    public static final int SERIALIZATION_VERISON = 9;
+    public static final String SERIALIZATION_NAME = "org.apache.nifi.provenance.PersistentProvenanceRepository";
+
     private static final Logger logger = LoggerFactory.getLogger(StandardRecordReader.class);
     private static final Pattern UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 
@@ -121,9 +124,9 @@ public class StandardRecordReader extends CompressableRecordReader {
 
     @Override
     public StandardProvenanceEventRecord nextRecord(final DataInputStream dis, final int serializationVersion) throws IOException {
-        if (serializationVersion > StandardRecordWriter.SERIALIZATION_VERISON) {
+        if (serializationVersion > SERIALIZATION_VERISON) {
             throw new IllegalArgumentException("Unable to deserialize record because the version is "
-                + serializationVersion + " and supported versions are 1-" + StandardRecordWriter.SERIALIZATION_VERISON);
+                + serializationVersion + " and supported versions are 1-" + SERIALIZATION_VERISON);
         }
 
         // Schema changed drastically in version 6 so we created a new method to handle old records

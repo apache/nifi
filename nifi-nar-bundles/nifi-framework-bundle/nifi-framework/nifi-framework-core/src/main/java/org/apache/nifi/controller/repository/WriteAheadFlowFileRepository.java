@@ -19,6 +19,7 @@ package org.apache.nifi.controller.repository;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -74,6 +77,7 @@ import org.wali.WriteAheadRepository;
  * </p>
  */
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
+    private static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
 
     private final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
     private final boolean alwaysSync;
@@ -82,7 +86,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private volatile ScheduledFuture<?> checkpointFuture;
 
     private final long checkpointDelayMillis;
-    private final Path flowFileRepositoryPath;
+    private final SortedSet<Path> flowFileRepositoryPaths = new TreeSet<>();
     private final int numPartitions;
     private final ScheduledExecutorService checkpointExecutor;
 
@@ -120,7 +124,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     public WriteAheadFlowFileRepository() {
         alwaysSync = false;
         checkpointDelayMillis = 0l;
-        flowFileRepositoryPath = null;
         numPartitions = 0;
         checkpointExecutor = null;
     }
@@ -129,7 +132,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
 
         // determine the database file path and ensure it exists
-        flowFileRepositoryPath = nifiProperties.getFlowFileRepositoryPath();
+        for (final String propertyName : nifiProperties.getPropertyKeys()) {
+            if (propertyName.startsWith(FLOWFILE_REPOSITORY_DIRECTORY_PREFIX)) {
+                final String directoryName = nifiProperties.getProperty(propertyName);
+                flowFileRepositoryPaths.add(Paths.get(directoryName));
+            }
+        }
+
         numPartitions = nifiProperties.getFlowFileRepositoryPartitions();
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
@@ -140,14 +149,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
         this.claimManager = claimManager;
 
-        Files.createDirectories(flowFileRepositoryPath);
+        for (final Path path : flowFileRepositoryPaths) {
+            Files.createDirectories(path);
+        }
 
         // TODO: Should ensure that only 1 instance running and pointing at a particular path
         // TODO: Allow for backup path that can be used if disk out of space?? Would allow a snapshot to be stored on
         // backup and then the data deleted from the normal location; then can move backup to normal location and
         // delete backup. On restore, if no files exist in partition's directory, would have to check backup directory
         serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
-        wal = new MinimalLockingWriteAheadLog<>(flowFileRepositoryPath, numPartitions, serdeFactory, this);
+        wal = new MinimalLockingWriteAheadLog<>(flowFileRepositoryPaths, numPartitions, serdeFactory, this);
+        logger.info("Initialized FlowFile Repository using {} partitions", numPartitions);
     }
 
     @Override
@@ -167,12 +179,22 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public long getStorageCapacity() throws IOException {
-        return Files.getFileStore(flowFileRepositoryPath).getTotalSpace();
+        long capacity = 0L;
+        for (final Path path : flowFileRepositoryPaths) {
+            capacity += Files.getFileStore(path).getTotalSpace();
+        }
+
+        return capacity;
     }
 
     @Override
     public long getUsableStorageSpace() throws IOException {
-        return Files.getFileStore(flowFileRepositoryPath).getUsableSpace();
+        long usableSpace = 0L;
+        for (final Path path : flowFileRepositoryPaths) {
+            usableSpace += Files.getFileStore(path).getUsableSpace();
+        }
+
+        return usableSpace;
     }
 
     @Override

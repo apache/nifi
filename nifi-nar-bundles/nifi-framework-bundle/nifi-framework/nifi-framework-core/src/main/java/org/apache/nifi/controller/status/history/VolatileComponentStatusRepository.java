@@ -93,7 +93,9 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                 snapshot.setTimestamp(capture.getCaptureDate());
 
                 for (final ProcessorStatusDescriptor descriptor : ProcessorStatusDescriptor.values()) {
-                    snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
+                    if (descriptor.isVisible()) {
+                        snapshot.addStatusMetric(descriptor.getDescriptor(), descriptor.getDescriptor().getValueFunction().getValue(status));
+                    }
                 }
 
                 history.addStatusSnapshot(snapshot);

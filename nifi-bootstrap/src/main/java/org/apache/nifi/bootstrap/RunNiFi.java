@@ -1067,11 +1067,14 @@ public class RunNiFi {
         Process process = builder.start();
         handleLogging(process);
         Long pid = getPid(process, cmdLogger);
-        if (pid != null) {
+        if (pid == null) {
+            cmdLogger.info("Launched Apache NiFi but could not determined the Process ID");
+        } else {
             nifiPid = pid;
             final Properties pidProperties = new Properties();
             pidProperties.setProperty(PID_KEY, String.valueOf(nifiPid));
             savePidProperties(pidProperties, cmdLogger);
+            cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
         }
 
         shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
@@ -1129,11 +1132,14 @@ public class RunNiFi {
                     handleLogging(process);
 
                     pid = getPid(process, defaultLogger);
-                    if (pid != null) {
+                    if (pid == null) {
+                        cmdLogger.info("Launched Apache NiFi but could not obtain the Process ID");
+                    } else {
                         nifiPid = pid;
                         final Properties pidProperties = new Properties();
                         pidProperties.setProperty(PID_KEY, String.valueOf(nifiPid));
                         savePidProperties(pidProperties, defaultLogger);
+                        cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
                     }
 
                     shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);

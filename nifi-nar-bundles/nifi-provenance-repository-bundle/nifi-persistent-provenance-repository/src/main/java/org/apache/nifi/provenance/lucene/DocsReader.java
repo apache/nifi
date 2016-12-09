@@ -30,25 +30,25 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.SearchableFields;
-import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.provenance.authorization.AuthorizationCheck;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.toc.TocReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class DocsReader {
+public class DocsReader {
     private final Logger logger = LoggerFactory.getLogger(DocsReader.class);
 
-    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final AuthorizationCheck authCheck, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
+    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final EventAuthorizer authorizer, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
             final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
@@ -67,7 +67,7 @@ class DocsReader {
 
         final long readDocuments = System.nanoTime() - start;
         logger.debug("Reading {} Lucene Documents took {} millis", docs.size(), TimeUnit.NANOSECONDS.toMillis(readDocuments));
-        return read(docs, authCheck, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
+        return read(docs, authorizer, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
     }
 
 
@@ -106,7 +106,7 @@ class DocsReader {
         return record;
     }
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final AuthorizationCheck authCheck, final Collection<Path> allProvenanceLogFiles,
+    public Set<ProvenanceEventRecord> read(final List<Document> docs, final EventAuthorizer authorizer, final Collection<Path> allProvenanceLogFiles,
             final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
 
         if (retrievalCount.get() >= maxResults) {
@@ -114,38 +114,33 @@ class DocsReader {
         }
 
         final long start = System.nanoTime();
-
-        Set<ProvenanceEventRecord> matchingRecords = new LinkedHashSet<>();
-
-        Map<String, List<Document>> byStorageNameDocGroups = LuceneUtil.groupDocsByStorageFileName(docs);
+        final Set<ProvenanceEventRecord> matchingRecords = new LinkedHashSet<>();
+        final Map<String, List<Document>> byStorageNameDocGroups = LuceneUtil.groupDocsByStorageFileName(docs);
 
         int eventsReadThisFile = 0;
         int logFileCount = 0;
 
         for (String storageFileName : byStorageNameDocGroups.keySet()) {
-            File provenanceEventFile = LuceneUtil.getProvenanceLogFile(storageFileName, allProvenanceLogFiles);
-            if (provenanceEventFile != null) {
-                try (RecordReader reader = RecordReaders.newRecordReader(provenanceEventFile, allProvenanceLogFiles,
-                        maxAttributeChars)) {
-
-                    Iterator<Document> docIter = byStorageNameDocGroups.get(storageFileName).iterator();
-                    while (docIter.hasNext() && retrievalCount.getAndIncrement() < maxResults) {
-                        ProvenanceEventRecord event = this.getRecord(docIter.next(), reader);
-                        if (event != null && authCheck.isAuthorized(event)) {
-                            matchingRecords.add(event);
-                            eventsReadThisFile++;
-                        }
-                    }
-
-                } catch (Exception e) {
-                    logger.warn("Failed while trying to read Provenance Events. The event file '"
-                            + provenanceEventFile.getAbsolutePath() +
-                            "' may be missing or corrupted.", e);
-                }
-            } else {
+            final File provenanceEventFile = LuceneUtil.getProvenanceLogFile(storageFileName, allProvenanceLogFiles);
+            if (provenanceEventFile == null) {
                 logger.warn("Could not find Provenance Log File with "
-                        + "basename {} in the Provenance Repository; assuming "
-                        + "file has expired and continuing without it", storageFileName);
+                    + "basename {} in the Provenance Repository; assuming "
+                    + "file has expired and continuing without it", storageFileName);
+                continue;
+            }
+
+            try (final RecordReader reader = RecordReaders.newRecordReader(provenanceEventFile, allProvenanceLogFiles, maxAttributeChars)) {
+                final Iterator<Document> docIter = byStorageNameDocGroups.get(storageFileName).iterator();
+                while (docIter.hasNext() && retrievalCount.getAndIncrement() < maxResults) {
+                    final ProvenanceEventRecord event = getRecord(docIter.next(), reader);
+                    if (event != null && authorizer.isAuthorized(event)) {
+                        matchingRecords.add(event);
+                        eventsReadThisFile++;
+                    }
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to read Provenance Events. The event file '"
+                    + provenanceEventFile.getAbsolutePath() + "' may be missing or corrupt.", e);
             }
         }
 

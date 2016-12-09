@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository.schema;
 
+import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.repository.schema.NamedValue;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
@@ -39,7 +40,10 @@ public class RepositoryRecordUpdate implements Record {
     @Override
     public Object getFieldValue(final String fieldName) {
         if (RepositoryRecordSchema.REPOSITORY_RECORD_UPDATE_V2.equals(fieldName)) {
-            final String actionType = (String) fieldMap.getFieldValue(RepositoryRecordSchema.ACTION_TYPE);
+            String actionType = (String) fieldMap.getFieldValue(RepositoryRecordSchema.ACTION_TYPE);
+            if (RepositoryRecordType.CONTENTMISSING.name().equals(actionType)) {
+                actionType = RepositoryRecordType.DELETE.name();
+            }
             final UpdateType updateType = UpdateType.valueOf(actionType);
 
             final String actionName;

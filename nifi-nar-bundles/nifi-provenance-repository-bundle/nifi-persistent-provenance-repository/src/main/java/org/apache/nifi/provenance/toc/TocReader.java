@@ -17,6 +17,7 @@
 package org.apache.nifi.provenance.toc;
 
 import java.io.Closeable;
+import java.io.File;
 
 /**
  * <p>
@@ -37,13 +38,28 @@ public interface TocReader extends Closeable {
     boolean isCompressed();
 
     /**
+     * @return the file that holds the TOC information
+     */
+    File getFile();
+
+    /**
      * Returns the byte offset into the Journal File for the Block with the given index.
      *
      * @param blockIndex the block index to get the byte offset for
      * @return the byte offset for the given block index, or <code>-1</code> if the given block index
-     * does not exist
+     *         does not exist
      */
     long getBlockOffset(int blockIndex);
+
+    /**
+     * Returns the ID of the first event that is found in the block with the given index, or -1 if
+     * the given block index does not exist.
+     *
+     * @param blockIndex the block index to get the first event id for
+     * @return the ID of the first event that is found in the block with the given index, or -1 if
+     *         the given block index does not exist
+     */
+    long getFirstEventIdForBlock(int blockIndex);
 
     /**
      * Returns the byte offset into the Journal File of the last Block in the given index
