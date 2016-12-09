@@ -104,7 +104,6 @@ public abstract class AbstractHiveQLProcessor extends AbstractProcessor {
 
         Map<Integer, ParameterHolder> parmMap = new TreeMap<Integer, ParameterHolder>();
 
-//        int curr = 1;
         for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 final String key = entry.getKey();
                 final Matcher matcher = HIVEQL_TYPE_ATTRIBUTE_PATTERN.matcher(key);
