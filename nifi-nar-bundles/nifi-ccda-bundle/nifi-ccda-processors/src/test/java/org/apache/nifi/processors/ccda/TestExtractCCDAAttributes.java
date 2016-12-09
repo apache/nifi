@@ -28,9 +28,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 
 public class TestExtractCCDAAttributes {
 
@@ -48,21 +45,21 @@ public class TestExtractCCDAAttributes {
 
     @Test
     public void testProcessor() throws IOException {
-		Map<String, String> expectedAttributes = new HashMap<String, String>();
-		expectedAttributes.put("code.code", "34133-9");
+        Map<String, String> expectedAttributes = new HashMap<String, String>();
+        expectedAttributes.put("code.code", "34133-9");
         expectedAttributes.put("code.codeSystem", "2.16.840.1.113883.6.1");
-		expectedAttributes.put("code.displayName", "Summarization of episode note");
-		expectedAttributes.put("effectiveTime", "20130717114446.302-0500");
+        expectedAttributes.put("code.displayName", "Summarization of episode note");
+        expectedAttributes.put("effectiveTime", "20130717114446.302-0500");
 
-    	runTests("CCDA-Example.xml", expectedAttributes, true, true);
+        runTests("CCDA-Example.xml", expectedAttributes, true, true);
     }
 
     private void runTests(final String fileName, Map<String, String> expectedAttributes, final boolean skipValidation, final boolean prettyPrinting) throws IOException{
         runner.setProperty(ExtractCCDAAttributes.SKIP_VALIDATION, String.valueOf(skipValidation));
         runner.setProperty(ExtractCCDAAttributes.PRETTY_PRINTING, String.valueOf(prettyPrinting));
-        
+
         runner.enqueue(Paths.get("src/test/resources/" + fileName));
-        
+
         runner.run();
         runner.assertAllFlowFilesTransferred(ExtractCCDAAttributes.REL_SUCCESS, 1);
 

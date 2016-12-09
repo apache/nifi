@@ -132,7 +132,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return relationships;
     }
-    
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         getLogger().info("Loading packages");
@@ -146,9 +146,9 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         properties.add(PRETTY_PRINTING);
 
         long start = System.currentTimeMillis();
-        
+
         // Load required MDHT packages
-        System.setProperty( "org.eclipse.emf.ecore.EPackage.Registry.INSTANCE", 
+        System.setProperty( "org.eclipse.emf.ecore.EPackage.Registry.INSTANCE",
                 "org.eclipse.emf.ecore.impl.EPackageRegistryImpl" );
         CDAPackage.eINSTANCE.eClass();
         HITSPPackage.eINSTANCE.eClass();
@@ -163,7 +163,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
 
         getLogger().info("Loading mappings");
         loadMappings(); // Load CDA mappings for parser
-            
+
     }
 
     @Override
@@ -174,7 +174,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         if ( flowFile == null ) {
             return;
         }
-        
+
         if(processMap.isEmpty()) {
             getLogger().error("Process Mapping is not loaded");
             session.transfer(flowFile, REL_FAILURE);
@@ -212,9 +212,9 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         });
         flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_JSON);
         flowFile = session.putAllAttributes(flowFile, attributes);
-        
+
         session.transfer(flowFile, REL_SUCCESS);
-        
+
     }
 
     /**
@@ -279,7 +279,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
      * Iterate through the list and calls processElement to process each element
      * @param key       key used while calling processElement
      * @param value     value is the individual Object being processed
-     * @return
+     * @return          list of elements
      */
     protected List<Object> processList(String key, List value) {
         List<Object> items = new ArrayList<Object>();
@@ -329,7 +329,7 @@ public class ExtractCCDAAttributes extends AbstractProcessor {
         } catch (IOException e) {
             getLogger().error("Failed to load mappings", e);
             throw new ProcessException("Failed to load mappings", e);
-        } 
+        }
 
         timingStats.add(String.format("Loaded mappings in %d ms", System.currentTimeMillis() - start));
     }
