@@ -496,7 +496,7 @@ public class TestPutHiveQL {
         runner.enqueue(sql.getBytes(), attributes);
         runner.run();
 
-        // should fail because of the semicolon
+        // should fail because of the table is invalid
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_FAILURE, 1);
 
         try (final Connection conn = service.getConnection()) {
@@ -519,6 +519,7 @@ public class TestPutHiveQL {
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
             "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("hiveql.args.1.value", "1");
@@ -535,7 +536,7 @@ public class TestPutHiveQL {
         runner.enqueue(sql.getBytes(), attributes);
         runner.run();
 
-        // should fail because of the semicolon
+        // should fail because there isn't a valid connection and tables don't exist.
         runner.assertAllFlowFilesTransferred(PutHiveQL.REL_RETRY, 1);
     }
 
