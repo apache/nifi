@@ -1333,7 +1333,7 @@ nf.Common = (function () {
                     // format the node address
                     var nodeAddress = '';
                     if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
-                        nodeAddress = '-&nbsp' + nf.Common.escapeHtml(bulletin.nodeAddress) + '&nbsp;-&nbsp;';
+                        nodeAddress = '-&nbsp;' + nf.Common.escapeHtml(bulletin.nodeAddress) + '&nbsp;-&nbsp;';
                     }
 
                     // set the bulletin message (treat as text)
