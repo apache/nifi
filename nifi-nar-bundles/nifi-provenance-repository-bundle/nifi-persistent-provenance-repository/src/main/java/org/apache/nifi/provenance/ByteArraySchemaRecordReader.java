@@ -73,6 +73,9 @@ public class ByteArraySchemaRecordReader extends CompressableRecordReader {
 
         final InputStream limitedIn = new LimitingInputStream(in, recordLength);
         final Record eventRecord = recordReader.readRecord(limitedIn);
+        if (eventRecord == null) {
+            return null;
+        }
 
         return EventRecord.getEvent(eventRecord, getFilename(), byteOffset, getMaxAttributeLength());
     }
