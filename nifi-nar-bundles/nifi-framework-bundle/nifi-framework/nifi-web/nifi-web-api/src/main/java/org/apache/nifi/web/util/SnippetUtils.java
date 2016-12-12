@@ -298,7 +298,6 @@ public final class SnippetUtils {
             return;
         }
 
-        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
             // Include all referenced services that are not already included in this snippet.
@@ -312,6 +311,7 @@ public final class SnippetUtils {
                 });
         }
 
+        final Set<ControllerServiceDTO> controllerServices = servicesByGroup.get(group.getIdentifier());
         contents.setControllerServices(controllerServices);
 
         // Map child process group ID to the child process group for easy lookup
