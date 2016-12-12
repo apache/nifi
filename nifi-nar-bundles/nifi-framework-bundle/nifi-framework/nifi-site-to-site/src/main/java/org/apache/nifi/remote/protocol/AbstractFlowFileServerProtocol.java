@@ -38,6 +38,7 @@ import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -451,10 +452,13 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
             final String sourceSystemFlowFileUuid = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
 
+            final String host = StringUtils.isEmpty(peer.getHost()) ? "unknown" : peer.getHost();
+            final String port = peer.getPort() <= 0 ? "unknown" : String.valueOf(peer.getPort());
+
             final Map<String,String> attributes = new HashMap<>(4);
             attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
-            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
-            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
+            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 

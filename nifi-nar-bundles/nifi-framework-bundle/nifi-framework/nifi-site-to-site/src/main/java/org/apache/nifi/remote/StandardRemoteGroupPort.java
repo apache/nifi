@@ -59,6 +59,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -342,10 +343,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
 
-            final Map<String,String> attributes = new HashMap<>(3);
-            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), transaction.getCommunicant().getHost());
-            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(),
-                    transaction.getCommunicant().getHost() + ":" + transaction.getCommunicant().getPort());
+            final Communicant communicant = transaction.getCommunicant();
+            final String host = StringUtils.isEmpty(communicant.getHost()) ? "unknown" : communicant.getHost();
+            final String port = communicant.getPort() < 0 ? "unknown" : String.valueOf(communicant.getPort());
+
+            final Map<String,String> attributes = new HashMap<>(2);
+            attributes.put(SiteToSiteAttributes.S2S_HOST.key(), host);
+            attributes.put(SiteToSiteAttributes.S2S_ADDRESS.key(), host + ":" + port);
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 
