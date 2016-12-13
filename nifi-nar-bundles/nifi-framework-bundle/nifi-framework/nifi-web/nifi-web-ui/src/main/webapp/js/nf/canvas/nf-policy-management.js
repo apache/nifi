@@ -759,18 +759,23 @@ nf.PolicyManagement = (function () {
             });
 
             // build the mark up
-            return $('<span>Showing effective policy inherited from Process Group </span>').append($('<span class="link"></span>').text(processGroupName).on('click', function () {
-                // close the shell
-                $('#shell-close-button').click();
+            return $('<span>Showing effective policy inherited from Process Group </span>')
+                .append( $('<span class="link ellipsis" style="max-width: 200px; vertical-align: top;"></span>')
+                    .text(processGroupName)
+                    .attr('title', processGroupName)
+                    .on('click', function () {
+                        // close the shell
+                        $('#shell-close-button').click();
 
-                // load the correct group and unselect everything if necessary
-                nf.CanvasUtils.enterGroup(processGroupId).done(function () {
-                    nf.CanvasUtils.getSelection().classed('selected', false);
+                        // load the correct group and unselect everything if necessary
+                        nf.CanvasUtils.enterGroup(processGroupId).done(function () {
+                            nf.CanvasUtils.getSelection().classed('selected', false);
 
-                    // inform Angular app that values have changed
-                    nf.ng.Bridge.digest();
-                });
-            })).append('<span>.</span>');
+                            // inform Angular app that values have changed
+                            nf.ng.Bridge.digest();
+                        });
+                    })
+            ).append('<span>.</span>');
         }
     };
 
