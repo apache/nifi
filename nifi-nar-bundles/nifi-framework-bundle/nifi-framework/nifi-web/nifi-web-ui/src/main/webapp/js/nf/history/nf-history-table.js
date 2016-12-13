@@ -272,7 +272,10 @@ nf.HistoryTable = (function () {
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<div title="View Details" class="pointer show-action-details fa fa-info-circle" style="margin-top: 4px;"></div>';
+            if(dataContext.canRead === true) {
+                return '<div title="View Details" class="pointer show-action-details fa fa-info-circle" style="margin-top: 4px;"></div>';
+            }
+            return "";
         };
 
         // define how general values are formatted
