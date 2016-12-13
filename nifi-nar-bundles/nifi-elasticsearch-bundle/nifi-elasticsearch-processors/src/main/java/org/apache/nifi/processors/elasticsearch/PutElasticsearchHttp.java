@@ -321,9 +321,16 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             final Response getResponse;
             try {
                 getResponse = sendRequestToElasticsearch(okHttpClient, url, username, password, "PUT", requestBody);
-            } catch (IllegalStateException | IOException ioe) {
-                throw new ProcessException(ioe);
+            } catch (final Exception e) {
+                logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
+                flowFilesToTransfer.forEach((flowFileToTransfer) -> {
+                    flowFileToTransfer = session.penalize(flowFileToTransfer);
+                    session.transfer(flowFileToTransfer, REL_FAILURE);
+                });
+                flowFilesToTransfer.clear();
+                return;
             }
+
             final int statusCode = getResponse.code();
 
             if (isSuccess(statusCode)) {
