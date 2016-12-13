@@ -393,6 +393,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Criteria criteria = criteriaCache.get();
 
         FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
         final Map<PropertyDescriptor, String> properties = context.getProperties();
 
