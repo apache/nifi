@@ -314,8 +314,7 @@ MiNiFi home: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.
 
 Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT/conf/bootstrap.conf
 
-FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, validationErrorList=[]}, processorStats=null,
-bulletinList=null}], connectionStatusList=null, remoteProcessGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null, reportingTaskStatusList=null, errorsGeneratingReport=[]}
+{"controllerServiceStatusList":null,"processorStatusList":[{"name":"Connection Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"UpdateAttribute","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"Processor Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"System Diagnostics","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null},{"name":"GenerateFlowFile","processorHealth":{"runStatus":"Running","hasBulletins":false,"validationErrorList":[]},"processorStats":null,"bulletinList":null}],"connectionStatusList":null,"remoteProcessGroupStatusList":null,"instanceStatus":null,"systemDiagnosticsStatus":null,"reportingTaskStatusList":null,"errorsGeneratingReport":[]}
 ```
 
 # Periodic Status Reporters
