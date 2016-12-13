@@ -27,6 +27,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.VersionedRemoteResource;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
+import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
@@ -134,20 +135,14 @@ public interface ServerProtocol extends VersionedRemoteResource {
      *
      * @param peer peer
      * @param clusterNodeInfo the cluster information
-     * @param remoteInputHost the remote input host
-     * @param remoteInputPort the remote input port
-     * @param remoteInputHttpPort the remote input http port
-     * @param isSiteToSiteSecure whether site to site is secure
+     * @param self the node which received the request
      *
      * @throws java.io.IOException ioe
      */
     void sendPeerList(
             Peer peer,
             Optional<ClusterNodeInformation> clusterNodeInfo,
-            String remoteInputHost,
-            Integer remoteInputPort,
-            Integer remoteInputHttpPort,
-            boolean isSiteToSiteSecure) throws IOException;
+            NodeInformation self) throws IOException;
 
     void shutdown(Peer peer);
 

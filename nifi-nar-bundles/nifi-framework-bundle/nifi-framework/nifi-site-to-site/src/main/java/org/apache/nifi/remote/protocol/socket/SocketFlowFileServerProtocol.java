@@ -19,7 +19,6 @@ package org.apache.nifi.remote.protocol.socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -155,10 +154,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     public void sendPeerList(
             final Peer peer,
             final Optional<ClusterNodeInformation> clusterNodeInfo,
-            final String remoteInputHost,
-        final Integer remoteInputPort,
-        final Integer remoteInputHttpPort,
-            final boolean isSiteToSiteSecure) throws IOException {
+            final NodeInformation self) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
@@ -170,18 +166,12 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
-        String remoteInputHostVal = remoteInputHost;
-        if (remoteInputHostVal == null) {
-            remoteInputHostVal = InetAddress.getLocalHost().getHostName();
-        }
         logger.debug("{} Advertising Remote Input host name {}", this, peer);
 
         List<NodeInformation> nodeInfos;
         if (clusterNodeInfo.isPresent()) {
             nodeInfos = new ArrayList<>(clusterNodeInfo.get().getNodeInformation());
         } else {
-            final NodeInformation self = new NodeInformation(remoteInputHostVal, remoteInputPort, remoteInputHttpPort, remoteInputHttpPort,
-                isSiteToSiteSecure, 0);
             nodeInfos = Collections.singletonList(self);
         }
 

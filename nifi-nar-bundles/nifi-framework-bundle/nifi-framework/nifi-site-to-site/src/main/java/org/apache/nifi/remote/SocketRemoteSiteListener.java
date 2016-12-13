@@ -18,7 +18,11 @@ package org.apache.nifi.remote;
 
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.cluster.NodeInformant;
+import org.apache.nifi.remote.cluster.NodeInformation;
+import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NotAuthorizedException;
+import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
@@ -257,33 +261,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                             }
                                         }
 
-                                        LOG.debug("Request type from {} is {}", protocol, requestType);
-                                        switch (requestType) {
-                                            case NEGOTIATE_FLOWFILE_CODEC:
-                                                protocol.negotiateCodec(peer);
-                                                break;
-                                            case RECEIVE_FLOWFILES:
-                                                // peer wants to receive FlowFiles, so we will transfer FlowFiles.
-                                                protocol.getPort().transferFlowFiles(peer, protocol);
-                                                break;
-                                            case SEND_FLOWFILES:
-                                                // Peer wants to send FlowFiles, so we will receive.
-                                                protocol.getPort().receiveFlowFiles(peer, protocol);
-                                                break;
-                                            case REQUEST_PEER_LIST:
-                                                final Optional<ClusterNodeInformation> nodeInfo = (nodeInformant == null) ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation());
-                                                protocol.sendPeerList(
-                                                        peer,
-                                                        nodeInfo,
-                                                        nifiProperties.getRemoteInputHost(),
-                                                        nifiProperties.getRemoteInputPort(),
-                                                        nifiProperties.getRemoteInputHttpPort(),
-                                                        nifiProperties.isSiteToSiteSecure());
-                                                break;
-                                            case SHUTDOWN:
-                                                protocol.shutdown(peer);
-                                                break;
-                                        }
+                                        handleRequest(protocol, peer, requestType);
                                     }
                                     LOG.debug("Finished communicating with {} ({})", peer, protocol);
                                 } catch (final Exception e) {
@@ -331,6 +309,44 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         });
         listenerThread.setName("Site-to-Site Listener");
         listenerThread.start();
+    }
+
+    private void handleRequest(final ServerProtocol protocol, final Peer peer, final RequestType requestType)
+            throws IOException, NotAuthorizedException, BadRequestException, RequestExpiredException {
+        LOG.debug("Request type from {} is {}", protocol, requestType);
+        switch (requestType) {
+            case NEGOTIATE_FLOWFILE_CODEC:
+                protocol.negotiateCodec(peer);
+                break;
+            case RECEIVE_FLOWFILES:
+                // peer wants to receive FlowFiles, so we will transfer FlowFiles.
+                protocol.getPort().transferFlowFiles(peer, protocol);
+                break;
+            case SEND_FLOWFILES:
+                // Peer wants to send FlowFiles, so we will receive.
+                protocol.getPort().receiveFlowFiles(peer, protocol);
+                break;
+            case REQUEST_PEER_LIST:
+                final Optional<ClusterNodeInformation> nodeInfo = (nodeInformant == null) ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation());
+
+                String remoteInputHostVal = nifiProperties.getRemoteInputHost();
+                if (remoteInputHostVal == null) {
+                    remoteInputHostVal = InetAddress.getLocalHost().getHostName();
+                }
+                final Boolean isSiteToSiteSecure = nifiProperties.isSiteToSiteSecure();
+                final Integer apiPort = isSiteToSiteSecure ? nifiProperties.getSslPort() : nifiProperties.getPort();
+                final NodeInformation self = new NodeInformation(remoteInputHostVal,
+                        nifiProperties.getRemoteInputPort(),
+                        nifiProperties.getRemoteInputHttpPort(),
+                        apiPort != null ? apiPort : 0, // Avoid potential NullPointerException.
+                        isSiteToSiteSecure, 0); // TotalFlowFiles doesn't matter if it's a standalone NiFi.
+
+                protocol.sendPeerList(peer, nodeInfo, self);
+                break;
+            case SHUTDOWN:
+                protocol.shutdown(peer);
+                break;
+        }
     }
 
     private int getPort() {
