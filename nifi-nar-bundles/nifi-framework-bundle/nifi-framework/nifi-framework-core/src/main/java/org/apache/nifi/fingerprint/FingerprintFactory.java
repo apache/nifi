@@ -70,11 +70,16 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 /**
- * Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
+ * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
  *
- * Only items in the flow.xml that influence the processing of data are incorporated into the fingerprint. Examples of items involved in the fingerprint are: processor IDs, processor relationships,
- * and processor properties. Examples of items not involved in the fingerprint are: items in the processor "settings" or "comments" tabs, position information, flow controller settings, and counters.
+ * <p>Only items in the flow.xml that influence the processing of data are incorporated into the fingerprint.
+ * Examples of items involved in the fingerprint are: processor IDs, processor relationships, and processor properties.
+ * Examples of items not involved in the fingerprint are: items in the processor "comments" tabs, position information, flow controller settings, and counters.
  *
+ * <p>The determination for making items into the fingerprint is whether we can
+ * easily change the setting in order to inherit the cluster's flow.
+ * For example, if the component has to be stopped to apply the change and started again,
+ * then the item should be included in a fingerprint.
  */
 public class FingerprintFactory {
 
@@ -677,9 +682,16 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final Element remoteProcessGroupElem) throws FingerprintException {
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteProcessGroupElem, "id"));
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteProcessGroupElem, "url"));
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteProcessGroupElem, "networkInterface"));
+
+        for (String tagName : new String[]{"id", "urls", "networkInterface", "timeout", "yieldPeriod",
+                "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
+            final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
+            if (isEncrypted(value)) {
+                builder.append(decrypt(value));
+            } else {
+                builder.append(value);
+            }
+        }
 
         final NodeList inputPortList = DomUtils.getChildNodesByTagName(remoteProcessGroupElem, "inputPort");
         final NodeList outputPortList = DomUtils.getChildNodesByTagName(remoteProcessGroupElem, "outputPort");
@@ -753,8 +765,20 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final RemoteProcessGroupDTO remoteGroup) {
-        builder.append(remoteGroup.getId());
-        builder.append(remoteGroup.getTargetUri());
+        for (Object value : new Object[]{
+                remoteGroup.getId(),
+                remoteGroup.getTargetUris(),
+                remoteGroup.getLocalNetworkInterface(),
+                remoteGroup.getCommunicationsTimeout(),
+                remoteGroup.getYieldDuration(),
+                remoteGroup.getTransportProtocol(),
+                remoteGroup.getProxyHost(),
+                remoteGroup.getProxyPort(),
+                remoteGroup.getProxyUser(),
+                remoteGroup.getProxyPassword()
+        }) {
+            builder.append(value != null ? value : NO_VALUE);
+        }
 
         final Comparator<RemoteProcessGroupPortDTO> comparator = new Comparator<RemoteProcessGroupPortDTO>() {
             @Override
@@ -821,7 +845,7 @@ public class FingerprintFactory {
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");
         final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getConnectionRelationshipsComparator());
         for (final Element relationshipElem : sortedRelationshipElems) {
-            builder.append(getValue(relationshipElem, "NO_VALUE"));
+            builder.append(getValue(relationshipElem, NO_VALUE));
         }
 
         return builder;
