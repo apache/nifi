@@ -426,6 +426,7 @@ public class GetTCP extends AbstractProcessor {
         private final int connectionTimeout;
         private final int maxConnectionAttemptCount;
 
+
         SocketRecveiverThread(final String host, final int port, final String backupServer, final boolean keepAlive,
                               final int rcvBufferSize,
                               final int connectionTimeout,
@@ -599,6 +600,7 @@ public class GetTCP extends AbstractProcessor {
                             log.debug("Read {} from socket", new Object[]{nBytes});
                             buf.flip();
                             CharsetDecoder decoder = charset.newDecoder();
+
                             try {
                                 CharBuffer charBuffer = decoder.decode(buf);
 
@@ -611,8 +613,8 @@ public class GetTCP extends AbstractProcessor {
                                 socketMessagesReceived.offer(charBuffer.toString());
                                 buf.flip();
                                 buf.clear();
-                            }catch(MalformedInputException ex){
-                                log.error("Caught MalformedInputException trying to decode bytes from socket.",ex);
+                            } catch (MalformedInputException ex) {
+                                log.error("Caught MalformedInputException trying to decode bytes from socket.", ex);
                             }
                         }
                     }
