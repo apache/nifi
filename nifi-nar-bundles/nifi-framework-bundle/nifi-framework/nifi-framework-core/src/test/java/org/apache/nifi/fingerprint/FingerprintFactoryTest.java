@@ -20,11 +20,22 @@ import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.ErrorHandler;
@@ -37,15 +48,22 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+
 /**
  */
 public class FingerprintFactoryTest {
 
+    private NiFiProperties nifiProperties;
+    private StringEncryptor encryptor;
     private FingerprintFactory fingerprinter;
 
     @Before
     public void setup() {
-        fingerprinter = new FingerprintFactory(null);
+        nifiProperties = getNiFiProperties();
+        encryptor = StringEncryptor.createEncryptor(nifiProperties);
+        fingerprinter = new FingerprintFactory(encryptor);
     }
 
     @Test
@@ -113,4 +131,113 @@ public class FingerprintFactoryTest {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
     }
+
+    private <T> Element serializeElement(final StringEncryptor encryptor, final Class<T> componentClass, final T component,
+                                         final String serializerMethodName) throws Exception {
+
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        final Document doc = docBuilder.newDocument();
+
+        final FlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
+        final Method serializeMethod = StandardFlowSerializer.class.getDeclaredMethod(serializerMethodName,
+                Element.class, componentClass);
+        serializeMethod.setAccessible(true);
+        final Element rootElement = doc.createElement("root");
+        serializeMethod.invoke(flowSerializer, rootElement, component);
+        return rootElement;
+    }
+
+    private NiFiProperties getNiFiProperties() {
+        final NiFiProperties nifiProperties = mock(NiFiProperties.class);
+        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_ALGORITHM)).thenReturn("PBEWITHMD5AND256BITAES-CBC-OPENSSL");
+        when(nifiProperties.getProperty(StringEncryptor.NF_SENSITIVE_PROPS_PROVIDER)).thenReturn("BC");
+        when(nifiProperties.getProperty(anyString(), anyString())).then(invocation -> invocation.getArgumentAt(1, String.class));
+        return nifiProperties;
+    }
+
+    private <T> String fingerprint(final String methodName, final Class<T> inputClass, final T input) throws Exception {
+        final Method fingerprintFromComponent = FingerprintFactory.class.getDeclaredMethod(methodName,
+                StringBuilder.class, inputClass);
+        fingerprintFromComponent.setAccessible(true);
+
+        final StringBuilder fingerprint = new StringBuilder();
+        fingerprintFromComponent.invoke(fingerprinter, fingerprint, input);
+        return fingerprint.toString();
+    }
+
+    @Test
+    public void testRemoteProcessGroupFingerprintRaw() throws Exception {
+
+        // Fill out every configuration.
+        final RemoteProcessGroup component = mock(RemoteProcessGroup.class);
+        when(component.getName()).thenReturn("name");
+        when(component.getIdentifier()).thenReturn("id");
+        when(component.getPosition()).thenReturn(new Position(10.5, 20.3));
+        when(component.getTargetUri()).thenReturn("http://node1:8080/nifi");
+        when(component.getTargetUris()).thenReturn("http://node1:8080/nifi, http://node2:8080/nifi");
+        when(component.getNetworkInterface()).thenReturn("eth0");
+        when(component.getComments()).thenReturn("comment");
+        when(component.getCommunicationsTimeout()).thenReturn("10 sec");
+        when(component.getYieldDuration()).thenReturn("30 sec");
+        when(component.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.RAW);
+        when(component.getProxyHost()).thenReturn(null);
+        when(component.getProxyPort()).thenReturn(null);
+        when(component.getProxyUser()).thenReturn(null);
+        when(component.getProxyPassword()).thenReturn(null);
+
+        // Assert fingerprints with expected one.
+        final String expected = "id" +
+                "http://node1:8080/nifi, http://node2:8080/nifi" +
+                "eth0" +
+                "10 sec" +
+                "30 sec" +
+                "RAW" +
+                "NO_VALUE" +
+                "NO_VALUE" +
+                "NO_VALUE" +
+                "NO_VALUE";
+
+        final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, component, "addRemoteProcessGroup");
+        final Element componentElement = (Element) rootElement.getElementsByTagName("remoteProcessGroup").item(0);
+        assertEquals(expected, fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
+
+    }
+
+    @Test
+    public void testRemoteProcessGroupFingerprintWithProxy() throws Exception {
+
+        // Fill out every configuration.
+        final RemoteProcessGroup component = mock(RemoteProcessGroup.class);
+        when(component.getName()).thenReturn("name");
+        when(component.getIdentifier()).thenReturn("id");
+        when(component.getPosition()).thenReturn(new Position(10.5, 20.3));
+        when(component.getTargetUri()).thenReturn("http://node1:8080/nifi");
+        when(component.getTargetUris()).thenReturn("http://node1:8080/nifi, http://node2:8080/nifi");
+        when(component.getComments()).thenReturn("comment");
+        when(component.getCommunicationsTimeout()).thenReturn("10 sec");
+        when(component.getYieldDuration()).thenReturn("30 sec");
+        when(component.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.HTTP);
+        when(component.getProxyHost()).thenReturn("proxy-host");
+        when(component.getProxyPort()).thenReturn(3128);
+        when(component.getProxyUser()).thenReturn("proxy-user");
+        when(component.getProxyPassword()).thenReturn("proxy-pass");
+
+        // Assert fingerprints with expected one.
+        final String expected = "id" +
+                "http://node1:8080/nifi, http://node2:8080/nifi" +
+                "NO_VALUE" +
+                "10 sec" +
+                "30 sec" +
+                "HTTP" +
+                "proxy-host" +
+                "3128" +
+                "proxy-user" +
+                "proxy-pass";
+
+        final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, component, "addRemoteProcessGroup");
+        final Element componentElement = (Element) rootElement.getElementsByTagName("remoteProcessGroup").item(0);
+        assertEquals(expected.toString(), fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
+    }
+
 }
