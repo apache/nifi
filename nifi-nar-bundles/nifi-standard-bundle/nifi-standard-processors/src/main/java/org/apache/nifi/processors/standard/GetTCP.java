@@ -16,9 +16,9 @@
  */
 
 package org.apache.nifi.processors.standard;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
+
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -52,6 +52,7 @@ import java.nio.channels.UnresolvedAddressException;
 import java.nio.channels.UnsupportedAddressTypeException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -425,17 +426,6 @@ public class GetTCP extends AbstractProcessor {
         private final int connectionTimeout;
         private final int maxConnectionAttemptCount;
 
-
-        protected SocketRecveiverThread() {
-            this.host = "";
-            this.port = 0;
-            this.backupServer = "";
-            this.rcvBufferSize = 0;
-            this.keepAlive = false;
-            this.connectionTimeout = 0;
-            this.maxConnectionAttemptCount = 0;
-        }
-
         SocketRecveiverThread(final String host, final int port, final String backupServer, final boolean keepAlive,
                               final int rcvBufferSize,
                               final int connectionTimeout,
@@ -609,16 +599,21 @@ public class GetTCP extends AbstractProcessor {
                             log.debug("Read {} from socket", new Object[]{nBytes});
                             buf.flip();
                             CharsetDecoder decoder = charset.newDecoder();
-                            CharBuffer charBuffer = decoder.decode(buf);
+                            try {
+                                CharBuffer charBuffer = decoder.decode(buf);
 
-                            if (log.isDebugEnabled()) {
-                                final String message = charBuffer.toString();
-                                log.debug("Received Message: {}", new Object[]{message});
+
+                                if (log.isDebugEnabled()) {
+                                    final String message = charBuffer.toString();
+                                    log.debug("Received Message: {}", new Object[]{message});
+                                }
+
+                                socketMessagesReceived.offer(charBuffer.toString());
+                                buf.flip();
+                                buf.clear();
+                            }catch(MalformedInputException ex){
+                                log.error("Caught MalformedInputException trying to decode bytes from socket.",ex);
                             }
-
-                            socketMessagesReceived.offer(charBuffer.toString());
-                            buf.flip();
-                            buf.clear();
                         }
                     }
                 }
