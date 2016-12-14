@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -146,13 +147,11 @@ public final class SnippetUtils {
         // we are talking only about the DTO objects that make up the snippet. We do not actually modify the Process Group or the
         // Controller Services in our flow themselves!)
         final Set<ControllerServiceDTO> allServicesReferenced = new HashSet<>();
-        final Map<String, Set<ControllerServiceDTO>> servicesByGroup = new HashMap<>();
-        processGroup.findAllProcessGroups().stream()
-            .map(group -> group.getIdentifier())
-            .forEach(id -> servicesByGroup.put(id, new HashSet<>()));
-        servicesByGroup.put(processGroup.getIdentifier(), new HashSet<>());
+        final Map<String, FlowSnippetDTO> contentsByGroup = new HashMap<>();
+        contentsByGroup.put(processGroup.getIdentifier(), snippetDto);
 
         // add any processors
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
         final Set<ProcessorDTO> processors = new LinkedHashSet<>();
         if (!snippet.getProcessors().isEmpty()) {
             for (final String processorId : snippet.getProcessors().keySet()) {
@@ -168,9 +167,9 @@ public final class SnippetUtils {
                         .filter(svc -> allServicesReferenced.add(svc))
                         .forEach(svc -> {
                             final String svcGroupId = svc.getParentGroupId();
-                            final String destinationGroupId = servicesByGroup.containsKey(svcGroupId) ? svcGroupId : processGroup.getIdentifier();
+                            final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : processGroup.getIdentifier();
                             svc.setParentGroupId(destinationGroupId);
-                            servicesByGroup.get(destinationGroupId).add(svc);
+                            controllerServices.add(svc);
                         });
                 }
             }
@@ -248,7 +247,7 @@ public final class SnippetUtils {
                 final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
                 processGroups.add(childGroupDto);
 
-                addControllerServices(childGroup, childGroupDto, allServicesReferenced, servicesByGroup, processGroup.getIdentifier());
+                addControllerServices(childGroup, childGroupDto, allServicesReferenced, contentsByGroup, processGroup.getIdentifier());
             }
         }
 
@@ -264,6 +263,7 @@ public final class SnippetUtils {
             }
         }
 
+
         // Normalize the coordinates based on the locations of the other components
         final List<? extends ComponentDTO> components = new ArrayList<>();
         components.addAll((Set) processors);
@@ -276,6 +276,13 @@ public final class SnippetUtils {
         components.addAll((Set) remoteProcessGroups);
         normalizeCoordinates(components);
 
+        Set<ControllerServiceDTO> updatedControllerServices = snippetDto.getControllerServices();
+        if (updatedControllerServices == null) {
+            updatedControllerServices = new HashSet<>();
+        }
+        updatedControllerServices.addAll(controllerServices);
+        snippetDto.setControllerServices(updatedControllerServices);
+
         snippetDto.setProcessors(processors);
         snippetDto.setConnections(connections);
         snippetDto.setFunnels(funnels);
@@ -285,15 +292,24 @@ public final class SnippetUtils {
         snippetDto.setProcessGroups(processGroups);
         snippetDto.setRemoteProcessGroups(remoteProcessGroups);
 
-        snippetDto.setControllerServices(servicesByGroup.get(processGroup.getIdentifier()));
-
         return snippetDto;
     }
 
+    /**
+     * Finds all Controller Services that are referenced in the given Process Group (and child Process Groups, recursively), and
+     * adds them to the given servicesByGroup map
+     *
+     * @param group the Process Group to start from
+     * @param dto the DTO representation of the Process Group
+     * @param allServicesReferenced a Set of all Controller Service DTO's that have already been referenced; used to dedupe services
+     * @param contentsByGroup a Map of Process Group ID to the Process Group's contents
+     * @param highestGroupId the UUID of the 'highest' process group in the snippet
+     */
     private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto, final Set<ControllerServiceDTO> allServicesReferenced,
-        final Map<String, Set<ControllerServiceDTO>> servicesByGroup, final String highestGroupId) {
+        final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
 
         final FlowSnippetDTO contents = dto.getContents();
+        contentsByGroup.put(dto.getId(), contents);
         if (contents == null) {
             return;
         }
@@ -305,14 +321,20 @@ public final class SnippetUtils {
                 .filter(svc -> allServicesReferenced.add(svc))
                 .forEach(svc -> {
                     final String svcGroupId = svc.getParentGroupId();
-                    final String destinationGroupId = servicesByGroup.containsKey(svcGroupId) ? svcGroupId : highestGroupId;
+                    final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : highestGroupId;
                     svc.setParentGroupId(destinationGroupId);
-                    servicesByGroup.get(destinationGroupId).add(svc);
+                    final FlowSnippetDTO snippetDto = contentsByGroup.get(destinationGroupId);
+                    if (snippetDto != null) {
+                        Set<ControllerServiceDTO> services = snippetDto.getControllerServices();
+                        if (services == null) {
+                            snippetDto.setControllerServices(Collections.singleton(svc));
+                        } else {
+                            services.add(svc);
+                            snippetDto.setControllerServices(services);
+                        }
+                    }
                 });
         }
-
-        final Set<ControllerServiceDTO> controllerServices = servicesByGroup.get(group.getIdentifier());
-        contents.setControllerServices(controllerServices);
 
         // Map child process group ID to the child process group for easy lookup
         final Map<String, ProcessGroupDTO> childGroupMap = contents.getProcessGroups().stream()
@@ -324,7 +346,7 @@ public final class SnippetUtils {
                 continue;
             }
 
-            addControllerServices(childGroup, childDto, allServicesReferenced, servicesByGroup, highestGroupId);
+            addControllerServices(childGroup, childDto, allServicesReferenced, contentsByGroup, highestGroupId);
         }
     }
 
