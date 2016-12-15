@@ -228,7 +228,7 @@ interpreted as literals. For example these two expressions are valid (without th
 One of the most powerful features of the Expression Language is the ability to compare an attribute value against
 some other value. This is used often, for example, to configure how a Processor should route data. The following
 functions are used for performing boolean logic, such as comparing two values.
-Each of these functions returns a value of type Boolean.
+Each of these functions are designed to work on values of type Boolean.
 
 
 [.function]
@@ -480,6 +480,37 @@ ${filename:toLower():equals( ${filename} ):or(
 
 
 
+[.function]
+=== ifElse
+
+*Description*: [.description]#Evaluates the first argument if the Subject evaluates to true, or the second argument
+if the Subject evaluates to false.#
+
+*Subject Type*: [.subject]#Boolean#
+
+*Arguments*:
+
+	- [.argName]#_EvaluateIfTrue_# : [.argDesc]#The value to return if the Subject is true#
+	- [.argName]#_EvaluateIfFalse_# : [.argDesc]#The value to return if the Subject is false#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "filename" attribute has the value "a brand new filename.txt", the "nullFilename" attribute has
+the value null, and the "bool" attribute has the value "true", then the following expressions will provide
+the following results:
+
+
+
+.ifElse Examples
+|===================================================================
+| Expression | Value
+| `${bool:ifElse('a','b')}` | `a`
+| `${literal(true):ifElse('a','b')}` | `a`
+| `${nullFilename:isNull():ifElse('file does not exist', 'located file')}` | `file does not exist`
+| `${nullFilename:ifElse('found', 'not_found')}` | `not_found`
+| `${filename:ifElse('found', 'not_found')}` | `not_found`
+| `${filename:isNull():not():ifElse('found', 'not_found')}` | `found`
+|===================================================================
 
 
 
@@ -961,10 +992,6 @@ Expressions will provide the following results:
 *Examples*: If the attribute "filename" has a value of "a brand new filename.txt" and the attribute
 	"hello" does not exist, then the Expression `${filename:length()}` will return 24. `${hello:length()}`
 	will return 0.
-
-
-
-
 
 
 [[encode]]

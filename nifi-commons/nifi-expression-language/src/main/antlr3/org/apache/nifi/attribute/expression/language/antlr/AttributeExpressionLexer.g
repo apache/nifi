@@ -182,6 +182,7 @@ SUBSTRING	: 'substring';
 REPLACE	: 'replace';
 REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
+IF_ELSE : 'ifElse';
 
 // 4 arg functions
 GET_DELIMITED_FIELD	: 'getDelimitedField';
