@@ -36,8 +36,6 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.dto.PositionDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.ErrorHandler;
@@ -188,20 +186,6 @@ public class FingerprintFactoryTest {
         when(component.getProxyUser()).thenReturn(null);
         when(component.getProxyPassword()).thenReturn(null);
 
-
-        // Create DTO with the same configurations.
-        final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
-        dto.setName(component.getName());
-        dto.setId(component.getIdentifier());
-        dto.setPosition(new PositionDTO(component.getPosition().getX(), component.getPosition().getY()));
-        dto.setTargetUri(component.getTargetUri());
-        dto.setTargetUris(component.getTargetUris());
-        dto.setLocalNetworkInterface(component.getNetworkInterface());
-        dto.setComments(component.getComments());
-        dto.setCommunicationsTimeout(component.getCommunicationsTimeout());
-        dto.setYieldDuration(component.getYieldDuration());
-        dto.setTransportProtocol(component.getTransportProtocol().name());
-
         // Assert fingerprints with expected one.
         final String expected = "id" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
@@ -217,7 +201,6 @@ public class FingerprintFactoryTest {
         final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, component, "addRemoteProcessGroup");
         final Element componentElement = (Element) rootElement.getElementsByTagName("remoteProcessGroup").item(0);
         assertEquals(expected, fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
-        assertEquals(expected, fingerprint("addRemoteProcessGroupFingerprint", RemoteProcessGroupDTO.class, dto));
 
     }
 
@@ -240,23 +223,6 @@ public class FingerprintFactoryTest {
         when(component.getProxyUser()).thenReturn("proxy-user");
         when(component.getProxyPassword()).thenReturn("proxy-pass");
 
-
-        // Create DTO with the same configurations.
-        final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
-        dto.setName(component.getName());
-        dto.setId(component.getIdentifier());
-        dto.setPosition(new PositionDTO(component.getPosition().getX(), component.getPosition().getY()));
-        dto.setTargetUri(component.getTargetUri());
-        dto.setTargetUris(component.getTargetUris());
-        dto.setComments(component.getComments());
-        dto.setCommunicationsTimeout(component.getCommunicationsTimeout());
-        dto.setYieldDuration(component.getYieldDuration());
-        dto.setTransportProtocol(component.getTransportProtocol().name());
-        dto.setProxyHost(component.getProxyHost());
-        dto.setProxyPort(component.getProxyPort());
-        dto.setProxyUser(component.getProxyUser());
-        dto.setProxyPassword(component.getProxyPassword());
-
         // Assert fingerprints with expected one.
         final String expected = "id" +
                 "http://node1:8080/nifi, http://node2:8080/nifi" +
@@ -272,8 +238,6 @@ public class FingerprintFactoryTest {
         final Element rootElement = serializeElement(encryptor, RemoteProcessGroup.class, component, "addRemoteProcessGroup");
         final Element componentElement = (Element) rootElement.getElementsByTagName("remoteProcessGroup").item(0);
         assertEquals(expected.toString(), fingerprint("addRemoteProcessGroupFingerprint", Element.class, componentElement));
-        assertEquals(expected.toString(), fingerprint("addRemoteProcessGroupFingerprint", RemoteProcessGroupDTO.class, dto));
-
     }
 
 }
