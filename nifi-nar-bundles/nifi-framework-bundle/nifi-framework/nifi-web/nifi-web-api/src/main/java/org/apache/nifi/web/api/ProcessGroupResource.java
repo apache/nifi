@@ -89,10 +89,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -100,7 +101,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2044,6 +2044,7 @@ public class ProcessGroupResource extends ApplicationResource {
     )
     public Response uploadTemplate(
             @Context final HttpServletRequest httpServletRequest,
+            @Context final UriInfo uriInfo,
             @ApiParam(
                     value = "The process group id.",
                     required = true
@@ -2079,14 +2080,11 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             // convert request accordingly
-            URI importUri = null;
-            try {
-                importUri = new URI(generateResourceUri("process-groups", groupId, "templates", "import"));
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
+            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+            uriBuilder.segment("process-groups", groupId, "templates", "import");
+            final URI importUri = uriBuilder.build();
 
-            // change content type to JSON for serializing entity
+            // change content type to XML for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 
