@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard.util.crypto;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.standard.EncryptContent;
-import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
+import org.apache.nifi.processors.standard.util.crypto.EncryptProcessorUtils.Encryptor;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
@@ -331,7 +331,7 @@ public class OpenPGPKeyBasedEncryptor implements Encryptor {
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             PGPPublicKey publicKey;
-            final boolean isArmored = EncryptContent.isPGPArmoredAlgorithm(algorithm);
+            final boolean isArmored = EncryptProcessorUtils.isPGPArmoredAlgorithm(algorithm);
 
             try {
                 publicKey = getPublicKey(userId, publicKeyring);

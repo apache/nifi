@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard.util;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.EncryptContent;
+import org.apache.nifi.processors.standard.util.crypto.EncryptProcessorUtils;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
@@ -52,7 +53,7 @@ public class PGPUtil {
         if (StringUtils.isEmpty(algorithm)) {
             throw new IllegalArgumentException("The algorithm must be specified");
         }
-        final boolean isArmored = EncryptContent.isPGPArmoredAlgorithm(algorithm);
+        final boolean isArmored = EncryptProcessorUtils.isPGPArmoredAlgorithm(algorithm);
         OutputStream output = out;
         if (isArmored) {
             output = new ArmoredOutputStream(out);

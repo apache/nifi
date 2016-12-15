@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard.util.crypto;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processors.standard.EncryptContent.Encryptor;
+import org.apache.nifi.processors.standard.util.crypto.EncryptProcessorUtils.Encryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 

@@ -126,13 +126,14 @@ public class TestEncryptAttributes {
 
     }
 
+    //TODO: modify this testcase to match new impl
     @Test
     public void testInvalidAttributeList() {
         logger.info("Testing invalidAttributes");
 
         final TestRunner runner = TestRunners.newTestRunner(new EncryptAttributes());
 
-        runner.setProperty(EncryptAttributes.ATTRIBUTES_TO_ENCRYPT,"val1,val2");
+        runner.setProperty(EncryptAttributes.ATTRS_TO_ENCRYPT,"${anyAttribute(\"path\"):contains(\"target\")}");
         runner.setProperty(EncryptAttributes.MODE, EncryptAttributes.ENCRYPT_MODE);
         runner.setProperty(EncryptAttributes.PASSWORD,"helloworld");
         runner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
