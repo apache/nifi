@@ -963,6 +963,36 @@ Expressions will provide the following results:
 	will return 0.
 
 
+[.function]
+=== ifElse
+
+*Description*: [.description]#Evaluates the first argument if the Subject evaluates to true, or the second argument
+if the Subject evaluates to false.#
+
+*Subject Type*: [.subject]#Boolean#
+
+*Arguments*:
+
+	- [.argName]#_EvaluateIfTrue_# : [.argDesc]#The value to return if the Subject is true#
+	- [.argName]#_EvaluateIfFalse_# : [.argDesc]#The value to return if the Subject is false#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "filename" attribute has the value "a brand new filename.txt", the "nullFilename" attribute has
+the value null, and the "bool" attribute has the value "true", then the following expressions will provide
+the following results:
+
+
+
+.ifElse Examples
+|===================================================================
+| Expression | Value
+| `${filename:ifElse('found', 'not_found')}` | `found`
+| `${nullFilename:ifElse('found', 'not_found')}` | `not_found`
+| `${nullFilename:isNull():ifElse('file does not exist', 'located file')}` | `file does not exist`
+| `${bool:ifElse('a','b')}` | `a`
+| `${literal(true):ifElse('a','b')}` | `a`
+|===================================================================
 
 
 

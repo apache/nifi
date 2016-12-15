@@ -1684,6 +1684,23 @@ public class TestQuery {
           verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
         }
 
+    @Test
+    public void testIfElse() {
+        final Map<String, String> attributes = new HashMap<>();
+        verifyEquals("${attr:isNull():ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "b");
+        attributes.put("attr", "hello");
+        verifyEquals("${attr:isNull():ifElse('a', 'b')}", attributes, "b");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "b");
+        attributes.put("attr", "true");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "a");
+
+        verifyEquals("${attr2:isNull():ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${literal(true):ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${literal(true):ifElse(false, 'b')}", attributes, "false");
+
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         verifyEquals(expression,attributes, null, expectedResult);
     }

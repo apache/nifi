@@ -54,6 +54,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Greate
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.InEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
@@ -126,6 +127,7 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IF_ELSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
@@ -1360,6 +1362,12 @@ public class Query {
                 verifyArgCount(argEvaluators, 1, "jsonPath");
                 return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
+            }
+            case IF_ELSE: {
+                verifyArgCount(argEvaluators, 2, "ifElse");
+                return addToken(new IfElseEvaluator(toBooleanEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "argument to return if true"),
+                        toStringEvaluator(argEvaluators.get(1), "argument to return if false")), "ifElse");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
