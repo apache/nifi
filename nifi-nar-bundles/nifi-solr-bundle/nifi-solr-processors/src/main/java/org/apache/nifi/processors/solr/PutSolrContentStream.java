@@ -18,22 +18,6 @@
  */
 package org.apache.nifi.processors.solr;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -56,6 +40,22 @@ import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.util.ContentStreamBase;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"Apache", "Solr", "Put", "Send"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -125,6 +125,8 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
         descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(BASIC_USERNAME);
+        descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
@@ -206,6 +208,11 @@ public class PutSolrContentStream extends SolrProcessor {
                     request.setParam(COMMIT_WITHIN_PARAM_NAME, commitWithin.toString());
                 }
 
+                // if a username and password were provided then pass them for basic auth
+                if (isBasicAuthEnabled()) {
+                    request.setBasicAuthCredentials(getUsername(), getPassword());
+                }
+
                 try (final BufferedInputStream bufferedIn = new BufferedInputStream(in)) {
                     // add the FlowFile's content on the UpdateRequest
                     request.addContentStream(new ContentStreamBase() {
@@ -248,7 +255,7 @@ public class PutSolrContentStream extends SolrProcessor {
             session.transfer(flowFile, REL_CONNECTION_FAILURE);
         } else {
             StringBuilder transitUri = new StringBuilder("solr://");
-            transitUri.append(context.getProperty(SOLR_LOCATION).getValue());
+            transitUri.append(getSolrLocation());
             if (isSolrCloud) {
                 transitUri.append(":").append(collection);
             }
