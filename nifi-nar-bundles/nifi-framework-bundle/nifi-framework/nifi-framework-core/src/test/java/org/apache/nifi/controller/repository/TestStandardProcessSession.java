@@ -81,6 +81,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Assert;
@@ -1488,10 +1489,81 @@ public class TestStandardProcessSession {
         session.commit();
     }
 
+    @Test
+    public void testNewFlowFileModifiedMultipleTimesHasTransientClaimsOnCommit() {
+        FlowFile flowFile = session.create();
+        for (int i = 0; i < 5; i++) {
+            final byte[] content = String.valueOf(i).getBytes();
+            flowFile = session.write(flowFile, out -> out.write(content));
+        }
+
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        final List<RepositoryRecord> repoUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repoUpdates.size());
+
+        // Should be 4 transient claims because it was written to 5 times. So 4 transient + 1 actual claim.
+        final RepositoryRecord record = repoUpdates.get(0);
+        assertEquals(RepositoryRecordType.CREATE, record.getType());
+        final List<ContentClaim> transientClaims = record.getTransientClaims();
+        assertEquals(4, transientClaims.size());
+    }
+
+
+    @Test
+    public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnCommit() {
+        flowFileQueue.put(new MockFlowFile(1L));
+
+        FlowFile flowFile = session.get();
+        for (int i = 0; i < 5; i++) {
+            final byte[] content = String.valueOf(i).getBytes();
+            flowFile = session.write(flowFile, out -> out.write(content));
+        }
+
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.commit();
+
+        final List<RepositoryRecord> repoUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repoUpdates.size());
+
+        // Should be 4 transient claims because it was written to 5 times. So 4 transient + 1 actual claim.
+        final RepositoryRecord record = repoUpdates.get(0);
+        assertEquals(RepositoryRecordType.UPDATE, record.getType());
+        final List<ContentClaim> transientClaims = record.getTransientClaims();
+        assertEquals(4, transientClaims.size());
+    }
+
+
+    @Test
+    public void testUpdateFlowFileModifiedMultipleTimesHasTransientClaimsOnRollback() {
+        flowFileQueue.put(new MockFlowFile(1L));
+
+        FlowFile flowFile = session.get();
+        for (int i = 0; i < 5; i++) {
+            final byte[] content = String.valueOf(i).getBytes();
+            flowFile = session.write(flowFile, out -> out.write(content));
+        }
+
+        session.rollback();
+
+        final List<RepositoryRecord> repoUpdates = flowFileRepo.getUpdates();
+        assertEquals(1, repoUpdates.size());
+
+        // Should be 5 transient claims because it was written to 5 times and then rolled back so all
+        // content claims are 'transient'.
+        final RepositoryRecord record = repoUpdates.get(0);
+        assertEquals(RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS, record.getType());
+        final List<ContentClaim> transientClaims = record.getTransientClaims();
+        assertEquals(5, transientClaims.size());
+    }
+
+
     private static class MockFlowFileRepository implements FlowFileRepository {
 
         private boolean failOnUpdate = false;
         private final AtomicLong idGenerator = new AtomicLong(0L);
+        private final List<RepositoryRecord> updates = new ArrayList<>();
 
         public void setFailOnUpdate(final boolean fail) {
             this.failOnUpdate = fail;
@@ -1516,6 +1588,11 @@ public class TestStandardProcessSession {
             if (failOnUpdate) {
                 throw new IOException("FlowFile Repository told to fail on update for unit test");
             }
+            updates.addAll(records);
+        }
+
+        public List<RepositoryRecord> getUpdates() {
+            return updates;
         }
 
         @Override
