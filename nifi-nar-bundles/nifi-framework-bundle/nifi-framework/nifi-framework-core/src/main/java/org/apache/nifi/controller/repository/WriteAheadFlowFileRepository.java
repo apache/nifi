@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -201,13 +203,24 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
         for (final RepositoryRecord record : records) {
-            if (record.getType() != RepositoryRecordType.DELETE && record.getType() != RepositoryRecordType.CONTENTMISSING && record.getDestination() == null) {
+            if (record.getType() != RepositoryRecordType.DELETE && record.getType() != RepositoryRecordType.CONTENTMISSING
+                && record.getType() != RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS && record.getDestination() == null) {
                 throw new IllegalArgumentException("Record " + record + " has no destination and Type is " + record.getType());
             }
         }
 
+        // Partition records by whether or not their type is 'CLEANUP_TRANSIENT_CLAIMS'. We do this because we don't want to send
+        // these types of records to the Write-Ahead Log.
+        final Map<Boolean, List<RepositoryRecord>> partitionedRecords = records.stream()
+            .collect(Collectors.partitioningBy(record -> record.getType() == RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS));
+
+        List<RepositoryRecord> recordsForWal = partitionedRecords.get(Boolean.FALSE);
+        if (recordsForWal == null) {
+            recordsForWal = Collections.emptyList();
+        }
+
         // update the repository.
-        final int partitionIndex = wal.update(records, sync);
+        final int partitionIndex = wal.update(recordsForWal, sync);
 
         // The below code is not entirely thread-safe, but we are OK with that because the results aren't really harmful.
         // Specifically, if two different threads call updateRepository with DELETE records for the same Content Claim,

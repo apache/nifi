@@ -47,13 +47,13 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -967,6 +967,23 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 context.getFlowFileRepository().updateRepository(abortedRecords);
             } catch (final IOException ioe) {
                 LOG.error("Unable to update FlowFile repository for aborted records due to {}", ioe.toString());
+                if (LOG.isDebugEnabled()) {
+                    LOG.error("", ioe);
+                }
+            }
+        }
+
+        // If we have transient claims that need to be cleaned up, do so.
+        final List<ContentClaim> transientClaims = recordsToHandle.stream()
+            .flatMap(record -> record.getTransientClaims().stream())
+            .collect(Collectors.toList());
+
+        if (!transientClaims.isEmpty()) {
+            final RepositoryRecord repoRecord = new TransientClaimRepositoryRecord(transientClaims);
+            try {
+                context.getFlowFileRepository().updateRepository(Collections.singletonList(repoRecord));
+            } catch (final IOException ioe) {
+                LOG.error("Unable to update FlowFile repository to cleanup transient claims due to {}", ioe.toString());
                 if (LOG.isDebugEnabled()) {
                     LOG.error("", ioe);
                 }
