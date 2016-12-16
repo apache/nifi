@@ -60,6 +60,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
@@ -143,6 +144,8 @@ public class GetSolr extends SolrProcessor {
         descriptors.add(DATE_FIELD);
         descriptors.add(BATCH_SIZE);
         descriptors.add(JAAS_CLIENT_APP_NAME);
+        descriptors.add(BASIC_USERNAME);
+        descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(SOLR_SOCKET_TIMEOUT);
         descriptors.add(SOLR_CONNECTION_TIMEOUT);
@@ -226,9 +229,14 @@ public class GetSolr extends SolrProcessor {
         }
 
         try {
+            final QueryRequest req = new QueryRequest(solrQuery);
+            if (isBasicAuthEnabled()) {
+                req.setBasicAuthCredentials(getUsername(), getPassword());
+            }
+
             // run the initial query and send out the first page of results
             final StopWatch stopWatch = new StopWatch(true);
-            QueryResponse response = getSolrClient().query(solrQuery);
+            QueryResponse response = req.process(getSolrClient());
             stopWatch.stop();
 
             long duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
@@ -244,7 +252,7 @@ public class GetSolr extends SolrProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
 
                 StringBuilder transitUri = new StringBuilder("solr://");
-                transitUri.append(context.getProperty(SOLR_LOCATION).getValue());
+                transitUri.append(getSolrLocation());
                 if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
                     transitUri.append("/").append(context.getProperty(COLLECTION).getValue());
                 }
