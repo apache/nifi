@@ -1375,7 +1375,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.11.8</version>
+                <version>1.11.68</version>
             </dependency>
             <!-- Ranger dependencies, only included when using -Pinclude-ranger -->
             <dependency>
