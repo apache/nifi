@@ -1583,7 +1583,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileHandlingException("Specified offset of " + offset + " and size " + size + " exceeds size of " + example.toString());
         }
 
-        final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
+        final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec, true);
         builder.id(context.getNextFlowFileSequence());
         builder.contentClaimOffset(currRec.getContentClaimOffset() + offset);
         builder.size(size);
