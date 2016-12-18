@@ -257,6 +257,40 @@ public class StreamDemarcatorTest {
     }
 
     @Test
+    public void testOnBufferCorners() throws IOException {
+        byte[] inputData = "YesDEMARCATORNo".getBytes(StandardCharsets.UTF_8);
+        final int[] initialLengths = new int[] {1, 2, 12, 13, 14, 15, 16, 25};
+
+        for (final int initialBufferLength : initialLengths) {
+            ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+            StreamDemarcator scanner = new StreamDemarcator(is, "DEMARCATOR".getBytes(), 1000, initialBufferLength);
+
+            final byte[] first = scanner.nextToken();
+            final byte[] second = scanner.nextToken();
+            assertNotNull(first);
+            assertNotNull(second);
+
+            assertArrayEquals(new byte[] {'Y', 'e', 's'}, first);
+            assertArrayEquals(new byte[] {'N', 'o'}, second);
+        }
+
+        inputData = "NoDEMARCATORYes".getBytes(StandardCharsets.UTF_8);
+        for (final int initialBufferLength : initialLengths) {
+            ByteArrayInputStream is = new ByteArrayInputStream(inputData);
+            StreamDemarcator scanner = new StreamDemarcator(is, "DEMARCATOR".getBytes(), 1000, initialBufferLength);
+
+            final byte[] first = scanner.nextToken();
+            final byte[] second = scanner.nextToken();
+            assertNotNull(first);
+            assertNotNull(second);
+
+            assertArrayEquals(new byte[] {'N', 'o'}, first);
+            assertArrayEquals(new byte[] {'Y', 'e', 's'}, second);
+        }
+    }
+
+
+    @Test
     public void testOnBufferSplit() throws IOException {
         final byte[] inputData = "123\n456\n789".getBytes(StandardCharsets.UTF_8);
         ByteArrayInputStream is = new ByteArrayInputStream(inputData);

@@ -160,6 +160,12 @@ public class ConnectableProcessContext implements ProcessContext {
             public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
                 return null;
             }
+
+            @Override
+            public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator, Map<String, String> stateValues)
+                    throws ProcessException {
+                return null;
+            }
         };
     }
 

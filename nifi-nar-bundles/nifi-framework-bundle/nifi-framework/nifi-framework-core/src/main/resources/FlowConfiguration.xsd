@@ -196,10 +196,16 @@
             <xs:element name="position" type="PositionType" />
             <xs:element name="comment" type="xs:string" />
             <xs:element name="url" type="xs:anyURI" />
+            <xs:element name="urls" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="timeout" type="xs:string" />
             <xs:element name="yieldPeriod" type="TimePeriod" minOccurs="0" maxOccurs="1" />
             <xs:element name="transmitting" type="xs:boolean" />
-            
+            <xs:element name="transportProtocol" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="proxyHost" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="proxyPort" type="xs:int" minOccurs="0" maxOccurs="1" />
+            <xs:element name="proxyUser" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="proxyPassword" type="xs:string" minOccurs="0" maxOccurs="1" />
+
             <!-- The input ports and output ports of the remote group may change without our knowledge; however,
             they are persisted here because on a restart of NiFi, we need to have the Input & Output Ports' IDs
             and associated names persisted so that we can attempt to connect to these ports -->
