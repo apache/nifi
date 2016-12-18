@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -98,19 +99,19 @@ public class EncryptAttributes extends AbstractProcessor {
 
     public static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
     public static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
-    private static final String ALL_ATTR = "all-attributes";
-    private static final String CORE_ATTR = "core-attributes";
-    private static final String ALL_EXCEPT_CORE_ATTR = "all-except-core-attributes";
-    private static final String CUSTOM_ATTR = "custom-attributes";
+    public static final String ALL_ATTR = "All Attributes";
+    public static final String CORE_ATTR = "Core Attributes";
+    public static final String ALL_EXCEPT_CORE_ATTR = "All Except Core Attributes";
+    public static final String CUSTOM_ATTR = "Custom Attributes";
 
-    private static final AllowableValue ALL_ATTR_ALLOWABLE_VALUE = new AllowableValue(ALL_ATTR, "All Attributes",
+    private static final AllowableValue ALL_ATTR_ALLOWABLE_VALUE = new AllowableValue(ALL_ATTR, ALL_ATTR,
             "All attributes will be considered for encryption/decryption. Note: \'uuid\' attribute will be ignored. " +
                     "If using PGP algo for encryption/decryption then \'filename\' will be ignored");
-    private static final AllowableValue CORE_ATTR_ALLOWABLE_VALUE = new AllowableValue(CORE_ATTR, "Core Attributes",
+    private static final AllowableValue CORE_ATTR_ALLOWABLE_VALUE = new AllowableValue(CORE_ATTR, CORE_ATTR,
             "Core attributes will be considered for encryption/decryption. Note: \'uuid\' attribute will be ignored.");
     private static final AllowableValue ALL_EXCEPT_CORE_ATTR_ALLOWABLE_VALUE = new AllowableValue(ALL_EXCEPT_CORE_ATTR,
-            "All Attributes", "All attributes except core attributes will be considered for encryption/decryption.");
-    private static final AllowableValue CUSTOM_ATTR_ALLOWABLE_VALUE = new AllowableValue(CUSTOM_ATTR, "Custom Attributes",
+            CORE_ATTR, "All attributes except core attributes will be considered for encryption/decryption.");
+    private static final AllowableValue CUSTOM_ATTR_ALLOWABLE_VALUE = new AllowableValue(CUSTOM_ATTR, CUSTOM_ATTR,
             "Custom filters can applied on attribute list via providing RegEx in provied property or can add " +
                     "Custom Expression Language conditions which will consider only those attributes to which it evaluates " +
                     "to true. Note: \'uuid\' ignored and if using PGP encryption/decryption the \'filename\' will also be ignored");
@@ -123,7 +124,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .required(true)
             .allowableValues(ALL_EXCEPT_CORE_ATTR_ALLOWABLE_VALUE, ALL_ATTR_ALLOWABLE_VALUE, CORE_ATTR_ALLOWABLE_VALUE,
                     CUSTOM_ATTR_ALLOWABLE_VALUE)
-            .defaultValue(ALL_ATTR)
+            .defaultValue(ALL_ATTR_ALLOWABLE_VALUE.getValue())
             .build();
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("mode")
@@ -139,7 +140,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .description("Specifies the key derivation function to generate the key from the password (and salt)")
             .required(true)
             .allowableValues(EncryptProcessorUtils.buildKeyDerivationFunctionAllowableValues())
-            .defaultValue(KeyDerivationFunction.BCRYPT.name())
+            .defaultValue(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name())
             .build();
     public static final PropertyDescriptor ENCRYPTION_ALGORITHM = new PropertyDescriptor.Builder()
             .name("encryption-algorithm")
@@ -223,7 +224,7 @@ public class EncryptAttributes extends AbstractProcessor {
 
     private Set<Relationship> relationships;
 
-    private volatile Map<PropertyDescriptor, PropertyValue> propMap = new HashMap<>();
+    private volatile Map<String, PropertyValue> propMap = new HashMap<>();
 
     static {
         // add BouncyCastle encryption providers
@@ -353,7 +354,7 @@ public class EncryptAttributes extends AbstractProcessor {
     }
 
     private Set<String> getAttrToEncrypt(FlowFile flowFile, PropertyValue attrsToEncryptProp,
-                                         PropertyValue attrSelectRegEx, String algorithm) {
+                                         PropertyValue attrSelectRegEx, String algorithm, boolean encrypt) {
         String attrsToEncryptPropVal = attrsToEncryptProp.getValue();
         String regex = attrSelectRegEx.getValue();
         Set<String> flowFileAttrs = flowFile.getAttributes().keySet();
@@ -390,23 +391,31 @@ public class EncryptAttributes extends AbstractProcessor {
                 }
             }
 
-            //TODO: please improve. You can do better then this.
             //check if property-key is present in attrsToEncrypt and if expression-lang condition
             //return true then encrypt/decrypt it.
             if (!propMap.isEmpty()) {
-                for (final PropertyDescriptor prop : propMap.keySet()) {
-                    if (attrsToEncrypt.contains(prop.getName())) {
-                        boolean matches = propMap.get(prop).evaluateAttributeExpressions(flowFile).asBoolean();
-                        if (!matches)
-                            attrsToEncrypt.remove(prop.getName());
+                HashSet<String> attrsToEncryptClone = new HashSet<>(attrsToEncrypt);
+                for(String attr: attrsToEncryptClone) {
+                    if (propMap.containsKey(attr)) {
+                        boolean matches = propMap.get(attr).evaluateAttributeExpressions(flowFile).asBoolean();
+                        if (!matches){
+                            attrsToEncrypt.remove(attr);
+                            getLogger().warn("{} expression-language expression evaluates to false",
+                                    new Object[]{propMap.get(attr).getValue()});
+                        }
+                    } else {
+                        attrsToEncrypt.remove(attr);
                     }
                 }
+
             }
         }
 
         attrsToEncrypt.remove(CoreAttributes.UUID.key());
         if (EncryptProcessorUtils.isPGPAlgorithm(algorithm)) {
             attrsToEncrypt.remove(CoreAttributes.FILENAME.key());
+            getLogger().info("Removing filename from {}cryption because of {} algorithm",
+                    new Object[]{(encrypt)?"en":"de", algorithm});
         }
         return attrsToEncrypt;
     }
@@ -417,12 +426,14 @@ public class EncryptAttributes extends AbstractProcessor {
 
         Map<String, String> oldAttrs = flowFile.getAttributes();
         Map<String, String> newAttrs = new HashMap<>();
-        Set<String> attrToEncrypt = getAttrToEncrypt(flowFile, attrList, attrSelectRegex, algorithm);
+        Set<String> attrToEncrypt = getAttrToEncrypt(flowFile, attrList, attrSelectRegex, algorithm, encrypt);
 
         for (String attr : attrToEncrypt) {
             String attrVal = oldAttrs.get(attr);
             String encryptedVal = (encrypt) ? performEncryption(attrVal, encryptor) : performDecryption(attrVal, encryptor);
             newAttrs.put(attr, encryptedVal);
+            getLogger().debug("{}crypted {} from '{}' to '{}'",
+                    new Object[]{(encrypt)?"en":"de", attr, attrVal, encryptedVal});
         }
 
         return newAttrs;
@@ -433,7 +444,7 @@ public class EncryptAttributes extends AbstractProcessor {
         propMap = new HashMap<>();
         for (PropertyDescriptor propDescriptor : context.getProperties().keySet()) {
             if (propDescriptor.isDynamic()) {
-                propMap.put(propDescriptor, context.getProperty(propDescriptor));
+                propMap.put(propDescriptor.getName(), context.getProperty(propDescriptor));
                 getLogger().info("Adding dynamic property: {}", new Object[]{propDescriptor});
             }
         }

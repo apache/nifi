@@ -17,9 +17,11 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processors.standard.util.crypto.EncryptProcessorUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.util.MockFlowFile;
@@ -33,6 +35,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.Security;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class TestEncryptAttributes {
@@ -41,11 +47,7 @@ public class TestEncryptAttributes {
 
     // Initialize some common property values which will be used for setting up processor
     private static final EncryptionMethod[] ENCRYPTION_METHODS = EncryptionMethod.values();
-    final String RAW_HEX_KEY= "abababababababababababababababab";
-    private static final String PRIVATE_KEYRING = "src/test/resources/TestEncryptContent/secring.gpg";
-    private static final String PUBLIC_KEYRING = "src/test/resources/TestEncryptContent/pubring.gpg";
-    private static final String PRIVATE_KEYRING_PASSPHRASE = "PASSWORD";
-    private static final String FILENAME_ATTR_KEY = CoreAttributes.FILENAME.key();
+    private final String RAW_HEX_KEY= "abababababababababababababababab";
     private static final String UUID_ATTR_KEY = CoreAttributes.UUID.key();
 
 
@@ -82,7 +84,7 @@ public class TestEncryptAttributes {
 
             //Enqueue and process it
             testRunner.enqueue(ff);
-            testRunner.clearTransferState();    //TODO:cleanProvenanceState?
+            testRunner.clearTransferState();
             testRunner.run();
             testRunner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
 
@@ -92,9 +94,13 @@ public class TestEncryptAttributes {
 
             //Check for each attributes
             for (String attr : initialAttrs.keySet()) {
-                //Since we are not encrypting filename and uuid
-                if (!attr.equals(FILENAME_ATTR_KEY)
-                        && !attr.equals(UUID_ATTR_KEY)) {
+
+                //For PGP algo filename should not be used
+                if(EncryptProcessorUtils.isPGPAlgorithm(encryptionMethod.name()) && attr.equals(CoreAttributes.FILENAME.key()))
+                    continue;
+
+                //Since we are not encrypting uuid
+                if (!attr.equals(UUID_ATTR_KEY)) {
                     Assert.assertNotEquals("Encryption of " + attr + " was not successful",
                             initialAttrs.get(attr), encryptedAttrs.get(attr));
                 }
@@ -102,9 +108,9 @@ public class TestEncryptAttributes {
 
             //perform decryption
             testRunner.assertQueueEmpty();
+            testRunner.clearTransferState();
             testRunner.setProperty(EncryptAttributes.MODE, EncryptAttributes.DECRYPT_MODE);
             testRunner.enqueue(encryptedAttributesFlowFile);
-            testRunner.clearTransferState();
             testRunner.run();
             testRunner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
 
@@ -113,8 +119,13 @@ public class TestEncryptAttributes {
             final Map<String, String> decryptedAttrs = decryptedAttributesFlowFile.getAttributes();
 
             for (String attr : decryptedAttrs.keySet()) {
-                if (!attr.equals(FILENAME_ATTR_KEY)
-                        && !attr.equals(UUID_ATTR_KEY)) {
+
+                //For PGP algorithm filename should not be used
+                if(EncryptProcessorUtils.isPGPAlgorithm(encryptionMethod.name()) && attr.equals(CoreAttributes.FILENAME.key()))
+                    continue;
+
+                //Don't consider UUID for encryption/decryption
+                if (!attr.equals(UUID_ATTR_KEY)) {
                     Assert.assertNotEquals("Decryption of " + attr + " was not successful", encryptedAttrs.get(attr), decryptedAttrs.get(attr));
                 }
                 Assert.assertEquals("Decryption of " + attr + " was not successful",
@@ -126,37 +137,87 @@ public class TestEncryptAttributes {
 
     }
 
-    //TODO: modify this testcase to match new impl
     @Test
-    public void testInvalidAttributeList() {
-        logger.info("Testing invalidAttributes");
-
+    public void testEncryptWithDifferentAttrOptions() {
         final TestRunner runner = TestRunners.newTestRunner(new EncryptAttributes());
+        HashSet<String> CoreAttrSet = new HashSet<>();
 
-        runner.setProperty(EncryptAttributes.ATTRS_TO_ENCRYPT,"${anyAttribute(\"path\"):contains(\"target\")}");
-        runner.setProperty(EncryptAttributes.MODE, EncryptAttributes.ENCRYPT_MODE);
-        runner.setProperty(EncryptAttributes.PASSWORD,"helloworld");
-        runner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name());
+        final String[] attrSelectOptions = {EncryptAttributes.ALL_ATTR, EncryptAttributes.ALL_EXCEPT_CORE_ATTR,
+            EncryptAttributes.CORE_ATTR, EncryptAttributes.CUSTOM_ATTR};
 
-        //Create session and FlowFile
-        ProcessSession session = runner.getProcessSessionFactory().createSession();
-        FlowFile ff = session.create();
-        Map<String,String> initAttrs = ff.getAttributes();
+        for(CoreAttributes attr: CoreAttributes.values()){
+            CoreAttrSet.add(attr.key());
+        }
 
-        //setup runner
-        runner.assertQueueEmpty();
-        runner.enqueue(ff);
-        runner.clearTransferState();
-        runner.run();
-        runner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
+        for(String attrOption: attrSelectOptions) {
+            logger.info("Testing {}", attrOption);
+            runner.setProperty(EncryptAttributes.ATTRS_TO_ENCRYPT, attrOption);
+            runner.setProperty(EncryptAttributes.MODE, EncryptAttributes.ENCRYPT_MODE);
+            runner.setProperty(EncryptAttributes.PASSWORD, "helloworld");
 
-        //Get FlowFile attributes and check for attributes modification
-        MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(EncryptAttributes.REL_SUCCESS).get(0);
-        Map<String,String> finalAttrs = mockFlowFile.getAttributes();
+            ProcessSession session = runner.getProcessSessionFactory().createSession();
+            FlowFile ff = session.create();
+            ff = session.putAttribute(ff, "attr.1","dummy value");
+            ff = session.putAttribute(ff, "attr.2","dummy Value");
+            Map<String,String> initAttrs = ff.getAttributes();
 
-        //Since the given attributes were not present in FlowFile.
-        Assert.assertTrue(initAttrs.equals(finalAttrs));
+            if (attrOption.equals(EncryptAttributes.CUSTOM_ATTR)) {
+                runner.setProperty(EncryptAttributes.ATTR_SELECT_REG_EX,"attr\\.\\d|filename");
+                runner.setProperty("attr.1","${attr.1:notNull()}");
+                runner.setProperty("filename","${filename:notNull()}");
+            }
 
-        logger.info("Test Complete");
+
+            runner.clearTransferState();
+            runner.assertQueueEmpty();
+            runner.enqueue(ff);
+            runner.run();
+            runner.assertAllFlowFilesTransferred(EncryptAttributes.REL_SUCCESS, 1);
+
+            MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(EncryptAttributes.REL_SUCCESS).get(0);
+            Map<String, String> finalAttrs = mockFlowFile.getAttributes();
+
+            Assert.assertNotEquals("Initial and Final Attribute should not be the same", initAttrs, finalAttrs);
+            Assert.assertEquals("UUID mustn't change",
+                    initAttrs.get(UUID_ATTR_KEY), finalAttrs.get(UUID_ATTR_KEY));
+
+            switch (attrOption) {
+
+                case EncryptAttributes.CORE_ATTR:
+                    for(String attr: initAttrs.keySet()) {
+                        if (!attr.equals(CoreAttributes.UUID.key()) && CoreAttrSet.contains(attr))
+                            Assert.assertNotEquals("Values shouldn't be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                        else
+                            Assert.assertEquals("Values should be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                    }
+                    break;
+
+                case EncryptAttributes.ALL_EXCEPT_CORE_ATTR:
+                    for(String attr: initAttrs.keySet()) {
+                        if (CoreAttrSet.contains(attr))
+                            Assert.assertEquals("Values shouldn't be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                        else
+                            Assert.assertNotEquals("Values should be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                    }
+                    break;
+
+                case EncryptAttributes.CUSTOM_ATTR:
+                    for(String attr:initAttrs.keySet()) {
+                        if (attr.equals("attr.1") || attr.equals("filename"))
+                            Assert.assertNotEquals("Values shouldn't be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                        else
+                            Assert.assertEquals("Values should be same for : " + attr,
+                                    initAttrs.get(attr), finalAttrs.get(attr));
+                    }
+                    break;
+            }
+
+            logger.info("Test completed for {}", attrOption);
+        }
     }
 }
