@@ -281,6 +281,9 @@ nf.Settings = (function () {
             });
             reportingTaskTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-reporting-task-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (reportingTaskTypesData.getLength() > 0) {
                 reportingTaskTypesGrid.setSelectedRows([0]);
@@ -598,7 +601,7 @@ nf.Settings = (function () {
                             var item = reportingTaskTypesGrid.getDataItem(selected[0]);
                             return isSelectable(item) === false;
                         } else {
-                            return false;
+                            return reportingTaskTypesGrid.getData().getLength() === 0;
                         }
                     },
                     handler: {
