@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.standard.util;
+package org.apache.nifi.processors.standard.util.jolt;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -26,17 +26,17 @@ import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
 import com.bazaarvoice.jolt.JoltTransform;
+import com.bazaarvoice.jolt.Modifier;
 import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
 import com.bazaarvoice.jolt.SpecDriven;
-import com.bazaarvoice.jolt.Transform;
 import com.bazaarvoice.jolt.chainr.spec.ChainrEntry;
 import com.bazaarvoice.jolt.exception.SpecException;
 
 public class TransformFactory {
 
-    public static Transform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
+    public static JoltTransform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
 
         if (transformType.equals("jolt-transform-default")) {
             return new Defaultr(specJson);
@@ -48,6 +48,12 @@ public class TransformFactory {
             return new CardinalityTransform(specJson);
         } else if(transformType.equals("jolt-transform-sort")){
             return new Sortr();
+        } else if(transformType.equals("jolt-transform-modify-default")){
+          return new Modifier.Defaultr(specJson);
+        } else if(transformType.equals("jolt-transform-modify-overwrite")){
+            return new Modifier.Overwritr(specJson);
+        } else if(transformType.equals("jolt-transform-modify-define")){
+            return new Modifier.Definr(specJson);
         } else{
             return new Chainr(getChainrJoltTransformations(classLoader,specJson));
         }
@@ -55,13 +61,14 @@ public class TransformFactory {
     }
 
     @SuppressWarnings("unchecked")
-    public static Transform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
+    public static JoltTransform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
         final Class clazz = classLoader.loadClass(customTransformType);
         if(SpecDriven.class.isAssignableFrom(clazz)){
             final Constructor constructor = clazz.getConstructor(Object.class);
-            return (Transform) constructor.newInstance(specJson);
+            return (JoltTransform)constructor.newInstance(specJson);
+
         }else{
-            return (Transform) clazz.newInstance();
+            return (JoltTransform)clazz.newInstance();
         }
     }
 

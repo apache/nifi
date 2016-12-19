@@ -23,16 +23,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.junit.Test;
 
 import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
+import com.bazaarvoice.jolt.JoltTransform;
 import com.bazaarvoice.jolt.JsonUtils;
+import com.bazaarvoice.jolt.Modifier;
 import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
-import com.bazaarvoice.jolt.Transform;
 
 import static org.junit.Assert.assertTrue;
 
@@ -42,42 +44,63 @@ public class TestTransformFactory {
     @Test
     public void testGetChainTransform() throws Exception{
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-chain",JsonUtils.jsonToObject(chainrSpec));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-chain",JsonUtils.jsonToObject(chainrSpec));
         assertTrue(transform instanceof Chainr);
     }
 
     @Test
     public void testGetDefaultTransform() throws Exception{
         final String defaultrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/defaultrSpec.json")));
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-default",JsonUtils.jsonToObject(defaultrSpec));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-default",JsonUtils.jsonToObject(defaultrSpec));
         assertTrue(transform instanceof Defaultr);
     }
 
     @Test
     public void testGetSortTransform() throws Exception{
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-sort",null);
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-sort",null);
         assertTrue(transform instanceof Sortr);
     }
 
     @Test
     public void testGetShiftTransform() throws Exception{
         final String shiftrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/shiftrSpec.json")));
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-shift",JsonUtils.jsonToObject(shiftrSpec));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-shift",JsonUtils.jsonToObject(shiftrSpec));
         assertTrue(transform instanceof Shiftr);
     }
 
     @Test
     public void testGetRemoveTransform() throws Exception{
         final String removrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/removrSpec.json")));
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-remove",JsonUtils.jsonToObject(removrSpec));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-remove",JsonUtils.jsonToObject(removrSpec));
         assertTrue(transform instanceof Removr);
     }
 
     @Test
     public void testGetCardinalityTransform() throws Exception{
         final String cardrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/cardrSpec.json")));
-        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-card",JsonUtils.jsonToObject(cardrSpec));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-card",JsonUtils.jsonToObject(cardrSpec));
         assertTrue(transform instanceof CardinalityTransform);
+    }
+
+    @Test
+    public void testGetModifierDefaultTransform() throws Exception{
+        final String cardrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/modifierDefaultSpec.json")));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-modify-default",JsonUtils.jsonToObject(cardrSpec));
+        assertTrue(transform instanceof Modifier.Defaultr);
+    }
+
+    @Test
+    public void testGetModifierDefineTransform() throws Exception{
+        final String cardrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/modifierDefineSpec.json")));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-modify-define",JsonUtils.jsonToObject(cardrSpec));
+        assertTrue(transform instanceof Modifier.Definr);
+    }
+
+    @Test
+    public void testGetModifierOverwriteTransform() throws Exception{
+        final String cardrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/modifierOverwriteSpec.json")));
+        JoltTransform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-modify-overwrite",JsonUtils.jsonToObject(cardrSpec));
+        assertTrue(transform instanceof Modifier.Overwritr);
     }
 
     @Test
@@ -96,7 +119,7 @@ public class TestTransformFactory {
         URL[] urlPaths = new URL[1];
         urlPaths[0] = jarFilePath.toUri().toURL();
         ClassLoader customClassLoader = new URLClassLoader(urlPaths,this.getClass().getClassLoader());
-        Transform transform = TransformFactory.getCustomTransform(customClassLoader,"TestCustomJoltTransform",JsonUtils.jsonToObject(chainrSpec));
+        JoltTransform transform = TransformFactory.getCustomTransform(customClassLoader,"TestCustomJoltTransform",JsonUtils.jsonToObject(chainrSpec));
         assertTrue(transform != null);
         assertTrue(transform.getClass().getName().equals("TestCustomJoltTransform"));
     }

@@ -113,6 +113,14 @@ public class TestTransformJSONResource extends JerseyTest {
     }
 
     @Test
+    public void testValidateWithValidExpressionLanguageSpec() {
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-remove","{\"rating\": {\"${filename}\": \"\"} }");
+        ValidationDTO validation  = client().resource(getBaseURI()).path("/standard/transformjson/validate").post(ValidationDTO.class, joltSpecificationDTO);
+        TestCase.assertNotNull(validation);
+        assertTrue(validation.isValid());
+    }
+
+    @Test
     public void testValidateWithValidEmptySpec() {
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-sort","");
         ValidationDTO validation  = client().resource(getBaseURI()).path("/standard/transformjson/validate").post(ValidationDTO.class, joltSpecificationDTO);
@@ -229,6 +237,22 @@ public class TestTransformJSONResource extends JerseyTest {
         String responseString = client().resource(getBaseURI()).path("/standard/transformjson/execute").post(String.class, joltSpecificationDTO);
         Object transformedJson = JsonUtils.jsonToObject(responseString);
         Object compareJson = JsonUtils.jsonToObject("{\"rating\":{\"count\":1}}");
+        assertNotNull(transformedJson);
+        assertTrue(diffy.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    public void testExecuteWithValidExpressionLanguageSpec() {
+        final Diffy diffy = new Diffy();
+        JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-shift","{ \"rating\" : {\"quality\": \"${qual_var}\"} }");
+        String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
+        joltSpecificationDTO.setInput(inputJson);
+        Map<String,String> attributes = new HashMap<String,String>();
+        attributes.put("qual_var","qa");
+        joltSpecificationDTO.setExpressionLanguageAttributes(attributes);
+        String responseString = client().resource(getBaseURI()).path("/standard/transformjson/execute").post(String.class, joltSpecificationDTO);
+        Object transformedJson = JsonUtils.jsonToObject(responseString);
+        Object compareJson = JsonUtils.jsonToObject( "{\"qa\":2}}");
         assertNotNull(transformedJson);
         assertTrue(diffy.diff(compareJson, transformedJson).isEmpty());
     }

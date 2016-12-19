@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +26,6 @@ import java.util.Set;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
@@ -118,6 +118,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testCustomTransformationWithNoModule() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/customChainrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
@@ -168,6 +169,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithChainr() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.enqueue(JSON_INPUT);
@@ -184,6 +186,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithShiftr() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/shiftrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.SHIFTR);
@@ -201,6 +204,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithDefaultr() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/defaultrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.DEFAULTR);
@@ -216,6 +220,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithRemovr() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/removrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.REMOVR);
@@ -231,6 +236,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithCardinality() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/cardrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.CARDINALITY);
@@ -246,6 +252,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithSortr() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.SORTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -261,8 +268,74 @@ public class TestJoltTransformJSON {
     }
 
     @Test
+    public void testTransformInputWithDefaultrExpressionLanguage() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/defaultrELSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.DEFAULTR);
+        runner.setVariable("quota","5");
+        runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/defaultrELOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    public void testTransformInputWithModifierDefault() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/modifierDefaultSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.MODIFIER_DEFAULTR);
+        runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/modifierDefaultOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    public void testTransformInputWithModifierDefine() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/modifierDefineSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.MODIFIER_DEFAULTR);
+        runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/modifierDefineOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
+    public void testTransformInputWithModifierOverwrite() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/modifierOverwriteSpec.json")));
+        runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
+        runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.MODIFIER_DEFAULTR);
+        runner.enqueue(JSON_INPUT);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(JoltTransformJSON.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformJSON.REL_SUCCESS).get(0);
+        Object transformedJson = JsonUtils.jsonToObject(new ByteArrayInputStream(transformed.toByteArray()));
+        Object compareJson = JsonUtils.jsonToObject(Files.newInputStream(Paths.get("src/test/resources/TestJoltTransformJson/modifierOverwriteOutput.json")));
+        assertTrue(DIFFY.diff(compareJson, transformedJson).isEmpty());
+    }
+
+    @Test
     public void testTransformInputWithSortrPopulatedSpec() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformJSON.SORTR);
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, "abcd");
         runner.enqueue(JSON_INPUT);
@@ -281,6 +354,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithCustomTransformationWithJar() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
@@ -301,6 +375,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithCustomTransformationWithDir() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String customJarPath = "src/test/resources/TestJoltTransformJson";
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/chainrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
@@ -321,6 +396,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputWithChainrEmbeddedCustomTransformation() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String customJarPath = "src/test/resources/TestJoltTransformJson";
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/customChainrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC,spec);
@@ -339,6 +415,7 @@ public class TestJoltTransformJSON {
     @Test
     public void testTransformInputCustomTransformationIgnored() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoltTransformJSON());
+        runner.setValidateExpressionUsage(false);
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestJoltTransformJson/defaultrSpec.json")));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
