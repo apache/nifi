@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,14 +52,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.apache.nifi.processors.standard.util.TransformFactory;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
-import com.bazaarvoice.jolt.Transform;
+import com.bazaarvoice.jolt.JoltTransform;
 import com.bazaarvoice.jolt.JsonUtils;
 
 @EventDriven
@@ -79,13 +80,16 @@ public class JoltTransformJSON extends AbstractProcessor {
     public static final AllowableValue CARDINALITY = new AllowableValue("jolt-transform-card", "Cardinality", "Change the cardinality of input elements to create the output JSON.");
     public static final AllowableValue SORTR = new AllowableValue("jolt-transform-sort", "Sort", "Sort input json key values alphabetically. Any specification set is ignored.");
     public static final AllowableValue CUSTOMR = new AllowableValue("jolt-transform-custom", "Custom", "Custom Transformation. Requires Custom Transformation Class Name");
+    public static final AllowableValue MODIFIER_DEFAULTR = new AllowableValue("jolt-transform-modify-default", "Modify - Default", "Writes when key is missing or value is null");
+    public static final AllowableValue MODIFIER_OVERWRITER = new AllowableValue("jolt-transform-modify-overwrite", "Modify - Overwrite", " Always overwrite value");
+    public static final AllowableValue MODIFIER_DEFINER = new AllowableValue("jolt-transform-modify-define", "Modify - Define", "Writes when key is missing");
 
     public static final PropertyDescriptor JOLT_TRANSFORM = new PropertyDescriptor.Builder()
             .name("jolt-transform")
             .displayName("Jolt Transformation DSL")
             .description("Specifies the Jolt Transformation that should be used with the provided specification.")
             .required(true)
-            .allowableValues(CARDINALITY, CHAINR, DEFAULTR, REMOVR, SHIFTR, SORTR,CUSTOMR)
+            .allowableValues(CARDINALITY, CHAINR, DEFAULTR, MODIFIER_DEFAULTR, MODIFIER_DEFINER, MODIFIER_OVERWRITER, REMOVR, SHIFTR, SORTR, CUSTOMR)
             .defaultValue(CHAINR.getValue())
             .build();
 
@@ -93,6 +97,7 @@ public class JoltTransformJSON extends AbstractProcessor {
             .name("jolt-spec")
             .displayName("Jolt Specification")
             .description("Jolt Specification for transform of JSON data. This value is ignored if the Jolt Sort Transformation is selected.")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
@@ -126,8 +131,9 @@ public class JoltTransformJSON extends AbstractProcessor {
 
     private final static List<PropertyDescriptor> properties;
     private final static Set<Relationship> relationships;
-    private volatile Transform transform;
     private volatile ClassLoader customClassLoader;
+    private volatile JoltTransform transform;
+    private volatile String specJsonString;
     private final static String DEFAULT_CHARSET = "UTF-8";
 
     static{
@@ -161,13 +167,12 @@ public class JoltTransformJSON extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
         final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
-        final String specValue = validationContext.getProperty(JOLT_SPEC).isSet() ? validationContext.getProperty(JOLT_SPEC).getValue() : null;
         final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
         final String modulePath = validationContext.getProperty(MODULES).isSet()? validationContext.getProperty(MODULES).getValue() : null;
 
-        if(StringUtils.isEmpty(specValue)){
+        if(!validationContext.getProperty(JOLT_SPEC).isSet() || StringUtils.isEmpty(validationContext.getProperty(JOLT_SPEC).getValue())){
             if(!SORTR.getValue().equals(transform)) {
-                String message = "A specification is required for this transformation";
+                final String message = "A specification is required for this transformation";
                 results.add(new ValidationResult.Builder().valid(false)
                         .explanation(message)
                         .build());
@@ -184,21 +189,34 @@ public class JoltTransformJSON extends AbstractProcessor {
                     customClassLoader =  this.getClass().getClassLoader();
                 }
 
-                Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue, DEFAULT_CHARSET);
+                final String specValue =  validationContext.getProperty(JOLT_SPEC).getValue();
+                final String invalidExpressionMsg = validationContext.newExpressionLanguageCompiler().validateExpression(specValue,true);
 
-                if(CUSTOMR.getValue().equals(transform)){
-
-                    if (StringUtils.isEmpty(customTransform)){
-                        final String customMessage = "A custom transformation class should be provided. ";
-                        results.add(new ValidationResult.Builder().valid(false)
-                                .explanation(customMessage)
-                                .build());
-                    }else{
-                        TransformFactory.getCustomTransform(customClassLoader,customTransform, specJson);
-                    }
+                if(validationContext.isExpressionLanguagePresent(specValue) && invalidExpressionMsg != null){
+                    final String customMessage = "The expression language used withing this specification is invalid";
+                    results.add(new ValidationResult.Builder().valid(false)
+                            .explanation(customMessage)
+                            .build());
 
                 }else {
-                    TransformFactory.getTransform(customClassLoader, transform, specJson);
+
+                    //for validation we want to be able to ensure the spec is syntactically correct and not try to resolve variables since they may not exist yet
+                    Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue.replaceAll("\\$\\{}","\\\\\\\\\\$\\{"), DEFAULT_CHARSET);
+
+                    if (CUSTOMR.getValue().equals(transform)) {
+
+                        if (StringUtils.isEmpty(customTransform)) {
+                            final String customMessage = "A custom transformation class should be provided. ";
+                            results.add(new ValidationResult.Builder().valid(false)
+                                    .explanation(customMessage)
+                                    .build());
+                        } else {
+                            TransformFactory.getCustomTransform(customClassLoader, customTransform, specJson);
+                        }
+
+                    } else {
+                        TransformFactory.getTransform(customClassLoader, transform, specJson);
+                    }
                 }
 
             } catch (final Exception e) {
@@ -236,17 +254,44 @@ public class JoltTransformJSON extends AbstractProcessor {
 
         try {
 
+            final String specString;
+
+            if(context.getProperty(JOLT_SPEC).isSet() && !StringUtils.isEmpty(context.getProperty(JOLT_SPEC).getValue())){
+                specString = context.isExpressionLanguagePresent(JOLT_SPEC) ? context.getProperty(JOLT_SPEC).evaluateAttributeExpressions(original).getValue() :
+                             context.getProperty(JOLT_SPEC).getValue();
+            }else{
+                specString = null;
+            }
+
+            if(transform == null || (specString != null && !specJsonString.equals(specString)) || (specString == null && SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue()))){
+
+                specJsonString = specString;
+
+                final Object specJson;
+                if(context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
+                    specJson = JsonUtils.jsonToObject(specJsonString, DEFAULT_CHARSET);
+                }else{
+                    specJson = null;
+                }
+
+                if(CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
+                    transform = TransformFactory.getCustomTransform(customClassLoader,context.getProperty(CUSTOM_CLASS).getValue(), specJson);
+                }else {
+                    transform = TransformFactory.getTransform(customClassLoader, context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+                }
+            }
+
             if(customClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(customClassLoader);
             }
 
             final ByteArrayInputStream bais = new ByteArrayInputStream(originalContent);
             final Object inputJson = JsonUtils.jsonToObject(bais);
-            final Object transformedJson = transform.transform(inputJson);
+            final Object transformedJson = TransformUtils.transform(transform,inputJson);
             jsonString = JsonUtils.toJsonString(transformedJson);
 
-        } catch (RuntimeException re) {
-            logger.error("Unable to transform {} due to {}", new Object[]{original, re});
+        } catch (Exception ex) {
+            logger.error("Unable to transform {} due to {}", new Object[]{original, ex});
             session.transfer(original, REL_FAILURE);
             return;
 
@@ -275,22 +320,10 @@ public class JoltTransformJSON extends AbstractProcessor {
     public void setup(final ProcessContext context) {
 
         try{
-            Object specJson = null;
-
             if(context.getProperty(MODULES).isSet()){
                 customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).getValue(),this.getClass().getClassLoader(),getJarFilenameFilter());
             }else{
                 customClassLoader = this.getClass().getClassLoader();
-            }
-
-            if(context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
-                specJson = JsonUtils.jsonToObject(context.getProperty(JOLT_SPEC).getValue(), DEFAULT_CHARSET);
-            }
-
-            if(CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
-                transform = TransformFactory.getCustomTransform(customClassLoader,context.getProperty(CUSTOM_CLASS).getValue(), specJson);
-            }else {
-                transform = TransformFactory.getTransform(customClassLoader, context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
             }
 
         } catch (Exception ex){

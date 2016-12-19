@@ -24,7 +24,7 @@ language governing permissions and limitations under the License. -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <jersey.version>1.19.1</jersey.version>
-        <jolt.version>0.0.21</jolt.version>
+        <jolt.version>0.1.0</jolt.version>
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
@@ -50,6 +50,10 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-custom-ui-utilities</artifactId>
             <version>1.2.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-expression-language</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

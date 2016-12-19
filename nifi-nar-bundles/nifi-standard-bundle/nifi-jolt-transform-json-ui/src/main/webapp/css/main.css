@@ -29,7 +29,7 @@ div.code-mirror-editor.trans {
 }
 
 .large-label {
-    color: #527991;
+    color: #FFFFFF;
     font-size: 13px;
     font-weight: bold;
     line-height: 19px;
@@ -50,6 +50,26 @@ md-toolbar {
 
 .info {
     font-style: italic;
-    color: rgb(170, 170, 170);
     font-size: 75%;
+}
+
+.md-subheader .md-subheader-inner {
+    padding: 0px;
+}
+
+div.scrollable{
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 200px;
+    border-color: rgba(0,0,0,0.12);
+    border-style: solid;
+    border-width: 1px 0 1px 0;
+}
+
+#addButton {
+    font-size: 60%;
+}
+
+#variableList {
+    word-wrap: break-word;
 }

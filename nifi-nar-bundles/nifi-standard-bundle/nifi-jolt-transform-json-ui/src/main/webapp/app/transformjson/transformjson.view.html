@@ -13,7 +13,7 @@
   limitations under the License.
 -->
 <div layout="column">
-
+    <div layout>&nbsp;&nbsp;&nbsp;</div>
     <div layout="column" layout>
         <md-toolbar>
             <div class="md-toolbar-tools large-label">
@@ -56,11 +56,16 @@
 <div layout="column">
     <div layout="row">
         <div flex></div>
-        <div class="large-label">
+        <div>
             <br/>
-            <span ng-show="error">{{error}}</span>
-            <span ng-show="saveStatus && !error">{{saveStatus}}</span>
-            <span>
+            <span ng-show="error" class="info">{{error}}</span>
+            <span ng-show="saveStatus && !error" class="info">{{saveStatus}}</span>
+            <span class="large-label">
+            <button ng-click="showVariableDialog()">
+   			Add Attributes
+            </button>
+            </span>
+            <span class="large-label">
             <button ng-click="saveSpec(jsonInput,getSpec(transform,jsonSpec),transform,processorId,clientId,revisionId)" ng-disabled="(!jsonSpec && transform != 'jolt-transform-sort') || !editable || !specUpdated">
             Save
             </button>
@@ -114,4 +119,3 @@
     </div>
 
 </div>
-

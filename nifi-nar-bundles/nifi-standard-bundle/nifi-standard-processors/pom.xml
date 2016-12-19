@@ -232,12 +232,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>jolt-core</artifactId>
-            <version>0.0.21</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>json-utils</artifactId>
-            <version>0.0.21</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -349,6 +349,14 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteOutput.json</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
