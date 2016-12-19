@@ -74,6 +74,9 @@ nf.ControllerServices = (function () {
             });
             controllerServiceTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-controller-service-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (controllerServiceTypesData.getLength() > 0) {
                 controllerServiceTypesGrid.setSelectedRows([0]);
@@ -908,7 +911,7 @@ nf.ControllerServices = (function () {
                         var item = grid.getDataItem(selected[0]);
                         return isSelectable(item) === false;
                     } else {
-                        return false;
+                        return grid.getData().getLength() === 0;
                     }
                 },
                 handler: {

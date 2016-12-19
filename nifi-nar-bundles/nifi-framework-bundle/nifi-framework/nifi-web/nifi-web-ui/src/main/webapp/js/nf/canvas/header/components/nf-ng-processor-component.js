@@ -37,6 +37,9 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             });
             processorTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-processor-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (processorTypesData.getLength() > 0) {
                 processorTypesGrid.setSelectedRows([0]);
@@ -593,7 +596,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                         var item = grid.getDataItem(selected[0]);
                         return isSelectable(item) === false;
                     } else {
-                        return false;
+                        return grid.getData().getLength() === 0;
                     }
                 },
                 handler: {
