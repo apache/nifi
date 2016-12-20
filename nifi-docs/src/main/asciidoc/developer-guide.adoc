@@ -866,7 +866,7 @@ hardened rules.
 === Data Ingress
 
 A Processor that ingests data into NiFi has a single Relationship
-names `success`. This Processor generates
+named `success`. This Processor generates
 new FlowFiles via the ProcessSession `create` method and does not pull
 FlowFiles from incoming Connections.
 The Processor name starts with "Get" or "Listen," depending on whether
