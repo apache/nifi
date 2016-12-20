@@ -29,8 +29,6 @@ public class Peer implements Communicant {
     private final CommunicationsSession commsSession;
     private final String url;
     private final String clusterUrl;
-    private final String host;
-    private final int port;
 
     private final Map<String, Long> penaltyExpirationMap = new HashMap<>();
     private boolean closed = false;
@@ -42,9 +40,8 @@ public class Peer implements Communicant {
         this.clusterUrl = clusterUrl;
 
         try {
-            final URI uri = new URI(peerUrl);
-            this.port = uri.getPort();
-            this.host = uri.getHost();
+            // Parse peerUrl to validate it.
+            new URI(peerUrl);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + peerUrl);
         }
@@ -104,7 +101,7 @@ public class Peer implements Communicant {
 
     @Override
     public String getHost() {
-        return host;
+        return description.getHostname();
     }
 
     @Override
@@ -141,7 +138,7 @@ public class Peer implements Communicant {
 
     @Override
     public int getPort() {
-        return port;
+        return description.getPort();
     }
 
     @Override

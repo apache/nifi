@@ -18,13 +18,15 @@ package org.apache.nifi.remote.protocol.http;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.SiteToSiteAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -40,31 +42,45 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.util.StandardDataPacket;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.SharedSessionState;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestHttpFlowFileServerProtocol {
+
+    private SharedSessionState sessionState;
+    private MockProcessSession processSession;
+    private MockProcessContext processContext;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -270,11 +286,37 @@ public class TestHttpFlowFileServerProtocol {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
 
         final String transactionId = "testTransferOneFile";
-        final Peer peer = transferOneFile(serverProtocol, transactionId);
+        final Peer peer = getDefaultPeer(transactionId);
+        final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String endpointUri = "https://remote-host:8443/nifi-api/output-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
+        commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
+        commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
+
+        transferFlowFiles(serverProtocol, transactionId, peer, processSession -> {
+            final MockFlowFile flowFile = processSession.createFlowFile("Server content".getBytes());
+            final HashMap<String, String> attributes = new HashMap<>();
+            attributes.put("uuid", "server-uuid");
+            attributes.put("filename", "server-filename");
+            attributes.put("server-attr-1", "server-attr-1-value");
+            attributes.put("server-attr-2", "server-attr-2-value");
+            flowFile.putAttributes(attributes);
+
+            return Arrays.asList(flowFile);
+        });
 
         // Commit transaction
-        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "2077607535");
+        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3229577812");
         assertEquals(1, flowFileSent);
+
+        // Assert provenance
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
+        assertEquals(endpointUri, provenanceEvent.getTransitUri());
+        assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
     }
 
     @Test
@@ -282,7 +324,25 @@ public class TestHttpFlowFileServerProtocol {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
 
         final String transactionId = "testTransferOneFileBadChecksum";
-        final Peer peer = transferOneFile(serverProtocol, transactionId);
+        final Peer peer = getDefaultPeer(transactionId);
+        final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String endpointUri = "https://remote-host:8443/nifi-api/output-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
+        commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
+        commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
+
+        transferFlowFiles(serverProtocol, transactionId, peer, processSession -> {
+            final MockFlowFile flowFile = processSession.createFlowFile("Server content".getBytes());
+            final HashMap<String, String> attributes = new HashMap<>();
+            attributes.put("uuid", "server-uuid");
+            attributes.put("filename", "server-filename");
+            attributes.put("server-attr-1", "server-attr-1-value");
+            attributes.put("server-attr-2", "server-attr-2-value");
+            flowFile.putAttributes(attributes);
+
+            return Arrays.asList(flowFile);
+        });
 
         // Commit transaction
         try {
@@ -293,44 +353,27 @@ public class TestHttpFlowFileServerProtocol {
         }
     }
 
-    private Peer transferOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId) throws IOException {
+    private Peer transferFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId,
+                                   final Peer peer, final Function<MockProcessSession,
+            Collection<MockFlowFile>> flowFileGenerator) throws IOException {
+        setupMockProcessSession();
+
+        // Enqueue flow files to be transferred.
+        final Collection<MockFlowFile> flowFiles = flowFileGenerator.apply(processSession);
+        for (final MockFlowFile flowFile : flowFiles) {
+            sessionState.getFlowFileQueue().offer(flowFile);
+        }
+
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
-        final Peer peer = getDefaultPeer(transactionId);
-        final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        final String endpointUri = "https://peer-host:8443/nifi-api/output-ports/port-id/transactions/"
-                + transactionId + "/flow-files";
-        commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
-        commsSession.setUserDn("unit-test");
-        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
-
         assertTrue(serverProtocol.isHandshakeSuccessful());
 
         final FlowFileCodec negotiatedCoded = serverProtocol.negotiateCodec(peer);
-        final ProcessContext context = mock(ProcessContext.class);
-        final ProcessSession processSession = mock(ProcessSession.class);
-        final ProvenanceReporter provenanceReporter = mock(ProvenanceReporter.class);
-        final FlowFile flowFile = mock(FlowFile.class);
-        doReturn(flowFile).when(processSession).get();
-        doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
-        doAnswer(invocation -> {
-            final String transitUri = (String)invocation.getArguments()[1];
-            final String detail = (String)invocation.getArguments()[2];
-            assertEquals(endpointUri, transitUri);
-            assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
-            return null;
-        }).when(provenanceReporter).send(eq(flowFile), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
-
-        doAnswer(invocation -> {
-            final InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
-            callback.process(new java.io.ByteArrayInputStream("Server content".getBytes()));
-            return null;
-        }).when(processSession).read(any(FlowFile.class), any(InputStreamCallback.class));
 
         // Execute test using mock
-        final int flowFileSent = serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded);
-        assertEquals(1, flowFileSent);
+        final int flowFileSent = serverProtocol.transferFlowFiles(peer, processContext, processSession, negotiatedCoded);
+        assertEquals(flowFiles.size(), flowFileSent);
 
         assertTrue(remoteSiteListener.isTransactionActive(transactionId));
         return peer;
@@ -338,11 +381,9 @@ public class TestHttpFlowFileServerProtocol {
 
     @Test
     public void testTransferTwoFiles() throws Exception {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
-
         final String transactionId = "testTransferTwoFiles";
         final Peer peer = getDefaultPeer(transactionId);
-        final String endpointUri = "https://peer-host:8443/nifi-api/output-ports/port-id/transactions/"
+        final String endpointUri = "https://remote-host:8443/nifi-api/output-ports/port-id/transactions/"
                 + transactionId + "/flow-files";
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -350,53 +391,32 @@ public class TestHttpFlowFileServerProtocol {
         commsSession.setUserDn("unit-test");
         commsSession.setDataTransferUrl(endpointUri);
 
-        serverProtocol.handshake(peer);
-
-        assertTrue(serverProtocol.isHandshakeSuccessful());
-
-        final FlowFileCodec negotiatedCoded = serverProtocol.negotiateCodec(peer);
-        final ProcessContext context = mock(ProcessContext.class);
-        final ProcessSession processSession = mock(ProcessSession.class);
-        final ProvenanceReporter provenanceReporter = mock(ProvenanceReporter.class);
-        final FlowFile flowFile1 = mock(FlowFile.class);
-        final FlowFile flowFile2 = mock(FlowFile.class);
-        doReturn(flowFile1)
-                .doReturn(flowFile2)
-                .when(processSession).get();
-
-        doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
-        doAnswer(invocation -> {
-            final String transitUri = (String)invocation.getArguments()[1];
-            final String detail = (String)invocation.getArguments()[2];
-            assertEquals(endpointUri, transitUri);
-            assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
-            return null;
-        }).when(provenanceReporter).send(eq(flowFile1), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
-
-        doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
-        doAnswer(invocation -> {
-            final String transitUri = (String)invocation.getArguments()[1];
-            final String detail = (String)invocation.getArguments()[2];
-            assertEquals(endpointUri, transitUri);
-            assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
-            return null;
-        }).when(provenanceReporter).send(eq(flowFile2), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
-
-        doAnswer(invocation -> {
-            final InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
-            callback.process(new java.io.ByteArrayInputStream("Server content".getBytes()));
-            return null;
-        }).when(processSession).read(any(FlowFile.class), any(InputStreamCallback.class));
-
-        // Execute test using mock
-        int flowFileSent = serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded);
-        assertEquals(2, flowFileSent);
-
-        assertTrue(remoteSiteListener.isTransactionActive(transactionId));
+        transferFlowFiles(serverProtocol, transactionId, peer, processSession ->
+            IntStream.of(1, 2).mapToObj(i -> {
+                final MockFlowFile flowFile = processSession.createFlowFile(("Server content " + i).getBytes());
+                final HashMap<String, String> attributes = new HashMap<>();
+                attributes.put("uuid", "server-uuid-" + i);
+                attributes.put("filename", "server-filename-" + i);
+                attributes.put("server-attr-" + i + "-1", "server-attr-" + i + "-1-value");
+                attributes.put("server-attr-" + i + "-2", "server-attr-" + i + "-2-value");
+                flowFile.putAttributes(attributes);
+                return flowFile;
+            }).collect(Collectors.toList())
+        );
 
         // Commit transaction
-        flowFileSent = serverProtocol.commitTransferTransaction(peer, "2747386400");
+        final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3058746557");
         assertEquals(2, flowFileSent);
+
+        // Assert provenance
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(2, provenanceEvents.size());
+        for (final ProvenanceEventRecord provenanceEvent : provenanceEvents) {
+            assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
+            assertEquals(endpointUri, provenanceEvent.getTransitUri());
+            assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+        }
+
     }
 
     private DataPacket createClientDataPacket() {
@@ -404,6 +424,7 @@ public class TestHttpFlowFileServerProtocol {
         final byte[] bytes = contents.getBytes();
         final InputStream in = new ByteArrayInputStream(bytes);
         final Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.UUID.key(), "client-flow-file-uuid");
         attributes.put("client-attr-1", "client-attr-1-value");
         attributes.put("client-attr-2", "client-attr-2-value");
         return new StandardDataPacket(attributes, in, bytes.length);
@@ -440,14 +461,42 @@ public class TestHttpFlowFileServerProtocol {
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
 
         final String transactionId = "testReceiveOneFile";
+        final String endpointUri = "https://remote-host:8443/nifi-api/input-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
+
         final Peer peer = getDefaultPeer(transactionId);
+
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        receiveOneFile(serverProtocol, transactionId, peer);
+        commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
+        commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
+
+        final DataPacket dataPacket = createClientDataPacket();
+        receiveFlowFiles(serverProtocol, transactionId, peer, dataPacket);
 
         // Commit transaction
         commsSession.setResponseCode(ResponseCode.CONFIRM_TRANSACTION);
         final int flowFileReceived = serverProtocol.commitReceiveTransaction(peer);
         assertEquals(1, flowFileReceived);
+
+        // Assert provenance.
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(1, provenanceEvents.size());
+        final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
+        assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
+        assertEquals(endpointUri, provenanceEvent.getTransitUri());
+        assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+
+        // Assert received flow files.
+        processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
+        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile flowFile = flowFiles.get(0);
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
+        flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+        flowFile.assertAttributeEquals("client-attr-1", "client-attr-1-value");
+        flowFile.assertAttributeEquals("client-attr-2", "client-attr-2-value");
+
     }
 
     @Test
@@ -457,7 +506,7 @@ public class TestHttpFlowFileServerProtocol {
         final String transactionId = "testReceiveOneFileBadChecksum";
         final Peer peer = getDefaultPeer(transactionId);
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        receiveOneFile(serverProtocol, transactionId, peer);
+        receiveFlowFiles(serverProtocol, transactionId, peer, createClientDataPacket());
 
         // Commit transaction
         commsSession.setResponseCode(ResponseCode.BAD_CHECKSUM);
@@ -469,71 +518,48 @@ public class TestHttpFlowFileServerProtocol {
         }
     }
 
-    private void receiveOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer) throws IOException {
+    private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket ... dataPackets) throws IOException {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
-        final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"
-                + transactionId + "/flow-files";
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
-        commsSession.setUserDn("unit-test");
-        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
-
         assertTrue(serverProtocol.isHandshakeSuccessful());
 
+        setupMockProcessSession();
+
+        // Emulate dataPackets sent from a Site-to-Site client.
         final FlowFileCodec negotiatedCoded = serverProtocol.negotiateCodec(peer);
-        final ProcessContext context = mock(ProcessContext.class);
-        final ProcessSession processSession = mock(ProcessSession.class);
-        final ProvenanceReporter provenanceReporter = mock(ProvenanceReporter.class);
-        final FlowFile flowFile = mock(FlowFile.class);
-
-        final DataPacket dataPacket = createClientDataPacket();
-
         final ByteArrayOutputStream testDataOs = new ByteArrayOutputStream();
-        negotiatedCoded.encode(dataPacket, testDataOs);
+        for (final DataPacket dataPacket : dataPackets) {
+            negotiatedCoded.encode(dataPacket, testDataOs);
+        }
         final InputStream httpInputStream = new ByteArrayInputStream(testDataOs.toByteArray());
-
         ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
 
-        doAnswer(invocation -> {
-            final InputStream is = (InputStream) invocation.getArguments()[0];
-            for (int b; (b = is.read()) >= 0;) {
-                // consume stream.
-            }
-            return flowFile;
-        }).when(processSession).importFrom(any(InputStream.class), any(FlowFile.class));
-        // AbstractFlowFileServerProtocol adopts builder pattern and putAttribute is the last execution
-        // which returns flowFile instance used later.
-        doReturn(flowFile).when(processSession).putAllAttributes(any(FlowFile.class), any(Map.class));
-        doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
-        doAnswer(invocation -> {
-            final String transitUri = (String)invocation.getArguments()[1];
-            final String detail = (String)invocation.getArguments()[3];
-            assertEquals(endpointUri, transitUri);
-            assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
-            return null;
-        }).when(provenanceReporter)
-                .receive(any(FlowFile.class), any(String.class), any(String.class), any(String.class), any(Long.class));
-
-        final Set<Relationship> relations = new HashSet<>();
-        final Relationship relationship = new Relationship.Builder().build();
-        relations.add(relationship);
-        doReturn(relations).when(context).getAvailableRelationships();
-
         // Execute test using mock
-        final int flowFileReceived = serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
-        assertEquals(1, flowFileReceived);
+        final int flowFileReceived = serverProtocol.receiveFlowFiles(peer, processContext, processSession, negotiatedCoded);
+        assertEquals(dataPackets.length, flowFileReceived);
 
         assertTrue(remoteSiteListener.isTransactionActive(transactionId));
     }
 
+    private void setupMockProcessSession() {
+        // Construct a RootGroupPort as a processor to use NiFi mock library.
+        final Processor rootGroupPort = mock(Processor.class);
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(Relationship.ANONYMOUS);
+        when(rootGroupPort.getRelationships()).thenReturn(relationships);
+        when(rootGroupPort.getIdentifier()).thenReturn("root-group-port-id");
+
+        sessionState = new SharedSessionState(rootGroupPort, new AtomicLong(0));
+        processSession = new MockProcessSession(sessionState, rootGroupPort);
+        processContext = new MockProcessContext(rootGroupPort);
+    }
+
     @Test
     public void testReceiveTwoFiles() throws Exception {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
-
         final String transactionId = "testReceiveTwoFile";
-        final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"
+        final String endpointUri = "https://remote-host:8443/nifi-api/input-ports/port-id/transactions/"
                 + transactionId + "/flow-files";
         final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer(transactionId);
@@ -542,63 +568,32 @@ public class TestHttpFlowFileServerProtocol {
         commsSession.setUserDn("unit-test");
         commsSession.setDataTransferUrl(endpointUri);
 
-        serverProtocol.handshake(peer);
-
-        assertTrue(serverProtocol.isHandshakeSuccessful());
-
-        final FlowFileCodec negotiatedCoded = serverProtocol.negotiateCodec(peer);
-        final ProcessContext context = mock(ProcessContext.class);
-        final ProcessSession processSession = mock(ProcessSession.class);
-        final ProvenanceReporter provenanceReporter = mock(ProvenanceReporter.class);
-        final FlowFile flowFile1 = mock(FlowFile.class);
-        final FlowFile flowFile2 = mock(FlowFile.class);
-
-        final ByteArrayOutputStream testDataOs = new ByteArrayOutputStream();
-        negotiatedCoded.encode(createClientDataPacket(), testDataOs);
-        negotiatedCoded.encode(createClientDataPacket(), testDataOs);
-        final InputStream httpInputStream = new ByteArrayInputStream(testDataOs.toByteArray());
-
-        ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
-
-        doAnswer(invocation -> {
-            final InputStream is = (InputStream) invocation.getArguments()[0];
-            for (int b; (b = is.read()) >= 0;) {
-                // consume stream.
-            }
-            return flowFile1;
-        }).when(processSession).importFrom(any(InputStream.class), any(FlowFile.class));
-
-        // AbstractFlowFileServerProtocol adopts builder pattern and putAllAttributes is the last execution
-        // which returns flowFile instance used later, it is called twice for each flow file
-        doReturn(flowFile1)
-                .doReturn(flowFile1)
-                .doReturn(flowFile2)
-                .doReturn(flowFile2)
-                .when(processSession).putAllAttributes(any(FlowFile.class), any(Map.class));
-        doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
-
-        doAnswer(invocation -> {
-            final String transitUri = (String)invocation.getArguments()[1];
-            final String detail = (String)invocation.getArguments()[3];
-            assertEquals(endpointUri, transitUri);
-            assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
-            return null;
-        }).when(provenanceReporter)
-                .receive(any(FlowFile.class), any(String.class), any(String.class), any(String.class), any(Long.class));
-
-        final Set<Relationship> relations = new HashSet<>();
-        doReturn(relations).when(context).getAvailableRelationships();
-
-        // Execute test using mock
-        int flowFileReceived = serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
-        assertEquals(2, flowFileReceived);
-
-        assertTrue(remoteSiteListener.isTransactionActive(transactionId));
+        receiveFlowFiles(serverProtocol, transactionId, peer, createClientDataPacket(), createClientDataPacket());
 
         // Commit transaction
         commsSession.setResponseCode(ResponseCode.CONFIRM_TRANSACTION);
-        flowFileReceived = serverProtocol.commitReceiveTransaction(peer);
+        final int flowFileReceived = serverProtocol.commitReceiveTransaction(peer);
         assertEquals(2, flowFileReceived);
+
+        // Assert provenance.
+        final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
+        assertEquals(2, provenanceEvents.size());
+        for (final ProvenanceEventRecord provenanceEvent : provenanceEvents) {
+            assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent.getEventType());
+            assertEquals(endpointUri, provenanceEvent.getTransitUri());
+            assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+        }
+
+        // Assert received flow files.
+        processSession.assertAllFlowFilesTransferred(Relationship.ANONYMOUS);
+        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(Relationship.ANONYMOUS);
+        assertEquals(2, flowFiles.size());
+        for (final MockFlowFile flowFile : flowFiles) {
+            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_HOST.key(), peer.getHost());
+            flowFile.assertAttributeEquals(SiteToSiteAttributes.S2S_ADDRESS.key(), peer.getHost() + ":" + peer.getPort());
+            flowFile.assertAttributeEquals("client-attr-1", "client-attr-1-value");
+            flowFile.assertAttributeEquals("client-attr-2", "client-attr-2-value");
+        }
     }
 
 
