@@ -28,6 +28,7 @@ import org.apache.nifi.hbase.scan.ResultHandler;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +39,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     private Map<String,ResultCell[]> results = new HashMap<>();
     private Map<String, List<PutFlowFile>> flowFilePuts = new HashMap<>();
     private boolean throwException = false;
+    private int numScans = 0;
 
     @Override
     public void put(String tableName, Collection<PutFlowFile> puts) throws IOException {
@@ -49,8 +51,42 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
-    public void put(String tableName, byte[] rowId, Collection<PutColumn> columns) throws IOException {
+    public void put(String tableName, byte[] startRow, Collection<PutColumn> columns) throws IOException {
        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void scan(String tableName, byte[] startRow, byte[] endRow, Collection<Column> columns, ResultHandler handler) throws IOException {
+        if (throwException) {
+            throw new IOException("exception");
+        }
+
+        for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
+
+            List<ResultCell> matchedCells = new ArrayList<>();
+
+            if (columns == null || columns.isEmpty()) {
+                Arrays.stream(entry.getValue()).forEach(e -> matchedCells.add(e));
+            } else {
+                for (Column column : columns) {
+                    String colFam = new String(column.getFamily(), StandardCharsets.UTF_8);
+                    String colQual = new String(column.getQualifier(), StandardCharsets.UTF_8);
+
+                    for (ResultCell cell : entry.getValue()) {
+                        String cellFam = new String(cell.getFamilyArray(), StandardCharsets.UTF_8);
+                        String cellQual = new String(cell.getQualifierArray(), StandardCharsets.UTF_8);
+
+                        if (colFam.equals(cellFam) && colQual.equals(cellQual)) {
+                            matchedCells.add(cell);
+                        }
+                    }
+                }
+            }
+
+            handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), matchedCells.toArray(new ResultCell[matchedCells.size()]));
+        }
+
+        numScans++;
     }
 
     @Override
@@ -63,6 +99,8 @@ public class MockHBaseClientService extends AbstractControllerService implements
         for (final Map.Entry<String,ResultCell[]> entry : results.entrySet()) {
             handler.handle(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue());
         }
+
+        numScans++;
     }
 
     public void addResult(final String rowKey, final Map<String, String> cells, final long timestamp) {
@@ -106,6 +144,10 @@ public class MockHBaseClientService extends AbstractControllerService implements
 
     public void setThrowException(boolean throwException) {
         this.throwException = throwException;
+    }
+
+    public int getNumScans() {
+        return numScans;
     }
 
     @Override
