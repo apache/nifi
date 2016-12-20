@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
+import org.apache.commons.io.input.TeeInputStream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
+import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.File;
@@ -62,21 +77,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.commons.io.input.TeeInputStream;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
-import org.apache.nifi.minifi.bootstrap.status.PeriodicStatusReporter;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
-import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.util.Tuple;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
@@ -1187,17 +1187,25 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
             return;
         }
 
+        // Instantiate configuration listener and configured ingestors
+        this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
+        this.periodicStatusReporters = initializePeriodicNotifiers();
+        startPeriodicNotifiers();
+        try {
+            this.changeCoordinator = initializeNotifier(this.changeListener);
+        } catch (Exception e) {
+            final String errorMsg = "Unable to start as {} is not properly configured due to: {}";
+            cmdLogger.error(errorMsg, this.changeListener.getDescriptor(), e.getMessage());
+            defaultLogger.error("Unable to initialize notifier.", e);
+            // if we fail to initialize, exit without attempting to start
+            System.exit(1);
+        }
+
         Tuple<ProcessBuilder, Process> tuple = startMiNiFi();
         if (tuple == null) {
             cmdLogger.info("Start method returned null, ending start command.");
             return;
         }
-
-        // Instantiate configuration listener and configured ingestors
-        this.changeListener = new MiNiFiConfigurationChangeListener(this, defaultLogger);
-        this.periodicStatusReporters = initializePeriodicNotifiers();
-        startPeriodicNotifiers();
-        this.changeCoordinator = initializeNotifier(this.changeListener);
 
         ProcessBuilder builder = tuple.getKey();
         Process process = tuple.getValue();

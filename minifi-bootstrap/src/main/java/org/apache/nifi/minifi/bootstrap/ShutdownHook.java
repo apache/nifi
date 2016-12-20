@@ -55,10 +55,12 @@ public class ShutdownHook extends Thread {
 
         System.out.println("Initiating shutdown of bootstrap change ingestors...");
         ConfigurationChangeCoordinator notifier = runner.getChangeCoordinator();
-        try {
-            notifier.close();
-        } catch (IOException ioe) {
-            System.out.println("Could not successfully stop notifier due to " + ioe);
+        if (notifier != null) {
+            try {
+                notifier.close();
+            } catch (IOException ioe) {
+                System.out.println("Could not successfully stop notifier due to " + ioe);
+            }
         }
 
         System.out.println("Initiating shutdown of bootstrap periodic status reporters...");
