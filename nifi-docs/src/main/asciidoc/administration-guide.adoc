@@ -867,8 +867,8 @@ Additional Resources
 * http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2]
 * http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt]
 * https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt]
-* https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
-* https://www.openssl.org/docs/manmaster/crypto/PKCS5_PBKDF2_HMAC.html[OpenSSL PBKDF2 KDF]
+* https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
+* https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF]
 * http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description]
 
 Salt and IV Encoding
