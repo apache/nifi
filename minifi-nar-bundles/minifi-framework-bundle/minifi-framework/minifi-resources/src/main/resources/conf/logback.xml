@@ -33,11 +33,7 @@
             <maxHistory>10</maxHistory>
             <!-- Max size each log file will be-->
             <maxFileSize>1MB</maxFileSize>
-            <!--
-                Provide a cap of 10 MB across all archive files
-                NOTE: Size constraints are not guaranteed due to a bug in logback as per
-                http://jira.qos.ch/browse/LOGBACK-1166
-            -->
+            <!-- Provide a cap of 10 MB across all archive files -->
             <totalSizeCap>10MB</totalSizeCap>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
