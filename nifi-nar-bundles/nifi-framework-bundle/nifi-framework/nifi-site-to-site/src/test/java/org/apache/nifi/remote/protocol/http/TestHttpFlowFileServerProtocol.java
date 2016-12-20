@@ -505,7 +505,7 @@ public class TestHttpFlowFileServerProtocol {
         }).when(processSession).importFrom(any(InputStream.class), any(FlowFile.class));
         // AbstractFlowFileServerProtocol adopts builder pattern and putAttribute is the last execution
         // which returns flowFile instance used later.
-        doReturn(flowFile).when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
+        doReturn(flowFile).when(processSession).putAllAttributes(any(FlowFile.class), any(Map.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
             final String transitUri = (String)invocation.getArguments()[1];
@@ -567,12 +567,16 @@ public class TestHttpFlowFileServerProtocol {
             }
             return flowFile1;
         }).when(processSession).importFrom(any(InputStream.class), any(FlowFile.class));
-        // AbstractFlowFileServerProtocol adopts builder pattern and putAttribute is the last execution
-        // which returns flowFile instance used later.
+
+        // AbstractFlowFileServerProtocol adopts builder pattern and putAllAttributes is the last execution
+        // which returns flowFile instance used later, it is called twice for each flow file
         doReturn(flowFile1)
+                .doReturn(flowFile1)
                 .doReturn(flowFile2)
-                .when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
+                .doReturn(flowFile2)
+                .when(processSession).putAllAttributes(any(FlowFile.class), any(Map.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
+
         doAnswer(invocation -> {
             final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[3];
