@@ -116,8 +116,10 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, "This processor has no relationships.");
 
         // state management
-        assertContains(results, "This processor has no state management.");
+        assertContains(results, "This component does not store state.");
 
+        // state management
+        assertContains(results, "This component is not restricted.");
     }
 
     @Test
