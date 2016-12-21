@@ -112,6 +112,7 @@ nf.Canvas = (function () {
     var MIN_SCALE_TO_RENDER = 0.6;
 
     var polling = false;
+    var allowPageRefresh = false;
     var groupId = 'root';
     var groupName = null;
     var permissions = null;
@@ -587,6 +588,10 @@ nf.Canvas = (function () {
             var isCtrl = evt.ctrlKey || evt.metaKey;
             if (isCtrl) {
                 if (evt.keyCode === 82) {
+                    if (allowPageRefresh === true) {
+                        location.reload();
+                        return;
+                    }
                     // ctrl-r
                     nf.Actions.reload();
 
@@ -688,7 +693,7 @@ nf.Canvas = (function () {
 
             // update the access policies
             permissions = flowResponse.permissions;
-            
+
             // update the breadcrumbs
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
@@ -769,6 +774,13 @@ nf.Canvas = (function () {
         stopPolling: function () {
             // set polling flag
             polling = false;
+        },
+
+        /**
+         * Disable the canvas refresh hot key.
+         */
+        disableRefreshHotKey: function () {
+            allowPageRefresh = true;
         },
 
         /**
@@ -885,7 +897,7 @@ nf.Canvas = (function () {
                     });
                 });
             }).promise();
-            
+
             userXhr.done(function () {
                 // load the client id
                 var clientXhr = nf.Client.init();
