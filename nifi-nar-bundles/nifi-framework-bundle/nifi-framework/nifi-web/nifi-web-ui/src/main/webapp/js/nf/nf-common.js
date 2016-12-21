@@ -607,6 +607,9 @@ nf.Common = (function () {
 
                 // shut off the auto refresh
                 nf.Canvas.stopPolling();
+
+                // allow page refresh with ctrl-r
+                nf.Canvas.disableRefreshHotKey();
             }
         },
 
