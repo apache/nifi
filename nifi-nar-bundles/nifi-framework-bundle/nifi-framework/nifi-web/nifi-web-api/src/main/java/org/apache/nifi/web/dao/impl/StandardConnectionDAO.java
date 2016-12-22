@@ -300,9 +300,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             source = sourceGroup.getConnectable(sourceConnectableDTO.getId());
         }
 
-        // ensure the user has write access to the source component
-        source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-
         // find the destination
         final Connectable destination;
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationConnectableDTO.getType())) {
@@ -325,9 +322,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final ProcessGroup destinationGroup = locateProcessGroup(flowController, destinationConnectableDTO.getGroupId());
             destination = destinationGroup.getConnectable(destinationConnectableDTO.getId());
         }
-
-        // ensure the user has write access to the source component
-        destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // determine the relationships
         final Set<String> relationships = new HashSet<>();

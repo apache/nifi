@@ -16,20 +16,10 @@
  */
 package org.apache.nifi.remote;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.net.ssl.SSLContext;
-
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -58,6 +48,18 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class StandardRemoteGroupPort extends RemoteGroupPort {
 
@@ -116,6 +118,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     @Override
     public boolean isTriggerWhenEmpty() {
         return getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT;
+    }
+
+    @Override
+    public Resource getResource() {
+        final ResourceType resourceType = ConnectableType.REMOTE_INPUT_PORT.equals(getConnectableType()) ? ResourceType.InputPort : ResourceType.OutputPort;
+        return ResourceFactory.getComponentResource(resourceType, getIdentifier(), getName());
     }
 
     @Override
