@@ -158,8 +158,17 @@ nf.ContextMenu = (function () {
     };
 
     /**
+     * Determines whether the components in the specified selection are alignable.
+     *
+     * @param {selection} selection          The selection
+     */
+    var canAlign = function (selection) {
+        return nf.CanvasUtils.canAlign(selection);
+    };
+
+    /**
      * Determines whether the components in the specified selection are colorable.
-     * 
+     *
      * @param {selection} selection          The selection
      */
     var isColorable = function (selection) {
@@ -435,7 +444,9 @@ nf.ContextMenu = (function () {
         {condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
         {condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
         {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
-        {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}}
+        {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
+        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertical', action: 'alignVertical'}},
+        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}}
     ];
 
     return {

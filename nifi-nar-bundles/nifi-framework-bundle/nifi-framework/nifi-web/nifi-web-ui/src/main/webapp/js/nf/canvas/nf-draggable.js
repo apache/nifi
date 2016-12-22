@@ -23,7 +23,7 @@ nf.Draggable = (function () {
 
     /**
      * Updates the positioning of all selected components.
-     * 
+     *
      * @param {selection} dragSelection The current drag selection
      */
     var updateComponentsPosition = function (dragSelection) {
@@ -40,107 +40,6 @@ nf.Draggable = (function () {
         if (delta.x === 0 && delta.y === 0) {
             return;
         }
-        
-        var updateComponentPosition = function(d) {
-            var newPosition = {
-                'x': d.position.x + delta.x,
-                'y': d.position.y + delta.y
-            };
-
-            // build the entity
-            var entity = {
-                'revision': nf.Client.getRevision(d),
-                'component': {
-                    'id': d.id,
-                    'position': newPosition
-                }
-            };
-
-            // update the component positioning
-            return $.Deferred(function (deferred) {
-                $.ajax({
-                    type: 'PUT',
-                    url: d.uri,
-                    data: JSON.stringify(entity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    // update the component
-                    nf[d.type].set(response);
-
-                    // resolve with an object so we can refresh when finished
-                    deferred.resolve({
-                        type: d.type,
-                        id: d.id
-                    });
-                }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nf.Dialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nf.Common.handleAjaxError(xhr, status, error);
-                    }
-
-                    deferred.reject();
-                });
-            }).promise();
-        };
-        
-        var updateConnectionPosition = function(d) {
-            // only update if necessary
-            if (d.bends.length === 0) {
-                return null;
-            }
-
-            // calculate the new bend points
-            var newBends = $.map(d.bends, function (bend) {
-                return {
-                    x: bend.x + delta.x,
-                    y: bend.y + delta.y
-                };
-            });
-
-            var entity = {
-                'revision': nf.Client.getRevision(d),
-                'component': {
-                    id: d.id,
-                    bends: newBends
-                }
-            };
-
-            // update the component positioning
-            return $.Deferred(function (deferred) {
-                $.ajax({
-                    type: 'PUT',
-                    url: d.uri,
-                    data: JSON.stringify(entity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    // update the component
-                    nf.Connection.set(response);
-
-                    // resolve with an object so we can refresh when finished
-                    deferred.resolve({
-                        type: d.type,
-                        id: d.id
-                    });
-                }).fail(function (xhr, status, error) {
-                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nf.Dialog.showOkDialog({
-                            headerText: 'Component Position',
-                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                        });
-                    } else {
-                        nf.Common.handleAjaxError(xhr, status, error);
-                    }
-
-                    deferred.reject();
-                });
-            }).promise();
-        };
 
         var selectedConnections = d3.selectAll('g.connection.selected');
         var selectedComponents = d3.selectAll('g.component.selected');
@@ -156,55 +55,30 @@ nf.Draggable = (function () {
 
         // go through each selected connection
         selectedConnections.each(function (d) {
-            var connectionUpdate = updateConnectionPosition(d);
+            var connectionUpdate = nf.Draggable.updateConnectionPosition(d, delta);
             if (connectionUpdate !== null) {
                 updates.set(d.id, connectionUpdate);
             }
         });
-        
+
         // go through each selected component
         selectedComponents.each(function (d) {
             // consider any self looping connections
             var connections = nf.Connection.getComponentConnections(d.id);
             $.each(connections, function(_, connection) {
                 if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
-                    var connectionUpdate = updateConnectionPosition(nf.Connection.get(connection.id));
+                    var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
                     if (connectionUpdate !== null) {
                         updates.set(connection.id, connectionUpdate);
                     }
                 }
             });
-            
+
             // consider the component itself
-            updates.set(d.id, updateComponentPosition(d));
+            updates.set(d.id, nf.Draggable.updateComponentPosition(d, delta));
         });
 
-        // wait for all updates to complete
-        $.when.apply(window, updates.values()).done(function () {
-            var dragged = $.makeArray(arguments);
-            var connections = d3.set();
-
-            // refresh this component
-            $.each(dragged, function (_, component) {
-                // check if the component in question is a connection
-                if (component.type === 'Connection') {
-                    connections.add(component.id);
-                } else {
-                    // get connections that need to be refreshed because its attached to this component
-                    var componentConnections = nf.Connection.getComponentConnections(component.id);
-                    $.each(componentConnections, function (_, connection) {
-                        connections.add(connection.id);
-                    });
-                }
-            });
-
-            // refresh the connections
-            connections.forEach(function (connectionId) {
-                nf.Connection.refresh(connectionId);
-            });
-        }).always(function(){
-            nf.Birdseye.refresh();
-        });
+        nf.Draggable.refreshConnections(updates);
     };
 
     /**
@@ -246,7 +120,7 @@ nf.Draggable = (function () {
 
                         // lazily create the drag selection box
                         if (dragSelection.empty()) {
-                            // get the current selection 
+                            // get the current selection
                             var selection = d3.selectAll('g.component.selected');
 
                             // determine the appropriate bounding box
@@ -327,10 +201,159 @@ nf.Draggable = (function () {
                         dragSelection.remove();
                     });
         },
-        
+
+        /**
+         * Update the component's position
+         *
+         * @param d     The component
+         * @param delta The change in position
+         * @returns {*}
+         */
+        updateComponentPosition: function(d, delta) {
+            var newPosition = {
+                'x': d.position.x + delta.x,
+                'y': d.position.y + delta.y
+            };
+
+            // build the entity
+            var entity = {
+                'revision': nf.Client.getRevision(d),
+                'component': {
+                    'id': d.id,
+                    'position': newPosition
+                }
+            };
+
+            // update the component positioning
+            return $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'PUT',
+                    url: d.uri,
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                }).done(function (response) {
+                    // update the component
+                    nf[d.type].set(response);
+
+                    // resolve with an object so we can refresh when finished
+                    deferred.resolve({
+                        type: d.type,
+                        id: d.id
+                    });
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+                        nf.Dialog.showOkDialog({
+                            headerText: 'Component Position',
+                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                        });
+                    } else {
+                        nf.Common.handleAjaxError(xhr, status, error);
+                    }
+
+                    deferred.reject();
+                });
+            }).promise();
+        },
+
+        /**
+         * Update the connection's position
+         *
+         * @param d     The connection
+         * @param delta The change in position
+         * @returns {*}
+         */
+        updateConnectionPosition: function(d, delta) {
+            // only update if necessary
+            if (d.bends.length === 0) {
+                return null;
+            }
+
+            // calculate the new bend points
+            var newBends = $.map(d.bends, function (bend) {
+                return {
+                    x: bend.x + delta.x,
+                    y: bend.y + delta.y
+                };
+            });
+
+            var entity = {
+                'revision': nf.Client.getRevision(d),
+                'component': {
+                    id: d.id,
+                    bends: newBends
+                }
+            };
+
+            // update the component positioning
+            return $.Deferred(function (deferred) {
+                $.ajax({
+                    type: 'PUT',
+                    url: d.uri,
+                    data: JSON.stringify(entity),
+                    dataType: 'json',
+                    contentType: 'application/json'
+                }).done(function (response) {
+                    // update the component
+                    nf.Connection.set(response);
+
+                    // resolve with an object so we can refresh when finished
+                    deferred.resolve({
+                        type: d.type,
+                        id: d.id
+                    });
+                }).fail(function (xhr, status, error) {
+                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+                        nf.Dialog.showOkDialog({
+                            headerText: 'Component Position',
+                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                        });
+                    } else {
+                        nf.Common.handleAjaxError(xhr, status, error);
+                    }
+
+                    deferred.reject();
+                });
+            }).promise();
+        },
+
+        /**
+         * Refresh the connections after dragging a component
+         *
+         * @param updates
+         */
+        refreshConnections: function(updates) {
+            // wait for all updates to complete
+            $.when.apply(window, updates.values()).done(function () {
+                var dragged = $.makeArray(arguments);
+                var connections = d3.set();
+
+                // refresh this component
+                $.each(dragged, function (_, component) {
+                    // check if the component in question is a connection
+                    if (component.type === 'Connection') {
+                        connections.add(component.id);
+                    } else {
+                        // get connections that need to be refreshed because its attached to this component
+                        var componentConnections = nf.Connection.getComponentConnections(component.id);
+                        $.each(componentConnections, function (_, connection) {
+                            connections.add(connection.id);
+                        });
+                    }
+                });
+
+                // refresh the connections
+                connections.forEach(function (connectionId) {
+                    nf.Connection.refresh(connectionId);
+                });
+            }).always(function(){
+                nf.Birdseye.refresh();
+            });
+        },
+
         /**
          * Activates the drag behavior for the components in the specified selection.
-         * 
+         *
          * @param {selection} components
          */
         activate: function (components) {
@@ -339,7 +362,7 @@ nf.Draggable = (function () {
 
         /**
          * Deactivates the drag behavior for the components in the specified selection.
-         * 
+         *
          * @param {selection} components
          */
         deactivate: function (components) {

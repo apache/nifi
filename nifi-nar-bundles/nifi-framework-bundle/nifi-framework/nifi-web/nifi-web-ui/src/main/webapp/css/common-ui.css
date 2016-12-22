@@ -97,6 +97,11 @@ i[class^="icon-"]:before, i[class*=" icon-"]:before {
     margin: -2px;
 }
 
+/*shift rotated font awesome icons*/
+.fa-rotate-90 {
+    left: -2px !important;
+}
+
 body {
     display: block;
     font-family: Roboto, sans-serif;
