@@ -69,7 +69,6 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security</artifactId>
             <scope>compile</scope>
-            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

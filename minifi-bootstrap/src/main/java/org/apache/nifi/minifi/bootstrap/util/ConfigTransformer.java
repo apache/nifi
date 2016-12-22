@@ -80,7 +80,7 @@ import java.util.zip.GZIPOutputStream;
 
 public final class ConfigTransformer {
     // Underlying version of NIFI will be using
-    public static final String NIFI_VERSION = "1.0.0";
+    public static final String NIFI_VERSION = "1.1.0";
     public static final String ROOT_GROUP = "Root-Group";
     public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
 
