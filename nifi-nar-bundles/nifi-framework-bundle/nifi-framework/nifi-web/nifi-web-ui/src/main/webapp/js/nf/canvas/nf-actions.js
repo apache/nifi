@@ -75,6 +75,13 @@ nf.Actions = (function () {
         });
     };
 
+    // determine if the source of this connection is part of the selection
+    var isSourceSelected = function (connection, selection) {
+        return selection.filter(function (d) {
+                return nf.CanvasUtils.getConnectionSourceComponentId(connection) === d.id;
+            }).size() > 0;
+    };
+
     return {
         /**
          * Initializes the actions.
@@ -867,7 +874,7 @@ nf.Actions = (function () {
 
                             // refresh the birdseye
                             nf.Birdseye.refresh();
-                            
+
                             // inform Angular app values have changed
                             nf.ng.Bridge.digest();
                         }).fail(nf.Common.handleAjaxError);
@@ -1092,6 +1099,145 @@ nf.Actions = (function () {
 
             // view the state for the selected processor
             nf.ComponentState.showState(processor, nf.CanvasUtils.isConfigurable(selection));
+        },
+
+        /**
+         * Aligns the components in the specified selection vertically along the center of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignVertical: function (selection) {
+            var updates = d3.map();
+            // ensure every component is writable
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                nf.Dialog.showOkDialog({
+                    headerText: 'Component Position',
+                    dialogContent: 'Must be authorized to modify every component selected.'
+                });
+                return;
+            }
+            // determine the extent
+            var minX = null, maxX = null;
+            selection.each(function (d) {
+                if (d.type !== "Connection") {
+                    if (minX === null || d.position.x < minX) {
+                        minX = d.position.x;
+                    }
+                    var componentMaxX = d.position.x + d.dimensions.width;
+                    if (maxX === null || componentMaxX > maxX) {
+                        maxX = componentMaxX;
+                    }
+                }
+            });
+            var center = (minX + maxX) / 2;
+
+            // align all components left
+            selection.each(function(d) {
+                if (d.type !== "Connection") {
+                    var delta = {
+                        x: center - (d.position.x + d.dimensions.width / 2),
+                        y: 0
+                    };
+                    // if this component is already centered, no need to updated it
+                    if (delta.x !== 0) {
+                        // consider any connections
+                        var connections = nf.Connection.getComponentConnections(d.id);
+                        $.each(connections, function(_, connection) {
+                            var connectionSelection = d3.select('#id-' + connection.id);
+
+                            if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
+                                // this connection is self looping and hasn't been updated by the delta yet
+                                var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
+                                if (connectionUpdate !== null) {
+                                    updates.set(connection.id, connectionUpdate);
+                                }
+                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nf.CanvasUtils.canModify(connectionSelection)) {
+                                // this is a selected connection that hasn't been updated by the delta yet
+                                if (nf.CanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                                    // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                    var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
+                                    if (connectionUpdate !== null) {
+                                        updates.set(connection.id, connectionUpdate);
+                                    }
+                                }
+                            }
+                        });
+                        updates.set(d.id, nf.Draggable.updateComponentPosition(d, delta));
+                    }
+                }
+            });
+            nf.Draggable.refreshConnections(updates);
+        },
+
+        /**
+         * Aligns the components in the specified selection horizontally along the center of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignHorizontal: function (selection) {
+            var updates = d3.map();
+            // ensure every component is writable
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                nf.Dialog.showOkDialog({
+                    headerText: 'Component Position',
+                    dialogContent: 'Must be authorized to modify every component selected.'
+                });
+                return;
+            }
+
+            // determine the extent
+            var minY = null, maxY = null;
+            selection.each(function (d) {
+                if (d.type !== "Connection") {
+                    if (minY === null || d.position.y < minY) {
+                        minY = d.position.y;
+                    }
+                    var componentMaxY = d.position.y + d.dimensions.height;
+                    if (maxY === null || componentMaxY > maxY) {
+                        maxY = componentMaxY;
+                    }
+                }
+            });
+            var center = (minY + maxY) / 2;
+
+            // align all components with top most component
+            selection.each(function(d) {
+                if (d.type !== "Connection") {
+                    var delta = {
+                        x: 0,
+                        y: center - (d.position.y + d.dimensions.height / 2)
+                    };
+
+                    // if this component is already centered, no need to updated it
+                    if (delta.y !== 0) {
+                        // consider any connections
+                        var connections = nf.Connection.getComponentConnections(d.id);
+                        $.each(connections, function(_, connection) {
+                            var connectionSelection = d3.select('#id-' + connection.id);
+
+                            if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
+                                // this connection is self looping and hasn't been updated by the delta yet
+                                var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
+                                if (connectionUpdate !== null) {
+                                    updates.set(connection.id, connectionUpdate);
+                                }
+                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nf.CanvasUtils.canModify(connectionSelection)) {
+                                // this is a selected connection that hasn't been updated by the delta yet
+                                if (nf.CanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                                    // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                    var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
+                                    if (connectionUpdate !== null) {
+                                        updates.set(connection.id, connectionUpdate);
+                                    }
+                                }
+                            }
+                        });
+                        updates.set(d.id, nf.Draggable.updateComponentPosition(d, delta));
+                    }
+                }
+            });
+
+            nf.Draggable.refreshConnections(updates);
         },
 
         /**

@@ -545,6 +545,34 @@ nf.CanvasUtils = (function () {
                 tip.style('display', 'none');
             });
         },
+
+        /**
+         * Determines if the specified selection is alignable (in a single action).
+         *
+         * @param {selection} selection     The selection
+         * @returns {boolean}
+         */
+        canAlign: function(selection) {
+            var canAlign = true;
+
+            // determine if the current selection is entirely connections
+            var selectedConnections = selection.filter(function(d) {
+                var connection = d3.select(this);
+                return nf.CanvasUtils.isConnection(connection);
+            });
+
+            // require multiple selections besides connections
+            if (selection.size() - selectedConnections.size() < 2) {
+                canAlign = false;
+            }
+
+            // require write permissions
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                canAlign = false;
+            }
+
+            return canAlign;
+        },
         
         /**
          * Determines if the specified selection is colorable (in a single action).
