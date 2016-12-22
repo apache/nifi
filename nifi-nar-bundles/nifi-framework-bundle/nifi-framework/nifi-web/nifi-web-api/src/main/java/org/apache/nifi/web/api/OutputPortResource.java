@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -190,6 +191,13 @@ public class OutputPortResource extends ApplicationResource {
         if (!id.equals(requestPortDTO.getId())) {
             throw new IllegalArgumentException(String.format("The output port id (%s) in the request body does not equal the "
                     + "output port id of the requested resource (%s).", requestPortDTO.getId(), id));
+        }
+
+        final PositionDTO proposedPosition = requestPortDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (isReplicateRequest()) {

@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -469,6 +470,13 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         if (!id.equals(requestRemoteProcessGroup.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
                     + "remote process group id of the requested resource (%s).", requestRemoteProcessGroup.getId(), id));
+        }
+
+        final PositionDTO proposedPosition = requestRemoteProcessGroup.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (isReplicateRequest()) {
