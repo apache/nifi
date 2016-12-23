@@ -215,7 +215,7 @@ public class SplitText extends AbstractProcessor {
                 try {
                     if (SplitText.this.headerLineCount > 0) {
                         splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
-                        if (splitInfo.lineCount < SplitText.this.headerLineCount) {
+                        if ((splitInfo != null) && (splitInfo.lineCount < SplitText.this.headerLineCount)) {
                             error.set(true);
                             getLogger().error("Unable to split " + sourceFlowFile + " due to insufficient amount of header lines. Required "
                                     + SplitText.this.headerLineCount + " but was " + splitInfo.lineCount + ". Routing to failure.");
@@ -252,7 +252,9 @@ public class SplitText extends AbstractProcessor {
         } else {
             List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
             processSession.transfer(sourceFlowFile, REL_ORIGINAL);
-            processSession.transfer(splitFlowFiles, REL_SPLITS);
+            if (!splitFlowFiles.isEmpty()) {
+                processSession.transfer(splitFlowFiles, REL_SPLITS);
+            }
         }
     }
 
@@ -288,7 +290,7 @@ public class SplitText extends AbstractProcessor {
         int fragmentIndex = 1; // set to 1 to preserve the existing behavior *only*. Perhaps should be deprecated to follow the 0,1,2... scheme
         String fragmentId = UUID.randomUUID().toString();
 
-        if (computedSplitsInfo.size() == 0) {
+        if ((computedSplitsInfo.size() == 0) && (headerFlowFile != null)) {
             FlowFile splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength);
             splitFlowFile = SplitText.this.updateAttributes(processSession, splitFlowFile, 0, splitFlowFile.getSize(),
                     fragmentId, fragmentIndex++, 0, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));

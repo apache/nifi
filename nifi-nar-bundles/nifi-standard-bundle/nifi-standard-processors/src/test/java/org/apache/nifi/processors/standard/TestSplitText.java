@@ -358,6 +358,32 @@ public class TestSplitText {
     }
 
     @Test
+    public void testZeroByteInputWithoutHeader() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
+
+        runner.enqueue("".getBytes());
+        runner.run();
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+    }
+
+    @Test
+    public void testZeroByteInput() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new SplitText());
+        runner.setProperty(SplitText.HEADER_LINE_COUNT, "1");
+        runner.setProperty(SplitText.LINE_SPLIT_COUNT, "1");
+
+        runner.enqueue("".getBytes());
+        runner.run();
+        runner.assertTransferCount(SplitText.REL_SPLITS, 0);
+        runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
+        runner.assertTransferCount(SplitText.REL_FAILURE, 0);
+    }
+
+    @Test
     public void testSplitWithoutHeader() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());
         runner.setProperty(SplitText.HEADER_LINE_COUNT, "0");
