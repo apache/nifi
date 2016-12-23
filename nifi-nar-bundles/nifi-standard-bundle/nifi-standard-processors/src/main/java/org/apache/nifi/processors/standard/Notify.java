@@ -65,7 +65,7 @@ public class Notify extends AbstractProcessor {
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
         .name("Distributed Cache Service")
-        .description("The Controller Service that is used to check for release signals from a corresponding Notify processor")
+        .description("The Controller Service that is used to cache release signals in order to release files queued at a corresponding Wait processor")
         .required(true)
         .identifiesControllerService(DistributedMapCacheClient.class)
         .build();
