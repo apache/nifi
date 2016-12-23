@@ -71,7 +71,7 @@ import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
         + "exceeds the configured maximum size limit. This component also allows one to specify that each split should include a header "
         + "lines. Header lines can be computed by either specifying the amount of lines that should constitute a header or by using header "
         + "marker to match against the read lines. If such match happens then the corresponding line will be treated as header. Keep in mind "
-        + "that upon the first failure of header marker match, no more marches will be performed and the rest of the data will be parsed as "
+        + "that upon the first failure of header marker match, no more matches will be performed and the rest of the data will be parsed as "
         + "regular lines for a given split. If after computation of the header there are no more data, the resulting split will consists "
         + "of only header lines.")
 @WritesAttributes({
@@ -215,7 +215,7 @@ public class SplitText extends AbstractProcessor {
                 try {
                     if (SplitText.this.headerLineCount > 0) {
                         splitInfo = SplitText.this.computeHeader(demarcator, startOffset, SplitText.this.headerLineCount, null, null);
-                        if (splitInfo.lineCount < SplitText.this.headerLineCount) {
+                        if ((splitInfo != null) && (splitInfo.lineCount < SplitText.this.headerLineCount)) {
                             error.set(true);
                             getLogger().error("Unable to split " + sourceFlowFile + " due to insufficient amount of header lines. Required "
                                     + SplitText.this.headerLineCount + " but was " + splitInfo.lineCount + ". Routing to failure.");
@@ -252,7 +252,9 @@ public class SplitText extends AbstractProcessor {
         } else {
             List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
             processSession.transfer(sourceFlowFile, REL_ORIGINAL);
-            processSession.transfer(splitFlowFiles, REL_SPLITS);
+            if (!splitFlowFiles.isEmpty()) {
+                processSession.transfer(splitFlowFiles, REL_SPLITS);
+            }
         }
     }
 
@@ -288,7 +290,7 @@ public class SplitText extends AbstractProcessor {
         int fragmentIndex = 1; // set to 1 to preserve the existing behavior *only*. Perhaps should be deprecated to follow the 0,1,2... scheme
         String fragmentId = UUID.randomUUID().toString();
 
-        if (computedSplitsInfo.size() == 0) {
+        if ((computedSplitsInfo.size() == 0) && (headerFlowFile != null)) {
             FlowFile splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength);
             splitFlowFile = SplitText.this.updateAttributes(processSession, splitFlowFile, 0, splitFlowFile.getSize(),
                     fragmentId, fragmentIndex++, 0, sourceFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
