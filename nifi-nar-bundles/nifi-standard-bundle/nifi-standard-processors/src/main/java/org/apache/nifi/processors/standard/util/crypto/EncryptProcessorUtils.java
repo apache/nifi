@@ -33,16 +33,16 @@ import java.util.List;
 public class EncryptProcessorUtils {
 
 
-    private static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
-    private static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
-    private static final String PUBLIC_KEYRING = "Public Keyring File";
-    private static final String PUBLIC_KEY_USERID = "Public Key User Id";
-    private static final String PRIVATE_KEYRING = "Private Keyring File";
-    private static final String PRIVATE_KEYRING_PASSPHRASE = "Private Keyring Passphrase";
-    private static final String RAW_KEY_HEX= "Raw Key (hexadecimal)";
-    private static final String PASSWORD = "Password";
-    private static final String ENCRYPTION_ALGORITHM = "Encryption Algorithm";
-    private static final String KEY_DERIVATION_FUNCTION = "Key Derivation Function";
+    public static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
+    public static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
+    public static final String PUBLIC_KEYRING = "Public Keyring File";
+    public static final String PUBLIC_KEY_USERID = "Public Key User Id";
+    public static final String PRIVATE_KEYRING = "Private Keyring File";
+    public static final String PRIVATE_KEYRING_PASSPHRASE = "Private Keyring Passphrase";
+    public static final String RAW_KEY_HEX= "Raw Key (hexadecimal)";
+    public static final String PASSWORD = "Password";
+    public static final String ENCRYPTION_ALGORITHM = "Encryption Algorithm";
+    public static final String KEY_DERIVATION_FUNCTION = "Key Derivation Function";
 
 
     public static boolean isPGPAlgorithm(final String algorithm) {
@@ -245,7 +245,7 @@ public class EncryptProcessorUtils {
         return validationResults;
     }
 
-    private static List<String> getKDFsForKeyedCipher() {
+    static List<String> getKDFsForKeyedCipher() {
         List<String> kdfsForKeyedCipher = new ArrayList<>();
         kdfsForKeyedCipher.add(KeyDerivationFunction.NONE.name());
         for (KeyDerivationFunction k : KeyDerivationFunction.values()) {
@@ -256,7 +256,7 @@ public class EncryptProcessorUtils {
         return kdfsForKeyedCipher;
     }
 
-    private static List<String> getKDFsForPBECipher(EncryptionMethod encryptionMethod) {
+    static List<String> getKDFsForPBECipher(EncryptionMethod encryptionMethod) {
         List<String> kdfsForPBECipher = new ArrayList<>();
         for (KeyDerivationFunction k : KeyDerivationFunction.values()) {
             // Add all weak (legacy) KDFs except NONE
