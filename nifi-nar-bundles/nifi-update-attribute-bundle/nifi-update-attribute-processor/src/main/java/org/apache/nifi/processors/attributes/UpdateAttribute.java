@@ -144,18 +144,21 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     };
 
-    public static final String DELETE_ATTRIBUTES_EXPRESSION_NAME = "Delete Attributes Expression";
     // static properties
+    public static final String DELETE_ATTRIBUTES_EXPRESSION_NAME = "Delete Attributes Expression";
     public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name(DELETE_ATTRIBUTES_EXPRESSION_NAME)
-            .description("Regular expression for attributes to be deleted from FlowFiles.")
+            .displayName(DELETE_ATTRIBUTES_EXPRESSION_NAME)
+            .description("Regular expression for attributes to be deleted from FlowFiles.  Attributes that match will be deleted regardless of whether they are updated by this processor.")
             .required(false)
             .addValidator(DELETE_PROPERTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 
+    public static final String STORE_STATE_NAME = "Store State";
     public static final PropertyDescriptor STORE_STATE = new PropertyDescriptor.Builder()
-            .name("Store State")
+            .name(STORE_STATE_NAME)
+            .displayName(STORE_STATE_NAME)
             .description("Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
                     "FlowFile in a stateless manner. Selecting a stateful option will not only store the attributes on the FlowFile but also in the Processors " +
                     "state. See the 'Stateful Usage' topic of the 'Additional Details' section of this processor's documentation for more information")
@@ -163,8 +166,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             .allowableValues(DO_NOT_STORE_STATE, STORE_STATE_LOCALLY)
             .defaultValue(DO_NOT_STORE_STATE)
             .build();
+
+    public static final String STATEFUL_VARIABLES_INIT_VALUE_NAME = "Stateful Variables Initial Value";
     public static final PropertyDescriptor STATEFUL_VARIABLES_INIT_VALUE = new PropertyDescriptor.Builder()
-            .name("Stateful Variables Initial Value")
+            .name(STATEFUL_VARIABLES_INIT_VALUE_NAME)
+            .displayName(STATEFUL_VARIABLES_INIT_VALUE_NAME)
             .description("If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method " +
                     "when state does not contain a value for the variable. This is required if running statefully but can be empty if needed.")
             .required(false)
@@ -604,6 +610,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                                 attributesToDelete.add(key);
                             }
                         }
+                        // No point in updating if they will be removed
                         attributesToUpdate.keySet().removeAll(attributesToDelete);
                     }
                 } catch (final ProcessException pe) {
@@ -626,6 +633,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                             statefulAttributesToSet.put(attribute, newAttributeValue);
                         }
 
+                        // No point in updating if it will be removed
                         if (notDeleted) {
                             attributesToUpdate.put(attribute, newAttributeValue);
                         }
