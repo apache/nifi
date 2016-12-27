@@ -32,6 +32,11 @@ public interface EventAccess {
     ProcessGroupStatus getControllerStatus();
 
     /**
+     * @return the status of all components in the specified group.
+     */
+    ProcessGroupStatus getGroupStatus(final String groupId);
+
+    /**
      * Convenience method to obtain Provenance Events starting with (and
      * including) the given ID. If no event exists with that ID, the first event
      * to be returned will be have an ID greater than <code>firstEventId</code>.

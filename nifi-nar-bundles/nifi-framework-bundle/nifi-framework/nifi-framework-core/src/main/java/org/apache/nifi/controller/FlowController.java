@@ -2246,6 +2246,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param groupId group id
      * @return the component status
      */
+    @Override
     public ProcessGroupStatus getGroupStatus(final String groupId) {
         return getGroupStatus(groupId, getProcessorStats());
     }

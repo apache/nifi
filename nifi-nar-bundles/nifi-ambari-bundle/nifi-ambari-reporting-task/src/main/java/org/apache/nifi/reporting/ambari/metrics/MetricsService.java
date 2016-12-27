@@ -33,25 +33,26 @@ public class MetricsService {
      * Generates a Map of metrics for a ProcessGroupStatus instance.
      *
      * @param status a ProcessGroupStatus to get metrics from
+     * @param appendPgId if true, the process group ID will be appended at the end of the metric name
      * @return a map of metrics for the given status
      */
-    public Map<String,String> getMetrics(ProcessGroupStatus status) {
+    public Map<String,String> getMetrics(ProcessGroupStatus status, boolean appendPgId) {
         final Map<String,String> metrics = new HashMap<>();
-        metrics.put(MetricNames.FLOW_FILES_RECEIVED, String.valueOf(status.getFlowFilesReceived()));
-        metrics.put(MetricNames.BYTES_RECEIVED, String.valueOf(status.getBytesReceived()));
-        metrics.put(MetricNames.FLOW_FILES_SENT, String.valueOf(status.getFlowFilesSent()));
-        metrics.put(MetricNames.BYTES_SENT, String.valueOf(status.getBytesSent()));
-        metrics.put(MetricNames.FLOW_FILES_QUEUED, String.valueOf(status.getQueuedCount()));
-        metrics.put(MetricNames.BYTES_QUEUED, String.valueOf(status.getQueuedContentSize()));
-        metrics.put(MetricNames.BYTES_READ, String.valueOf(status.getBytesRead()));
-        metrics.put(MetricNames.BYTES_WRITTEN, String.valueOf(status.getBytesWritten()));
-        metrics.put(MetricNames.ACTIVE_THREADS, String.valueOf(status.getActiveThreadCount()));
+        metrics.put(appendPgId(MetricNames.FLOW_FILES_RECEIVED, status, appendPgId), String.valueOf(status.getFlowFilesReceived()));
+        metrics.put(appendPgId(MetricNames.BYTES_RECEIVED, status, appendPgId), String.valueOf(status.getBytesReceived()));
+        metrics.put(appendPgId(MetricNames.FLOW_FILES_SENT, status, appendPgId), String.valueOf(status.getFlowFilesSent()));
+        metrics.put(appendPgId(MetricNames.BYTES_SENT, status, appendPgId), String.valueOf(status.getBytesSent()));
+        metrics.put(appendPgId(MetricNames.FLOW_FILES_QUEUED, status, appendPgId), String.valueOf(status.getQueuedCount()));
+        metrics.put(appendPgId(MetricNames.BYTES_QUEUED, status, appendPgId), String.valueOf(status.getQueuedContentSize()));
+        metrics.put(appendPgId(MetricNames.BYTES_READ, status, appendPgId), String.valueOf(status.getBytesRead()));
+        metrics.put(appendPgId(MetricNames.BYTES_WRITTEN, status, appendPgId), String.valueOf(status.getBytesWritten()));
+        metrics.put(appendPgId(MetricNames.ACTIVE_THREADS, status, appendPgId), String.valueOf(status.getActiveThreadCount()));
 
         final long durationNanos = calculateProcessingNanos(status);
-        metrics.put(MetricNames.TOTAL_TASK_DURATION_NANOS, String.valueOf(durationNanos));
+        metrics.put(appendPgId(MetricNames.TOTAL_TASK_DURATION_NANOS, status, appendPgId), String.valueOf(durationNanos));
 
         final long durationSeconds = TimeUnit.SECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
-        metrics.put(MetricNames.TOTAL_TASK_DURATION_SECONDS, String.valueOf(durationSeconds));
+        metrics.put(appendPgId(MetricNames.TOTAL_TASK_DURATION_SECONDS, status, appendPgId), String.valueOf(durationSeconds));
 
         return metrics;
     }
@@ -116,6 +117,15 @@ public class MetricsService {
         }
 
         return nanos;
+    }
+
+    // append the process group ID if necessary
+    private String appendPgId(String name, ProcessGroupStatus status, boolean appendPgId) {
+        if(appendPgId) {
+            return name + MetricNames.METRIC_NAME_SEPARATOR + status.getId();
+        } else {
+            return name;
+        }
     }
 
 }

@@ -60,7 +60,7 @@ public class TestMetricsService {
 
         final MetricsService service = new MetricsService();
 
-        final Map<String,String> metrics = service.getMetrics(status);
+        final Map<String,String> metrics = service.getMetrics(status, false);
 
         Assert.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED));
         Assert.assertTrue(metrics.containsKey(MetricNames.BYTES_RECEIVED));
@@ -73,6 +73,44 @@ public class TestMetricsService {
         Assert.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
         Assert.assertTrue(metrics.containsKey(MetricNames.TOTAL_TASK_DURATION_SECONDS));
         Assert.assertTrue(metrics.containsKey(MetricNames.TOTAL_TASK_DURATION_NANOS));
+    }
+
+    @Test
+    public void testGetProcessGroupStatusMetricsWithID() {
+        ProcessGroupStatus status = new ProcessGroupStatus();
+        String id = "1234";
+        status.setId(id);
+        status.setFlowFilesReceived(5);
+        status.setBytesReceived(10000);
+        status.setFlowFilesSent(10);
+        status.setBytesSent(20000);
+        status.setQueuedCount(100);
+        status.setQueuedContentSize(1024L);
+        status.setBytesRead(60000L);
+        status.setBytesWritten(80000L);
+        status.setActiveThreadCount(5);
+
+        // create a processor status with processing time
+        ProcessorStatus procStatus = new ProcessorStatus();
+        procStatus.setProcessingNanos(123456789);
+
+        Collection<ProcessorStatus> processorStatuses = new ArrayList<>();
+        processorStatuses.add(procStatus);
+        status.setProcessorStatus(processorStatuses);
+
+        // create a group status with processing time
+        ProcessGroupStatus groupStatus = new ProcessGroupStatus();
+        groupStatus.setProcessorStatus(processorStatuses);
+
+        Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
+        groupStatuses.add(groupStatus);
+        status.setProcessGroupStatus(groupStatuses);
+
+        final MetricsService service = new MetricsService();
+
+        final Map<String,String> metrics = service.getMetrics(status, true);
+
+        Assert.assertTrue(metrics.containsKey(MetricNames.FLOW_FILES_RECEIVED + MetricNames.METRIC_NAME_SEPARATOR + id));
     }
 
     @Test
