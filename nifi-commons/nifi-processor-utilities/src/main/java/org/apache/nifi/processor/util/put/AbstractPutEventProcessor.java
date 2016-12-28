@@ -56,12 +56,14 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("localhost")
             .required(true)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
             .description("The port on the destination.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
