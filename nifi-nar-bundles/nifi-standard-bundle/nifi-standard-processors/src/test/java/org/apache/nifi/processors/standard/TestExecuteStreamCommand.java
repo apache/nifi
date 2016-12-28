@@ -118,7 +118,7 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         assertEquals(0, flowFiles.get(0).getSize());
         List<MockFlowFile> errorflowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ERROR_STREAM_RELATIONSHIP);
-        assertEquals(173, errorflowFiles.get(0).getSize());
+        assertTrue(errorflowFiles.get(0).getSize() > 31);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.ERROR_STREAM_RELATIONSHIP, 0);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        assertEquals(173, flowFiles.get(0).getSize());
+        assertTrue(flowFiles.get(0).getSize() > 31);
     }
 
     @Test
