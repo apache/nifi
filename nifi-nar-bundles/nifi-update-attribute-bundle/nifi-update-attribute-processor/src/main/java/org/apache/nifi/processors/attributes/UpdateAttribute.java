@@ -44,7 +44,7 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -275,8 +275,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         debugEnabled = getLogger().isDebugEnabled();
     }
 
-    @OnUnscheduled
-    public void onUnScheduled() {
+    @OnStopped
+    public void onStopped() {
         defaultActions = null;
     }
 
