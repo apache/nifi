@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -64,6 +63,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
@@ -426,6 +426,7 @@ public class PutS3Object extends AbstractS3Processor {
                                 .evaluateAttributeExpressions(ff).getValue();
                         if (contentType != null) {
                             objectMetadata.setContentType(contentType);
+                            attributes.put(S3_CONTENT_TYPE, contentType);
                         }
 
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID)
@@ -882,6 +883,7 @@ public class PutS3Object extends AbstractS3Processor {
             _timestamp = timestamp;
         }
 
+        @Override
         public String toString() {
             StringBuilder buf = new StringBuilder();
             buf.append(_uploadId).append(SEPARATOR)
