@@ -100,6 +100,48 @@ public class TestExecuteStreamCommand {
     }
 
     @Test
+    public void testExecuteJarWithBadPathErrorStream() throws Exception {
+        File exJar = new File("src/test/resources/ExecuteCommand/noSuchFile.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setValidateExpressionUsage(false);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.REDIRECT_ERROR, ExecuteStreamCommand.REDIRECT_ERROR_ERROR_STREAM);
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.ERROR_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        assertEquals(0, flowFiles.get(0).getSize());
+        List<MockFlowFile> errorflowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ERROR_STREAM_RELATIONSHIP);
+        assertEquals(173, errorflowFiles.get(0).getSize());
+    }
+
+    @Test
+    public void testExecuteJarWithBadPathRedirectToOutput() throws Exception {
+        File exJar = new File("src/test/resources/ExecuteCommand/noSuchFile.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setValidateExpressionUsage(false);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.REDIRECT_ERROR, ExecuteStreamCommand.REDIRECT_ERROR_OUTPUT_STREAM);
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.ERROR_STREAM_RELATIONSHIP, 0);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        assertEquals(173, flowFiles.get(0).getSize());
+    }
+
+    @Test
     public void testExecuteIngestAndUpdate() throws IOException {
         File exJar = new File("src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar");
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
@@ -295,11 +337,12 @@ public class TestExecuteStreamCommand {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue("small test".getBytes());
+        controller.setProperty(ExecuteStreamCommand.REDIRECT_ERROR,"log");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.setProperty(ExecuteStreamCommand.PUT_ATTRIBUTE_MAX_LENGTH, "10");
         controller.setProperty(ExecuteStreamCommand.PUT_OUTPUT_IN_ATTRIBUTE, "outputDest");
-        assertEquals(1, controller.getProcessContext().getAvailableRelationships().size());
+        assertEquals(2, controller.getProcessContext().getAvailableRelationships().size());
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);

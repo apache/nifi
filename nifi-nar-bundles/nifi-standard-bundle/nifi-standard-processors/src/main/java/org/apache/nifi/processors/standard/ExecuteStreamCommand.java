@@ -28,6 +28,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -64,6 +66,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -144,6 +149,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .name("output stream")
             .description("The destination path for the flow file created from the command's output")
             .build();
+    public static final Relationship ERROR_STREAM_RELATIONSHIP = new Relationship.Builder()
+            .name("error stream")
+            .description("The destination path for the flow file created from the command's error stream")
+            .build();
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
     private final static Set<Relationship> OUTPUT_STREAM_RELATIONSHIP_SET;
@@ -186,7 +195,18 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
             .required(false)
             .build();
-
+    static final String REDIRECT_ERROR_LOG = "log";
+    static final String REDIRECT_ERROR_ERROR_STREAM = "error stream";
+    static final String REDIRECT_ERROR_OUTPUT_STREAM = "output stream";
+    static final PropertyDescriptor REDIRECT_ERROR = new PropertyDescriptor.Builder()
+            .name("Redirect Error Stream")
+            .description("where shoud the error stream from external process get redirected"
+                    + "\n1) log - outputs to the nifi logger"
+                    + "\n2) output stream - redirects to the output stream relation"
+                    + "\n3) error stream - redirects to the error stream relation")
+            .allowableValues(REDIRECT_ERROR_LOG, REDIRECT_ERROR_OUTPUT_STREAM, REDIRECT_ERROR_ERROR_STREAM)
+            .defaultValue(REDIRECT_ERROR_LOG)
+            .build();
     static final PropertyDescriptor IGNORE_STDIN = new PropertyDescriptor.Builder()
             .name("Ignore STDIN")
             .description("If true, the contents of the incoming flowfile will not be passed to the executing command")
@@ -234,20 +254,25 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         props.add(ARG_DELIMITER);
         props.add(PUT_OUTPUT_IN_ATTRIBUTE);
         props.add(PUT_ATTRIBUTE_MAX_LENGTH);
+        props.add(REDIRECT_ERROR);
         PROPERTIES = Collections.unmodifiableList(props);
 
 
         Set<Relationship> outputStreamRelationships = new HashSet<>();
         outputStreamRelationships.add(OUTPUT_STREAM_RELATIONSHIP);
         outputStreamRelationships.add(ORIGINAL_RELATIONSHIP);
+        outputStreamRelationships.add(ERROR_STREAM_RELATIONSHIP);
         OUTPUT_STREAM_RELATIONSHIP_SET = Collections.unmodifiableSet(outputStreamRelationships);
 
         Set<Relationship> attributeRelationships = new HashSet<>();
         attributeRelationships.add(ORIGINAL_RELATIONSHIP);
+        attributeRelationships.add(ERROR_STREAM_RELATIONSHIP);
         ATTRIBUTE_RELATIONSHIP_SET = Collections.unmodifiableSet(attributeRelationships);
     }
 
     private ComponentLog logger;
+    private volatile ExecutorService executor;
+    private volatile Process process;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -257,7 +282,6 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     @Override
     protected void init(ProcessorInitializationContext context) {
         logger = getLogger();
-
         relationships.set(OUTPUT_STREAM_RELATIONSHIP_SET);
     }
 
@@ -287,6 +311,32 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         .build();
     }
 
+    @OnScheduled
+    public void setupExecutor(final ProcessContext context) {
+        executor = Executors.newFixedThreadPool(context.getMaxConcurrentTasks() * 2, new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = defaultFactory.newThread(r);
+                t.setName("ExecuteStreamCommand " + getIdentifier() + " Task");
+                return t;
+            }
+        });
+    }
+
+    @OnUnscheduled
+    public void shutdownExecutor() {
+        try {
+            executor.shutdown();
+        } finally {
+            if (this.process!=null && this.process.isAlive()) {
+                this.getLogger().info("Process hasn't terminated, forcing the interrupt");
+                this.process.destroyForcibly();
+            }
+        }
+    }
+
     @Override
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile inputFlowFile = session.get();
@@ -296,6 +346,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
         final ArrayList<String> args = new ArrayList<>();
         final boolean putToAttribute = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).isSet();
+        final String redirectErrorStream = context.getProperty(REDIRECT_ERROR).getValue();
         final Integer attributeSize = context.getProperty(PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final String attributeName = context.getProperty(PUT_OUTPUT_IN_ATTRIBUTE).getValue();
 
@@ -331,9 +382,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
         builder.redirectOutput(Redirect.PIPE);
-        final Process process;
         try {
-            process = builder.start();
+            this.process = builder.redirectErrorStream(REDIRECT_ERROR_OUTPUT_STREAM.equals(redirectErrorStream))
+                    .start();
         } catch (IOException e) {
             logger.error("Could not create external process to run command", e);
             throw new ProcessException(e);
@@ -342,16 +393,45 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 final InputStream pis = process.getInputStream();
                 final InputStream pes = process.getErrorStream();
                 final BufferedInputStream bis = new BufferedInputStream(pis);
+                final BufferedInputStream bes = new BufferedInputStream(pes);
                 final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
+            final StringBuilder strBldr = new StringBuilder();
             FlowFile outputFlowFile = putToAttribute ? inputFlowFile : session.create(inputFlowFile);
+            FlowFile errorFlowFile=null;
+            FlowWriterThread flowWriter = null;
+            if (REDIRECT_ERROR_ERROR_STREAM.equals(redirectErrorStream)) {
+                 errorFlowFile = session.create(inputFlowFile);
+                flowWriter = new FlowWriterThread(errorFlowFile, session, bes);
+                this.executor.submit(flowWriter);
+            }
+            //if redirect error stream is set to log, then write the error to nifi component log.
+            if (REDIRECT_ERROR_LOG.equals(redirectErrorStream)) {
+                this.executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                       try (final BufferedReader reader = new BufferedReader(new InputStreamReader(pes))) {
+                            String line;
+                            while ((line = bufferedReader.readLine()) != null) {
+                                 logger.warn("ExecuteStreamCommand :"+line);
+                                 strBldr.append(line).append("\n");
+                            }
+                        } catch (final IOException ioe) {
+                             strBldr.append("Unknown...could not read Process's Std Error");
+                        }
+                    }
+                });
+            }
 
-            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger,
-                    attributeName, session, outputFlowFile, process,putToAttribute,attributeSize);
+            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis,bes, logger,
+                     attributeName, session, outputFlowFile,errorFlowFile, process,putToAttribute,attributeSize,redirectErrorStream);
             session.read(inputFlowFile, callback);
 
             outputFlowFile = callback.outputFlowFile;
+            if (REDIRECT_ERROR_ERROR_STREAM.equals(redirectErrorStream)) {
+                errorFlowFile = flowWriter.flowFile;
+            }
             if (putToAttribute) {
                 outputFlowFile = session.putAttribute(outputFlowFile, attributeName, new String(callback.outputBuffer, 0, callback.size));
             }
@@ -360,18 +440,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
 
             Map<String, String> attributes = new HashMap<>();
-
-            final StringBuilder strBldr = new StringBuilder();
-            try {
-                String line;
-                while ((line = bufferedReader.readLine()) != null) {
-                    strBldr.append(line).append("\n");
-                }
-            } catch (IOException e) {
-                strBldr.append("Unknown...could not read Process's Std Error");
+            if (REDIRECT_ERROR_LOG.equals(redirectErrorStream)) {
+                int length = strBldr.length() > 4000 ? 4000 : strBldr.length();
+                attributes.put("execution.error", strBldr.substring(0, length));
             }
-            int length = strBldr.length() > 4000 ? 4000 : strBldr.length();
-            attributes.put("execution.error", strBldr.substring(0, length));
 
             final Relationship outputFlowFileRelationship = putToAttribute ? ORIGINAL_RELATIONSHIP : OUTPUT_STREAM_RELATIONSHIP;
             if (exitCode == 0) {
@@ -386,7 +458,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             attributes.put("execution.command", executeCommand);
             attributes.put("execution.command.args", commandArguments);
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
-
+            if (REDIRECT_ERROR_ERROR_STREAM.equals(redirectErrorStream)) {
+                errorFlowFile = session.putAllAttributes(errorFlowFile, attributes);
+                logger.info("Transferring flow file {} to error stream", new Object[]{errorFlowFile});
+                session.transfer(errorFlowFile, ERROR_STREAM_RELATIONSHIP);
+            }
             // This transfer will transfer the FlowFile that received the stream out put to it's destined relationship.
             // In the event the stream is put to the an attribute of the original, it will be transferred here.
             session.transfer(outputFlowFile, outputFlowFileRelationship);
@@ -410,30 +486,36 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final boolean ignoreStdin;
         final OutputStream stdinWritable;
         final InputStream stdoutReadable;
+        final InputStream stderrReadable;
         final ComponentLog logger;
         final ProcessSession session;
         final Process process;
         FlowFile outputFlowFile;
+        FlowFile errorFlowFile;
         int exitCode;
         final boolean putToAttribute;
         final int attributeSize;
         final String attributeName;
+        final String redirectError;
 
         byte[] outputBuffer;
         int size;
 
-        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,ComponentLog logger, String attributeName,
-                                           ProcessSession session, FlowFile outputFlowFile, Process process, boolean putToAttribute, int attributeSize) {
+        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdinWritable, InputStream stdoutReadable,InputStream stderrReadable,ComponentLog logger, String attributeName,
+                                           ProcessSession session, FlowFile outputFlowFile,FlowFile errorFlowFile, Process process, boolean putToAttribute, int attributeSize,String redirectError) {
             this.ignoreStdin = ignoreStdin;
             this.stdinWritable = stdinWritable;
             this.stdoutReadable = stdoutReadable;
+            this.stderrReadable=stderrReadable;
             this.logger = logger;
             this.session = session;
             this.outputFlowFile = outputFlowFile;
+            this.errorFlowFile=errorFlowFile;
             this.process = process;
             this.putToAttribute = putToAttribute;
             this.attributeSize = attributeSize;
             this.attributeName = attributeName;
+            this.redirectError = redirectError;
         }
 
         @Override
@@ -442,10 +524,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 try (SoftLimitBoundedByteArrayOutputStream softLimitBoundedBAOS = new SoftLimitBoundedByteArrayOutputStream(attributeSize)) {
                     readStdoutReadable(ignoreStdin, stdinWritable, logger, incomingFlowFileIS);
                     final long longSize = StreamUtils.copy(stdoutReadable, softLimitBoundedBAOS);
-
                     // Because the outputstream has a cap that the copy doesn't know about, adjust
                     // the actual size
-                    if (longSize > (long) attributeSize) { // Explicit cast for readability
+                    if (longSize > attributeSize) { // Explicit cast for readability
                         size = attributeSize;
                     } else{
                         size = (int) longSize; // Note: safe cast, longSize is limited by attributeSize
@@ -461,7 +542,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     }
                 }
             } else {
-                outputFlowFile = session.write(outputFlowFile, new OutputStreamCallback() {
+                    outputFlowFile = session.write(outputFlowFile, new OutputStreamCallback() {
                     @Override
                     public void process(OutputStream out) throws IOException {
 
@@ -500,5 +581,28 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         });
         writerThread.setDaemon(true);
         writerThread.start();
+    }
+
+    static class FlowWriterThread implements Runnable {
+
+        FlowFile flowFile;
+        ProcessSession session;
+        InputStream readable;
+
+        public FlowWriterThread(FlowFile flowFile, ProcessSession session, InputStream readable) {
+            this.flowFile = flowFile;
+            this.session = session;
+            this.readable = readable;
+        }
+
+        @Override
+        public void run() {
+            flowFile = session.write(flowFile, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    StreamUtils.copy(readable, out);
+                }
+            });
+        }
     }
 }
