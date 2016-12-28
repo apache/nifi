@@ -149,7 +149,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
             .name(DELETE_ATTRIBUTES_EXPRESSION_NAME)
             .displayName(DELETE_ATTRIBUTES_EXPRESSION_NAME)
-            .description("Regular expression for attributes to be deleted from FlowFiles.  Attributes that match will be deleted regardless of whether they are updated by this processor.")
+            .description("Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.")
             .required(false)
             .addValidator(DELETE_PROPERTY_VALIDATOR)
             .expressionLanguageSupported(true)
