@@ -91,6 +91,7 @@ public final class NarUnpacker {
             }
 
             if (!narFiles.isEmpty()) {
+                logger.info("Expanding " + narFiles.size() + " NAR files with all processors... It can take few minutes.");
                 for (File narFile : narFiles) {
                     logger.debug("Expanding NAR file: " + narFile.getAbsolutePath());
 
