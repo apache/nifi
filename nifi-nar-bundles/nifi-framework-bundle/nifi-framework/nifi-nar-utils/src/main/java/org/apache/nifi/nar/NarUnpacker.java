@@ -89,6 +89,7 @@ public final class NarUnpacker {
             }
 
             if (!narFiles.isEmpty()) {
+                final long startTime = System.nanoTime();
                 logger.info("Expanding " + narFiles.size() + " NAR files with all processors... It can take few minutes.");
                 for (File narFile : narFiles) {
                     logger.debug("Expanding NAR file: " + narFile.getAbsolutePath());
@@ -144,6 +145,8 @@ public final class NarUnpacker {
                         }
                     }
                 }
+                final long endTime = System.nanoTime();
+                logger.info("NAR loading process took " + (endTime - startTime) + " nanoseconds.");
             }
 
             // attempt to delete any docs files that exist so that any
