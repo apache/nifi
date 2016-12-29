@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
-
-import javax.servlet.Servlet;
-import javax.ws.rs.Path;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -64,6 +48,21 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
+import javax.servlet.Servlet;
+import javax.ws.rs.Path;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
+
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
 @CapabilityDescription("Starts an HTTP Server that is used to receive FlowFiles from remote sources. The default URI of the Service will be http://{hostname}:{port}/contentListener")
@@ -81,6 +80,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("Base Path")
         .description("Base path for incoming connections")
         .required(true)
+        .expressionLanguageSupported(true)
         .defaultValue("contentListener")
         .addValidator(StandardValidators.URI_VALIDATOR)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("(^[^/]+.*[^/]+$|^[^/]+$|^$)"))) // no start with / or end with /
@@ -89,6 +89,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("Listening Port")
         .description("The Port to listen on for incoming connections")
         .required(true)
+        .expressionLanguageSupported(true)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
@@ -196,7 +197,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     private void createHttpServerFromService(final ProcessContext context) throws Exception {
-        final String basePath = context.getProperty(BASE_PATH).getValue();
+        final String basePath = context.getProperty(BASE_PATH).evaluateAttributeExpressions().getValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
@@ -232,7 +233,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final Server server = new Server(threadPool);
 
         // get the configured port
-        final int port = context.getProperty(PORT).asInteger();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
