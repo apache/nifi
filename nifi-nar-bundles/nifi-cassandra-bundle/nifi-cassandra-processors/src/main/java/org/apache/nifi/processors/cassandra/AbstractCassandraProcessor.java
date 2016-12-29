@@ -33,7 +33,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -60,31 +59,6 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     public static final int DEFAULT_CASSANDRA_PORT = 9042;
 
-    private static final Validator HOSTNAME_PORT_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            final List<String> esList = Arrays.asList(input.split(","));
-            for (String hostnamePort : esList) {
-                String[] addresses = hostnamePort.split(":");
-                // Protect against invalid input like http://127.0.0.1:9042 (URL scheme should not be there)
-                if (addresses.length != 2) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation(
-                            "Each entry must be in hostname:port form (no scheme such as http://, and port must be specified)")
-                            .valid(false).build();
-                }
-                // Validate the port
-                String port = addresses[1].trim();
-                ValidationResult portValidatorResult = StandardValidators.PORT_VALIDATOR.validate(subject, port, context);
-                if (!portValidatorResult.isValid()) {
-                    return portValidatorResult;
-                }
-
-            }
-            return new ValidationResult.Builder().subject(subject).input(input).explanation(
-                    "Valid cluster definition").valid(true).build();
-        }
-    };
-
     // Common descriptors
     public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
             .name("Cassandra Contact Points")
@@ -93,7 +67,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                     + " The default client port for Cassandra is 9042, but the port(s) must be explicitly specified.")
             .required(true)
             .expressionLanguageSupported(false)
-            .addValidator(HOSTNAME_PORT_VALIDATOR)
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor KEYSPACE = new PropertyDescriptor.Builder()

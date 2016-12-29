@@ -30,7 +30,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -59,10 +58,6 @@ import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
         + " overriden with warning message describing the override."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
 public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
-
-    private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
-
-    private static final String BROKER_REGEX = SINGLE_BROKER_REGEX + "(?:,\\s*" + SINGLE_BROKER_REGEX + ")*";
 
     public static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
             "FlowFile will be routed to"
@@ -116,7 +111,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .name("Known Brokers")
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
             .required(true)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
     public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()

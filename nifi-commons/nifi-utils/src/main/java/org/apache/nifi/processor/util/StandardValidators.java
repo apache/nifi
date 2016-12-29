@@ -22,9 +22,11 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
-import java.time.Instant;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -155,6 +157,55 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
             return new ValidationResult.Builder().subject(subject).input(value).valid(value != null && !value.isEmpty()).explanation(subject + " cannot be empty").build();
+        }
+    };
+
+    /**
+     * {@link Validator} that ensures that value's length > 0 and that expression language is present
+     */
+    public static final Validator NON_EMPTY_EL_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+            return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
+        }
+    };
+
+    /**
+     * {@link Validator} that ensures that value is a non-empty comma separated list of hostname:port
+     */
+    public static final Validator HOSTNAME_PORT_LIST_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            // expression language
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+            // not empty
+            ValidationResult nonEmptyValidatorResult = StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, input, context);
+            if (!nonEmptyValidatorResult.isValid()) {
+                return nonEmptyValidatorResult;
+            }
+            // check format
+            final List<String> hostnamePortList = Arrays.asList(input.split(","));
+            for (String hostnamePort : hostnamePortList) {
+                String[] addresses = hostnamePort.split(":");
+                // Protect against invalid input like http://127.0.0.1:9300 (URL scheme should not be there)
+                if (addresses.length != 2) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation(
+                            "Must be in hostname:port form (no scheme such as http://").valid(false).build();
+                }
+
+                // Validate the port
+                String port = addresses[1].trim();
+                ValidationResult portValidatorResult = StandardValidators.PORT_VALIDATOR.validate(subject, port, context);
+                if (!portValidatorResult.isValid()) {
+                    return portValidatorResult;
+                }
+            }
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid cluster definition").valid(true).build();
         }
     };
 

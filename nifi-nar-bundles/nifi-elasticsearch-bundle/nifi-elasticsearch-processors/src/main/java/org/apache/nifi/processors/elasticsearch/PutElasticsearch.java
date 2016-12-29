@@ -96,7 +96,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
@@ -104,7 +104,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of the operation used to index (index, update, upsert)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .defaultValue("index")
             .build();
 

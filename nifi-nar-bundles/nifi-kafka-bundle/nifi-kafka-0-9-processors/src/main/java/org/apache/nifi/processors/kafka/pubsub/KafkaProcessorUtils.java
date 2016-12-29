@@ -52,10 +52,6 @@ final class KafkaProcessorUtils {
 
     final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
-
-    private static final String BROKER_REGEX = SINGLE_BROKER_REGEX + "(?:,\\s*" + SINGLE_BROKER_REGEX + ")*";
-
     static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
     static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
             "The key is interpreted as arbitrary binary data and is encoded using hexadecimal characters with uppercase letters");
@@ -77,8 +73,7 @@ final class KafkaProcessorUtils {
             .displayName("Kafka Brokers")
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
             .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .expressionLanguageSupported(true)
             .defaultValue("localhost:9092")
             .build();
