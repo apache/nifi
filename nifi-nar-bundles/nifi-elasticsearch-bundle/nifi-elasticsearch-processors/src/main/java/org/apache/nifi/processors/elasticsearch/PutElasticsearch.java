@@ -230,6 +230,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
                             session.transfer(flowFile, REL_FAILURE);
 
                         } else {
+                            session.getProvenanceReporter().send(flowFile, context.getProperty(HOSTS).evaluateAttributeExpressions().getValue() + "/" + responses[i].getIndex());
                             session.transfer(flowFile, REL_SUCCESS);
                         }
                         flowFilesToTransfer.remove(flowFile);
@@ -238,7 +239,12 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             }
 
             // Transfer any remaining flowfiles to success
-            session.transfer(flowFilesToTransfer, REL_SUCCESS);
+            flowFilesToTransfer.forEach(file -> {
+                session.transfer(file, REL_SUCCESS);
+                // Record provenance event
+                session.getProvenanceReporter().send(file, context.getProperty(HOSTS).evaluateAttributeExpressions().getValue() + "/" +
+                                context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue());
+            });
 
         } catch (NoNodeAvailableException
                 | ElasticsearchTimeoutException

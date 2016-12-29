@@ -18,6 +18,7 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -49,6 +50,8 @@ import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
@@ -97,6 +100,8 @@ public class TestFetchElasticsearch {
         runner.run(1, true, true);
 
         runner.assertAllFlowFilesTransferred(FetchElasticsearch.REL_SUCCESS, 1);
+        assertFalse(runner.getProvenanceEvents().isEmpty());
+        runner.getProvenanceEvents().forEach(event -> { assertEquals(event.getEventType(), ProvenanceEventType.FETCH); });
         final MockFlowFile out = runner.getFlowFilesForRelationship(FetchElasticsearch.REL_SUCCESS).get(0);
         assertNotNull(out);
         out.assertAttributeEquals("doc_id", "28039652140");
