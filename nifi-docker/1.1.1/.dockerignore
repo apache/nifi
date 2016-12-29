@@ -1,0 +1,4 @@
+# Place files you want to exclude from the docker build here similar to .gitignore https://docs.docker.com/engine/reference/builder/#dockerignore-file
+DockerBuild.sh
+DockerRun.sh
+DockerImage.txt
