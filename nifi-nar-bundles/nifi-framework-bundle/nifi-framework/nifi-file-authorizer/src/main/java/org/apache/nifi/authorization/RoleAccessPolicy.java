@@ -94,7 +94,6 @@ public final class RoleAccessPolicy {
         roleAccessPolicies.put(Role.ROLE_ADMIN, Collections.unmodifiableSet(adminPolicies));
 
         final Set<RoleAccessPolicy> proxyPolicies = new HashSet<>();
-        proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), READ_ACTION));
         proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), WRITE_ACTION));
         if (rootGroupId != null) {
             proxyPolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));

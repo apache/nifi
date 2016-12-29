@@ -347,7 +347,7 @@ public class FileAuthorizerTest {
         assertEquals(2, user5Policies.size());
 
         assertTrue(user5Policies.containsKey(ResourceType.Proxy.getValue()));
-        assertEquals(2, user5Policies.get(ResourceType.Proxy.getValue()).size());
+        assertEquals(1, user5Policies.get(ResourceType.Proxy.getValue()).size());
         assertTrue(user5Policies.get(ResourceType.Proxy.getValue()).contains(RequestAction.WRITE));
 
         // verify user6's policies
@@ -652,12 +652,7 @@ public class FileAuthorizerTest {
         User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
         assertNotNull(nodeUser2);
 
-        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
         AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
-
-        assertNotNull(proxyReadPolicy);
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
@@ -695,12 +690,7 @@ public class FileAuthorizerTest {
         User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
         assertNotNull(nodeUser2);
 
-        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
         AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
-
-        assertNotNull(proxyReadPolicy);
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));

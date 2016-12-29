@@ -359,7 +359,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             final org.apache.nifi.authorization.file.tenants.generated.User jaxbNodeUser = getOrCreateUser(tenants, nodeIdentity);
 
             // grant access to the proxy resource
-            addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), READ_CODE);
             addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), WRITE_CODE);
 
             // grant the user read/write access data of the root group
