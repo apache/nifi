@@ -17,8 +17,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -46,26 +44,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractElasticsearch5Processor {
 
-    /**
-     * This validator ensures the Elasticsearch hosts property is a valid list of hostname:port entries
-     */
-    private static final Validator HOSTNAME_PORT_VALIDATOR = (subject, input, context) -> {
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-        }
-        final List<String> esList = Arrays.asList(input.split(","));
-        for (String hostnamePort : esList) {
-            String[] addresses = hostnamePort.split(":");
-            // Protect against invalid input like http://127.0.0.1:9300 (URL scheme should not be there)
-            if (addresses.length != 2) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation(
-                        "Must be in hostname:port form (no scheme such as http://").valid(false).build();
-            }
-        }
-        return new ValidationResult.Builder().subject(subject).input(input).explanation(
-                "Valid cluster definition").valid(true).build();
-    };
-
     protected static final PropertyDescriptor CLUSTER_NAME = new PropertyDescriptor.Builder()
             .name("el5-cluster-name")
             .displayName("Cluster Name")
@@ -84,7 +62,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     + "connect to hosts. The default transport client port is 9300.")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(HOSTNAME_PORT_VALIDATOR)
+            .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_XPACK_LOCATION = new PropertyDescriptor.Builder()

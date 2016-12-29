@@ -19,7 +19,6 @@ package org.apache.nifi.processors.elasticsearch;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -35,13 +34,6 @@ import java.util.Set;
  * A base class for all Elasticsearch processors
  */
 public abstract class AbstractElasticsearchProcessor extends AbstractProcessor {
-
-    static final Validator NON_EMPTY_EL_VALIDATOR = (subject, value, context) -> {
-        if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value)) {
-            return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
-        }
-        return StandardValidators.NON_EMPTY_VALIDATOR.validate(subject, value, context);
-    };
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")

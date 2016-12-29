@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util.validator;
 
-import org.apache.nifi.processor.util.StandardValidators;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -26,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -43,6 +43,61 @@ public class TestStandardValidators {
 
         vr = val.validate("foo", "    h", vc);
         assertTrue(vr.isValid());
+    }
+
+    @Test
+    public void testNonEmptyELValidator() {
+        Validator val = StandardValidators.NON_EMPTY_EL_VALIDATOR;
+        ValidationContext vc = mock(ValidationContext.class);
+        Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
+
+        ValidationResult vr = val.validate("foo", "", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "    h", vc);
+        assertTrue(vr.isValid());
+
+        Mockito.when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
+        vr = val.validate("foo", "${test}", vc);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("foo", "${test", vc);
+        assertTrue(vr.isValid());
+    }
+
+    @Test
+    public void testHostnamePortListValidator() {
+        Validator val = StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR;
+        ValidationContext vc = mock(ValidationContext.class);
+        Mockito.when(vc.isExpressionLanguageSupported("foo")).thenReturn(true);
+
+        ValidationResult vr = val.validate("foo", "", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "localhost", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "test:0", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "test:65536", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "test:6666,localhost", vc);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("foo", "test:65535", vc);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("foo", "test:65535,localhost:666,127.0.0.1:8989", vc);
+        assertTrue(vr.isValid());
+
+        Mockito.when(vc.isExpressionLanguagePresent("${test}")).thenReturn(true);
+        vr = val.validate("foo", "${test}", vc);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("foo", "${test", vc);
+        assertFalse(vr.isValid());
     }
 
     @Test
