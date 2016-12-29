@@ -19,6 +19,7 @@ package org.apache.nifi.update.attributes;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.PatternSyntaxException;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.attributes.UpdateAttribute;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -153,6 +157,43 @@ public class TestUpdateAttribute {
     }
 
     @Test
+    public void testStateFailures() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        final UpdateAttribute processor = (UpdateAttribute) runner.getProcessor();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        MockStateManager mockStateManager = runner.getStateManager();
+
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty("count", "${getStateValue('count'):plus(1)}");
+        runner.setProperty("sum", "${getStateValue('sum'):plus(${pencils})}");
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
+
+        processor.onScheduled(runner.getProcessContext());
+
+        final Map<String, String> attributes2 = new HashMap<>();
+        attributes2.put("pencils", "2");
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
+
+        runner.enqueue(new byte[0],attributes2);
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueNotEmpty();
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, false);
+        mockStateManager.setFailOnStateSet(Scope.LOCAL, true);
+
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueEmpty();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_FAILED_SET_STATE, 1);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeEquals("count", "1");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeEquals("sum", "2");
+    }
+
+
+    @Test
     public void testStateWithInitValue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
@@ -218,6 +259,99 @@ public class TestUpdateAttribute {
         result.get(3).assertAttributeEquals("maxValue", null);
     }
 
+    @Test
+    public void testStateFailuresWithRulesUsingOriginal() throws Exception {
+        final Criteria criteria = getCriteria();
+        criteria.setFlowFilePolicy(FlowFilePolicy.USE_ORIGINAL);
+        addRule(criteria, "rule", Collections.singletonList(
+                // conditions
+                "${getStateValue('maxValue'):lt(${value})}"), getMap(
+                // actions
+                "maxValue", "${value}"));
+        addRule(criteria, "rule2", Collections.singletonList(
+                // conditions
+                "${getStateValue('maxValue2'):lt(${value})}"), getMap(
+                // actions
+                "maxValue2", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        final UpdateAttribute processor = (UpdateAttribute) runner.getProcessor();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        MockStateManager mockStateManager = runner.getStateManager();
+
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
+        runner.setAnnotationData(serialize(criteria));
+
+
+        processor.onScheduled(runner.getProcessContext());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueNotEmpty();
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, false);
+        mockStateManager.setFailOnStateSet(Scope.LOCAL, true);
+
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueEmpty();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_FAILED_SET_STATE, 1);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeEquals("maxValue", "1");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeEquals("maxValue2", "1");
+    }
+
+    @Test
+    public void testStateFailuresWithRulesUsingClone() throws Exception {
+        final Criteria criteria = getCriteria();
+        criteria.setFlowFilePolicy(FlowFilePolicy.USE_CLONE);
+        addRule(criteria, "rule", Collections.singletonList(
+                // conditions
+                "${getStateValue('maxValue'):lt(${value})}"), getMap(
+                // actions
+                "maxValue", "${value}"));
+        addRule(criteria, "rule2", Collections.singletonList(
+                // conditions
+                "${getStateValue('maxValue2'):lt(${value})}"), getMap(
+                // actions
+                "maxValue2", "${value}"));
+
+        TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
+        final UpdateAttribute processor = (UpdateAttribute) runner.getProcessor();
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        MockStateManager mockStateManager = runner.getStateManager();
+
+        runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
+        runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
+        runner.setAnnotationData(serialize(criteria));
+
+
+        processor.onScheduled(runner.getProcessContext());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("value", "1");
+        runner.enqueue(new byte[0], attributes);
+
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, true);
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueNotEmpty();
+        mockStateManager.setFailOnStateGet(Scope.LOCAL, false);
+        mockStateManager.setFailOnStateSet(Scope.LOCAL, true);
+
+        processor.onTrigger(runner.getProcessContext(), processSessionFactory.createSession());
+
+        runner.assertQueueEmpty();
+
+        runner.assertAllFlowFilesTransferred(UpdateAttribute.REL_FAILED_SET_STATE, 1);
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeEquals("maxValue", "1");
+        runner.getFlowFilesForRelationship(UpdateAttribute.REL_FAILED_SET_STATE).get(0).assertAttributeNotExists("maxValue2");
+    }
     @Test
     public void testRuleHitWithStateWithDefault() throws Exception {
         final Criteria criteria = getCriteria();
@@ -289,11 +423,17 @@ public class TestUpdateAttribute {
     @Test
     public void testMultipleRulesWithStateAndDelete() throws Exception {
         final Criteria criteria = getCriteria();
-        addRule(criteria, "rule", Arrays.asList(
+        criteria.setFlowFilePolicy(FlowFilePolicy.USE_ORIGINAL);
+        addRule(criteria, "rule", Collections.singletonList(
                 // conditions
                 "${getStateValue('maxValue'):lt(${value})}"), getMap(
                 // actions
                 "maxValue", "${value}"));
+        addRule(criteria, "rule2", Collections.singletonList(
+                // conditions
+                "${value:mod(2):equals(0)}"), getMap(
+                // actions
+                "whatIsIt", "even"));
 
         TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
@@ -301,6 +441,8 @@ public class TestUpdateAttribute {
         runner.setProperty(UpdateAttribute.STATEFUL_VARIABLES_INIT_VALUE, "0");
         runner.setAnnotationData(serialize(criteria));
         runner.setProperty("maxValue", "${getStateValue('maxValue')}");
+        runner.setProperty("whatIsIt", "odd");
+        runner.setProperty("whatWasIt", "${getStateValue('whatIsIt')}");
         runner.setProperty("theCount", "${getStateValue('theCount'):plus(1)}");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -322,7 +464,14 @@ public class TestUpdateAttribute {
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship(UpdateAttribute.REL_SUCCESS);
         result.get(3).assertAttributeEquals("maxValue", "5");
         result.get(3).assertAttributeEquals("theCount", "4");
+
         result.get(0).assertAttributeEquals("badValue", null);
+
+        result.get(0).assertAttributeEquals("whatIsIt", "odd");
+        result.get(1).assertAttributeEquals("whatIsIt", "even");
+
+        result.get(2).assertAttributeEquals("whatWasIt", "even");
+        result.get(3).assertAttributeEquals("whatWasIt", "odd");
     }
 
     @Test

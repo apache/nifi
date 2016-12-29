@@ -34,9 +34,38 @@
 
         <p>
             Please note that "Delete Attributes Expression" supersedes any updates that occur. If an existing attribute matches the "Delete Attributes Expression", it will be removed whether it
-            was updated or not.  The "Delete Attributes Expression" only applies to attributes that exist in the input FlowFile, if it is added by this processor, the "Delete Attributes Expression"
+            was updated or not.  That said, the "Delete Attributes Expression" only applies to attributes that exist in the input FlowFile, if it is added by this processor, the "Delete Attributes Expression"
             will not detect it.
         </p>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            The properties in this processor are added by the user. The expression language is supported in user-added
+            properties for this processor. See the NiFi Expression Language Guide to learn how to formulate proper expression language statements to perform the desired functions.
+        </p>
+
+        <p>
+            If an Attribute is added with the name <strong>alternate.identifier</strong> and that attribute's value is a URI, an ADD_INFO Provenance Event will be registered,
+            correlating the FlowFile with the given alternate identifier.
+        </p>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>If the processor successfully updates the specified attribute(s), then the FlowFile follows this relationship.</li>
+                </ul>
+            </li>
+            <li>set state fail
+                <ul>
+                    <li>If the processor is running statefully, and fails to set the state after adding attributes to the FlowFile, then the FlowFile will be routed to this relationship.</li>
+                </ul>
+            </li>
+        </ul>
 
         <p>
             <strong>Basic Usage</strong>
@@ -261,6 +290,7 @@
             By selecting "store state locally" option for the "Store State" property UpdateAttribute will not only store the evaluated properties as attributes of the FlowFile but
             also as stateful variables to be referenced in a recursive fashion. This enables the processor to calculate things like the sum or count of incoming FlowFiles. A dynamic property can be
             referenced as a stateful variable like so:
+        </p>
 
             <ul>
                 <li>Dynamic Property
@@ -271,6 +301,7 @@
                 </li>
             </ul>
 
+        <p>
             This example will keep a count of the total number of FlowFiles that have passed through the processor. To use logic on top of State, simply use the "Advanced Usage" of UpdateAttribute.
             All Actions will be stored as stateful attributes as well as being added to FlowFiles. Using the "Advanced Usage" it is possible to keep track of things like a maximum value of the
             flow so far. This would be done by having a condition of "${getStateValue("maxValue"):lt(${value})}" and an action of attribute:"maxValue", value:"${value}".
@@ -278,34 +309,34 @@
             The "Stateful Variables Initial Value" property is used to initialize the stateful variables and is required to be set if running statefully. Some logic rules will require a very high initial value, like using the Advanced rules to
             determine the minimum value.
 
-
             If stateful properties reference other stateful properties then the value for the other stateful properties will be an iteration behind. For example, attempting to calculate the
             average of the incoming stream requires the sum and count. If all three properties are set in the same UpdateAttribute (like below) then the Average will always not include the most
             recent values of count and sum:
 
-            <ul>
-                <li>Count
-                    <ul>
-                        <li>key : theCount</li>
-                        <li>value : ${getStateValue("theCount"):plus(1)}</li>
-                    </ul>
-                </li>
+        </p>
+        <ul>
+            <li>Count
+                <ul>
+                    <li>key : theCount</li>
+                    <li>value : ${getStateValue("theCount"):plus(1)}</li>
+                </ul>
+            </li>
 
-                <li>Sum
-                    <ul>
-                        <li>key : theSum</li>
-                        <li>value : ${getStateValue("theSum"):plus(${flowfileValue})}</li>
-                    </ul>
-                </li>
+            <li>Sum
+                <ul>
+                    <li>key : theSum</li>
+                    <li>value : ${getStateValue("theSum"):plus(${flowfileValue})}</li>
+                </ul>
+            </li>
 
-                <li>Average
-                    <ul>
-                        <li>key : theAverage</li>
-                        <li>value : ${getStateValue("theSum"):divide(getStateValue("theCount"))}</li>
-                    </ul>
-                </li>
-            </ul>
-
+            <li>Average
+                <ul>
+                    <li>key : theAverage</li>
+                    <li>value : ${getStateValue("theSum"):divide(getStateValue("theCount"))}</li>
+                </ul>
+            </li>
+        </ul>
+        <p>
             Instead, since average only relies on theCount and theSum attributes (which are added to the FlowFile as well) there should be a following Stateless UpdateAttribute which properly
             calculates the average.
 
@@ -319,33 +350,47 @@
         </p>
 
         <p>
-            <strong>Properties:</strong>
-        </p>
-        <p>
-            The properties in this processor are added by the user. The expression language is supported in user-added 
-            properties for this processor. See the NiFi Expression Language Guide to learn how to formulate proper expression language statements to perform the desired functions.
+            <strong>Combining the Advanced Usage with Stateful</strong>
         </p>
 
         <p>
-            If an Attribute is added with the name <strong>alternate.identifier</strong> and that attribute's value is a URI, an ADD_INFO Provenance Event will be registered,
-            correlating the FlowFile with the given alternate identifier.
+            The UpdateAttribute processor allows you to use both advanced usage changes (i.e., conditional) in addition to storing the values in state at the same time. This allows UpdateAttribute to
+            act as a stateful rules engine to enable powerful concepts such as a Finite-State machine or keeping track of a min/max value.
+
+            Working with both is relatively simple, when the processor would normally update an attribute on the processor (ie. it matches a conditional rule) the same update is stored to state.
+            Referencing state via the advanced tab is done in the same way too, using "getStateValue".
+
+            Note: In the event the "use clone" policy is set and the state is failed to set, no clones will be generated and only the original FlowFile will be transferred to "set state fail".
         </p>
 
         <p>
-            <strong>Relationships:</strong>
+            <strong>Notes about Concurrency and Stateful Usage</strong></p>
+        <p>
+            When using the stateful option, concurrent tasks should be used with caution. If every incoming FlowFile will update state then it will be much more efficient to have only one
+            task. This is because the first thing the onTrigger does is get the state and the last thing it does is store the state if there are an updates. If it does not have the most up to date
+            initial state when it goes to update it will fail and send the FlowFile to "set state fail". This is done so that the update is successful when it was done with the most recent information.
+            If it didn't do it in this mock-atomic way, there'd be no guarantee that the state is accurate.
+
+            When considering Concurrency, the use-cases generally fall into one of three categories:
         </p>
         <ul>
-            <li>success
-                <ul>
-                    <li>If the processor successfully updates the specified attribute(s), then the FlowFile follows this relationship.</li>
-                </ul>
+            <li>A data stream where each FlowFile updates state ex. updating a counter
             </li>
-            <li>set state fail
-                <ul>
-                    <li>If the processor is running statefully, and fails to set the state after adding attributes to the FlowFile, then the FlowFile will be routed to this relationship.</li>
-                </ul>
+
+            <li>A data stream where a FlowFile doesn't always update state ex. a Finite-State machine
+            </li>
+
+            <li>A data stream that doesn't update state, and a second "control" stream that one updates every time but is rare compared to the data stream ex. a trigger
             </li>
         </ul>
+        <p>
+            The first and last cases are relatively clear-cut in their guidance. For the first, concurrency should not be used. Doing so will just waste CPU and any benefits of concurrency will be wiped
+            due to misses in state. For the last case, it can easily be done using concurrency. Since updates are rare in the first place it will be even more rare that two updates are processed at
+            the same time that cause problems.
+
+            The second case is a bit of a grey area. If updates are rare then concurrency can probably be used. If updates are frequent then concurrency would probably cause more problems than benefits.
+            Regardless, testing to determine the appropriate tuning is the only true answer.
+        </p>
 
     </body>
 </html>
