@@ -424,8 +424,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         final Map<String, String> stateWorkingAttributes;
         StateMap stateMap = null;
 
-        matchedRules.clear();
-
         try {
             if (stateful) {
                 stateMap = context.getStateManager().getState(Scope.LOCAL);
@@ -436,7 +434,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                 stateWorkingAttributes = null;
             }
         } catch (IOException e) {
-            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to it's incoming queue", new Object[]{incomingFlowFile, Relationship.SELF.getName()}, e);
+            logger.error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{incomingFlowFile}, e);
             session.transfer(incomingFlowFile);
             context.yield();
             return;
