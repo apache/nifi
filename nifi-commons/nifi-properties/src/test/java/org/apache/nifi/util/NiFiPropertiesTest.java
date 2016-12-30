@@ -22,8 +22,10 @@ import org.junit.Test;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -33,7 +35,7 @@ public class NiFiPropertiesTest {
     @Test
     public void testProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.properties");
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
 
         assertEquals("UI Banner Text", properties.getBannerText());
 
@@ -55,7 +57,7 @@ public class NiFiPropertiesTest {
     @Test
     public void testMissingProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.missing.properties");
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.missing.properties", null);
 
         List<Path> directories = properties.getNarLibraryDirectories();
 
@@ -69,7 +71,7 @@ public class NiFiPropertiesTest {
     @Test
     public void testBlankProperties() {
 
-        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties");
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", null);
 
         List<Path> directories = properties.getNarLibraryDirectories();
 
@@ -80,14 +82,40 @@ public class NiFiPropertiesTest {
 
     }
 
-    private NiFiProperties loadNiFiProperties(final String propsPath){
+    @Test
+    public void testValidateProperties() {
+        // expect no error to be thrown
+        Map<String, String> additionalProperties = new HashMap<String, String>();
+        additionalProperties.put(NiFiProperties.REMOTE_INPUT_HOST, "localhost");
+        NiFiProperties properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        try {
+            properties.validate();
+        } catch (Throwable t) {
+            Assert.fail("unexpected exception: " + t.getMessage());
+        }
+
+        // expected error
+        additionalProperties = new HashMap<String, String>();
+        additionalProperties.put(NiFiProperties.REMOTE_INPUT_HOST, "http://localhost");
+        properties = loadNiFiProperties("/NiFiProperties/conf/nifi.blank.properties", additionalProperties);
+
+        try {
+            properties.validate();
+            Assert.fail("Validation should throw an exception");
+        } catch (Throwable t) {
+            // nothing to do
+        }
+    }
+
+    private NiFiProperties loadNiFiProperties(final String propsPath, final Map<String, String> additionalProperties){
         String realPath = null;
         try{
             realPath = NiFiPropertiesTest.class.getResource(propsPath).toURI().getPath();
         }catch(final URISyntaxException ex){
             throw new RuntimeException(ex);
         }
-        return NiFiProperties.createBasicNiFiProperties(realPath, null);
+        return NiFiProperties.createBasicNiFiProperties(realPath, additionalProperties);
     }
 
 }
