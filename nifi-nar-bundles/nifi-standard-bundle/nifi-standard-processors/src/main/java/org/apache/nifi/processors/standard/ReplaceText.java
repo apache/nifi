@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +45,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
@@ -110,7 +113,7 @@ public class ReplaceText extends AbstractProcessor {
         .displayName("Search Value")
         .description("The Search Value to search for in the FlowFile content. Only used for 'Literal Replace' and 'Regex Replace' matching strategies")
         .required(true)
-        .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
+        .addValidator(Validator.VALID)
         .expressionLanguageSupported(true)
         .defaultValue(DEFAULT_REGEX)
         .build();
@@ -199,6 +202,32 @@ public class ReplaceText extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> errors = new ArrayList<>(super.customValidate(validationContext));
+
+        switch (validationContext.getProperty(REPLACEMENT_STRATEGY).getValue()) {
+            case literalReplaceValue:
+                errors.add(StandardValidators.NON_EMPTY_VALIDATOR
+                        .validate(SEARCH_VALUE.getName(), validationContext.getProperty(SEARCH_VALUE).getValue(), validationContext));
+                break;
+
+            case regexReplaceValue:
+                errors.add(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true)
+                        .validate(SEARCH_VALUE.getName(), validationContext.getProperty(SEARCH_VALUE).getValue(), validationContext));
+                break;
+
+            case appendValue:
+            case prependValue:
+            case alwaysReplace:
+            default:
+                // nothing to check, search value is not used
+                break;
+        }
+
+        return errors;
     }
 
     @Override
