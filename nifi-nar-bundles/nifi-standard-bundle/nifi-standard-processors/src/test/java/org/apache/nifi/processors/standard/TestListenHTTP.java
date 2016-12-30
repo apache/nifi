@@ -18,9 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -146,7 +143,7 @@ public class TestListenHTTP {
                 Thread.sleep(100);
             }
 
-            runner.assertTransferCount(ListenTCP.REL_SUCCESS, messages.size());
+            runner.assertTransferCount(RELATIONSHIP_SUCCESS, messages.size());
 
     }
 
@@ -155,21 +152,6 @@ public class TestListenHTTP {
             socket.setReuseAddress(true);
             return socket.getLocalPort();
         }
-    }
-
-    private SSLContextService configureProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/localhost-ts.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/localhost-ks.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "localtest");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-        runner.enableControllerService(sslContextService);
-
-        runner.setProperty(ListenTCP.SSL_CONTEXT_SERVICE, "ssl-context");
-        return sslContextService;
     }
 
 }
