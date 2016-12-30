@@ -87,6 +87,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor AUTO_INCREMENT_KEY = new PropertyDescriptor.Builder()
+            .name("gen-table-fetch-partition-index")
+            .displayName("AUTO_INCREMENT(index) column name")
+            .description("The column has AUTO_INCREMENT attribute and index."
+                    + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
+                    + "The value must start by 1")
+            .defaultValue("null")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .expressionLanguageSupported(false)
+            .build();
+
     public GenerateTableFetch() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
@@ -100,6 +112,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
+        pds.add(AUTO_INCREMENT_KEY);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -129,6 +142,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).asInteger();
+        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).getValue();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -223,19 +237,34 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             }
             final int numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
+            if("null".equals(indexValue)) {
+                // Generate SQL statements to read "pages" of data
+                for (int i = 0; i < numberOfFetches; i++) {
+                    FlowFile sqlFlowFile;
 
-            // Generate SQL statements to read "pages" of data
-            for (int i = 0; i < numberOfFetches; i++) {
-                FlowFile sqlFlowFile;
+                    Integer limit = partitionSize == 0 ? null : partitionSize;
+                    Integer offset = partitionSize == 0 ? null : i * partitionSize;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                    sqlFlowFile = session.create();
+                    sqlFlowFile = session.write(sqlFlowFile, out -> {
+                        out.write(query.getBytes());
+                    });
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                }
+            }else {
+                for (int i = 0; i < numberOfFetches; i++) {
+                    FlowFile sqlFlowFile;
 
-                Integer limit = partitionSize == 0 ? null : partitionSize;
-                Integer offset = partitionSize == 0 ? null : i * partitionSize;
-                final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                sqlFlowFile = session.create();
-                sqlFlowFile = session.write(sqlFlowFile, out -> {
-                    out.write(query.getBytes());
-                });
-                session.transfer(sqlFlowFile, REL_SUCCESS);
+                    Integer limit = partitionSize;
+                    whereClause = indexValue + " >= " + limit * i;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause,
+                            StringUtils.join(maxValueColumnNameList, ", "), limit, null);
+                    sqlFlowFile = session.create();
+                    sqlFlowFile = session.write(sqlFlowFile, out -> {
+                        out.write(query.getBytes());
+                    });
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                }
             }
 
             session.commit();
