@@ -1166,6 +1166,34 @@ public class TestReplaceText {
         runner.run();
     }
 
+    @Test
+    public void testProcessorConfigurationRegexNotValid() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?<!\\),*");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "hello");
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.REGEX_REPLACE);
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.ENTIRE_TEXT);
+        runner.assertNotValid();
+
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.LITERAL_REPLACE);
+        runner.assertValid();
+        runner.enqueue("(?<!\\),*".getBytes());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("hello");
+
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "");
+        runner.assertNotValid();
+
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.APPEND);
+        runner.assertValid();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.PREPEND);
+        runner.assertValid();
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.ALWAYS_REPLACE);
+        runner.assertValid();
+    }
+
     private String translateNewLines(final File file) throws IOException {
         return translateNewLines(file.toPath());
     }
