@@ -118,6 +118,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     private static final List<PropertyDescriptor> properties;
     private ConfigurationContext configContext;
+    private boolean isValidated;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -161,6 +162,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         createSSLContext(ClientAuth.REQUIRED);
     }
 
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
+        isValidated = false;
+    }
+
     private static Validator createFileExistsAndReadableValidator() {
         return new Validator() {
             // Not using the FILE_EXISTS_VALIDATOR because the default is to
@@ -200,6 +207,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
+
+        if(isValidated) {
+            return results;
+        }
+
         results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.KEYSTORE));
         results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
 
@@ -228,6 +240,9 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                         .build());
             }
         }
+
+        isValidated = results.isEmpty();
+
         return results;
     }
 

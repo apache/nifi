@@ -116,6 +116,35 @@ public class SSLContextServiceTest {
     }
 
     @Test
+    public void testWithChanges() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        SSLContextService service = new StandardSSLContextService();
+        runner.addControllerService("test-good1", service);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        runner.enableControllerService(service);
+
+        runner.setProperty("SSL Context Svc ID", "test-good1");
+        runner.assertValid(service);
+
+        runner.disableControllerService(service);
+        runner.setProperty(service,StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/DOES-NOT-EXIST.jks");
+        runner.assertNotValid(service);
+
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "badpassword");
+        runner.assertNotValid(service);
+
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+    }
+
+    @Test
     public void testGoodTrustOnly() {
         try {
             TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
