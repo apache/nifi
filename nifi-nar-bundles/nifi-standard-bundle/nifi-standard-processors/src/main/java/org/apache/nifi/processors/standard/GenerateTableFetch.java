@@ -102,10 +102,23 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
+<<<<<<< HEAD
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
                     + "If no incoming connection(s) are specified, this relationship is unused.")
+=======
+    public static final PropertyDescriptor AUTO_INCREMENT_KEY = new PropertyDescriptor.Builder()
+            .name("gen-table-fetch-partition-index")
+            .displayName("AUTO_INCREMENT(index) column name")
+            .description("The column has AUTO_INCREMENT attribute and index."
+                    + "If there is a column with AUTO_INCREMENT property and index in the database, we can use index instead of using OFFSET."
+                    + "The value must start by 1")
+            .defaultValue("null")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .expressionLanguageSupported(false)
+>>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
             .build();
 
     public GenerateTableFetch() {
@@ -122,6 +135,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(PARTITION_SIZE);
+        pds.add(AUTO_INCREMENT_KEY);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -166,10 +180,18 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+<<<<<<< HEAD
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
         final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
+=======
+        final String tableName = context.getProperty(TABLE_NAME).getValue();
+        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
+        final int partitionSize = context.getProperty(PARTITION_SIZE).asInteger();
+        final String indexValue = context.getProperty(AUTO_INCREMENT_KEY).getValue();
+>>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -282,6 +304,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
 
+<<<<<<< HEAD
                 final long numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
                 // Generate SQL statements to read "pages" of data
@@ -306,6 +329,35 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 } else {
                     logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
                     throw new ProcessException(e);
+=======
+            if("null".equals(indexValue)) {
+                // Generate SQL statements to read "pages" of data
+                for (int i = 0; i < numberOfFetches; i++) {
+                    FlowFile sqlFlowFile;
+
+                    Integer limit = partitionSize == 0 ? null : partitionSize;
+                    Integer offset = partitionSize == 0 ? null : i * partitionSize;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                    sqlFlowFile = session.create();
+                    sqlFlowFile = session.write(sqlFlowFile, out -> {
+                        out.write(query.getBytes());
+                    });
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                }
+            }else {
+                for (int i = 0; i < numberOfFetches; i++) {
+                    FlowFile sqlFlowFile;
+
+                    Integer limit = partitionSize;
+                    whereClause = indexValue + " >= " + limit * i;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause,
+                            StringUtils.join(maxValueColumnNameList, ", "), limit, null);
+                    sqlFlowFile = session.create();
+                    sqlFlowFile = session.write(sqlFlowFile, out -> {
+                        out.write(query.getBytes());
+                    });
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+>>>>>>> NIFI-3268 Add AUTO_INCREMENT column in GenerateTableFetch to benefit index
                 }
             }
 
