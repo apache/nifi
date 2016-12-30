@@ -39,6 +39,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -259,6 +260,7 @@ public class NiFi {
         try {
             final ClassLoader bootstrap = createBootstrapClassLoader();
             NiFiProperties properties = initializeProperties(args, bootstrap);
+            properties.validate();
             new NiFi(properties);
         } catch (final Throwable t) {
             LOGGER.error("Failure to launch NiFi due to " + t, t);
