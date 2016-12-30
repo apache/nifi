@@ -347,7 +347,8 @@ public class JdbcCommon {
 
 
                 default:
-                    throw new IllegalArgumentException("createSchema: Unknown SQL type " + meta.getColumnType(i) + " cannot be converted to Avro type");
+                    throw new IllegalArgumentException("createSchema: Unknown SQL type " + meta.getColumnType(i) + " / " + meta.getColumnTypeName(i)
+                            + " (table: " + tableName + ", column: " + columnName + ") cannot be converted to Avro type");
             }
         }
 
