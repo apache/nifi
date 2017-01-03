@@ -701,7 +701,7 @@ nf.ControllerServices = (function () {
                 } else if (target.hasClass('disable-controller-service')) {
                     nf.ControllerService.disable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('delete-controller-service')) {
-                    nf.ControllerService.remove(serviceTable, controllerServiceEntity);
+                    nf.ControllerService.promptToDeleteController(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
                     nf.ComponentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
                 } else if (target.hasClass('edit-access-policies')) {
