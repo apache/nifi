@@ -54,6 +54,8 @@ import org.wali.WriteAheadRepository;
 public class WriteAheadLocalStateProvider extends AbstractStateProvider {
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadLocalStateProvider.class);
 
+    private volatile boolean alwaysSync;
+
     private final StateMapSerDe serde;
     private final ConcurrentMap<String, ComponentProvider> componentProviders = new ConcurrentHashMap<>();
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory());
@@ -66,6 +68,33 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         .required(true)
         .build();
 
+    static final PropertyDescriptor ALWAYS_SYNC = new PropertyDescriptor.Builder()
+        .name("Always Sync")
+        .description("If set to true, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very " +
+                "expensive and can significantly reduce NiFi performance. However, if it is false, there could be the potential for data loss if either there is a sudden power loss or the " +
+                "operating system crashes. The default value is false.")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(true)
+        .build();
+
+    static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
+        .name("Partitions")
+        .description("The number of partitions.")
+        .addValidator(StandardValidators.createLongValidator(1, Integer.MAX_VALUE, true))
+        .defaultValue("16")
+        .required(true)
+        .build();
+
+    static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
+        .name("Checkpoint Interval")
+        .description("The amount of time between checkpoints.")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("2 mins")
+        .required(true)
+        .build();
+
+
     private WriteAheadRepository<StateMapUpdate> writeAheadLog;
     private AtomicLong versionGenerator;
 
@@ -75,6 +104,11 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
     @Override
     public synchronized void init(final StateProviderInitializationContext context) throws IOException {
+        long checkpointIntervalMillis = context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+        int numPartitions = context.getProperty(NUM_PARTITIONS).asInteger();
+        alwaysSync = context.getProperty(ALWAYS_SYNC).asBoolean();
+
+
         final File basePath = new File(context.getProperty(PATH).getValue());
 
         if (!basePath.exists() && !basePath.mkdirs()) {
@@ -94,7 +128,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         }
 
         versionGenerator = new AtomicLong(-1L);
-        writeAheadLog = new MinimalLockingWriteAheadLog<>(basePath.toPath(), 16, serde, null);
+        writeAheadLog = new MinimalLockingWriteAheadLog<>(basePath.toPath(), numPartitions, serde, null);
 
         final Collection<StateMapUpdate> updates = writeAheadLog.recoverRecords();
         long maxRecordVersion = -1L;
@@ -110,7 +144,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
             }
 
             final String componentId = update.getComponentId();
-            componentProviders.put(componentId, new ComponentProvider(writeAheadLog, versionGenerator, componentId, update.getStateMap()));
+            componentProviders.put(componentId, new ComponentProvider(writeAheadLog, versionGenerator, componentId, update.getStateMap(), alwaysSync));
         }
 
         // keep a separate maxRecordVersion and set it at the end so that we don't have to continually update an AtomicLong, which is more
@@ -118,13 +152,16 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         // the init() method completes, this is okay to do.
         versionGenerator.set(maxRecordVersion);
 
-        executor.scheduleWithFixedDelay(new CheckpointTask(), 2, 2, TimeUnit.MINUTES);
+        executor.scheduleWithFixedDelay(new CheckpointTask(), checkpointIntervalMillis, checkpointIntervalMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PATH);
+        properties.add(ALWAYS_SYNC);
+        properties.add(CHECKPOINT_INTERVAL);
+        properties.add(NUM_PARTITIONS);
         return properties;
     }
 
@@ -144,7 +181,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         ComponentProvider componentProvider = componentProviders.get(componentId);
         if (componentProvider == null) {
             final StateMap stateMap = new StandardStateMap(Collections.<String, String> emptyMap(), -1L);
-            componentProvider = new ComponentProvider(writeAheadLog, versionGenerator, componentId, stateMap);
+            componentProvider = new ComponentProvider(writeAheadLog, versionGenerator, componentId, stateMap, alwaysSync);
 
             final ComponentProvider existingComponentProvider = componentProviders.putIfAbsent(componentId, componentProvider);
             if (existingComponentProvider != null) {
@@ -190,14 +227,16 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         private final AtomicLong versionGenerator;
         private final WriteAheadRepository<StateMapUpdate> wal;
         private final String componentId;
+        private final boolean alwaysSync;
 
         private StateMap stateMap;
 
-        public ComponentProvider(final WriteAheadRepository<StateMapUpdate> wal, final AtomicLong versionGenerator, final String componentId, final StateMap stateMap) {
+        public ComponentProvider(final WriteAheadRepository<StateMapUpdate> wal, final AtomicLong versionGenerator, final String componentId, final StateMap stateMap, final boolean alwaysSync) {
             this.wal = wal;
             this.versionGenerator = versionGenerator;
             this.componentId = componentId;
             this.stateMap = stateMap;
+            this.alwaysSync = alwaysSync;
         }
 
         public synchronized StateMap getState() throws IOException {
@@ -211,7 +250,7 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
         public synchronized void setState(final Map<String, String> state) throws IOException {
             stateMap = new StandardStateMap(state, versionGenerator.incrementAndGet());
             final StateMapUpdate updateRecord = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
-            wal.update(Collections.singleton(updateRecord), false);
+            wal.update(Collections.singleton(updateRecord), alwaysSync);
         }
 
         // see above explanation as to why this method is synchronized.
@@ -227,14 +266,14 @@ public class WriteAheadLocalStateProvider extends AbstractStateProvider {
 
             stateMap = new StandardStateMap(new HashMap<>(newValue), versionGenerator.incrementAndGet());
             final StateMapUpdate updateRecord = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
-            wal.update(Collections.singleton(updateRecord), false);
+            wal.update(Collections.singleton(updateRecord), alwaysSync);
             return true;
         }
 
         public synchronized void clear() throws IOException {
             stateMap = new StandardStateMap(null, versionGenerator.incrementAndGet());
             final StateMapUpdate update = new StateMapUpdate(stateMap, componentId, UpdateType.UPDATE);
-            wal.update(Collections.singleton(update), false);
+            wal.update(Collections.singleton(update), alwaysSync);
         }
     }
 
