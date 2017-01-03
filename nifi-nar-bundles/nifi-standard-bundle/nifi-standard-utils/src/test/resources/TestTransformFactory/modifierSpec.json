@@ -1,0 +1,15 @@
+[
+  {
+    "operation": "modify-overwrite-beta",
+    "spec": {
+      "statistics": {
+        "*": {
+          "min": [ "=toInteger", 0 ],
+          "max": [ "=toInteger", null ],
+          "avg": [ "=toDouble", null ],
+          "_id": "UNKNOWN"
+        }
+      }
+    }
+  }
+]
