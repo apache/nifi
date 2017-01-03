@@ -25,8 +25,8 @@
     <description>holds common resources used to build installers</description>
     <properties>
         <!--Wrapper Properties -->
-        <nifi.jvm.heap.mb>512</nifi.jvm.heap.mb>
-        <nifi.jvm.permgen.mb>128</nifi.jvm.permgen.mb>
+        <nifi.jvm.heap.init>512m</nifi.jvm.heap.init>
+        <nifi.jvm.heap.max>512m</nifi.jvm.heap.max>
         <nifi.run.as />
         <!-- nifi.properties: core properties -->
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
