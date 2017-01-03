@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -31,12 +33,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
+import org.apache.nifi.util.StopWatch;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -88,7 +92,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     }
     // Optional Properties.
     static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
-            .name("compression type")
+            .name("Compression type")
             .description("Type of compression to use when creating Sequence File")
             .allowableValues(SequenceFile.CompressionType.values())
             .build();
@@ -105,6 +109,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> someProps = new ArrayList<>(properties);
         someProps.add(COMPRESSION_TYPE);
+        someProps.add(COMPRESSION_CODEC);
         return  someProps;
     }
 
@@ -149,13 +154,28 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             default:
                 sequenceFileWriter = new SequenceFileWriterImpl();
         }
-        String value = context.getProperty(COMPRESSION_TYPE).getValue();
-        SequenceFile.CompressionType compressionType = value == null
+
+        final Configuration configuration = getConfiguration();
+        if (configuration == null) {
+            getLogger().error("HDFS not configured properly");
+            session.transfer(flowFile, RELATIONSHIP_FAILURE);
+            context.yield();
+            return;
+        }
+
+        final CompressionCodec codec = getCompressionCodec(context, configuration);
+
+        final String value = context.getProperty(COMPRESSION_TYPE).getValue();
+        final SequenceFile.CompressionType compressionType = value == null
             ? SequenceFile.CompressionType.valueOf(DEFAULT_COMPRESSION_TYPE) : SequenceFile.CompressionType.valueOf(value);
+
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key()) + ".sf";
         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), fileName);
+
         try {
-            flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, getConfiguration(), compressionType);
+            StopWatch stopWatch = new StopWatch(true);
+            flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, configuration, compressionType, codec);
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, RELATIONSHIP_SUCCESS);
             getLogger().info("Transferred flowfile {} to {}", new Object[]{flowFile, RELATIONSHIP_SUCCESS});
         } catch (ProcessException e) {
