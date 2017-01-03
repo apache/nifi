@@ -131,7 +131,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
                 mongoClient = new MongoClient(new MongoClientURI(uri, getClientOptions(sslContext)));
             }
         } catch (Exception e) {
-            getLogger().error("Failed to schedule PutMongo due to {}", new Object[] { e }, e);
+            getLogger().error("Failed to schedule {} due to {}", new Object[] { this.getClass().getName(), e }, e);
             throw e;
         }
     }
