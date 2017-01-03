@@ -25,11 +25,19 @@
         
         Directory - the directory to store components' state in. If the directory being used is a sub-directory of the NiFi installation, it
                     is important that the directory be copied over to the new version when upgrading NiFi.
+        Always Sync - If set to true, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very
+                expensive and can significantly reduce NiFi performance. However, if it is false, there could be the potential for data loss if either there is a sudden power loss or the
+                operating system crashes. The default value is false.
+        Partitions - The number of partitions.
+        Checkpoint Interval - The amount of time between checkpoints.
      -->
     <local-provider>
         <id>local-provider</id>
         <class>org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider</class>
         <property name="Directory">./state/local</property>
+        <property name="Always Sync">false</property>
+        <property name="Partitions">16</property>
+        <property name="Checkpoint Interval">2 mins</property>
     </local-provider>
 
     <!--
