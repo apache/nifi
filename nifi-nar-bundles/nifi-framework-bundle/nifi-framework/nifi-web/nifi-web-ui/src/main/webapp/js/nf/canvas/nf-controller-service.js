@@ -2063,6 +2063,23 @@ nf.ControllerService = (function () {
                 reloadControllerService(serviceTable, referencedServiceId);
             });
         },
+        
+        /**
+         * Prompts the user before attempting to delete the specified controller service.
+         *
+         * @param {jQuery} serviceTable
+         * @param {object} controllerServiceEntity
+         */
+        promptToDeleteController: function (serviceTable, controllerServiceEntity) {
+            // prompt for deletion
+            nf.Dialog.showYesNoDialog({
+                headerText: 'Delete Controller Service',
+                dialogContent: 'Delete controller service \'' + nf.Common.escapeHtml(controllerServiceEntity.component.name) + '\'?',
+                yesHandler: function () {
+                	nf.ControllerService.remove(serviceTable, controllerServiceEntity);
+                }
+            });
+        },
 
         /**
          * Deletes the specified controller service.

@@ -735,6 +735,22 @@ nf.ReportingTask = (function () {
                 renderReportingTask(response);
             }).fail(nf.Common.handleAjaxError);
         },
+        
+        /**
+         * Prompts the user before attempting to delete the specified reporting task.
+         *
+         * @param {object} reportingTaskEntity
+         */
+        promptToDeleteReportingTask: function (reportingTaskEntity) {
+            // prompt for deletion
+            nf.Dialog.showYesNoDialog({
+                headerText: 'Delete Reporting Task',
+                dialogContent: 'Delete reporting task \'' + nf.Common.escapeHtml(reportingTaskEntity.component.name) + '\'?',
+                yesHandler: function () {
+                	nf.ReportingTask.remove(reportingTaskEntity);
+                }
+            });
+        },
 
         /**
          * Deletes the specified reporting task.

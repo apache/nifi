@@ -804,7 +804,7 @@ nf.Settings = (function () {
                 } else if (target.hasClass('stop-reporting-task')) {
                     nf.ReportingTask.stop(reportingTaskEntity);
                 } else if (target.hasClass('delete-reporting-task')) {
-                    nf.ReportingTask.remove(reportingTaskEntity);
+                    nf.ReportingTask.promptToDeleteReportingTask(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
                     nf.ComponentState.showState(reportingTaskEntity, canClear);
