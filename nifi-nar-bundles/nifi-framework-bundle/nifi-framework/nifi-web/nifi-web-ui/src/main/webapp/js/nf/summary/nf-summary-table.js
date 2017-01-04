@@ -2260,9 +2260,16 @@ nf.SummaryTable = (function () {
 
             // garbage collection
             var garbageCollectionContainer = $('#garbage-collection-table tbody').empty();
-            $.each(aggregateSnapshot.garbageCollection, function (_, garbageCollection) {
-                addGarbageCollection(garbageCollectionContainer, garbageCollection);
-            });
+            if (nf.Common.isDefinedAndNotNull(aggregateSnapshot.garbageCollection)) {
+                // sort the garbage collections
+                var sortedGarbageCollection = aggregateSnapshot.garbageCollection.sort(function(a, b) {
+                    return a.name === b.name ? 0 : a.name > b.name ? 1 : -1;
+                });
+                // add each to the UI
+                $.each(sortedGarbageCollection, function (_, garbageCollection) {
+                    addGarbageCollection(garbageCollectionContainer, garbageCollection);
+                });
+            }
 
             // available processors
             $('#available-processors').text(aggregateSnapshot.availableProcessors);
@@ -2274,15 +2281,22 @@ nf.SummaryTable = (function () {
                 $('#processor-load-average').html(nf.Common.formatValue(aggregateSnapshot.processorLoadAverage));
             }
 
-            // database storage usage
+            // flow file storage usage
             var flowFileRepositoryStorageUsageContainer = $('#flow-file-repository-storage-usage-container').empty();
             addStorageUsage(flowFileRepositoryStorageUsageContainer, aggregateSnapshot.flowFileRepositoryStorageUsage);
 
-            // database storage usage
+            // content repo storage usage
             var contentRepositoryUsageContainer = $('#content-repository-storage-usage-container').empty();
-            $.each(aggregateSnapshot.contentRepositoryStorageUsage, function (_, contentRepository) {
-                addStorageUsage(contentRepositoryUsageContainer, contentRepository);
-            });
+            if (nf.Common.isDefinedAndNotNull(aggregateSnapshot.contentRepositoryStorageUsage)) {
+                // sort the content repos
+                var sortedContentRepositoryStorageUsage = aggregateSnapshot.contentRepositoryStorageUsage.sort(function(a, b) {
+                    return a.identifier === b.identifier ? 0 : a.identifier > b.identifier ? 1 : -1;
+                });
+                // add each to the UI
+                $.each(sortedContentRepositoryStorageUsage, function (_, contentRepository) {
+                    addStorageUsage(contentRepositoryUsageContainer, contentRepository);
+                });
+            }
 
             // Version
             var versionSpanSelectorToFieldMap = {
@@ -2318,7 +2332,7 @@ nf.SummaryTable = (function () {
      */
     var addGarbageCollection = function (container, garbageCollection) {
         var nameTr = $('<tr></tr>').appendTo(container);
-        $('<td class="setting-name"></td>').append(garbageCollection.name + ':').appendTo(nameTr);
+        $('<td class="setting-name"></td>').text(garbageCollection.name + ':').appendTo(nameTr);
         var valTr = $('<tr></tr>').appendTo(container);
         $('<td></td>').append($('<b></b>').text(garbageCollection.collectionCount + ' times (' + garbageCollection.collectionTime + ')')).appendTo(valTr);
         $('<tr></tr>').text(' ').appendTo(container);
