@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -55,6 +57,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.util.TextLineDemarcator;
 import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
@@ -304,7 +307,7 @@ public class SplitText extends AbstractProcessor {
                     if (headerFlowFile != null) {
                         if (length > 0) {
                             splitFlowFile = processSession.clone(sourceFlowFile, computedSplitInfo.startOffset, length);
-                            splitFlowFile = processSession.merge( Arrays.asList(new FlowFile[] { headerFlowFile, splitFlowFile }), splitFlowFile);
+                            splitFlowFile = SplitText.this.merge(processSession, headerFlowFile, splitFlowFile);
                         } else {
                             splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength); // trim the last CRLF if split consists of only HEADER
                         }
@@ -324,6 +327,27 @@ public class SplitText extends AbstractProcessor {
             processSession.remove(headerFlowFile);
         }
         return splitFlowFiles;
+    }
+
+    /**
+     * Will merge the two files. This operation has different semantics then
+     * sessioin.merge. Also, it always expects 2 and no more then 2 flow files,
+     * so vararg signature primarily for simplification.
+     */
+    private FlowFile merge(ProcessSession session, FlowFile... flowFiles) {
+        FlowFile mergedFlowFile = session.create();
+        for (FlowFile flowFile : flowFiles) {
+            mergedFlowFile = session.append(mergedFlowFile, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    try (InputStream is = session.read(flowFile)) {
+                        IOUtils.copy(is, out);
+                    }
+                }
+            });
+        }
+        session.remove(flowFiles[1]); // in current usage we always have 2 files
+        return mergedFlowFile;
     }
 
     private FlowFile updateAttributes(ProcessSession processSession, FlowFile splitFlowFile, long splitLineCount, long splitFlowFileSize,
