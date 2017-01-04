@@ -678,6 +678,13 @@ nf.ClusterTable = (function () {
             var jvmTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
                 var snapshot = nodeSnapshot.snapshot;
+
+                // sort the garbage collection
+                var garbageCollection = snapshot.garbageCollection.sort(function (a, b) {
+                    return a.name === b.name ? 0 : a.name > b.name ? 1 : -1;
+                });
+
+                // add the node jvm details
                 jvmTableRows.push({
                     id: nodeSnapshot.nodeId,
                     node: nodeSnapshot.address + ':' + nodeSnapshot.apiPort,
@@ -689,10 +696,10 @@ nf.ClusterTable = (function () {
                     maxNonHeap: snapshot.maxNonHeap,
                     totalNonHeap: snapshot.totalNonHeap,
                     usedNonHeap: snapshot.usedNonHeap,
-                    gcOldGen: snapshot.garbageCollection[0].collectionCount + ' times (' +
-                        snapshot.garbageCollection[0].collectionTime + ')',
-                    gcNewGen: snapshot.garbageCollection[1].collectionCount + ' times (' +
-                        snapshot.garbageCollection[1].collectionTime + ')'
+                    gcOldGen: garbageCollection[0].collectionCount + ' times (' +
+                        garbageCollection[0].collectionTime + ')',
+                    gcNewGen: garbageCollection[1].collectionCount + ' times (' +
+                        garbageCollection[1].collectionTime + ')'
                 });
             });
             jvmTab.rowCount = jvmTableRows.length;
