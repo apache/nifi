@@ -14,16 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
 
-/**
- * The parts of a Lumberjack frame.
- */
-@Deprecated
-public enum LumberjackState {
+import org.junit.Test;
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+
+public class TestBeatsFrame {
+
+    @Test(expected = BeatsFrameException.class)
+    public void testInvalidVersion() {
+        new BeatsFrame.Builder().seqNumber(1234).dataSize(3).build();
+    }
+
+    @Test(expected = BeatsFrameException.class)
+    public void testInvalidFrameType() {
+        new BeatsFrame.Builder().frameType((byte) 0x70).dataSize(5).build();
+    }
+
+    @Test(expected = BeatsFrameException.class)
+    public void testBlankFrameType() {
+        new BeatsFrame.Builder().frameType(((byte) 0x00)).dataSize(5).build();
+    }
 }

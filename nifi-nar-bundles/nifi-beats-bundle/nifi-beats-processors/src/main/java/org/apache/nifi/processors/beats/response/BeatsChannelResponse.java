@@ -14,26 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.event;
+package org.apache.nifi.processors.beats.response;
 
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-
-import java.util.Map;
+import org.apache.nifi.processor.util.listen.response.ChannelResponse;
+import org.apache.nifi.processors.beats.frame.BeatsFrame;
+import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 
 /**
- * An EventFactory implementation to create LumberjackEvents.
+ * Creates a BeatsFrame for the provided response and returns the encoded frame.
  */
-@Deprecated
-public class LumberjackEventFactory implements EventFactory<LumberjackEvent> {
+public class BeatsChannelResponse implements ChannelResponse {
+
+    private final BeatsEncoder encoder;
+    private final BeatsResponse response;
+
+    public BeatsChannelResponse(final BeatsEncoder encoder, final BeatsResponse response) {
+        this.encoder = encoder;
+        this.response = response;
+    }
 
     @Override
-    public LumberjackEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {
-        final String sender = metadata.get(EventFactory.SENDER_KEY);
-        final long seqNumber = Long.valueOf(metadata.get(LumberjackMetadata.SEQNUMBER_KEY));
-        final String fields = metadata.get(LumberjackMetadata.FIELDS_KEY);
-
-        return new LumberjackEvent(sender, data, responder, seqNumber, fields);
+    public byte[] toByteArray() {
+        final BeatsFrame frame = response.toFrame();
+        return encoder.encode(frame);
     }
 
 }

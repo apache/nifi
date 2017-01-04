@@ -14,26 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.event;
+package org.apache.nifi.processors.beats.event;
 
-import org.apache.nifi.processor.util.listen.event.EventFactory;
+import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 
-import java.util.Map;
+import java.nio.channels.SocketChannel;
 
 /**
- * An EventFactory implementation to create LumberjackEvents.
+ * A Beat event which adds the transaction number to the StandardEvent.
  */
-@Deprecated
-public class LumberjackEventFactory implements EventFactory<LumberjackEvent> {
+public class BeatsEvent extends StandardEvent<SocketChannel> {
 
-    @Override
-    public LumberjackEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {
-        final String sender = metadata.get(EventFactory.SENDER_KEY);
-        final long seqNumber = Long.valueOf(metadata.get(LumberjackMetadata.SEQNUMBER_KEY));
-        final String fields = metadata.get(LumberjackMetadata.FIELDS_KEY);
+    private final int seqNumber;
 
-        return new LumberjackEvent(sender, data, responder, seqNumber, fields);
+    public BeatsEvent(final String sender, final byte[] data, final ChannelResponder<SocketChannel> responder, final int seqNumber) {
+        super(sender, data, responder);
+        this.seqNumber = seqNumber;
+    }
+
+    public int getSeqNumber() {
+        return seqNumber;
     }
 
 }

@@ -14,16 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
- * The parts of a Lumberjack frame.
+ * Encodes a BeatsFrame into raw bytes using the given charset.
  */
-@Deprecated
-public enum LumberjackState {
+public class BeatsEncoder {
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+
+    public byte[] encode(final BeatsFrame frame) {
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        // Writes the version
+        buffer.write(frame.getVersion());
+
+        // Writes the frameType
+        buffer.write(frame.getFrameType());
+
+        // Writes the sequence number
+        try {
+            buffer.write(frame.getPayload());
+        } catch (IOException e) {
+            throw new BeatsFrameException("Error decoding Beats frame: " + e.getMessage(), e);
+        }
+
+        return buffer.toByteArray();
+    }
+
 }

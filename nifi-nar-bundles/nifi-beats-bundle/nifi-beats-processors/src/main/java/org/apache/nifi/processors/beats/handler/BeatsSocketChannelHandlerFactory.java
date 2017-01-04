@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.handler;
+package org.apache.nifi.processors.beats.handler;
 
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -29,10 +29,9 @@ import org.apache.nifi.processor.util.listen.handler.ChannelHandler;
 import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
 
 /**
- * Default factory for creating Lumberjack socket channel handlers.
+ * Default factory for creating Beats socket channel handlers.
  */
-@Deprecated
-public class LumberjackSocketChannelHandlerFactory<E extends Event<SocketChannel>> implements ChannelHandlerFactory<E, AsyncChannelDispatcher> {
+public class BeatsSocketChannelHandlerFactory<E extends Event<SocketChannel>> implements ChannelHandlerFactory<E, AsyncChannelDispatcher> {
 
     @Override
     public ChannelHandler<E, AsyncChannelDispatcher> createHandler(final SelectionKey key,
@@ -41,7 +40,7 @@ public class LumberjackSocketChannelHandlerFactory<E extends Event<SocketChannel
                                            final EventFactory<E> eventFactory,
                                            final BlockingQueue<E> events,
                                            final ComponentLog logger) {
-        return new LumberjackSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
+        return new BeatsSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
     }
 
     @Override
@@ -51,7 +50,7 @@ public class LumberjackSocketChannelHandlerFactory<E extends Event<SocketChannel
                                               final EventFactory<E> eventFactory,
                                               final BlockingQueue<E> events,
                                               final ComponentLog logger) {
-        return new LumberjackSSLSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
+        return new BeatsSSLSocketChannelHandler<>(key, dispatcher, charset, eventFactory, events, logger);
     }
 
 }

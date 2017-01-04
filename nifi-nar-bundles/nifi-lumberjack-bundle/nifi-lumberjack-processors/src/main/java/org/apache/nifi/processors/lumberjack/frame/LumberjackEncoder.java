@@ -22,6 +22,7 @@ import java.io.IOException;
 /**
  * Encodes a LumberjackFrame into raw bytes using the given charset.
  */
+@Deprecated
 public class LumberjackEncoder {
 
 

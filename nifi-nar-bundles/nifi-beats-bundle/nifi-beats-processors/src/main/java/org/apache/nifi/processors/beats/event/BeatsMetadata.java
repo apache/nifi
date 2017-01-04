@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.event;
 
 /**
- * The parts of a Lumberjack frame.
+ * Metadata keys for event.
  */
-@Deprecated
-public enum LumberjackState {
+public interface BeatsMetadata {
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+    String SEQNUMBER_KEY = "beats.sequencenumber";
 }

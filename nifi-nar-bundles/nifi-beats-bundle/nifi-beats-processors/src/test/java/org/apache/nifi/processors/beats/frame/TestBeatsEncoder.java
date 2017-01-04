@@ -14,16 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
 
-/**
- * The parts of a Lumberjack frame.
- */
-@Deprecated
-public enum LumberjackState {
+import java.nio.ByteBuffer;
 
-    VERSION,
-    FRAMETYPE,
-    PAYLOAD,
-    COMPLETE
+import javax.xml.bind.DatatypeConverter;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+
+public class TestBeatsEncoder {
+    private BeatsEncoder encoder;
+
+
+    @Before
+    public void setup() {
+        this.encoder = new BeatsEncoder();
+    }
+
+    @Test
+    public void testEncode() {
+        BeatsFrame frame = new BeatsFrame.Builder()
+            .version((byte) 0x31)
+            .frameType((byte) 0x41)
+            .payload(ByteBuffer.allocate(4).putInt(123).array())
+            .build();
+
+        byte[] encoded = encoder.encode(frame);
+
+        Assert.assertArrayEquals(DatatypeConverter.parseHexBinary("31410000007B"), encoded);
+    }
 }
