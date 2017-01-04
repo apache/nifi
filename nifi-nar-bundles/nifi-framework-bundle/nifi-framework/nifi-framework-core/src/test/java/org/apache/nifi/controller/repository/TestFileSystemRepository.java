@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.repository;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -398,6 +399,38 @@ public class TestFileSystemRepository {
             final byte[] dataRead = readFully(inStream, data.length);
             assertTrue(Arrays.equals(data, dataRead));
         }
+    }
+
+    @Test
+    public void testReadWithContentArchived() throws IOException {
+        final ContentClaim claim = repository.create(true);
+        final Path path = getPath(claim);
+        Files.deleteIfExists(path);
+
+        Path archivePath = FileSystemRepository.getArchivePath(path);
+
+        Files.createDirectories(archivePath.getParent());
+        final byte[] data = "The quick brown fox jumps over the lazy dog".getBytes();
+        try (final OutputStream out = Files.newOutputStream(archivePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE)) {
+            out.write(data);
+        }
+
+        try (final InputStream inStream = repository.read(claim)) {
+            assertNotNull(inStream);
+            final byte[] dataRead = readFully(inStream, data.length);
+            assertArrayEquals(data, dataRead);
+        }
+    }
+
+    @Test(expected = ContentNotFoundException.class)
+    public void testReadWithNoContentArchived() throws IOException {
+        final ContentClaim claim = repository.create(true);
+        final Path path = getPath(claim);
+        Files.deleteIfExists(path);
+
+        Path archivePath = FileSystemRepository.getArchivePath(path);
+        Files.deleteIfExists(archivePath);
+        repository.read(claim).close();
     }
 
     @Test
