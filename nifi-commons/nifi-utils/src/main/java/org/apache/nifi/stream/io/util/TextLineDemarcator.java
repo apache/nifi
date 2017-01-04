@@ -159,8 +159,11 @@ public class TextLineDemarcator {
                 this.index = currentIndex + 1;
                 this.fill();
             }
-            currentByte = this.buffer[currentIndex + 1];
-            crlfLength = currentByte == '\n' ? 2 : 1;
+            crlfLength = 1;
+            if (this.bufferLength != -1) {
+                currentByte = this.buffer[currentIndex + 1];
+                crlfLength = currentByte == '\n' ? 2 : 1;
+            }
         }
         return crlfLength;
     }
