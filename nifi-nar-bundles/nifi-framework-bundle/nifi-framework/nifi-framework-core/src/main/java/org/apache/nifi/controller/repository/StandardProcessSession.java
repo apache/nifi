@@ -76,6 +76,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -569,6 +570,29 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        // Function to cache event relationships as they're looked up
+        Function<ProvenanceEventRecord, Relationship> relationshipFunction = new Function<ProvenanceEventRecord, Relationship>() {
+            Map<String, Relationship> eventRelationships = new HashMap<>();
+
+            @Override
+            public Relationship apply(ProvenanceEventRecord provenanceEventRecord) {
+                return eventRelationships.computeIfAbsent(provenanceEventRecord.getRelationship(), k -> new Relationship.Builder().name(k).build());
+            }
+        };
+
+        // Function to build uuid -> StandardRepositoryRecord map on-demand and use it to get StandardRepositoryRecord from provenance event record
+        Function<ProvenanceEventRecord, StandardRepositoryRecord> repoRecordFunction = new Function<ProvenanceEventRecord, StandardRepositoryRecord>() {
+            Map<String, StandardRepositoryRecord> uuidToRecords = null;
+
+            @Override
+            public StandardRepositoryRecord apply(ProvenanceEventRecord provenanceEventRecord) {
+                if (uuidToRecords == null) {
+                    uuidToRecords = checkpoint.records.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getAttribute(CoreAttributes.UUID.key()), Map.Entry::getValue));
+                }
+                return uuidToRecords.get(provenanceEventRecord.getFlowFileUuid());
+            }
+        };
+
         // Now add any Processor-reported events.
         for (final ProvenanceEventRecord event : processorGenerated) {
             if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
@@ -577,7 +601,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             // Check if the event indicates that the FlowFile was routed to the same
             // connection from which it was pulled (and only this connection). If so, discard the event.
-            if (isSpuriousRouteEvent(event, checkpoint.records)) {
+            if (isSpuriousRouteEvent(event, repoRecordFunction, relationshipFunction)) {
                 continue;
             }
 
@@ -840,32 +864,27 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
      * was pulled. I.e., the FlowFile was really routed nowhere.
      *
      * @param event event
-     * @param records records
+     * @param repositoryRecordFunction function to lookup repo record from provenance event record
+     * @param relationshipFunction function to lookup relationship from provenance event record
      * @return true if spurious route
      */
-    private boolean isSpuriousRouteEvent(final ProvenanceEventRecord event, final Map<FlowFileRecord, StandardRepositoryRecord> records) {
+    private boolean isSpuriousRouteEvent(final ProvenanceEventRecord event, Function<ProvenanceEventRecord, StandardRepositoryRecord> repositoryRecordFunction,
+                                         Function<ProvenanceEventRecord, Relationship> relationshipFunction) {
         if (event.getEventType() == ProvenanceEventType.ROUTE) {
-            final String relationshipName = event.getRelationship();
-            final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
-            final Collection<Connection> connectionsForRelationship = this.context.getConnections(relationship);
+            final Collection<Connection> connectionsForRelationship = this.context.getConnections(relationshipFunction.apply(event));
 
             // If the number of connections for this relationship is not 1, then we can't ignore this ROUTE event,
             // as it may be cloning the FlowFile and adding to multiple connections.
             if (connectionsForRelationship.size() == 1) {
-                for (final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
-                    final FlowFileRecord flowFileRecord = entry.getKey();
-                    if (event.getFlowFileUuid().equals(flowFileRecord.getAttribute(CoreAttributes.UUID.key()))) {
-                        final StandardRepositoryRecord repoRecord = entry.getValue();
-                        if (repoRecord.getOriginalQueue() == null) {
-                            return false;
-                        }
-
-                        final String originalQueueId = repoRecord.getOriginalQueue().getIdentifier();
-                        final Connection destinationConnection = connectionsForRelationship.iterator().next();
-                        final String destinationQueueId = destinationConnection.getFlowFileQueue().getIdentifier();
-                        return originalQueueId.equals(destinationQueueId);
-                    }
+                StandardRepositoryRecord repoRecord = repositoryRecordFunction.apply(event);
+                if (repoRecord == null || repoRecord.getOriginalQueue() == null) {
+                    return false;
                 }
+
+                final String originalQueueId = repoRecord.getOriginalQueue().getIdentifier();
+                final Connection destinationConnection = connectionsForRelationship.iterator().next();
+                final String destinationQueueId = destinationConnection.getFlowFileQueue().getIdentifier();
+                return originalQueueId.equals(destinationQueueId);
             }
         }
 
@@ -1382,14 +1401,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         records.put(flowFile, record);
         flowFilesIn++;
         contentSizeIn += flowFile.getSize();
-
-        Set<FlowFileRecord> set = unacknowledgedFlowFiles.get(connection.getFlowFileQueue());
-        if (set == null) {
-            set = new HashSet<>();
-            unacknowledgedFlowFiles.put(connection.getFlowFileQueue(), set);
-        }
-        set.add(flowFile);
-
+        unacknowledgedFlowFiles.computeIfAbsent(connection.getFlowFileQueue(), k -> new HashSet<>()).add(flowFile);
         incrementConnectionOutputCounts(connection, flowFile);
     }
 
