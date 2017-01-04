@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
  * Decodes a Lumberjack frame by maintaining a state based on each byte that has been processed. This class
  * should not be shared by multiple threads.
  */
+@Deprecated
 public class LumberjackDecoder {
 
     static final Logger logger = LoggerFactory.getLogger(LumberjackDecoder.class);

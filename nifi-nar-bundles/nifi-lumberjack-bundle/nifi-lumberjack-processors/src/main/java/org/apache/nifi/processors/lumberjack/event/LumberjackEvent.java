@@ -24,6 +24,7 @@ import java.nio.channels.SocketChannel;
 /**
  * A Lumberjack event which adds the transaction number and command to the StandardEvent.
  */
+@Deprecated
 public class LumberjackEvent extends StandardEvent<SocketChannel> {
 
     private final long seqNumber;

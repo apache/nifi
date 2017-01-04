@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.lumberjack.frame;
+package org.apache.nifi.processors.beats.frame;
 
 
 /**
- * A Lumberjack frame received from a channel.
+ * A frame received from a channel.
  */
-@Deprecated
-public class LumberjackFrame {
+public class BeatsFrame {
 
     public static final byte DELIMITER = 10;
 
@@ -31,7 +30,7 @@ public class LumberjackFrame {
     private final long dataSize;
     private final long seqNumber;
 
-    private LumberjackFrame(final Builder builder) {
+    private BeatsFrame(final Builder builder) {
         this.version = builder.version;
         this.frameType = builder.frameType;
         this.payload = builder.payload;
@@ -39,7 +38,7 @@ public class LumberjackFrame {
         this.seqNumber = builder.seqNumber;
 
         if (version < 2 ||  payload.length < 0 ) {
-            throw new LumberjackFrameException("Invalid Frame");
+            throw new BeatsFrameException("Invalid Frame");
         }
     }
 
@@ -60,7 +59,7 @@ public class LumberjackFrame {
     }
 
     /**
-     * Builder for a LumberjackFrame.
+     * Builder for a BeatsFrame.
      */
     public static class Builder {
 
@@ -68,7 +67,7 @@ public class LumberjackFrame {
         byte frameType;
         byte [] payload;
         long dataSize;
-        long seqNumber;
+        int seqNumber;
 
         public Builder() {
             reset();
@@ -86,7 +85,7 @@ public class LumberjackFrame {
             return this;
         }
 
-        public Builder seqNumber(final long seqNumber) {
+        public Builder seqNumber(final int seqNumber) {
             this.seqNumber = seqNumber;
             return this;
         }
@@ -107,8 +106,8 @@ public class LumberjackFrame {
         }
 
 
-        public LumberjackFrame build() {
-            return new LumberjackFrame(this);
+        public BeatsFrame build() {
+            return new BeatsFrame(this);
         }
 
     }
