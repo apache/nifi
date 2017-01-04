@@ -19,32 +19,21 @@
 FROM java:8u91-jdk
 MAINTAINER Apache NiFi <dev@nifi.apache.org>
 
-ARG uid
-ARG gid
+ARG UID
+ARG GID
+ARG NIFI_VERSION
+ARG NIFI_BINARY
 
-ENV NIFI_VERSION=1.1.1
-ENV NIFI_HOME=/nifi-$NIFI_VERSION
-ENV NIFI_DOWNLOAD_SHA256 afb58050b0904dab329b19b14250b57d3978743a1108323bdc52aba0c2a75853
-
-LABEL owner=Apache\ NiFi \
-      org.apache.nifi.version=$NIFI_VERSION \
-      org.apache.nifi.release-date="2016-12-19"
+ENV NIFI_BASE_DIR /opt/nifi
+ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
 
 # Setup NiFi user
-RUN groupadd -g $gid nifi || groupmod -n nifi `getent group $gid | cut -d: -f1`
-RUN useradd --shell /bin/bash -u $uid -g $gid -m nifi
-RUN mkdir -p /opt/nifi \
-	&& chown -R nifi:nifi /opt/nifi
+RUN groupadd -g $GID nifi || groupmod -n nifi `getent group $GID | cut -d: -f1`
+RUN useradd --shell /bin/bash -u $UID -g $GID -m nifi
+RUN mkdir -p $NIFI_HOME 
 
-ADD docker-entrypoint.sh /home/nifi/
-RUN chown -R nifi:nifi /home/nifi
-
-# Download, validate, and expand Apache NiFi binary.
-RUN curl -fSL "https://archive.apache.org/dist/nifi/$NIFI_VERSION/nifi-$NIFI_VERSION-bin.tar.gz" -o /nifi-$NIFI_VERSION-bin.tar.gz \
-	&& echo "$NIFI_DOWNLOAD_SHA256 */nifi-$NIFI_VERSION-bin.tar.gz" | sha256sum -c - \
-	&& tar -xvzf /nifi-$NIFI_VERSION-bin.tar.gz \
-	&& rm /nifi-$NIFI_VERSION-bin.tar.gz \
-	&& mv $NIFI_HOME/* /opt/nifi
+ADD $NIFI_BINARY $NIFI_BASE_DIR
+RUN chown -R nifi:nifi $NIFI_HOME
 
 # Web HTTP Port
 EXPOSE 8080
@@ -55,4 +44,4 @@ EXPOSE 8181
 USER nifi
 
 # Startup NiFi
-CMD /opt/nifi/bin/nifi.sh run
+CMD $NIFI_HOME/bin/nifi.sh run
