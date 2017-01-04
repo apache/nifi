@@ -170,6 +170,15 @@ nf.ng.TemplateComponent = function (serviceProvider) {
             }).done(function (response) {
                 var templates = response.templates;
                 if (nf.Common.isDefinedAndNotNull(templates) && templates.length > 0) {
+                    // sort the templates
+                    templates = templates.sort(function (one, two) {
+                        var oneDate = nf.Common.parseDateTime(one.template.timestamp);
+                        var twoDate = nf.Common.parseDateTime(two.template.timestamp);
+
+                        // newest templates first
+                        return twoDate.getTime() - oneDate.getTime();
+                    });
+
                     var options = [];
                     $.each(templates, function (_, templateEntity) {
                         if (templateEntity.permissions.canRead === true) {
