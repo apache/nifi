@@ -63,8 +63,17 @@ public class TextLineDemarcatorTest {
     // this test has no assertions. It's success criteria is validated by lack
     // of failure (see NIFI-3278)
     @Test
-    public void endsWithCRWithBufferLengthEqualStringLength() {
-        String str = "abcde\r";
+    public void endsWithCRWithBufferLengthEqualStringLengthA() {
+        String str = "\r";
+        InputStream is = stringToIs(str);
+        TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
+        while (demarcator.nextOffsetInfo() != null) {
+        }
+    }
+
+    @Test
+    public void endsWithCRWithBufferLengthEqualStringLengthB() {
+        String str = "abc\r";
         InputStream is = stringToIs(str);
         TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
         while (demarcator.nextOffsetInfo() != null) {

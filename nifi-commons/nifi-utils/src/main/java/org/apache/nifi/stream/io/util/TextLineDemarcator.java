@@ -160,7 +160,7 @@ public class TextLineDemarcator {
                 this.fill();
             }
             crlfLength = 1;
-            if (this.bufferLength != -1) {
+            if (currentIndex < this.buffer.length - 1) {
                 currentByte = this.buffer[currentIndex + 1];
                 crlfLength = currentByte == '\n' ? 2 : 1;
             }
