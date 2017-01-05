@@ -333,7 +333,7 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
+    public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException {
         ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor");
         assertEquals(5,p_scheduled.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
@@ -344,8 +344,14 @@ public class TestFlowController {
     }
 
     @Test
-    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
+    public void testReportingTaskDefaultScheduleAnnotation() throws ReportingTaskInstantiationException {
+        ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
+    }
 
+    @Test
+    public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException {
         ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor");
         assertEquals("5 sec",p_settings.getYieldPeriod());
         assertEquals("1 min",p_settings.getPenalizationPeriod());
