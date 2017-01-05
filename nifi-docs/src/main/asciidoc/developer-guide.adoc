@@ -603,15 +603,15 @@ be used (e.g., communicating with an external database).
 [[state_scope]]
 ==== Scope
 When communicating with the State Manager, all method calls require that a Scope be provided. This Scope will
-either be `Scope.NODE` or `Scope.CLUSTER`. If NiFi is run in a cluster, this Scope provides important information
+either be `Scope.LOCAL` or `Scope.CLUSTER`. If NiFi is run in a cluster, this Scope provides important information
 to the framework about how the operation should occur.
 
 If state as stored using `Scope.CLUSTER`, then all nodes in the cluster will be communicating with the same
-state storage mechanism. If state is stored and retrieved using `Scope.NODE`, then each node will see a different
+state storage mechanism. If state is stored and retrieved using `Scope.LOCAL`, then each node will see a different
 representation of the state.
 
 It is also worth noting that if NiFi is configured to run as a standalone instance, rather than running in a cluster,
-a scope of `Scope.NODE` is always used. This is done in order to allow the developer of a NiFi component to write the code
+a scope of `Scope.LOCAL` is always used. This is done in order to allow the developer of a NiFi component to write the code
 in one consistent way, without worrying about whether or not the NiFi instance is clustered. The developer should instead assume
 that the instance is clustered and write the code accordingly.
 
@@ -621,7 +621,7 @@ that the instance is clustered and write the code accordingly.
 State is stored using the StateManager's `getState`, `setState`, `replace`, and `clear` methods. All of these methods
 require that a Scope be provided. It should be noted that the state that is stored with the Local scope is entirely different
 than state stored with a Cluster scope. If a Processor stores a value with the key of _My Key_ using the `Scope.CLUSTER` scope,
-and then attempts to retrieve the value using the `Scope.NODE` scope, the value retrieved will be `null` (unless a value was
+and then attempts to retrieve the value using the `Scope.LOCAL` scope, the value retrieved will be `null` (unless a value was
 also stored with the same key using the `Scope.CLUSTER` scope). Each Processor's state, is stored in isolation from other
 Processors' state.
 
