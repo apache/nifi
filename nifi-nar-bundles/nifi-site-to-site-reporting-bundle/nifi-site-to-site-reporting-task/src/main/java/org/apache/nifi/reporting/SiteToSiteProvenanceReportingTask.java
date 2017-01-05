@@ -139,7 +139,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             try {
                 state = context.getStateManager().getState(Scope.LOCAL).toMap();
             } catch (IOException e) {
-                getLogger().error("Failed to get state at start up due to {}:"+e.getMessage(), e);
+                getLogger().error("Failed to get state at start up due to:" + e.getMessage(), e);
                 return;
             }
             if (state.containsKey(LAST_EVENT_ID_KEY)) {
