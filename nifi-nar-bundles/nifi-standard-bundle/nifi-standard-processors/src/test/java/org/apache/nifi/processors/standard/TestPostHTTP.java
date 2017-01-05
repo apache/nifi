@@ -22,31 +22,49 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
+import javax.servlet.http.HttpServlet;
+import javax.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
+import org.apache.nifi.util.FlowFileValidator;
+import org.apache.nifi.util.LogMessage;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.junit.After;
-import org.junit.Test;
 import org.junit.Assert;
+import org.junit.Test;
+import org.apache.nifi.processors.standard.PredictableResponseServlet;
 
 public class TestPostHTTP {
 
     private TestServer server;
     private TestRunner runner;
-    private CaptureServlet servlet;
+    private HttpServlet servlet;
 
     private void setup(final Map<String, String> sslProperties) throws Exception {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(CaptureServlet.class, "/*");
-        servlet = (CaptureServlet) handler.getServlets()[0].getServlet();
+        servlet = (HttpServlet) handler.getServlets()[0].getServlet();
+
+        // create the service
+        server = new TestServer(sslProperties);
+        server.addHandler(handler);
+        server.startServer();
+
+        runner = TestRunners.newTestRunner(PostHTTP.class);
+    }
+
+    private void setup(final Map<String, String> sslProperties, final ServletHandler handler) throws Exception {
+        servlet = (HttpServlet) handler.getServlets()[0].getServlet();
 
         // create the service
         server = new TestServer(sslProperties);
@@ -62,6 +80,8 @@ public class TestPostHTTP {
             server.shutdownServer();
             server = null;
         }
+        runner = null;
+        servlet = null;
     }
 
     @Test
@@ -168,7 +188,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        final byte[] lastPost = servlet.getLastPost();
+        final byte[] lastPost = ((CaptureServlet) servlet).getLastPost();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final ByteArrayInputStream bais = new ByteArrayInputStream(lastPost);
 
@@ -229,7 +249,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        final byte[] lastPost = servlet.getLastPost();
+        final byte[] lastPost = ((CaptureServlet) servlet).getLastPost();
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final ByteArrayInputStream bais = new ByteArrayInputStream(lastPost);
 
@@ -267,7 +287,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertEquals("17",lastPostHeaders.get("Content-Length"));
     }
@@ -285,7 +305,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(PostHTTP.DEFAULT_CONTENT_TYPE, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
     }
 
@@ -305,7 +325,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
     }
 
@@ -326,7 +346,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that a 'Content-Encoding' header was set with a 'gzip' value
         Assert.assertEquals(PostHTTP.CONTENT_ENCODING_GZIP_VALUE, lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
@@ -351,7 +371,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
         Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
@@ -376,7 +396,7 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         // Ensure that the request was not sent with a 'Content-Encoding' header
         Assert.assertNull(lastPostHeaders.get(PostHTTP.CONTENT_ENCODING_HEADER));
@@ -399,10 +419,10 @@ public class TestPostHTTP {
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        byte[] postValue = servlet.getLastPost();
+        byte[] postValue = ((CaptureServlet) servlet).getLastPost();
         Assert.assertArrayEquals(StringUtils.repeat("Lines of sample text.", 100).getBytes(),postValue);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertNull(lastPostHeaders.get("Content-Length"));
         Assert.assertEquals("chunked",lastPostHeaders.get("Transfer-Encoding"));
@@ -427,10 +447,10 @@ public class TestPostHTTP {
         runner.run(1, stopOnFinish);
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
 
-        byte[] postValue = servlet.getLastPost();
+        byte[] postValue = ((CaptureServlet) servlet).getLastPost();
         Assert.assertArrayEquals(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(),postValue);
 
-        Map<String, String> lastPostHeaders = servlet.getLastPostHeaders();
+        Map<String, String> lastPostHeaders = ((CaptureServlet) servlet).getLastPostHeaders();
         Assert.assertEquals(suppliedMimeType, lastPostHeaders.get(PostHTTP.CONTENT_TYPE_HEADER));
         Assert.assertEquals("4700",lastPostHeaders.get("Content-Length"));
     }
@@ -439,6 +459,140 @@ public class TestPostHTTP {
     public void testDefaultUserAgent() throws Exception {
         setup(null);
         Assert.assertTrue(runner.getProcessContext().getProperty(PostHTTP.USER_AGENT).getValue().startsWith("Apache-HttpClient"));
+    }
+
+    @Test
+    public void testSendWithResponseBodyDestinationAttribute() throws Exception {
+
+        final ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(PredictableResponseServlet.class, "/*");
+
+        setup(null, handler);
+
+        ((PredictableResponseServlet) servlet).statusCode = Status.OK.getStatusCode();
+        ((PredictableResponseServlet) servlet).responseBody = "{}";
+        ((PredictableResponseServlet) servlet).headers = new HashMap<>();
+        ((PredictableResponseServlet) servlet).headers.put("Content-Type", "application/json; charset=utf-8");
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "true");
+        runner.setProperty(PostHTTP.RESPONSE_BODY_DESTINATION, PostHTTP.DESTINATION_ATTRIBUTE);
+        runner.setProperty(PostHTTP.RESPONSE_BODY_ATTRIBUTE, PostHTTP.RESPONSE_BODY_ATTRIBUTE.getDefaultValue());
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+
+        runner.enqueue(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(), attrs);
+
+        runner.run(1);
+
+        List<LogMessage> warnings = runner.getLogger().getWarnMessages();
+        List<LogMessage> errors = runner.getLogger().getErrorMessages();
+
+        Assert.assertEquals(0, warnings.size());
+        Assert.assertEquals(0, errors.size());
+
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        runner.assertAllFlowFiles(new FlowFileValidator() {
+            public void assertFlowFile(FlowFile f) {
+                // Assert outgoing flowfile attribute is response body
+                Assert.assertEquals("{}", f.getAttribute(PostHTTP.RESPONSE_BODY_ATTRIBUTE.getDefaultValue()));
+                // Assert outgoing flowfile attribute mime-type not updated
+                Assert.assertEquals(suppliedMimeType, f.getAttribute(CoreAttributes.MIME_TYPE.key()));
+            }
+        });
+    }
+
+    @Test
+    public void testSendWithResponseBodyDestinationContent() throws Exception {
+
+        final ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(PredictableResponseServlet.class, "/*");
+
+        setup(null, handler);
+
+        ((PredictableResponseServlet) servlet).statusCode = Status.OK.getStatusCode();
+        ((PredictableResponseServlet) servlet).responseBody = "{}";
+        ((PredictableResponseServlet) servlet).headers = new HashMap<>();
+        ((PredictableResponseServlet) servlet).headers.put("Content-Type", "application/json; charset=utf-8");
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "true");
+        runner.setProperty(PostHTTP.RESPONSE_BODY_DESTINATION, PostHTTP.DESTINATION_CONTENT);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+
+        runner.enqueue(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(), attrs);
+
+        runner.run(1);
+
+        List<LogMessage> warnings = runner.getLogger().getWarnMessages();
+        List<LogMessage> errors = runner.getLogger().getErrorMessages();
+
+        Assert.assertEquals(0, warnings.size());
+        Assert.assertEquals(0, errors.size());
+
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        runner.assertAllFlowFiles(new FlowFileValidator() {
+            public void assertFlowFile(FlowFile f) {
+                MockFlowFile mf = (MockFlowFile) f;
+                // Assert outgoing flowfile content is response body
+                mf.assertContentEquals("{}");
+                // Assert flowfile mimetype is updated to reflect response content type
+                mf.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+            }
+        });
+    }
+
+    @Test
+    public void testSendWithResponseCodeAttribute() throws Exception {
+
+        final ServletHandler handler = new ServletHandler();
+        handler.addServletWithMapping(PredictableResponseServlet.class, "/*");
+
+        setup(null, handler);
+
+        ((PredictableResponseServlet) servlet).statusCode = Status.OK.getStatusCode();
+        ((PredictableResponseServlet) servlet).responseBody = "{}";
+        ((PredictableResponseServlet) servlet).headers = new HashMap<>();
+        ((PredictableResponseServlet) servlet).headers.put("Content-Type", "application/json; charset=utf-8");
+
+        final String suppliedMimeType = "text/plain";
+        runner.setProperty(PostHTTP.URL, server.getUrl());
+        runner.setProperty(PostHTTP.CONTENT_TYPE, suppliedMimeType);
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "true");
+        runner.setProperty(PostHTTP.RESPONSE_CODE_ATTRIBUTE, PostHTTP.RESPONSE_CODE_ATTRIBUTE.getDefaultValue());
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+
+        runner.enqueue(StringUtils.repeat("This is a line of sample text. Here is another.", 100).getBytes(), attrs);
+
+        runner.run(1);
+
+        List<LogMessage> warnings = runner.getLogger().getWarnMessages();
+        List<LogMessage> errors = runner.getLogger().getErrorMessages();
+
+        Assert.assertEquals(0, warnings.size());
+        Assert.assertEquals(0, errors.size());
+
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS);
+
+        runner.assertAllFlowFiles(new FlowFileValidator() {
+            public void assertFlowFile(FlowFile f) {
+                // Assert outgoing flowfile attribute is response code
+                Assert.assertEquals("200", f.getAttribute(PostHTTP.RESPONSE_CODE_ATTRIBUTE.getDefaultValue()));
+                // Assert outgoing flowfile attribute mime-type not updated
+                Assert.assertEquals(suppliedMimeType, f.getAttribute(CoreAttributes.MIME_TYPE.key()));
+            }
+        });
     }
 
 }

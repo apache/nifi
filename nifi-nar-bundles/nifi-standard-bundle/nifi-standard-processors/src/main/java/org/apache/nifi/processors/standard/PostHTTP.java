@@ -16,49 +16,45 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.sun.jersey.api.client.ClientResponse.Status;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
-import org.apache.http.HttpException;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpHead;
@@ -74,7 +70,13 @@ import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.ContentProducer;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.EntityTemplate;
+import org.apache.http.Header;
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -83,9 +85,11 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
-import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -93,17 +97,17 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -121,12 +125,15 @@ import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
-import com.sun.jersey.api.client.ClientResponse.Status;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
 @CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
+@WritesAttributes({
+    @WritesAttribute(attribute = "PostHTTP.response_code", description = "The status code that is returned. Destination attribute is configurable."),
+    @WritesAttribute(attribute = "PostHTTP.response_body", description = "The response body that is returned. Destination attribute is configurable.")
+})
 public class PostHTTP extends AbstractProcessor {
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
@@ -143,6 +150,9 @@ public class PostHTTP extends AbstractProcessor {
     public static final String GZIPPED_HEADER = "flowfile-gzipped";
     public static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
     public static final String CONTENT_ENCODING_GZIP_VALUE = "gzip";
+
+    public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
+    public static final String DESTINATION_CONTENT = "flowfile-content";
 
     public static final String PROTOCOL_VERSION_HEADER = "x-nifi-transfer-protocol-version";
     public static final String TRANSACTION_ID_HEADER = "x-nifi-transaction-id";
@@ -259,10 +269,34 @@ public class PostHTTP extends AbstractProcessor {
             .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+    public static final PropertyDescriptor RESPONSE_BODY_DESTINATION = new PropertyDescriptor.Builder()
+            .name("Response body destination")
+            .description("Where to store the response body")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .allowableValues(DESTINATION_ATTRIBUTE, DESTINATION_CONTENT)
+            .defaultValue(DESTINATION_ATTRIBUTE)
+            .build();
+    public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("Response body attribute")
+            .description("The attribute to save the response body to if " + RESPONSE_BODY_DESTINATION.getName() + " is set to " + DESTINATION_ATTRIBUTE + ".")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .defaultValue("PostHTTP.response_body")
+            .build();
+    public static final PropertyDescriptor RESPONSE_CODE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("Response code attribute")
+            .description("The attribute to save the response code to.")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+            .defaultValue("PostHTTP.response_code")
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Files that are successfully send will be transferred to success")
+            .description("Files that are successfully sent will be transferred to success")
             .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
@@ -300,6 +334,9 @@ public class PostHTTP extends AbstractProcessor {
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         properties.add(CONTENT_TYPE);
+        properties.add(RESPONSE_BODY_DESTINATION);
+        properties.add(RESPONSE_BODY_ATTRIBUTE);
+        properties.add(RESPONSE_CODE_ATTRIBUTE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -718,12 +755,31 @@ public class PostHTTP extends AbstractProcessor {
         // Do the actual POST
         final String flowFileDescription = toSend.size() <= 10 ? toSend.toString() : toSend.size() + " FlowFiles";
 
+        final String responseBody;
+        final int statusCode;
+        final String mimeType;
+        final List<FlowFile> sent = new ArrayList<>(toSend.size());
+
         final String uploadDataRate;
         final long uploadMillis;
         CloseableHttpResponse response = null;
         try {
             final StopWatch stopWatch = new StopWatch(true);
             response = client.execute(post);
+
+            responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
+            statusCode = response.getStatusLine().getStatusCode();
+            mimeType = ContentType.getOrDefault(response.getEntity()).getMimeType();
+
+            if (response != null) {
+                for (FlowFile flowFile : toSend) {
+                    sent.add(appendResponseData(context, session, flowFile, responseBody, statusCode, mimeType));
+                }
+            } else {
+                for (FlowFile flowFile : toSend) {
+                    sent.add(flowFile);
+                }
+            }
 
             // consume input stream entirely, ignoring its contents. If we
             // don't do this, the Connection will not be returned to the pool
@@ -768,7 +824,7 @@ public class PostHTTP extends AbstractProcessor {
             }
 
             if (holdUri == null) {
-                for (FlowFile flowFile : toSend) {
+                for (FlowFile flowFile : sent) {
                     flowFile = session.penalize(flowFile);
                     logger.error("Failed to Post {} to {}: sent content and received status code {}:{} but no Hold URI",
                             new Object[]{flowFile, url, responseCode, responseReason});
@@ -780,7 +836,7 @@ public class PostHTTP extends AbstractProcessor {
 
         if (holdUri == null) {
             if (responseCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
-                for (FlowFile flowFile : toSend) {
+                for (FlowFile flowFile : sent) {
                     flowFile = session.penalize(flowFile);
                     logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, "
                                     + "since the destination is temporarily unavailable",
@@ -792,7 +848,7 @@ public class PostHTTP extends AbstractProcessor {
             }
 
             if (responseCode >= 300) {
-                for (FlowFile flowFile : toSend) {
+                for (FlowFile flowFile : sent) {
                     flowFile = session.penalize(flowFile);
                     logger.error("Failed to Post {} to {}: response code was {}:{}",
                             new Object[]{flowFile, url, responseCode, responseReason});
@@ -804,7 +860,7 @@ public class PostHTTP extends AbstractProcessor {
             logger.info("Successfully Posted {} to {} in {} at a rate of {}",
                     new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
 
-            for (final FlowFile flowFile : toSend) {
+            for (final FlowFile flowFile : sent) {
                 session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + dnHolder.get(), uploadMillis, true);
                 session.transfer(flowFile, REL_SUCCESS);
             }
@@ -850,7 +906,7 @@ public class PostHTTP extends AbstractProcessor {
                     logger.error("Failed to delete Hold that destination placed on {}: got response code {}:{}; routing to failure",
                             new Object[]{flowFileDescription, holdStatusCode, holdReason});
 
-                    for (FlowFile flowFile : toSend) {
+                    for (FlowFile flowFile : sent) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                     }
@@ -859,7 +915,7 @@ public class PostHTTP extends AbstractProcessor {
 
                 logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
 
-                for (final FlowFile flowFile : toSend) {
+                for (final FlowFile flowFile : sent) {
                     session.getProvenanceReporter().send(flowFile, url);
                     session.transfer(flowFile, REL_SUCCESS);
                 }
@@ -871,13 +927,36 @@ public class PostHTTP extends AbstractProcessor {
             if (!isScheduled()) {
                 context.yield();
                 logger.warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
-                for (FlowFile flowFile : toSend) {
+                for (FlowFile flowFile : sent) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
                 }
                 return;
             }
         }
+    }
+
+    private FlowFile appendResponseData(final ProcessContext context, final ProcessSession session, final FlowFile original, String responseBody, int statusCode, String mimeType) {
+        FlowFile appended = original;
+        switch (context.getProperty(RESPONSE_BODY_DESTINATION).getValue()) {
+            case DESTINATION_ATTRIBUTE:
+                if (context.getProperty(RESPONSE_BODY_ATTRIBUTE).isSet()) {
+                    appended = session.putAttribute(appended, context.getProperty(RESPONSE_BODY_ATTRIBUTE).getValue(), responseBody);
+                } else {
+                    getLogger().warn("{} is set to {} but {} is not set", new Object[]{RESPONSE_BODY_DESTINATION.getName(),DESTINATION_ATTRIBUTE,RESPONSE_BODY_ATTRIBUTE.getName()});
+                }
+                break;
+            case DESTINATION_CONTENT:
+                appended = session.write(original, (in, out) -> {
+                    IOUtils.write(responseBody, out);
+                });
+                appended = session.putAttribute(appended, CoreAttributes.MIME_TYPE.key(), mimeType);
+                break;
+        }
+        if (context.getProperty(RESPONSE_CODE_ATTRIBUTE).isSet()) {
+            appended = session.putAttribute(appended, context.getProperty(RESPONSE_CODE_ATTRIBUTE).getValue(), statusCode+"");
+        }
+        return appended;
     }
 
     private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final HttpClient client, final String uri,
