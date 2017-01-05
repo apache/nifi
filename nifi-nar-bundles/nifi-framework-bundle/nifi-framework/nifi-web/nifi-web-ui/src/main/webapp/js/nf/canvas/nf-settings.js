@@ -754,7 +754,7 @@ nf.Settings = (function () {
                 }
             }
 
-            if (dataContext.permissions.canWrite) {
+            if (dataContext.permissions.canWrite && nf.Common.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 

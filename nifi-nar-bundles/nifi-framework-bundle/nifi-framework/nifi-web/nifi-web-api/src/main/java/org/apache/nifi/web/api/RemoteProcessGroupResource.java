@@ -159,7 +159,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             value = "Deletes a remote process group",
             response = RemoteProcessGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /remote-process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /remote-process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -204,7 +205,12 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
+
+                    // ensure write permission to the remote process group
                     remoteProcessGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    remoteProcessGroup.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteRemoteProcessGroup(id),
                 (revision, remoteProcessGroupEntity) -> {
