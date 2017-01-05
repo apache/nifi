@@ -283,7 +283,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
             if (initValue == null){
                 reasons.add(new ValidationResult.Builder().subject(STATEFUL_VARIABLES_INIT_VALUE.getDisplayName()).valid(false)
-                        .explanation("initial state value much be set if the processor is configured to store state.").build());
+                        .explanation("initial state value must be set if the processor is configured to store state.").build());
             }
         }
 
