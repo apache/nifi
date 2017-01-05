@@ -330,6 +330,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
         return new SnippetAuthorizable() {
             @Override
+            public Authorizable getParentProcessGroup() {
+                return processGroup;
+            }
+
+            @Override
             public Set<ConfigurableComponentAuthorizable> getSelectedProcessors() {
                 return processGroup.getProcessors().stream()
                         .filter(processor -> snippet.getProcessors().containsKey(processor.getIdentifier()))

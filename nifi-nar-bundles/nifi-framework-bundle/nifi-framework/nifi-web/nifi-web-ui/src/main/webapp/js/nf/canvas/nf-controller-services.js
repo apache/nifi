@@ -497,6 +497,36 @@ nf.ControllerServices = (function () {
     };
 
     /**
+     * Determines if the user is authorized for the parent of the specified controller service.
+     *
+     * @param dataContext
+     * @returns {boolean}
+     */
+    var isAuthorizedForControllerServiceParent = function (dataContext) {
+        // we know the process group for this controller service is part
+        // of the current breadcrumb trail
+        var isAuthorizedForProcessGroup = function (processGroupId) {
+            var breadcrumbs = nf.ng.Bridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+
+            var isAuthorized = false;
+            $.each(breadcrumbs, function (_, breadcrumbEntity) {
+                if (breadcrumbEntity.id === processGroupId) {
+                    isAuthorized = breadcrumbEntity.permissions.canWrite;
+                    return false;
+                }
+            });
+
+            return isAuthorized;
+        };
+
+        if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+            return isAuthorizedForProcessGroup(dataContext.component.parentGroupId);
+        } else {
+            return nf.Common.canModifyController();
+        }
+    };
+
+    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -637,7 +667,7 @@ nf.ControllerServices = (function () {
                 }
             }
 
-            if (dataContext.permissions.canWrite) {
+            if (dataContext.permissions.canWrite && isAuthorizedForControllerServiceParent(dataContext)) {
                 markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 

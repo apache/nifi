@@ -33,7 +33,7 @@ public class NiFiTestAuthorizer implements Authorizer {
 
     public static final String NO_POLICY_COMPONENT_NAME = "No policies";
 
-    public static final String PROXY_DN = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+    public static final String PROXY_DN = "CN=localhost, OU=NIFI";
 
     public static final String NONE_USER_DN = "none@nifi";
     public static final String READ_USER_DN = "read@nifi";

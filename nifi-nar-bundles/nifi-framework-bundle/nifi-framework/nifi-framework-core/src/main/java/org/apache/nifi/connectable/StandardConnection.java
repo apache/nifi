@@ -110,7 +110,7 @@ public final class StandardConnection implements Connection {
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return null;
+        return getProcessGroup();
     }
 
     @Override

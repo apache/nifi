@@ -244,7 +244,8 @@ public class OutputPortResource extends ApplicationResource {
             value = "Deletes an output port",
             response = PortEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /output-ports/{uuid}", type = "")
+                    @Authorization(value = "Write - /output-ports/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -289,7 +290,12 @@ public class OutputPortResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable outputPort = lookup.getOutputPort(id);
+
+                    // ensure write permission to the output port
                     outputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    outputPort.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteOutputPort(id),
                 (revision, portEntity) -> {
