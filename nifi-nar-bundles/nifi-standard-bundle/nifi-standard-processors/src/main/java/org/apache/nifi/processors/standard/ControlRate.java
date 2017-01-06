@@ -77,7 +77,7 @@ public class ControlRate extends AbstractProcessor {
     public static final AllowableValue ATTRIBUTE_RATE_VALUE = new AllowableValue(ATTRIBUTE_RATE, ATTRIBUTE_RATE,
             "Rate is controlled by accumulating the value of a specified attribute that is transferred per time duration");
 
-    // based on to balance commits and 10,000 FF swap
+    // based on testing to balance commits and 10,000 FF swap limit
     public static final int MAX_FLOW_FILES_PER_BATCH = 1000;
 
     public static final PropertyDescriptor RATE_CONTROL_CRITERIA = new PropertyDescriptor.Builder()
