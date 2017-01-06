@@ -77,6 +77,9 @@ public class ControlRate extends AbstractProcessor {
     public static final AllowableValue ATTRIBUTE_RATE_VALUE = new AllowableValue(ATTRIBUTE_RATE, ATTRIBUTE_RATE,
             "Rate is controlled by accumulating the value of a specified attribute that is transferred per time duration");
 
+    // based on to balance commits and 10,000 FF swap
+    public static final int MAX_FLOW_FILES_PER_BATCH = 1000;
+
     public static final PropertyDescriptor RATE_CONTROL_CRITERIA = new PropertyDescriptor.Builder()
             .name("Rate Control Criteria")
             .description("Indicates the criteria that is used to control the throughput rate. Changing this value resets the rate counters.")
@@ -115,14 +118,6 @@ public class ControlRate extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
-    public static final PropertyDescriptor MAX_FF_PER_BATCH = new PropertyDescriptor.Builder()
-            .name("Max FlowFiles per processing batch")
-            .description("Maximum number of FlowFiles to accept per processing batch, even if Maximum Rate isn't reached.")
-            .displayName("Max FlowFiles per batch")
-            .required(false)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(false)
-            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -145,7 +140,6 @@ public class ControlRate extends AbstractProcessor {
     private volatile String rateControlAttribute = null;
     private volatile String maximumRateStr = null;
     private volatile String groupingAttributeName = null;
-    private volatile int maxFlowFilesPerBatch = 1;
     private volatile int timePeriodSeconds = 1;
 
     @Override
@@ -156,7 +150,6 @@ public class ControlRate extends AbstractProcessor {
         properties.add(RATE_CONTROL_ATTRIBUTE_NAME);
         properties.add(TIME_PERIOD);
         properties.add(GROUPING_ATTRIBUTE_NAME);
-        properties.add(MAX_FF_PER_BATCH);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -215,7 +208,6 @@ public class ControlRate extends AbstractProcessor {
         if (descriptor.equals(RATE_CONTROL_CRITERIA)
                 || descriptor.equals(RATE_CONTROL_ATTRIBUTE_NAME)
                 || descriptor.equals(GROUPING_ATTRIBUTE_NAME)
-                || descriptor.equals(MAX_FF_PER_BATCH)
                 || descriptor.equals(TIME_PERIOD)) {
             // if the criteria that is being used to determine limits/throttles is changed, we must clear our throttle map.
             throttleMap.clear();
@@ -239,17 +231,12 @@ public class ControlRate extends AbstractProcessor {
         rateControlAttribute = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
         maximumRateStr = context.getProperty(MAX_RATE).getValue().toUpperCase();
         groupingAttributeName = context.getProperty(GROUPING_ATTRIBUTE_NAME).getValue();
-        if (context.getProperty(MAX_FF_PER_BATCH).isSet()) {
-            maxFlowFilesPerBatch = context.getProperty(MAX_FF_PER_BATCH).asInteger();
-        } else {
-            maxFlowFilesPerBatch = 1;
-        }
         timePeriodSeconds = context.getProperty(TIME_PERIOD).asTimePeriod(TimeUnit.SECONDS).intValue();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = session.get(new ThrottleFilter(maxFlowFilesPerBatch));
+        List<FlowFile> flowFiles = session.get(new ThrottleFilter(MAX_FLOW_FILES_PER_BATCH));
         if (flowFiles.isEmpty()) {
             context.yield();
             return;
