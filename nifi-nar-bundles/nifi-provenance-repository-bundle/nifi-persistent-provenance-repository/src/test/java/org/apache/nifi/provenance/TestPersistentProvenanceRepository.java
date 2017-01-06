@@ -25,11 +25,22 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +48,9 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -79,9 +92,19 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +117,7 @@ public class TestPersistentProvenanceRepository {
     public static TemporaryFolder tempFolder = new TemporaryFolder();
 
     private PersistentProvenanceRepository repo;
-    private RepositoryConfiguration config;
+    private static RepositoryConfiguration config;
 
     public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
     private EventReporter eventReporter;
@@ -102,8 +125,9 @@ public class TestPersistentProvenanceRepository {
 
     private static int headerSize;
     private static int recordSize;
+    private static int recordSize2;
 
-    private RepositoryConfiguration createConfiguration() {
+    private static RepositoryConfiguration createConfiguration() {
         config = new RepositoryConfiguration();
         config.addStorageDirectory(new File("target/storage/" + UUID.randomUUID().toString()));
         config.setCompressOnRollover(true);
@@ -131,14 +155,27 @@ public class TestPersistentProvenanceRepository {
         builder.setComponentId("1234");
         builder.setComponentType("dummy processor");
         final ProvenanceEventRecord record = builder.build();
+        builder.setComponentId("2345");
+        final ProvenanceEventRecord record2 = builder.build();
 
         final File tempRecordFile = tempFolder.newFile("record.tmp");
-        final RecordWriter writer = RecordWriters.newRecordWriter(tempRecordFile, false, false);
+        System.out.println("findJournalSizes position 0 = " + tempRecordFile.length());
+
+        final RecordWriter writer = RecordWriters.newSchemaRecordWriter(tempRecordFile, false, false);
         writer.writeHeader(12345L);
+        writer.flush();
         headerSize = Long.valueOf(tempRecordFile.length()).intValue();
         writer.writeRecord(record, 12345L);
+        writer.flush();
         recordSize = Long.valueOf(tempRecordFile.length()).intValue() - headerSize;
+        writer.writeRecord(record2, 23456L);
+        writer.flush();
+        recordSize2 = Long.valueOf(tempRecordFile.length()).intValue() - headerSize - recordSize;
         writer.close();
+
+        System.out.println("headerSize =" + headerSize);
+        System.out.println("recordSize =" + recordSize);
+        System.out.println("recordSize2=" + recordSize2);
     }
 
     @Before
@@ -171,20 +208,23 @@ public class TestPersistentProvenanceRepository {
             // we create but also to ensure that we have closed all of the file handles. If we leave any
             // streams open, for instance, this will throw an IOException, causing our unit test to fail.
             for (final File storageDir : config.getStorageDirectories()) {
-                int i;
-                for (i = 0; i < 3; i++) {
-                    try {
-                        FileUtils.deleteFile(storageDir, true);
-                        break;
-                    } catch (final IOException ioe) {
-                        // if there is a virus scanner, etc. running in the background we may not be able to
-                        // delete the file. Wait a sec and try again.
-                        if (i == 2) {
-                            throw ioe;
-                        } else {
-                            try {
-                                Thread.sleep(1000L);
-                            } catch (final InterruptedException ie) {
+                if (storageDir.exists()) {
+                    int i;
+                    for (i = 0; i < 3; i++) {
+                        try {
+                            System.out.println("file: " + storageDir.toString() + " exists=" + storageDir.exists());
+                            FileUtils.deleteFile(storageDir, true);
+                            break;
+                        } catch (final IOException ioe) {
+                            // if there is a virus scanner, etc. running in the background we may not be able to
+                            // delete the file. Wait a sec and try again.
+                            if (i == 2) {
+                                throw ioe;
+                            } else {
+                                try {
+                                    Thread.sleep(1000L);
+                                } catch (final InterruptedException ie) {
+                                }
                             }
                         }
                     }
@@ -1660,6 +1700,10 @@ public class TestPersistentProvenanceRepository {
         Thread.sleep(3000L);
     }
 
+
+    // TODO: test EOF on merge
+    // TODO: Test journal with no records
+
     @Test
     public void testTextualQuery() throws InterruptedException, IOException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
@@ -1783,7 +1827,21 @@ public class TestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final File storageDir = config.getStorageDirectories().get(0);
-        assertEquals(10000, checkJournalRecords(storageDir, true));
+        long counter = 0;
+        for (final File file : storageDir.listFiles()) {
+            if (file.isFile()) {
+
+                try (RecordReader reader = RecordReaders.newRecordReader(file, null, 2048)) {
+                    ProvenanceEventRecord r = null;
+
+                    while ((r = reader.nextRecord()) != null) {
+                        assertEquals(counter++, r.getEventId());
+                    }
+                }
+            }
+        }
+
+        assertEquals(10000, counter);
     }
 
     private void corruptJournalFile(final File journalFile, final int position,
@@ -1841,7 +1899,7 @@ public class TestPersistentProvenanceRepository {
             }
         }
         RecordWriter firstWriter = testRepo.getWriters()[0];
-        corruptJournalFile(firstWriter.getFile(), headerSize + 10, "RECEIVE", "BADTYPE");
+        corruptJournalFile(firstWriter.getFile(), headerSize + 15,"RECEIVE", "BADTYPE");
 
         testRepo.recoverJournalFiles();
 
@@ -1894,7 +1952,7 @@ public class TestPersistentProvenanceRepository {
             }
         }
         RecordWriter firstWriter = testRepo.getWriters()[0];
-        corruptJournalFile(firstWriter.getFile(), headerSize + 10 + recordSize, "RECEIVE", "BADTYPE");
+        corruptJournalFile(firstWriter.getFile(), headerSize + 15 + recordSize, "RECEIVE", "BADTYPE");
 
         testRepo.recoverJournalFiles();
 
@@ -2212,7 +2270,7 @@ public class TestPersistentProvenanceRepository {
         };
     }
 
-    private class TestablePersistentProvenanceRepository extends PersistentProvenanceRepository {
+    private static class TestablePersistentProvenanceRepository extends PersistentProvenanceRepository {
 
         TestablePersistentProvenanceRepository() {
             super();

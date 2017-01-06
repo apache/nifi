@@ -1699,7 +1699,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read Provenance Event "
-                                + "Record from Journal due to " + e + "; it's possible that the record wasn't "
+                                + "Record from Journal due to " + e  + "; it's possible that the record wasn't "
                                 + "completely written to the file. This journal will be skipped.");
                     }
                 }
@@ -1852,7 +1852,6 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                                             + "that the record wasn't completely written to the file. The remainder "
                                             + "of this journal will be skipped.");
                                 }
-
                             }
 
                             if (nextRecord != null) {
@@ -2403,14 +2402,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         if (user == null) {
-            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because no user id was provided in the lineage request.");
+            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because no user id was provided");
         }
 
         if (userId == null || userId.equals(user.getIdentity())) {
             return submission;
         }
 
-        throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request.");
+        throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
     @Override
@@ -2424,14 +2423,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         if (user == null) {
-            throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because no user id was provided in the provenance request.");
+            throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because no user id was provided");
         }
 
         if (userId == null || userId.equals(user.getIdentity())) {
             return submission;
         }
 
-        throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request.");
+        throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
     @Override
