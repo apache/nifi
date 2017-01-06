@@ -1283,6 +1283,7 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) JaCoCo Java Code Coverage Library ( org.jacoco ) http://www.eclemma.org/jacoco
+    (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
 
 *****************
 Mozilla Public License v2.0
