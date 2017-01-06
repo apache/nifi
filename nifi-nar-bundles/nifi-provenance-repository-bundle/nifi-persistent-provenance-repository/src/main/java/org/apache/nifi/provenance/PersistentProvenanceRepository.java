@@ -1699,7 +1699,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
 
                     if (eventReporter != null) {
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read Provenance Event "
-                                + "Record from Journal due to " + e  + "; it's possible that the record wasn't "
+                                + "Record from Journal due to " + e + "; it's possible that the record wasn't "
                                 + "completely written to the file. This journal will be skipped.");
                     }
                 }

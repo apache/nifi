@@ -1700,10 +1700,6 @@ public class TestPersistentProvenanceRepository {
         Thread.sleep(3000L);
     }
 
-
-    // TODO: test EOF on merge
-    // TODO: Test journal with no records
-
     @Test
     public void testTextualQuery() throws InterruptedException, IOException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
