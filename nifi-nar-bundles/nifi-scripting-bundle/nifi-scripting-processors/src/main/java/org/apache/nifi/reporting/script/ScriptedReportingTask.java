@@ -18,6 +18,8 @@ package org.apache.nifi.reporting.script;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -55,6 +57,13 @@ import java.util.Map;
 @CapabilityDescription("Provides reporting and status information to a script. ReportingContext, ComponentLog, and VirtualMachineMetrics objects are made available "
         + "as variables (context, log, and vmMetrics, respectively) to the script for further processing. The context makes various information available such "
         + "as events, provenance, bulletins, controller services, process groups, Java Virtual Machine metrics, etc.")
+@DynamicProperty(
+        name = "A script engine property to update",
+        value = "The value to set it to",
+        supportsExpressionLanguage = true,
+        description = "Updates a script engine property specified by the Dynamic Property's key with the value "
+                + "specified by the Dynamic Property's value")
+@Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
 public class ScriptedReportingTask extends AbstractReportingTask {
 
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
