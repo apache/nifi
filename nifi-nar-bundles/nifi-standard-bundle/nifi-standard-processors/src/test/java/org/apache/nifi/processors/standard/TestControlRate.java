@@ -24,6 +24,9 @@ import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
 
+import static org.apache.nifi.processors.standard.ControlRate.MAX_FLOW_FILES_PER_BATCH;
+import static org.junit.Assert.assertEquals;
+
 public class TestControlRate {
 
     @Test
@@ -176,60 +179,30 @@ public class TestControlRate {
     }
 
     @Test
-    public void testBatchSizeDefaultOne() throws InterruptedException {
+    public void testBatchLimit() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
         runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
         runner.setProperty(ControlRate.MAX_RATE, "5555");
         runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
 
-        runner.enqueue("test data 0");
-        runner.enqueue("test data 1");
-        runner.enqueue("test data 2");
-        runner.enqueue("test data 3");
-        runner.enqueue("test data 4");
-        runner.enqueue("test data 5");
-        runner.enqueue("test data 6");
-        runner.enqueue("test data 7");
-        runner.enqueue("test data 8");
-        runner.enqueue("test data 9");
+        final int TEST_FILE_COUNT = 1500;
 
-        runner.run(4, false);
-
-        // we've run 4 times and should have 4 files with 6 in the queue
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 4);
-        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
-        runner.assertQueueNotEmpty();
-        runner.clearTransferState();
-
-        runner.run(8, false);
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 6);
-        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
-        runner.assertQueueEmpty();
-    }
-
-    @Test
-    public void testBatchSizeOneHundred() throws InterruptedException {
-        final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
-        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.FLOWFILE_RATE);
-        runner.setProperty(ControlRate.MAX_RATE, "5555");
-        runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");
-        runner.setProperty(ControlRate.MAX_FF_PER_BATCH, "100");
-
-        runner.enqueue("test data 0");
-        runner.enqueue("test data 1");
-        runner.enqueue("test data 2");
-        runner.enqueue("test data 3");
-        runner.enqueue("test data 4");
-        runner.enqueue("test data 5");
-        runner.enqueue("test data 6");
-        runner.enqueue("test data 7");
-        runner.enqueue("test data 8");
-        runner.enqueue("test data 9");
+        for (int i = 0; i < TEST_FILE_COUNT; i++) {
+            runner.enqueue("test data " + i);
+        }
 
         runner.run(1, false);
 
-        // we've run 1 time and should have all 10 files with 0 in the queue
-        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, 10);
+        // after 1 run should have MAX_FLOW_FILES_PER_BATCH files transferred and remainder of TEST_FILE_COUNT in queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, MAX_FLOW_FILES_PER_BATCH);
+        runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
+        runner.assertQueueNotEmpty();
+        assertEquals(TEST_FILE_COUNT - MAX_FLOW_FILES_PER_BATCH, runner.getQueueSize().getObjectCount());
+
+        runner.run(1, false);
+
+        // after 2 runs should have TEST_FILE_COUNT files transferred and 0 in queue
+        runner.assertAllFlowFilesTransferred(ControlRate.REL_SUCCESS, TEST_FILE_COUNT);
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueEmpty();
     }
