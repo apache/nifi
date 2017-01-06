@@ -1113,12 +1113,35 @@ When applied to 'login-identity-providers.xml', the property elements are update
    </provider>
 ----
 
+[encrypt_config_property_migration]
+Sensitive Property Key Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update `bootstrap.conf` with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
 
 * old key -> new key
 * old key -> new password
 * old password -> new key
 * old password -> new password
+
+[encrypt_config_flow_migration]
+Existing Flow Migration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This tool can also be used to change the value of `nifi.sensitive.props.key` for an existing flow. The tool will read the existing `flow.xml.gz` and decrypt any sensitive component properties using the original key,
+then re-encrypt the sensitive properties with the new key, and write out a new version of the `flow.xml.gz`, or overwrite the existing one.
+
+The current sensitive properties key is not provided as a command-line argument, as it is read directly from `nifi.properties`. As this file is a required parameter, the `-x`/`--encryptFlowXmlOnly` flags tell the tool *not* to attempt to encrypt the properties in `nifi.properties`, but rather to *only* update the `nifi.sensitive.props.key` value with the new key. The exception to this is if the `nifi.properties` is *already* encrypted, the new sensitive property key will also be encrypted before being written to `nifi.properties`.
+
+The following command would migrate the sensitive properties key in place, meaning it would overwrite the existing `flow.xml.gz` and `nifi.properties`:
+----
+./encrypt-config.sh -f /path/to/flow.xml.gz -n ./path/to/nifi.properties -s newpassword -x
+----
+
+The following command would migrate the sensitive properties key and write out a separate `flow.xml.gz` and `nifi.properties`:
+----
+./encrypt-config.sh -f ./path/to/src/flow.xml.gz -g /path/to/dest/flow.xml.gz -n /path/to/src/nifi.properties -o /path/to/dest/nifi.properties -s newpassword -x
+----
 
 [[encrypt-config_password]]
 Password Key Derivation
