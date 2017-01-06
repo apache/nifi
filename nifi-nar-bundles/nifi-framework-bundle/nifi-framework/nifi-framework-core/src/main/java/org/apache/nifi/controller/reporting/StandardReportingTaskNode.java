@@ -65,6 +65,6 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getProperties(), flowController, getReportingTask(), getVariableRegistry());
+        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getProperties(), flowController, getReportingTask(), getVariableRegistry(), flowController.getCounterRepository());
     }
 }

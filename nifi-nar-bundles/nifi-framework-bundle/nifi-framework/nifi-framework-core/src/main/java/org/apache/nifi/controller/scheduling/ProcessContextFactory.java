@@ -20,10 +20,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.ProcessContext;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
 public class ProcessContextFactory {

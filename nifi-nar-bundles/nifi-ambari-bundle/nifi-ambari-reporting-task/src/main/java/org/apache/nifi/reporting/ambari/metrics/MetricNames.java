@@ -36,6 +36,7 @@ public interface MetricNames {
     String ACTIVE_THREADS = "ActiveThreads";
     String TOTAL_TASK_DURATION_SECONDS = "TotalTaskDurationSeconds";
     String TOTAL_TASK_DURATION_NANOS = "TotalTaskDurationNanoSeconds";
+    String COUNTER = "Counter";
 
     // JVM Metrics
     String JVM_UPTIME = "jvm.uptime";

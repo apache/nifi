@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
+package org.apache.nifi.counter;
 
 import java.util.List;
-
-import org.apache.nifi.controller.Counter;
 
 public interface CounterRepository {
 

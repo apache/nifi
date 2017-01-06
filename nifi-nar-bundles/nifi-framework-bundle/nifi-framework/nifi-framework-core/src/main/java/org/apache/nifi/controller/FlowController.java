@@ -75,7 +75,6 @@ import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -121,6 +120,8 @@ import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.controller.tasks.ExpireFlowFiles;
+import org.apache.nifi.counter.Counter;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -3189,6 +3190,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final CounterRepository counterRepo = counterRepositoryRef.get();
         final Counter resetValue = counterRepo.resetCounter(identifier);
         return resetValue;
+    }
+
+    public CounterRepository getCounterRepository() {
+        return counterRepositoryRef.get();
     }
 
     //

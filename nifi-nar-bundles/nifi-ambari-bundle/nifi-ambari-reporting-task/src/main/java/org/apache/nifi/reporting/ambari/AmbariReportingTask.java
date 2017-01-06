@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -89,6 +90,15 @@ public class AmbariReportingTask extends AbstractReportingTask {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor SEND_COUNTER_METRICS = new PropertyDescriptor.Builder()
+            .name("Send counters data")
+            .description("If true, the counters data will be sent to Ambari Metrics Collector service.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     private volatile Client client;
     private volatile JsonBuilderFactory factory;
     private volatile VirtualMachineMetrics virtualMachineMetrics;
@@ -103,6 +113,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
         properties.add(APPLICATION_ID);
         properties.add(HOSTNAME);
         properties.add(PROCESS_GROUP_ID);
+        properties.add(SEND_COUNTER_METRICS);
         return properties;
     }
 
@@ -151,10 +162,12 @@ public class AmbariReportingTask extends AbstractReportingTask {
 
         // calculate the current metrics, but store them to be sent next time
         final ProcessGroupStatus status = processGroupId == null ? context.getEventAccess().getControllerStatus() : context.getEventAccess().getGroupStatus(processGroupId);
+        final CounterRepository counterRepository = context.getProperty(SEND_COUNTER_METRICS).asBoolean() ? context.getCounterRepository() : null;
 
         if(status != null) {
             final Map<String,String> statusMetrics = metricsService.getMetrics(status, pgIdIsSet);
             final Map<String,String> jvmMetrics = metricsService.getMetrics(virtualMachineMetrics);
+            final Map<String,String> counterMetrics = metricsService.getMetrics(counterRepository);
 
             final MetricsBuilder metricsBuilder = new MetricsBuilder(factory);
 
@@ -165,6 +178,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
                     .timestamp(start)
                     .addAllMetrics(statusMetrics)
                     .addAllMetrics(jvmMetrics)
+                    .addAllMetrics(counterMetrics)
                     .build();
 
             previousMetrics = metricsObject;

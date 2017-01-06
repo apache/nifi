@@ -18,6 +18,8 @@ package org.apache.nifi.controller;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.counter.Counter;
+
 public class StandardCounter implements Counter {
 
     private final String identifier;

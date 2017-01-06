@@ -17,8 +17,9 @@
 package org.apache.nifi.jaxb;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
-import org.apache.nifi.controller.Counter;
+
 import org.apache.nifi.controller.StandardCounter;
+import org.apache.nifi.counter.Counter;
 
 /**
  */

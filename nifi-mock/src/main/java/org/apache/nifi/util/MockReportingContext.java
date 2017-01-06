@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
@@ -41,13 +42,16 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
+    private final CounterRepository counterRepository;
 
     private final Map<String, List<Bulletin>> componentBulletinsCreated = new HashMap<>();
 
-    public MockReportingContext(final Map<String, ControllerService> controllerServices, final StateManager stateManager, final VariableRegistry variableRegistry) {
+    public MockReportingContext(final Map<String, ControllerService> controllerServices, final StateManager stateManager,
+            final VariableRegistry variableRegistry, final CounterRepository counterRepository) {
         this.controllerServices = new HashMap<>();
         this.stateManager = stateManager;
         this.variableRegistry = variableRegistry;
+        this.counterRepository = counterRepository;
         for (final Map.Entry<String, ControllerService> entry : controllerServices.entrySet()) {
             this.controllerServices.put(entry.getKey(), new ControllerServiceConfiguration(entry.getValue()));
         }
@@ -132,5 +136,10 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     @Override
     public String getClusterNodeIdentifier() {
         return null;
+    }
+
+    @Override
+    public CounterRepository getCounterRepository() {
+        return counterRepository;
     }
 }

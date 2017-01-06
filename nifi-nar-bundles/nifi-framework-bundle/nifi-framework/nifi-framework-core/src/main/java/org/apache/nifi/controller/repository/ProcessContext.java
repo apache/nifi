@@ -28,6 +28,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.Connectables;

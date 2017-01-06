@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.counter.CounterRepository;
 
 import java.util.Map;
 
@@ -105,4 +106,9 @@ public interface ReportingContext {
      *         has not yet been established
      */
     String getClusterNodeIdentifier();
+
+    /**
+     * @return the {@link CounterRepository} to access current counters values.
+     */
+    CounterRepository getCounterRepository();
 }

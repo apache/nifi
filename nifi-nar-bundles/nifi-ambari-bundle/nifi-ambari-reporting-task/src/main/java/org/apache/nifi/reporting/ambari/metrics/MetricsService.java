@@ -19,8 +19,11 @@ package org.apache.nifi.reporting.ambari.metrics;
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.counter.Counter;
+import org.apache.nifi.counter.CounterRepository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -54,6 +57,22 @@ public class MetricsService {
         final long durationSeconds = TimeUnit.SECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
         metrics.put(appendPgId(MetricNames.TOTAL_TASK_DURATION_SECONDS, status, appendPgId), String.valueOf(durationSeconds));
 
+        return metrics;
+    }
+
+    /**
+     * Generates a map of metrics containing counters data.
+     * @param counterRepository Counter repository
+     * @return a map of metrics with counters data
+     */
+    public Map<String, String> getMetrics(CounterRepository counterRepository) {
+        final Map<String,String> metrics = new HashMap<>();
+        if(counterRepository != null) {
+            List<Counter> counters = counterRepository.getCounters();
+            for (Counter counter : counters) {
+                metrics.put(MetricNames.COUNTER + MetricNames.METRIC_NAME_SEPARATOR + counter.getName(), String.valueOf(counter.getValue()));
+            }
+        }
         return metrics;
     }
 

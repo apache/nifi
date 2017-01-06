@@ -19,6 +19,8 @@ package org.apache.nifi.reporting.ambari;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.counter.Counter;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
@@ -38,6 +40,7 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 public class TestAmbariReportingTask {
@@ -111,12 +114,82 @@ public class TestAmbariReportingTask {
         Mockito.when(context.getProperty(AmbariReportingTask.HOSTNAME))
                 .thenReturn(new MockPropertyValue(hostName));
         Mockito.when(context.getProperty(AmbariReportingTask.PROCESS_GROUP_ID))
-                .thenReturn(new MockPropertyValue("1234"));
+                .thenReturn(new MockPropertyValue(null));
+        Mockito.when(context.getProperty(AmbariReportingTask.SEND_COUNTER_METRICS))
+                .thenReturn(new MockPropertyValue("true"));
 
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
         Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
+
+        final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
+        final Counter counter = Mockito.mock(Counter.class);
+        final List<Counter> counters = new ArrayList<Counter>();
+        Mockito.when(context.getCounterRepository()).thenReturn(counterRepo);
+        counters.add(counter);
+        Mockito.when(counterRepo.getCounters()).thenReturn(counters);
+
+
+        // create a testable instance of the reporting task
+        final AmbariReportingTask task = new TestableAmbariReportingTask(client);
+        task.initialize(initContext);
+        task.setup(configurationContext);
+        task.onTrigger(context);
+    }
+
+    @Test
+    public void testOnTriggerWithPgID() throws InitializationException, IOException {
+        final String metricsUrl = "http://myambari:6188/ws/v1/timeline/metrics";
+        final String applicationId = "NIFI";
+        final String hostName = "localhost";
+
+        // create the jersey client mocks for handling the post
+        final Client client = Mockito.mock(Client.class);
+        final WebTarget target = Mockito.mock(WebTarget.class);
+        final Invocation.Builder builder = Mockito.mock(Invocation.Builder.class);
+
+        final Response response = Mockito.mock(Response.class);
+        Mockito.when(response.getStatus()).thenReturn(200);
+
+        Mockito.when(client.target(metricsUrl)).thenReturn(target);
+        Mockito.when(target.request()).thenReturn(builder);
+        Mockito.when(builder.post(Matchers.any(Entity.class))).thenReturn(response);
+
+        // mock the ReportingInitializationContext for initialize(...)
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
+        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        Mockito.when(initContext.getLogger()).thenReturn(logger);
+
+        // mock the ConfigurationContext for setup(...)
+        final ConfigurationContext configurationContext = Mockito.mock(ConfigurationContext.class);
+
+        // mock the ReportingContext for onTrigger(...)
+        final ReportingContext context = Mockito.mock(ReportingContext.class);
+        Mockito.when(context.getProperty(AmbariReportingTask.METRICS_COLLECTOR_URL))
+                .thenReturn(new MockPropertyValue(metricsUrl));
+        Mockito.when(context.getProperty(AmbariReportingTask.APPLICATION_ID))
+                .thenReturn(new MockPropertyValue(applicationId));
+        Mockito.when(context.getProperty(AmbariReportingTask.HOSTNAME))
+                .thenReturn(new MockPropertyValue(hostName));
+        Mockito.when(context.getProperty(AmbariReportingTask.PROCESS_GROUP_ID))
+                .thenReturn(new MockPropertyValue("1234"));
+        Mockito.when(context.getProperty(AmbariReportingTask.SEND_COUNTER_METRICS))
+                .thenReturn(new MockPropertyValue("true"));
+
+
+        final EventAccess eventAccess = Mockito.mock(EventAccess.class);
+        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
+        Mockito.when(eventAccess.getGroupStatus("1234")).thenReturn(status);
+
+        final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
+        final Counter counter = Mockito.mock(Counter.class);
+        final List<Counter> counters = new ArrayList<Counter>();
+        Mockito.when(context.getCounterRepository()).thenReturn(counterRepo);
+        counters.add(counter);
+        Mockito.when(counterRepo.getCounters()).thenReturn(counters);
+
 
         // create a testable instance of the reporting task
         final AmbariReportingTask task = new TestableAmbariReportingTask(client);

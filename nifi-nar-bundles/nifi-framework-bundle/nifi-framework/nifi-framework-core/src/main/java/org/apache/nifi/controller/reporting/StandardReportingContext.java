@@ -28,6 +28,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.counter.CounterRepository;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.VariableRegistry;
@@ -49,6 +50,7 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     private final EventAccess eventAccess;
     private final ReportingTask reportingTask;
     private final BulletinRepository bulletinRepository;
+    private final CounterRepository counterRepository;
     private final ControllerServiceProvider serviceProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
@@ -56,10 +58,11 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
 
     public StandardReportingContext(final FlowController flowController, final BulletinRepository bulletinRepository,
                                     final Map<PropertyDescriptor, String> properties, final ControllerServiceProvider serviceProvider, final ReportingTask reportingTask,
-                                    final VariableRegistry variableRegistry) {
+                                    final VariableRegistry variableRegistry, final CounterRepository counterRepository) {
         this.flowController = flowController;
         this.eventAccess = flowController;
         this.bulletinRepository = bulletinRepository;
+        this.counterRepository = counterRepository;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = serviceProvider;
         this.reportingTask = reportingTask;
@@ -162,5 +165,10 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     public String getClusterNodeIdentifier() {
         final NodeIdentifier nodeId = flowController.getNodeId();
         return nodeId == null ? null : nodeId.getId();
+    }
+
+    @Override
+    public CounterRepository getCounterRepository() {
+        return counterRepository;
     }
 }

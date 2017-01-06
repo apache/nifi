@@ -24,8 +24,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.StandardCounter;
+import org.apache.nifi.counter.Counter;
+import org.apache.nifi.counter.CounterRepository;
 
 public class StandardCounterRepository implements CounterRepository {
 
