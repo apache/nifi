@@ -1120,6 +1120,19 @@ In order to change the key used to encrypt the sensitive values, indicate *migra
 * old password -> new key
 * old password -> new password
 
+This tool can also be used to change the value of 'nifi.sensitive.props.key' for an existing flow. The tool will read the existing flow.xml.gz and decrypt any sensitive properties using the original key,
+then re-encrypt the sensitive properties with the new key, and write out a new version of the flow.xml.gz, or overwriting the existing one.
+
+The following command would migrate the sensitive properties key in place, meaning it would overwrite the existing flow.xml.gz and nifi.properties:
+----
+./encrypt-config.sh -f /path/to/flow.xml.gz -n ./path/to/nifi.properties -s newpassword -x
+----
+
+The following command would migrate the sensitive properties key and write out a separate flow.xml.gz and nifi.properties:
+----
+./encrypt-config.sh -f ./path/to/src/flow.xml.gz -g /path/to/dest/flow.xml.gz -n /path/to/src/nifi.properties -o /path/to/dest/nifi.properties -s newpassword  -x
+----
+
 [[encrypt-config_password]]
 Password Key Derivation
 ~~~~~~~~~~~~~~~~~~~~~~~
