@@ -60,13 +60,19 @@ import java.util.stream.IntStream;
 
 
 @TriggerSerially
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"sql", "select", "jdbc", "query", "database", "fetch", "generate"})
-@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class})
+@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class, ListDatabaseTables.class})
 @CapabilityDescription("Generates SQL select queries that fetch \"pages\" of rows from a table. The partition size property, along with the table's row count, "
         + "determine the size and number of pages and generated FlowFiles. In addition, incremental fetching can be achieved by setting Maximum-Value Columns, "
         + "which causes the processor to track the columns' maximum values, thus only fetching rows whose columns' values exceed the observed maximums. This "
-        + "processor is intended to be run on the Primary Node only.")
+        + "processor is intended to be run on the Primary Node only.\n\n"
+        + "This processor can accept incoming connections; the behavior of the processor differs slightly whether incoming connections are provided:\n"
+        + "  - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many "
+        + "fields, but no flow file attributes are available. However the properties will be evaluated using the Variable Registry.\n"
+        + "  - If incoming connection(s) are specified and no flow file is available to a processor task, no work will be performed.\n"
+        + "  - If incoming connection(s) are specified and a flow file is available to a processor task, the flow file's attributes may be used in Expression Language for such fields "
+        + "as Table Name and others. However, the Max-Value Columns field must be empty, or an error will be reported when the processor is scheduled to run.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
@@ -83,13 +89,20 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     + "in the table.")
             .defaultValue("10000")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
+                    + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
     public GenerateTableFetch() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
+        r.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(r);
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
@@ -115,20 +128,36 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) {
+        // The processor is invalid if there is an incoming connection and max-value columns are defined
+        if (context.getProperty(MAX_VALUE_COLUMN_NAMES).isSet() && context.hasIncomingConnection()) {
+            throw new ProcessException("If an incoming connection is supplied, no max-value column names may be specified");
+        }
         super.setup(context);
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
+
+        FlowFile fileToProcess = null;
+        if (context.hasIncomingConnection()) {
+            fileToProcess = session.get();
+
+            if (fileToProcess == null) {
+                // Incoming connection with no flow file available, do no work (see capability description)
+                return;
+            }
+        }
+
         final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final int partitionSize = context.getProperty(PARTITION_SIZE).asInteger();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
+        // Max-value column names can only be specified if there is no incoming connection, so fileToProcess must be null
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -186,7 +215,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             try (final Connection con = dbcpService.getConnection();
                  final Statement st = con.createStatement()) {
 
-                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
                 logger.debug("Executing {}", new Object[]{selectQuery});
@@ -217,25 +246,35 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     // Something is very wrong here, one row (even if count is zero) should be returned
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
+
+                final int numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+
+                // Generate SQL statements to read "pages" of data
+                for (int i = 0; i < numberOfFetches; i++) {
+                    FlowFile sqlFlowFile;
+
+                    Integer limit = partitionSize == 0 ? null : partitionSize;
+                    Integer offset = partitionSize == 0 ? null : i * partitionSize;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                    sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                    sqlFlowFile = session.write(sqlFlowFile, out -> {
+                        out.write(query.getBytes());
+                    });
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                }
+
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
             } catch (SQLException e) {
-                logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
-                throw new ProcessException(e);
-            }
-            final int numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+                if (fileToProcess != null) {
+                    logger.error("Unable to execute SQL select query {} due to {}, routing {} to failure", new Object[]{selectQuery, e, fileToProcess});
+                    session.transfer(fileToProcess, REL_FAILURE);
 
-
-            // Generate SQL statements to read "pages" of data
-            for (int i = 0; i < numberOfFetches; i++) {
-                FlowFile sqlFlowFile;
-
-                Integer limit = partitionSize == 0 ? null : partitionSize;
-                Integer offset = partitionSize == 0 ? null : i * partitionSize;
-                final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                sqlFlowFile = session.create();
-                sqlFlowFile = session.write(sqlFlowFile, out -> {
-                    out.write(query.getBytes());
-                });
-                session.transfer(sqlFlowFile, REL_SUCCESS);
+                } else {
+                    logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
+                    throw new ProcessException(e);
+                }
             }
 
             session.commit();

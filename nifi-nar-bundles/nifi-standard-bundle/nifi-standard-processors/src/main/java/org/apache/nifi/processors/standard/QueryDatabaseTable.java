@@ -107,6 +107,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
@@ -117,6 +118,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor MAX_FRAGMENTS = new PropertyDescriptor.Builder()
@@ -127,6 +129,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public QueryDatabaseTable() {
@@ -184,13 +187,13 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+        final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
-                ? context.getProperty(MAX_FRAGMENTS).asInteger()
+                ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
                 : 0;
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
 
@@ -247,7 +250,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
-            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             try {
                 logger.debug("Executing query {}", new Object[]{selectQuery});

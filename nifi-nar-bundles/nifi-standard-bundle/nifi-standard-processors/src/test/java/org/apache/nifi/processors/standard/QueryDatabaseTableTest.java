@@ -72,6 +72,8 @@ public class QueryDatabaseTableTest {
     private final static String DB_LOCATION = "target/db_qdt";
     private DatabaseAdapter dbAdapter;
     private HashMap<String, DatabaseAdapter> origDbAdapters;
+    private final static String TABLE_NAME_KEY = "tableName";
+    private final static String MAX_ROWS_KEY = "maxRows";
 
 
     @BeforeClass
@@ -460,6 +462,7 @@ public class QueryDatabaseTableTest {
 
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_NULL_INT");
+        runner.setProperty(AbstractDatabaseFetchProcessor.MAX_VALUE_COLUMN_NAMES, "id");
 
         QueryDatabaseTable.dbAdapters.put(dbAdapter.getName(), new GenericDatabaseAdapter() {
             @Override
@@ -521,7 +524,8 @@ public class QueryDatabaseTableTest {
         runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "ID");
-        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "9");//Using a non-round number to make sure the last file is ragged
+        runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "${" + MAX_ROWS_KEY + "}");
+        runner.setVariable(MAX_ROWS_KEY, "9");
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 12);
@@ -675,7 +679,8 @@ public class QueryDatabaseTableTest {
             cal.add(Calendar.MINUTE, 1);
         }
 
-        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setProperty(QueryDatabaseTable.TABLE_NAME, "${" + TABLE_NAME_KEY + "}");
+        runner.setVariable(TABLE_NAME_KEY, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTable.MAX_VALUE_COLUMN_NAMES, "created_on");
 

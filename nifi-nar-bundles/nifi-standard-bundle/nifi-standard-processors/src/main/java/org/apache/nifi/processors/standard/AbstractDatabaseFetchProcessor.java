@@ -24,6 +24,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -97,6 +98,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .description("The name of the database table to be queried.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor COLUMN_NAMES = new PropertyDescriptor.Builder()
@@ -106,6 +108,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     + "column names are supplied, all columns in the specified table will be returned.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor MAX_VALUE_COLUMN_NAMES = new PropertyDescriptor.Builder()
@@ -120,6 +123,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     + "are provided, all rows from the table will be considered, which could have a performance impact.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
@@ -129,6 +133,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
@@ -167,10 +172,17 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     public void setup(final ProcessContext context) {
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+
+        // If there are no max-value column names specified, we don't need to perform this processing
+        if (StringUtils.isEmpty(maxValueColumnNames)) {
+            return;
+        }
+
         // Try to fill the columnTypeMap with the types of the desired max-value columns
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
 
         try (final Connection con = dbcpService.getConnection();

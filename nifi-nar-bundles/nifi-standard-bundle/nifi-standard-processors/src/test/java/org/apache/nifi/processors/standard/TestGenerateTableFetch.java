@@ -251,6 +251,90 @@ public class TestGenerateTableFetch {
         runner.clearTransferState();
     }
 
+    @Test(expected = AssertionError.class)
+    public void testErrorWhenIncomingConnectionAndMaxValueColumns() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
+        runner.run();
+    }
+
+    @Test
+    public void testMultiplePartitionsIncomingFlowFiles() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE1");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE1 (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE1 (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE1 (id, bucket) VALUES (1, 0)");
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE2");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE2 (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE2 (id, bucket) VALUES (0, 0)");
+
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "${partSize}");
+
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE1");
+            put("partSize", "1");
+        }});
+
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE2");
+            put("partSize", "2");
+        }});
+
+        // The table does not exist, expect the original flow file to be routed to failure
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE3");
+            put("partSize", "1");
+        }});
+
+        runner.run(3);
+        runner.assertTransferCount(AbstractDatabaseFetchProcessor.REL_SUCCESS, 3);
+
+        // Two records from table 1
+        assertEquals(runner.getFlowFilesForRelationship(AbstractDatabaseFetchProcessor.REL_SUCCESS).stream().filter(
+                (ff) -> "TEST_QUERY_DB_TABLE1".equals(ff.getAttribute("tableName"))).count(),
+                2);
+
+        // One record from table 2
+        assertEquals(runner.getFlowFilesForRelationship(AbstractDatabaseFetchProcessor.REL_SUCCESS).stream().filter(
+                (ff) -> "TEST_QUERY_DB_TABLE2".equals(ff.getAttribute("tableName"))).count(),
+                1);
+
+        // Table 3 doesn't exist, should be routed to failure
+        runner.assertTransferCount(GenerateTableFetch.REL_FAILURE, 1);
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE1");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE2");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+    }
+
 
     /**
      * Simple implementation only for ListDatabaseTables processor testing.
