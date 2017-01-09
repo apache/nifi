@@ -72,9 +72,8 @@ import java.util.stream.IntStream;
 @Tags({"sql", "select", "jdbc", "query", "database"})
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
         + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
-        + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
-        + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
-        + "select query. FlowFile attribute 'querydbtable.row.count' indicates how many rows were selected.")
+        + "a timer or cron expression, using the standard scheduling methods. FlowFile attribute "
+        + "'querydbtable.row.count' indicates how many rows were selected.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
