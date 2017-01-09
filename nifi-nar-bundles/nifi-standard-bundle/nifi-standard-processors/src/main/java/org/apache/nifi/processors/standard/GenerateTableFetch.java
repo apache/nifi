@@ -21,11 +21,15 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -49,6 +53,7 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,18 +65,28 @@ import java.util.stream.IntStream;
 
 
 @TriggerSerially
-@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"sql", "select", "jdbc", "query", "database", "fetch", "generate"})
-@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class})
+@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class, ListDatabaseTables.class})
 @CapabilityDescription("Generates SQL select queries that fetch \"pages\" of rows from a table. The partition size property, along with the table's row count, "
         + "determine the size and number of pages and generated FlowFiles. In addition, incremental fetching can be achieved by setting Maximum-Value Columns, "
         + "which causes the processor to track the columns' maximum values, thus only fetching rows whose columns' values exceed the observed maximums. This "
-        + "processor is intended to be run on the Primary Node only.")
+        + "processor is intended to be run on the Primary Node only.\n\n"
+        + "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided:\n"
+        + "  - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many "
+        + "fields, but no flow file attributes are available. However the properties will be evaluated using the Variable Registry.\n"
+        + "  - If incoming connection(s) are specified and no flow file is available to a processor task, no work will be performed.\n"
+        + "  - If incoming connection(s) are specified and a flow file is available to a processor task, the flow file's attributes may be used in Expression Language for such fields "
+        + "as Table Name and others. However, the Max-Value Columns and Columns to Return fields must be empty or refer to columns that are available in each specified table.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
+@WritesAttributes({
+        @WritesAttribute(attribute = "generatetablefetch.sql.error", description = "If the processor has incoming connections, and processing an incoming flow file causes "
+        + "a SQL Exception, the flow file is routed to failure and this attribute is set to the exception message.")
+})
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
@@ -83,13 +98,20 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     + "in the table.")
             .defaultValue("10000")
             .required(true)
-            .expressionLanguageSupported(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
+                    + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
     public GenerateTableFetch() {
         final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
+        r.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(r);
 
         final List<PropertyDescriptor> pds = new ArrayList<>();
@@ -113,22 +135,41 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         return propDescriptors;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        return super.customValidate(validationContext);
+    }
+
     @OnScheduled
     public void setup(final ProcessContext context) {
-        super.setup(context);
+        // Pre-fetch the column types if using a static table name and max-value columns
+        if (!isDynamicTableName && !isDynamicMaxValues) {
+            super.setup(context);
+        }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
+
+        FlowFile fileToProcess = null;
+        if (context.hasIncomingConnection()) {
+            fileToProcess = session.get();
+
+            if (fileToProcess == null) {
+                // Incoming connection with no flow file available, do no work (see capability description)
+                return;
+            }
+        }
+
         final ComponentLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final int partitionSize = context.getProperty(PARTITION_SIZE).asInteger();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions(fileToProcess).getValue();
+        final int partitionSize = context.getProperty(PARTITION_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -164,11 +205,20 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
                 String colName = maxValueColumnNameList.get(index);
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                String maxValue = statePropertyMap.get(colName.toLowerCase());
+                final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+                String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
+                if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
+                    // If the table name is static and the fully-qualified key was not found, try just the column name
+                    maxValue = statePropertyMap.get(getStateKey(null, colName));
+                }
                 if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(colName.toLowerCase());
+                    Integer type = columnTypeMap.get(fullyQualifiedStateKey);
+                    if (type == null && !isDynamicTableName) {
+                        // If the table name is static and the fully-qualified key was not found, try just the column name
+                        type = columnTypeMap.get(getStateKey(null, colName));
+                    }
                     if (type == null) {
-                        // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled.
+                        // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
                         throw new IllegalArgumentException("No column type found for: " + colName);
                     }
                     // Add a condition for the WHERE clause
@@ -186,7 +236,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             try (final Connection con = dbcpService.getConnection();
                  final Statement st = con.createStatement()) {
 
-                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+                final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
                 logger.debug("Executing {}", new Object[]{selectQuery});
@@ -202,40 +252,61 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     ResultSetMetaData rsmd = resultSet.getMetaData();
                     for (int i = 2; i <= rsmd.getColumnCount(); i++) {
                         String resultColumnName = rsmd.getColumnName(i).toLowerCase();
+                        String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
+                        String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
+                        if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
+                            // If we can't find the value at the fully-qualified key name and the table name is static, it is possible (under a previous scheme)
+                            // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
+                            // maximum value is observed, it will be stored under the fully-qualified key from then on.
+                            resultColumnCurrentMax = statePropertyMap.get(resultColumnName);
+                        }
+
                         int type = rsmd.getColumnType(i);
+                        if (isDynamicTableName) {
+                            // We haven't pre-populated the column type map if the table name is dynamic, so do it here
+                            columnTypeMap.put(fullyQualifiedStateKey, type);
+                        }
                         try {
-                            String newMaxValue = getMaxValueFromRow(resultSet, i, type, statePropertyMap.get(resultColumnName.toLowerCase()), dbAdapter.getName());
+                            String newMaxValue = getMaxValueFromRow(resultSet, i, type, resultColumnCurrentMax, dbAdapter.getName());
                             if (newMaxValue != null) {
-                                statePropertyMap.put(resultColumnName, newMaxValue);
+                                statePropertyMap.put(fullyQualifiedStateKey, newMaxValue);
                             }
                         } catch (ParseException | IOException pie) {
                             // Fail the whole thing here before we start creating flow files and such
                             throw new ProcessException(pie);
                         }
+
                     }
                 } else {
                     // Something is very wrong here, one row (even if count is zero) should be returned
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
+
+                final int numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+
+                // Generate SQL statements to read "pages" of data
+                for (int i = 0; i < numberOfFetches; i++) {
+                    Integer limit = partitionSize == 0 ? null : partitionSize;
+                    Integer offset = partitionSize == 0 ? null : i * partitionSize;
+                    final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
+                    FlowFile sqlFlowFile = (fileToProcess == null) ? session.create() : session.create(fileToProcess);
+                    sqlFlowFile = session.write(sqlFlowFile, out -> out.write(query.getBytes()));
+                    session.transfer(sqlFlowFile, REL_SUCCESS);
+                }
+
+                if (fileToProcess != null) {
+                    session.remove(fileToProcess);
+                }
             } catch (SQLException e) {
-                logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
-                throw new ProcessException(e);
-            }
-            final int numberOfFetches = (partitionSize == 0) ? rowCount : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
+                if (fileToProcess != null) {
+                    logger.error("Unable to execute SQL select query {} due to {}, routing {} to failure", new Object[]{selectQuery, e, fileToProcess});
+                    fileToProcess = session.putAttribute(fileToProcess, "generatetablefetch.sql.error", e.getMessage());
+                    session.transfer(fileToProcess, REL_FAILURE);
 
-
-            // Generate SQL statements to read "pages" of data
-            for (int i = 0; i < numberOfFetches; i++) {
-                FlowFile sqlFlowFile;
-
-                Integer limit = partitionSize == 0 ? null : partitionSize;
-                Integer offset = partitionSize == 0 ? null : i * partitionSize;
-                final String query = dbAdapter.getSelectStatement(tableName, columnNames, whereClause, StringUtils.join(maxValueColumnNameList, ", "), limit, offset);
-                sqlFlowFile = session.create();
-                sqlFlowFile = session.write(sqlFlowFile, out -> {
-                    out.write(query.getBytes());
-                });
-                session.transfer(sqlFlowFile, REL_SUCCESS);
+                } else {
+                    logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
+                    throw new ProcessException(e);
+                }
             }
 
             session.commit();
