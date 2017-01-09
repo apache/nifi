@@ -16,7 +16,7 @@
 # under the License.
 #
 
-FROM java:8u91-jdk
+FROM java:8
 MAINTAINER Apache NiFi <dev@nifi.apache.org>
 
 ARG UID

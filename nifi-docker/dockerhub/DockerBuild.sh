@@ -26,6 +26,6 @@ if [ -n "$2" ]; then
 fi
 
 DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
-NIFI_IMAGE_VERSION="$(echo "apachenifi:1.1.1" | cut -d : -f 2)"
+NIFI_IMAGE_VERSION="$(echo $DOCKER_IMAGE | cut -d : -f 2)"
 echo "Building NiFi Image: '$DOCKER_IMAGE' Version: $NIFI_IMAGE_VERSION"
 docker build --build-arg UID="$DOCKER_UID" --build-arg GID="$DOCKER_GID" --build-arg NIFI_VERSION="$NIFI_IMAGE_VERSION" -t $DOCKER_IMAGE .
