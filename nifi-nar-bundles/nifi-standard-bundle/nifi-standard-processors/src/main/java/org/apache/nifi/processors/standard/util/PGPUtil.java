@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard.util;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processors.standard.EncryptContent;
 import org.apache.nifi.processors.standard.util.crypto.EncryptProcessorUtils;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
