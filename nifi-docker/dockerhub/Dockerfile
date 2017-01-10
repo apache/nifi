@@ -26,19 +26,15 @@ ARG NIFI_VERSION
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-$NIFI_VERSION
 ENV NIFI_BINARY_URL https://archive.apache.org/dist/nifi/$NIFI_VERSION/nifi-$NIFI_VERSION-bin.tar.gz
-ENV NIFI_DOWNLOAD_SHA256 afb58050b0904dab329b19b14250b57d3978743a1108323bdc52aba0c2a75853
 
 # Setup NiFi user
 RUN groupadd -g $GID nifi || groupmod -n nifi `getent group $GID | cut -d: -f1`
 RUN useradd --shell /bin/bash -u $UID -g $GID -m nifi
 RUN mkdir -p $NIFI_HOME
 
-# Get SHA-256 for binary
-RUN NIFI_DOWNLOAD_SHA256=$(curl $NIFI_BINARY_URL.sha256)
-
 # Download, validate, and expand Apache NiFi binary.
 RUN curl -fSL $NIFI_BINARY_URL -o $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz \
-	&& echo "$NIFI_DOWNLOAD_SHA256 *$NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz" | sha256sum -c - \
+	&& echo "$(curl $NIFI_BINARY_URL.sha256) *$NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz" | sha256sum -c - \
 	&& tar -xvzf $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz -C $NIFI_BASE_DIR \
 	&& rm $NIFI_BASE_DIR/nifi-$NIFI_VERSION-bin.tar.gz
 
