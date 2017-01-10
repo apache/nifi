@@ -227,7 +227,7 @@ public class TestEncryptContent {
         Assert.assertEquals(results.toString(), 1, results.size());
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString()
-                    .contains(EncryptContent.PASSWORD.getDisplayName() + " is required when using algorithm"));
+                    .contains(EncryptContent.PASSWORD.getName() + " is required when using algorithm"));
         }
 
         runner.enqueue(new byte[0]);
@@ -259,9 +259,9 @@ public class TestEncryptContent {
         Assert.assertEquals(1, results.size());
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains(
-                    " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                            + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
-                            + EncryptContent.PUBLIC_KEY_USERID.getDisplayName()));
+                    " encryption without a " + EncryptContent.PASSWORD.getName() + " requires both "
+                            + EncryptContent.PUBLIC_KEYRING.getName() + " and "
+                            + EncryptContent.PUBLIC_KEY_USERID.getName()));
         }
 
         // Legacy tests moved to individual tests to comply with new library
@@ -279,9 +279,9 @@ public class TestEncryptContent {
         Assert.assertEquals(1, results.size());
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains(
-                    " decryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                            + EncryptContent.PRIVATE_KEYRING.getDisplayName() + " and "
-                            + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
+                    " decryption without a " + EncryptContent.PASSWORD.getName() + " requires both "
+                            + EncryptContent.PRIVATE_KEYRING.getName() + " and "
+                            + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getName()));
 
         }
 
@@ -292,7 +292,7 @@ public class TestEncryptContent {
         Assert.assertEquals(1, results.size());
         for (final ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains(
-                    " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getDisplayName()));
+                    " could not be opened with the provided " + EncryptContent.PRIVATE_KEYRING_PASSPHRASE.getName()));
 
         }
     }

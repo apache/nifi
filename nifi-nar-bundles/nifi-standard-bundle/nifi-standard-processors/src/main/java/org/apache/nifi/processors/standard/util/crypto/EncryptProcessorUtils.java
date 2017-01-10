@@ -35,14 +35,14 @@ public class EncryptProcessorUtils {
 
     public static final String WEAK_CRYPTO_ALLOWED_NAME = "allowed";
     public static final String WEAK_CRYPTO_NOT_ALLOWED_NAME = "not-allowed";
-    public static final String PUBLIC_KEYRING = "Public Keyring File";
-    public static final String PUBLIC_KEY_USERID = "Public Key User Id";
-    public static final String PRIVATE_KEYRING = "Private Keyring File";
-    public static final String PRIVATE_KEYRING_PASSPHRASE = "Private Keyring Passphrase";
-    public static final String RAW_KEY_HEX= "Raw Key (hexadecimal)";
-    public static final String PASSWORD = "Password";
-    public static final String ENCRYPTION_ALGORITHM = "Encryption Algorithm";
-    public static final String KEY_DERIVATION_FUNCTION = "Key Derivation Function";
+    public static final String PUBLIC_KEYRING = "public-keyring-file";
+    public static final String PUBLIC_KEY_USERID = "public-key-user-id";
+    public static final String PRIVATE_KEYRING = "private-keyring-file";
+    public static final String PRIVATE_KEYRING_PASSPHRASE = "private-keyring-passphrase";
+    public static final String RAW_KEY_HEX= "raw-key-hex";
+    public static final String PASSWORD = "password";
+    public static final String ENCRYPTION_ALGORITHM = "encryption-algorithm";
+    public static final String KEY_DERIVATION_FUNCTION = "key-derivation-function";
 
 
     public static boolean isPGPAlgorithm(final String algorithm) {

@@ -44,7 +44,7 @@ public class TestEncryptAttributes {
 
     // Initialize some common property values which will be used for setting up processor
     private static final EncryptionMethod[] ENCRYPTION_METHODS = EncryptionMethod.values();
-    private final String RAW_HEX_KEY= "abababababababababababababababab";
+    private final String RAW_KEY_HEX = "abababababababababababababababab";
     private static final String UUID_ATTR_KEY = CoreAttributes.UUID.key();
 
 
@@ -62,7 +62,7 @@ public class TestEncryptAttributes {
             if (encryptionMethod.isUnlimitedStrength())
                 continue;
             if (encryptionMethod.isKeyedCipher()){
-                testRunner.setProperty(EncryptAttributes.RAW_KEY_HEX, RAW_HEX_KEY);
+                testRunner.setProperty(EncryptAttributes.RAW_KEY_HEX, RAW_KEY_HEX);
                 testRunner.setProperty(EncryptAttributes.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.BCRYPT.name());
             } else {
                 testRunner.setProperty(EncryptAttributes.PASSWORD, "short");

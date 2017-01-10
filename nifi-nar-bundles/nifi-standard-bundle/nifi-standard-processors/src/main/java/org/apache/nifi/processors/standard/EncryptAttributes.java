@@ -135,7 +135,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .defaultValue(ENCRYPT_MODE)
             .build();
     public static final PropertyDescriptor KEY_DERIVATION_FUNCTION = new PropertyDescriptor.Builder()
-            .name("key-derivation-function")
+            .name(EncryptProcessorUtils.KEY_DERIVATION_FUNCTION)
             .displayName("Key Derivation Function")
             .description("Specifies the key derivation function to generate the key from the password (and salt)")
             .required(true)
@@ -143,7 +143,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .defaultValue(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY.name())
             .build();
     public static final PropertyDescriptor ENCRYPTION_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("encryption-algorithm")
+            .name(EncryptProcessorUtils.ENCRYPTION_ALGORITHM)
             .displayName("Encryption Algorithm")
             .description("The Encryption Algorithm to use")
             .required(true)
@@ -151,7 +151,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .defaultValue(EncryptionMethod.MD5_128AES.name())
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("password")
+            .name(EncryptProcessorUtils.PASSWORD)
             .displayName("Password")
             .description("The Password to use for encrypting or decrypting the data")
             .required(false)
@@ -159,28 +159,28 @@ public class EncryptAttributes extends AbstractProcessor {
             .sensitive(true)
             .build();
     public static final PropertyDescriptor PUBLIC_KEYRING = new PropertyDescriptor.Builder()
-            .name("public-keyring-file")
+            .name(EncryptProcessorUtils.PRIVATE_KEYRING)
             .displayName("Public Keyring File")
             .description("In a PGP encrypt mode, this keyring contains the public key of the recipient")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PUBLIC_KEY_USERID = new PropertyDescriptor.Builder()
-            .name("public-key-user-id")
+            .name(EncryptProcessorUtils.PUBLIC_KEY_USERID)
             .displayName("Public Key User Id")
             .description("In a PGP encrypt mode, this user id of the recipient")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PRIVATE_KEYRING = new PropertyDescriptor.Builder()
-            .name("private-keyring-file")
+            .name(EncryptProcessorUtils.PRIVATE_KEYRING)
             .displayName("Private Keyring File")
             .description("In a PGP decrypt mode, this keyring contains the private key of the recipient")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PRIVATE_KEYRING_PASSPHRASE = new PropertyDescriptor.Builder()
-            .name("private-keyring-passphrase")
+            .name(EncryptProcessorUtils.PRIVATE_KEYRING_PASSPHRASE)
             .displayName("Private Keyring Passphrase")
             .description("In a PGP decrypt mode, this is the private keyring passphrase")
             .required(false)
@@ -188,7 +188,7 @@ public class EncryptAttributes extends AbstractProcessor {
             .sensitive(true)
             .build();
     public static final PropertyDescriptor RAW_KEY_HEX = new PropertyDescriptor.Builder()
-            .name("raw-key-hex")
+            .name(EncryptProcessorUtils.RAW_KEY_HEX)
             .displayName("Raw Key (hexadecimal)")
             .description("In keyed encryption, this is the raw key, encoded in hexadecimal")
             .required(false)

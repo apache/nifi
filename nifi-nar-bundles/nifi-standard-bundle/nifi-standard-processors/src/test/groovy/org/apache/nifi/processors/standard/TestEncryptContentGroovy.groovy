@@ -97,7 +97,7 @@ public class TestEncryptContentGroovy {
         logger.expected(results)
         ValidationResult vr = results.first()
 
-        String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
+        String expectedResult = "'${EncryptContent.RAW_KEY_HEX.getName()}' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'"
         Assert.assertTrue(message, vr.toString().contains(expectedResult))
     }
@@ -175,7 +175,7 @@ public class TestEncryptContentGroovy {
         logger.expected(results)
         ValidationResult keyLengthInvalidVR = results.first()
 
-        String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
+        String expectedResult = "'${EncryptContent.RAW_KEY_HEX.getName()}' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
         Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
     }
@@ -217,7 +217,7 @@ public class TestEncryptContentGroovy {
                 logger.expected(results)
                 ValidationResult keyLengthInvalidVR = results.first()
 
-                String expectedResult = "'key-derivation-function' is invalid because Key Derivation Function is required to be NONE, BCRYPT, SCRYPT, PBKDF2 when using " +
+                String expectedResult = "'${EncryptContent.KEY_DERIVATION_FUNCTION.getName()}' is invalid because ${EncryptContent.KEY_DERIVATION_FUNCTION.getName()} is required to be NONE, BCRYPT, SCRYPT, PBKDF2 when using " +
                         "algorithm ${encryptionMethod.algorithm}"
                 String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
                 Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
@@ -280,7 +280,7 @@ public class TestEncryptContentGroovy {
                 Assert.assertEquals(1, results.size())
                 ValidationResult keyLengthInvalidVR = results.first()
 
-                String expectedResult = "'Key Derivation Function' is invalid because Key Derivation Function is required to be NIFI_LEGACY, OPENSSL_EVP_BYTES_TO_KEY when using " +
+                String expectedResult = "'${EncryptContent.KEY_DERIVATION_FUNCTION.getName()}' is invalid because ${EncryptContent.KEY_DERIVATION_FUNCTION.getName()} is required to be NIFI_LEGACY, OPENSSL_EVP_BYTES_TO_KEY when using " +
                         "algorithm ${encryptionMethod.algorithm}"
                 String message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
                 Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
@@ -428,7 +428,7 @@ public class TestEncryptContentGroovy {
             Assert.assertEquals(1, results.size())
             ValidationResult passwordLengthVR = results.first()
 
-            String expectedResult = "'Password' is invalid because Password length less than ${PasswordBasedEncryptor.getMinimumSafePasswordLength()} characters is potentially unsafe. " +
+            String expectedResult = "'${EncryptContent.PASSWORD.getName()}' is invalid because Password length less than ${PasswordBasedEncryptor.getMinimumSafePasswordLength()} characters is potentially unsafe. " +
                     "See Admin Guide."
             String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
             Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
