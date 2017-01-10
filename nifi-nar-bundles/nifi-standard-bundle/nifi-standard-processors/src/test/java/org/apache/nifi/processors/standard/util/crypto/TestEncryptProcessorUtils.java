@@ -206,9 +206,9 @@ public class TestEncryptProcessorUtils {
         // Assert
         Assert.assertEquals(1, results.size());
         ValidationResult vr = (ValidationResult) results.toArray()[0];
-        String expectedResult = " encryption without a " + EncryptContent.PASSWORD.getDisplayName() + " requires both "
-                + EncryptContent.PUBLIC_KEYRING.getDisplayName() + " and "
-                + EncryptContent.PUBLIC_KEY_USERID.getDisplayName();
+        String expectedResult = " encryption without a " + EncryptContent.PASSWORD.getName() + " requires both "
+                + EncryptContent.PUBLIC_KEYRING.getName() + " and "
+                + EncryptContent.PUBLIC_KEY_USERID.getName();
         String message = "'" + vr.toString() + "' should contain '" + expectedResult + "'";
         Assert.assertTrue(message, vr.toString().contains(expectedResult));
 
