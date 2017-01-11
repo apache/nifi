@@ -898,6 +898,9 @@ public class TestQuery {
 
         verifyEquals("${entryDate:toNumber():toDate():format('yyyy')}", attributes, String.valueOf(year));
 
+        // test for not existing attribute (NIFI-1962)
+        assertEquals("", Query.evaluateExpressions("${notExistingAtt:toDate()}", attributes, null));
+
         attributes.clear();
         attributes.put("month", "3");
         attributes.put("day", "4");

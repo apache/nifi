@@ -37,7 +37,7 @@ public class NumberToDateEvaluator extends DateEvaluator {
         final QueryResult<Long> result = subject.evaluate(attributes);
         final Long value = result.getValue();
         if (value == null) {
-            return null;
+            return new DateQueryResult(null);
         }
 
         return new DateQueryResult(new Date(value));
