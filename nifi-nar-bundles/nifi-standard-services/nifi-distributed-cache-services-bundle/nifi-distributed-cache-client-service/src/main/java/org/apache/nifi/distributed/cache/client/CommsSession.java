@@ -43,4 +43,8 @@ public interface CommsSession extends Closeable {
     long getTimeout(TimeUnit timeUnit);
 
     SSLContext getSSLContext();
+
+    int getProtocolVersion();
+
+    void setProtocolVersion(final int protocolVersion);
 }

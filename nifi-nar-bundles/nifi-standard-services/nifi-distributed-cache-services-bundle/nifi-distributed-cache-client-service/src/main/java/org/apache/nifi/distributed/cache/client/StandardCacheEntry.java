@@ -14,35 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.server.map;
+package org.apache.nifi.distributed.cache.client;
 
-public class MapPutResult {
+public class StandardCacheEntry<K,V> implements AtomicDistributedMapCacheClient.CacheEntry<K,V> {
 
-    private final boolean successful;
-    private final MapCacheRecord record;
-    private final MapCacheRecord existing;
-    private final MapCacheRecord evicted;
+    private final K key;
+    private final V value;
+    private final long revision;
 
-    public MapPutResult(boolean successful, MapCacheRecord record, MapCacheRecord existing, MapCacheRecord evicted) {
-        this.successful = successful;
-        this.record = record;
-        this.existing = existing;
-        this.evicted = evicted;
+
+    public StandardCacheEntry(final K key, final V value, final long revision) {
+        this.key = key;
+        this.value = value;
+        this.revision = revision;
     }
 
-    public boolean isSuccessful() {
-        return successful;
+    @Override
+    public long getRevision() {
+        return revision;
     }
 
-    public MapCacheRecord getRecord() {
-        return record;
+    @Override
+    public K getKey() {
+        return key;
     }
 
-    public MapCacheRecord getExisting() {
-        return existing;
-    }
-
-    public MapCacheRecord getEvicted() {
-        return evicted;
+    @Override
+    public V getValue() {
+        return value;
     }
 }

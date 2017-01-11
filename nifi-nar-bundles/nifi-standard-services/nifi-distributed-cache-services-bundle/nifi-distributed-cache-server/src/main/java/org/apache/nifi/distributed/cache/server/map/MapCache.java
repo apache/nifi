@@ -31,5 +31,9 @@ public interface MapCache {
 
     ByteBuffer remove(ByteBuffer key) throws IOException;
 
+    MapCacheRecord fetch(ByteBuffer key) throws IOException;
+
+    MapPutResult replace(MapCacheRecord record) throws IOException;
+
     void shutdown() throws IOException;
 }

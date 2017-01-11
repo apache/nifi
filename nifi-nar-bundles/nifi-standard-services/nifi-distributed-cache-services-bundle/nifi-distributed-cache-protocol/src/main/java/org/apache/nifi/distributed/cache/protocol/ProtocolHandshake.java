@@ -33,6 +33,19 @@ public class ProtocolHandshake {
     public static final int DIFFERENT_RESOURCE_VERSION = 21;
     public static final int ABORT = 255;
 
+    /**
+     * <p>Initiate handshake to ensure client and server can communicate with the same protocol.
+     * If the server doesn't support requested protocol version, HandshakeException will be thrown.</p>
+     *
+     * <p>DistributedMapCache version histories:<ul>
+     *     <li>2: Added atomic update operations (fetch and replace) using optimistic lock with revision number.</li>
+     *     <li>1: Initial version.</li>
+     * </ul></p>
+     *
+     * <p>DistributedSetCache version histories:<ul>
+     *     <li>1: Initial version.</li>
+     * </ul></p>
+     */
     public static void initiateHandshake(final InputStream in, final OutputStream out, final VersionNegotiator versionNegotiator) throws IOException, HandshakeException {
         final DataInputStream dis = new DataInputStream(in);
         final DataOutputStream dos = new DataOutputStream(out);
@@ -85,6 +98,7 @@ public class ProtocolHandshake {
 
                 // Attempt negotiation of resource based on our new preferred version.
                 initiateVersionNegotiation(negotiator, dis, dos);
+                return;
             case ABORT:
                 throw new HandshakeException("Remote destination aborted connection with message: " + dis.readUTF());
             default:
