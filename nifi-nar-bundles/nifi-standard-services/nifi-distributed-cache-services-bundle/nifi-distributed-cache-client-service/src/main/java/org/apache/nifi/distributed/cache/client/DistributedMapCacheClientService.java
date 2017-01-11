@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +41,6 @@ import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
-import org.apache.nifi.stream.io.DataOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
     + "between nodes in a NiFi cluster")
-public class DistributedMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
+public class DistributedMapCacheClientService extends AbstractControllerService implements AtomicDistributedMapCacheClient {
 
     private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
 
@@ -216,6 +216,58 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         });
     }
 
+    @Override
+    public <K, V> CacheEntry<K, V> fetch(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        return withCommsSession(session -> {
+            validateProtocolVersion(session, 2);
+
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("fetch");
+
+            serialize(key, keySerializer, dos);
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            final long revision = dis.readLong();
+            final byte[] responseBuffer = readLengthDelimitedResponse(dis);
+
+            if (revision < 0) {
+                // This indicates that key was not found.
+                return null;
+            }
+
+            final StandardCacheEntry<K, V> standardCacheEntry = new StandardCacheEntry<>(key, valueDeserializer.deserialize(responseBuffer), revision);
+            return standardCacheEntry;
+        });
+    }
+
+    private void validateProtocolVersion(final CommsSession session, final int requiredProtocolVersion) {
+        if (session.getProtocolVersion() < requiredProtocolVersion) {
+            throw new UnsupportedOperationException("Remote cache server doesn't support protocol version " + requiredProtocolVersion);
+        }
+    }
+
+    @Override
+    public <K, V> boolean replace(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final long revision) throws IOException {
+        return withCommsSession(session -> {
+            validateProtocolVersion(session, 2);
+
+            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+            dos.writeUTF("replace");
+
+            serialize(key, keySerializer, dos);
+            dos.writeLong(revision);
+            serialize(value, valueSerializer, dos);
+
+            dos.flush();
+
+            // read response
+            final DataInputStream dis = new DataInputStream(session.getInputStream());
+            return dis.readBoolean();
+        });
+    }
+
     private byte[] readLengthDelimitedResponse(final DataInputStream dis) throws IOException {
         final int responseLength = dis.readInt();
         final byte[] responseBuffer = new byte[responseLength];
@@ -247,9 +299,10 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         }
 
         session = createCommsSession(configContext);
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(1);
+        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(2, 1);
         try {
             ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
+            session.setProtocolVersion(versionNegotiator.getVersion());
         } catch (final HandshakeException e) {
             try {
                 session.close();

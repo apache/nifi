@@ -17,6 +17,7 @@
 package org.apache.nifi.distributed.cache.server.map;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.apache.nifi.distributed.cache.server.CacheRecord;
 
@@ -24,10 +25,19 @@ public class MapCacheRecord extends CacheRecord {
 
     private final ByteBuffer key;
     private final ByteBuffer value;
+    /**
+     * Revision is a number that increases every time the key is updated.
+     */
+    private final long revision;
 
     public MapCacheRecord(final ByteBuffer key, final ByteBuffer value) {
+        this(key, value, -1L);
+    }
+
+    public MapCacheRecord(final ByteBuffer key, final ByteBuffer value, final long revision) {
         this.key = key;
         this.value = value;
+        this.revision = revision;
     }
 
     public ByteBuffer getKey() {
@@ -40,7 +50,7 @@ public class MapCacheRecord extends CacheRecord {
 
     @Override
     public int hashCode() {
-        return 2938476 + key.hashCode() * value.hashCode();
+        return Arrays.hashCode(new Object[]{key, value, revision});
     }
 
     @Override
@@ -51,9 +61,13 @@ public class MapCacheRecord extends CacheRecord {
 
         if (obj instanceof MapCacheRecord) {
             final MapCacheRecord that = ((MapCacheRecord) obj);
-            return key.equals(that.key) && value.equals(that.value);
+            return key.equals(that.key) && value.equals(that.value) && revision == that.revision;
         }
 
         return false;
+    }
+
+    public long getRevision() {
+        return revision;
     }
 }
