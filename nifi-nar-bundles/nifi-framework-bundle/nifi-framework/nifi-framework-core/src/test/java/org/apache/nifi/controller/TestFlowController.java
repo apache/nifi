@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -46,6 +47,7 @@ import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
@@ -353,8 +355,16 @@ public class TestFlowController {
         assertEquals("0 sec",p_settings.getSchedulingPeriod());
     }
 
-
-
-
+    @Test
+    public void testDeleteProcessGroup() {
+        ProcessGroup pg = controller.createProcessGroup("my-process-group");
+        pg.setName("my-process-group");
+        ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service", false);
+        pg.addControllerService(cs);
+        controller.getRootGroup().addProcessGroup(pg);
+        controller.getRootGroup().removeProcessGroup(pg);
+        pg.getControllerServices(true);
+        assertTrue(pg.getControllerServices(true).isEmpty());
+    }
 
 }
