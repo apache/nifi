@@ -283,6 +283,11 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                             fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
                         }
 
+                        // Add maximum values as attributes
+                        for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
+                            fileToProcess = session.putAttribute(fileToProcess, "maxvalue." + entry.getKey(), entry.getValue());
+                        }
+
                         logger.info("{} contains {} Avro records; transferring to 'success'",
                                 new Object[]{fileToProcess, nrOfRows.get()});
 
