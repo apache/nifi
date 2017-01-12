@@ -113,6 +113,10 @@ nf.PolicyManagement = (function () {
             reset: function () {
                 this.term = null;
             },
+            _create: function() {
+                this._super();
+                this.widget().menu('option', 'items', '> :not(.search-no-matches)' );
+            },
             _normalize: function (searchResults) {
                 var items = [];
                 items.push(searchResults);

@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
 <link rel="stylesheet" href="../nifi/js/codemirror/addon/fold/foldgutter.css" type="text/css" />
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
-<script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
 
 <textarea id="codemirror-content"><%= request.getAttribute("content") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("content").toString()) %></textarea>
 <span id="codemirror-mode" style="display: none;"><%= org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("mode").toString()) %></span> 

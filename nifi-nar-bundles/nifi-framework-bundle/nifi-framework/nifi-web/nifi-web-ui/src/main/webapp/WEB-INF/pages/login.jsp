@@ -21,23 +21,23 @@
         <title>NiFi Login</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <link rel="shortcut icon" href="images/nifi16.ico"/>
-        <link rel="stylesheet" href="css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="assets/reset.css/reset.css" type="text/css" />
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         ${nf.login.style.tags}
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
+        <link rel="stylesheet" href="assets/qtip2/dist/jquery.qtip.min.css?" type="text/css" />
+        <link rel="stylesheet" href="assets/jquery-ui-dist/jquery-ui.min.css" type="text/css" />
         <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
-        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.min.css" type="text/css" />
         <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
-        <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.base64.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.count.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
-        <script type="text/javascript" src="js/jquery/qtip2/jquery.qtip.min.js"></script>
-        <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
+        <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
+        <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         ${nf.login.script.tags}
     </head>

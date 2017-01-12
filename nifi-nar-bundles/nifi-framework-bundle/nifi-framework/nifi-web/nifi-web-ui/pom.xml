@@ -148,7 +148,81 @@
                                     <directory>${frontend.working.dir}/node_modules</directory>
                                     <filtering>false</filtering>
                                     <includes>
-                                        <include>**/*</include>
+                                        <!-- angular -->
+                                        <include>angular/angular.min.js*</include>
+                                        <include>angular/LICENSE.md</include>
+                                        <!-- angular animate -->
+                                        <include>angular-animate/angular-animate.min.js*</include>
+                                        <include>angular-animate/LICENSE.md</include>
+                                        <!-- angular aria -->
+                                        <include>angular-aria/angular-aria.min.js*</include>
+                                        <include>angular-aria/LICENSE.md</include>
+                                        <!-- angular material -->
+                                        <include>angular-material/angular-material.min.js*</include>
+                                        <include>angular-material/angular-material.min.css</include>
+                                        <include>angular-material/LICENSE</include>
+                                        <!-- angular messages -->
+                                        <include>angular-messages/angular-messages.min.js*</include>
+                                        <include>angular-messages/LICENSE.md</include>
+                                        <!-- angular mocks -->
+                                        <include>angular-mocks/angular-mocks.min.js*</include>
+                                        <include>angular-mocks/LICENSE.md</include>
+                                        <!-- angular resource -->
+                                        <include>angular-resource/angular-resource.min.js*</include>
+                                        <include>angular-resource/README.md</include>
+                                        <!-- angular route -->
+                                        <include>angular-route/angular-route.min.js*</include>
+                                        <include>angular-route/README.md</include>
+                                        <!-- angular sanitize -->
+                                        <include>angular-sanitize/angular-sanitize.min.js*</include>
+                                        <include>angular-sanitize/LICENSE.md</include>
+                                        <!-- font awesome -->
+                                        <include>font-awesome/css/**/*</include>
+                                        <include>font-awesome/fonts/**/*</include>
+                                        <include>font-awesome/README.md</include>
+                                        <!-- jquery -->
+                                        <include>jquery/dist/jquery.min*</include>
+                                        <include>jquery/LICENSE.txt</include>
+                                        <!-- jquery ui -->
+                                        <include>jquery-ui-dist/jquery-ui.min.js</include>
+                                        <include>jquery-ui-dist/jquery-ui.min.css</include>
+                                        <include>jquery-ui-dist/LICENSE.txt</include>
+                                        <!-- jquery minicolors -->
+                                        <include>jquery-minicolors/jquery.minicolors.min.js</include>
+                                        <include>jquery-minicolors/jquery.minicolors.css</include>
+                                        <include>jquery-minicolors/jquery.minicolors.png</include>
+                                        <include>jquery-minicolors/readme.md</include>
+                                        <!-- jquery form -->
+                                        <include>jquery-form/jquery.form.js</include>
+                                        <include>jquery-form/README.md</include>
+                                        <!-- qtip2 -->
+                                        <include>qtip2/dist/*.css</include>
+                                        <include>qtip2/dist/jquery.qtip.min*</include>
+                                        <include>qtip2/LICENSE</include>
+                                        <!-- slickgrid -->
+                                        <include>slickgrid/slick.core.js</include>
+                                        <include>slickgrid/slick.dataview.js</include>
+                                        <include>slickgrid/slick.editors.js</include>
+                                        <include>slickgrid/slick.formatters.js</include>
+                                        <include>slickgrid/slick.grid.js</include>
+                                        <include>slickgrid/plugins/slick.autotooltips.js</include>
+                                        <include>slickgrid/plugins/slick.cellrangedecorator.js</include>
+                                        <include>slickgrid/plugins/slick.cellrangeselector.js</include>
+                                        <include>slickgrid/plugins/slick.cellselectionmodel.js</include>
+                                        <include>slickgrid/plugins/slick.rowselectionmodel.js</include>
+                                        <include>slickgrid/lib/jquery.event.drag-2.3.0.js</include>
+                                        <include>slickgrid/slick.grid.css</include>
+                                        <include>slickgrid/images/collapse.gif</include>
+                                        <include>slickgrid/images/expand.gif</include>
+                                        <include>slickgrid/MIT-LICENSE.txt</include>
+                                        <!-- jsonlint -->
+                                        <include>jsonlint/lib/jsonlint.js</include>
+                                        <include>jsonlint/README.md</include>
+                                        <!-- JSON2 -->
+                                        <include>JSON2/json2.js</include>
+                                        <!-- reset.css -->
+                                        <include>reset.css/reset.css</include>
+                                        <include>reset.css/README.md</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -710,8 +784,6 @@
                         <configuration>
                             <packagingIncludes>
                                 assets/**/*,
-                                css/reset.css,
-                                css/reset.css.gz,
                                 css/common-ui.css,
                                 css/common-ui.css.gz,
                                 css/message-page.css,
@@ -744,7 +816,6 @@
                                 js/d3/**/*,
                                 js/codemirror/**/*,
                                 js/jquery/**/*,
-                                js/jsonlint/**/*,
                                 js/nf/nf-namespace.js,
                                 js/nf/nf-namespace.js.gz,
                                 js/nf/nf-ng-namespace.js,
@@ -797,13 +868,9 @@
                             <excludes combine.children="append">
                                 <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/frontend/package.json</exclude>
-                                <exclude>src/main/webapp/js/json2.js</exclude>
-                                <exclude>src/main/webapp/js/jquery/</exclude>
+                                <exclude>src/main/webapp/js/jquery/jquery.base64.js</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
-                                <exclude>src/main/webapp/js/jsonlint/</exclude>
-                                <exclude>src/main/webapp/css/reset.css</exclude>
-                                <exclude>src/main/webapp/js/angular/**/*</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>
                             </excludes>
                         </configuration>

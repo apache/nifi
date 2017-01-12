@@ -305,7 +305,7 @@ This product bundles 'JQuery' which is available under and MIT style license.
     THE SOFTWARE.
 
 This product bundles 'JQuery Event Drag' which is available under an MIT style
-license. 
+license.
     Copyright (c) 2008-2015 ThreeDubMedia
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -396,9 +396,9 @@ This product bundles 'jquery.base64.js' which is available under an MIT style li
     OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION 
     WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-This product bundles 'SlickGrid v2.2' which is available under an MIT style license.
+This product bundles 'SlickGrid v2.3' which is available under an MIT style license.
 
-    Copyright (c) 2010 Michael Leibman, http://github.com/mleibman/slickgrid
+    Copyright (c) 2009-2016 Michael Leibman, http://github.com/mleibman/slickgrid
 
     Permission is hereby granted, free of charge, to any person obtaining
     a copy of this software and associated documentation files (the
@@ -471,7 +471,7 @@ For details see http://www.abeautifulsite.net/
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-This product bundles 'json2.js' which is available in the 'public domain'.  
+This product bundles 'json2.js' which is available in the 'public domain'.
     For details see https://github.com/douglascrockford/JSON-js
 
 This product bundles 'reset.css' which is available in the 'public domain'.
@@ -1398,6 +1398,12 @@ This product bundles 'jsonlint' which is available under an MIT license.
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
+
+This product bundles 'json2.js' which is available in the 'public domain'.
+    For details see https://github.com/douglascrockford/JSON-js
+
+This product bundles 'reset.css' which is available in the 'public domain'.
+    For details see http://meyerweb.com/eric/tools/css/reset/
 
 This project bundles 'Jython' which is available under a Python Software Foundation License Version 2.
 
