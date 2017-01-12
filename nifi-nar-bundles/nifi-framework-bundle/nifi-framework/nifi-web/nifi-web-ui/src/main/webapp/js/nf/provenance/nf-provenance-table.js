@@ -606,7 +606,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
 
         // define how the column is formatted
         var showLineageFormatter = function (row, cell, value, columnDef, dataContext) {
-            var markup = '';
+            var markup = '<div style="white-space: normal;">';
 
             // conditionally include the cluster node id
             if (nf.Common.SUPPORTS_SVG) {
@@ -618,6 +618,8 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
             if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId) && isRemotePort === false) {
                 markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To"></div>';
             }
+
+            markup += '</div>';
 
             return markup;
         };

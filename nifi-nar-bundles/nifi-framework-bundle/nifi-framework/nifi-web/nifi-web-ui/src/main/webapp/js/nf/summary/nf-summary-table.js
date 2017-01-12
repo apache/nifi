@@ -369,7 +369,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell || nf.Common.SUPPORTS_SVG) {
             // define how the column is formatted
             var processorActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>';
@@ -382,6 +382,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-processor-summary fa fa-cubes" title="View Processor Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
@@ -678,7 +680,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell || nf.Common.SUPPORTS_SVG) {
             // define how the column is formatted
             var connectionActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection" style="margin-right: 3px;"></div>';
@@ -691,6 +693,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-connection-summary fa fa-cubes" title="View Connection Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
@@ -957,7 +961,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell || nf.Common.SUPPORTS_SVG) {
             // define how the column is formatted
             var processGroupActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell && dataContext.groupId !== null) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
@@ -970,6 +974,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-process-group-summary fa fa-cubes" title="View Process Group Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
@@ -1210,7 +1216,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell) {
             // define how the column is formatted
             var inputPortActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port" style="margin-right: 3px;"></div>';
@@ -1219,6 +1225,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-input-port-summary fa fa-cubes" title="View Input Port Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
@@ -1450,7 +1458,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell) {
             // define how the column is formatted
             var outputPortActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port" style="margin-right: 3px;"></div>';
@@ -1459,6 +1467,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-output-port-summary fa fa-cubes" title="View Output Port Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
@@ -1741,7 +1751,7 @@ nf.SummaryTable = (function () {
         if (isClustered || isInShell || nf.Common.SUPPORTS_SVG) {
             // define how the column is formatted
             var remoteProcessGroupActionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+                var markup = '<div style="white-space: normal;">';
 
                 if (isInShell) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>';
@@ -1754,6 +1764,8 @@ nf.SummaryTable = (function () {
                 if (isClustered) {
                     markup += '<div class="pointer show-cluster-remote-process-group-summary fa fa-cubes" title="View Remote Process Group Details"></div>';
                 }
+
+                markup += '</div>';
 
                 return markup;
             };
