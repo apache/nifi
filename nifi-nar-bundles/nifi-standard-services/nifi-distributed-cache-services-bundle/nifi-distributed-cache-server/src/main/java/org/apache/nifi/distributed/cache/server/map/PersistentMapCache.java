@@ -113,6 +113,11 @@ public class PersistentMapCache implements MapCache {
     }
 
     @Override
+    public int size() throws IOException {
+        return wrapped.size();
+    }
+
+    @Override
     public ByteBuffer remove(final ByteBuffer key) throws IOException {
         final ByteBuffer removeResult = wrapped.remove(key);
         if (removeResult != null) {

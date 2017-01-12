@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.server.map;
+
+package org.apache.nifi.distributed.cache.client;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
-public interface MapCache {
+/**
+ * This interface defines an extended API that can be used for interacting with a
+ * Distributed Cache that functions similarly to a {@link java.util.Map Map}.
+ *
+ */
+public interface ExtendedDistributedMapCacheClient extends DistributedMapCacheClient {
 
-    MapPutResult putIfAbsent(ByteBuffer key, ByteBuffer value) throws IOException;
+    /**
+     * Returns the number of entries in this map.
+     *
+     * @return The number of entries in this map.
+     * @throws IOException if unable to communicate with the remote instance
+     */
+    int size() throws IOException;;
 
-    MapPutResult put(ByteBuffer key, ByteBuffer value) throws IOException;
-
-    boolean containsKey(ByteBuffer key) throws IOException;
-
-    ByteBuffer get(ByteBuffer key) throws IOException;
-
-    int size() throws IOException;
-
-    ByteBuffer remove(ByteBuffer key) throws IOException;
-
-    void shutdown() throws IOException;
 }

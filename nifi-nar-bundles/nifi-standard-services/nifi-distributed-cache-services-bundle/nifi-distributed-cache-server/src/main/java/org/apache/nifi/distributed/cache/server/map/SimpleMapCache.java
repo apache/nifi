@@ -168,6 +168,17 @@ public class SimpleMapCache implements MapCache {
     }
 
     @Override
+    public int size() {
+        readLock.lock();
+        try {
+            int size = cache.size();
+            return size;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
     public ByteBuffer remove(ByteBuffer key) throws IOException {
         writeLock.lock();
         try {

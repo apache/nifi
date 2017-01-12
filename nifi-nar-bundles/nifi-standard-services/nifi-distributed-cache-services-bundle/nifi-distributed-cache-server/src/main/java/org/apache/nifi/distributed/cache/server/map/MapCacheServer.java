@@ -110,6 +110,11 @@ public class MapCacheServer extends AbstractCacheServer {
 
                 break;
             }
+            case "size": {
+                final int size = cache.size();
+                dos.writeInt(size);
+                break;
+            }
             case "remove": {
                 final byte[] key = readValue(dis);
                 final boolean removed = cache.remove(ByteBuffer.wrap(key)) != null;
