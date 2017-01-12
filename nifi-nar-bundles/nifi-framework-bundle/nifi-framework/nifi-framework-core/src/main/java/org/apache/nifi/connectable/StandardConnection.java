@@ -513,5 +513,12 @@ public final class StandardConnection implements Connection {
                 throw new IllegalStateException("Destination of Connection (" + dest.getIdentifier() + ") is running");
             }
         }
+
+        final Connectable dest = destination.get();
+        if (dest.isRunning()) {
+            if (!ConnectableType.FUNNEL.equals(dest.getConnectableType())) {
+                throw new IllegalStateException("Destination of Connection (" + dest + ") is running");
+            }
+        }
     }
 }
