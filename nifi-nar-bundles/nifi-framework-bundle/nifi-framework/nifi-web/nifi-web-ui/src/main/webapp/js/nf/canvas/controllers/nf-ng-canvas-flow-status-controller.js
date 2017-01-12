@@ -78,6 +78,10 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                     reset: function () {
                         this.term = null;
                     },
+                    _create: function() {
+                        this._super();
+                        this.widget().menu('option', 'items', '> :not(.search-header, .search-no-matches)' );
+                    },
                     _resizeMenu: function () {
                         var ul = this.menu.element;
                         ul.width(399);
@@ -161,7 +165,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         });
                         return $('<li></li>').data('ui-autocomplete-item', match).append(itemContent).appendTo(ul);
                     }
-                })
+                });
 
                 // configure the new searchAutocomplete jQuery UI widget
                 this.getInputElement().searchAutocomplete({

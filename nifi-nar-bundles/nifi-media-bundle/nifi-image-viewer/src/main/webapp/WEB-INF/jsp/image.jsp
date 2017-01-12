@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
 <style>
     #image-holder {
         position: absolute;
