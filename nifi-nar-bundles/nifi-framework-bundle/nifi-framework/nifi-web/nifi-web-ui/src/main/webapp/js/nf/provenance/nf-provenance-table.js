@@ -34,7 +34,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
             searchOptions: '../nifi-api/provenance/search-options',
             replays: '../nifi-api/provenance-events/replays',
             provenance: '../nifi-api/provenance',
-            provenanceEvents: '../nifi-api/provenance-events',
+            provenanceEvents: '../nifi-api/provenance-events/',
             clusterSearch: '../nifi-api/flow/cluster/search-results',
             d3Script: 'js/d3/d3.min.js',
             lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
@@ -57,7 +57,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         var eventId = $('#provenance-event-id').text();
 
         // build the url
-        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = config.urls.provenanceEvents + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // perform the request once we've received a token
         nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
@@ -736,7 +736,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                 }
             } else if (provenanceGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('show-event-details')) {
-                    provenanceTableCtrl.showEventDetails(item);
+                    provenanceTableCtrl.showEventDetails(item.eventId, item.clusterNodeId);
                 }
             }
         });
@@ -864,7 +864,9 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         var provenanceEntity = {
             'provenance': {
                 'request': $.extend({
-                    maxResults: config.maxResults
+                    maxResults: config.maxResults,
+                    summarize: true,
+                    incrementalResults: false
                 }, provenance)
             }
         };
@@ -889,7 +891,14 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         var url = provenance.uri;
         if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.request.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId,
+                    summarize: true,
+                    incrementalResults: false
+                });
+        } else {
+            url += '?' + $.param({
+                    summarize: true,
+                    incrementalResults: false
                 });
         }
 
@@ -1002,11 +1011,6 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
     };
 
     function ProvenanceTableCtrl() {
-
-        /**
-         * The max delay between requests.
-         */
-        this.MAX_DELAY = 4;
 
         /**
          * The server time offset
@@ -1147,21 +1151,19 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                 $('#provenance-query-dialog').modal('hide');
             };
 
-            // polls the server for the status of the provenance, if the provenance is not
-            // done wait nextDelay seconds before trying again
-            var pollProvenance = function (nextDelay) {
+            // polls the server for the status of the provenance
+            var pollProvenance = function () {
                 getProvenance(provenance).done(function (response) {
                     // update the provenance
                     provenance = response.provenance;
 
                     // process the provenance
-                    processProvenanceResponse(nextDelay);
+                    processProvenanceResponse();
                 }).fail(closeDialog);
             };
 
-            // processes the provenance, if the provenance is not done wait delay
-            // before polling again
-            var processProvenanceResponse = function (delay) {
+            // processes the provenance
+            var processProvenanceResponse = function () {
                 // if the request was cancelled just ignore the current response
                 if (cancelled === true) {
                     closeDialog();
@@ -1193,13 +1195,9 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                         // clear the timer since we've been invoked
                         provenanceTimer = null;
 
-                        // calculate the next delay (back off)
-                        var backoff = delay * 2;
-                        var nextDelay = backoff > self.MAX_DELAY ? self.MAX_DELAY : backoff;
-
                         // poll provenance
-                        pollProvenance(nextDelay);
-                    }, delay * 1000);
+                        pollProvenance();
+                    }, 2000);
                 }
             };
 
@@ -1209,223 +1207,251 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                 provenance = response.provenance;
 
                 // process the results, if they are not done wait 1 second before trying again
-                processProvenanceResponse(1);
+                processProvenanceResponse();
             }).fail(closeDialog);
+        },
+
+        /**
+         * Gets the details for the specified event.
+         *
+         * @param {string} eventId
+         * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
+         */
+        getEventDetails: function (eventId, clusterNodeId) {
+            var url;
+            if (nf.Common.isDefinedAndNotNull(clusterNodeId)) {
+                url = config.urls.provenanceEvents + encodeURIComponent(eventId) + '?' + $.param({
+                        clusterNodeId: clusterNodeId
+                    });
+            } else {
+                url = config.urls.provenanceEvents + encodeURIComponent(eventId);
+            }
+
+            return $.ajax({
+                type: 'GET',
+                url: url,
+                dataType: 'json'
+            }).fail(nf.Common.handleAjaxError);
         },
 
         /**
          * Shows the details for the specified action.
          *
-         * @param {object} event
+         * @param {string} eventId
+         * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
          */
-        showEventDetails: function (event) {
-            // update the event details
-            $('#provenance-event-id').text(event.eventId);
-            $('#provenance-event-time').html(nf.Common.formatValue(event.eventTime)).ellipsis();
-            $('#provenance-event-type').html(nf.Common.formatValue(event.eventType)).ellipsis();
-            $('#provenance-event-flowfile-uuid').html(nf.Common.formatValue(event.flowFileUuid)).ellipsis();
-            $('#provenance-event-component-id').html(nf.Common.formatValue(event.componentId)).ellipsis();
-            $('#provenance-event-component-name').html(nf.Common.formatValue(event.componentName)).ellipsis();
-            $('#provenance-event-component-type').html(nf.Common.formatValue(event.componentType)).ellipsis();
-            $('#provenance-event-details').html(nf.Common.formatValue(event.details)).ellipsis();
+        showEventDetails: function (eventId, clusterNodeId) {
+            provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
+                var event = response.provenanceEvent;
 
-            // over the default tooltip with the actual byte count
-            var fileSize = $('#provenance-event-file-size').html(nf.Common.formatValue(event.fileSize)).ellipsis();
-            fileSize.attr('title', nf.Common.formatInteger(event.fileSizeBytes) + ' bytes');
+                // update the event details
+                $('#provenance-event-id').text(event.eventId);
+                $('#provenance-event-time').html(nf.Common.formatValue(event.eventTime)).ellipsis();
+                $('#provenance-event-type').html(nf.Common.formatValue(event.eventType)).ellipsis();
+                $('#provenance-event-flowfile-uuid').html(nf.Common.formatValue(event.flowFileUuid)).ellipsis();
+                $('#provenance-event-component-id').html(nf.Common.formatValue(event.componentId)).ellipsis();
+                $('#provenance-event-component-name').html(nf.Common.formatValue(event.componentName)).ellipsis();
+                $('#provenance-event-component-type').html(nf.Common.formatValue(event.componentType)).ellipsis();
+                $('#provenance-event-details').html(nf.Common.formatValue(event.details)).ellipsis();
 
-            // sets an duration
-            var setDuration = function (field, value) {
-                if (nf.Common.isDefinedAndNotNull(value)) {
-                    if (value === 0) {
-                        field.text('< 1ms');
+                // over the default tooltip with the actual byte count
+                var fileSize = $('#provenance-event-file-size').html(nf.Common.formatValue(event.fileSize)).ellipsis();
+                fileSize.attr('title', nf.Common.formatInteger(event.fileSizeBytes) + ' bytes');
+
+                // sets an duration
+                var setDuration = function (field, value) {
+                    if (nf.Common.isDefinedAndNotNull(value)) {
+                        if (value === 0) {
+                            field.text('< 1ms');
+                        } else {
+                            field.text(nf.Common.formatDuration(value));
+                        }
                     } else {
-                        field.text(nf.Common.formatDuration(value));
+                        field.html('<span class="unset">No value set</span>');
+                    }
+                };
+
+                // handle durations
+                setDuration($('#provenance-event-duration'), event.eventDuration);
+                setDuration($('#provenance-lineage-duration'), event.lineageDuration);
+
+                // formats an event detail
+                var formatEventDetail = function (label, value) {
+                    $('<div class="event-detail"></div>').append(
+                        $('<div class="detail-name"></div>').text(label)).append(
+                        $('<div class="detail-value">' + nf.Common.formatValue(value) + '</div>').ellipsis()).append(
+                        $('<div class="clear"></div>')).appendTo('#additional-provenance-details');
+                };
+
+                // conditionally show RECEIVE details
+                if (event.eventType === 'RECEIVE') {
+                    formatEventDetail('Source FlowFile Id', event.sourceSystemFlowFileId);
+                    formatEventDetail('Transit Uri', event.transitUri);
+                }
+
+                // conditionally show SEND details
+                if (event.eventType === 'SEND') {
+                    formatEventDetail('Transit Uri', event.transitUri);
+                }
+
+                // conditionally show ADDINFO details
+                if (event.eventType === 'ADDINFO') {
+                    formatEventDetail('Alternate Identifier Uri', event.alternateIdentifierUri);
+                }
+
+                // conditionally show ROUTE details
+                if (event.eventType === 'ROUTE') {
+                    formatEventDetail('Relationship', event.relationship);
+                }
+
+                // conditionally show FETCH details
+                if (event.eventType === 'FETCH') {
+                    formatEventDetail('Transit Uri', event.transitUri);
+                }
+
+                // conditionally show the cluster node identifier
+                if (nf.Common.isDefinedAndNotNull(event.clusterNodeId)) {
+                    // save the cluster node id
+                    $('#provenance-event-cluster-node-id').text(event.clusterNodeId);
+
+                    // render the cluster node address
+                    formatEventDetail('Node Address', event.clusterNodeAddress);
+                }
+
+                // populate the parent/child flowfile uuids
+                var parentUuids = $('#parent-flowfiles-container');
+                var childUuids = $('#child-flowfiles-container');
+
+                // handle parent flowfiles
+                if (nf.Common.isEmpty(event.parentUuids)) {
+                    $('#parent-flowfile-count').text(0);
+                    parentUuids.append('<span class="unset">No parents</span>');
+                } else {
+                    $('#parent-flowfile-count').text(event.parentUuids.length);
+                    $.each(event.parentUuids, function (_, uuid) {
+                        $('<div></div>').text(uuid).appendTo(parentUuids);
+                    });
+                }
+
+                // handle child flowfiles
+                if (nf.Common.isEmpty(event.childUuids)) {
+                    $('#child-flowfile-count').text(0);
+                    childUuids.append('<span class="unset">No children</span>');
+                } else {
+                    $('#child-flowfile-count').text(event.childUuids.length);
+                    $.each(event.childUuids, function (_, uuid) {
+                        $('<div></div>').text(uuid).appendTo(childUuids);
+                    });
+                }
+
+                // get the attributes container
+                var attributesContainer = $('#attributes-container');
+
+                // get any action details
+                $.each(event.attributes, function (_, attribute) {
+                    // create the attribute record
+                    var attributeRecord = $('<div class="attribute-detail"></div>')
+                        .append($('<div class="attribute-name">' + nf.Common.formatValue(attribute.name) + '</div>').ellipsis())
+                        .appendTo(attributesContainer);
+
+                    // add the current value
+                    attributeRecord
+                        .append($('<div class="attribute-value">' + nf.Common.formatValue(attribute.value) + '</div>').ellipsis())
+                        .append('<div class="clear"></div>');
+
+                    // show the previous value if the property has changed
+                    if (attribute.value !== attribute.previousValue) {
+                        if (nf.Common.isDefinedAndNotNull(attribute.previousValue)) {
+                            attributeRecord
+                                .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
+                                .append('<div class="clear"></div>');
+                        } else {
+                            attributeRecord
+                                .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                                .append('<div class="clear"></div>');
+                        }
+                    } else {
+                        // mark this attribute as not modified
+                        attributeRecord.addClass('attribute-unmodified');
+                    }
+                });
+
+                var formatContentValue = function (element, value) {
+                    if (nf.Common.isDefinedAndNotNull(value)) {
+                        element.removeClass('unset').text(value);
+                    } else {
+                        element.addClass('unset').text('No value previously set');
+                    }
+                };
+
+                // content
+                $('#input-content-header').text('Input Claim');
+                formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
+                formatContentValue($('#input-content-section'), event.inputContentClaimSection);
+                formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
+                formatContentValue($('#input-content-offset'), event.inputContentClaimOffset);
+                formatContentValue($('#input-content-bytes'), event.inputContentClaimFileSizeBytes);
+
+                // input content file size
+                var inputContentSize = $('#input-content-size');
+                formatContentValue(inputContentSize, event.inputContentClaimFileSize);
+                if (nf.Common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
+                    // over the default tooltip with the actual byte count
+                    inputContentSize.attr('title', nf.Common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
+                }
+
+                formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
+                formatContentValue($('#output-content-section'), event.outputContentClaimSection);
+                formatContentValue($('#output-content-identifier'), event.outputContentClaimIdentifier);
+                formatContentValue($('#output-content-offset'), event.outputContentClaimOffset);
+                formatContentValue($('#output-content-bytes'), event.outputContentClaimFileSizeBytes);
+
+                // output content file size
+                var outputContentSize = $('#output-content-size');
+                formatContentValue(outputContentSize, event.outputContentClaimFileSize);
+                if (nf.Common.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
+                    // over the default tooltip with the actual byte count
+                    outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
+                }
+
+                if (event.inputContentAvailable === true) {
+                    $('#input-content-download').show();
+
+                    if (nf.Common.isContentViewConfigured()) {
+                        $('#input-content-view').show();
+                    } else {
+                        $('#input-content-view').hide();
                     }
                 } else {
-                    field.html('<span class="unset">No value set</span>');
-                }
-            };
-
-            // handle durations
-            setDuration($('#provenance-event-duration'), event.eventDuration);
-            setDuration($('#provenance-lineage-duration'), event.lineageDuration);
-
-            // formats an event detail
-            var formatEventDetail = function (label, value) {
-                $('<div class="event-detail"></div>').append(
-                    $('<div class="detail-name"></div>').text(label)).append(
-                    $('<div class="detail-value">' + nf.Common.formatValue(value) + '</div>').ellipsis()).append(
-                    $('<div class="clear"></div>')).appendTo('#additional-provenance-details');
-            };
-
-            // conditionally show RECEIVE details
-            if (event.eventType === 'RECEIVE') {
-                formatEventDetail('Source FlowFile Id', event.sourceSystemFlowFileId);
-                formatEventDetail('Transit Uri', event.transitUri);
-            }
-
-            // conditionally show SEND details
-            if (event.eventType === 'SEND') {
-                formatEventDetail('Transit Uri', event.transitUri);
-            }
-
-            // conditionally show ADDINFO details
-            if (event.eventType === 'ADDINFO') {
-                formatEventDetail('Alternate Identifier Uri', event.alternateIdentifierUri);
-            }
-
-            // conditionally show ROUTE details
-            if (event.eventType === 'ROUTE') {
-                formatEventDetail('Relationship', event.relationship);
-            }
-
-            // conditionally show FETCH details
-            if (event.eventType === 'FETCH') {
-                formatEventDetail('Transit Uri', event.transitUri);
-            }
-
-            // conditionally show the cluster node identifier
-            if (nf.Common.isDefinedAndNotNull(event.clusterNodeId)) {
-                // save the cluster node id
-                $('#provenance-event-cluster-node-id').text(event.clusterNodeId);
-
-                // render the cluster node address
-                formatEventDetail('Node Address', event.clusterNodeAddress);
-            }
-
-            // populate the parent/child flowfile uuids
-            var parentUuids = $('#parent-flowfiles-container');
-            var childUuids = $('#child-flowfiles-container');
-
-            // handle parent flowfiles
-            if (nf.Common.isEmpty(event.parentUuids)) {
-                $('#parent-flowfile-count').text(0);
-                parentUuids.append('<span class="unset">No parents</span>');
-            } else {
-                $('#parent-flowfile-count').text(event.parentUuids.length);
-                $.each(event.parentUuids, function (_, uuid) {
-                    $('<div></div>').text(uuid).appendTo(parentUuids);
-                });
-            }
-
-            // handle child flowfiles
-            if (nf.Common.isEmpty(event.childUuids)) {
-                $('#child-flowfile-count').text(0);
-                childUuids.append('<span class="unset">No children</span>');
-            } else {
-                $('#child-flowfile-count').text(event.childUuids.length);
-                $.each(event.childUuids, function (_, uuid) {
-                    $('<div></div>').text(uuid).appendTo(childUuids);
-                });
-            }
-
-            // get the attributes container
-            var attributesContainer = $('#attributes-container');
-
-            // get any action details
-            $.each(event.attributes, function (_, attribute) {
-                // create the attribute record
-                var attributeRecord = $('<div class="attribute-detail"></div>')
-                    .append($('<div class="attribute-name">' + nf.Common.formatValue(attribute.name) + '</div>').ellipsis())
-                    .appendTo(attributesContainer);
-
-                // add the current value
-                attributeRecord
-                    .append($('<div class="attribute-value">' + nf.Common.formatValue(attribute.value) + '</div>').ellipsis())
-                    .append('<div class="clear"></div>');
-
-                // show the previous value if the property has changed
-                if (attribute.value !== attribute.previousValue) {
-                    if (nf.Common.isDefinedAndNotNull(attribute.previousValue)) {
-                        attributeRecord
-                            .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
-                            .append('<div class="clear"></div>');
-                    } else {
-                        attributeRecord
-                            .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
-                            .append('<div class="clear"></div>');
-                    }
-                } else {
-                    // mark this attribute as not modified
-                    attributeRecord.addClass('attribute-unmodified');
-                }
-            });
-
-            var formatContentValue = function (element, value) {
-                if (nf.Common.isDefinedAndNotNull(value)) {
-                    element.removeClass('unset').text(value);
-                } else {
-                    element.addClass('unset').text('No value previously set');
-                }
-            };
-
-            // content
-            $('#input-content-header').text('Input Claim');
-            formatContentValue($('#input-content-container'), event.inputContentClaimContainer);
-            formatContentValue($('#input-content-section'), event.inputContentClaimSection);
-            formatContentValue($('#input-content-identifier'), event.inputContentClaimIdentifier);
-            formatContentValue($('#input-content-offset'), event.inputContentClaimOffset);
-            formatContentValue($('#input-content-bytes'), event.inputContentClaimFileSizeBytes);
-
-            // input content file size
-            var inputContentSize = $('#input-content-size');
-            formatContentValue(inputContentSize, event.inputContentClaimFileSize);
-            if (nf.Common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
-                // over the default tooltip with the actual byte count
-                inputContentSize.attr('title', nf.Common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
-            }
-
-            formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
-            formatContentValue($('#output-content-section'), event.outputContentClaimSection);
-            formatContentValue($('#output-content-identifier'), event.outputContentClaimIdentifier);
-            formatContentValue($('#output-content-offset'), event.outputContentClaimOffset);
-            formatContentValue($('#output-content-bytes'), event.outputContentClaimFileSizeBytes);
-
-            // output content file size
-            var outputContentSize = $('#output-content-size');
-            formatContentValue(outputContentSize, event.outputContentClaimFileSize);
-            if (nf.Common.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
-                // over the default tooltip with the actual byte count
-                outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
-            }
-
-            if (event.inputContentAvailable === true) {
-                $('#input-content-download').show();
-
-                if (nf.Common.isContentViewConfigured()) {
-                    $('#input-content-view').show();
-                } else {
+                    $('#input-content-download').hide();
                     $('#input-content-view').hide();
                 }
-            } else {
-                $('#input-content-download').hide();
-                $('#input-content-view').hide();
-            }
 
-            if (event.outputContentAvailable === true) {
-                $('#output-content-download').show();
+                if (event.outputContentAvailable === true) {
+                    $('#output-content-download').show();
 
-                if (nf.Common.isContentViewConfigured()) {
-                    $('#output-content-view').show();
+                    if (nf.Common.isContentViewConfigured()) {
+                        $('#output-content-view').show();
+                    } else {
+                        $('#output-content-view').hide();
+                    }
                 } else {
+                    $('#output-content-download').hide();
                     $('#output-content-view').hide();
                 }
-            } else {
-                $('#output-content-download').hide();
-                $('#output-content-view').hide();
-            }
 
-            if (event.replayAvailable === true) {
-                $('#replay-content, #replay-content-connection').show();
-                formatContentValue($('#replay-connection-id'), event.sourceConnectionIdentifier);
-                $('#replay-content-message').hide();
-            } else {
-                $('#replay-content, #replay-content-connection').hide();
-                $('#replay-content-message').text(event.replayExplanation).show();
-            }
+                if (event.replayAvailable === true) {
+                    $('#replay-content, #replay-content-connection').show();
+                    formatContentValue($('#replay-connection-id'), event.sourceConnectionIdentifier);
+                    $('#replay-content-message').hide();
+                } else {
+                    $('#replay-content, #replay-content-connection').hide();
+                    $('#replay-content-message').text(event.replayExplanation).show();
+                }
 
-            // show the dialog
-            $('#event-details-dialog').modal('show');
+                // show the dialog
+                $('#event-details-dialog').modal('show');
+            });
         }
     }
 

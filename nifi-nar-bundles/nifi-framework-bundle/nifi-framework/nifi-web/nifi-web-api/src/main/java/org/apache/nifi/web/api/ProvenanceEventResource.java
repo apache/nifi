@@ -22,7 +22,9 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.DownloadableContent;
@@ -285,6 +287,13 @@ public class ProvenanceEventResource extends ApplicationResource {
         // get the provenance event
         final ProvenanceEventDTO event = serviceFacade.getProvenanceEvent(id.getLong());
         event.setClusterNodeId(clusterNodeId);
+
+        // populate the cluster node address
+        final ClusterCoordinator coordinator = getClusterCoordinator();
+        if (coordinator != null) {
+            final NodeIdentifier nodeId = coordinator.getNodeIdentifier(clusterNodeId);
+            event.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        }
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();

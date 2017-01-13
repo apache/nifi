@@ -2148,8 +2148,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProvenanceDTO getProvenance(final String queryId) {
-        return controllerFacade.getProvenanceQuery(queryId);
+    public ProvenanceDTO getProvenance(final String queryId, final Boolean summarize, final Boolean incrementalResults) {
+        return controllerFacade.getProvenanceQuery(queryId, summarize, incrementalResults);
     }
 
     @Override

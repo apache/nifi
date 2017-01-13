@@ -26,8 +26,7 @@ nf.ng.ProvenanceLineage = function () {
     var config = {
         sliderTickCount: 75,
         urls: {
-            lineage: '../nifi-api/provenance/lineage',
-            events: '../nifi-api/provenance-events/'
+            lineage: '../nifi-api/provenance/lineage'
         }
     };
 
@@ -88,41 +87,6 @@ nf.ng.ProvenanceLineage = function () {
                 $('<div class="clear"></div>').appendTo(menuItem);
             }
         });
-    };
-
-    /**
-     * Shows the details for the specified event.
-     *
-     * @param {string} eventId
-     * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
-     */
-    var showEventDetails = function (eventId, clusterNodeId, provenanceTableCtrl) {
-        getEventDetails(eventId, clusterNodeId).done(function (response) {
-            provenanceTableCtrl.showEventDetails(response.provenanceEvent);
-        });
-    };
-
-    /**
-     * Gets the details for the specified event.
-     *
-     * @param {string} eventId
-     * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
-     */
-    var getEventDetails = function (eventId, clusterNodeId) {
-        var url;
-        if (nf.Common.isDefinedAndNotNull(clusterNodeId)) {
-            url = config.urls.events + encodeURIComponent(eventId) + '?' + $.param({
-                    clusterNodeId: clusterNodeId
-                });
-        } else {
-            url = config.urls.events + encodeURIComponent(eventId);
-        }
-
-        return $.ajax({
-            type: 'GET',
-            url: url,
-            dataType: 'json'
-        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -792,7 +756,7 @@ nf.ng.ProvenanceLineage = function () {
                         'class': 'lineage-view-event',
                         'text': 'View details',
                         'click': function () {
-                            showEventDetails(d.id, clusterNodeId, provenanceTableCtrl);
+                            provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
                         }
                     }];
 
@@ -852,17 +816,17 @@ nf.ng.ProvenanceLineage = function () {
                             };
 
                             // polls for the event lineage
-                            var pollLineage = function (nextDelay) {
+                            var pollLineage = function () {
                                 getLineage(lineage).done(function (response) {
                                     lineage = response.lineage;
 
-                                    // process the lineage, if its not done computing wait delay seconds before checking again
-                                    processLineage(nextDelay);
+                                    // process the lineage
+                                    processLineage();
                                 }).fail(closeDialog);
                             };
 
                             // processes the event lineage
-                            var processLineage = function (delay) {
+                            var processLineage = function () {
                                 // if the request was cancelled just ignore the current response
                                 if (cancelled === true) {
                                     closeDialog();
@@ -907,13 +871,9 @@ nf.ng.ProvenanceLineage = function () {
                                         // clear the timer since we've been invoked
                                         lineageTimer = null;
 
-                                        // calculate the next delay (back off)
-                                        var backoff = delay * 2;
-                                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
-
                                         // for the lineage
-                                        pollLineage(nextDelay);
-                                    }, delay * 1000);
+                                        pollLineage();
+                                    }, 2000);
                                 }
                             };
 
@@ -934,7 +894,7 @@ nf.ng.ProvenanceLineage = function () {
                         // collapses the lineage for the specified event in the specified direction
                         var collapseLineage = function (eventId, provenanceTableCtrl) {
                             // get the event in question and collapse in the appropriate direction
-                            getEventDetails(eventId, clusterNodeId).done(function (response) {
+                            provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
                                 var provenanceEvent = response.provenanceEvent;
                                 var eventUuid = provenanceEvent.flowFileUuid;
                                 var eventUuids = d3.set(provenanceEvent.childUuids);
@@ -1371,18 +1331,17 @@ nf.ng.ProvenanceLineage = function () {
                 $('#lineage-query-dialog').modal('hide');
             };
 
-            // polls the server for the status of the lineage, if the lineage is not
-            // done wait nextDelay seconds before trying again
-            var pollLineage = function (nextDelay, provenanceTableCtrl) {
+            // polls the server for the status of the lineage
+            var pollLineage = function (provenanceTableCtrl) {
                 getLineage(lineage).done(function (response) {
                     lineage = response.lineage;
 
-                    // process the lineage, if its not done computing wait delay seconds before checking again
-                    processLineage(nextDelay, provenanceTableCtrl);
+                    // process the lineage
+                    processLineage(provenanceTableCtrl);
                 }).fail(closeDialog);
             };
 
-            var processLineage = function (delay, provenanceTableCtrl) {
+            var processLineage = function (provenanceTableCtrl) {
                 // if the request was cancelled just ignore the current response
                 if (cancelled === true) {
                     closeDialog();
@@ -1417,13 +1376,9 @@ nf.ng.ProvenanceLineage = function () {
                         // clear the timer since we've been invoked
                         lineageTimer = null;
 
-                        // calculate the next delay (back off)
-                        var backoff = delay * 2;
-                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
-
                         // poll lineage
-                        pollLineage(nextDelay, provenanceTableCtrl);
-                    }, delay * 1000);
+                        pollLineage(provenanceTableCtrl);
+                    }, 2000);
                 }
             };
 
@@ -1432,7 +1387,7 @@ nf.ng.ProvenanceLineage = function () {
                 lineage = response.lineage;
 
                 // process the results, if they are not done wait 1 second before trying again
-                processLineage(1, provenanceTableCtrl);
+                processLineage(provenanceTableCtrl);
             }).fail(closeDialog);
         }
     }
