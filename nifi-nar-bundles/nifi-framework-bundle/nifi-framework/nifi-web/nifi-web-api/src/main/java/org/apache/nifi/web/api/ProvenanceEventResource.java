@@ -290,8 +290,10 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // populate the cluster node address
         final ClusterCoordinator coordinator = getClusterCoordinator();
-        final NodeIdentifier nodeId = coordinator.getNodeIdentifier(clusterNodeId);
-        event.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        if (coordinator != null) {
+            final NodeIdentifier nodeId = coordinator.getNodeIdentifier(clusterNodeId);
+            event.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        }
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();
