@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -57,10 +59,14 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -95,10 +101,14 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -138,10 +148,14 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -174,10 +188,14 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
+        autoUnpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "1");
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -211,6 +229,8 @@ public class TestUnpackContent {
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -235,6 +255,8 @@ public class TestUnpackContent {
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(1).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -258,6 +280,7 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -292,6 +315,9 @@ public class TestUnpackContent {
 
         unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID);
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);

@@ -16,25 +16,28 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
+import org.apache.nifi.distributed.cache.client.StandardCacheEntry;
+import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestNotify {
 
@@ -66,8 +69,47 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        Map<String, String> cachedAttributes = service.get("1", new Notify.StringSerializer(), new FlowFileAttributesSerializer());
+        final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
+        Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("value", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(1));
+    }
+
+    @Test
+    public void testNotifyCounters() throws InitializationException, IOException {
+        runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
+        runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
+
+        final Map<String, String> props1 = new HashMap<>();
+        props1.put("releaseSignalAttribute", "someDataProcessing");
+        props1.put("key", "data1");
+        props1.put("status", "success");
+        runner.enqueue(new byte[]{}, props1);
+
+        final Map<String, String> props2 = new HashMap<>();
+        props2.put("releaseSignalAttribute", "someDataProcessing");
+        props2.put("key", "data2");
+        props2.put("status", "success");
+        runner.enqueue(new byte[]{}, props2);
+
+        final Map<String, String> props3 = new HashMap<>();
+        props3.put("releaseSignalAttribute", "someDataProcessing");
+        props3.put("key", "data3");
+        props3.put("status", "failure");
+        runner.enqueue(new byte[]{}, props3);
+
+        runner.run(3);
+
+        runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.clearTransferState();
+
+        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getAttributes();
+        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(3));
+        assertEquals(2, signal.getCount("success"));
+        assertEquals(1, signal.getCount("failure"));
     }
 
     @Test
@@ -86,9 +128,11 @@ public class TestNotify {
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
         runner.clearTransferState();
 
-        Map<String, String> cachedAttributes = service.get("1", new Notify.StringSerializer(), new FlowFileAttributesSerializer());
+        final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
+        Map<String, String> cachedAttributes = signal.getAttributes();
         assertEquals("value", cachedAttributes.get("key1"));
         assertNull(cachedAttributes.get("other.key1"));
+        assertTrue(signal.isTotalCountReached(1));
     }
 
     @Test
@@ -121,11 +165,11 @@ public class TestNotify {
         service.setFailOnCalls(false);
     }
 
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
-        private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
+    static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient {
+        private final ConcurrentMap<Object, CacheEntry> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
-        public void setFailOnCalls(boolean failOnCalls){
+        void setFailOnCalls(boolean failOnCalls){
             this.failOnCalls = failOnCalls;
         }
 
@@ -136,42 +180,47 @@ public class TestNotify {
             }
         }
 
+        private void unsupported() throws UnsupportedOperationException {
+            throw new UnsupportedOperationException("This method shouldn't be used from Notify processor.");
+        }
+
         @Override
         public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            final Object retValue = values.putIfAbsent(key, value);
-            return (retValue == null);
+            unsupported();
+            return false;
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
             final Deserializer<V> valueDeserializer) throws IOException {
-            verifyNotFail();
-            return (V) values.putIfAbsent(key, value);
+            unsupported();
+            return null;
         }
 
         @Override
         public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            verifyNotFail();
-            return values.containsKey(key);
+            unsupported();
+            return false;
         }
 
         @Override
         public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            values.put(key, value);
+            unsupported();
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
-            if(values.containsKey(key)) {
-                return (V) values.get(key);
-            } else {
+
+            final CacheEntry entry = values.get(key);
+            if (entry == null) {
                 return null;
             }
+
+            // This mock cache stores String as it is, without serializing, so it needs to convert it to byte[] first here.
+            return valueDeserializer.deserialize(((String)entry.getValue()).getBytes(StandardCharsets.UTF_8));
         }
 
         @Override
@@ -181,7 +230,28 @@ public class TestNotify {
         @Override
         public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             verifyNotFail();
-            values.remove(key);
+            return values.remove(key) != null;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <K, V> CacheEntry<K, V> fetch(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+            verifyNotFail();
+
+            return values.get(key);
+        }
+
+        @Override
+        public <K, V> boolean replace(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, long revision) throws IOException {
+            verifyNotFail();
+
+            final CacheEntry existing = values.get(key);
+            if (existing != null && existing.getRevision() != revision) {
+                return false;
+            }
+
+            values.put(key, new StandardCacheEntry<>(key, value, revision + 1));
+
             return true;
         }
     }

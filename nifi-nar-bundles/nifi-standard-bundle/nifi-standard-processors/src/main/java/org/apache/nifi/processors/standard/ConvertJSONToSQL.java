@@ -65,6 +65,11 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
+
 @SideEffectFree
 @SupportsBatching
 @SeeAlso(PutSQL.class)
@@ -369,9 +374,9 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
             attributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
             attributes.put("sql.table", tableName);
-            attributes.put("fragment.identifier", fragmentIdentifier);
-            attributes.put("fragment.count", String.valueOf(arrayNode.size()));
-            attributes.put("fragment.index", String.valueOf(i));
+            attributes.put(FRAGMENT_ID.key(), fragmentIdentifier);
+            attributes.put(FRAGMENT_COUNT.key(), String.valueOf(arrayNode.size()));
+            attributes.put(FRAGMENT_INDEX.key(), String.valueOf(i));
 
             if (catalog != null) {
                 attributes.put("sql.catalog", catalog);
@@ -381,6 +386,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             session.transfer(sqlFlowFile, REL_SQL);
         }
 
+        flowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, arrayNode.size());
         session.transfer(flowFile, REL_ORIGINAL);
     }
 

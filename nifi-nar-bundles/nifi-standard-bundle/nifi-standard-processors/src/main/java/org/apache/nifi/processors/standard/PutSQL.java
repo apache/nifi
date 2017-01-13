@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessContext;
@@ -161,9 +162,9 @@ public class PutSQL extends AbstractProcessor {
     private static final Pattern SQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("sql\\.args\\.(\\d+)\\.type");
     private static final Pattern NUMBER_PATTERN = Pattern.compile("-?\\d+");
 
-    private static final String FRAGMENT_ID_ATTR = "fragment.identifier";
-    private static final String FRAGMENT_INDEX_ATTR = "fragment.index";
-    private static final String FRAGMENT_COUNT_ATTR = "fragment.count";
+    private static final String FRAGMENT_ID_ATTR = FragmentAttributes.FRAGMENT_ID.key();
+    private static final String FRAGMENT_INDEX_ATTR = FragmentAttributes.FRAGMENT_INDEX.key();
+    private static final String FRAGMENT_COUNT_ATTR = FragmentAttributes.FRAGMENT_COUNT.key();
 
     private static final Pattern LONG_PATTERN = Pattern.compile("^\\d{1,19}$");
 
