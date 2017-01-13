@@ -67,6 +67,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -127,15 +128,15 @@ import org.apache.nifi.util.FlowFilePackagerV3;
 public class MergeContent extends BinFiles {
 
     // preferred attributes
-    public static final String FRAGMENT_ID_ATTRIBUTE = "fragment.identifier";
-    public static final String FRAGMENT_INDEX_ATTRIBUTE = "fragment.index";
-    public static final String FRAGMENT_COUNT_ATTRIBUTE = "fragment.count";
+    public static final String FRAGMENT_ID_ATTRIBUTE = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX_ATTRIBUTE = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT_ATTRIBUTE = FragmentAttributes.FRAGMENT_COUNT.key();
 
     // old style attributes
     public static final String SEGMENT_ID_ATTRIBUTE = "segment.identifier";
     public static final String SEGMENT_INDEX_ATTRIBUTE = "segment.index";
     public static final String SEGMENT_COUNT_ATTRIBUTE = "segment.count";
-    public static final String SEGMENT_ORIGINAL_FILENAME = "segment.original.filename";
+    public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
     public static final AllowableValue MERGE_STRATEGY_BIN_PACK = new AllowableValue(
             "Bin-Packing Algorithm",

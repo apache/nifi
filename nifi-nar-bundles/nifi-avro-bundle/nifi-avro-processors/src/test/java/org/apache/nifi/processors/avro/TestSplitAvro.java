@@ -44,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
 import static org.junit.Assert.assertEquals;
 
 public class TestSplitAvro {
@@ -116,6 +118,9 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_SPLIT, 100);
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "100");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
         checkDataFileSplitSize(flowFiles, 1, true);
         final String fragmentIdentifier = flowFiles.get(0).getAttribute("fragment.identifier");
@@ -123,7 +128,7 @@ public class TestSplitAvro {
             MockFlowFile flowFile = flowFiles.get(i);
             assertEquals(i, Integer.parseInt(flowFile.getAttribute("fragment.index")));
             assertEquals(fragmentIdentifier, flowFile.getAttribute("fragment.identifier"));
-            assertEquals(flowFiles.size(), Integer.parseInt(flowFile.getAttribute("fragment.count")));
+            assertEquals(flowFiles.size(), Integer.parseInt(flowFile.getAttribute(FRAGMENT_COUNT.key())));
             assertEquals(filename, flowFile.getAttribute("segment.original.filename"));
         });
     }
@@ -140,6 +145,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "5");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
         checkDataFileSplitSize(flowFiles, 20, true);
     }
@@ -156,6 +162,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
         checkDataFileSplitSize(flowFiles, 100, true);
     }
@@ -172,6 +179,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "100");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
         checkDataFileSplitSize(flowFiles, 1, false);
 
@@ -197,6 +205,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "100");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
 
         checkBareRecordsSplitSize(flowFiles, 1, true);
@@ -215,6 +224,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "5");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
 
         checkBareRecordsSplitSize(flowFiles, 20, true);
@@ -234,6 +244,7 @@ public class TestSplitAvro {
         runner.assertTransferCount(SplitAvro.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitAvro.REL_FAILURE, 0);
 
+        runner.getFlowFilesForRelationship(SplitAvro.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "5");
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(SplitAvro.REL_SPLIT);
 
         checkBareRecordsSplitSize(flowFiles, 20, false);

@@ -35,6 +35,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+
 public class TestSplitJson {
 
     private static final Path JSON_SNIPPET = Paths.get("src/test/resources/TestJson/json-sample.json");
@@ -86,6 +91,7 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 1);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("0");
@@ -102,6 +108,7 @@ public class TestSplitJson {
         int numSplitsExpected = 10;
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), String.valueOf(numSplitsExpected));
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, numSplitsExpected);
         final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalOut.assertContentEquals(JSON_SNIPPET);
@@ -120,18 +127,21 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
+        originalFlowFile.assertContentEquals(JSON_SNIPPET);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
         MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0);
         flowFile.assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
-        flowFile.assertAttributeEquals("fragment.count", "7");
-        flowFile.assertAttributeEquals("fragment.index", "0");
-        flowFile.assertAttributeEquals("segment.original.filename", "test.json");
+        flowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
+        flowFile.assertAttributeEquals(FRAGMENT_INDEX.key(), "0");
+        flowFile.assertAttributeEquals(SEGMENT_ORIGINAL_FILENAME.key(), "test.json");
 
         flowFile = testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(6);
-        flowFile.assertAttributeEquals("fragment.count", "7");
-        flowFile.assertAttributeEquals("fragment.index", "6");
-        flowFile.assertAttributeEquals("segment.original.filename", "test.json");
+        flowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "7");
+        flowFile.assertAttributeEquals(FRAGMENT_INDEX.key(), "6");
+        flowFile.assertAttributeEquals(SEGMENT_ORIGINAL_FILENAME.key(), "test.json");
     }
 
     @Test

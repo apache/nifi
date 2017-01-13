@@ -25,6 +25,9 @@ import org.apache.nifi.util.TestRunners;
 
 import org.junit.Test;
 
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
+import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
+
 public class TestSplitContent {
 
     @Test
@@ -39,6 +42,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
 
         runner.assertQueueEmpty();
@@ -62,6 +66,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
 
         runner.assertQueueEmpty();
@@ -76,6 +81,7 @@ public class TestSplitContent {
         runner.enqueue(input);
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         splits.get(0).assertContentEquals("This is a ");
@@ -89,6 +95,7 @@ public class TestSplitContent {
         runner.enqueue(input);
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         splits.get(0).assertContentEquals("This is a test");
@@ -102,6 +109,7 @@ public class TestSplitContent {
         runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "4");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         splits.get(0).assertContentEquals("This is a test");
@@ -115,6 +123,7 @@ public class TestSplitContent {
         runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "5");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 5);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         splits.get(0).assertContentEquals("This is a ");
@@ -138,6 +147,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "3");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 3);
 
         runner.assertQueueEmpty();
@@ -157,6 +167,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
@@ -178,6 +189,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
@@ -202,6 +214,9 @@ public class TestSplitContent {
 
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID);
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
@@ -227,6 +242,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
@@ -249,6 +265,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
@@ -269,6 +286,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
@@ -289,6 +307,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "1");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
@@ -309,6 +328,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
@@ -327,6 +347,7 @@ public class TestSplitContent {
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();

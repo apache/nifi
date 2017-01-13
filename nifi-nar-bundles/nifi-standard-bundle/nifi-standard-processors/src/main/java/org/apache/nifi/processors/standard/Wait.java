@@ -17,8 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -35,15 +34,13 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -53,19 +50,30 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
+import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 
 @EventDriven
 @SupportsBatching
 @Tags({"map", "cache", "wait", "hold", "distributed", "signal", "release"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Routes incoming FlowFiles to the 'wait' relationship until a matching release signal "
-        + "is stored in the distributed cache from a corresponding Notify processor.  At this point, a waiting FlowFile is routed to "
-        + "the 'success' relationship, with attributes copied from the FlowFile that produced "
-        + "the release signal from the Notify processor.  The release signal entry is then removed from "
-        + "the cache.  Waiting FlowFiles will be routed to 'expired' if they exceed the Expiration Duration.")
-@WritesAttribute(attribute = "wait.start.timestamp", description = "All FlowFiles will have an attribute 'wait.start.timestamp', which sets the "
-        + "initial epoch timestamp when the file first entered this processor.  This is used to determine the expiration time of the FlowFile.")
+        + "is stored in the distributed cache from a corresponding Notify processor. "
+        + "When a matching release signal is identified, a waiting FlowFile is routed to the 'success' relationship, "
+        + "with attributes copied from the FlowFile that produced the release signal from the Notify processor.  "
+        + "The release signal entry is then removed from the cache. Waiting FlowFiles will be routed to 'expired' if they exceed the Expiration Duration. "
+
+        + "If you need to wait for more than one signal, specify the desired number of signals via the 'Target Signal Count' property. "
+        + "This is particularly useful with processors that split a source flow file into multiple fragments, such as SplitText. "
+        + "In order to wait for all fragments to be processed, connect the 'original' relationship to a Wait processor, and the 'splits' relationship to "
+        + "a corresponding Notify processor. Configure the Notify and Wait processors to use the '${fragment.identifier}' as the value "
+        + "of 'Release Signal Identifier', and specify '${fragment.count}' as the value of 'Target Signal Count' in the Wait processor."
+)
+@WritesAttributes({
+        @WritesAttribute(attribute = "wait.start.timestamp", description = "All FlowFiles will have an attribute 'wait.start.timestamp', which sets the "
+        + "initial epoch timestamp when the file first entered this processor.  This is used to determine the expiration time of the FlowFile."),
+        @WritesAttribute(attribute = "wait.counter.<counterName>", description = "If a signal exists when the processor runs, "
+        + "each count value in the signal is copied.")
+})
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
         "org.apache.nifi.processors.standard.Notify"})
 public class Wait extends AbstractProcessor {
@@ -77,7 +85,7 @@ public class Wait extends AbstractProcessor {
         .name("Distributed Cache Service")
         .description("The Controller Service that is used to check for release signals from a corresponding Notify processor")
         .required(true)
-        .identifiesControllerService(DistributedMapCacheClient.class)
+        .identifiesControllerService(AtomicDistributedMapCacheClient.class)
         .build();
 
     // Selects the FlowFile attribute or expression, whose value is used as cache key
@@ -89,6 +97,29 @@ public class Wait extends AbstractProcessor {
         .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
         .expressionLanguageSupported(true)
         .build();
+
+    public static final PropertyDescriptor TARGET_SIGNAL_COUNT = new PropertyDescriptor.Builder()
+            .name("Target Signal Count")
+            .description("A value, or the results of an Attribute Expression Language statement, which will " +
+                    "be evaluated against a FlowFile in order to determine the target signal count. " +
+                    "This processor checks whether the signal count has reached this number. " +
+                    "If Signal Counter Name is specified, this processor checks a particular counter, " +
+                    "otherwise checks against total count in a signal.")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .defaultValue("1")
+            .build();
+
+    public static final PropertyDescriptor SIGNAL_COUNTER_NAME = new PropertyDescriptor.Builder()
+            .name("Signal Counter Name")
+            .description("A value, or the results of an Attribute Expression Language statement, which will " +
+                    "be evaluated against a FlowFile in order to determine the signal counter name. " +
+                    "If not specified, this processor checks the total count in a signal.")
+            .required(false)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
+            .expressionLanguageSupported(true)
+            .build();
 
     // Selects the FlowFile attribute or expression, whose value is used as cache key
     public static final PropertyDescriptor EXPIRATION_DURATION = new PropertyDescriptor.Builder()
@@ -136,9 +167,6 @@ public class Wait extends AbstractProcessor {
         .build();
     private final Set<Relationship> relationships;
 
-    private final Serializer<String> keySerializer = new StringSerializer();
-    private final Deserializer<Map<String, String>> valueDeserializer = new FlowFileAttributesSerializer();
-
     public Wait() {
         final Set<Relationship> rels = new HashSet<>();
         rels.add(REL_SUCCESS);
@@ -152,6 +180,8 @@ public class Wait extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(RELEASE_SIGNAL_IDENTIFIER);
+        descriptors.add(TARGET_SIGNAL_COUNT);
+        descriptors.add(SIGNAL_COUNTER_NAME);
         descriptors.add(EXPIRATION_DURATION);
         descriptors.add(DISTRIBUTED_CACHE_SERVICE);
         descriptors.add(ATTRIBUTE_COPY_MODE);
@@ -173,11 +203,11 @@ public class Wait extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        // cache key is computed from attribute 'RELEASE_SIGNAL_IDENTIFIER' with expression language support
-        final String cacheKey = context.getProperty(RELEASE_SIGNAL_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
+        // Signal id is computed from attribute 'RELEASE_SIGNAL_IDENTIFIER' with expression language support
+        final String signalId = context.getProperty(RELEASE_SIGNAL_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
 
         // if the computed value is null, or empty, we transfer the flow file to failure relationship
-        if (StringUtils.isBlank(cacheKey)) {
+        if (StringUtils.isBlank(signalId)) {
             logger.error("FlowFile {} has no attribute for given Release Signal Identifier", new Object[] {flowFile});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -185,9 +215,17 @@ public class Wait extends AbstractProcessor {
         }
 
         // the cache client used to interact with the distributed cache
-        final DistributedMapCacheClient cache = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
+        final AtomicDistributedMapCacheClient cache = context.getProperty(DISTRIBUTED_CACHE_SERVICE).asControllerService(AtomicDistributedMapCacheClient.class);
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(cache);
 
+        String attributeCopyMode = context.getProperty(ATTRIBUTE_COPY_MODE).getValue();
+        final boolean replaceOriginalAttributes = ATTRIBUTE_COPY_REPLACE.getValue().equals(attributeCopyMode);
+
+        Signal signal = null;
         try {
+            // get notifying signal
+            signal = protocol.getSignal(signalId);
+
             // check for expiration
             String waitStartTimestamp = flowFile.getAttribute(WAIT_START_TIMESTAMP);
             if (waitStartTimestamp == null) {
@@ -201,6 +239,8 @@ public class Wait extends AbstractProcessor {
             } catch (NumberFormatException nfe) {
                 logger.error("{} has an invalid value '{}' on FlowFile {}", new Object[] {WAIT_START_TIMESTAMP, waitStartTimestamp, flowFile});
                 flowFile = session.penalize(flowFile);
+
+                flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -209,58 +249,83 @@ public class Wait extends AbstractProcessor {
             long now = System.currentTimeMillis();
             if (now > (lWaitStartTimestamp + expirationDuration)) {
                 logger.warn("FlowFile {} expired after {}ms", new Object[] {flowFile, (now - lWaitStartTimestamp)});
+                flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
                 session.transfer(flowFile, REL_EXPIRED);
                 return;
             }
 
-            // get notifying flow file attributes
-            Map<String, String> cachedAttributes = cache.get(cacheKey, keySerializer, valueDeserializer);
-
-            if (cachedAttributes == null) {
+            if (signal == null) {
+                // If there's no signal yet, then we don't have to evaluate target counts. Return immediately.
                 if (logger.isDebugEnabled()) {
-                    logger.debug("No release signal yet for {} on FlowFile {}", new Object[] {cacheKey, flowFile});
+                    logger.debug("No release signal yet for {} on FlowFile {}", new Object[] {signalId, flowFile});
                 }
                 session.transfer(flowFile, REL_WAIT);
                 return;
             }
 
-            // copy over attributes from release signal flow file, if provided
-            if (!cachedAttributes.isEmpty()) {
-                cachedAttributes.remove("uuid");
-                String attributeCopyMode = context.getProperty(ATTRIBUTE_COPY_MODE).getValue();
-                if (ATTRIBUTE_COPY_REPLACE.getValue().equals(attributeCopyMode)) {
-                    flowFile = session.putAllAttributes(flowFile, cachedAttributes);
-                } else {
-                    Map<String, String> attributesToCopy = new HashMap<>();
-                    for(Entry<String, String> entry : cachedAttributes.entrySet()) {
-                        // if the current flow file does *not* have the cached attribute, copy it
-                        if (flowFile.getAttribute(entry.getKey()) == null) {
-                            attributesToCopy.put(entry.getKey(), entry.getValue());
-                        }
-                    }
-                    flowFile = session.putAllAttributes(flowFile, attributesToCopy);
+            final String targetCounterName = context.getProperty(SIGNAL_COUNTER_NAME).evaluateAttributeExpressions(flowFile).getValue();
+            final Long targetCount = Long.valueOf(context.getProperty(TARGET_SIGNAL_COUNT).evaluateAttributeExpressions(flowFile).getValue());
+            final boolean reachedToTargetCount = StringUtils.isBlank(targetCounterName)
+                    ? signal.isTotalCountReached(targetCount)
+                    : signal.isCountReached(targetCounterName, targetCount);
+
+            if (!reachedToTargetCount) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Release signal count {} hasn't reached {} for {} on FlowFile {}",
+                            new Object[] {targetCounterName, targetCount, signalId, flowFile});
                 }
+                flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
+                session.transfer(flowFile, REL_WAIT);
+                return;
             }
 
+
+            flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
             session.transfer(flowFile, REL_SUCCESS);
 
-            cache.remove(cacheKey, keySerializer);
+            protocol.complete(signalId);
+
+        } catch (final NumberFormatException e) {
+            flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            logger.error("Failed to parse targetCount when processing {} due to {}", new Object[] {flowFile, e});
+
         } catch (final IOException e) {
+            flowFile = copySignalAttributes(session, flowFile, signal, replaceOriginalAttributes);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             logger.error("Unable to communicate with cache when processing {} due to {}", new Object[] {flowFile, e});
         }
     }
 
-    /**
-     * Simple string serializer, used for serializing the cache key
-     */
-    public static class StringSerializer implements Serializer<String> {
-
-        @Override
-        public void serialize(final String value, final OutputStream out) throws SerializationException, IOException {
-            out.write(value.getBytes(StandardCharsets.UTF_8));
+    private FlowFile copySignalAttributes(final ProcessSession session, final FlowFile flowFile, final Signal signal, final boolean replaceOriginal) {
+        if (signal == null) {
+            return flowFile;
         }
+
+        // copy over attributes from release signal flow file, if provided
+        final Map<String, String> attributesToCopy;
+        if (replaceOriginal) {
+            attributesToCopy = new HashMap<>(signal.getAttributes());
+            attributesToCopy.remove("uuid");
+        } else {
+            // if the current flow file does *not* have the cached attribute, copy it
+            attributesToCopy = signal.getAttributes().entrySet().stream()
+                    .filter(e -> flowFile.getAttribute(e.getKey()) == null)
+                    .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+        }
+
+        // Copy counter attributes
+        final Map<String, Long> counts = signal.getCounts();
+        final long totalCount = counts.entrySet().stream().mapToLong(e -> {
+            final Long count = e.getValue();
+            attributesToCopy.put("wait.counter." + e.getKey(), String.valueOf(count));
+            return count;
+        }).sum();
+        attributesToCopy.put("wait.counter.total", String.valueOf(totalCount));
+
+        return session.putAllAttributes(flowFile, attributesToCopy);
     }
 
 }
