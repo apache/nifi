@@ -16,11 +16,11 @@
 # under the License.
 #
 
-FROM java:8
+FROM openjdk:8
 MAINTAINER Apache NiFi <dev@nifi.apache.org>
 
-ARG UID
-ARG GID
+ARG UID=1000
+ARG GID=50
 ARG NIFI_VERSION
 ARG NIFI_BINARY
 
