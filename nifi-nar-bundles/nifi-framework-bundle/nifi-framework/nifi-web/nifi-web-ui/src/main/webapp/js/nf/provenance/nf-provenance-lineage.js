@@ -26,8 +26,7 @@ nf.ng.ProvenanceLineage = function () {
     var config = {
         sliderTickCount: 75,
         urls: {
-            lineage: '../nifi-api/provenance/lineage',
-            events: '../nifi-api/provenance-events/'
+            lineage: '../nifi-api/provenance/lineage'
         }
     };
 
@@ -88,41 +87,6 @@ nf.ng.ProvenanceLineage = function () {
                 $('<div class="clear"></div>').appendTo(menuItem);
             }
         });
-    };
-
-    /**
-     * Shows the details for the specified event.
-     *
-     * @param {string} eventId
-     * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
-     */
-    var showEventDetails = function (eventId, clusterNodeId, provenanceTableCtrl) {
-        getEventDetails(eventId, clusterNodeId).done(function (response) {
-            provenanceTableCtrl.showEventDetails(response.provenanceEvent);
-        });
-    };
-
-    /**
-     * Gets the details for the specified event.
-     *
-     * @param {string} eventId
-     * @param {string} clusterNodeId    The id of the node in the cluster where this event/flowfile originated
-     */
-    var getEventDetails = function (eventId, clusterNodeId) {
-        var url;
-        if (nf.Common.isDefinedAndNotNull(clusterNodeId)) {
-            url = config.urls.events + encodeURIComponent(eventId) + '?' + $.param({
-                    clusterNodeId: clusterNodeId
-                });
-        } else {
-            url = config.urls.events + encodeURIComponent(eventId);
-        }
-
-        return $.ajax({
-            type: 'GET',
-            url: url,
-            dataType: 'json'
-        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -792,7 +756,7 @@ nf.ng.ProvenanceLineage = function () {
                         'class': 'lineage-view-event',
                         'text': 'View details',
                         'click': function () {
-                            showEventDetails(d.id, clusterNodeId, provenanceTableCtrl);
+                            provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
                         }
                     }];
 
@@ -934,7 +898,7 @@ nf.ng.ProvenanceLineage = function () {
                         // collapses the lineage for the specified event in the specified direction
                         var collapseLineage = function (eventId, provenanceTableCtrl) {
                             // get the event in question and collapse in the appropriate direction
-                            getEventDetails(eventId, clusterNodeId).done(function (response) {
+                            provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
                                 var provenanceEvent = response.provenanceEvent;
                                 var eventUuid = provenanceEvent.flowFileUuid;
                                 var eventUuids = d3.set(provenanceEvent.childUuids);

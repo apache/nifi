@@ -206,9 +206,11 @@ public interface NiFiServiceFacade {
      * Retrieves provenance.
      *
      * @param queryId identifier
+     * @param summarize whether to summarize the event dtos
+     * @param incrementalResults whether to return any events if the search has not finished
      * @return result
      */
-    ProvenanceDTO getProvenance(String queryId);
+    ProvenanceDTO getProvenance(String queryId, Boolean summarize, Boolean incrementalResults);
 
     /**
      * Deletes provenance.
