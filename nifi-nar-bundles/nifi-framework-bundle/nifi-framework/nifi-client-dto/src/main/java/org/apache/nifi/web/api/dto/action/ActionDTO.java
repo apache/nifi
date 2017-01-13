@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * An action performed in this NiFi.
@@ -79,6 +80,7 @@ public class ActionDTO {
             value = "The timestamp of the action.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getTimestamp() {
         return timestamp;
     }

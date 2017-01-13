@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * A history query to find desired actions.
@@ -74,6 +75,7 @@ public class HistoryQueryDTO {
             value = "The start date of actions to return.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getStartDate() {
         return startDate;
     }
@@ -90,6 +92,7 @@ public class HistoryQueryDTO {
             value = "The end date of actions to return.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getEndDate() {
         return endDate;
     }

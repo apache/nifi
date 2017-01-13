@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * The previous value for a processor property.
@@ -55,6 +56,7 @@ public class PreviousValueDTO {
             value = "The timestamp when the value was modified.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getTimestamp() {
         return timestamp;
     }

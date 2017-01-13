@@ -23,6 +23,7 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.util.Date;
 
@@ -71,6 +72,7 @@ public class ActionEntity extends Entity implements ReadablePermission {
             value = "The timestamp of the action.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getTimestamp() {
         return timestamp;
     }

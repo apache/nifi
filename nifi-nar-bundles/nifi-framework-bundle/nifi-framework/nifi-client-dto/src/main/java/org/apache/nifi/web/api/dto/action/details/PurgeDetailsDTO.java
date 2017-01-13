@@ -21,6 +21,7 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * Details of a purge operation.
@@ -38,6 +39,7 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
             value = "The end date for the purge action.",
             dataType = "string"
     )
+    @JsonFormat(shape=JsonFormat.Shape.STRING, pattern=DateTimeAdapter.DEFAULT_DATE_TIME_FORMAT)
     public Date getEndDate() {
         return endDate;
     }
