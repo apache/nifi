@@ -39,6 +39,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.sql.DataSource;
+
 /**
  * Implementation of for Database Connection Pooling Service. Apache DBCP is used for connection pooling functionality.
  *
@@ -251,6 +253,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         } catch (final SQLException e) {
             throw new ProcessException(e);
         }
+    }
+
+    @Override
+    public DataSource getDataSource() throws ProcessException {
+        return dataSource;
     }
 
     @Override

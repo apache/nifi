@@ -45,6 +45,8 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.sql.DataSource;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -98,6 +100,40 @@ public class DBCPServiceTest {
         final Connection connection = dbcpService.getConnection();
         Assert.assertNotNull(connection);
 
+        createInsertSelectDrop(connection);
+
+        connection.close(); // return to pool
+    }
+
+    /**
+     * Test database getDataSource() using Derby. Connect, create table, insert, select, drop table.
+     *
+     */
+    @Test
+    public void testGetDataSource() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+
+        runner.enableControllerService(service);
+
+        runner.assertValid(service);
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
+        Assert.assertNotNull(dbcpService);
+        final DataSource dataSource = dbcpService.getDataSource();
+        Assert.assertNotNull(dataSource);
+
+        Connection connection = dataSource.getConnection();
         createInsertSelectDrop(connection);
 
         connection.close(); // return to pool

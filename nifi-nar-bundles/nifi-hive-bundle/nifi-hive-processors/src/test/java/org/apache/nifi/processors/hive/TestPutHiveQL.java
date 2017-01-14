@@ -15,6 +15,7 @@ package org.apache.nifi.processors.hive;/*
  * limitations under the License.
  */
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
@@ -38,6 +39,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.sql.DataSource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -493,8 +496,12 @@ public class TestPutHiveQL {
     private static class MockDBCPService extends AbstractControllerService implements HiveDBCPService {
         private final String dbLocation;
 
+        BasicDataSource dataSource = new BasicDataSource();
+        
         MockDBCPService(final String dbLocation) {
             this.dbLocation = dbLocation;
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + dbLocation + ";create=true");
         }
 
         @Override
@@ -516,6 +523,11 @@ public class TestPutHiveQL {
         @Override
         public String getConnectionURL() {
             return "jdbc:derby:" + dbLocation + ";create=true";
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 
@@ -555,6 +567,11 @@ public class TestPutHiveQL {
         @Override
         public String getConnectionURL() {
             return service.getConnectionURL();
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            throw new IllegalArgumentException("getDataSource() is not supported for testing");
         }
     }
 }

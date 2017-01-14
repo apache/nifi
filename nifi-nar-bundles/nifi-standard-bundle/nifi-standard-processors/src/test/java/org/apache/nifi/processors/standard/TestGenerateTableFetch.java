@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
@@ -42,6 +43,8 @@ import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.sql.DataSource;
 
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.DB_TYPE;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.REL_SUCCESS;
@@ -257,6 +260,13 @@ public class TestGenerateTableFetch {
      */
     private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
+        BasicDataSource dataSource = new BasicDataSource();
+
+        public DBCPServiceSimpleImpl() {
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + DB_LOCATION + ";create=true");
+        }
+
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -270,6 +280,11 @@ public class TestGenerateTableFetch {
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 }

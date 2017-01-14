@@ -25,6 +25,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -744,8 +747,12 @@ public class TestConvertJSONToSQL {
     private static class MockDBCPService extends AbstractControllerService implements DBCPService {
         private final String dbLocation;
 
+        BasicDataSource dataSource = new BasicDataSource();
+
         public MockDBCPService(final String dbLocation) {
             this.dbLocation = dbLocation;
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + dbLocation + ";create=true");
         }
 
         @Override
@@ -763,6 +770,11 @@ public class TestConvertJSONToSQL {
                 e.printStackTrace();
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 }

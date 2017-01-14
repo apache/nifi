@@ -53,6 +53,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.sql.DataSource;
+
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 
 /**
@@ -291,6 +293,11 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             getLogger().error("Error getting Hive connection", e);
             throw new ProcessException(e);
         }
+    }
+
+    @Override
+    public DataSource getDataSource() throws ProcessException {
+        return dataSource;
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -38,6 +39,8 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.sql.DataSource;
 
 import static org.junit.Assert.assertEquals;
 
@@ -229,6 +232,13 @@ public class TestListDatabaseTables {
      */
     private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
+        BasicDataSource dataSource = new BasicDataSource();
+
+        public DBCPServiceSimpleImpl() {
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + DB_LOCATION + ";create=true");
+        }
+
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -242,6 +252,11 @@ public class TestListDatabaseTables {
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 }

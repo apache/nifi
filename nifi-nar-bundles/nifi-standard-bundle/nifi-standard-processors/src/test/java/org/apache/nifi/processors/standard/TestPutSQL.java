@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
@@ -49,6 +50,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
+import javax.sql.DataSource;
 import javax.xml.bind.DatatypeConverter;
 
 public class TestPutSQL {
@@ -742,8 +744,12 @@ public class TestPutSQL {
     private static class MockDBCPService extends AbstractControllerService implements DBCPService {
         private final String dbLocation;
 
+        BasicDataSource dataSource = new BasicDataSource();
+
         public MockDBCPService(final String dbLocation) {
             this.dbLocation = dbLocation;
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + dbLocation + ";create=true");
         }
 
         @Override
@@ -761,6 +767,11 @@ public class TestPutSQL {
                 e.printStackTrace();
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 
@@ -795,6 +806,11 @@ public class TestPutSQL {
                 e.printStackTrace();
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            throw new IllegalArgumentException("getDataSource() is not supported for testing");
         }
     }
 

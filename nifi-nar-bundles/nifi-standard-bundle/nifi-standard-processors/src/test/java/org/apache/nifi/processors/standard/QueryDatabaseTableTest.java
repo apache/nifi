@@ -21,6 +21,7 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
@@ -58,6 +59,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+
+import javax.sql.DataSource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -733,6 +736,13 @@ public class QueryDatabaseTableTest {
      */
     private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
+        BasicDataSource dataSource = new BasicDataSource();
+
+        public DBCPServiceSimpleImpl() {
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + DB_LOCATION + ";create=true");
+        }
+
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -746,6 +756,11 @@ public class QueryDatabaseTableTest {
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 
