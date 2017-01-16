@@ -51,7 +51,7 @@ public class LumberjackResponse {
         return new LumberjackFrame.Builder()
                 .version(version)
                 .frameType(frameType)
-                .payload(ByteBuffer.allocate(4).putInt((int) seqNumber).array())
+                .payload(ByteBuffer.allocate(8).putLong(seqNumber).array())
                 .build();
     }
 
