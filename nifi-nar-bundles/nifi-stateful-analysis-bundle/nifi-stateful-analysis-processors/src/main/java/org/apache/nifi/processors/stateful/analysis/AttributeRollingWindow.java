@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
+import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
 
 @TriggerSerially
@@ -56,7 +57,8 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
         "with the count of FlowFiles and total aggregate value of values processed in the current time window.")
 @WritesAttributes({
         @WritesAttribute(attribute = ROLLING_WINDOW_VALUE_KEY, description = "The rolling window value (sum of all the values stored)."),
-        @WritesAttribute(attribute = ROLLING_WINDOW_COUNT_KEY, description = "The count of the number of FlowFiles seen in the rolling window.")
+        @WritesAttribute(attribute = ROLLING_WINDOW_COUNT_KEY, description = "The count of the number of FlowFiles seen in the rolling window."),
+        @WritesAttribute(attribute = ROLLING_WINDOW_MEAN_KEY, description = "The mean of the FlowFiles seen in the rolling window.")
 })
 @Stateful(scopes = {Scope.LOCAL}, description = "Store the values backing the rolling window. This includes storing the individual values and their time-stamps or the batches of values and their " +
         "counts.")
@@ -65,6 +67,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
     public static final String COUNT_KEY = "count";
     public static final String ROLLING_WINDOW_VALUE_KEY = "rolling_window_value";
     public static final String ROLLING_WINDOW_COUNT_KEY = "rolling_window_count";
+    public static final String ROLLING_WINDOW_MEAN_KEY = "rolling_window_mean";
 
     public static final String CURRENT_MICRO_BATCH_STATE_TS_KEY = "start_curr_batch_ts";
     public static final String BATCH_APPEND_KEY = "_batch";
@@ -72,6 +75,7 @@ public class AttributeRollingWindow extends AbstractProcessor {
     public static final int COUNT_APPEND_KEY_LENGTH = 6;
 
     static final PropertyDescriptor VALUE_TO_TRACK = new PropertyDescriptor.Builder()
+            .displayName("Value to track")
             .name("Value to track")
             .description("The expression on which to evaluate each FlowFile. The result of the expression will be added to the rolling window value.")
             .expressionLanguageSupported(true)
@@ -79,13 +83,15 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .required(true)
             .build();
     static final PropertyDescriptor TIME_WINDOW = new PropertyDescriptor.Builder()
+            .displayName("Time window")
             .name("Time window")
             .description("The time window on which to calculate the rolling window.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor SUB_WINDOW_LENGTH = new PropertyDescriptor.Builder()
-            .name("Sub-window Length")
+            .displayName("Sub-window length")
+            .name("Sub-window length")
             .description("When set, values will be batched into sub-windows of the set length. This allows for much larger length total windows to be set but sacrifices some precision. If this is " +
                     "not set (or is 0) then each value is stored in state with the timestamp of when it was received. After the length of time stated in " + TIME_WINDOW.getDisplayName() +
                     " elaspes the value will be removed. If this is set, values will be batched together every X amount of time (where X is the time period set for this property) and removed " +
@@ -106,14 +112,19 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .description("All FlowFiles are successfully processed are routed here")
             .name("success")
             .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
+    public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
             .name("set state fail")
-            .description("When state fails to save when processing a certain FlowFile it is routed here.")
+            .description("When state fails to save when processing a FlowFile, the FlowFile is routed here.")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("When a FlowFile fails for a reason other than failing to set state it is routed here.")
             .build();
 
     {
         final Set<Relationship> relationshipSet = new HashSet<>();
         relationshipSet.add(REL_SUCCESS);
+        relationshipSet.add(REL_FAILED_SET_STATE);
         relationshipSet.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(relationshipSet);
 
@@ -166,16 +177,25 @@ public class AttributeRollingWindow extends AbstractProcessor {
                 microBatch(context, session, flowFile, currTime);
             }
 
-        } catch (IOException e) {
-            getLogger().error("Failed to save the state for {} due to {}", new Object[] { flowFile, e});
+        } catch (Exception e) {
+            getLogger().error("Ran into an error while processing {}.", new Object[] { flowFile}, e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private void noMicroBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) throws IOException {
+    private void noMicroBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
         final StateManager stateManager = context.getStateManager();
 
-        Map<String, String> state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+        Map<String, String> state = null;
+        try {
+            state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+        } catch (IOException e) {
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            session.transfer(flowFile);
+            context.yield();
+            return;
+        }
+
         Long count = Long.valueOf(state.get(COUNT_KEY));
         count ++;
 
@@ -214,21 +234,42 @@ public class AttributeRollingWindow extends AbstractProcessor {
         state.put(String.valueOf(currTime), String.valueOf(currentFlowFileValue));
 
         state.put(COUNT_KEY, countString);
-        stateManager.setState(state, SCOPE);
+        try {
+            stateManager.setState(state, SCOPE);
+        } catch (IOException e) {
+            getLogger().error("Failed to set the state after successfully processing {} due a failure when setting the state. Transferring to '{}'",
+                    new Object[]{flowFile, REL_FAILED_SET_STATE.getName()}, e);
+
+            session.transfer(flowFile, REL_FAILED_SET_STATE);
+            context.yield();
+            return;
+        }
+
+        Double mean = aggregateValue / count;
 
         Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
+        attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
 
         flowFile = session.putAllAttributes(flowFile, attributesToAdd);
 
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void microBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) throws IOException{
+    private void microBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {
         final StateManager stateManager = context.getStateManager();
 
-        Map<String, String> state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+        Map<String, String> state = null;
+        try {
+            state = new HashMap<>(stateManager.getState(SCOPE).toMap());
+        } catch (IOException e) {
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            session.transfer(flowFile);
+            context.yield();
+            return;
+        }
+
         String currBatchStart = state.get(CURRENT_MICRO_BATCH_STATE_TS_KEY);
         boolean newBatch = false;
         if(currBatchStart != null){
@@ -312,11 +353,21 @@ public class AttributeRollingWindow extends AbstractProcessor {
         state.put(currBatchStart + BATCH_APPEND_KEY, String.valueOf(currentBatchValue));
         state.put(currBatchStart + COUNT_APPEND_KEY, String.valueOf(currentBatchCount));
 
-        stateManager.setState(state, SCOPE);
+        try {
+            stateManager.setState(state, SCOPE);
+        } catch (IOException e) {
+            getLogger().error("Failed to get the initial state when processing {}; transferring FlowFile back to its incoming queue", new Object[]{flowFile}, e);
+            session.transfer(flowFile);
+            context.yield();
+            return;
+        }
+
+        Double mean = aggregateValue / count;
 
         Map<String, String> attributesToAdd = new HashMap<>();
         attributesToAdd.put(ROLLING_WINDOW_VALUE_KEY, String.valueOf(aggregateValue));
         attributesToAdd.put(ROLLING_WINDOW_COUNT_KEY, String.valueOf(count));
+        attributesToAdd.put(ROLLING_WINDOW_MEAN_KEY, String.valueOf(mean));
 
         flowFile = session.putAllAttributes(flowFile, attributesToAdd);
 
