@@ -1013,11 +1013,6 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
     function ProvenanceTableCtrl() {
 
         /**
-         * The max delay between requests.
-         */
-        this.MAX_DELAY = 4;
-
-        /**
          * The server time offset
          */
         this.serverTimeOffset = null;
@@ -1156,21 +1151,19 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                 $('#provenance-query-dialog').modal('hide');
             };
 
-            // polls the server for the status of the provenance, if the provenance is not
-            // done wait nextDelay seconds before trying again
-            var pollProvenance = function (nextDelay) {
+            // polls the server for the status of the provenance
+            var pollProvenance = function () {
                 getProvenance(provenance).done(function (response) {
                     // update the provenance
                     provenance = response.provenance;
 
                     // process the provenance
-                    processProvenanceResponse(nextDelay);
+                    processProvenanceResponse();
                 }).fail(closeDialog);
             };
 
-            // processes the provenance, if the provenance is not done wait delay
-            // before polling again
-            var processProvenanceResponse = function (delay) {
+            // processes the provenance
+            var processProvenanceResponse = function () {
                 // if the request was cancelled just ignore the current response
                 if (cancelled === true) {
                     closeDialog();
@@ -1202,13 +1195,9 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                         // clear the timer since we've been invoked
                         provenanceTimer = null;
 
-                        // calculate the next delay (back off)
-                        var backoff = delay * 2;
-                        var nextDelay = backoff > self.MAX_DELAY ? self.MAX_DELAY : backoff;
-
                         // poll provenance
-                        pollProvenance(nextDelay);
-                    }, delay * 1000);
+                        pollProvenance();
+                    }, 2000);
                 }
             };
 
@@ -1218,7 +1207,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
                 provenance = response.provenance;
 
                 // process the results, if they are not done wait 1 second before trying again
-                processProvenanceResponse(1);
+                processProvenanceResponse();
             }).fail(closeDialog);
         },
 

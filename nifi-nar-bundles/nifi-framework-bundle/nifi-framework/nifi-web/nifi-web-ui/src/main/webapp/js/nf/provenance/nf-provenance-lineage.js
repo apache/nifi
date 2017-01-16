@@ -816,17 +816,17 @@ nf.ng.ProvenanceLineage = function () {
                             };
 
                             // polls for the event lineage
-                            var pollLineage = function (nextDelay) {
+                            var pollLineage = function () {
                                 getLineage(lineage).done(function (response) {
                                     lineage = response.lineage;
 
-                                    // process the lineage, if its not done computing wait delay seconds before checking again
-                                    processLineage(nextDelay);
+                                    // process the lineage
+                                    processLineage();
                                 }).fail(closeDialog);
                             };
 
                             // processes the event lineage
-                            var processLineage = function (delay) {
+                            var processLineage = function () {
                                 // if the request was cancelled just ignore the current response
                                 if (cancelled === true) {
                                     closeDialog();
@@ -871,13 +871,9 @@ nf.ng.ProvenanceLineage = function () {
                                         // clear the timer since we've been invoked
                                         lineageTimer = null;
 
-                                        // calculate the next delay (back off)
-                                        var backoff = delay * 2;
-                                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
-
                                         // for the lineage
-                                        pollLineage(nextDelay);
-                                    }, delay * 1000);
+                                        pollLineage();
+                                    }, 2000);
                                 }
                             };
 
@@ -1335,18 +1331,17 @@ nf.ng.ProvenanceLineage = function () {
                 $('#lineage-query-dialog').modal('hide');
             };
 
-            // polls the server for the status of the lineage, if the lineage is not
-            // done wait nextDelay seconds before trying again
-            var pollLineage = function (nextDelay, provenanceTableCtrl) {
+            // polls the server for the status of the lineage
+            var pollLineage = function (provenanceTableCtrl) {
                 getLineage(lineage).done(function (response) {
                     lineage = response.lineage;
 
-                    // process the lineage, if its not done computing wait delay seconds before checking again
-                    processLineage(nextDelay, provenanceTableCtrl);
+                    // process the lineage
+                    processLineage(provenanceTableCtrl);
                 }).fail(closeDialog);
             };
 
-            var processLineage = function (delay, provenanceTableCtrl) {
+            var processLineage = function (provenanceTableCtrl) {
                 // if the request was cancelled just ignore the current response
                 if (cancelled === true) {
                     closeDialog();
@@ -1381,13 +1376,9 @@ nf.ng.ProvenanceLineage = function () {
                         // clear the timer since we've been invoked
                         lineageTimer = null;
 
-                        // calculate the next delay (back off)
-                        var backoff = delay * 2;
-                        var nextDelay = backoff > provenanceTableCtrl.MAX_DELAY ? provenanceTableCtrl.MAX_DELAY : backoff;
-
                         // poll lineage
-                        pollLineage(nextDelay, provenanceTableCtrl);
-                    }, delay * 1000);
+                        pollLineage(provenanceTableCtrl);
+                    }, 2000);
                 }
             };
 
@@ -1396,7 +1387,7 @@ nf.ng.ProvenanceLineage = function () {
                 lineage = response.lineage;
 
                 // process the results, if they are not done wait 1 second before trying again
-                processLineage(1, provenanceTableCtrl);
+                processLineage(provenanceTableCtrl);
             }).fail(closeDialog);
         }
     }

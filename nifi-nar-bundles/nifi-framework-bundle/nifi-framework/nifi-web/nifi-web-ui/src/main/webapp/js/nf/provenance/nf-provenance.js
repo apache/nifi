@@ -83,7 +83,7 @@ nf.ng.Provenance = function (provenanceTableCtrl) {
      */
     var loadAbout = function () {
         // get the about details
-        $.ajax({
+        return $.ajax({
             type: 'GET',
             url: config.urls.about,
             dataType: 'json'
