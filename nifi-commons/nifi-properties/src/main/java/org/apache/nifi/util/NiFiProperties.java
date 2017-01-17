@@ -152,9 +152,11 @@ public abstract class NiFiProperties {
     public static final String WEB_HTTP_PORT = "nifi.web.http.port";
     public static final String WEB_HTTP_PORT_FORWARDING = "nifi.web.http.port.forwarding";
     public static final String WEB_HTTP_HOST = "nifi.web.http.host";
+    public static final String WEB_HTTP_NETWORK_INTERFACE_PREFIX = "nifi.web.http.network.interface.";
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
     public static final String WEB_HTTPS_PORT_FORWARDING = "nifi.web.https.port.forwarding";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
+    public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.web.https.network.interface.";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
     public static final String WEB_THREADS = "nifi.web.jetty.threads";
 
@@ -1014,6 +1016,50 @@ public abstract class NiFiProperties {
         } else {
             return null;
         }
+    }
+
+    /**
+     * Returns the network interface list to use for HTTP. This method returns a mapping of
+     * network interface property names to network interface names.
+     *
+     * @return the property name and network interface name of all HTTP network interfaces
+     */
+    public Map<String, String> getHttpNetworkInterfaces() {
+        final Map<String, String> networkInterfaces = new HashMap<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTP_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property key
+                final String key = StringUtils.substringAfter(propertyName,
+                        WEB_HTTP_NETWORK_INTERFACE_PREFIX);
+                networkInterfaces.put(key, getProperty(propertyName));
+            }
+        }
+        return networkInterfaces;
+    }
+
+    /**
+     * Returns the network interface list to use for HTTPS. This method returns a mapping of
+     * network interface property names to network interface names.
+     *
+     * @return the property name and network interface name of all HTTPS network interfaces
+     */
+    public Map<String, String> getHttpsNetworkInterfaces() {
+        final Map<String, String> networkInterfaces = new HashMap<>();
+
+        // go through each property
+        for (String propertyName : getPropertyKeys()) {
+            // determine if the property is a network interface name
+            if (StringUtils.startsWith(propertyName, WEB_HTTPS_NETWORK_INTERFACE_PREFIX)) {
+                // get the network interface property key
+                final String key = StringUtils.substringAfter(propertyName,
+                        WEB_HTTPS_NETWORK_INTERFACE_PREFIX);
+                networkInterfaces.put(key, getProperty(propertyName));
+            }
+        }
+        return networkInterfaces;
     }
 
     public int size() {
