@@ -119,8 +119,10 @@
         <nifi.web.war.directory>./lib</nifi.web.war.directory>
         <nifi.web.http.host />
         <nifi.web.http.port>8080</nifi.web.http.port>
+        <nifi.web.http.network.interface.default />
         <nifi.web.https.host />
         <nifi.web.https.port />
+        <nifi.web.https.network.interface.default />
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
 

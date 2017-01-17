@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.server;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -85,9 +87,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 
 /**
  * Encapsulates the Jetty instance.
@@ -569,17 +573,43 @@ public class JettyServer implements NiFiServer {
 
             logger.info("Configuring Jetty for HTTP on port: " + port);
 
-            // create the connector
-            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+            final List<Connector> serverConnectors = Lists.newArrayList();
 
-            // set host and port
-            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
-                http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
+            final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
+            if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+                // create the connector
+                final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+                // set host and port
+                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTP_HOST))) {
+                    http.setHost(props.getProperty(NiFiProperties.WEB_HTTP_HOST));
+                }
+                http.setPort(port);
+                serverConnectors.add(http);
+            } else {
+                // add connectors for all IPs from http network interfaces
+                serverConnectors.addAll(Lists.newArrayList(httpNetworkInterfaces.values().stream().map(ifaceName -> {
+                    NetworkInterface iface = null;
+                    try {
+                        iface = NetworkInterface.getByName(ifaceName);
+                    } catch (SocketException e) {
+                        logger.error("Unable to get network interface by name {}", ifaceName, e);
+                    }
+                    if (iface == null) {
+                        logger.warn("Unable to find network interface named {}", ifaceName);
+                    }
+                    return iface;
+                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
+                        .map(inetAddress -> {
+                            // create the connector
+                            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
+                            // set host and port
+                            http.setHost(inetAddress.getHostAddress());
+                            http.setPort(port);
+                            return http;
+                        }).collect(Collectors.toList())));
             }
-            http.setPort(port);
-
-            // add this connector
-            server.addConnector(http);
+            // add all connectors
+            serverConnectors.forEach(server::addConnector);
         }
 
         if (props.getSslPort() != null) {
@@ -590,26 +620,57 @@ public class JettyServer implements NiFiServer {
 
             logger.info("Configuring Jetty for HTTPs on port: " + port);
 
-            // add some secure config
-            final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
-            httpsConfiguration.setSecureScheme("https");
-            httpsConfiguration.setSecurePort(props.getSslPort());
-            httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
+            final List<Connector> serverConnectors = Lists.newArrayList();
 
-            // build the connector
-            final ServerConnector https = new ServerConnector(server,
-                    new SslConnectionFactory(createSslContextFactory(), "http/1.1"),
-                    new HttpConnectionFactory(httpsConfiguration));
+            final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
+            if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+                final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
 
-            // set host and port
-            if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
-                https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
+                // set host and port
+                if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.WEB_HTTPS_HOST))) {
+                    https.setHost(props.getProperty(NiFiProperties.WEB_HTTPS_HOST));
+                }
+                https.setPort(port);
+                serverConnectors.add(https);
+            } else {
+                // add connectors for all IPs from https network interfaces
+                serverConnectors.addAll(Lists.newArrayList(httpsNetworkInterfaces.values().stream().map(ifaceName -> {
+                    NetworkInterface iface = null;
+                    try {
+                        iface = NetworkInterface.getByName(ifaceName);
+                    } catch (SocketException e) {
+                        logger.error("Unable to get network interface by name {}", ifaceName, e);
+                    }
+                    if (iface == null) {
+                        logger.warn("Unable to find network interface named {}", ifaceName);
+                    }
+                    return iface;
+                }).filter(Objects::nonNull).flatMap(iface -> Collections.list(iface.getInetAddresses()).stream())
+                        .map(inetAddress -> {
+                            final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
+
+                            // set host and port
+                            https.setHost(inetAddress.getHostAddress());
+                            https.setPort(port);
+                            return https;
+                        }).collect(Collectors.toList())));
             }
-            https.setPort(port);
-
-            // add this connector
-            server.addConnector(https);
+            // add all connectors
+            serverConnectors.forEach(server::addConnector);
         }
+    }
+
+    private ServerConnector createUnconfiguredSslServerConnector(Server server, HttpConfiguration httpConfiguration) {
+        // add some secure config
+        final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
+        httpsConfiguration.setSecureScheme("https");
+        httpsConfiguration.setSecurePort(props.getSslPort());
+        httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
+
+        // build the connector
+        return new ServerConnector(server,
+                new SslConnectionFactory(createSslContextFactory(), "http/1.1"),
+                new HttpConnectionFactory(httpsConfiguration));
     }
 
     private SslContextFactory createSslContextFactory() {
