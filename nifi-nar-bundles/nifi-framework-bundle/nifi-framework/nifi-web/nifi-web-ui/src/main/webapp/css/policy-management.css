@@ -163,6 +163,10 @@ div.policy-selected-component-type {
     background-color: #fff;
 }
 
+#policy-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
 #policy-refresh-container {
     position: absolute;
     bottom: 20px;
