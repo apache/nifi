@@ -786,6 +786,8 @@
                                 assets/**/*,
                                 css/common-ui.css,
                                 css/common-ui.css.gz,
+                                css/slick-nifi-theme.css,
+                                css/slick-nifi-theme.css.gz,
                                 css/message-page.css,
                                 css/message-page.css.gz,
                                 css/message-pane.css,
