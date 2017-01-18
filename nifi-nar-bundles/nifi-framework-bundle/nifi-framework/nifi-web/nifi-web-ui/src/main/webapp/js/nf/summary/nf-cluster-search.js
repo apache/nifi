@@ -148,7 +148,7 @@ nf.ClusterSearch = (function () {
 
                     var self = this;
                     $.each(searchResults.nodeResults, function (_, node) {
-                        self._renderItemData(ul, {
+                        self._renderItem(ul, {
                             label: node.address,
                             value: node.address
                         });
@@ -161,7 +161,11 @@ nf.ClusterSearch = (function () {
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
-                    ul.width($('#cluster-search-field').width() + 6);
+                    ul.width($('#cluster-search-field').outerWidth() - 2);
+                },
+                _renderItem: function (ul, match) {
+                    var itemContent = $('<a></a>').text(match.label);
+                    return $('<li></li>').data('ui-autocomplete-item', match).append(itemContent).appendTo(ul);
                 }
             });
 

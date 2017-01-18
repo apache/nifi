@@ -96,16 +96,7 @@ div.search-match {
 
 #search-cluster-results .ui-autocomplete {
     max-height: 300px;
-    overflow: auto;
-    border: 1px solid #aaaaaa;
     z-index: 1351;
-    border-radius: 0;
-}
-
-#search-cluster-results .ui-menu .ui-menu-item a.ui-state-active {
-    background: #D4E0E5 !important;
-    border: 1px solid #999999;
-    border-radius: 0;
 }
 
 input.search-nodes {
@@ -192,6 +183,8 @@ input.search-nodes {
 #content-repository-storage-usage-container {
     height: 179px;
     overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 4px;
 }
 
 #content-repository-storage-usage-container div.storage-usage {
@@ -296,6 +289,10 @@ div.summary-table {
     overflow: hidden;
     background-color: #fff;
     min-height: 150px;
+}
+
+div.summary-table div.slick-viewport {
+    overflow-x: hidden !important;
 }
 
 span.sorted {

@@ -84,7 +84,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                     },
                     _resizeMenu: function () {
                         var ul = this.menu.element;
-                        ul.width(399);
+                        ul.width(400);
                     },
                     _normalize: function (searchResults) {
                         var items = [];

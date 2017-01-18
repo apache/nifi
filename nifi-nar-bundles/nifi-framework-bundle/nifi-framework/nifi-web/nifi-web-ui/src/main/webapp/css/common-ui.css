@@ -594,7 +594,7 @@ md-progress-linear > div {
     font-weight: 500;
 }
 
-.setting-header{
+.setting-header {
     color: #728e9b;
     font-size: 12pt;
     font-family: 'Roboto Slab';
@@ -610,4 +610,26 @@ md-progress-linear > div {
     background-color: #fff;
     cursor: default;
     line-height: normal;
+}
+
+/* jquery ui autocomplete override */
+
+.ui-autocomplete {
+    overflow: auto !important;
+    border: 1px solid #aaaaaa !important;
+    font-size: 12px !important;
+    font-family: Roboto !important;
+}
+
+.ui-menu .ui-menu-item a {
+    display: block;
+    border: 1px solid transparent;
+    line-height: 1.5;
+    margin: 0 !important;
+    color: #333 !important;
+}
+
+.ui-menu .ui-menu-item a.ui-state-active {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
 }
