@@ -142,20 +142,12 @@ input.search-flow {
 
 #search-flow-results .ui-autocomplete {
     max-height: 400px;
-    overflow: auto;
-    border: 1px solid #aaaaaa;
     z-index: 1251;
-    border-radius: 0;
-}
-
-#search-flow-results .ui-menu .ui-menu-item a.ui-state-active {
-    background: #D4E0E5 !important;
-    border: 1px solid #999999;
-    border-radius: 0;
 }
 
 #search-flow-results li.search-header {
     font-weight: bold;
+    color: #222 !important;
     padding-top: 4px;
     padding-left: 4px;
     padding-right: 4px;
@@ -170,8 +162,9 @@ input.search-flow {
 #search-flow-results div.search-match {
     margin-left: 26px;
     color: #888;
-    font-size: 10px;
-    line-height: 1.4em;
+    font-size: 11px;
+    line-height: 1.4;
+    word-break: break-all;
 }
 
 div.search-glass-pane {

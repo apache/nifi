@@ -338,6 +338,10 @@ div.content-detail-value {
     min-height: 150px;
 }
 
+#provenance-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
 /* provenance lineage */
 
 #provenance-lineage {

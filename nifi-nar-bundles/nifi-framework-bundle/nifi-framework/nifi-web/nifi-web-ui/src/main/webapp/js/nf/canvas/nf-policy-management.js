@@ -154,7 +154,7 @@ nf.PolicyManagement = (function () {
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
-                ul.width($('#search-users-field').outerWidth() - 6);
+                ul.width($('#search-users-field').outerWidth() - 2);
             },
             _renderUser: function (ul, match) {
                 var userContent = $('<a></a>').text(match.component.identity);
