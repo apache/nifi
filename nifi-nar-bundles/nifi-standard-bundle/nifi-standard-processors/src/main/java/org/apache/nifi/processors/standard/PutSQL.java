@@ -761,6 +761,8 @@ public class PutSQL extends AbstractProcessor {
         } else {
             switch (jdbcType) {
                 case Types.BIT:
+                    stmt.setBoolean(parameterIndex, "1".equals(parameterValue) || "t".equalsIgnoreCase(parameterValue) || Boolean.parseBoolean(parameterValue));
+                     break;
                 case Types.BOOLEAN:
                     stmt.setBoolean(parameterIndex, Boolean.parseBoolean(parameterValue));
                     break;
