@@ -37,6 +37,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+
 public class TestConvertJSONToSQL {
     static String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
 
@@ -70,6 +73,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -106,6 +110,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -140,6 +145,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -175,6 +181,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.VARCHAR));
@@ -210,6 +217,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "5");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 5);
         final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL);
         for (final MockFlowFile mff : mffs) {
@@ -245,6 +253,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "5");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 5);
         final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL);
         for (final MockFlowFile mff : mffs) {
@@ -279,6 +288,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.VARCHAR));
@@ -314,6 +324,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.VARCHAR));
@@ -349,6 +360,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
 
@@ -384,6 +396,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -420,6 +433,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -455,6 +469,9 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -590,6 +607,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -625,6 +643,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -687,6 +706,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));
@@ -724,6 +744,7 @@ public class TestConvertJSONToSQL {
         runner.run();
 
         runner.assertTransferCount(ConvertJSONToSQL.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "1");
         runner.assertTransferCount(ConvertJSONToSQL.REL_SQL, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(ConvertJSONToSQL.REL_SQL).get(0);
         out.assertAttributeEquals("sql.args.1.type", String.valueOf(java.sql.Types.INTEGER));

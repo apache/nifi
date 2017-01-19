@@ -24,14 +24,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.distributed.cache.client.Deserializer;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
-import org.apache.nifi.processors.standard.util.FlowFileAttributesSerializer;
+import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -60,7 +53,7 @@ public class TestWait {
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "1");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[]{}, props);
 
         runner.run();
 
@@ -76,7 +69,7 @@ public class TestWait {
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "1");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[]{}, props);
 
         runner.run();
 
@@ -94,6 +87,45 @@ public class TestWait {
     }
 
     @Test
+    public void testCounterExpired() throws InitializationException, InterruptedException, IOException {
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "5");
+        runner.setProperty(Wait.EXPIRATION_DURATION, "100 ms");
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("releaseSignalAttribute", "notification-id");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+
+        runner.clearTransferState();
+        runner.enqueue(ff);
+
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        final Map<String, String> signalAttributes = new HashMap<>();
+        signalAttributes.put("signal-attr-1", "signal-attr-1-value");
+        signalAttributes.put("signal-attr-2", "signal-attr-2-value");
+        protocol.notify("notification-id", "counter-A", 1, signalAttributes);
+        protocol.notify("notification-id", "counter-B", 2, signalAttributes);
+
+        Thread.sleep(101L);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(Wait.REL_EXPIRED, 1);
+        ff = runner.getFlowFilesForRelationship(Wait.REL_EXPIRED).get(0);
+        // Even if wait didn't complete, signal attributes should be set
+        ff.assertAttributeEquals("wait.counter.total", "3");
+        ff.assertAttributeEquals("wait.counter.counter-A", "1");
+        ff.assertAttributeEquals("wait.counter.counter-B", "2");
+        ff.assertAttributeEquals("signal-attr-1", "signal-attr-1-value");
+        ff.assertAttributeEquals("signal-attr-2", "signal-attr-2-value");
+        runner.clearTransferState();
+    }
+
+    @Test
     public void testBadWaitStartTimestamp() throws InitializationException, InterruptedException {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.EXPIRATION_DURATION, "100 ms");
@@ -101,7 +133,7 @@ public class TestWait {
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "1");
         props.put("wait.start.timestamp", "blue bunny");
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[]{}, props);
 
         runner.run();
 
@@ -114,11 +146,12 @@ public class TestWait {
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
 
         final Map<String, String> props = new HashMap<>();
-        runner.enqueue(new byte[] {},props);
+        runner.enqueue(new byte[]{}, props);
 
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
+        runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists("wait.counter.total");
         runner.clearTransferState();
     }
 
@@ -129,12 +162,13 @@ public class TestWait {
 
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
-        runner.enqueue(new byte[] {}, props);
+        runner.enqueue(new byte[]{}, props);
         runner.run();
 
         //Expect the processor to receive an IO exception from the cache service and route to failure
         runner.assertAllFlowFilesTransferred(Wait.REL_FAILURE, 1);
         runner.assertTransferCount(Wait.REL_FAILURE, 1);
+        runner.getFlowFilesForRelationship(Wait.REL_FAILURE).get(0).assertAttributeNotExists("wait.counter.total");
 
         service.setFailOnCalls(false);
     }
@@ -146,7 +180,10 @@ public class TestWait {
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
 
-        service.put("key", cachedAttributes, new Wait.StringSerializer(), new FlowFileAttributesSerializer());
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        protocol.notify("key", "default", 1, cachedAttributes);
+
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.ATTRIBUTE_COPY_MODE, Wait.ATTRIBUTE_COPY_REPLACE.getValue());
 
@@ -159,7 +196,7 @@ public class TestWait {
         runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
 
         // make sure the key is in the cache before Wait runs
-        assertNotNull(service.get("key", new Wait.StringSerializer(), new FlowFileAttributesSerializer()));
+        assertNotNull(protocol.getSignal("key"));
 
         runner.run();
 
@@ -180,7 +217,7 @@ public class TestWait {
         runner.clearTransferState();
 
         // make sure Wait removed this key from the cache
-        assertNull(service.get("key", new Wait.StringSerializer(), new FlowFileAttributesSerializer()));
+        assertNull(protocol.getSignal("key"));
     }
 
     @Test
@@ -190,7 +227,10 @@ public class TestWait {
         cachedAttributes.put("uuid", "notifyUuid");
         cachedAttributes.put("notify.only", "notifyValue");
 
-        service.put("key", cachedAttributes, new Wait.StringSerializer(), new FlowFileAttributesSerializer());
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        protocol.notify("key", "default", 1, cachedAttributes);
+
         runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Wait.ATTRIBUTE_COPY_MODE, Wait.ATTRIBUTE_COPY_KEEP_ORIGINAL.getValue());
 
@@ -221,70 +261,181 @@ public class TestWait {
         runner.clearTransferState();
     }
 
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
-        private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
-        private boolean failOnCalls = false;
+    @Test
+    public void testWaitForTotalCount() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("both", "notifyValue");
+        cachedAttributes.put("uuid", "notifyUuid");
+        cachedAttributes.put("notify.only", "notifyValue");
 
-        public void setFailOnCalls(boolean failOnCalls){
-            this.failOnCalls = failOnCalls;
-        }
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        protocol.notify("key", "counter-A", 1, cachedAttributes);
 
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "${targetSignalCount}");
 
-        private void verifyNotFail() throws IOException {
-            if (failOnCalls) {
-                throw new IOException("Could not call to remote service because Unit Test marked service unavailable");
-            }
-        }
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("targetSignalCount", "3");
+        waitAttributes.put("wait.only", "waitValue");
+        waitAttributes.put("both", "waitValue");
+        waitAttributes.put("uuid", UUID.randomUUID().toString());
+        String flowFileContent = "content";
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
 
-        @Override
-        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            final Object retValue = values.putIfAbsent(key, value);
-            return (retValue == null);
-        }
+        /*
+         * 1st iteration
+         */
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
 
-        @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-            final Deserializer<V> valueDeserializer) throws IOException {
-            verifyNotFail();
-            return (V) values.putIfAbsent(key, value);
-        }
+        /*
+         * 2nd iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
 
-        @Override
-        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
-            verifyNotFail();
-            return values.containsKey(key);
-        }
+        // Notify with other counter.
+        protocol.notify("key", "counter-B", 1, cachedAttributes);
 
-        @Override
-        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-            verifyNotFail();
-            values.put(key, value);
-        }
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        // Still waiting since total count doesn't reach to 3.
+        waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
 
-        @Override
-        @SuppressWarnings("unchecked")
-        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
-            verifyNotFail();
-            if(values.containsKey(key)) {
-                return (V) values.get(key);
-            } else {
-                return null;
-            }
-        }
+        /*
+         * 3rd iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
 
-        @Override
-        public void close() throws IOException {
-        }
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        // Still waiting since total count doesn't reach to 3.
+        waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
 
-        @Override
-        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
-            verifyNotFail();
-            values.remove(key);
-            return true;
-        }
+        /*
+         * 4th iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
+
+        // Notify with other counter.
+        protocol.notify("key", "counter-C", 1, cachedAttributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+
+        // show a new attribute was copied from the cache
+        assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
+        // show that uuid was not overwritten
+        assertEquals(waitAttributes.get("uuid"), outputFlowFile.getAttribute("uuid"));
+        // show that the original attributes are still there
+        assertEquals("waitValue", outputFlowFile.getAttribute("wait.only"));
+        // show that the original attribute is kept
+        assertEquals("waitValue", outputFlowFile.getAttribute("both"));
+        runner.clearTransferState();
+
+        assertNull("The key no longer exist", protocol.getSignal("key"));
     }
 
+
+    @Test
+    public void testWaitForSpecificCount() throws InitializationException, IOException {
+        Map<String, String> cachedAttributes = new HashMap<>();
+        cachedAttributes.put("both", "notifyValue");
+        cachedAttributes.put("uuid", "notifyUuid");
+        cachedAttributes.put("notify.only", "notifyValue");
+
+        // Setup existing cache entry.
+        final WaitNotifyProtocol protocol = new WaitNotifyProtocol(service);
+        protocol.notify("key", "counter-A", 1, cachedAttributes);
+
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.TARGET_SIGNAL_COUNT, "${targetSignalCount}");
+        runner.setProperty(Wait.SIGNAL_COUNTER_NAME, "${signalCounterName}");
+
+        final Map<String, String> waitAttributes = new HashMap<>();
+        waitAttributes.put("releaseSignalAttribute", "key");
+        waitAttributes.put("targetSignalCount", "2");
+        waitAttributes.put("signalCounterName", "counter-B");
+        waitAttributes.put("wait.only", "waitValue");
+        waitAttributes.put("both", "waitValue");
+        waitAttributes.put("uuid", UUID.randomUUID().toString());
+        String flowFileContent = "content";
+        runner.enqueue(flowFileContent.getBytes("UTF-8"), waitAttributes);
+
+        /*
+         * 1st iteration
+         */
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        MockFlowFile waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+
+        /*
+         * 2nd iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
+
+        // Notify with target counter.
+        protocol.notify("key", "counter-B", 1, cachedAttributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        // Still waiting since counter-B doesn't reach to 2.
+        waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+
+        /*
+         * 3rd iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
+
+        // Notify with other counter.
+        protocol.notify("key", "counter-C", 1, cachedAttributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        // Still waiting since total count doesn't reach to 3.
+        waitingFlowFile = runner.getFlowFilesForRelationship(Wait.REL_WAIT).get(0);
+
+        /*
+         * 4th iteration.
+         */
+        runner.clearTransferState();
+        runner.enqueue(waitingFlowFile);
+
+        // Notify with target counter.
+        protocol.notify("key", "counter-B", 1, cachedAttributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Wait.REL_SUCCESS, 1);
+
+        final MockFlowFile outputFlowFile = runner.getFlowFilesForRelationship(Wait.REL_SUCCESS).get(0);
+
+        // show a new attribute was copied from the cache
+        assertEquals("notifyValue", outputFlowFile.getAttribute("notify.only"));
+        // show that uuid was not overwritten
+        assertEquals(waitAttributes.get("uuid"), outputFlowFile.getAttribute("uuid"));
+        // show that the original attributes are still there
+        assertEquals("waitValue", outputFlowFile.getAttribute("wait.only"));
+        // show that the original attribute is kept
+        assertEquals("waitValue", outputFlowFile.getAttribute("both"));
+
+        outputFlowFile.assertAttributeEquals("wait.counter.total", "4");
+        outputFlowFile.assertAttributeEquals("wait.counter.counter-A", "1");
+        outputFlowFile.assertAttributeEquals("wait.counter.counter-B", "2");
+        outputFlowFile.assertAttributeEquals("wait.counter.counter-C", "1");
+
+        runner.clearTransferState();
+
+        assertNull("The key no longer exist", protocol.getSignal("key"));
+
+    }
 
 }

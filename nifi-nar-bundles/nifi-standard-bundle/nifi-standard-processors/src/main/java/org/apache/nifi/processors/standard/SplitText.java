@@ -48,6 +48,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -86,11 +87,11 @@ import org.apache.nifi.stream.io.util.TextLineDemarcator.OffsetInfo;
 public class SplitText extends AbstractProcessor {
     // attribute keys
     public static final String SPLIT_LINE_COUNT = "text.line.count";
-    public static final String FRAGMENT_SIZE = "fragment.size";
-    public static final String FRAGMENT_ID = "fragment.identifier";
-    public static final String FRAGMENT_INDEX = "fragment.index";
-    public static final String FRAGMENT_COUNT = "fragment.count";
-    public static final String SEGMENT_ORIGINAL_FILENAME = "segment.original.filename";
+    public static final String FRAGMENT_SIZE = FragmentAttributes.FRAGMENT_SIZE.key();
+    public static final String FRAGMENT_ID = FragmentAttributes.FRAGMENT_ID.key();
+    public static final String FRAGMENT_INDEX = FragmentAttributes.FRAGMENT_INDEX.key();
+    public static final String FRAGMENT_COUNT = FragmentAttributes.FRAGMENT_COUNT.key();
+    public static final String SEGMENT_ORIGINAL_FILENAME = FragmentAttributes.SEGMENT_ORIGINAL_FILENAME.key();
 
     public static final PropertyDescriptor LINE_SPLIT_COUNT = new PropertyDescriptor.Builder()
             .name("Line Split Count")
@@ -250,8 +251,10 @@ public class SplitText extends AbstractProcessor {
         if (error.get()){
             processSession.transfer(sourceFlowFile, REL_FAILURE);
         } else {
-            List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
-            processSession.transfer(sourceFlowFile, REL_ORIGINAL);
+            final String fragmentId = UUID.randomUUID().toString();
+            List<FlowFile> splitFlowFiles = this.generateSplitFlowFiles(fragmentId, sourceFlowFile, headerSplitInfoRef.get(), computedSplitsInfo, processSession);
+            final FlowFile originalFlowFile = FragmentAttributes.copyAttributesToOriginal(processSession, sourceFlowFile, fragmentId, splitFlowFiles.size());
+            processSession.transfer(originalFlowFile, REL_ORIGINAL);
             if (!splitFlowFiles.isEmpty()) {
                 processSession.transfer(splitFlowFiles, REL_SPLITS);
             }
@@ -279,7 +282,8 @@ public class SplitText extends AbstractProcessor {
      * it signifies the header information and its contents will be included in
      * each and every computed split.
      */
-    private List<FlowFile> generateSplitFlowFiles(FlowFile sourceFlowFile, SplitInfo splitInfo, List<SplitInfo> computedSplitsInfo, ProcessSession processSession){
+    private List<FlowFile> generateSplitFlowFiles(final String fragmentId, FlowFile sourceFlowFile, SplitInfo splitInfo,
+                                                  List<SplitInfo> computedSplitsInfo, ProcessSession processSession){
         List<FlowFile> splitFlowFiles = new ArrayList<>();
         FlowFile headerFlowFile = null;
         long headerCrlfLength = 0;
@@ -288,7 +292,6 @@ public class SplitText extends AbstractProcessor {
             headerCrlfLength = splitInfo.trimmedLength;
         }
         int fragmentIndex = 1; // set to 1 to preserve the existing behavior *only*. Perhaps should be deprecated to follow the 0,1,2... scheme
-        String fragmentId = UUID.randomUUID().toString();
 
         if ((computedSplitsInfo.size() == 0) && (headerFlowFile != null)) {
             FlowFile splitFlowFile = processSession.clone(sourceFlowFile, 0, headerFlowFile.getSize() - headerCrlfLength);

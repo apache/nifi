@@ -64,6 +64,12 @@ import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -161,9 +167,9 @@ public class SplitXml extends AbstractProcessor {
         final XmlSplitterSaxParser parser = new XmlSplitterSaxParser(xmlTree -> {
             FlowFile split = session.create(original);
             split = session.write(split, out -> out.write(xmlTree.getBytes("UTF-8")));
-            split = session.putAttribute(split, "fragment.identifier", fragmentIdentifier);
-            split = session.putAttribute(split, "fragment.index", Integer.toString(numberOfRecords.getAndIncrement()));
-            split = session.putAttribute(split, "segment.original.filename", split.getAttribute(CoreAttributes.FILENAME.key()));
+            split = session.putAttribute(split, FRAGMENT_ID.key(), fragmentIdentifier);
+            split = session.putAttribute(split, FRAGMENT_INDEX.key(), Integer.toString(numberOfRecords.getAndIncrement()));
+            split = session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
             splits.add(split);
         }, depth);
 
@@ -188,12 +194,13 @@ public class SplitXml extends AbstractProcessor {
             session.remove(splits);
         } else {
             splits.forEach((split) -> {
-                split = session.putAttribute(split, "fragment.count", Integer.toString(numberOfRecords.get()));
+                split = session.putAttribute(split, FRAGMENT_COUNT.key(), Integer.toString(numberOfRecords.get()));
                 session.transfer(split, REL_SPLIT);
             });
 
-            session.transfer(original, REL_ORIGINAL);
-            logger.info("Split {} into {} FlowFiles", new Object[]{original, splits.size()});
+            final FlowFile originalToTransfer = copyAttributesToOriginal(session, original, fragmentIdentifier, numberOfRecords.get());
+            session.transfer(originalToTransfer, REL_ORIGINAL);
+            logger.info("Split {} into {} FlowFiles", new Object[]{originalToTransfer, splits.size()});
         }
     }
 
