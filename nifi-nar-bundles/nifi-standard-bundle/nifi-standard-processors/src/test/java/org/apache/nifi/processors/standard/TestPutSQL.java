@@ -352,6 +352,123 @@ public class TestPutSQL {
     }
 
     @Test
+    public void testBitType() throws SQLException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE BITTESTS (id integer primary key, bt1 BOOLEAN)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final byte[] insertStatement = "INSERT INTO BITTESTS (ID, bt1) VALUES (?, ?)".getBytes();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "1");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "2");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "0");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "3");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "-5");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "4");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "t");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "5");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "f");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "6");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "T");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "7");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "true");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "8");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "false");
+        runner.enqueue(insertStatement, attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 8);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM BITTESTS");
+
+                //First test (true)
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Second test (false)
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Third test (false)
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Fourth test (true)
+                assertTrue(rs.next());
+                assertEquals(4, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Fifth test (false)
+                assertTrue(rs.next());
+                assertEquals(5, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Sixth test (true)
+                assertTrue(rs.next());
+                assertEquals(6, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Seventh test (true)
+                assertTrue(rs.next());
+                assertEquals(7, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Eighth test (false)
+                assertTrue(rs.next());
+                assertEquals(8, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                assertFalse(rs.next());
+            }
+        }
+
+    }
+
+    @Test
     public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
         try (final Connection conn = service.getConnection()) {
