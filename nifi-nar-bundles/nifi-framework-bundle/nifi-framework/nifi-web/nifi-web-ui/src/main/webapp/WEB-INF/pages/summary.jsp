@@ -90,5 +90,6 @@
         <jsp:include page="/WEB-INF/partials/summary/cluster-process-group-summary-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/system-diagnostics-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/view-single-node-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/shell.jsp"/>
     </body>
 </html>
