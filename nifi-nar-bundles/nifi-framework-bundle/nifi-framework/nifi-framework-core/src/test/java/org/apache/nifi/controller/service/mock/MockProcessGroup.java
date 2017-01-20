@@ -558,6 +558,10 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanAddTemplate(String name, boolean override) {
+    }
+
+    @Override
     public void addTemplate(final Template template) {
         throw new UnsupportedOperationException();
     }

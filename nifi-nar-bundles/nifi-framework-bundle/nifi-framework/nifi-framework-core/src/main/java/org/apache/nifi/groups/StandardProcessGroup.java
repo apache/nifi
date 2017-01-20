@@ -2288,6 +2288,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void verifyCanAddTemplate(final String name) {
+        verifyCanAddTemplate(name, false);
+    }
+
+    @Override
+    public void verifyCanAddTemplate(final String name, boolean override) {
         // ensure the name is specified
         if (StringUtils.isBlank(name)) {
             throw new IllegalArgumentException("Template name cannot be blank.");
@@ -2296,9 +2301,13 @@ public final class StandardProcessGroup implements ProcessGroup {
         for (final Template template : getRoot().findAllTemplates()) {
             final TemplateDTO existingDto = template.getDetails();
 
-            // ensure a template with this name doesnt already exist
             if (name.equals(existingDto.getName())) {
-                throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
+                if(override) {
+                    getRoot().removeTemplate(template);
+                    break;
+                } else {
+                    throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
+                }
             }
         }
     }

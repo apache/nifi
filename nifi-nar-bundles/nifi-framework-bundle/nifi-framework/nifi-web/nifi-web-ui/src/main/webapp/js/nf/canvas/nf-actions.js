@@ -1397,7 +1397,8 @@ nf.Actions = (function () {
                             var createSnippetEntity = {
                                 'name': templateName,
                                 'description': templateDescription,
-                                'snippetId': response.snippet.id
+                                'snippetId': response.snippet.id,
+                                'override': false
                             };
 
                             // create the template
@@ -1417,7 +1418,43 @@ nf.Actions = (function () {
                                 // clear the template dialog fields
                                 $('#new-template-name').val('');
                                 $('#new-template-description').val('');
-                            }).fail(nf.Common.handleAjaxError);
+                            }).fail(function () {
+                                // prompt the user before emptying the queue
+                                nf.Dialog.showYesNoDialog({
+                                    headerText: 'Override template',
+                                    dialogContent: "A template named '" + nf.Common.escapeHtml(templateName) + "' already exists. Do you want to override it?",
+                                    noText: 'No',
+                                    yesText: 'Yes',
+                                    yesHandler: function () {
+                                    	
+                                    	var createSnippetEntity = {
+                                            'name': templateName,
+                                            'description': templateDescription,
+                                            'snippetId': response.snippet.id,
+                                            'override': true
+                                        };
+
+                                        // create the template
+                                        $.ajax({
+                                            type: 'POST',
+                                            url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates',
+                                            data: JSON.stringify(createSnippetEntity),
+                                            dataType: 'json',
+                                            contentType: 'application/json'
+                                        }).done(function () {
+                                            // show the confirmation dialog
+                                            nf.Dialog.showOkDialog({
+                                                headerText: 'Update Template',
+                                                dialogContent: "Template '" + nf.Common.escapeHtml(templateName) + "' was successfully updated."
+                                            });
+                                        }).always(function () {
+                                            // clear the template dialog fields
+                                            $('#new-template-name').val('');
+                                            $('#new-template-description').val('');
+                                        }).fail(nf.Common.handleAjaxError);	
+                                    }
+                                });	
+                            });
                         }).fail(nf.Common.handleAjaxError);
                     }
                 }

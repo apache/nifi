@@ -57,16 +57,17 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     @Override
     public void verifyCanAddTemplate(String name, String groupId) {
+        verifyCanAddTemplate(name, groupId, false);
+    }
+
+    @Override
+    public void verifyCanAddTemplate(String name, String groupId, boolean override) {
         final ProcessGroup processGroup = flowController.getGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
 
-        verifyAdd(name, processGroup);
-    }
-
-    private void verifyAdd(final String name, final ProcessGroup processGroup) {
-        processGroup.verifyCanAddTemplate(name);
+        processGroup.verifyCanAddTemplate(name, override);
     }
 
     @Override
@@ -76,12 +77,17 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     @Override
     public Template createTemplate(TemplateDTO templateDTO, String groupId) {
+        return createTemplate(templateDTO, groupId, false);
+    }
+
+    @Override
+    public Template createTemplate(TemplateDTO templateDTO, String groupId, boolean override) {
         final ProcessGroup processGroup = flowController.getGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
 
-        verifyAdd(templateDTO.getName(), processGroup);
+        processGroup.verifyCanAddTemplate(templateDTO.getName(), override);
 
         TemplateUtils.scrubTemplate(templateDTO);
         final Template template = new Template(templateDTO);

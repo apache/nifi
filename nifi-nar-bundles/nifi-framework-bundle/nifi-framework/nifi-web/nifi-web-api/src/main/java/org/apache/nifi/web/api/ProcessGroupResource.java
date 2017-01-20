@@ -24,6 +24,7 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
@@ -1998,11 +1999,11 @@ public class ProcessGroupResource extends ApplicationResource {
                 lookup -> {
                     authorizeSnippetUsage(lookup, groupId, requestCreateTemplateRequestEntity.getSnippetId(), true);
                 },
-                () -> serviceFacade.verifyCanAddTemplate(groupId, requestCreateTemplateRequestEntity.getName()),
+                () -> serviceFacade.verifyCanAddTemplate(groupId, requestCreateTemplateRequestEntity.getName(), requestCreateTemplateRequestEntity.getOverride()),
                 createTemplateRequestEntity -> {
                     // create the template and generate the json
                     final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
-                            createTemplateRequestEntity.getSnippetId(), groupId, getIdGenerationSeed());
+                            createTemplateRequestEntity.getSnippetId(), createTemplateRequestEntity.getOverride(), groupId, getIdGenerationSeed());
                     templateResource.populateRemainingTemplateContent(template);
 
                     // build the response entity

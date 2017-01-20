@@ -769,6 +769,14 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable {
      */
     void verifyCanAddTemplate(String name);
 
+    /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param name name of the template
+     * @param override determines if template should override existing template
+     */
+    void verifyCanAddTemplate(String name, boolean override);
+
     void verifyCanDelete();
 
     /**
