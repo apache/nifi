@@ -15,9 +15,27 @@
  * limitations under the License.
  */
 
-/* global nf, CodeMirror */
+/* global nf, define, module, require, exports */
 
-nf.nfel = (function() {
+/* requires qtip plugin to be loaded first*/
+
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'CodeMirror'],
+            function ($, CodeMirror) {
+                return (nf.nfel = factory($, CodeMirror));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.nfel =
+            factory(require('jquery'),
+                require('CodeMirror')));
+    } else {
+        nf.nfel = factory(root.$,
+            root.CodeMirror);
+    }
+}(this, function ($, CodeMirror) {
+    'use strict';
     
     /**
      * Formats the specified arguments for the EL function tooltip.
@@ -853,4 +871,4 @@ nf.nfel = (function() {
             return completions;
         }
     };
-}());
+}));

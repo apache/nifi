@@ -100,7 +100,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                         headerText: 'Remote Process Group Ports'
                                     });
                                 } else {
-                                    nf.Common.handleAjaxError(xhr, status, error);
+                                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                                 }
                             }).always(function () {
                                 // close the dialog
@@ -351,7 +351,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                 dialogContent: content
                             });
                         } else {
-                            nf.Common.handleAjaxError(xhr, status, error);
+                            nf.ErrorHandler.handleAjaxError(xhr, status, error);
                         }
                     });
                 });
@@ -548,7 +548,7 @@ nf.RemoteProcessGroupPorts = (function () {
 
                     // show the details
                     $('#remote-process-group-ports').modal('show');
-                }).fail(nf.Common.handleAjaxError);
+                }).fail(nf.ErrorHandler.handleAjaxError);
             }
         }
     };

@@ -39,7 +39,6 @@
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/tabbs/jquery.tabbs.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
-        <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
@@ -57,6 +56,7 @@
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
         <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.users.script.tags}
+        <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
     </head>

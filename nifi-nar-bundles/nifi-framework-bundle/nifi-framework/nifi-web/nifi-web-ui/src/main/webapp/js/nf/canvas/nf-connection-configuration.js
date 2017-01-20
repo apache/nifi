@@ -340,7 +340,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -416,7 +416,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -565,7 +565,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -641,7 +641,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -926,7 +926,7 @@ nf.ConnectionConfiguration = (function () {
                 nf.Birdseye.refresh();
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
             });
         }
     };
@@ -1000,7 +1000,7 @@ nf.ConnectionConfiguration = (function () {
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     });
                 } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                 }
             });
         } else {
@@ -1179,7 +1179,7 @@ nf.ConnectionConfiguration = (function () {
                     opacity: 0.6
                 });
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**

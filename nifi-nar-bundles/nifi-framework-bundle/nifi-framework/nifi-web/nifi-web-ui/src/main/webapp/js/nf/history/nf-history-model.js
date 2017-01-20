@@ -15,207 +15,225 @@
  * limitations under the License.
  */
 
-/* global Slick, nf */
+/* global nf, define, module, require, exports */
 
-(function ($) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'Slick',
+                'nf.Common',
+                'nf.ErrorHandler'],
+            function ($, Slick, common, errorHandler) {
+                return (nf.HistoryModel = factory($, Slick, common, errorHandler));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.HistoryModel =
+            factory(require('jquery'),
+                require('Slick'),
+                require('nf.Common'),
+                require('nf.ErrorHandler')));
+    } else {
+        nf.HistoryModel = factory(root.$,
+            root.Slick,
+            root.nf.Common,
+            root.nf.ErrorHandler);
+    }
+}(this, function ($, Slick, common, errorHandler) {
+    'use strict';
 
-    function HistoryModel() {
-        // private
-        var PAGESIZE = 50;
+    // private
+    var PAGESIZE = 50;
 
-        var data = {
-            length: 0
-        };
+    var data = {
+        length: 0
+    };
 
-        var filter = {};
-        var sortcol = null;
-        var sortdir = 1;
+    var filter = {};
+    var sortcol = null;
+    var sortdir = 1;
 
-        var h_request = null;
-        var xhr = null; // ajax request
+    var h_request = null;
+    var xhr = null; // ajax request
 
-        // events
-        var onDataLoading = new Slick.Event();
-        var onDataLoaded = new Slick.Event();
+    // events
+    var onDataLoading = new Slick.Event();
+    var onDataLoaded = new Slick.Event();
 
-        var init = function () {
-        };
+    var isDataLoaded = function (from, to) {
+        for (var i = from; i <= to; i++) {
+            if (data[i] === undefined || data[i] === null) {
+                return false;
+            }
+        }
 
-        var isDataLoaded = function (from, to) {
-            for (var i = from; i <= to; i++) {
-                if (data[i] === undefined || data[i] === null) {
-                    return false;
+        return true;
+    };
+
+    var clear = function () {
+        for (var key in data) {
+            delete data[key];
+        }
+        data.length = 0;
+    };
+
+    var ensureData = function (from, to) {
+        if (xhr) {
+            xhr.abort();
+            for (var i = xhr.fromPage; i <= xhr.toPage; i++) {
+                data[i * PAGESIZE] = undefined;
+            }
+        }
+
+        if (from < 0) {
+            from = 0;
+        }
+
+        var fromPage = Math.floor(from / PAGESIZE);
+        var toPage = Math.floor(to / PAGESIZE);
+
+        while (data[fromPage * PAGESIZE] !== undefined && fromPage < toPage) {
+            fromPage++;
+        }
+
+        while (data[toPage * PAGESIZE] !== undefined && fromPage < toPage) {
+            toPage--;
+        }
+
+        if (fromPage > toPage || ((fromPage === toPage) && data[fromPage * PAGESIZE] !== undefined)) {
+            // TODO:  look-ahead
+            return;
+        }
+
+        var query = {};
+
+        // add the start and end date to the query params
+        query = $.extend({
+            count: ((toPage - fromPage) * PAGESIZE) + PAGESIZE,
+            offset: fromPage * PAGESIZE
+        }, query);
+
+        // conditionally add the sort details
+        if (sortcol !== null) {
+            query['sortColumn'] = sortcol;
+            query['sortOrder'] = (sortdir > 0) ? "asc" : "desc";
+        }
+
+        // add the filter
+        query = $.extend(query, filter);
+
+        // if there is an request currently scheduled, cancel it
+        if (h_request !== null) {
+            clearTimeout(h_request);
+        }
+
+        // schedule the request for data
+        h_request = setTimeout(function () {
+            for (var i = fromPage; i <= toPage; i++) {
+                data[i * PAGESIZE] = null; // null indicates a 'requested but not available yet'
+            }
+
+            // notify that loading is about to occur
+            onDataLoading.notify({
+                from: from,
+                to: to
+            });
+
+            // perform query...
+            var xhr = $.ajax({
+                type: 'GET',
+                url: '../nifi-api/flow/history',
+                data: query,
+                dataType: 'json'
+            }).done(function (response) {
+                var history = response.history;
+
+                // calculate the indices
+                var from = fromPage * PAGESIZE;
+                var to = from + history.actions.length;
+
+                // update the data length
+                data.length = history.total;
+
+                // populate the history actions
+                for (var i = 0; i < history.actions.length; i++) {
+                    data[from + i] = history.actions[i];
+                    data[from + i].index = from + i;
                 }
-            }
 
-            return true;
-        };
+                // update the stats last refreshed timestamp
+                $('#history-last-refreshed').text(history.lastRefreshed);
 
-        var clear = function () {
-            for (var key in data) {
-                delete data[key];
-            }
-            data.length = 0;
-        };
+                // set the timezone for the start and end time
+                $('.timezone').text(common.substringAfterLast(history.lastRefreshed, ' '));
 
-        var ensureData = function (from, to) {
-            if (xhr) {
-                xhr.abort();
-                for (var i = xhr.fromPage; i <= xhr.toPage; i++) {
-                    data[i * PAGESIZE] = undefined;
-                }
-            }
-
-            if (from < 0) {
-                from = 0;
-            }
-
-            var fromPage = Math.floor(from / PAGESIZE);
-            var toPage = Math.floor(to / PAGESIZE);
-
-            while (data[fromPage * PAGESIZE] !== undefined && fromPage < toPage) {
-                fromPage++;
-            }
-
-            while (data[toPage * PAGESIZE] !== undefined && fromPage < toPage) {
-                toPage--;
-            }
-
-            if (fromPage > toPage || ((fromPage === toPage) && data[fromPage * PAGESIZE] !== undefined)) {
-                // TODO:  look-ahead
-                return;
-            }
-
-            var query = {};
-
-            // add the start and end date to the query params
-            query = $.extend({
-                count: ((toPage - fromPage) * PAGESIZE) + PAGESIZE,
-                offset: fromPage * PAGESIZE
-            }, query);
-
-            // conditionally add the sort details
-            if (sortcol !== null) {
-                query['sortColumn'] = sortcol;
-                query['sortOrder'] = (sortdir > 0) ? "asc" : "desc";
-            }
-
-            // add the filter
-            query = $.extend(query, filter);
-
-            // if there is an request currently scheduled, cancel it
-            if (h_request !== null) {
-                clearTimeout(h_request);
-            }
-
-            // schedule the request for data
-            h_request = setTimeout(function () {
-                for (var i = fromPage; i <= toPage; i++) {
-                    data[i * PAGESIZE] = null; // null indicates a 'requested but not available yet'
+                // show the filter message if applicable
+                if (query['sourceId'] || query['userIdentity'] || query['startDate'] || query['endDate']) {
+                    $('#history-filter-overview').css('visibility', 'visible');
+                } else {
+                    $('#history-filter-overview').css('visibility', 'hidden');
                 }
 
-                // notify that loading is about to occur
-                onDataLoading.notify({
+                // clear the current request
+                xhr = null;
+
+                // notify data loaded
+                onDataLoaded.notify({
                     from: from,
                     to: to
                 });
+            }).fail(errorHandler.handleAjaxError);
+            xhr.fromPage = fromPage;
+            xhr.toPage = toPage;
 
-                // perform query...
-                var xhr = $.ajax({
-                    type: 'GET',
-                    url: '../nifi-api/flow/history',
-                    data: query,
-                    dataType: 'json'
-                }).done(function (response) {
-                    var history = response.history;
+        }, 50);
+    };
 
-                    // calculate the indices
-                    var from = fromPage * PAGESIZE;
-                    var to = from + history.actions.length;
+    var reloadData = function (from, to) {
+        for (var i = from; i <= to; i++)
+            delete data[i];
 
-                    // update the data length
-                    data.length = history.total;
+        ensureData(from, to);
+    };
 
-                    // populate the history actions
-                    for (var i = 0; i < history.actions.length; i++) {
-                        data[from + i] = history.actions[i];
-                        data[from + i].index = from + i;
-                    }
+    var setSort = function (column, dir) {
+        sortcol = column;
+        sortdir = dir;
+        clear();
+    };
 
-                    // update the stats last refreshed timestamp
-                    $('#history-last-refreshed').text(history.lastRefreshed);
+    var setFilterArgs = function (newFilter) {
+        filter = newFilter;
+        clear();
+    };
 
-                    // set the timezone for the start and end time
-                    $('.timezone').text(nf.Common.substringAfterLast(history.lastRefreshed, ' '));
+    var getItem = function (i) {
+        return data[i];
+    };
 
-                    // show the filter message if applicable
-                    if (query['sourceId'] || query['userIdentity'] || query['startDate'] || query['endDate']) {
-                        $('#history-filter-overview').css('visibility', 'visible');
-                    } else {
-                        $('#history-filter-overview').css('visibility', 'hidden');
-                    }
+    var getLength = function () {
+        return data.length;
+    };
 
-                    // clear the current request
-                    xhr = null;
-
-                    // notify data loaded
-                    onDataLoaded.notify({
-                        from: from,
-                        to: to
-                    });
-                }).fail(nf.Common.handleAjaxError);
-                xhr.fromPage = fromPage;
-                xhr.toPage = toPage;
-
-            }, 50);
-        };
-
-        var reloadData = function (from, to) {
-            for (var i = from; i <= to; i++)
-                delete data[i];
-
-            ensureData(from, to);
-        };
-
-        var setSort = function (column, dir) {
-            sortcol = column;
-            sortdir = dir;
-            clear();
-        };
-
-        var setFilterArgs = function (newFilter) {
-            filter = newFilter;
-            clear();
-        };
-
-        var getItem = function (i) {
-            return data[i];
-        };
-
-        var getLength = function () {
-            return data.length;
-        };
-
-        init();
-
-        return {
-            // properties
-            data: data,
-            // methods
-            clear: clear,
-            isDataLoaded: isDataLoaded,
-            ensureData: ensureData,
-            reloadData: reloadData,
-            setSort: setSort,
-            setFilterArgs: setFilterArgs,
-            getItem: getItem,
-            getLength: getLength,
-            // events
-            onDataLoading: onDataLoading,
-            onDataLoaded: onDataLoaded
-        };
+    function HistoryModel() {
     }
 
-    // nf.HistoryModel
-    $.extend(true, window, {nf: {HistoryModel: HistoryModel}});
-})(jQuery);
+    HistoryModel.prototype = {
+        constructor: HistoryModel,
+        // properties
+        data: data,
+        // methods
+        clear: clear,
+        isDataLoaded: isDataLoaded,
+        ensureData: ensureData,
+        reloadData: reloadData,
+        setSort: setSort,
+        setFilterArgs: setFilterArgs,
+        getItem: getItem,
+        getLength: getLength,
+        // events
+        onDataLoading: onDataLoading,
+        onDataLoaded: onDataLoaded
+    }
+
+    return HistoryModel;
+}));

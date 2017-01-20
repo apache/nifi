@@ -129,11 +129,11 @@ nf.PolicyManagement = (function () {
                 var allowedGroups = getAllAllowedGroups();
                 var allowedUsers = getAllAllowedUsers();
 
-                var self = this;
+                var nfUserSearchAutocomplete = this;
                 $.each(searchResults.userGroups, function (_, tenant) {
                     // see if this match is not already selected
                     if ($.inArray(tenant.id, allowedGroups) === -1) {
-                        self._renderGroup(ul, $.extend({
+                        nfUserSearchAutocomplete._renderGroup(ul, $.extend({
                             type: 'group'
                         }, tenant));
                     }
@@ -141,7 +141,7 @@ nf.PolicyManagement = (function () {
                 $.each(searchResults.users, function (_, tenant) {
                     // see if this match is not already selected
                     if ($.inArray(tenant.id, allowedUsers) === -1) {
-                        self._renderUser(ul, $.extend({
+                        nfUserSearchAutocomplete._renderUser(ul, $.extend({
                             type: 'user'
                         }, tenant));
                     }
@@ -504,9 +504,24 @@ nf.PolicyManagement = (function () {
 
         // initialize the templates table
         var usersColumns = [
-            {id: 'identity', name: 'User', sortable: true, resizable: true, formatter: identityFormatter},
-            {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
+            {
+                id: 'identity',
+                name: 'User',
+                sortable: true,
+                resizable: true,
+                formatter: identityFormatter
+            },
+            {
+                id: 'actions',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: actionFormatter,
+                width: 100,
+                maxWidth: 100
+            }
         ];
+
         var usersOptions = {
             forceFitColumns: true,
             enableTextSelectionOnCells: true,
@@ -669,7 +684,7 @@ nf.PolicyManagement = (function () {
             }).done(function () {
                 loadPolicy();
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             });
@@ -896,7 +911,7 @@ nf.PolicyManagement = (function () {
                         resetPolicy();
 
                         deferred.reject();
-                        nf.Common.handleAjaxError(xhr, status, error);
+                        nf.ErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -954,7 +969,7 @@ nf.PolicyManagement = (function () {
                         resetPolicy();
 
                         deferred.reject();
-                        nf.Common.handleAjaxError(xhr, status, error);
+                        nf.ErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -1022,7 +1037,7 @@ nf.PolicyManagement = (function () {
                 resetPolicy();
                 loadPolicy();
             }
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -1077,7 +1092,7 @@ nf.PolicyManagement = (function () {
                     loadPolicy();
                 }
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             }).always(function () {

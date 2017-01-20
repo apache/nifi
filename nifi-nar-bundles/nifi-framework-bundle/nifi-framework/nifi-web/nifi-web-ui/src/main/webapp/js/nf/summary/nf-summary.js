@@ -15,34 +15,106 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global nf, define, module, require, exports */
 
-$(document).ready(function () {
-    //Create Angular App
-    var app = angular.module('ngSummaryApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'angular',
+                'nf.Common',
+                'nf.ClusterSummary',
+                'nf.ClusterSearch',
+                'nf.ng.AppConfig',
+                'nf.ng.AppCtrl',
+                'nf.ng.ServiceProvider',
+                'nf.ng.Bridge',
+                'nf.ErrorHandler',
+                'nf.Storage',
+                'nf.SummaryTable'],
+            function ($,
+                      angular,
+                      common,
+                      clusterSummary,
+                      clusterSearch,
+                      appConfig,
+                      appCtrl,
+                      serviceProvider,
+                      provenanceTable,
+                      angularBridge,
+                      errorHandler,
+                      storage,
+                      summaryTable) {
+                return (nf.Summary =
+                    factory($,
+                        angular,
+                        common,
+                        clusterSummary,
+                        clusterSearch,
+                        appConfig,
+                        appCtrl,
+                        serviceProvider,
+                        angularBridge,
+                        errorHandler,
+                        storage,
+                        summaryTable));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Summary =
+            factory(require('jquery'),
+                require('angular'),
+                require('nf.Common'),
+                require('nf.ClusterSummary'),
+                require('nf.ClusterSearch'),
+                require('nf.ng.AppConfig'),
+                require('nf.ng.AppCtrl'),
+                require('nf.ng.ServiceProvider'),
+                require('nf.ng.Bridge'),
+                require('nf.ErrorHandler'),
+                require('nf.Storage'),
+                require('nf.SummaryTable')));
+    } else {
+        nf.Summary = factory(root.$,
+            root.angular,
+            root.nf.Common,
+            root.nf.ClusterSummary,
+            root.nf.ClusterSearch,
+            root.nf.ng.AppConfig,
+            root.nf.ng.AppCtrl,
+            root.nf.ng.ServiceProvider,
+            root.nf.ng.Bridge,
+            root.nf.ErrorHandler,
+            root.nf.Storage,
+            root.nf.SummaryTable);
+    }
+}(this, function ($, angular, common, clusterSummary, clusterSearch, appConfig, appCtrl, serviceProvider, angularBridge, errorHandler, storage, summaryTable) {
+    'use strict';
 
-    //Define Dependency Injection Annotations
-    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
-    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
-    nf.ng.ServiceProvider.$inject = [];
+    $(document).ready(function () {
+        //Create Angular App
+        var app = angular.module('ngSummaryApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
 
-    //Configure Angular App
-    app.config(nf.ng.AppConfig);
+        //Define Dependency Injection Annotations
+        appConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+        appCtrl.$inject = ['$scope', 'serviceProvider'];
+        serviceProvider.$inject = [];
 
-    //Define Angular App Controllers
-    app.controller('ngSummaryAppCtrl', nf.ng.AppCtrl);
+        //Configure Angular App
+        app.config(appConfig);
 
-    //Define Angular App Services
-    app.service('serviceProvider', nf.ng.ServiceProvider);
+        //Define Angular App Controllers
+        app.controller('ngSummaryAppCtrl', appCtrl);
 
-    //Manually Boostrap Angular App
-    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngSummaryApp'], { strictDi: true });
+        //Define Angular App Services
+        app.service('serviceProvider', serviceProvider);
 
-    // initialize the summary page
-    nf.Summary.init();
-});
+        //Manually Boostrap Angular App
+        angularBridge.injector = angular.bootstrap($('body'), ['ngSummaryApp'], {strictDi: true});
 
-nf.Summary = (function () {
+        // initialize the summary page
+        clusterSummary.loadClusterSummary().done(function () {
+            nfSummary.init();
+        });
+    });
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -64,12 +136,16 @@ nf.Summary = (function () {
                 type: 'GET',
                 url: config.urls.clusterSummary
             }).done(function (response) {
-                nf.SummaryTable.init(response.clusterSummary.connectedToCluster).done(function () {
+                summaryTable.init(response.clusterSummary.connectedToCluster).done(function () {
+                    // initialize the search field if applicable
+                    if (response.clusterSummary.connectedToCluster) {
+                        clusterSearch.init();
+                    }
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
                 });
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(errorHandler.handleAjaxError);
         }).promise();
     };
 
@@ -79,7 +155,9 @@ nf.Summary = (function () {
     var initializeSummaryPage = function () {
         // define mouse over event for the refresh buttons
         $('#refresh-button').click(function () {
-            nf.SummaryTable.loadSummaryTable();
+            clusterSummary.loadClusterSummary().done(function () {
+                summaryTable.loadSummaryTable();
+            });
         });
 
         // return a deferred for page initialization
@@ -92,8 +170,8 @@ nf.Summary = (function () {
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the banners response is specified
-                    if (nf.Common.isDefinedAndNotNull(response.banners)) {
-                        if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                    if (common.isDefinedAndNotNull(response.banners)) {
+                        if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -107,7 +185,7 @@ nf.Summary = (function () {
                             updateTop('summary');
                         }
 
-                        if (nf.Common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                        if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -123,7 +201,7 @@ nf.Summary = (function () {
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    errorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -132,17 +210,17 @@ nf.Summary = (function () {
         }).promise();
     };
 
-    return {
+    var nfSummary = {
         /**
          * Initializes the status page.
          */
         init: function () {
-            nf.Storage.init();
-            
+            storage.init();
+
             // intialize the summary table
             initializeSummaryTable().done(function () {
                 // load the table
-                nf.SummaryTable.loadSummaryTable().done(function () {
+                summaryTable.loadSummaryTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeSummaryPage().done(function () {
 
@@ -153,7 +231,7 @@ nf.Summary = (function () {
                                     'height': $(window).height() + 'px',
                                     'width': $(window).width() + 'px'
                                 });
-                                
+
                                 $('#summary').css('margin', 40);
                                 $('div.summary-table').css('bottom', 127);
                                 $('#flow-summary-refresh-container').css({
@@ -163,7 +241,7 @@ nf.Summary = (function () {
                                 });
                             }
 
-                            nf.SummaryTable.resetTableSize();
+                            summaryTable.resetTableSize();
                         };
 
                         // get the about details
@@ -181,15 +259,15 @@ nf.Summary = (function () {
 
                             // set the initial size
                             setBodySize();
-                        }).fail(nf.Common.handleAjaxError);
+                        }).fail(errorHandler.handleAjaxError);
 
                         $(window).on('resize', function (e) {
                             setBodySize();
                             // resize dialogs when appropriate
                             var dialogs = $('.dialog');
                             for (var i = 0, len = dialogs.length; i < len; i++) {
-                                if ($(dialogs[i]).is(':visible')){
-                                    setTimeout(function(dialog){
+                                if ($(dialogs[i]).is(':visible')) {
+                                    setTimeout(function (dialog) {
                                         dialog.modal('resize');
                                     }, 50, $(dialogs[i]));
                                 }
@@ -198,8 +276,8 @@ nf.Summary = (function () {
                             // resize grids when appropriate
                             var gridElements = $('*[class*="slickgrid_"]');
                             for (var j = 0, len = gridElements.length; j < len; j++) {
-                                if ($(gridElements[j]).is(':visible')){
-                                    setTimeout(function(gridElement){
+                                if ($(gridElements[j]).is(':visible')) {
+                                    setTimeout(function (gridElement) {
                                         gridElement.data('gridInstance').resizeCanvas();
                                     }, 50, $(gridElements[j]));
                                 }
@@ -209,12 +287,12 @@ nf.Summary = (function () {
                             var tabsContainers = $('.tab-container');
                             var tabsContents = [];
                             for (var k = 0, len = tabsContainers.length; k < len; k++) {
-                                if ($(tabsContainers[k]).is(':visible')){
+                                if ($(tabsContainers[k]).is(':visible')) {
                                     tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                nf.Common.toggleScrollable(tabsContent.get(0));
+                                common.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });
@@ -222,4 +300,6 @@ nf.Summary = (function () {
             });
         }
     };
-}());
+
+    return nfSummary;
+}));

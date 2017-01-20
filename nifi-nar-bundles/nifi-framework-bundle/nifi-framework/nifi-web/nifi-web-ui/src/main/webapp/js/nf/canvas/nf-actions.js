@@ -827,7 +827,7 @@ nf.Actions = (function () {
                         nf.Birdseye.refresh();
                         // inform Angular app values have changed
                         nf.ng.Bridge.digest();
-                    }).fail(nf.Common.handleAjaxError);
+                    }).fail(nf.ErrorHandler.handleAjaxError);
                 } else {
                     // create a snippet for the specified component and link to the data flow
                     var snippet = nf.Snippet.marshal(selection);
@@ -877,8 +877,8 @@ nf.Actions = (function () {
 
                             // inform Angular app values have changed
                             nf.ng.Bridge.digest();
-                        }).fail(nf.Common.handleAjaxError);
-                    }).fail(nf.Common.handleAjaxError);
+                        }).fail(nf.ErrorHandler.handleAjaxError);
+                    }).fail(nf.ErrorHandler.handleAjaxError);
                 }
             }
         },
@@ -1033,7 +1033,7 @@ nf.Actions = (function () {
                             processDropRequest(nextDelay);
                         }).fail(function (xhr, status, error) {
                             if (xhr.status === 403) {
-                                nf.Common.handleAjaxError(xhr, status, error);
+                                nf.ErrorHandler.handleAjaxError(xhr, status, error);
                             } else {
                                 completeDropRequest()
                             }
@@ -1058,7 +1058,7 @@ nf.Actions = (function () {
                         processDropRequest(1);
                     }).fail(function (xhr, status, error) {
                         if (xhr.status === 403) {
-                            nf.Common.handleAjaxError(xhr, status, error);
+                            nf.ErrorHandler.handleAjaxError(xhr, status, error);
                         } else {
                             completeDropRequest()
                         }
@@ -1417,8 +1417,8 @@ nf.Actions = (function () {
                                 // clear the template dialog fields
                                 $('#new-template-name').val('');
                                 $('#new-template-description').val('');
-                            }).fail(nf.Common.handleAjaxError);
-                        }).fail(nf.Common.handleAjaxError);
+                            }).fail(nf.ErrorHandler.handleAjaxError);
+                        }).fail(nf.ErrorHandler.handleAjaxError);
                     }
                 }
             }, {

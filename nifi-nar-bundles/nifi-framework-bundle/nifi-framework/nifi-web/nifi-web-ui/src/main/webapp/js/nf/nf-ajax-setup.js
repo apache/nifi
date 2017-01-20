@@ -15,25 +15,43 @@
  * limitations under the License.
  */
 
-/**
- * Performs ajax setup for use within NiFi.
- */
-$(document).ready(function ($) {
-    // include jwt when possible
-    $.ajaxSetup({
-        'beforeSend': function(xhr) {
-            var hadToken = nf.Storage.hasItem('jwt');
+/* global nf, define, module, require, exports */
 
-            // get the token to include in all requests
-            var token = nf.Storage.getItem('jwt');
-            if (token !== null) {
-                xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-            } else {
-                // if the current user was logged in with a token and the token just expired, cancel the request
-                if (hadToken === true) {
-                    return false;
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Storage'],
+            function ($, storage) {
+                return (nf.AjaxSetup = factory($, storage));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.AjaxSetup = factory(require('jquery'),
+            require('nf.Storage')));
+    } else {
+        nf.AjaxSetup = factory(root.$,
+            root.nf.Storage);
+    }
+}(this, function ($, storage) {
+    /**
+     * Performs ajax setup for use within NiFi.
+     */
+    $(document).ready(function ($) {
+        // include jwt when possible
+        $.ajaxSetup({
+            'beforeSend': function (xhr) {
+                var hadToken = storage.hasItem('jwt');
+
+                // get the token to include in all requests
+                var token = storage.getItem('jwt');
+                if (token !== null) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                } else {
+                    // if the current user was logged in with a token and the token just expired, cancel the request
+                    if (hadToken === true) {
+                        return false;
+                    }
                 }
             }
-        }
+        });
     });
-});
+}));

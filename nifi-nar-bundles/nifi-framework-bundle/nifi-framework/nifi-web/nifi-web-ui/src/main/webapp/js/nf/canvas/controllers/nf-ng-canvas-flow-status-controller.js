@@ -71,7 +71,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
              */
             init: function () {
 
-                var self = this;
+                var searchCtrl = this;
 
                 // Create new jQuery UI widget
                 $.widget('nf.searchAutocomplete', $.ui.autocomplete, {
@@ -92,7 +92,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         return items;
                     },
                     _renderMenu: function (ul, items) {
-                        var self = this;
+                        var nfSearchAutocomplete = this;
 
                         // the object that holds the search results is normalized into a single element array
                         var searchResults = items[0];
@@ -101,7 +101,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.processorResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
                             $.each(searchResults.processorResults, function (i, processorMatch) {
-                                self._renderItem(ul, processorMatch);
+                                nfSearchAutocomplete._renderItem(ul, processorMatch);
                             });
                         }
 
@@ -109,7 +109,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.processGroupResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
                             $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
-                                self._renderItem(ul, processGroupMatch);
+                                nfSearchAutocomplete._renderItem(ul, processGroupMatch);
                             });
                         }
 
@@ -117,7 +117,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.remoteProcessGroupResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
                             $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
-                                self._renderItem(ul, remoteProcessGroupMatch);
+                                nfSearchAutocomplete._renderItem(ul, remoteProcessGroupMatch);
                             });
                         }
 
@@ -125,7 +125,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.connectionResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
                             $.each(searchResults.connectionResults, function (i, connectionMatch) {
-                                self._renderItem(ul, connectionMatch);
+                                nfSearchAutocomplete._renderItem(ul, connectionMatch);
                             });
                         }
 
@@ -133,7 +133,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.inputPortResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
                             $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
-                                self._renderItem(ul, inputPortMatch);
+                                nfSearchAutocomplete._renderItem(ul, inputPortMatch);
                             });
                         }
 
@@ -141,7 +141,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.outputPortResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
                             $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
-                                self._renderItem(ul, outputPortMatch);
+                                nfSearchAutocomplete._renderItem(ul, outputPortMatch);
                             });
                         }
 
@@ -149,7 +149,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         if (!nf.Common.isEmpty(searchResults.funnelResults)) {
                             ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
                             $.each(searchResults.funnelResults, function (i, funnelMatch) {
-                                self._renderItem(ul, funnelMatch);
+                                nfSearchAutocomplete._renderItem(ul, funnelMatch);
                             });
                         }
 
@@ -194,7 +194,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                         // show the selected component
                         nf.CanvasUtils.showComponent(item.groupId, item.id);
 
-                        self.getInputElement().val('').blur();
+                        searchCtrl.getInputElement().val('').blur();
 
                         // stop event propagation
                         return false;
@@ -208,7 +208,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                     close: function (event, ui) {
                         // set the input text to '' and reset the cached term
                         $(this).searchAutocomplete('reset');
-                        self.getInputElement().val('');
+                        searchCtrl.getInputElement().val('');
 
                         // remove the glass pane
                         $('div.search-glass-pane').remove();
@@ -216,38 +216,38 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
                 });
 
                 // hide the search input
-                self.toggleSearchField();
+                searchCtrl.toggleSearchField();
             },
 
             /**
              * Toggle/Slide the search field open/closed.
              */
             toggleSearchField: function () {
-                var self = this;
+                var searchCtrl = this;
 
                 // hide the context menu if necessary
                 nf.ContextMenu.hide();
 
-                var isVisible = self.getInputElement().is(':visible');
+                var isVisible = searchCtrl.getInputElement().is(':visible');
                 var display = 'none';
                 var class1 = 'search-container-opened';
                 var class2 = 'search-container-closed';
                 if (!isVisible) {
-                    self.getButtonElement().css('background-color', '#FFFFFF');
+                    searchCtrl.getButtonElement().css('background-color', '#FFFFFF');
                     display = 'inline-block';
                     class1 = 'search-container-closed';
                     class2 = 'search-container-opened';
                 } else {
-                    self.getInputElement().css('display', display);
+                    searchCtrl.getInputElement().css('display', display);
                 }
 
                 this.getSearchContainerElement().switchClass(class1, class2, 500, function () {
-                    self.getInputElement().css('display', display);
+                    searchCtrl.getInputElement().css('display', display);
                     if (!isVisible) {
-                        self.getButtonElement().css('background-color', '#FFFFFF');
-                        self.getInputElement().focus();
+                        searchCtrl.getButtonElement().css('background-color', '#FFFFFF');
+                        searchCtrl.getInputElement().focus();
                     } else {
-                        self.getButtonElement().css('background-color', '#E3E8EB');
+                        searchCtrl.getButtonElement().css('background-color', '#E3E8EB');
                     }
                 });
             }
@@ -327,7 +327,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
          * Reloads the current status of the flow.
          */
         reloadFlowStatus: function () {
-            var self = this;
+            var flowStatusCtrl = this;
 
             return $.ajax({
                 type: 'GET',
@@ -336,9 +336,9 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
             }).done(function (response) {
                 // report the updated status
                 if (nf.Common.isDefinedAndNotNull(response.controllerStatus)) {
-                    self.update(response.controllerStatus);
+                    flowStatusCtrl.update(response.controllerStatus);
                 }
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**
@@ -348,11 +348,11 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider) {
          */
         updateClusterSummary: function (clusterSummary) {
             // see if this node has been (dis)connected
-            if (nf.Canvas.isConnectedToCluster() !== clusterSummary.connectedToCluster) {
+            if (nf.ClusterSummary.isConnectedToCluster() !== clusterSummary.connectedToCluster) {
                 if (clusterSummary.connectedToCluster) {
-                    nf.Canvas.showConnectedToClusterMessage();
+                    nf.Dialog.showConnectedToClusterMessage();
                 } else {
-                    nf.Canvas.showDisconnectedFromClusterMessage();
+                    nf.Dialog.showDisconnectedFromClusterMessage();
                 }
             }
 

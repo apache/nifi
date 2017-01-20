@@ -83,7 +83,7 @@ nf.Settings = (function () {
             $('#settings-save').off('click').on('click', function () {
                 saveSettings(response.revision.version);
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     }
 
     /**
@@ -402,7 +402,7 @@ nf.Settings = (function () {
             var row = reportingTaskData.getRowById(reportingTaskEntity.id);
             reportingTaskGrid.setSelectedRows([row]);
             reportingTaskGrid.scrollRowIntoView(row);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-reporting-task-dialog').modal('hide');
@@ -436,8 +436,21 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nf.Common.typeFormatter,
+                sortable: false,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true
+            }
         ];
 
         // initialize the dataview
@@ -580,7 +593,7 @@ nf.Settings = (function () {
                 select: applyReportingTaskTypeFilter,
                 remove: applyReportingTaskTypeFilter
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
@@ -980,7 +993,7 @@ nf.Settings = (function () {
 
             // update the current time
             $('#settings-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**

@@ -71,7 +71,7 @@ nf.LabelConfiguration = (function () {
 
                                 // inform Angular app values have changed
                                 nf.ng.Bridge.digest();
-                            }).fail(nf.Common.handleAjaxError);
+                            }).fail(nf.ErrorHandler.handleAjaxError);
 
                             // reset and hide the dialog
                             this.modal('hide');

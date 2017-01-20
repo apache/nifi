@@ -14,7 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-nf.ClusterSearch = (function () {
+
+/* global nf, define, module, require, exports */
+
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.SummaryTable'],
+            function ($, common, dialog, summaryTable) {
+                return (nf.ClusterSearch = factory($, common, dialog, summaryTable));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ClusterSearch =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.SummaryTable')));
+    } else {
+        nf.ClusterSearch = factory(root.$,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.SummaryTable);
+    }
+}(this, function ($, common, dialog, summaryTable) {
+    'use strict';
+
     /**
      * Configuration object used to hold a number of configuration items.
      */
@@ -59,10 +85,10 @@ nf.ClusterSearch = (function () {
                                 // selects the specified node
                                 var selectNode = function (node) {
                                     // update the urls to point to this specific node of the cluster
-                                    nf.SummaryTable.setClusterNodeId(node.id);
+                                    summaryTable.setClusterNodeId(node.id);
 
                                     // load the summary for the selected node
-                                    nf.SummaryTable.loadSummaryTable();
+                                    summaryTable.loadSummaryTable();
 
                                     // update the header
                                     $('#summary-header-text').text(node.address + ' Summary');
@@ -70,9 +96,9 @@ nf.ClusterSearch = (function () {
 
                                 // ensure the search found some results
                                 if (!$.isArray(searchResults) || searchResults.length === 0) {
-                                    nf.Dialog.showOkDialog({
+                                    dialog.showOkDialog({
                                         headerText: 'Cluster Search',
-                                        dialogContent: 'No nodes match \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                        dialogContent: 'No nodes match \'' + common.escapeHtml(clusterSearchTerm) + '\'.'
                                     });
                                 } else if (searchResults.length > 1) {
                                     var exactMatch = false;
@@ -91,9 +117,9 @@ nf.ClusterSearch = (function () {
                                         // close the dialog
                                         $('#view-single-node-dialog').modal('hide');
                                     } else {
-                                        nf.Dialog.showOkDialog({
+                                        dialog.showOkDialog({
                                             headerText: 'Cluster Search',
-                                            dialogContent: 'More than one node matches \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                            dialogContent: 'More than one node matches \'' + common.escapeHtml(clusterSearchTerm) + '\'.'
                                         });
                                     }
                                 } else if (searchResults.length === 1) {
@@ -146,9 +172,9 @@ nf.ClusterSearch = (function () {
                     // results are normalized into a single element array
                     var searchResults = items[0];
 
-                    var self = this;
+                    var nfClusterSearchAutocomplete = this;
                     $.each(searchResults.nodeResults, function (_, node) {
-                        self._renderItem(ul, {
+                        nfClusterSearchAutocomplete._renderItem(ul, {
                             label: node.address,
                             value: node.address
                         });
@@ -208,8 +234,8 @@ nf.ClusterSearch = (function () {
             // handle the view cluster click event
             $('#view-cluster-link').click(function () {
                 // reset the urls and refresh the table
-                nf.SummaryTable.setClusterNodeId(null);
-                nf.SummaryTable.loadSummaryTable();
+                summaryTable.setClusterNodeId(null);
+                summaryTable.loadSummaryTable();
 
                 // update the header
                 $('#summary-header-text').text('NiFi Summary');
@@ -219,4 +245,4 @@ nf.ClusterSearch = (function () {
             $('#view-options-container').show();
         }
     };
-}());
+}));

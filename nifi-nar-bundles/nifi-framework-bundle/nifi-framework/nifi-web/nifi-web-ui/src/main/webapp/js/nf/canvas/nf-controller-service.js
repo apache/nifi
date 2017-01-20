@@ -52,7 +52,7 @@ nf.ControllerService = (function () {
                 headerText: 'Controller Service'
             });
         } else {
-            nf.Common.handleAjaxError(xhr, status, error);
+            nf.ErrorHandler.handleAjaxError(xhr, status, error);
         }
     };
 
@@ -140,7 +140,7 @@ nf.ControllerService = (function () {
             dataType: 'json'
         }).done(function (response) {
             renderControllerService(serviceTable, response);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -583,7 +583,7 @@ nf.ControllerService = (function () {
                 sourceId: ids
             },
             dataType: 'json'
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -612,7 +612,7 @@ nf.ControllerService = (function () {
             contentType: 'application/json'
         }).done(function (response) {
             renderControllerService(serviceTable, response);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // wait until the polling of each service finished
         return $.Deferred(function (deferred) {
@@ -730,7 +730,7 @@ nf.ControllerService = (function () {
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // Note: updated revisions will be retrieved after updateReferencingSchedulableComponents is invoked
 
@@ -810,7 +810,7 @@ nf.ControllerService = (function () {
                     conditionMet(serviceResponse.component, bulletinResponse.bulletinBoard.bulletins);
                 }).fail(function (xhr, status, error) {
                     deferred.reject();
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                 });
             };
 
@@ -832,7 +832,7 @@ nf.ControllerService = (function () {
                 conditionMet(controllerService, response.bulletinBoard.bulletins);
             }).fail(function (xhr, status, error) {
                 deferred.reject();
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
             });
         }).promise();
     };
@@ -1002,7 +1002,7 @@ nf.ControllerService = (function () {
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // Note: updated revisions will be retrieved after updateReferencingServices is invoked
 
@@ -1448,7 +1448,7 @@ nf.ControllerService = (function () {
                 propertyName: propertyName
             },
             dataType: 'json'
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -1737,6 +1737,7 @@ nf.ControllerService = (function () {
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
+                    supportsGoTo: true,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
                     controllerServiceCreatedDeferred: function(response) {
@@ -1909,7 +1910,7 @@ nf.ControllerService = (function () {
                 updateReferencingComponentsBorder(referenceContainer);
 
                 $('#controller-service-properties').propertytable('resetTableSize');
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**
@@ -1927,6 +1928,7 @@ nf.ControllerService = (function () {
 
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
+                    supportsGoTo: true,
                     readOnly: true
                 });
 
@@ -2108,7 +2110,7 @@ nf.ControllerService = (function () {
                 if (controllerServiceEntity.permissions.canRead) {
                     reloadControllerServiceReferences(serviceTable, controllerServiceEntity.component);
                 }
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         }
     };
 }());

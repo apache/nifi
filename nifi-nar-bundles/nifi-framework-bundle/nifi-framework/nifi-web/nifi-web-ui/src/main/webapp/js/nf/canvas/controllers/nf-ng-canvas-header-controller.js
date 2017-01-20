@@ -42,7 +42,7 @@ nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl
              * Initialize the login controller.
              */
             init: function () {
-                var self = this;
+                var loginCtrl = this;
 
                 // if the user is not anonymous or accessing via http
                 if ($('#current-user').text() !== nf.Common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
@@ -62,8 +62,8 @@ nf.ng.Canvas.HeaderCtrl = function (serviceProvider, toolboxCtrl, globalMenuCtrl
                 });
 
                 $.when(loginXhr).done(function (loginResult) {
-                    self.supportsLogin = loginResult.config.supportsLogin;
-                }).fail(nf.Common.handleAjaxError);
+                    loginCtrl.supportsLogin = loginResult.config.supportsLogin;
+                }).fail(nf.ErrorHandler.handleAjaxError);
             },
 
             /**

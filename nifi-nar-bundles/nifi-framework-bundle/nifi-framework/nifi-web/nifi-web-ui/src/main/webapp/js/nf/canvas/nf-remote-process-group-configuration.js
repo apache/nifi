@@ -82,7 +82,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                         headerText: 'Remote Process Group Configuration'
                                     });
                                 } else {
-                                    nf.Common.handleAjaxError(xhr, status, error);
+                                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                                 }
                             });
                         }
