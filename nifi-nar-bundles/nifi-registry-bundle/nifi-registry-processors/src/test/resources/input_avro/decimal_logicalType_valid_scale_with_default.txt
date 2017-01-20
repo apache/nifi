@@ -1,0 +1,16 @@
+{
+	"name": "trx_table",
+	"type": "record",
+	"fields": [
+	 {
+		"name": "transactionid",
+		"type": ["string", "null"]
+	}, {
+		"name": "amount",
+		"type": "bytes",
+		"logicalType": "decimal",
+		"precision": 10,
+		"scale": 3,
+		"default": 0.0
+	}]
+}
