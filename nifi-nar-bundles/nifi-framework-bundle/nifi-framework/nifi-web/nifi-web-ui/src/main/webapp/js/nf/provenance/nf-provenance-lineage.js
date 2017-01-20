@@ -553,6 +553,9 @@
                     // hide the context menu if necessary
                     d3.selectAll('circle.context').classed('context', false);
                     $('#provenance-lineage-context-menu').hide().empty();
+
+                    // prevents browser from using text cursor
+                    d3.event.preventDefault();
                 })
                 .on('contextmenu', function () {
                     var contextMenu = $('#provenance-lineage-context-menu');
@@ -672,7 +675,11 @@
 
             // renders flowfile nodes
             var renderFlowFile = function (flowfiles) {
-                flowfiles.classed('flowfile', true);
+                flowfiles
+                    .classed('flowfile', true)
+                    .on('mousedown', function (d) {
+                        d3.event.stopPropagation();
+                    });
 
                 // node
                 flowfiles.append('circle')
@@ -682,16 +689,6 @@
                         'stroke': '#000',
                         'stroke-width': 1.0
                     })
-                    .on('mousedown', function (d) {
-                        // empty context menu if necessary
-                        $('#provenance-lineage-context-menu').hide().empty();
-
-                        // prevents the drag event when something other than the
-                        // left button is clicked
-                        if (d3.event.button !== 0) {
-                            d3.event.stopPropagation();
-                        }
-                    }, true)
                     .on('mouseover', function (d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
@@ -725,16 +722,6 @@
                             return 'translate(0,15)';
                         }
                     })
-                    .on('mousedown', function (d) {
-                        // empty context menu if necessary
-                        $('#provenance-lineage-context-menu').hide().empty();
-
-                        // prevents the drag event when something other than the
-                        // left button is clicked
-                        if (d3.event.button !== 0) {
-                            d3.event.stopPropagation();
-                        }
-                    }, true)
                     .on('mouseover', function (d) {
                         links.filter(function (linkDatum) {
                             return d.id === linkDatum.flowFileUuid;
@@ -753,12 +740,283 @@
                             });
                     })
                     .text(function (d) {
-                        return '\ue808'
+                        return '\ue808';
                     });
+            };
+
+            var showContextMenu = function (d, provenanceTableCtrl) {
+                // empty an previous contents - in case they right click on the
+                // node twice without closing the previous context menu
+                $('#provenance-lineage-context-menu').hide().empty();
+
+                var menuItems = [{
+                    'class': 'lineage-view-event',
+                    'text': 'View details',
+                    'click': function () {
+                        provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
+                    }
+                }];
+
+                // if this is a spawn event show appropriate actions
+                if (d.eventType === 'SPAWN' || d.eventType === 'CLONE' || d.eventType === 'FORK' || d.eventType === 'JOIN' || d.eventType === 'REPLAY') {
+                    // starts the lineage expansion process
+                    var expandLineage = function (lineageRequest) {
+                        var lineageProgress = $('#lineage-percent-complete');
+
+                        // add support to cancel outstanding requests - when the button is pressed we
+                        // could be in one of two stages, 1) waiting to GET the status or 2)
+                        // in the process of GETting the status. Handle both cases by cancelling
+                        // the setTimeout (1) and by setting a flag to indicate that a request has
+                        // been request so we can ignore the results (2).
+
+                        var cancelled = false;
+                        var lineage = null;
+                        var lineageTimer = null;
+
+                        // update the progress bar value
+                        provenanceTableCtrl.updateProgress(lineageProgress, 0);
+
+                        // show the 'searching...' dialog
+                        $('#lineage-query-dialog').modal('setButtonModel', [{
+                            buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
+                            handler: {
+                                click: function () {
+                                    cancelled = true;
+
+                                    // we are waiting for the next poll attempt
+                                    if (lineageTimer !== null) {
+                                        // cancel it
+                                        clearTimeout(lineageTimer);
+
+                                        // cancel the provenance
+                                        closeDialog();
+                                    }
+                                }
+                            }
+                        }]).modal('show');
+
+
+                        // closes the searching dialog and cancels the query on the server
+                        var closeDialog = function () {
+                            // cancel the provenance results since we've successfully processed the results
+                            if (common.isDefinedAndNotNull(lineage)) {
+                                cancelLineage(lineage);
+                            }
+
+                            // close the dialog
+                            $('#lineage-query-dialog').modal('hide');
+                        };
+
+                        // polls for the event lineage
+                        var pollLineage = function () {
+                            getLineage(lineage).done(function (response) {
+                                lineage = response.lineage;
+
+                                // process the lineage
+                                processLineage();
+                            }).fail(closeDialog);
+                        };
+
+                        // processes the event lineage
+                        var processLineage = function () {
+                            // if the request was cancelled just ignore the current response
+                            if (cancelled === true) {
+                                closeDialog();
+                                return;
+                            }
+
+                            // close the dialog if the results contain an error
+                            if (!common.isEmpty(lineage.results.errors)) {
+                                var errors = lineage.results.errors;
+                                dialog.showOkDialog({
+                                    headerText: 'Process Lineage',
+                                    dialogContent: common.formatUnorderedList(errors)
+                                });
+
+                                closeDialog();
+                                return;
+                            }
+
+                            // update the precent complete
+                            provenanceTableCtrl.updateProgress(lineageProgress, lineage.percentCompleted);
+
+                            // process the results if they are finished
+                            if (lineage.finished === true) {
+                                var results = lineage.results;
+
+                                // ensure the events haven't aged off
+                                if (results.nodes.length > 0) {
+                                    // update the lineage graph
+                                    renderEventLineage(results);
+                                } else {
+                                    // inform the user that no results were found
+                                    dialog.showOkDialog({
+                                        headerText: 'Lineage Results',
+                                        dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.'
+                                    });
+                                }
+
+                                // close the searching.. dialog
+                                closeDialog();
+                            } else {
+                                lineageTimer = setTimeout(function () {
+                                    // clear the timer since we've been invoked
+                                    lineageTimer = null;
+
+                                    // for the lineage
+                                    pollLineage();
+                                }, 2000);
+                            }
+                        };
+
+                        // once the query is submitted wait until its finished
+                        submitLineage(lineageRequest).done(function (response) {
+                            lineage = response.lineage;
+
+                            // process the lineage, if its not done computing wait 1 second before checking again
+                            processLineage(1);
+                        }).fail(closeDialog);
+                    };
+
+                    // handles updating the lineage graph
+                    var renderEventLineage = function (lineageResults) {
+                        addLineage(lineageResults.nodes, lineageResults.links, provenanceTableCtrl);
+                    };
+
+                    // collapses the lineage for the specified event in the specified direction
+                    var collapseLineage = function (eventId, provenanceTableCtrl) {
+                        // get the event in question and collapse in the appropriate direction
+                        provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
+                            var provenanceEvent = response.provenanceEvent;
+                            var eventUuid = provenanceEvent.flowFileUuid;
+                            var eventUuids = d3.set(provenanceEvent.childUuids);
+
+                            // determines if the specified event should be removable based on if the collapsing is fanning in/out
+                            var allowEventRemoval = function (fanIn, node) {
+                                if (fanIn) {
+                                    return node.id !== eventId;
+                                } else {
+                                    return node.flowFileUuid !== eventUuid && $.inArray(eventUuid, node.parentUuids) === -1;
+                                }
+                            };
+
+                            // determines if the specified link should be removable based on if the collapsing is fanning in/out
+                            var allowLinkRemoval = function (fanIn, link) {
+                                if (fanIn) {
+                                    return true;
+                                } else {
+                                    return link.flowFileUuid !== eventUuid;
+                                }
+                            };
+
+                            // the event is fan in if the flowfile uuid is in the children
+                            var fanIn = $.inArray(eventUuid, provenanceEvent.childUuids) >= 0;
+
+                            // collapses the specified uuids
+                            var collapse = function (uuids) {
+                                var newUuids = false;
+
+                                // consider each node for being collapsed
+                                $.each(nodeLookup.values(), function (_, node) {
+                                    // if this node is in the uuids remove it unless its the original event or is part of this and another lineage
+                                    if (uuids.has(node.flowFileUuid) && allowEventRemoval(fanIn, node)) {
+                                        // remove it from the look lookup
+                                        nodeLookup.remove(node.id);
+
+                                        // include all related outgoing flow file uuids
+                                        $.each(node.outgoing, function (_, outgoing) {
+                                            if (!uuids.has(outgoing.flowFileUuid)) {
+                                                uuids.add(outgoing.flowFileUuid);
+                                                newUuids = true;
+                                            }
+                                        });
+                                    }
+                                });
+
+                                // update the link data
+                                $.each(linkLookup.values(), function (_, link) {
+                                    // if this link is in the uuids remove it
+                                    if (uuids.has(link.flowFileUuid) && allowLinkRemoval(fanIn, link)) {
+                                        // remove it from the link lookup
+                                        linkLookup.remove(link.id);
+
+                                        // add a related uuid that needs to be collapse
+                                        var next = link.target;
+                                        if (!uuids.has(next.flowFileUuid)) {
+                                            uuids.add(next.flowFileUuid);
+                                            newUuids = true;
+                                        }
+                                    }
+                                });
+
+                                // collapse any related uuids
+                                if (newUuids) {
+                                    collapse(uuids);
+                                }
+                            };
+
+                            // collapse the specified uuids
+                            collapse(eventUuids);
+
+                            // update the layout
+                            refresh(provenanceTableCtrl);
+                        });
+                    };
+
+                    // add menu items
+                    menuItems.push({
+                        'class': 'lineage-view-parents',
+                        'text': 'Find parents',
+                        'click': function () {
+                            expandLineage({
+                                lineageRequestType: 'PARENTS',
+                                eventId: d.id,
+                                clusterNodeId: clusterNodeId
+                            });
+                        }
+                    }, {
+                        'class': 'lineage-view-children',
+                        'text': 'Expand',
+                        'click': function () {
+                            expandLineage({
+                                lineageRequestType: 'CHILDREN',
+                                eventId: d.id,
+                                clusterNodeId: clusterNodeId
+                            });
+                        }
+                    }, {
+                        'class': 'lineage-collapse-children',
+                        'text': 'Collapse',
+                        'click': function () {
+                            // collapse the children lineage
+                            collapseLineage(d.id, provenanceTableCtrl);
+                        }
+                    });
+                }
+
+                // show the context menu for an event
+                addContextMenuItems(menuItems);
             };
 
             // renders event nodes
             var renderEvent = function (events, provenanceTableCtrl) {
+                events
+                    .on('contextmenu', function (d) {
+                        // select the current node for a visible cue
+                        d3.select('#event-node-' + d.id).classed('context', true);
+
+                        // show the context menu
+                        showContextMenu(d, provenanceTableCtrl);
+                    })
+                    .on('mousedown', function (d) {
+                        d3.event.stopPropagation();
+                    });
+
                 events
                     .classed('event', true)
                     .append('circle')
@@ -773,267 +1031,6 @@
                         'id': function (d) {
                             return 'event-node-' + d.id;
                         }
-                    })
-                    .on('contextmenu', function (d) {
-                        // select the current node for a visible cue
-                        d3.select(this).classed('context', true);
-
-                        // empty an previous contents - in case they right click on the
-                        // node twice without closing the previous context menu
-                        $('#provenance-lineage-context-menu').hide().empty();
-
-                        var menuItems = [{
-                            'class': 'lineage-view-event',
-                            'text': 'View details',
-                            'click': function () {
-                                provenanceTableCtrl.showEventDetails(d.id, clusterNodeId);
-                            }
-                        }];
-
-                        // if this is a spawn event show appropriate actions
-                        if (d.eventType === 'SPAWN' || d.eventType === 'CLONE' || d.eventType === 'FORK' || d.eventType === 'JOIN' || d.eventType === 'REPLAY') {
-                            // starts the lineage expansion process
-                            var expandLineage = function (lineageRequest) {
-                                var lineageProgress = $('#lineage-percent-complete');
-
-                                // add support to cancel outstanding requests - when the button is pressed we
-                                // could be in one of two stages, 1) waiting to GET the status or 2)
-                                // in the process of GETting the status. Handle both cases by cancelling
-                                // the setTimeout (1) and by setting a flag to indicate that a request has
-                                // been request so we can ignore the results (2).
-
-                                var cancelled = false;
-                                var lineage = null;
-                                var lineageTimer = null;
-
-                                // update the progress bar value
-                                provenanceTableCtrl.updateProgress(lineageProgress, 0);
-
-                                // show the 'searching...' dialog
-                                $('#lineage-query-dialog').modal('setButtonModel', [{
-                                    buttonText: 'Cancel',
-                                    color: {
-                                        base: '#E3E8EB',
-                                        hover: '#C7D2D7',
-                                        text: '#004849'
-                                    },
-                                    handler: {
-                                        click: function () {
-                                            cancelled = true;
-
-                                            // we are waiting for the next poll attempt
-                                            if (lineageTimer !== null) {
-                                                // cancel it
-                                                clearTimeout(lineageTimer);
-
-                                                // cancel the provenance
-                                                closeDialog();
-                                            }
-                                        }
-                                    }
-                                }]).modal('show');
-
-
-                                // closes the searching dialog and cancels the query on the server
-                                var closeDialog = function () {
-                                    // cancel the provenance results since we've successfully processed the results
-                                    if (common.isDefinedAndNotNull(lineage)) {
-                                        cancelLineage(lineage);
-                                    }
-
-                                    // close the dialog
-                                    $('#lineage-query-dialog').modal('hide');
-                                };
-
-                                // polls for the event lineage
-                                var pollLineage = function () {
-                                    getLineage(lineage).done(function (response) {
-                                        lineage = response.lineage;
-
-                                        // process the lineage
-                                        processLineage();
-                                    }).fail(closeDialog);
-                                };
-
-                                // processes the event lineage
-                                var processLineage = function () {
-                                    // if the request was cancelled just ignore the current response
-                                    if (cancelled === true) {
-                                        closeDialog();
-                                        return;
-                                    }
-
-                                    // close the dialog if the results contain an error
-                                    if (!common.isEmpty(lineage.results.errors)) {
-                                        var errors = lineage.results.errors;
-                                        dialog.showOkDialog({
-                                            headerText: 'Process Lineage',
-                                            dialogContent: common.formatUnorderedList(errors)
-                                        });
-
-                                        closeDialog();
-                                        return;
-                                    }
-
-                                    // update the precent complete
-                                    provenanceTableCtrl.updateProgress(lineageProgress, lineage.percentCompleted);
-
-                                    // process the results if they are finished
-                                    if (lineage.finished === true) {
-                                        var results = lineage.results;
-
-                                        // ensure the events haven't aged off
-                                        if (results.nodes.length > 0) {
-                                            // update the lineage graph
-                                            renderEventLineage(results);
-                                        } else {
-                                            // inform the user that no results were found
-                                            dialog.showOkDialog({
-                                                headerText: 'Lineage Results',
-                                                dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.'
-                                            });
-                                        }
-
-                                        // close the searching.. dialog
-                                        closeDialog();
-                                    } else {
-                                        lineageTimer = setTimeout(function () {
-                                            // clear the timer since we've been invoked
-                                            lineageTimer = null;
-
-                                            //  for the lineage
-                                            pollLineage();
-                                        }, 2000);
-                                    }
-                                };
-
-                                // once the query is submitted wait until its finished
-                                submitLineage(lineageRequest).done(function (response) {
-                                    lineage = response.lineage;
-
-                                    // process the lineage, if its not done computing wait 1 second before checking again
-                                    processLineage(1);
-                                }).fail(closeDialog);
-                            };
-
-                            // handles updating the lineage graph
-                            var renderEventLineage = function (lineageResults) {
-                                addLineage(lineageResults.nodes, lineageResults.links, provenanceTableCtrl);
-                            };
-
-                            // collapses the lineage for the specified event in the specified direction
-                            var collapseLineage = function (eventId, provenanceTableCtrl) {
-                                // get the event in question and collapse in the appropriate direction
-                                provenanceTableCtrl.getEventDetails(eventId, clusterNodeId).done(function (response) {
-                                    var provenanceEvent = response.provenanceEvent;
-                                    var eventUuid = provenanceEvent.flowFileUuid;
-                                    var eventUuids = d3.set(provenanceEvent.childUuids);
-
-                                    // determines if the specified event should be removable based on if the collapsing is fanning in/out
-                                    var allowEventRemoval = function (fanIn, node) {
-                                        if (fanIn) {
-                                            return node.id !== eventId;
-                                        } else {
-                                            return node.flowFileUuid !== eventUuid && $.inArray(eventUuid, node.parentUuids) === -1;
-                                        }
-                                    };
-
-                                    // determines if the specified link should be removable based on if the collapsing is fanning in/out
-                                    var allowLinkRemoval = function (fanIn, link) {
-                                        if (fanIn) {
-                                            return true;
-                                        } else {
-                                            return link.flowFileUuid !== eventUuid;
-                                        }
-                                    };
-
-                                    // the event is fan in if the flowfile uuid is in the children
-                                    var fanIn = $.inArray(eventUuid, provenanceEvent.childUuids) >= 0;
-
-                                    // collapses the specified uuids
-                                    var collapse = function (uuids) {
-                                        var newUuids = false;
-
-                                        // consider each node for being collapsed
-                                        $.each(nodeLookup.values(), function (_, node) {
-                                            // if this node is in the uuids remove it unless its the original event or is part of this and another lineage
-                                            if (uuids.has(node.flowFileUuid) && allowEventRemoval(fanIn, node)) {
-                                                // remove it from the look lookup
-                                                nodeLookup.remove(node.id);
-
-                                                // include all related outgoing flow file uuids
-                                                $.each(node.outgoing, function (_, outgoing) {
-                                                    if (!uuids.has(outgoing.flowFileUuid)) {
-                                                        uuids.add(outgoing.flowFileUuid);
-                                                        newUuids = true;
-                                                    }
-                                                });
-                                            }
-                                        });
-
-                                        // update the link data
-                                        $.each(linkLookup.values(), function (_, link) {
-                                            // if this link is in the uuids remove it
-                                            if (uuids.has(link.flowFileUuid) && allowLinkRemoval(fanIn, link)) {
-                                                // remove it from the link lookup
-                                                linkLookup.remove(link.id);
-
-                                                // add a related uuid that needs to be collapse
-                                                var next = link.target;
-                                                if (!uuids.has(next.flowFileUuid)) {
-                                                    uuids.add(next.flowFileUuid);
-                                                    newUuids = true;
-                                                }
-                                            }
-                                        });
-
-                                        // collapse any related uuids
-                                        if (newUuids) {
-                                            collapse(uuids);
-                                        }
-                                    };
-
-                                    // collapse the specified uuids
-                                    collapse(eventUuids);
-
-                                    // update the layout
-                                    refresh(provenanceTableCtrl);
-                                });
-                            };
-
-                            // add menu items
-                            menuItems.push({
-                                'class': 'lineage-view-parents',
-                                'text': 'Find parents',
-                                'click': function () {
-                                    expandLineage({
-                                        lineageRequestType: 'PARENTS',
-                                        eventId: d.id,
-                                        clusterNodeId: clusterNodeId
-                                    });
-                                }
-                            }, {
-                                'class': 'lineage-view-children',
-                                'text': 'Expand',
-                                'click': function () {
-                                    expandLineage({
-                                        lineageRequestType: 'CHILDREN',
-                                        eventId: d.id,
-                                        clusterNodeId: clusterNodeId
-                                    });
-                                }
-                            }, {
-                                'class': 'lineage-collapse-children',
-                                'text': 'Collapse',
-                                'click': function () {
-                                    // collapse the children lineage
-                                    collapseLineage(d.id, provenanceTableCtrl);
-                                }
-                            });
-                        }
-
-                        // show the context menu for an event
-                        addContextMenuItems(menuItems);
                     });
 
                 events

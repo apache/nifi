@@ -473,12 +473,19 @@ path.link.selected {
     stroke: #ba554a;
 }
 
+g.event {
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
 g.event circle.selected {
     fill: #ba554a;
 }
 
 text.event-type {
-    cursor: pointer;
     font-family: Roboto;
     font-size: 11px;
     font-style: normal;
@@ -490,6 +497,14 @@ text.event-type.expand-parents, text.event-type.expand-children {
     font-family: 'Roboto';
     font-style: normal;
     font-size: 13px;
+}
+
+g.flowfile {
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 g.flowfile circle.context, g.event circle.context {
