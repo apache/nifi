@@ -46,7 +46,6 @@
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/tabbs/jquery.tabbs.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
-        <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
@@ -73,6 +72,7 @@
         ${nf.summary.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
+        <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
     </head>
     <body ng-controller="ngSummaryAppCtrl">
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>

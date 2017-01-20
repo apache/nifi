@@ -15,13 +15,32 @@
  * limitations under the License.
  */
 
-/* global nf, top */
+/* global nf, top, define, module, require, exports */
 
-$(document).ready(function () {
-    nf.Login.init();
-});
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Storage'],
+            function ($, common, dialog, storage) {
+                return (nf.Login = factory($, common, dialog, storage));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Login =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Storage')));
+    } else {
+        nf.Login = factory(root.$, root.nf.Common, root.nf.Dialog, root.nf.Storage);
+    }
+}(this, function ($, common, dialog, storage) {
+    'use strict';
 
-nf.Login = (function () {
+    $(document).ready(function () {
+        nfLogin.init();
+    });
 
     var config = {
         urls: {
@@ -62,12 +81,12 @@ nf.Login = (function () {
     var login = function () {
         // remove focus
         $('#username, #password').blur();
-        
+
         // show the logging message...
         $('#login-progress-label').text('Logging in...');
         $('#login-progress-container').show();
         $('#login-submission-container').hide();
-        
+
         // login submit
         $.ajax({
             type: 'POST',
@@ -78,9 +97,9 @@ nf.Login = (function () {
             }
         }).done(function (jwt) {
             // get the payload and store the token with the appropirate expiration
-            var token = nf.Common.getJwtPayload(jwt);
-            var expiration = parseInt(token['exp'], 10) * nf.Common.MILLIS_PER_SECOND;
-            nf.Storage.setItem('jwt', jwt, expiration);
+            var token = common.getJwtPayload(jwt);
+            var expiration = parseInt(token['exp'], 10) * common.MILLIS_PER_SECOND;
+            storage.setItem('jwt', jwt, expiration);
 
             // check to see if they actually have access now
             $.ajax({
@@ -89,10 +108,10 @@ nf.Login = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 var accessStatus = response.accessStatus;
-                
+
                 // update the logout link appropriately
                 showLogoutLink();
-                
+
                 // update according to the access status
                 if (accessStatus.status === 'ACTIVE') {
                     // reload as appropriate - no need to schedule token refresh as the page is reloading
@@ -122,9 +141,9 @@ nf.Login = (function () {
                 $('#login-message-container').show();
             });
         }).fail(function (xhr, status, error) {
-            nf.Dialog.showOkDialog({
+            dialog.showOkDialog({
                 headerText: 'Login',
-                dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                dialogContent: common.escapeHtml(xhr.responseText)
             });
 
             // update the form visibility
@@ -134,20 +153,20 @@ nf.Login = (function () {
     };
 
     var showLogoutLink = function () {
-        nf.Common.showLogoutLink();
+        common.showLogoutLink();
     };
 
-    return {
+    var nfLogin = {
         /**
          * Initializes the login page.
          */
         init: function () {
-            nf.Storage.init();
+            storage.init();
 
-            if (nf.Storage.getItem('jwt') !== null) {
+            if (storage.getItem('jwt') !== null) {
                 showLogoutLink();
             }
-            
+
             // supporting logging in via enter press
             $('#username, #password').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
@@ -166,7 +185,7 @@ nf.Login = (function () {
                 $('#login-message').text(xhr.responseText);
                 initializeMessage();
             });
-            
+
             // access config
             var accessConfigXhr = $.ajax({
                 type: 'GET',
@@ -180,22 +199,22 @@ nf.Login = (function () {
 
                 var accessConfigResponse = accessConfigResult[0];
                 var accessConfig = accessConfigResponse.config;
-                
+
                 // possible login states
                 var needsLogin = true;
                 var showMessage = false;
-                
+
                 // handle the status appropriately
                 if (accessStatus.status === 'UNKNOWN') {
                     needsLogin = true;
                 } else if (accessStatus.status === 'ACTIVE') {
                     showMessage = true;
                     needsLogin = false;
-                    
+
                     $('#login-message-title').text('Success');
                     $('#login-message').text(accessStatus.message);
                 }
-                
+
                 // if login is required, verify its supported
                 if (accessConfig.supportsLogin === false && needsLogin === true) {
                     $('#login-message-title').text('Access Denied');
@@ -214,4 +233,6 @@ nf.Login = (function () {
             });
         }
     };
-}());
+
+    return nfLogin;
+}));

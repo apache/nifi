@@ -109,7 +109,7 @@ nf.ng.LabelComponent = function (serviceProvider) {
 
                 // update the birdseye
                 nf.Birdseye.refresh();
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         }
     }
 

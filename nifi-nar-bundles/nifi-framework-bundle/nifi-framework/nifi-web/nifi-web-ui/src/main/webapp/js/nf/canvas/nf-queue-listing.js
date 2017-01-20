@@ -316,7 +316,7 @@ nf.QueueListing = (function () {
                 }).done(function (response) {
                     listingRequest = response.listingRequest;
                     processListingRequest(nextDelay);
-                }).fail(completeListingRequest).fail(nf.Common.handleAjaxError);
+                }).fail(completeListingRequest).fail(nf.ErrorHandler.handleAjaxError);
             };
 
             // issue the request to list the flow files
@@ -335,7 +335,7 @@ nf.QueueListing = (function () {
                 // process the drop request
                 listingRequest = response.listingRequest;
                 processListingRequest(1);
-            }).fail(completeListingRequest).fail(nf.Common.handleAjaxError);
+            }).fail(completeListingRequest).fail(nf.ErrorHandler.handleAjaxError);
         }).promise();
     };
 
@@ -436,7 +436,7 @@ nf.QueueListing = (function () {
 
             // show the dialog
             $('#flowfile-details-dialog').modal('show');
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     return {
@@ -496,8 +496,20 @@ nf.QueueListing = (function () {
                     width: 75,
                     maxWidth: 75
                 },
-                {id: 'uuid', name: 'UUID', field: 'uuid', sortable: false, resizable: true},
-                {id: 'filename', name: 'Filename', field: 'filename', sortable: false, resizable: true},
+                {
+                    id: 'uuid',
+                    name: 'UUID',
+                    field: 'uuid',
+                    sortable: false,
+                    resizable: true
+                },
+                {
+                    id: 'filename',
+                    name: 'Filename',
+                    field: 'filename',
+                    sortable: false,
+                    resizable: true
+                },
                 {
                     id: 'size',
                     name: 'File Size',
@@ -536,7 +548,7 @@ nf.QueueListing = (function () {
             ];
 
             // conditionally show the cluster node identifier
-            if (nf.Canvas.isClustered()) {
+            if (nf.ClusterSummary.isClustered()) {
                 queueListingColumns.push({
                     id: 'clusterNodeAddress',
                     name: 'Node',

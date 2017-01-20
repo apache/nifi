@@ -422,18 +422,23 @@
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/canvas/nf-canvas-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
-                                                <include>${staging.dir}/js/nf/nf-shell.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-client.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-context-menu.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
+                                                <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
+                                                <include>${staging.dir}/js/nf/nf-shell.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-services.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
@@ -449,6 +454,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-label-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
+                                                <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-graph.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-processor.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
@@ -458,18 +464,14 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-draggable.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-birdseye.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-actions.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-context-menu.js</include>
-                                                <include>${staging.dir}/js/nf/nf-status-history.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-toolbox-controller.js</include>
@@ -488,78 +490,84 @@
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-label-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-breadcrumbs-directive.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-draggable-directive.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/history/nf-history-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/history/nf-history.js</include>
-                                                <include>${staging.dir}/js/nf/history/nf-history-table.js</include>
+                                                <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
                                                 <include>${staging.dir}/js/nf/history/nf-history-model.js</include>
+                                                <include>${staging.dir}/js/nf/history/nf-history-table.js</include>
+                                                <include>${staging.dir}/js/nf/history/nf-history.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/provenance/nf-provenance-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
-                                                <include>${staging.dir}/js/nf/provenance/nf-provenance.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-table.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-lineage.js</include>
+                                                <include>${staging.dir}/js/nf/provenance/nf-provenance.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/summary/nf-summary-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
+                                                <include>${staging.dir}/js/nf/nf-client.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
+                                                <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
                                                 <include>${staging.dir}/js/nf/nf-processor-details.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-settings.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
-                                                <include>${staging.dir}/js/nf/summary/nf-summary.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary-table.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-cluster-search.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/summary/nf-summary.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/counters/nf-counters-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/counters/nf-counters.js</include>
                                                 <include>${staging.dir}/js/nf/counters/nf-counters-table.js</include>
+                                                <include>${staging.dir}/js/nf/counters/nf-counters.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -567,57 +575,58 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/users/nf-users-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/users/nf-users.js</include>
                                                 <include>${staging.dir}/js/nf/users/nf-users-table.js</include>
+                                                <include>${staging.dir}/js/nf/users/nf-users.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/templates/nf-templates-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/templates/nf-templates.js</include>
                                                 <include>${staging.dir}/js/nf/templates/nf-templates-table.js</include>
+                                                <include>${staging.dir}/js/nf/templates/nf-templates.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/cluster/nf-cluster-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
-                                                <include>${staging.dir}/js/nf/cluster/nf-cluster.js</include>
                                                 <include>${staging.dir}/js/nf/cluster/nf-cluster-table.js</include>
+                                                <include>${staging.dir}/js/nf/cluster/nf-cluster.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/bulletin-board/nf-bulletin-board-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
                                                 <include>${staging.dir}/js/nf/bulletin-board/nf-bulletin-board.js</include>
                                             </includes>
                                         </aggregation>
@@ -625,11 +634,11 @@
                                             <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/login/nf-login-all.js</output>
                                             <includes>
-                                                <include>${staging.dir}/js/nf/nf-client.js</include>
-                                                <include>${staging.dir}/js/nf/nf-common.js</include>
-                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
+                                                <include>${staging.dir}/js/nf/nf-common.js</include>
+                                                <include>${staging.dir}/js/nf/nf-error-handler.js</include>
+                                                <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/login/nf-login.js</include>
                                             </includes>

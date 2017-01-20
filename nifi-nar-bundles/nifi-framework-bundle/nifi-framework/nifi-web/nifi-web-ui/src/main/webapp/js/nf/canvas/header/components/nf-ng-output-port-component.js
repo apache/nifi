@@ -62,7 +62,7 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     function OutputPortComponent() {
@@ -169,13 +169,13 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the output port was dropped.
          */
         promptForOutputPortName: function (pt) {
-            var self = this;
+            var outputPortComponent = this;
             var addOutputPort = function () {
                 // get the name of the output port and clear the textfield
                 var portName = $('#new-port-name').val();
 
                 // hide the dialog
-                self.modal.hide();
+                outputPortComponent.modal.hide();
 
                 // create the output port
                 createOutputPort(portName, pt);
@@ -201,7 +201,7 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
                     },
                     handler: {
                         click: function () {
-                            self.modal.hide();
+                            outputPortComponent.modal.hide();
                         }
                     }
                 }]);

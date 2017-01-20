@@ -86,7 +86,7 @@ nf.ProcessGroupConfiguration = (function () {
             });
 
             nf.Canvas.reload();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -179,7 +179,7 @@ nf.ProcessGroupConfiguration = (function () {
 
             // update the current time
             $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**

@@ -15,25 +15,41 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global nf, define, module, require, exports */
 
-nf.ng.AppCtrl = function ($scope, serviceProvider) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['nf.ng.Bridge'],
+            function (angularBridge) {
+                return (nf.ng.AppCtrl = factory(angularBridge));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.AppCtrl = factory(require('nf.ng.Bridge')));
+    } else {
+        nf.ng.AppCtrl = factory(root.nf.ng.Bridge);
+    }
+}(this, function (angularBridge) {
     'use strict';
 
-    function AppCtrl(serviceProvider) {
-        //global nf namespace for reference throughout angular app
-        this.nf = nf;
-        //any registered angular service is available through the serviceProvider
-        this.serviceProvider = serviceProvider;
-    }
-    AppCtrl.prototype = {
-        constructor: AppCtrl
-    }
+    return function ($scope, serviceProvider) {
+        'use strict';
 
-    var appCtrl = new AppCtrl(serviceProvider);
-    $scope.appCtrl = appCtrl;
+        function AppCtrl(serviceProvider) {
+            //global nf namespace for reference throughout angular app
+            this.nf = nf;
+            //any registered angular service is available through the serviceProvider
+            this.serviceProvider = serviceProvider;
+        }
 
-    //For production angular applications .scope() is unavailable so we set
-    //the root scope of the bootstrapped app on the bridge
-    nf.ng.Bridge.rootScope = $scope;
-};
+        AppCtrl.prototype = {
+            constructor: AppCtrl
+        }
+
+        var appCtrl = new AppCtrl(serviceProvider);
+        $scope.appCtrl = appCtrl;
+
+        //For production angular applications .scope() is unavailable so we set
+        //the root scope of the bootstrapped app on the bridge
+        angularBridge.rootScope = $scope;
+    }
+}));

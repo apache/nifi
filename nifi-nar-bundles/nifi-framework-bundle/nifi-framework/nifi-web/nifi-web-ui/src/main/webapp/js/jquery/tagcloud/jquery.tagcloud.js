@@ -127,7 +127,7 @@
                     $.each(options.tags, function (i, tag) {
                         var normalizedTagName = tag.toLowerCase();
 
-                        if (nf.Common.isDefinedAndNotNull(tagCloud[normalizedTagName])) {
+                        if (isDefinedAndNotNull(tagCloud[normalizedTagName])) {
                             tagCloud[normalizedTagName].count = tagCloud[normalizedTagName].count + 1;
                         } else {
                             var tagCloudEntry = {

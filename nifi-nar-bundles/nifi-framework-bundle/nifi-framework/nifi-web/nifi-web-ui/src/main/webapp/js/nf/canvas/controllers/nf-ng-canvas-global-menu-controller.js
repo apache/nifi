@@ -139,7 +139,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
              * @returns {*|boolean}
              */
             visible: function () {
-                return nf.Canvas.isConnectedToCluster();
+                return nf.ClusterSummary.isConnectedToCluster();
             },
 
             /**
@@ -304,7 +304,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                         $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
                         nf.QueueListing.initFlowFileDetailsDialog();
                     }
-                }).fail(nf.Common.handleAjaxError);
+                }).fail(nf.ErrorHandler.handleAjaxError);
 
                 this.modal.init();
             },
@@ -327,7 +327,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  * Initialize the modal.
                  */
                 init: function () {
-                    var self = this;
+                    var aboutModal = this;
 
                     var resizeAbout = function(){
                         var dialog = $(this);
@@ -350,7 +350,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                             },
                             handler: {
                                 click: function () {
-                                    self.hide();
+                                    aboutModal.hide();
                                 }
                             }
                         }]

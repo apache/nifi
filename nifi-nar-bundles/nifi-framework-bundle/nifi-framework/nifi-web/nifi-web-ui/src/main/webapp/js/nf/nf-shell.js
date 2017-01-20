@@ -15,46 +15,64 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global nf, define, module, require, exports */
 
-$(document).ready(function () {
-    // configure the dialog
-    $('#shell-dialog').modal({
-        scrollableContentStyle: 'scrollable',
-        header: false,
-        footer: false,
-        responsive: {
-            x: false,
-            y: false
-        }
-    });
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.ContextMenu'],
+            function ($, common, contextMenu) {
+                return (nf.Shell = factory($, common, contextMenu));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Shell = factory(require('jquery'),
+            require('nf.Common'),
+            require('nf.ContextMenu')));
+    } else {
+        nf.Shell = factory(root.$,
+            root.nf.Common,
+            root.nf.ContextMenu);
+    }
+}(this, function ($, common, contextMenu) {
+    'use strict';
 
-    // register a listener when the frame is closed
-    $('#shell-close-button').click(function () {
-        // close the shell
-        $('#shell-dialog').modal('hide');
-    });
+    $(document).ready(function () {
+        // configure the dialog
+        $('#shell-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            header: false,
+            footer: false,
+            responsive: {
+                x: false,
+                y: false
+            }
+        });
 
-    // register a listener when the frame is undocked
-    $('#shell-undock-button').click(function () {
-        var uri = $('#shell-iframe').attr('src');
-        if (!nf.Common.isBlank(uri)) {
-            // open the page and close the shell
-            window.open(uri);
-
+        // register a listener when the frame is closed
+        $('#shell-close-button').click(function () {
             // close the shell
             $('#shell-dialog').modal('hide');
-        }
-    });
-});
+        });
 
-nf.Shell = (function () {
+        // register a listener when the frame is undocked
+        $('#shell-undock-button').click(function () {
+            var uri = $('#shell-iframe').attr('src');
+            if (!common.isBlank(uri)) {
+                // open the page and close the shell
+                window.open(uri);
+
+                // close the shell
+                $('#shell-dialog').modal('hide');
+            }
+        });
+    });
 
     var showPageResize = null;
     var showContentResize = null;
 
     return {
-        
+
         resizeContent: function (shell) {
             var contentContainer = shell.find('.shell-content-container');
             contentContainer.css({
@@ -73,24 +91,24 @@ nf.Shell = (function () {
             });
             shell.trigger("shell:iframe:resize");
         },
-        
+
         /**
          * Shows a page in the shell.
-         * 
+         *
          * @argument {string} uri               The URI to show
          * @argument {boolean} canUndock        Whether or not the shell is undockable
          */
         showPage: function (uri, canUndock) {
             // if the context menu is on this page, attempt to close
-            if (nf.Common.isDefinedAndNotNull(nf.ContextMenu)) {
-                nf.ContextMenu.hide();
+            if (common.isDefinedAndNotNull(contextMenu)) {
+                contextMenu.hide();
             }
-            
+
             return $.Deferred(function (deferred) {
                 var shell = $('#shell');
 
                 // default undockable to true
-                if (nf.Common.isNull(canUndock) || nf.Common.isUndefined(canUndock)) {
+                if (common.isNull(canUndock) || common.isUndefined(canUndock)) {
                     canUndock = true;
                 }
 
@@ -103,7 +121,7 @@ nf.Shell = (function () {
 
                 // register a new open handler
                 $('#shell-dialog').modal('setOpenHandler', function () {
-                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                    common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 });
 
                 // show the custom processor ui
@@ -127,19 +145,19 @@ nf.Shell = (function () {
                 }).appendTo(shell);
             }).promise();
         },
-        
+
         /**
          * Shows the specified content in the shell. When the shell is closed, the content
          * will be hidden and returned to its previous location in the dom.
-         * 
+         *
          * @argument {string} domId             The id of the element to show in the shell
          */
         showContent: function (domId) {
             // if the context menu is on this page, attempt to close
-            if (nf.Common.isDefinedAndNotNull(nf.ContextMenu)) {
-                nf.ContextMenu.hide();
+            if (common.isDefinedAndNotNull(contextMenu)) {
+                contextMenu.hide();
             }
-            
+
             return $.Deferred(function (deferred) {
                 var content = $(domId);
                 if (content.length) {
@@ -154,7 +172,7 @@ nf.Shell = (function () {
                         // close any open combos
                         var combos = $('.combo');
                         for (var i = 0, len = combos.length; i < len; i++) {
-                            if ($(combos[i]).is(':visible')){
+                            if ($(combos[i]).is(':visible')) {
                                 $(combos[i]).combo('close');
                             }
                         }
@@ -179,11 +197,11 @@ nf.Shell = (function () {
                         width: shell.width(),
                         height: shell.height()
                     }).append(content).appendTo(shell);
-                    
+
                     // show the content
                     content.show();
                 }
             }).promise();
         }
     };
-}());
+}));

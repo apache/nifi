@@ -252,7 +252,7 @@ nf.ControllerServices = (function () {
             var row = controllerServicesData.getRowById(controllerServiceEntity.id);
             controllerServicesGrid.setSelectedRows([row]);
             controllerServicesGrid.scrollRowIntoView(row);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-controller-service-dialog').modal('hide');
@@ -266,8 +266,21 @@ nf.ControllerServices = (function () {
     var initNewControllerServiceDialog = function () {
         // initialize the processor type table
         var controllerServiceTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nf.Common.typeFormatter,
+                sortable: false,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true
+            }
         ];
 
         // initialize the dataview
@@ -403,7 +416,7 @@ nf.ControllerServices = (function () {
                 select: applyControllerServiceTypeFilter,
                 remove: applyControllerServiceTypeFilter
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // initialize the controller service dialog
         $('#new-controller-service-dialog').modal({
@@ -651,11 +664,44 @@ nf.ControllerServices = (function () {
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
-            {id: 'name', name: 'Name', formatter: nameFormatter, sortable: true, resizable: true},
-            {id: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true},
-            {id: 'parentGroupId', name: 'Process Group', formatter: groupIdFormatter, sortable: true, resizeable: true}
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreControllerServiceDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                name: 'Name',
+                formatter: nameFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                formatter: typeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'state',
+                name: 'State',
+                formatter: controllerServiceStateFormatter,
+                sortable: true,
+                resizeable: true
+            },
+            {
+                id: 'parentGroupId',
+                name: 'Process Group',
+                formatter: groupIdFormatter,
+                sortable: true,
+                resizeable: true
+            }
         ];
 
         // action column should always be last

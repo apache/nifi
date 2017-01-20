@@ -15,14 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf, top */
+/* global nf, top, define, module, require, exports */
 
-$(document).ready(function () {
-    // initialize the templates page
-    nf.Templates.init();
-});
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.TemplatesTable',
+                'nf.ErrorHandler',
+                'nf.Storage'],
+            function ($, common, templatesTable, errorHandler, storage) {
+                return (nf.Templates = factory($, common, templatesTable, errorHandler, storage));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Templates =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.TemplatesTable'),
+                require('nf.ErrorHandler'),
+                require('nf.Storage')));
+    } else {
+        nf.Templates = factory(root.$,
+            root.nf.Common,
+            root.nf.TemplatesTable,
+            root.nf.ErrorHandler,
+            root.nf.Storage);
+    }
+}(this, function ($, common, templatesTable, errorHandler, storage) {
+    'use strict';
 
-nf.Templates = (function () {
+    $(document).ready(function () {
+        // initialize the templates page
+        nfTemplates.init();
+    });
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -44,8 +69,8 @@ nf.Templates = (function () {
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            nf.Common.setCurrentUser(currentUser);
-        }).fail(nf.Common.handleAjaxError);
+            common.setCurrentUser(currentUser);
+        }).fail(errorHandler.handleAjaxError);
     };
 
     /**
@@ -54,7 +79,7 @@ nf.Templates = (function () {
     var initializeTemplatesPage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            nf.TemplatesTable.loadTemplatesTable();
+            templatesTable.loadTemplatesTable();
         });
 
         // get the banners if we're not in the shell
@@ -66,8 +91,8 @@ nf.Templates = (function () {
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the banners response is specified
-                    if (nf.Common.isDefinedAndNotNull(response.banners)) {
-                        if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                    if (common.isDefinedAndNotNull(response.banners)) {
+                        if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -81,7 +106,7 @@ nf.Templates = (function () {
                             updateTop('templates');
                         }
 
-                        if (nf.Common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                        if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -97,7 +122,7 @@ nf.Templates = (function () {
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    errorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -106,21 +131,21 @@ nf.Templates = (function () {
         }).promise();
     };
 
-    return {
+    var nfTemplates = {
         /**
          * Initializes the templates page.
          */
         init: function () {
-            nf.Storage.init();
+            storage.init();
 
             // load the current user
             loadCurrentUser().done(function () {
 
                 // create the templates table
-                nf.TemplatesTable.init();
+                templatesTable.init();
 
                 // load the table
-                nf.TemplatesTable.loadTemplatesTable().done(function () {
+                templatesTable.loadTemplatesTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeTemplatesPage().done(function () {
                         var setBodySize = function () {
@@ -137,7 +162,7 @@ nf.Templates = (function () {
                             }
 
                             // configure the initial grid height
-                            nf.TemplatesTable.resetTableSize();
+                            templatesTable.resetTableSize();
                         };
 
                         // get the about details
@@ -155,15 +180,15 @@ nf.Templates = (function () {
 
                             // set the initial size
                             setBodySize();
-                        }).fail(nf.Common.handleAjaxError);
+                        }).fail(errorHandler.handleAjaxError);
 
                         $(window).on('resize', function (e) {
                             setBodySize();
                             // resize dialogs when appropriate
                             var dialogs = $('.dialog');
                             for (var i = 0, len = dialogs.length; i < len; i++) {
-                                if ($(dialogs[i]).is(':visible')){
-                                    setTimeout(function(dialog){
+                                if ($(dialogs[i]).is(':visible')) {
+                                    setTimeout(function (dialog) {
                                         dialog.modal('resize');
                                     }, 50, $(dialogs[i]));
                                 }
@@ -172,8 +197,8 @@ nf.Templates = (function () {
                             // resize grids when appropriate
                             var gridElements = $('*[class*="slickgrid_"]');
                             for (var j = 0, len = gridElements.length; j < len; j++) {
-                                if ($(gridElements[j]).is(':visible')){
-                                    setTimeout(function(gridElement){
+                                if ($(gridElements[j]).is(':visible')) {
+                                    setTimeout(function (gridElement) {
                                         gridElement.data('gridInstance').resizeCanvas();
                                     }, 50, $(gridElements[j]));
                                 }
@@ -183,12 +208,12 @@ nf.Templates = (function () {
                             var tabsContainers = $('.tab-container');
                             var tabsContents = [];
                             for (var k = 0, len = tabsContainers.length; k < len; k++) {
-                                if ($(tabsContainers[k]).is(':visible')){
+                                if ($(tabsContainers[k]).is(':visible')) {
                                     tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                nf.Common.toggleScrollable(tabsContent.get(0));
+                                common.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });
@@ -196,4 +221,6 @@ nf.Templates = (function () {
             });
         }
     };
-}());
+
+    return nfTemplates;
+}));

@@ -62,7 +62,7 @@ nf.ReportingTask = (function () {
                 headerText: 'Reporting Task'
             });
         } else {
-            nf.Common.handleAjaxError(xhr, status, error);
+            nf.ErrorHandler.handleAjaxError(xhr, status, error);
         }
     };
 
@@ -219,7 +219,7 @@ nf.ReportingTask = (function () {
             // update the task
             renderReportingTask(response);
             nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -299,7 +299,7 @@ nf.ReportingTask = (function () {
                 propertyName: propertyName
             },
             dataType: 'json'
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     return {
@@ -363,6 +363,7 @@ nf.ReportingTask = (function () {
             // initialize the property table
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
+                supportsGoTo: true,
                 dialogContainer: '#new-reporting-task-property-container',
                 descriptorDeferred: getReportingTaskPropertyDescriptor,
                 controllerServiceCreatedDeferred: function(response){
@@ -387,6 +388,7 @@ nf.ReportingTask = (function () {
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
+                    supportsGoTo: true,
                     dialogContainer: '#new-reporting-task-property-container',
                     descriptorDeferred: getReportingTaskPropertyDescriptor,
                     controllerServiceCreatedDeferred: function(response){
@@ -581,7 +583,7 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-configuration').modal('show');
 
                 $('#reporting-task-properties').propertytable('resetTableSize');
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**
@@ -598,6 +600,7 @@ nf.ReportingTask = (function () {
 
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
+                    supportsGoTo: true,
                     readOnly: true
                 });
 
@@ -733,7 +736,7 @@ nf.ReportingTask = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 renderReportingTask(response);
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
         
         /**
@@ -773,7 +776,7 @@ nf.ReportingTask = (function () {
                 var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
                 var reportingTaskData = reportingTaskGrid.getData();
                 reportingTaskData.deleteItem(reportingTaskEntity.id);
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         }
     };
 }());

@@ -62,7 +62,7 @@ nf.ng.GroupComponent = function (serviceProvider) {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     function GroupComponent() {
@@ -178,14 +178,14 @@ nf.ng.GroupComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the group was dropped.
          */
         promptForGroupName: function (pt) {
-            var self = this;
+            var groupComponent = this;
             return $.Deferred(function (deferred) {
                 var addGroup = function () {
                     // get the name of the group and clear the textfield
                     var groupName = $('#new-process-group-name').val();
 
                     // hide the dialog
-                    self.modal.hide();
+                    groupComponent.modal.hide();
 
                     // create the group and resolve the deferred accordingly
                     createGroup(groupName, pt).done(function (response) {
@@ -195,7 +195,7 @@ nf.ng.GroupComponent = function (serviceProvider) {
                     });
                 };
 
-                self.modal.update('setButtonModel', [{
+                groupComponent.modal.update('setButtonModel', [{
                     buttonText: 'Add',
                     color: {
                         base: '#728E9B',
@@ -219,13 +219,13 @@ nf.ng.GroupComponent = function (serviceProvider) {
                                 deferred.reject();
 
                                 // close the dialog
-                                self.modal.hide();
+                                groupComponent.modal.hide();
                             }
                         }
                     }]);
 
                 // show the dialog
-                self.modal.show();
+                groupComponent.modal.show();
 
                 // set up the focus and key handlers
                 $('#new-process-group-name').focus().off('keyup').on('keyup', function (e) {

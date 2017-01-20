@@ -62,7 +62,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     function InputPortComponent() {
@@ -178,13 +178,13 @@ nf.ng.InputPortComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the input port was dropped.
          */
         promptForInputPortName: function (pt) {
-            var self = this;
+            var inputPortComponent = this;
             var addInputPort = function () {
                 // get the name of the input port and clear the textfield
                 var portName = $('#new-port-name').val();
 
                 // hide the dialog
-                self.modal.hide();
+                inputPortComponent.modal.hide();
 
                 // create the input port
                 createInputPort(portName, pt);
@@ -210,7 +210,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
                     },
                     handler: {
                         click: function () {
-                            self.modal.hide();
+                            inputPortComponent.modal.hide();
                         }
                     }
                 }]);
