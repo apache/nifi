@@ -74,6 +74,7 @@
         <module>nifi-websocket-bundle</module>
         <module>nifi-tcp-bundle</module>
         <module>nifi-gcp-bundle</module>
+        <module>nifi-registry-bundle</module>
   </modules>
     
   <dependencyManagement>
