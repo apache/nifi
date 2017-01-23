@@ -22,6 +22,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -243,7 +244,12 @@ public class JettyServer implements NiFiServer {
                     String warContextPath = String.format("/%s", warName);
 
                     // attempt to locate the nar class loader for this war
-                    ClassLoader narClassLoaderForWar = NarClassLoaders.getInstance().getExtensionClassLoader(warToNarWorkingDirectoryLookup.get(war));
+                    Bundle bundleForWar = NarClassLoaders.getInstance().getBundle(warToNarWorkingDirectoryLookup.get(war));
+
+                    ClassLoader narClassLoaderForWar = null;
+                    if (bundleForWar != null) {
+                        narClassLoaderForWar = bundleForWar.getClassLoader();
+                    }
 
                     // this should never be null
                     if (narClassLoaderForWar == null) {

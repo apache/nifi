@@ -161,7 +161,8 @@ public class ControllerServiceLoader {
         // create a new id for the clone seeded from the original id so that it is consistent in a cluster
         final UUID id = UUID.nameUUIDFromBytes(controllerService.getIdentifier().getBytes(StandardCharsets.UTF_8));
 
-        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), false);
+        // TODO pass in bundle coordinate
+        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), null, false);
         clone.setName(controllerService.getName());
         clone.setComments(controllerService.getComments());
 
@@ -179,7 +180,8 @@ public class ControllerServiceLoader {
     private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
 
-        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), false);
+        // TODO pass in bundle coordinate
+        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), null, false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         return node;

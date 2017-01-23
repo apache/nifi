@@ -92,7 +92,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         try {
             // attempt to create the processor
-            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId());
+            // TODO get bundle coordinate from DTO, or do a look up if it doesn't exist
+            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), null);
 
             // ensure we can perform the update before we add the processor to the flow
             verifyUpdate(processor, processorDTO);

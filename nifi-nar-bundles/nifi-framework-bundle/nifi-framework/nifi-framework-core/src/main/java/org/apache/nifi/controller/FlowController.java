@@ -35,6 +35,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -1012,13 +1014,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      *
      * @param type processor type
      * @param id processor id
+     * @param coordinate the coordinate of the bundle for this processor
      * @return new processor
      * @throws NullPointerException if either arg is null
      * @throws ProcessorInstantiationException if the processor cannot be
      * instantiated for any reason
      */
-    public ProcessorNode createProcessor(final String type, final String id) throws ProcessorInstantiationException {
-        return createProcessor(type, id, true);
+    public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate) throws ProcessorInstantiationException {
+        return createProcessor(type, id, coordinate, true);
     }
 
     /**
@@ -1029,6 +1032,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      *
      * @param type the fully qualified Processor class name
      * @param id the unique ID of the Processor
+     * @param coordinate the bundle coordinate for this processor
      * @param firstTimeAdded whether or not this is the first time this
      * Processor is added to the graph. If {@code true}, will invoke methods
      * annotated with the {@link OnAdded} annotation.
@@ -1037,13 +1041,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws ProcessorInstantiationException if the processor cannot be
      * instantiated for any reason
      */
-    public ProcessorNode createProcessor(final String type, String id, final boolean firstTimeAdded) throws ProcessorInstantiationException {
+    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) throws ProcessorInstantiationException {
         id = id.intern();
 
         boolean creationSuccessful;
         Processor processor;
         try {
-            processor = instantiateProcessor(type, id);
+            processor = instantiateProcessor(type, id, coordinate);
             creationSuccessful = true;
         } catch (final ProcessorInstantiationException pie) {
             LOG.error("Could not create Processor of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", pie);
@@ -1112,24 +1116,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return procNode;
     }
 
-    private Processor instantiateProcessor(final String type, final String identifier) throws ProcessorInstantiationException {
-        Processor processor;
+    private Processor instantiateProcessor(final String type, final String identifier, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
+        final Bundle processorBundle = ExtensionManager.getBundle(bundleCoordinate);
+        if (processorBundle == null) {
+            throw new ProcessorInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+        }
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type, identifier);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(type);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type, identifier));
-            }
-
+            final ClassLoader detectedClassLoaderForType = ExtensionManager.createInstanceClassLoader(type, identifier, processorBundle);
+            final Class<?> rawClass = Class.forName(type, true, processorBundle.getClassLoader());
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
+
             final Class<? extends Processor> processorClass = rawClass.asSubclass(Processor.class);
-            processor = processorClass.newInstance();
+            Processor processor = processorClass.newInstance();
+
             final ComponentLog componentLogger = new SimpleProcessLogger(identifier, processor);
             final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, componentLogger, this, this, nifiProperties);
             processor.initialize(ctx);
@@ -1630,7 +1631,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Controller Services
             //
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), true);
+                // TODO pass in bundle
+                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), null, true);
 
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
@@ -1717,7 +1719,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate the processors
             //
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
-                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId());
+                // TODO get coordinate from DTO, or do a look up if doesn't exist
+                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), null);
 
                 procNode.setPosition(toPosition(processorDTO.getPosition()));
                 procNode.setProcessGroup(group);
@@ -2110,15 +2113,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(type);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type));
+            final List<Bundle> prioritizerBundles = ExtensionManager.getBundles(type);
+            if (prioritizerBundles.size() == 0) {
+                throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
+            if (prioritizerBundles.size() > 1) {
+                throw new IllegalStateException(String.format("Multiple bundles found for the specified class '%s', only one is allowed.", type));
+            }
+
+            final Bundle bundle = prioritizerBundles.get(0);
+            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
+            final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForType);
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends FlowFilePrioritizer> prioritizerClass = rawClass.asSubclass(FlowFilePrioritizer.class);
@@ -2835,21 +2840,22 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         lookupGroup(groupId).stopProcessing();
     }
 
-    public ReportingTaskNode createReportingTask(final String type) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, true);
+    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, bundleCoordinate, true);
     }
 
-    public ReportingTaskNode createReportingTask(final String type, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, UUID.randomUUID().toString(), firstTimeAdded);
+    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, UUID.randomUUID().toString(), bundleCoordinate, firstTimeAdded);
     }
 
     @Override
-    public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, id, firstTimeAdded, true);
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate,final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, id, bundleCoordinate, firstTimeAdded, true);
     }
 
-    public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded, final boolean register) throws ReportingTaskInstantiationException {
-        if (type == null || id == null) {
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded, final boolean register)
+            throws ReportingTaskInstantiationException {
+        if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException();
         }
 
@@ -2857,15 +2863,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         boolean creationSuccessful = true;
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type, id);
-            final Class<?> rawClass;
-            if (detectedClassLoader == null) {
-                rawClass = Class.forName(type);
-            } else {
-                rawClass = Class.forName(type, false, detectedClassLoader);
+            final Bundle reportingTaskBundle = ExtensionManager.getBundle(bundleCoordinate);
+            if (reportingTaskBundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
             }
 
+            final ClassLoader detectedClassLoader = ExtensionManager.createInstanceClassLoader(type, id, reportingTaskBundle);
+            final Class<?> rawClass = Class.forName(type, false, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
+
             final Class<? extends ReportingTask> reportingTaskClass = rawClass.asSubclass(ReportingTask.class);
             final Object reportingTaskObj = reportingTaskClass.newInstance();
             task = reportingTaskClass.cast(reportingTaskObj);
@@ -2988,8 +2994,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
-        final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, bundleCoordinate, firstTimeAdded);
 
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);

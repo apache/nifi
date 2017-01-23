@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
@@ -124,23 +126,24 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
-        if (type == null || id == null) {
+    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException();
         }
 
+        ClassLoader cl = null;
         final ClassLoader currentContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader cl = ExtensionManager.getClassLoader(type, id);
             final Class<?> rawClass;
-
             try {
-                if (cl == null) {
-                    rawClass = Class.forName(type);
-                } else {
-                    Thread.currentThread().setContextClassLoader(cl);
-                    rawClass = Class.forName(type, false, cl);
+                final Bundle csBundle = ExtensionManager.getBundle(bundleCoordinate);
+                if (csBundle == null) {
+                    throw new ControllerServiceInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
                 }
+
+                cl = ExtensionManager.createInstanceClassLoader(type, id, csBundle);
+                Thread.currentThread().setContextClassLoader(cl);
+                rawClass = Class.forName(type, false, cl);
             } catch (final Exception e) {
                 logger.error("Could not create Controller Service of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", e);
                 Thread.currentThread().setContextClassLoader(currentContextClassLoader);

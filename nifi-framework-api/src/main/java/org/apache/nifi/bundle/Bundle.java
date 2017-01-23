@@ -14,17 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.exception;
+package org.apache.nifi.bundle;
 
-public class ProcessorInstantiationException extends Exception {
+/**
+ * Represents a bundle that contains one or more extensions.
+ */
+public class Bundle {
 
-    private static final long serialVersionUID = 189273489L;
+    private final BundleDetails bundleDetails;
 
-    public ProcessorInstantiationException(final String className, final Throwable t) {
-        super(className, t);
+    private final ClassLoader classLoader;
+
+    public Bundle(final BundleDetails bundleDetails, final ClassLoader classLoader) {
+        this.bundleDetails = bundleDetails;
+        this.classLoader = classLoader;
+
+        if (this.bundleDetails == null) {
+            throw new IllegalStateException("BundleDetails cannot be null");
+        }
+
+        if (this.classLoader == null) {
+            throw new IllegalStateException("ClassLoader cannot be null");
+        }
     }
 
-    public ProcessorInstantiationException(final String className) {
-        super(className);
+    public BundleDetails getBundleDetails() {
+        return bundleDetails;
+    }
+
+    public ClassLoader getClassLoader() {
+        return classLoader;
     }
 }

@@ -940,7 +940,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         @Override
         public void run() {
             final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
-            final ClassLoader cl = NarClassLoaders.getInstance().getFrameworkClassLoader();
+            final ClassLoader cl = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
             Thread.currentThread().setContextClassLoader(cl);
             try {
                 //Hang onto the SaveHolder here rather than setting it to null because if the save fails we will try again
