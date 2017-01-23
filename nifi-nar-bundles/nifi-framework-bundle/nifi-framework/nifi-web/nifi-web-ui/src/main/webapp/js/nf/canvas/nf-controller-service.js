@@ -243,8 +243,8 @@ nf.ControllerService = (function () {
      */
     var updateReferencingComponentsBorder = function (referenceContainer) {
         // determine if it is too big
-        var tooBig = referenceContainer.get(0).scrollHeight > referenceContainer.innerHeight() ||
-            referenceContainer.get(0).scrollWidth > referenceContainer.innerWidth();
+        var tooBig = referenceContainer.get(0).scrollHeight > Math.round(referenceContainer.innerHeight()) ||
+            referenceContainer.get(0).scrollWidth > Math.round(referenceContainer.innerWidth());
 
         // draw the border if necessary
         if (referenceContainer.is(':visible') && tooBig) {

@@ -542,7 +542,7 @@
 
                         // show the border if necessary
                         var relationshipNames = $('#read-only-relationship-names');
-                        if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > relationshipNames.innerHeight()) {
+                        if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > Math.round(relationshipNames.innerHeight())) {
                             relationshipNames.css('border-width', '1px');
                         }
                     }).fail(errorHandler.handleAjaxError);

@@ -108,7 +108,7 @@
 
                     // show the border if processor relationship names if necessary
                     var processorRelationships = $('#read-only-auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
                 }
@@ -307,7 +307,7 @@
 
                 // show the border if necessary
                 var processorRelationships = $('#read-only-auto-terminate-relationship-names');
-                if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                     processorRelationships.css('border-width', '1px');
                 }
             }).fail(function (xhr, status, error) {
