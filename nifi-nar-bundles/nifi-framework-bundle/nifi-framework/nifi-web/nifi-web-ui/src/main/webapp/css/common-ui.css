@@ -633,3 +633,9 @@ md-progress-linear > div {
     background: #D4E0E5 !important;
     border: 1px solid #999999;
 }
+
+/* jquery ui slider override */
+
+.ui-slider-handle.ui-state-active {
+    background: #fff !important;
+}

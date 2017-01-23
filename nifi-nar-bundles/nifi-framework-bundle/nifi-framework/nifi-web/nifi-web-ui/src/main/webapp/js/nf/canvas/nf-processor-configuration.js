@@ -501,7 +501,7 @@ nf.ProcessorConfiguration = (function () {
 
                     // show the border around the processor relationships if necessary
                     var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
                 }
@@ -850,7 +850,7 @@ nf.ProcessorConfiguration = (function () {
 
                     // show the border if necessary
                     var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
                 }).fail(nf.ErrorHandler.handleAjaxError);
