@@ -32,6 +32,7 @@ import com.bazaarvoice.jolt.JsonUtils;
 import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
+import com.bazaarvoice.jolt.Modifier;
 import com.bazaarvoice.jolt.Transform;
 
 import static org.junit.Assert.assertTrue;
@@ -81,6 +82,13 @@ public class TestTransformFactory {
     }
 
     @Test
+    public void testGetModifyInChainrTransform() throws Exception{
+        final String spec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/modifierSpec.json")));
+        Transform transform = TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-chain",JsonUtils.jsonToObject(spec));
+        assertTrue(transform instanceof Chainr);
+    }
+
+    @Test
     public void testGetInvalidTransformWithNoSpec() {
         try{
             TransformFactory.getTransform(getClass().getClassLoader(), "jolt-transform-chain",null);
@@ -98,7 +106,7 @@ public class TestTransformFactory {
         ClassLoader customClassLoader = new URLClassLoader(urlPaths,this.getClass().getClassLoader());
         Transform transform = TransformFactory.getCustomTransform(customClassLoader,"TestCustomJoltTransform",JsonUtils.jsonToObject(chainrSpec));
         assertTrue(transform != null);
-        assertTrue(transform.getClass().getName().equals("TestCustomJoltTransform"));
+        assertTrue(transform.getClass().getName().equals("org.apache.nifi.processors.standard.util.TransformFactory$UncontextualTransform"));
     }
 
     @Test

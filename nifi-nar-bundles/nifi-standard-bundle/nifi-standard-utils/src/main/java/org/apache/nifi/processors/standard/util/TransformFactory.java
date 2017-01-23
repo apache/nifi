@@ -21,6 +21,7 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
@@ -31,10 +32,29 @@ import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
 import com.bazaarvoice.jolt.SpecDriven;
 import com.bazaarvoice.jolt.Transform;
+import com.bazaarvoice.jolt.ContextualTransform;
 import com.bazaarvoice.jolt.chainr.spec.ChainrEntry;
 import com.bazaarvoice.jolt.exception.SpecException;
 
 public class TransformFactory {
+
+    static class UncontextualTransform implements Transform {
+        private JoltTransform transformer;
+        
+        public UncontextualTransform(JoltTransform jt) {
+            transformer = jt;
+        }
+
+        public Object transform( Object input ) {
+            Object in = input;
+            if (transformer instanceof ContextualTransform) {
+                in = ((ContextualTransform)transformer).transform(input, new HashMap<>(  ));
+            } else if (transformer instanceof Transform) {
+                in = ((Transform)transformer).transform(input);
+            }
+            return in;
+        }
+    }
 
     public static Transform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
 
@@ -57,11 +77,12 @@ public class TransformFactory {
     @SuppressWarnings("unchecked")
     public static Transform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
         final Class clazz = classLoader.loadClass(customTransformType);
+
         if(SpecDriven.class.isAssignableFrom(clazz)){
             final Constructor constructor = clazz.getConstructor(Object.class);
-            return (Transform) constructor.newInstance(specJson);
+            return new UncontextualTransform((JoltTransform) constructor.newInstance(specJson));
         }else{
-            return (Transform) clazz.newInstance();
+            return new UncontextualTransform((JoltTransform) clazz.newInstance());
         }
     }
 
