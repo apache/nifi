@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -95,7 +96,7 @@ public class TestGenerateTableFetch {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
 
-        runner = TestRunners.newTestRunner(GenerateTableFetch.class);
+        runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(GenerateTableFetch.DBCP_SERVICE, "dbcp");
@@ -251,15 +252,6 @@ public class TestGenerateTableFetch {
         runner.clearTransferState();
     }
 
-    @Test(expected = AssertionError.class)
-    public void testErrorWhenIncomingConnectionAndMaxValueColumns() throws ClassNotFoundException, SQLException, InitializationException, IOException {
-
-        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
-        runner.setIncomingConnection(true);
-        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
-        runner.run();
-    }
-
     @Test
     public void testMultiplePartitionsIncomingFlowFiles() throws ClassNotFoundException, SQLException, InitializationException, IOException {
 
@@ -335,9 +327,196 @@ public class TestGenerateTableFetch {
         }
     }
 
+    @Test
+    public void testBackwardsCompatibilityStateKeyStaticTableDynamicMaxValues() throws Exception {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("maxValueCol", "id");
+        }});
+
+        // Pre-populate the state with a key for column name (not fully-qualified)
+        StateManager stateManager = runner.getStateManager();
+        stateManager.setState(new HashMap<String, String>() {{
+            put("id", "0");
+        }}, Scope.CLUSTER);
+
+        // Pre-populate the column type map with an entry for id (not fully-qualified)
+        processor.columnTypeMap.put("id", 4);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 0 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+    }
+
+    @Test
+    public void testBackwardsCompatibilityStateKeyDynamicTableDynamicMaxValues() throws Exception {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+            put("maxValueCol", "id");
+        }});
+
+        // Pre-populate the state with a key for column name (not fully-qualified)
+        StateManager stateManager = runner.getStateManager();
+        stateManager.setState(new HashMap<String, String>() {{
+            put("id", "0");
+        }}, Scope.CLUSTER);
+
+        // Pre-populate the column type map with an entry for id (not fully-qualified)
+        processor.columnTypeMap.put("id", 4);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+
+        runner.clearTransferState();
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
+
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+            put("maxValueCol", "id");
+        }});
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+    }
+
+    @Test
+    public void testBackwardsCompatibilityStateKeyDynamicTableStaticMaxValues() throws Exception {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(true);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "id");
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+        }});
+
+        // Pre-populate the state with a key for column name (not fully-qualified)
+        StateManager stateManager = runner.getStateManager();
+        stateManager.setState(new HashMap<String, String>() {{
+            put("id", "0");
+        }}, Scope.CLUSTER);
+
+        // Pre-populate the column type map with an entry for id (not fully-qualified)
+        processor.columnTypeMap.put("id", 4);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+
+        runner.clearTransferState();
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
+
+        runner.enqueue("".getBytes(), new HashMap<String, String>() {{
+            put("tableName", "TEST_QUERY_DB_TABLE");
+            put("maxValueCol", "id");
+        }});
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+    }
+
+    @Test
+    public void testBackwardsCompatibilityStateKeyVariableRegistry() throws Exception {
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (1, 0)");
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "${tableName}");
+        runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "${maxValueCol}");
+
+        runner.setVariable("tableName", "TEST_QUERY_DB_TABLE");
+        runner.setVariable("maxValueCol", "id");
+
+        // Pre-populate the state with a key for column name (not fully-qualified)
+        StateManager stateManager = runner.getStateManager();
+        stateManager.setState(new HashMap<String, String>() {{
+            put("id", "0");
+        }}, Scope.CLUSTER);
+
+        // Pre-populate the column type map with an entry for id (not fully-qualified)
+        processor.columnTypeMap.put("id", 4);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        // Note there is no WHERE clause here. Because we are using dynamic tables (i.e. Expression Language,
+        // even when not referring to flow file attributes), the old state key/value is not retrieved
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+    }
+
 
     /**
-     * Simple implementation only for ListDatabaseTables processor testing.
+     * Simple implementation only for GenerateTableFetch processor testing.
      */
     private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 

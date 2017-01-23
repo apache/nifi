@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,6 +39,7 @@ import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -105,7 +108,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .name("Columns to Return")
             .description("A comma-separated list of column names to be used in the query. If your database requires "
                     + "special treatment of the names (quoting, e.g.), each name should include such treatment. If no "
-                    + "column names are supplied, all columns in the specified table will be returned.")
+                    + "column names are supplied, all columns in the specified table will be returned.\nNOTE: If Expression Language is present "
+                    + "for this property and it refers to flow file attribute(s), then the Table Name property must also contain Expression Language.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -120,7 +124,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     + "can be used to retrieve only those rows that have been added/updated since the last retrieval. Note that some "
                     + "JDBC types such as bit/boolean are not conducive to maintaining maximum value, so columns of these "
                     + "types should not be listed in this property, and will result in error(s) during processing. If no columns "
-                    + "are provided, all rows from the table will be considered, which could have a performance impact.")
+                    + "are provided, all rows from the table will be considered, which could have a performance impact.\nNOTE: If Expression Language is "
+                    + "present for this property and it refers to flow file attribute(s), then the Table Name property must also contain Expression Language.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -148,10 +153,23 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     protected List<PropertyDescriptor> propDescriptors;
 
+    // The delimiter to use when referencing qualified names (such as table@!@column in the state map)
+    protected static final String NAMESPACE_DELIMITER = "@!@";
+
     public static final PropertyDescriptor DB_TYPE;
 
     protected final static Map<String, DatabaseAdapter> dbAdapters = new HashMap<>();
     protected final Map<String, Integer> columnTypeMap = new HashMap<>();
+
+    // This value is set when the processor is scheduled and indicates whether the Table Name property contains Expression Language.
+    // It is used for backwards-compatibility purposes; if the value is false and the fully-qualified state key (table + column) is not found,
+    // the processor will look for a state key with just the column name.
+    protected volatile boolean isDynamicTableName = false;
+
+    // This value is set when the processor is scheduled and indicates whether the Maximum Value Columns property contains Expression Language.
+    // It is used for backwards-compatibility purposes; if the table name and max-value columns are static, then the column types can be
+    // pre-fetched when the processor is scheduled, rather than having to populate them on-the-fly.
+    protected volatile boolean isDynamicMaxValues = false;
 
     private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 
@@ -171,6 +189,15 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 .build();
     }
 
+    // A common validation procedure for DB fetch processors, it stores whether the Table Name and/or Max Value Column properties have expression language
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        // For backwards-compatibility, keep track of whether the table name and max-value column properties are dynamic (i.e. has expression language)
+        isDynamicTableName = validationContext.isExpressionLanguagePresent(validationContext.getProperty(TABLE_NAME).getValue());
+        isDynamicMaxValues = validationContext.isExpressionLanguagePresent(validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).getValue());
+
+        return super.customValidate(validationContext);
+    }
+
     public void setup(final ProcessContext context) {
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
 
@@ -184,7 +211,6 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
 
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-
         try (final Connection con = dbcpService.getConnection();
              final Statement st = con.createStatement()) {
 
@@ -199,10 +225,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 columnTypeMap.clear();
                 for (int i = 1; i <= numCols; i++) {
                     String colName = resultSetMetaData.getColumnName(i).toLowerCase();
+                    String colKey = getStateKey(tableName, colName);
                     int colType = resultSetMetaData.getColumnType(i);
-                    columnTypeMap.put(colName, colType);
+                    columnTypeMap.putIfAbsent(colKey, colType);
                 }
-
             } else {
                 throw new ProcessException("No columns found in table from those specified: " + maxValueColumnNames);
             }
@@ -389,5 +415,17 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             default:
                 return value;
         }
+    }
+
+    protected static String getStateKey(String prefix, String columnName) {
+        StringBuilder sb = new StringBuilder();
+        if (prefix != null) {
+            sb.append(prefix.toLowerCase());
+            sb.append(NAMESPACE_DELIMITER);
+        }
+        if (columnName != null) {
+            sb.append(columnName.toLowerCase());
+        }
+        return sb.toString();
     }
 }
