@@ -21,7 +21,9 @@
     <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/lib/codemirror.css"/>
     <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/addon/lint/lint.css">
     <link rel="stylesheet" type="text/css" href="../nifi/assets/angular-material/angular-material.min.css">
+    <link rel="stylesheet" type="text/css" href="../nifi/fonts/flowfont/flowfont.css" />
     <link rel="stylesheet" type="text/css" href="../nifi/assets/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="../nifi/css/common-ui.css" />
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 
@@ -62,7 +64,7 @@
 <script type="text/javascript" src="app/transformjson/transformjson.service.js"></script>
 
 
-<div ui-view>
+<div ui-view id="mainView">
 
 </div>
 
