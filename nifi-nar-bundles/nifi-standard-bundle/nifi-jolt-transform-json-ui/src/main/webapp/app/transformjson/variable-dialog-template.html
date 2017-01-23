@@ -15,24 +15,21 @@
 <md-dialog flex="40" aria-label="Attributes">
     <md-toolbar>
         <div class="md-toolbar-tools">
-            <div class="large-label">Attributes</div>
+            <div class="modal-header-label">Attributes</div>
             <span flex></span>
-            <md-button class="md-icon-button" ng-click="dialogCtl.parent.cancelDialog()">
-                <i class="fa fa-times" aria-hidden="true"></i>
-            </md-button>
         </div>
     </md-toolbar>
     <md-dialog-content>
         <div class="md-dialog-content">
-            <p>
-                Enter attributes (keys) and values to reference within your specification for testing input. These attribute values will only be available for testing and not when executing the actual flow:
+            <p class="modal-label">
+                Enter attributes and values to reference within your specification for testing input. These attribute values will only be available for testing and not when executing the actual flow:
             </p>
 
             <md-content>
-                <div layout-gt-sm="row" layout-align="center center">
+                <div layout-gt-sm="row" layout-align="center">
 
                     <md-input-container flex="45">
-                        <label>Key</label>
+                        <label>Attribute</label>
                         <input ng-model="key"/>
                     </md-input-container>
 
@@ -41,11 +38,12 @@
                         <input ng-model="value"/>
                     </md-input-container>
 
-                    <md-input-container flex="10">
-                        <md-button id="addButton" class="md-icon-button" ng-click="dialogCtl.parent.addVariable(dialogCtl.parent.variables,key,value)">
+                    <span flex="5">&nbsp;</span>
+
+                    <md-input-container flex="5">
+                        <button class="modal-button" id="addButton" ng-click="dialogCtl.parent.addVariable(dialogCtl.parent.variables,key,value)">
                             <i class="fa fa-plus" aria-hidden="true"></i>
-                        </md-button>
-                        <div class="md-errors-spacer"></div>
+                        </button>
                     </md-input-container>
 
                 </div>
@@ -53,16 +51,17 @@
 
             <md-content>
                 <md-list>
-                    <md-subheader class="md-no-sticky">Attribute - Value Pair(s):</md-subheader>
+                    <md-subheader class="md-no-sticky modal-label">Attribute - Values:</md-subheader>
                     <div id="variableList" class="scrollable">
                         <md-list-item class="md-2-line" ng-repeat="(key,value) in dialogCtl.parent.variables">
                             <div class="md-list-item-text" layout="row"  layout-align="center center">
                                 <div flex="45">{{key}}</div>
                                 <div flex="45">{{value}}</div>
-                                <div flex="10">
-                                    <md-button class="md-icon-button" ng-click="dialogCtl.parent.deleteVariable(dialogCtl.parent.variables,key)">
+                                <span flex="5">&nbsp;</span>
+                                <div flex="5">
+                                    <button class="modal-button" ng-click="dialogCtl.parent.deleteVariable(dialogCtl.parent.variables,key)">
                                         <i class="fa fa-trash-o" aria-hidden="true"></i>
-                                    </md-button>
+                                    </button>
                                 </div>
                             </div>
                         </md-list-item>
@@ -73,12 +72,12 @@
     </md-dialog-content>
     <md-dialog-actions layout="row">
         <span flex></span>
-        <md-button ng-click="dialogCtl.parent.cancelDialog()">
+        <button class="secondary-button" ng-click="dialogCtl.parent.cancelDialog()">
             Cancel
-        </md-button>
-        <md-button ng-click="dialogCtl.parent.saveVariables(dialogCtl.parent.variables)">
+        </button>
+        <button class="primary-button" ng-click="dialogCtl.parent.saveVariables(dialogCtl.parent.variables)">
             Save
-        </md-button>
+        </button>
     </md-dialog-actions>
 
 </md-dialog>
