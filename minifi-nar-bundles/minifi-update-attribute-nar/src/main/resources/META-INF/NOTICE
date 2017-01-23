@@ -1,5 +1,5 @@
 minifi-update-attribute-nar
-Copyright 2014-2016 The Apache Software Foundation
+Copyright 2014-2017 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -13,7 +13,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache NiFi
     The following NOTICE information applies:
         Apache NiFi
-        Copyright 2014-2016 The Apache Software Foundation
+        Copyright 2014-2017 The Apache Software Foundation
 
         This product includes software developed at
         The Apache Software Foundation (http://www.apache.org/).
@@ -29,4 +29,4 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
       Apache Commons IO
-      Copyright 2002-2016 The Apache Software Foundation
+      Copyright 2002-2017 The Apache Software Foundation
