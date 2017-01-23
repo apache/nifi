@@ -31,9 +31,10 @@
                 'nf.ReportingTask',
                 'nf.Shell',
                 'nf.ComponentState',
+                'nf.ComponentVersion',
                 'nf.PolicyManagement'],
-            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement) {
-                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement));
+            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -49,6 +50,7 @@
                 require('nf.ReportingTask'),
                 require('nf.Shell'),
                 require('nf.ComponentState'),
+                require('nf.ComponentVersion'),
                 require('nf.PolicyManagement')));
     } else {
         nf.Settings = factory(root.$,
@@ -63,9 +65,10 @@
             root.nf.ReportingTask,
             root.nf.Shell,
             root.nf.ComponentState,
+            root.nf.ComponentVersion,
             root.nf.PolicyManagement);
     }
-}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfComponentVersion, nfPolicyManagement) {
     'use strict';
 
 
@@ -233,24 +236,6 @@
     };
 
     /**
-     * Formatter for the type column.
-     *
-     * @param {type} row
-     * @param {type} cell
-     * @param {type} value
-     * @param {type} columnDef
-     * @param {type} dataContext
-     * @returns {String}
-     */
-    var typeFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.permissions.canRead) {
-            return '';
-        }
-
-        return nfCommon.substringAfterLast(dataContext.component.type, '.');
-    };
-
-    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -345,10 +330,11 @@
      * Hides the selected reporting task.
      */
     var clearSelectedReportingTask = function () {
-        $('#reporting-task-type-description').text('');
-        $('#reporting-task-type-name').text('');
+        $('#reporting-task-type-description').attr('title', '').text('');
+        $('#reporting-task-type-name').attr('title', '').text('');
+        $('#reporting-task-type-bundle').attr('title', '').text('');
         $('#selected-reporting-task-name').text('');
-        $('#selected-reporting-task-type').text('');
+        $('#selected-reporting-task-type').text('').removeData('bundle');
         $('#reporting-task-description-container').hide();
     };
 
@@ -385,8 +371,17 @@
             }
         }
 
+        // determine if the row matches the selected source group
+        var matchesGroup = true;
+        if (matchesFilter && matchesTags) {
+            var bundleGroup = $('#reporting-task-bundle-group-combo').combo('getSelectedOption');
+            if (nfCommon.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+                matchesGroup = (item.bundle.group === bundleGroup.value);
+            }
+        }
+
         // determine if this row should be visible
-        var matches = matchesFilter && matchesTags;
+        var matches = matchesFilter && matchesTags && matchesGroup;
 
         // if this row is currently selected and its being filtered
         if (matches === false && $('#selected-reporting-task-type').text() === item['type']) {
@@ -401,6 +396,7 @@
      */
     var addSelectedReportingTask = function () {
         var selectedTaskType = $('#selected-reporting-task-type').text();
+        var selectedTaskBundle = $('#selected-reporting-task-type').data('bundle');
 
         // ensure something was selected
         if (selectedTaskType === '') {
@@ -409,7 +405,7 @@
                 dialogContent: 'The type of reporting task to create must be selected.'
             });
         } else {
-            addReportingTask(selectedTaskType);
+            addReportingTask(selectedTaskType, selectedTaskBundle);
         }
     };
 
@@ -417,8 +413,9 @@
      * Adds a new reporting task of the specified type.
      *
      * @param {string} reportingTaskType
+     * @param {object} reportingTaskBundle
      */
-    var addReportingTask = function (reportingTaskType) {
+    var addReportingTask = function (reportingTaskType, reportingTaskBundle) {
         // build the reporting task entity
         var reportingTaskEntity = {
             'revision': nfClient.getRevision({
@@ -427,7 +424,8 @@
                 }
             }),
             'component': {
-                'type': reportingTaskType
+                'type': reportingTaskType,
+                'bundle': reportingTaskBundle
             }
         };
 
@@ -442,7 +440,10 @@
             // add the item
             var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
             var reportingTaskData = reportingTaskGrid.getData();
-            reportingTaskData.addItem(reportingTaskEntity);
+            reportingTaskData.addItem($.extend({
+                type: 'ReportingTask',
+                bulletins: []
+            }, reportingTaskEntity));
 
             // resort
             reportingTaskData.reSort();
@@ -484,21 +485,29 @@
             }
         });
 
-        // initialize the processor type table
+        // initialize the reporting task type table
         var reportingTaskTypesColumns = [
             {
                 id: 'type',
                 name: 'Type',
                 field: 'label',
                 formatter: nfCommon.typeFormatter,
-                sortable: false,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'version',
+                name: 'Version',
+                field: 'version',
+                formatter: nfCommon.typeVersionFormatter,
+                sortable: true,
                 resizable: true
             },
             {
                 id: 'tags',
                 name: 'Tags',
                 field: 'tags',
-                sortable: false,
+                sortable: true,
                 resizable: true
             }
         ];
@@ -513,11 +522,23 @@
         });
         reportingTaskTypesData.setFilter(filterReportingTaskTypes);
 
+        // initialize the sort
+        nfCommon.sortType({
+            columnId: 'type',
+            sortAsc: true
+        }, reportingTaskTypesData);
+
         // initialize the grid
         var reportingTaskTypesGrid = new Slick.Grid('#reporting-task-types-table', reportingTaskTypesData, reportingTaskTypesColumns, gridOptions);
         reportingTaskTypesGrid.setSelectionModel(new Slick.RowSelectionModel());
         reportingTaskTypesGrid.registerPlugin(new Slick.AutoTooltips());
         reportingTaskTypesGrid.setSortColumn('type', true);
+        reportingTaskTypesGrid.onSort.subscribe(function (e, args) {
+            nfCommon.sortType({
+                columnId: args.sortCol.field,
+                sortAsc: args.sortAsc
+            }, reportingTaskTypesData);
+        });
         reportingTaskTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
             if ($.isArray(args.rows) && args.rows.length === 1) {
                 var reportingTaskTypeIndex = args.rows[0];
@@ -539,10 +560,14 @@
                             .ellipsis();
                     }
 
+                    var bundle = nfCommon.formatBundle(reportingTaskType.bundle);
+                    var type = nfCommon.formatType(reportingTaskType);
+
                     // populate the dom
-                    $('#reporting-task-type-name').text(reportingTaskType.label).ellipsis();
+                    $('#reporting-task-type-name').text(type).attr('title', type);
+                    $('#reporting-task-type-bundle').text(bundle).attr('title', bundle);
                     $('#selected-reporting-task-name').text(reportingTaskType.label);
-                    $('#selected-reporting-task-type').text(reportingTaskType.type);
+                    $('#selected-reporting-task-type').text(reportingTaskType.type).data('bundle', reportingTaskType.bundle);
 
                     // refresh the buttons based on the current selection
                     $('#new-reporting-task-dialog').modal('refreshButtons');
@@ -553,7 +578,7 @@
             var reportingTaskType = reportingTaskTypesGrid.getDataItem(args.row);
 
             if (isSelectable(reportingTaskType)) {
-                addReportingTask(reportingTaskType.type);
+                addReportingTask(reportingTaskType.type, reportingTaskType.bundle);
             }
         });
         reportingTaskTypesGrid.onViewportChanged.subscribe(function (e, args) {
@@ -609,17 +634,22 @@
         }).done(function (response) {
             var id = 0;
             var tags = [];
+            var groups = d3.set();
 
             // begin the update
             reportingTaskTypesData.beginUpdate();
 
             // go through each reporting task type
             $.each(response.reportingTaskTypes, function (i, documentedType) {
+                // record the group
+                groups.add(documentedType.bundle.group);
+
                 // add the documented type
                 reportingTaskTypesData.addItem({
                     id: id++,
                     label: nfCommon.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
+                    bundle: documentedType.bundle,
                     description: nfCommon.escapeHtml(documentedType.description),
                     usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     tags: documentedType.tags.join(', ')
@@ -631,8 +661,12 @@
                 });
             });
 
-            // end the udpate
+            // end the update
             reportingTaskTypesData.endUpdate();
+
+            // resort
+            reportingTaskTypesData.reSort();
+            reportingTaskTypesGrid.invalidate();
 
             // set the total number of processors
             $('#total-reporting-task-types, #displayed-reporting-task-types').text(response.reportingTaskTypes.length);
@@ -642,6 +676,24 @@
                 tags: tags,
                 select: applyReportingTaskTypeFilter,
                 remove: applyReportingTaskTypeFilter
+            });
+
+            // build the combo options
+            var options = [{
+                text: 'all groups',
+                value: ''
+            }];
+            groups.forEach(function (group) {
+                options.push({
+                    text: group,
+                    value: group
+                });
+            });
+
+            // initialize the bundle group combo
+            $('#reporting-task-bundle-group-combo').combo({
+                options: options,
+                select: applyReportingTaskTypeFilter
             });
         }).fail(nfErrorHandler.handleAjaxError);
 
@@ -696,6 +748,11 @@
 
                     // clear the tagcloud
                     $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
+
+                    // reset the group combo
+                    $('#reporting-task-bundle-group-combo').combo('setSelectedOption', {
+                        value: ''
+                    });
 
                     // reset the filter
                     applyReportingTaskTypeFilter();
@@ -797,15 +854,19 @@
                     if (dataContext.component.state === 'STOPPED' && nfCommon.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
+
+                    if (dataContext.component.multipleVersionsAvailable === true) {
+                        markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                    }
+
+                    if (nfCommon.canModifyController()) {
+                        markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                    }
                 }
 
                 if (dataContext.component.persistsState === true) {
                     markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
-            }
-
-            if (dataContext.permissions.canWrite && nfCommon.canModifyController()) {
-                markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 
             // allow policy configuration conditionally
@@ -828,8 +889,27 @@
                 maxWidth: 90,
                 toolTip: 'Sorts based on presence of bulletins'
             },
-            {id: 'name', name: 'Name', sortable: true, resizable: true, formatter: nameFormatter},
-            {id: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
+            {
+                id: 'name',
+                name: 'Name',
+                sortable: true,
+                resizable: true,
+                formatter: nameFormatter
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                formatter: nfCommon.instanceTypeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'bundle',
+                name: 'Bundle',
+                formatter: nfCommon.instanceBundleFormatter,
+                sortable: true,
+                resizable: true
+            },
             {
                 id: 'state',
                 name: 'Run Status',
@@ -894,6 +974,8 @@
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
                     nfComponentState.showState(reportingTaskEntity, canClear);
+                } else if (target.hasClass('change-version-reporting-task')) {
+                    nfComponentVersion.promptForVersionChange(reportingTaskEntity);
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
                     nfPolicyManagement.showReportingTaskPolicy(reportingTaskEntity);
@@ -1081,6 +1163,7 @@
             var tasks = [];
             $.each(response.reportingTasks, function (_, task) {
                 tasks.push($.extend({
+                    type: 'ReportingTask',
                     bulletins: []
                 }, task));
             });
@@ -1201,11 +1284,17 @@
                 } else if (selectedTab === 'Reporting Tasks') {
                     $('#new-reporting-task-dialog').modal('show');
 
-                    // reset the canvas size after the dialog is shown
                     var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
                     if (nfCommon.isDefinedAndNotNull(reportingTaskTypesGrid)) {
-                        reportingTaskTypesGrid.setSelectedRows([0]);
+                        var reportingTaskTypesData = reportingTaskTypesGrid.getData();
+
+                        // reset the canvas size after the dialog is shown
                         reportingTaskTypesGrid.resizeCanvas();
+
+                        // select the first row if possible
+                        if (reportingTaskTypesData.getLength() > 0) {
+                            reportingTaskTypesGrid.setSelectedRows([0]);
+                        }
                     }
 
                     // set the initial focus
@@ -1261,6 +1350,24 @@
 
             // select the controller services tab
             $('#settings-tabs').find('li:eq(1)').click();
+        },
+
+        /**
+         * Selects the specified reporting task.
+         *
+         * @param {string} reportingTaskId
+         */
+        selectReportingTask: function (reportingTaskId) {
+            var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
+            var reportingTaskData = reportingTaskGrid.getData();
+
+            // select the desired service
+            var row = reportingTaskData.getRowById(reportingTaskId);
+            reportingTaskGrid.setSelectedRows([row]);
+            reportingTaskGrid.scrollRowIntoView(row);
+
+            // select the controller services tab
+            $('#settings-tabs').find('li:eq(2)').click();
         },
 
         /**

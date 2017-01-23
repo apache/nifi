@@ -21,7 +21,6 @@
 
 ul.tag-cloud {
     font-size: 90%;
-    padding: 2px;
     margin-left: -5px;
     overflow: hidden;
 }
@@ -36,35 +35,26 @@ ul.tag-cloud li {
     max-width: 180px;
 }
 
-ul.tag-filter {
-    overflow: hidden;
-    margin-top: 10px;
-}
-
-ul.tag-filter li {
-    height: 18px;
-    line-height: 18px;
-    padding: 2px;
-}
-
-div.selected-tag-text {
-    float: left;
-}
-
-img.remove-selected-tag {
-    float: right;
-    margin-top: 1px;
-}
-
-ul.tag-filter li {
-    background: #004849;
+ul.tag-cloud span.link {
+    cursor: pointer;
+    color: #004849;
+    font-weight: bold;
+    display: inline-block;
+    background-color: #E3E8EB;
     border-radius: 2px;
-    line-height: 15px;
-    padding: 5px 10px;
-    color: #ffffff;
-    margin: 5px;
+    padding: 1px 4px;
 }
 
-.tag-filter .fa {
-    color: #fff !important;
+ul.tag-cloud span.link.selected {
+    cursor: pointer;
+    background-color: #004849;
+    font-weight: bold;
+    display: inline-block;
+    color: #E3E8EB;
+    border-radius: 2px;
+    padding: 1px 4px;
+}
+
+ul.tag-cloud span.link-over.selected {
+    border-bottom-color: #E3E8EB;
 }

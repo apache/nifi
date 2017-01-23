@@ -94,7 +94,7 @@ public class SnippetAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
-            + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO copySnippet(java.lang.String, java.lang.String, java.lang.Double, java.lang.Double))")
+            + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO copySnippet(java.lang.String, java.lang.String, java.lang.Double, java.lang.Double, java.lang.String))")
     public FlowSnippetDTO copySnippetAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         FlowSnippetDTO snippet = (FlowSnippetDTO) proceedingJoinPoint.proceed();
@@ -110,7 +110,8 @@ public class SnippetAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.TemplateDAO+) && "
-            + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO instantiateTemplate(java.lang.String, java.lang.Double, java.lang.Double, java.lang.String))")
+            + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO instantiateTemplate("
+            + "java.lang.String, java.lang.Double, java.lang.Double, java.lang.String, org.apache.nifi.web.api.dto.FlowSnippetDTO, java.lang.String))")
     public FlowSnippetDTO instantiateTemplateAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         FlowSnippetDTO snippet = (FlowSnippetDTO) proceedingJoinPoint.proceed();

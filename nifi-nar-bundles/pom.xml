@@ -79,7 +79,35 @@
         <module>nifi-stateful-analysis-bundle</module>
         <module>nifi-poi-bundle</module>
   </modules>
-    
+
+    <build>
+        <plugins>
+            <!-- Makes buildRevision and buildBranch available to the NAR Plugin so they can be populated in the MANIFEST -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <inherited>true</inherited>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>false</doUpdate>
+                    <shortRevisionLength>7</shortRevisionLength>
+                    <getRevisionOnlyOnce>true</getRevisionOnlyOnce>
+                    <revisionOnScmFailure />
+                    <buildNumberPropertyName>buildRevision</buildNumberPropertyName>
+                    <scmBranchPropertyName>buildBranch</scmBranchPropertyName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
   <dependencyManagement>
         <dependencies>
             <dependency>

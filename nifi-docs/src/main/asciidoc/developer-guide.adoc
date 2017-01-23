@@ -2362,6 +2362,16 @@ component, use this capability judiciously. If ten instances of one component ar
 from the component's NAR ClassLoader are loaded into memory ten times. This could eventually increase the
 memory footprint significantly when enough instances of the component are created.
 
+Additionally, there are some restrictions when using @RequiresInstanceClassLoading when using Controller
+Services. Processors, Reporting Tasks, and Controller Services can reference a Controller Service API
+in one of its Property Descriptors. An issue may arise when the Controller Service API is bundled in the same
+NAR with a component that references it or with the Controller Service implementation. If either of these cases
+are encountered and the extension requires instance classloading, the extension will be skipped and an appropriate
+ERROR will be logged. To address this issue, the Controller Service API should be bundled in a parent NAR. The
+service implementation and extensions that reference that service should depend on the Controller Service API NAR.
+Please refer to the Controller Service NAR Layout in the <<nars>> section. Anytime a Controller Service API is
+bundled with an extension that requires it, even if @RequiresInstanceClassLoading isn't used, a WARNING will be
+logged to help avoid this bad practice.
 
 
 == How to contribute to Apache NiFi

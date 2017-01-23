@@ -91,7 +91,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         xmlStreamWriter.writeStartElement("link");
         xmlStreamWriter.writeAttribute("rel", "stylesheet");
-        xmlStreamWriter.writeAttribute("href", "../../css/component-usage.css");
+        xmlStreamWriter.writeAttribute("href", "/nifi-docs/css/component-usage.css");
         xmlStreamWriter.writeAttribute("type", "text/css");
         xmlStreamWriter.writeEndElement();
 

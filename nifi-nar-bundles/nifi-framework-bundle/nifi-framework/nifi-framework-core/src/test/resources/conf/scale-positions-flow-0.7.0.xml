@@ -27,7 +27,7 @@
       <position x="686.0" y="542.0"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -101,7 +101,7 @@
       <position x="1122.363037109375" y="895.7132568359375"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -143,7 +143,7 @@
       <position x="690.0" y="676.0"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -168,7 +168,7 @@
       <position x="1058.489013671875" y="545.9861450195312"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -195,7 +195,7 @@
       <position x="224.6471710205078" y="1028.7507019042969"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -269,7 +269,7 @@
       <position x="1129.363037109375" y="1164.7132568359375"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -294,7 +294,7 @@
       <position x="1125.363037109375" y="1030.7132568359375"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -368,7 +368,7 @@
       <position x="1051.489013671875" y="276.98614501953125"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -410,7 +410,7 @@
       <position x="1740.591796875" y="1481.1141967773438"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -484,7 +484,7 @@
       <position x="297.56959533691406" y="276.02215576171875"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -526,7 +526,7 @@
       <position x="682.0" y="271.0"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.GenerateFlowFile</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>1 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -559,7 +559,7 @@
       <position x="228.6471710205078" y="1162.7507019042969"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -586,7 +586,7 @@
       <position x="300.56959533691406" y="411.02215576171875"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -660,7 +660,7 @@
       <position x="1740.0157470703125" y="1346.1141967773438"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -702,7 +702,7 @@
       <position x="1054.489013671875" y="411.98614501953125"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ExtractText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -776,7 +776,7 @@
       <position x="304.56959533691406" y="545.0221557617188"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -803,7 +803,7 @@
       <position x="1740.9559326171875" y="1615.1141967773438"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -830,7 +830,7 @@
       <position x="683.0" y="407.0"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -872,7 +872,7 @@
       <position x="221.6471710205078" y="893.7507019042969"/>
       <styles/>
       <comment/>
-      <class>org.apache.nifi.processors.standard.ReplaceText</class>
+      <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
       <maxConcurrentTasks>1</maxConcurrentTasks>
       <schedulingPeriod>0 sec</schedulingPeriod>
       <penalizationPeriod>30 sec</penalizationPeriod>
@@ -936,7 +936,7 @@
         <position x="-699.489013671875" y="-244.98614501953125"/>
         <styles/>
         <comment/>
-        <class>org.apache.nifi.processors.standard.ExtractText</class>
+        <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
         <maxConcurrentTasks>1</maxConcurrentTasks>
         <schedulingPeriod>0 sec</schedulingPeriod>
         <penalizationPeriod>30 sec</penalizationPeriod>
@@ -1010,7 +1010,7 @@
         <position x="493.489013671875" y="81.98614501953125"/>
         <styles/>
         <comment/>
-        <class>org.apache.nifi.processors.standard.ReplaceText</class>
+        <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
         <maxConcurrentTasks>1</maxConcurrentTasks>
         <schedulingPeriod>0 sec</schedulingPeriod>
         <penalizationPeriod>30 sec</penalizationPeriod>
@@ -1052,7 +1052,7 @@
         <position x="878.489013671875" y="408.98614501953125"/>
         <styles/>
         <comment/>
-        <class>org.apache.nifi.processors.standard.RouteOnAttribute</class>
+        <class>org.apache.nifi.controller.service.mock.DummyProcessor</class>
         <maxConcurrentTasks>1</maxConcurrentTasks>
         <schedulingPeriod>0 sec</schedulingPeriod>
         <penalizationPeriod>30 sec</penalizationPeriod>

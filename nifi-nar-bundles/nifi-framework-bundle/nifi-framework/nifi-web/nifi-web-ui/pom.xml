@@ -459,6 +459,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-component-version.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-ports.js</include>

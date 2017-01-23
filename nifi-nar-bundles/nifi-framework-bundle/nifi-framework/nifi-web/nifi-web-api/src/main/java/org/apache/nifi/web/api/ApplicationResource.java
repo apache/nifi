@@ -662,6 +662,11 @@ public abstract class ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(authorizer);
 
+            // verify if necessary
+            if (verifier != null) {
+                verifier.run();
+            }
+
             // run the action
             return action.apply(entity);
         }

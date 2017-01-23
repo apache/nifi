@@ -16,27 +16,29 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
-import org.apache.nifi.util.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 /**
- * A singleton class used to initialize the extension and framework
- * classloaders.
+ * A singleton class used to initialize the extension and framework classloaders.
  */
 public final class NarClassLoaders {
 
@@ -51,18 +53,18 @@ public final class NarClassLoaders {
 
         private final File frameworkWorkingDir;
         private final File extensionWorkingDir;
-        private final ClassLoader frameworkClassLoader;
-        private final Map<String, ClassLoader> extensionClassLoaders;
+        private final Bundle frameworkBundle;
+        private final Map<String, Bundle> bundles;
 
         private InitContext(
                 final File frameworkDir,
                 final File extensionDir,
-                final ClassLoader frameworkClassloader,
-                final Map<String, ClassLoader> extensionClassLoaders) {
+                final Bundle frameworkBundle,
+                final Map<String, Bundle> bundles) {
             this.frameworkWorkingDir = frameworkDir;
             this.extensionWorkingDir = extensionDir;
-            this.frameworkClassLoader = frameworkClassloader;
-            this.extensionClassLoaders = extensionClassLoaders;
+            this.frameworkBundle = frameworkBundle;
+            this.bundles = bundles;
         }
     }
 
@@ -126,12 +128,13 @@ public final class NarClassLoaders {
         final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
 
         // find all nar files and create class loaders for them.
-        final Map<String, ClassLoader> extensionDirectoryClassLoaderLookup = new LinkedHashMap<>();
-        final Map<String, ClassLoader> narIdClassLoaderLookup = new HashMap<>();
+        final Map<String, Bundle> narDirectoryBundleLookup = new LinkedHashMap<>();
+        final Map<String, ClassLoader> narCoordinateClassLoaderLookup = new HashMap<>();
+        final Map<String, Set<BundleCoordinate>> narIdBundleLookup = new HashMap<>();
 
         // make sure the nar directory is there and accessible
-        FileUtils.ensureDirectoryExistAndCanAccess(frameworkWorkingDir);
-        FileUtils.ensureDirectoryExistAndCanAccess(extensionsWorkingDir);
+        FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
+        FileUtils.ensureDirectoryExistAndCanReadAndWrite(extensionsWorkingDir);
 
         final List<File> narWorkingDirContents = new ArrayList<>();
         final File[] frameworkWorkingDirContents = frameworkWorkingDir.listFiles();
@@ -144,37 +147,49 @@ public final class NarClassLoaders {
         }
 
         if (!narWorkingDirContents.isEmpty()) {
-            final List<NarDetails> narDetails = new ArrayList<>();
+            final List<BundleDetails> narDetails = new ArrayList<>();
+            final Map<String,String> narCoordinatesToWorkingDir = new HashMap<>();
 
             // load the nar details which includes and nar dependencies
             for (final File unpackedNar : narWorkingDirContents) {
-                final NarDetails narDetail = getNarDetails(unpackedNar);
-
-                // ensure the nar contained an identifier
-                if (narDetail.getNarId() == null) {
-                    logger.warn("No NAR Id found. Skipping: " + unpackedNar.getAbsolutePath());
-                    continue;
+                BundleDetails narDetail = null;
+                try {
+                     narDetail = getNarDetails(unpackedNar);
+                } catch (IllegalStateException e) {
+                    logger.warn("Unable to load NAR {} due to {}, skipping...",
+                            new Object[] {unpackedNar.getAbsolutePath(), e.getMessage()});
                 }
 
-                // store the nar details
+                // prevent the application from starting when there are two NARs with same group, id, and version
+                final String narCoordinate = narDetail.getCoordinate().getCoordinate();
+                if (narCoordinatesToWorkingDir.containsKey(narCoordinate)) {
+                    final String existingNarWorkingDir = narCoordinatesToWorkingDir.get(narCoordinate);
+                    throw new IllegalStateException("Unable to load NAR with coordinates " + narCoordinate
+                            + " and working directory " + narDetail.getWorkingDirectory()
+                            + " because another NAR with the same coordinates already exists at " + existingNarWorkingDir);
+                }
+
                 narDetails.add(narDetail);
+                narCoordinatesToWorkingDir.put(narCoordinate, narDetail.getWorkingDirectory().getCanonicalPath());
             }
 
             // attempt to locate the jetty nar
             ClassLoader jettyClassLoader = null;
-            for (final Iterator<NarDetails> narDetailsIter = narDetails.iterator(); narDetailsIter.hasNext();) {
-                final NarDetails narDetail = narDetailsIter.next();
+            for (final Iterator<BundleDetails> narDetailsIter = narDetails.iterator(); narDetailsIter.hasNext();) {
+                final BundleDetails narDetail = narDetailsIter.next();
 
                 // look for the jetty nar
-                if (JETTY_NAR_ID.equals(narDetail.getNarId())) {
+                if (JETTY_NAR_ID.equals(narDetail.getCoordinate().getId())) {
                     // create the jetty classloader
-                    jettyClassLoader = createNarClassLoader(narDetail.getNarWorkingDirectory(), systemClassLoader);
+                    jettyClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), systemClassLoader);
 
                     // remove the jetty nar since its already loaded
-                    narIdClassLoaderLookup.put(narDetail.getNarId(), jettyClassLoader);
+                    narCoordinateClassLoaderLookup.put(narDetail.getCoordinate().getCoordinate(), jettyClassLoader);
                     narDetailsIter.remove();
-                    break;
                 }
+
+                // populate bundle lookup
+                narIdBundleLookup.computeIfAbsent(narDetail.getCoordinate().getId(), id -> new HashSet<>()).add(narDetail.getCoordinate());
             }
 
             // ensure the jetty nar was found
@@ -188,22 +203,50 @@ public final class NarClassLoaders {
                 narCount = narDetails.size();
 
                 // attempt to create each nar class loader
-                for (final Iterator<NarDetails> narDetailsIter = narDetails.iterator(); narDetailsIter.hasNext();) {
-                    final NarDetails narDetail = narDetailsIter.next();
-                    final String narDependencies = narDetail.getNarDependencyId();
+                for (final Iterator<BundleDetails> narDetailsIter = narDetails.iterator(); narDetailsIter.hasNext();) {
+                    final BundleDetails narDetail = narDetailsIter.next();
+                    final BundleCoordinate narDependencyCoordinate = narDetail.getDependencyCoordinate();
 
                     // see if this class loader is eligible for loading
                     ClassLoader narClassLoader = null;
-                    if (narDependencies == null) {
-                        narClassLoader = createNarClassLoader(narDetail.getNarWorkingDirectory(), jettyClassLoader);
-                    } else if (narIdClassLoaderLookup.containsKey(narDetail.getNarDependencyId())) {
-                        narClassLoader = createNarClassLoader(narDetail.getNarWorkingDirectory(), narIdClassLoaderLookup.get(narDetail.getNarDependencyId()));
+                    if (narDependencyCoordinate == null) {
+                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), jettyClassLoader);
+                    } else {
+                        final String dependencyCoordinateStr = narDependencyCoordinate.getCoordinate();
+
+                        // if the declared dependency has already been loaded
+                        if (narCoordinateClassLoaderLookup.containsKey(dependencyCoordinateStr)) {
+                            final ClassLoader narDependencyClassLoader = narCoordinateClassLoaderLookup.get(dependencyCoordinateStr);
+                            narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), narDependencyClassLoader);
+                        } else {
+                            // get all bundles that match the declared dependency id
+                            final Set<BundleCoordinate> coordinates = narIdBundleLookup.get(narDependencyCoordinate.getId());
+
+                            // ensure there are known bundles that match the declared dependency id
+                            if (coordinates != null && !coordinates.contains(narDependencyCoordinate)) {
+                                // ensure the declared dependency only has one possible bundle
+                                if (coordinates.size() == 1) {
+                                    // get the bundle with the matching id
+                                    final BundleCoordinate coordinate = coordinates.stream().findFirst().get();
+
+                                    // if that bundle is loaded, use it
+                                    if (narCoordinateClassLoaderLookup.containsKey(coordinate.getCoordinate())) {
+                                        logger.warn(String.format("While loading '%s' unable to locate exact NAR dependency '%s'. Only found one possible match '%s'. Continuing...",
+                                                narDetail.getCoordinate().getCoordinate(), dependencyCoordinateStr, coordinate.getCoordinate()));
+
+                                        final ClassLoader narDependencyClassLoader = narCoordinateClassLoaderLookup.get(coordinate.getCoordinate());
+                                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), narDependencyClassLoader);
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // if we were able to create the nar class loader, store it and remove the details
-                    if (narClassLoader != null) {
-                        extensionDirectoryClassLoaderLookup.put(narDetail.getNarWorkingDirectory().getCanonicalPath(), narClassLoader);
-                        narIdClassLoaderLookup.put(narDetail.getNarId(), narClassLoader);
+                    final ClassLoader bundleClassLoader = narClassLoader;
+                    if (bundleClassLoader != null) {
+                        narDirectoryBundleLookup.put(narDetail.getWorkingDirectory().getCanonicalPath(), new Bundle(narDetail, bundleClassLoader));
+                        narCoordinateClassLoaderLookup.put(narDetail.getCoordinate().getCoordinate(), narClassLoader);
                         narDetailsIter.remove();
                     }
                 }
@@ -212,12 +255,18 @@ public final class NarClassLoaders {
             } while (narCount != narDetails.size());
 
             // see if any nars couldn't be loaded
-            for (final NarDetails narDetail : narDetails) {
-                logger.warn(String.format("Unable to resolve required dependency '%s'. Skipping NAR %s", narDetail.getNarDependencyId(), narDetail.getNarWorkingDirectory().getAbsolutePath()));
+            for (final BundleDetails narDetail : narDetails) {
+                logger.warn(String.format("Unable to resolve required dependency '%s'. Skipping NAR '%s'",
+                        narDetail.getDependencyCoordinate().getId(), narDetail.getWorkingDirectory().getAbsolutePath()));
             }
         }
 
-        return new InitContext(frameworkWorkingDir, extensionsWorkingDir, narIdClassLoaderLookup.get(FRAMEWORK_NAR_ID), new LinkedHashMap<>(extensionDirectoryClassLoaderLookup));
+        // find the framework bundle, NarUnpacker already checked that there was a framework NAR and that there was only one
+        final Bundle frameworkBundle = narDirectoryBundleLookup.values().stream()
+                .filter(b -> b.getBundleDetails().getCoordinate().getId().equals(FRAMEWORK_NAR_ID))
+                .findFirst().orElse(null);
+
+        return new InitContext(frameworkWorkingDir, extensionsWorkingDir, frameworkBundle, new LinkedHashMap<>(narDirectoryBundleLookup));
     }
 
     /**
@@ -244,50 +293,36 @@ public final class NarClassLoaders {
      * @return details about the NAR
      * @throws IOException ioe
      */
-    private static NarDetails getNarDetails(final File narDirectory) throws IOException {
-        final NarDetails narDetails = new NarDetails();
-        narDetails.setNarWorkingDirectory(narDirectory);
-
-        final File manifestFile = new File(narDirectory, "META-INF/MANIFEST.MF");
-        try (final FileInputStream fis = new FileInputStream(manifestFile)) {
-            final Manifest manifest = new Manifest(fis);
-            final Attributes attributes = manifest.getMainAttributes();
-
-            // get the nar details
-            narDetails.setNarId(attributes.getValue("Nar-Id"));
-            narDetails.setNarDependencyId(attributes.getValue("Nar-Dependency-Id"));
-        }
-
-        return narDetails;
+    private static BundleDetails getNarDetails(final File narDirectory) throws IOException {
+        return NarBundleUtil.fromNarDirectory(narDirectory);
     }
 
     /**
-     * @return the framework class loader
+     * @return the framework class Bundle
      *
-     * @throws IllegalStateException if the frame class loader has not been
-     * loaded
+     * @throws IllegalStateException if the frame Bundle has not been loaded
      */
-    public ClassLoader getFrameworkClassLoader() {
+    public Bundle getFrameworkBundle() {
         if (initContext == null) {
-            throw new IllegalStateException("Framework class loader has not been loaded.");
+            throw new IllegalStateException("Framework bundle has not been loaded.");
         }
 
-        return initContext.frameworkClassLoader;
+        return initContext.frameworkBundle;
     }
 
     /**
      * @param extensionWorkingDirectory the directory
-     * @return the class loader for the specified working directory. Returns
-     * null when no class loader exists for the specified working directory
-     * @throws IllegalStateException if the class loaders have not been loaded
+     * @return the bundle for the specified working directory. Returns
+     * null when no bundle exists for the specified working directory
+     * @throws IllegalStateException if the bundles have not been loaded
      */
-    public ClassLoader getExtensionClassLoader(final File extensionWorkingDirectory) {
+    public Bundle getBundle(final File extensionWorkingDirectory) {
         if (initContext == null) {
             throw new IllegalStateException("Extensions class loaders have not been loaded.");
         }
 
         try {
-            return initContext.extensionClassLoaders.get(extensionWorkingDirectory.getCanonicalPath());
+           return initContext.bundles.get(extensionWorkingDirectory.getCanonicalPath());
         } catch (final IOException ioe) {
             if(logger.isDebugEnabled()){
                 logger.debug("Unable to get extension classloader for working directory '{}'", extensionWorkingDirectory);
@@ -297,46 +332,15 @@ public final class NarClassLoaders {
     }
 
     /**
-     * @return the extension class loaders
-     * @throws IllegalStateException if the class loaders have not been loaded
+     * @return the extensions that have been loaded
+     * @throws IllegalStateException if the extensions have not been loaded
      */
-    public Set<ClassLoader> getExtensionClassLoaders() {
+    public Set<Bundle> getBundles() {
         if (initContext == null) {
-            throw new IllegalStateException("Extensions class loaders have not been loaded.");
+            throw new IllegalStateException("Bundles have not been loaded.");
         }
 
-        return new LinkedHashSet<>(initContext.extensionClassLoaders.values());
-    }
-
-    private static class NarDetails {
-
-        private String narId;
-        private String narDependencyId;
-        private File narWorkingDirectory;
-
-        public String getNarDependencyId() {
-            return narDependencyId;
-        }
-
-        public void setNarDependencyId(String narDependencyId) {
-            this.narDependencyId = narDependencyId;
-        }
-
-        public String getNarId() {
-            return narId;
-        }
-
-        public void setNarId(String narId) {
-            this.narId = narId;
-        }
-
-        public File getNarWorkingDirectory() {
-            return narWorkingDirectory;
-        }
-
-        public void setNarWorkingDirectory(File narWorkingDirectory) {
-            this.narWorkingDirectory = narWorkingDirectory;
-        }
+        return new LinkedHashSet<>(initContext.bundles.values());
     }
 
 }

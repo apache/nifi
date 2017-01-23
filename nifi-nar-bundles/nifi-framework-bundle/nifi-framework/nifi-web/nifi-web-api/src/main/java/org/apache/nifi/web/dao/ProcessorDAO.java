@@ -32,6 +32,13 @@ public interface ProcessorDAO {
     boolean hasProcessor(String id);
 
     /**
+     * Verifies the specified processor can be created.
+     *
+     * @param processorDTO processor
+     */
+    void verifyCreate(ProcessorDTO processorDTO);
+
+    /**
      * Creates a new Processor.
      *
      * @param groupId The group id where this component will be created

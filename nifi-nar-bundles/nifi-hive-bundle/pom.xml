@@ -32,6 +32,8 @@
     </properties>
 
     <modules>
+        <module>nifi-hive-services-api</module>
+        <module>nifi-hive-services-api-nar</module>
         <module>nifi-hive-processors</module>
         <module>nifi-hive-nar</module>
     </modules>

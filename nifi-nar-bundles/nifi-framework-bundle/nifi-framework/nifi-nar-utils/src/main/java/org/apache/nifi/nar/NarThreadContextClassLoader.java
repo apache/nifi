@@ -18,7 +18,9 @@ package org.apache.nifi.nar;
 
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -31,6 +33,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,7 +44,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import org.apache.nifi.util.NiFiProperties;
 
 /**
  * THREAD SAFE
@@ -68,6 +70,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(FlowFileRepository.class);
         narSpecificClasses.add(FlowFileSwapManager.class);
         narSpecificClasses.add(ContentRepository.class);
+        narSpecificClasses.add(StateProvider.class);
     }
 
     private NarThreadContextClassLoader() {
@@ -187,15 +190,17 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(implementationClassName);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(implementationClassName);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(implementationClassName, true, ExtensionManager.getClassLoader(implementationClassName));
+            final List<Bundle> bundles = ExtensionManager.getBundles(implementationClassName);
+            if (bundles.size() == 0) {
+                throw new IllegalStateException(String.format("The specified implementation class '%s' is not known to this nifi.", implementationClassName));
             }
+            if (bundles.size() > 1) {
+                throw new IllegalStateException(String.format("More than one bundle was found for the specified implementation class '%s', only one is allowed.", implementationClassName));
+            }
+
+            final Bundle bundle = bundles.get(0);
+            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
+            final Class<?> rawClass = Class.forName(implementationClassName, true, detectedClassLoaderForType);
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);

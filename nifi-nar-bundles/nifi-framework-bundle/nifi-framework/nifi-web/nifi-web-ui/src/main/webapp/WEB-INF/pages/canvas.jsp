@@ -141,6 +141,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/listing-request-status-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/component-version-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
         <div id="context-menu" class="context-menu unselectable"></div>
         <span id="nifi-content-viewer-url" class="hidden"></span>

@@ -35,6 +35,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -63,6 +65,7 @@ import org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater;
 import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
@@ -105,6 +108,7 @@ import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -150,6 +154,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.provenance.IdentifierLookup;
@@ -184,11 +189,13 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -218,6 +225,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -279,6 +287,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean flowSynchronized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
     private final Authorizer authorizer;
     private final AuditService auditService;
@@ -1012,13 +1021,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      *
      * @param type processor type
      * @param id processor id
+     * @param coordinate the coordinate of the bundle for this processor
      * @return new processor
      * @throws NullPointerException if either arg is null
      * @throws ProcessorInstantiationException if the processor cannot be
      * instantiated for any reason
      */
-    public ProcessorNode createProcessor(final String type, final String id) throws ProcessorInstantiationException {
-        return createProcessor(type, id, true);
+    public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate) throws ProcessorInstantiationException {
+        return createProcessor(type, id, coordinate, true);
     }
 
     /**
@@ -1029,6 +1039,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      *
      * @param type the fully qualified Processor class name
      * @param id the unique ID of the Processor
+     * @param coordinate the bundle coordinate for this processor
      * @param firstTimeAdded whether or not this is the first time this
      * Processor is added to the graph. If {@code true}, will invoke methods
      * annotated with the {@link OnAdded} annotation.
@@ -1037,39 +1048,63 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws ProcessorInstantiationException if the processor cannot be
      * instantiated for any reason
      */
-    public ProcessorNode createProcessor(final String type, String id, final boolean firstTimeAdded) throws ProcessorInstantiationException {
+    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) throws ProcessorInstantiationException {
+        return createProcessor(type, id, coordinate, firstTimeAdded, true);
+    }
+
+    /**
+     * <p>
+     * Creates a new ProcessorNode with the given type and identifier and
+     * optionally initializes it.
+     * </p>
+     *
+     * @param type the fully qualified Processor class name
+     * @param id the unique ID of the Processor
+     * @param coordinate the bundle coordinate for this processor
+     * @param firstTimeAdded whether or not this is the first time this
+     * Processor is added to the graph. If {@code true}, will invoke methods
+     * annotated with the {@link OnAdded} annotation.
+     * @return new processor node
+     * @throws NullPointerException if either arg is null
+     * @throws ProcessorInstantiationException if the processor cannot be
+     * instantiated for any reason
+     */
+    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded, final boolean registerLogObserver)
+            throws ProcessorInstantiationException {
         id = id.intern();
 
         boolean creationSuccessful;
-        Processor processor;
+        LoggableComponent<Processor> processor;
         try {
-            processor = instantiateProcessor(type, id);
+            processor = instantiateProcessor(type, id, coordinate);
             creationSuccessful = true;
         } catch (final ProcessorInstantiationException pie) {
             LOG.error("Could not create Processor of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", pie);
             final GhostProcessor ghostProc = new GhostProcessor();
             ghostProc.setIdentifier(id);
             ghostProc.setCanonicalClassName(type);
-            processor = ghostProc;
+            processor = new LoggableComponent<>(ghostProc, coordinate, null);
             creationSuccessful = false;
         }
 
-        final ComponentLog logger = new SimpleProcessLogger(id, processor);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ProcessorNode procNode;
         if (creationSuccessful) {
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties, variableRegistry, logger);
+            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, nifiProperties, variableRegistry);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
-            procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties, variableRegistry, logger);
+            procNode = new StandardProcessorNode(
+                    processor, id, validationContextFactory, processScheduler, controllerServiceProvider, componentType, type, nifiProperties, variableRegistry, true);
         }
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
-        logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
+        if (registerLogObserver) {
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
+        }
 
         try {
-            final Class<?> procClass = processor.getClass();
+            final Class<?> procClass = procNode.getProcessor().getClass();
             if(procClass.isAnnotationPresent(DefaultSettings.class)) {
                 DefaultSettings ds = procClass.getAnnotation(DefaultSettings.class);
                 try {
@@ -1083,27 +1118,33 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 } catch(Throwable ex) {
                     LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
-                try {
-                    procNode.setBulletinLevel(ds.bulletinLevel());
-                } catch (Throwable ex) {
-                    LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
-                }
 
+                // calling setBulletinLevel changes the level in the LogRepository so we only want to do this when
+                // the caller said to register the log observer, otherwise we could be changing the level when we didn't mean to
+                if (registerLogObserver) {
+                    try {
+                        procNode.setBulletinLevel(ds.bulletinLevel());
+                    } catch (Throwable ex) {
+                        LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s", ex.getMessage()), ex);
+                    }
+                }
             }
         } catch (Throwable ex) {
             LOG.error(String.format("Error while setting default settings from DefaultSettings annotation: %s",ex.getMessage()),ex);
         }
 
         if (firstTimeAdded) {
-            try (final NarCloseable x = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
-                logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                if (registerLogObserver) {
+                    logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                }
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
             if (firstTimeAdded) {
-                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), processor.getIdentifier())) {
+                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
                 }
             }
@@ -1112,30 +1153,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return procNode;
     }
 
-    private Processor instantiateProcessor(final String type, final String identifier) throws ProcessorInstantiationException {
-        Processor processor;
+    private LoggableComponent<Processor> instantiateProcessor(final String type, final String identifier, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
+        final Bundle processorBundle = ExtensionManager.getBundle(bundleCoordinate);
+        if (processorBundle == null) {
+            throw new ProcessorInstantiationException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+        }
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type, identifier);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(type);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type, identifier));
-            }
-
+            final ClassLoader detectedClassLoaderForType = ExtensionManager.createInstanceClassLoader(type, identifier, processorBundle);
+            final Class<?> rawClass = Class.forName(type, true, processorBundle.getClassLoader());
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
+
             final Class<? extends Processor> processorClass = rawClass.asSubclass(Processor.class);
-            processor = processorClass.newInstance();
+            final Processor processor = processorClass.newInstance();
+
             final ComponentLog componentLogger = new SimpleProcessLogger(identifier, processor);
             final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, componentLogger, this, this, nifiProperties);
             processor.initialize(ctx);
 
             LogRepositoryFactory.getRepository(identifier).setLogger(componentLogger);
-            return processor;
+
+            return new LoggableComponent<>(processor, bundleCoordinate, componentLogger);
         } catch (final Throwable t) {
             throw new ProcessorInstantiationException(type, t);
         } finally {
@@ -1143,6 +1182,34 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);
             }
         }
+    }
+
+    public void changeProcessorType(final ProcessorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ProcessorNode cannot be null");
+        }
+
+        final String id = existingNode.getProcessor().getIdentifier();
+
+        // createProcessor will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+
+        // create a new node with firstTimeAdded as true so lifecycle methods get fired
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ProcessorNode newNode = createProcessor(newType, id, bundleCoordinate, true, false);
+
+        // call OnRemoved for the existing processor using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            final StandardProcessContext processContext = new StandardProcessContext(
+                    existingNode, controllerServiceProvider, encryptor, getStateManagerProvider().getStateManager(id), variableRegistry);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
+        }
+
+        // set the new processor in the existing node
+        final LoggableComponent<Processor> newProcessor = new LoggableComponent<>(newNode.getProcessor(), newNode.getBundleCoordinate(), newNode.getLogger());
+        existingNode.setProcessor(newProcessor);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     /**
@@ -1459,13 +1526,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws FlowSynchronizationException if updates to the controller failed.
      * If this exception is thrown, then the controller should be considered
      * unsafe to be used
+     * @throws MissingBundleException if the proposed flow cannot be loaded by the
+     * controller because it contains a bundle that does not exist in the controller
      */
     public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow)
-            throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
+            throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         writeLock.lock();
         try {
             LOG.debug("Synchronizing controller with proposed flow");
             synchronizer.sync(this, dataFlow, encryptor);
+            flowSynchronized.set(true);
             LOG.info("Successfully synchronized controller with proposed flow");
         } finally {
             writeLock.unlock();
@@ -1630,7 +1700,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Controller Services
             //
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), true);
+                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+                final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, true);
 
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
@@ -1717,7 +1788,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate the processors
             //
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
-                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId());
+                final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle());
+                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
 
                 procNode.setPosition(toPosition(processorDTO.getPosition()));
                 procNode.setProcessGroup(group);
@@ -1953,43 +2025,81 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
-        // validate that all Processor Types and Prioritizer Types are valid
-        final Set<String> processorClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
-            processorClasses.add(c.getName());
+    private void verifyBundleInSnippet(final BundleDTO requiredBundle, final Set<BundleCoordinate> supportedBundles) {
+        final BundleCoordinate requiredCoordinate = new BundleCoordinate(requiredBundle.getGroup(), requiredBundle.getArtifact(), requiredBundle.getVersion());
+        if (!supportedBundles.contains(requiredCoordinate)) {
+            throw new IllegalStateException("Unsupported bundle: " + requiredCoordinate);
         }
+    }
+
+    private void verifyProcessorsInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (templateContents.getProcessors() != null) {
+            templateContents.getProcessors().forEach(processor -> {
+                if (processor.getBundle() == null) {
+                    throw new IllegalArgumentException("Processor bundle must be specified.");
+                }
+
+                if (supportedTypes.containsKey(processor.getType())) {
+                    verifyBundleInSnippet(processor.getBundle(), supportedTypes.get(processor.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Processor Type: " + processor.getType());
+                }
+            });
+        }
+
+        if (templateContents.getProcessGroups() != null) {
+            templateContents.getProcessGroups().forEach(processGroup -> {
+                verifyProcessorsInSnippet(processGroup.getContents(), supportedTypes);
+            });
+        }
+    }
+
+    private void verifyControllerServicesInSnippet(final FlowSnippetDTO templateContents, final Map<String, Set<BundleCoordinate>> supportedTypes) {
+        if (templateContents.getControllerServices() != null) {
+            templateContents.getControllerServices().forEach(controllerService -> {
+                if (supportedTypes.containsKey(controllerService.getType())) {
+                    if (controllerService.getBundle() == null) {
+                        throw new IllegalArgumentException("Controller Service bundle must be specified.");
+                    }
+
+                    verifyBundleInSnippet(controllerService.getBundle(), supportedTypes.get(controllerService.getType()));
+                } else {
+                    throw new IllegalStateException("Invalid Controller Service Type: " + controllerService.getType());
+                }
+            });
+        }
+
+        if (templateContents.getProcessGroups() != null) {
+            templateContents.getProcessGroups().forEach(processGroup -> {
+                verifyControllerServicesInSnippet(processGroup.getContents(), supportedTypes);
+            });
+        }
+    }
+
+    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
+        final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
+            final String name = c.getName();
+            processorClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyProcessorsInSnippet(templateContents, processorClasses);
+
+        final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
+        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
+            final String name = c.getName();
+            controllerServiceClasses.put(name, ExtensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
+        }
+        verifyControllerServicesInSnippet(templateContents, controllerServiceClasses);
+
         final Set<String> prioritizerClasses = new HashSet<>();
         for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
             prioritizerClasses.add(c.getName());
         }
-        final Set<String> controllerServiceClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
-            controllerServiceClasses.add(c.getName());
-        }
 
-        final Set<ProcessorDTO> allProcs = new HashSet<>();
         final Set<ConnectionDTO> allConns = new HashSet<>();
-        allProcs.addAll(templateContents.getProcessors());
         allConns.addAll(templateContents.getConnections());
         for (final ProcessGroupDTO childGroup : templateContents.getProcessGroups()) {
-            allProcs.addAll(findAllProcessors(childGroup));
             allConns.addAll(findAllConnections(childGroup));
-        }
-
-        for (final ProcessorDTO proc : allProcs) {
-            if (!processorClasses.contains(proc.getType())) {
-                throw new IllegalStateException("Invalid Processor Type: " + proc.getType());
-            }
-        }
-
-        final Set<ControllerServiceDTO> controllerServices = templateContents.getControllerServices();
-        if (controllerServices != null) {
-            for (final ControllerServiceDTO service : controllerServices) {
-                if (!controllerServiceClasses.contains(service.getType())) {
-                    throw new IllegalStateException("Invalid Controller Service Type: " + service.getType());
-                }
-            }
         }
 
         for (final ConnectionDTO conn : allConns) {
@@ -2047,24 +2157,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Recursively finds all ProcessorDTO's
-     *
-     * @param group group
-     * @return processor dto set
-     */
-    private Set<ProcessorDTO> findAllProcessors(final ProcessGroupDTO group) {
-        final Set<ProcessorDTO> procs = new HashSet<>();
-        for (final ProcessorDTO dto : group.getContents().getProcessors()) {
-            procs.add(dto);
-        }
-
-        for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
-            procs.addAll(findAllProcessors(childGroup));
-        }
-        return procs;
-    }
-
-    /**
      * Recursively finds all ConnectionDTO's
      *
      * @param group group
@@ -2110,15 +2202,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoaderForType = ExtensionManager.getClassLoader(type);
-            final Class<?> rawClass;
-            if (detectedClassLoaderForType == null) {
-                // try to find from the current class loader
-                rawClass = Class.forName(type);
-            } else {
-                // try to find from the registered classloader for that type
-                rawClass = Class.forName(type, true, ExtensionManager.getClassLoader(type));
+            final List<Bundle> prioritizerBundles = ExtensionManager.getBundles(type);
+            if (prioritizerBundles.size() == 0) {
+                throw new IllegalStateException(String.format("The specified class '%s' is not known to this nifi.", type));
             }
+            if (prioritizerBundles.size() > 1) {
+                throw new IllegalStateException(String.format("Multiple bundles found for the specified class '%s', only one is allowed.", type));
+            }
+
+            final Bundle bundle = prioritizerBundles.get(0);
+            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
+            final Class<?> rawClass = Class.forName(type, true, detectedClassLoaderForType);
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends FlowFilePrioritizer> prioritizerClass = rawClass.asSubclass(FlowFilePrioritizer.class);
@@ -2772,6 +2866,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return initialized.get();
     }
 
+    public boolean isFlowSynchronized() {
+        return flowSynchronized.get();
+    }
+
     public void startConnectable(final Connectable connectable) {
         final ProcessGroup group = requireNonNull(connectable).getProcessGroup();
 
@@ -2835,83 +2933,66 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         lookupGroup(groupId).stopProcessing();
     }
 
-    public ReportingTaskNode createReportingTask(final String type) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, true);
+    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, bundleCoordinate, true);
     }
 
-    public ReportingTaskNode createReportingTask(final String type, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, UUID.randomUUID().toString(), firstTimeAdded);
+    public ReportingTaskNode createReportingTask(final String type, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, UUID.randomUUID().toString(), bundleCoordinate, firstTimeAdded);
     }
 
     @Override
-    public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
-        return createReportingTask(type, id, firstTimeAdded, true);
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate,final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, id, bundleCoordinate, firstTimeAdded, true);
     }
 
-    public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded, final boolean register) throws ReportingTaskInstantiationException {
-        if (type == null || id == null) {
+    public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded, final boolean register)
+            throws ReportingTaskInstantiationException {
+        if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException();
         }
 
-        ReportingTask task = null;
+        LoggableComponent<ReportingTask> task = null;
         boolean creationSuccessful = true;
-        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            final ClassLoader detectedClassLoader = ExtensionManager.getClassLoader(type, id);
-            final Class<?> rawClass;
-            if (detectedClassLoader == null) {
-                rawClass = Class.forName(type);
-            } else {
-                rawClass = Class.forName(type, false, detectedClassLoader);
-            }
-
-            Thread.currentThread().setContextClassLoader(detectedClassLoader);
-            final Class<? extends ReportingTask> reportingTaskClass = rawClass.asSubclass(ReportingTask.class);
-            final Object reportingTaskObj = reportingTaskClass.newInstance();
-            task = reportingTaskClass.cast(reportingTaskObj);
+            task = instantiateReportingTask(type, id, bundleCoordinate);
         } catch (final Exception e) {
             LOG.error("Could not create Reporting Task of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", e);
             final GhostReportingTask ghostTask = new GhostReportingTask();
             ghostTask.setIdentifier(id);
             ghostTask.setCanonicalClassName(type);
-            task = ghostTask;
+            task = new LoggableComponent<>(ghostTask, bundleCoordinate, null);
             creationSuccessful = false;
-        } finally {
-            if (ctxClassLoader != null) {
-                Thread.currentThread().setContextClassLoader(ctxClassLoader);
-            }
         }
 
-        final ComponentLog logger = new SimpleProcessLogger(id, task);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry, logger);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry, logger);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type, variableRegistry, true);
         }
 
-        taskNode.setName(task.getClass().getSimpleName());
+        taskNode.setName(taskNode.getReportingTask().getClass().getSimpleName());
 
         if (firstTimeAdded) {
-            final ComponentLog componentLog = new SimpleProcessLogger(id, taskNode.getReportingTask());
             final ReportingInitializationContext config = new StandardReportingInitializationContext(id, taskNode.getName(),
-                    SchedulingStrategy.TIMER_DRIVEN, "1 min", componentLog, this, nifiProperties);
+                    SchedulingStrategy.TIMER_DRIVEN, "1 min", taskNode.getLogger(), this, nifiProperties);
 
             try {
-                task.initialize(config);
+                taskNode.getReportingTask().initialize(config);
             } catch (final InitializationException ie) {
                 throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + type, ie);
             }
 
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(taskNode.getReportingTask().getClass(), taskNode.getReportingTask().getIdentifier())) {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
             } catch (final Exception e) {
-                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getReportingTask(), e);
             }
         }
 
@@ -2925,6 +3006,63 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         return taskNode;
+    }
+
+    private LoggableComponent<ReportingTask> instantiateReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate)
+            throws ReportingTaskInstantiationException {
+
+        final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            final Bundle reportingTaskBundle = ExtensionManager.getBundle(bundleCoordinate);
+            if (reportingTaskBundle == null) {
+                throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+            }
+
+            final ClassLoader detectedClassLoader = ExtensionManager.createInstanceClassLoader(type, id, reportingTaskBundle);
+            final Class<?> rawClass = Class.forName(type, false, detectedClassLoader);
+            Thread.currentThread().setContextClassLoader(detectedClassLoader);
+
+            final Class<? extends ReportingTask> reportingTaskClass = rawClass.asSubclass(ReportingTask.class);
+            final Object reportingTaskObj = reportingTaskClass.newInstance();
+
+            final ReportingTask reportingTask = reportingTaskClass.cast(reportingTaskObj);
+            final ComponentLog componentLog = new SimpleProcessLogger(id, reportingTask);
+
+            return new LoggableComponent<>(reportingTask, bundleCoordinate, componentLog);
+        } catch (final Exception e) {
+            throw new ReportingTaskInstantiationException(type, e);
+        } finally {
+            if (ctxClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(ctxClassLoader);
+            }
+        }
+    }
+
+    @Override
+    public void changeReportingTaskType(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ReportingTaskNode cannot be null");
+        }
+
+        final String id = existingNode.getReportingTask().getIdentifier();
+
+        // createReportingTask will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+
+        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ReportingTaskNode newNode = createReportingTask(newType, id, bundleCoordinate, true, false);
+
+        // call OnRemoved for the existing reporting task using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), existingNode.getConfigurationContext());
+        }
+
+        // set the new reporting task into the existing node
+        final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), newNode.getLogger());
+        existingNode.setReportingTask(newReportingTask);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     @Override
@@ -2988,8 +3126,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
-        final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+    public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, bundleCoordinate, firstTimeAdded);
 
         // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
@@ -3005,6 +3143,42 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         return serviceNode;
+    }
+
+    public void changeControllerServiceType(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate)
+            throws ControllerServiceInstantiationException {
+        if (existingNode == null) {
+            throw new IllegalStateException("Existing ControllerServiceNode cannot be null");
+        }
+
+        final String id = existingNode.getIdentifier();
+
+        // createControllerService will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing service
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+
+        // create a new node with firstTimeAdded as true so lifecycle methods get called
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ControllerServiceNode newNode = controllerServiceProvider.createControllerService(newType, id, bundleCoordinate, true);
+
+        // call OnRemoved for the existing service using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, controllerServiceProvider, null, variableRegistry);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
+        }
+
+        // take the invocation handler that was created for new proxy and is set to look at the new node,
+        // and set it to look at the existing node
+        final ControllerServiceInvocationHandler invocationHandler = newNode.getInvocationHandler();
+        invocationHandler.setServiceNode(existingNode);
+
+        // create LoggableComponents for the proxy and implementation
+        final LoggableComponent<ControllerService> loggableProxy = new LoggableComponent<>(newNode.getProxiedControllerService(), bundleCoordinate, newNode.getLogger());
+        final LoggableComponent<ControllerService> loggableImplementation = new LoggableComponent<>(newNode.getControllerServiceImplementation(), bundleCoordinate, newNode.getLogger());
+
+        // set the new impl, proxy, and invocation handler into the existing node
+        existingNode.setControllerServiceAndProxy(loggableImplementation, loggableProxy, invocationHandler);
+        existingNode.setExtensionMissing(newNode.isExtensionMissing());
     }
 
     @Override

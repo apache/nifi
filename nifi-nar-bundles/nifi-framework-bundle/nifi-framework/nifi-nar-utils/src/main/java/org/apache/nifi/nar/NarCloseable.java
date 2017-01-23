@@ -48,12 +48,26 @@ public class NarCloseable implements Closeable {
     public static NarCloseable withComponentNarLoader(final Class componentClass, final String componentIdentifier) {
         final ClassLoader current = Thread.currentThread().getContextClassLoader();
 
-        ClassLoader componentClassLoader = ExtensionManager.getClassLoader(componentClass.getName(), componentIdentifier);
+        ClassLoader componentClassLoader = ExtensionManager.getInstanceClassLoader(componentIdentifier);
         if (componentClassLoader == null) {
             componentClassLoader = componentClass.getClassLoader();
         }
 
         Thread.currentThread().setContextClassLoader(componentClassLoader);
+        return new NarCloseable(current);
+    }
+
+    /**
+     * Sets the current thread context class loader to the provided class loader, and returns a NarCloseable that will
+     * return the current thread context class loader to it's previous state.
+     *
+     * @param componentNarLoader the class loader to set as the current thread context class loader
+     *
+     * @return NarCloseable that will return the current thread context class loader to its previous state
+     */
+    public static NarCloseable withComponentNarLoader(final ClassLoader componentNarLoader) {
+        final ClassLoader current = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(componentNarLoader);
         return new NarCloseable(current);
     }
 
@@ -67,7 +81,7 @@ public class NarCloseable implements Closeable {
     public static NarCloseable withFrameworkNar() {
         final ClassLoader frameworkClassLoader;
         try {
-            frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkClassLoader();
+            frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
         } catch (final Exception e) {
             // This should never happen in a running instance, but it will occur in unit tests
             logger.error("Unable to access Framework ClassLoader due to " + e + ". Will continue without changing ClassLoaders.");

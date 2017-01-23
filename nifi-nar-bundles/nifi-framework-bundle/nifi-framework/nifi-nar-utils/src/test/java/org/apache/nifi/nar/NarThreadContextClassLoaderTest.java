@@ -17,10 +17,17 @@
 package org.apache.nifi.nar;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 
@@ -29,8 +36,14 @@ public class NarThreadContextClassLoaderTest {
     @Test
     public void validateWithPropertiesConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
-        assertTrue(NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(),
-                WithPropertiesConstructor.class, properties) instanceof WithPropertiesConstructor);
+        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+
+        Object obj = NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(),
+                WithPropertiesConstructor.class, properties);
+        assertTrue(obj instanceof WithPropertiesConstructor);
+        WithPropertiesConstructor withPropertiesConstructor = (WithPropertiesConstructor) obj;
+        assertNotNull(withPropertiesConstructor.properties);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -38,39 +51,49 @@ public class NarThreadContextClassLoaderTest {
         Map<String, String> additionalProperties = new HashMap<>();
         additionalProperties.put("fail", "true");
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", additionalProperties);
+        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         NarThreadContextClassLoader.createInstance(WithPropertiesConstructor.class.getName(), WithPropertiesConstructor.class, properties);
     }
 
     @Test
     public void validateWithDefaultConstructor() throws Exception {
         NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
+        Bundle systemBundle = ExtensionManager.createSystemBundle(properties);
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
         assertTrue(NarThreadContextClassLoader.createInstance(WithDefaultConstructor.class.getName(),
                 WithDefaultConstructor.class, properties) instanceof WithDefaultConstructor);
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void validateWithWrongConstructor() throws Exception {
-        NiFiProperties properties = NiFiProperties.createBasicNiFiProperties("src/test/resources/nifi.properties", null);
-        NarThreadContextClassLoader.createInstance(WrongConstructor.class.getName(), WrongConstructor.class, properties);
-    }
+    public static class WithPropertiesConstructor extends AbstractProcessor {
+        private NiFiProperties properties;
 
-    public static class WithPropertiesConstructor {
+        public WithPropertiesConstructor() {
+
+        }
+
         public WithPropertiesConstructor(NiFiProperties properties) {
             if (properties.getProperty("fail") != null) {
                 throw new RuntimeException("Intentional failure");
             }
+            this.properties = properties;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
         }
     }
 
-    public static class WithDefaultConstructor {
+    public static class WithDefaultConstructor extends AbstractProcessor {
         public WithDefaultConstructor() {
 
         }
-    }
 
-    public static class WrongConstructor {
-        public WrongConstructor(String s) {
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
         }
     }
+
 }

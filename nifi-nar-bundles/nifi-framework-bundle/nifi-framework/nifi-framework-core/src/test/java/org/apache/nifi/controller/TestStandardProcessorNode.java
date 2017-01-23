@@ -20,6 +20,8 @@ package org.apache.nifi.controller;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -57,7 +59,6 @@ import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -81,15 +82,17 @@ public class TestStandardProcessorNode {
 
     @Test(timeout = 10000)
     public void testStart() throws InterruptedException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessorNode.class.getResource("/conf/nifi.properties").getFile());
         final ProcessorThatThrowsExceptionOnScheduled processor = new ProcessorThatThrowsExceptionOnScheduled();
         final String uuid = UUID.randomUUID().toString();
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, null, null, null, null);
         processor.initialize(initContext);
 
-        final StandardProcessorNode procNode = new StandardProcessorNode(processor, uuid, createValidationContextFactory(), null, null,
-                NiFiProperties.createBasicNiFiProperties(null, null), VariableRegistry.EMPTY_REGISTRY, Mockito.mock(ComponentLog.class));
+        final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
+
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, coordinate, null);
+        final StandardProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid, createValidationContextFactory(), null, null,
+                NiFiProperties.createBasicNiFiProperties(null, null), VariableRegistry.EMPTY_REGISTRY);
         final ScheduledExecutorService taskScheduler = new FlowEngine(2, "TestClasspathResources", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, null);
@@ -140,12 +143,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        final Set<ClassLoader> classLoaders = new HashSet<>();
-        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(classLoaders);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -188,12 +185,6 @@ public class TestStandardProcessorNode {
 
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp, otherProp));
         final StandardProcessorNode procNode = createProcessorNode(processor);
-
-        final Set<ClassLoader> classLoaders = new HashSet<>();
-        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(classLoaders);
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
@@ -263,12 +254,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        final Set<ClassLoader> classLoaders = new HashSet<>();
-        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(classLoaders);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -315,12 +300,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        final Set<ClassLoader> classLoaders = new HashSet<>();
-        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(classLoaders);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -359,12 +338,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        final Set<ClassLoader> classLoaders = new HashSet<>();
-        classLoaders.add(procNode.getProcessor().getClass().getClassLoader());
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(classLoaders);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Can't validate the ClassLoader here b/c the class is missing the annotation
 
@@ -392,18 +365,62 @@ public class TestStandardProcessorNode {
         }
     }
 
+    @Test
+    public void testVerifyCanUpdateBundle() {
+        final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
+        final StandardProcessorNode procNode = createProcessorNode(processor);
+        final BundleCoordinate existingCoordinate = procNode.getBundleCoordinate();
+
+        // should be allowed to update when the bundle is the same
+        procNode.verifyCanUpdateBundle(existingCoordinate);
+
+        // should be allowed to update when the group and id are the same but version is different
+        final BundleCoordinate diffVersion = new BundleCoordinate(existingCoordinate.getGroup(), existingCoordinate.getId(), "v2");
+        assertTrue(!existingCoordinate.getVersion().equals(diffVersion.getVersion()));
+        procNode.verifyCanUpdateBundle(diffVersion);
+
+        // should not be allowed to update when the bundle id is different
+        final BundleCoordinate diffId = new BundleCoordinate(existingCoordinate.getGroup(), "different-id", existingCoordinate.getVersion());
+        assertTrue(!existingCoordinate.getId().equals(diffId.getId()));
+        try {
+            procNode.verifyCanUpdateBundle(diffId);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
+
+        // should not be allowed to update when the bundle group is different
+        final BundleCoordinate diffGroup = new BundleCoordinate("different-group", existingCoordinate.getId(), existingCoordinate.getVersion());
+        assertTrue(!existingCoordinate.getGroup().equals(diffGroup.getGroup()));
+        try {
+            procNode.verifyCanUpdateBundle(diffGroup);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
+    }
+
+    @Test
+    public void testValidateControllerServiceApiRequired() {
+
+    }
+
     private StandardProcessorNode createProcessorNode(Processor processor) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
         final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
+
+        final Bundle systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
+        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        ExtensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle);
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);
         processor.initialize(initContext);
 
-        return new StandardProcessorNode(processor, uuid, validationContextFactory, processScheduler, null,
-                niFiProperties, variableRegistry, componentLog);
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), componentLog);
+        return new StandardProcessorNode(loggableComponent, uuid, validationContextFactory, processScheduler, null, niFiProperties, variableRegistry);
     }
 
     private boolean containsResource(URL[] resources, URL resourceToFind) {

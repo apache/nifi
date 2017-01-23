@@ -16,24 +16,16 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -50,7 +42,28 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 public class FlowFromDOMFactory {
+
+    public static BundleDTO getBundle(final Element bundleElement) {
+        if (bundleElement == null) {
+            return null;
+        }
+
+        final Element groupElement = DomUtils.getChild(bundleElement, "group");
+        final Element artifactElement = DomUtils.getChild(bundleElement, "artifact");
+        final Element versionElement = DomUtils.getChild(bundleElement, "version");
+
+        return new BundleDTO(groupElement.getTextContent(), artifactElement.getTextContent(), versionElement.getTextContent());
+    }
 
     public static PositionDTO getPosition(final Element positionElement) {
         if (positionElement == null) {
@@ -89,6 +102,7 @@ public class FlowFromDOMFactory {
         dto.setName(getString(element, "name"));
         dto.setComments(getString(element, "comment"));
         dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
 
         final boolean enabled = getBoolean(element, "enabled");
         dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
@@ -106,6 +120,7 @@ public class FlowFromDOMFactory {
         dto.setName(getString(element, "name"));
         dto.setComments(getString(element, "comment"));
         dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
         dto.setSchedulingPeriod(getString(element, "schedulingPeriod"));
         dto.setState(getString(element, "scheduledState"));
         dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
@@ -353,6 +368,7 @@ public class FlowFromDOMFactory {
         dto.setId(getString(element, "id"));
         dto.setName(getString(element, "name"));
         dto.setType(getString(element, "class"));
+        dto.setBundle(getBundle(DomUtils.getChild(element, "bundle")));
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setStyle(getStyle(DomUtils.getChild(element, "styles")));
 

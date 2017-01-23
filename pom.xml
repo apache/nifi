@@ -1260,6 +1260,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hive-services-api-nar</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hive-nar</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
@@ -1377,6 +1383,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-api</artifactId>
+                <version>1.2.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hive-services-api</artifactId>
                 <version>1.2.0-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -1687,7 +1698,7 @@ language governing permissions and limitations under the License. -->
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>1.2.0</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>

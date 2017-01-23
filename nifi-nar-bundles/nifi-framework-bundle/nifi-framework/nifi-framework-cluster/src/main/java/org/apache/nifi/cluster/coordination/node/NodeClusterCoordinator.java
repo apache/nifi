@@ -703,7 +703,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
 
                         if (includeDataFlow) {
-                            request.setDataFlow(new StandardDataFlow(flowService.createDataFlow()));
+                            request.setDataFlow(new StandardDataFlow(flowService.createDataFlowFromController()));
                         }
 
                         request.setNodeConnectionStatuses(getConnectionStatuses());
@@ -889,7 +889,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         DataFlow dataFlow = null;
         if (flowService != null) {
             try {
-                dataFlow = flowService.createDataFlow();
+                dataFlow = flowService.createDataFlowFromController();
             } catch (final IOException ioe) {
                 logger.error("Unable to obtain current dataflow from FlowService in order to provide the flow to "
                     + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);

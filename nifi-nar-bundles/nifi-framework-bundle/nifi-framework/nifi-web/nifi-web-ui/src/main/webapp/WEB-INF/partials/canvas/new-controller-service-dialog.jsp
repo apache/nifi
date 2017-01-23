@@ -15,11 +15,11 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-controller-service-dialog" layout="column" class="hidden large-dialog">
+<div id="new-controller-service-dialog" layout="column" class="hidden">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
             <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name">Tag Cloud:</div>
+                <div class="setting-name" style="margin-top: 10px;">Source</div>
             </div>
             <div flex layout="row" layout-align="space-between center" id="controller-service-type-filter-controls" class="filter-status">
                 <div id="controller-service-type-filter-status">
@@ -34,14 +34,21 @@
             <div flex="25" id="controller-service-tag-cloud-container">
                 <div class="setting">
                     <div class="setting-field">
+                        <div id="controller-service-bundle-group-combo"></div>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-field">
                         <div id="controller-service-tag-cloud"></div>
                     </div>
                 </div>
             </div>
             <div layout="column" flex id="controller-service-types-container">
                 <div id="controller-service-types-table" class="unselectable"></div>
-                <div id="controller-service-type-name-title" class="ellipsis">Selected Controller Service:</div>
-                <div id="controller-service-type-name" class="ellipsis"></div>
+                <div id="controller-service-type-container">
+                    <div id="controller-service-type-name"></div>
+                    <div id="controller-service-type-bundle"></div>
+                </div>
                 <div id="controller-service-description-container" class="hidden">
                     <div id="controller-service-type-description" class="ellipsis multiline"></div>
                     <span class="hidden" id="selected-controller-service-name"></span>

@@ -35,4 +35,19 @@
             <artifactId>nifi-framework-api</artifactId>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/nars/nar-with-versioning/META-INF/MANIFEST.MF</exclude>
+                        <exclude>src/test/resources/nars/nar-without-versioning/META-INF/MANIFEST.MF</exclude>
+                        <exclude>src/test/resources/nars/nar-without-dependency/META-INF/MANIFEST.MF</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

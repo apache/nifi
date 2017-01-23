@@ -63,11 +63,12 @@ public interface TemplateDAO {
      * @param groupId group id
      * @param originX x
      * @param originY y
-     * @param templateId template id
+     * @param templateEncodingVersion template encoding version
+     * @param snippet template snippet
      * @param idGenerationSeed the seed to use for generating UUID's. May be null.
      * @return flow snippet
      */
-    FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed);
+    FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateEncodingVersion, FlowSnippetDTO snippet, String idGenerationSeed);
 
     /**
      * Gets the specified template.

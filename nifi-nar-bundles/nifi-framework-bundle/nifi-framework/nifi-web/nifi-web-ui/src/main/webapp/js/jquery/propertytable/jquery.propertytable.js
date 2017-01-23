@@ -611,7 +611,7 @@
                         scope.cancel();
 
                         // prompt for the new service type
-                        promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, configurationOptions);
+                        promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
                     }
                 }
             }).css({
@@ -943,23 +943,33 @@
      * @param {jQuery} gridContainer The grid container
      * @param {slickgrid} grid The grid
      * @param {object} item The item
-     * @param {type} serviceType The type of service to create
+     * @param {string} serviceType The type of service to create
+     * @param {object} bundle The bundle the service impl should implement
      * @param {object} configurationOptions The configuration options
      */
-    var promptForNewControllerService = function (gridContainer, grid, item, serviceType, configurationOptions) {
+    var promptForNewControllerService = function (gridContainer, grid, item, serviceType, bundle, configurationOptions) {
         $.ajax({
             type: 'GET',
             url: '../nifi-api/flow/controller-service-types',
             data: {
-                serviceType: serviceType
+                'serviceType': serviceType,
+                'serviceBundleGroup': bundle.group,
+                'serviceBundleArtifact': bundle.artifact,
+                'serviceBundleVersion': bundle.version
             },
             dataType: 'json'
         }).done(function (response) {
+            // get the property descriptor
+            var descriptors = gridContainer.data('descriptors');
+            var propertyDescriptor = descriptors[item.property];
+
+            var controllerServiceLookup = d3.map();
             var options = [];
             $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
+                controllerServiceLookup.set(i, controllerServiceType);
                 options.push({
-                    text: nfCommon.substringAfterLast(controllerServiceType.type, '.'),
-                    value: controllerServiceType.type,
+                    text: nfCommon.formatType(controllerServiceType),
+                    value: i,
                     description: nfCommon.escapeHtml(controllerServiceType.description)
                 });
             });
@@ -973,47 +983,74 @@
             } else {
                 var newControllerServiceDialogMarkup =
                     '<div id="new-inline-controller-service-dialog" class="hidden dialog medium-dialog cancellable">' +
-                    '<div class="dialog-content">' +
-                    '<div>' +
-                    '<div class="setting-name">Controller Service</div>' +
-                    '<div class="setting-field">' +
-                    '<div class="new-inline-controller-service-combo"></div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div>' +
-                    '<div class="setting-name">Tags</div>' +
-                    '<div class="setting-field">' +
-                    '<div class="new-inline-controller-service-tags"></div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div>' +
-                    '<div class="setting-name">Description</div>' +
-                    '<div class="setting-field">' +
-                    '<div class="new-inline-controller-service-description"></div>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
+                        '<div class="dialog-content">' +
+                            '<div>' +
+                                '<div class="setting-name">Requires Controller Service</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-requirement"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Compatible Controller Services</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-combo"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Bundle</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-bundle"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Tags</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-tags"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Description</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-description"></div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
                     '</div>';
 
                 var newControllerServiceDialog = $(newControllerServiceDialogMarkup).appendTo(configurationOptions.dialogContainer);
+                var newControllerServiceRequirement = newControllerServiceDialog.find('div.new-inline-controller-service-requirement');
                 var newControllerServiceCombo = newControllerServiceDialog.find('div.new-inline-controller-service-combo');
+                var newControllerServiceBundle = newControllerServiceDialog.find('div.new-inline-controller-service-bundle');
                 var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
                 var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
+
+                // include the required service
+                var formattedType = nfCommon.formatType({
+                    'type': propertyDescriptor.identifiesControllerService,
+                    'bundle': propertyDescriptor.identifiesControllerServiceBundle
+                });
+                var formattedBundle = nfCommon.formatBundle(propertyDescriptor.identifiesControllerServiceBundle);
+                newControllerServiceRequirement.text(formattedType + ' from ' + formattedBundle);
+
+                // sort the text version visible to the user
+                options.sort(function (a, b) {
+                    var aCS = controllerServiceLookup.get(a.value);
+                    var bCS = controllerServiceLookup.get(b.value);
+
+                    var aName = nfCommon.substringAfterLast(aCS.type, '.');
+                    var bName = nfCommon.substringAfterLast(bCS.type, '.');
+
+                    return aName === bName ? -nfCommon.sortVersion(aCS.bundle.version, bCS.bundle.version) : aName > bName ? 1 : -1;
+                });
 
                 // build the combo field
                 newControllerServiceCombo.combo({
                     options: options,
                     select: function (option) {
-                        var service;
-                        $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
-                            if (controllerServiceType.type === option.value) {
-                                service = controllerServiceType;
-                                return false;
-                            }
-                        });
-
                         // set the service details
-                        newControllerServiceTags.text(service.tags.join(', ')).ellipsis();
+                        var service = controllerServiceLookup.get(option.value);
+                        newControllerServiceBundle.text(nfCommon.formatBundle(service.bundle));
+                        newControllerServiceTags.text(service.tags.join(', '));
                         newControllerServiceDescription.text(service.description);
                     }
                 });
@@ -1050,7 +1087,8 @@
                 });
 
                 var create = function () {
-                    var newControllerServiceType = newControllerServiceCombo.combo('getSelectedOption').value;
+                    var newControllerServiceKey = newControllerServiceCombo.combo('getSelectedOption').value;
+                    var newControllerServiceType = controllerServiceLookup.get(newControllerServiceKey);
 
                     // build the controller service entity
                     var controllerServiceEntity = {
@@ -1060,7 +1098,8 @@
                             }
                         }),
                         'component': {
-                            'type': newControllerServiceType
+                            'type': newControllerServiceType.type,
+                            'bundle': newControllerServiceType.bundle
                         }
                     };
 
@@ -1158,6 +1197,8 @@
                 if (nfCommon.isSensitiveProperty(propertyDescriptor)) {
                     valueMarkup = '<span class="table-cell sensitive">Sensitive value set</span>';
                 } else {
+                    var resolvedAllowableValue = false;
+
                     // if there are allowable values, attempt to swap out for the display name
                     var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
                     if ($.isArray(allowableValues)) {
@@ -1165,6 +1206,7 @@
                             var allowableValue = allowableValueEntity.allowableValue;
                             if (value === allowableValue.value) {
                                 value = allowableValue.displayName;
+                                resolvedAllowableValue = true;
                                 return false;
                             }
                         });
@@ -1173,7 +1215,11 @@
                     if (value === '') {
                         valueMarkup = '<span class="table-cell blank">Empty string set</span>';
                     } else {
-                        valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                        if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                            valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
+                        } else {
+                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                        }
                     }
                 }
             } else {
