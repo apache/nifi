@@ -50,7 +50,7 @@
         'Connect Timeout' - Duration of connect timeout. (i.e. 10 secs).
         'Read Timeout' - Duration of read timeout. (i.e. 10 secs).
        
-        'Url' - Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
+        'Url' - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
         'User Search Base' - Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
         'User Search Filter' - Filter for searching for users against the 'User Search Base'.
             (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
