@@ -53,6 +53,7 @@ public abstract class NiFiProperties {
     public static final String FLOW_CONFIGURATION_ARCHIVE_DIR = "nifi.flow.configuration.archive.dir";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "nifi.flow.configuration.archive.max.time";
     public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE = "nifi.flow.configuration.archive.max.storage";
+    public static final String FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT = "nifi.flow.configuration.archive.max.count";
     public static final String AUTHORIZER_CONFIGURATION_FILE = "nifi.authorizer.configuration.file";
     public static final String LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "nifi.login.identity.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
@@ -974,11 +975,15 @@ public abstract class NiFiProperties {
     }
 
     public String getFlowConfigurationArchiveMaxTime() {
-        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_TIME, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME);
+        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_TIME, null);
     }
 
     public String getFlowConfigurationArchiveMaxStorage() {
-        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE);
+        return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, null);
+    }
+
+    public Integer getFlowConfigurationArchiveMaxCount() {
+        return getIntegerProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_COUNT, null);
     }
 
     public String getVariableRegistryProperties() {

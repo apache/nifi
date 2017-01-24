@@ -173,9 +173,9 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             try {
                 archiveManager.archive();
             } catch (final Exception ex) {
-                LOG.warn("Unable to archive flow configuration as requested due to " + ex);
+                LOG.error("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {
-                    LOG.warn("", ex);
+                    LOG.error("", ex);
                 }
             }
         }
