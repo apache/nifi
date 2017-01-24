@@ -322,7 +322,7 @@ nifi.security.user.login.identity.provider=ldap-provider
 |`Referral Strategy` | Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
 |`Connect Timeout` | Duration of connect timeout. (i.e. 10 secs).
 |`Read Timeout` | Duration of read timeout. (i.e. 10 secs).
-|`Url` | Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
+|`Url` | Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
 |`User Search Base` | Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
 |`User Search Filter` | Filter for searching for users against the 'User Search Base'. (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
 |`Identity Strategy` | Strategy to identify users. Possible values are USE_DN and USE_USERNAME. The default functionality if this property is missing is USE_DN in order to retain backward
