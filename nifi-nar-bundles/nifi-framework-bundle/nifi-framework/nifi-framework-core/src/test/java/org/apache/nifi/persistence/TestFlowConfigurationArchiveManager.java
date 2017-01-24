@@ -16,16 +16,14 @@
  */
 package org.apache.nifi.persistence;
 
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -36,18 +34,17 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertNull;
 
 public class TestFlowConfigurationArchiveManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(TestFlowConfigurationArchiveManager.class);
     private final File flowFile = new File("./target/flow-archive/flow.xml.gz");
     private final File archiveDir = new File("./target/flow-archive");
-    private final long maxTime = FormatUtils.getTimeDuration("30 days", TimeUnit.MILLISECONDS);
-    private long maxStorage = DataUnit.parseDataSize("500 MB", DataUnit.B).longValue();
 
     @Before
     public void before() throws Exception {
@@ -73,11 +70,81 @@ public class TestFlowConfigurationArchiveManager {
 
     }
 
+    private Object getPrivateFieldValue(final FlowConfigurationArchiveManager archiveManager, final String fieldName)
+            throws NoSuchFieldException, IllegalAccessException {
+        final Field field = FlowConfigurationArchiveManager.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(archiveManager);
+    }
+
+    @Test
+    public void testNiFiPropertiesDefault() throws Exception {
+
+        final NiFiProperties defaultProperties = mock(NiFiProperties.class);
+        when(defaultProperties.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
+        when(defaultProperties.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
+        when(defaultProperties.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
+
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), defaultProperties);
+
+        assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
+        assertEquals(60L * 60L * 24L * 30L * 1000L, getPrivateFieldValue(archiveManager, "maxTimeMillis"));
+        assertEquals(500L * 1024L * 1024L, getPrivateFieldValue(archiveManager, "maxStorageBytes"));
+    }
+
+    @Test
+    public void testNiFiPropertiesMaxTime() throws Exception {
+
+        final NiFiProperties withMaxTime = mock(NiFiProperties.class);
+        when(withMaxTime.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
+        when(withMaxTime.getFlowConfigurationArchiveMaxTime()).thenReturn("10 days");
+        when(withMaxTime.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
+
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), withMaxTime);
+
+        assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
+        assertEquals(60L * 60L * 24L * 10L * 1000L, getPrivateFieldValue(archiveManager, "maxTimeMillis"));
+        assertNull(getPrivateFieldValue(archiveManager, "maxStorageBytes"));
+    }
+
+    @Test
+    public void testNiFiPropertiesMaxStorage() throws Exception {
+
+        final NiFiProperties withMaxTime = mock(NiFiProperties.class);
+        when(withMaxTime.getFlowConfigurationArchiveMaxCount()).thenReturn(null);
+        when(withMaxTime.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
+        when(withMaxTime.getFlowConfigurationArchiveMaxStorage()).thenReturn("10 MB");
+
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), withMaxTime);
+
+        assertNull(getPrivateFieldValue(archiveManager, "maxCount"));
+        assertNull(getPrivateFieldValue(archiveManager, "maxTimeMillis"));
+        assertEquals(10L * 1024L * 1024L, getPrivateFieldValue(archiveManager, "maxStorageBytes"));
+    }
+
+    @Test
+    public void testNiFiPropertiesCount() throws Exception {
+
+        final NiFiProperties onlyCount = mock(NiFiProperties.class);
+        when(onlyCount.getFlowConfigurationArchiveMaxCount()).thenReturn(10);
+        when(onlyCount.getFlowConfigurationArchiveMaxTime()).thenReturn(null);
+        when(onlyCount.getFlowConfigurationArchiveMaxStorage()).thenReturn(null);
+
+        final FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(), onlyCount);
+
+        assertEquals(10, getPrivateFieldValue(archiveManager, "maxCount"));
+        assertNull(getPrivateFieldValue(archiveManager, "maxTimeMillis"));
+        assertNull(getPrivateFieldValue(archiveManager, "maxStorageBytes"));
+    }
+
     @Test(expected = NoSuchFileException.class)
     public void testArchiveWithoutOriginalFile() throws Exception {
+        final NiFiProperties properties = mock(NiFiProperties.class);
+        when(properties.getFlowConfigurationArchiveDir()).thenReturn(archiveDir.getPath());
+
         final File flowFile = new File("does-not-exist");
         final FlowConfigurationArchiveManager archiveManager =
-                new FlowConfigurationArchiveManager(flowFile.toPath(), archiveDir.toPath(), maxTime, maxStorage);
+                new FlowConfigurationArchiveManager(flowFile.toPath(), properties);
 
         archiveManager.archive();
     }
@@ -88,8 +155,7 @@ public class TestFlowConfigurationArchiveManager {
         final long now = System.currentTimeMillis();
         final SimpleDateFormat dateFormat = new SimpleDateFormat("HHmmss");
 
-        FlowConfigurationArchiveManager archiveManager =
-                new FlowConfigurationArchiveManager(flowFile.toPath(), archiveDir.toPath(), maxTime, maxStorage);
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, null);
 
         for (int i = oldArchives.length; i > 0; i--) {
             final Date date = new Date(now - (intervalMillis * i));
@@ -106,6 +172,15 @@ public class TestFlowConfigurationArchiveManager {
         }
     }
 
+    private FlowConfigurationArchiveManager createArchiveManager(final Integer maxCount, final String maxTime, final String maxStorage) {
+        final NiFiProperties properties = mock(NiFiProperties.class);
+        when(properties.getFlowConfigurationArchiveDir()).thenReturn(archiveDir.getPath());
+        when(properties.getFlowConfigurationArchiveMaxCount()).thenReturn(maxCount);
+        when(properties.getFlowConfigurationArchiveMaxTime()).thenReturn(maxTime);
+        when(properties.getFlowConfigurationArchiveMaxStorage()).thenReturn(maxStorage);
+        return new FlowConfigurationArchiveManager(flowFile.toPath(), properties);
+    }
+
     @Test
     public void testArchiveExpiration() throws Exception {
 
@@ -115,24 +190,21 @@ public class TestFlowConfigurationArchiveManager {
 
         // Now, we will test expiration. There should be following old archives created above:
         // -5 min, -4 min, -3min, -2min, -1min
-        // if maxTime = 3.5min, The oldest two files should be removed, -5 min and -4 min,
-        // resulting four files of -3min, -2min, -1min, and newly created archive.
         final long maxTimeForExpirationTest = intervalMillis * 3 + (intervalMillis / 2);
-        FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(),
-                archiveDir.toPath(), maxTimeForExpirationTest, maxStorage);
+
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null, maxTimeForExpirationTest + "ms", null);
 
         final File archive = archiveManager.archive();
-        assertTrue(archive.isFile());
 
-        assertFalse(oldArchives[0].exists());
-        assertFalse(oldArchives[1].exists());
-        assertTrue(oldArchives[2].isFile());
-        assertTrue(oldArchives[3].isFile());
-        assertTrue(oldArchives[4].isFile());
+        assertTrue(!oldArchives[0].exists()); // -5 min
+        assertTrue(!oldArchives[1].exists()); // -4 min
+        assertTrue(oldArchives[2].isFile()); // -3 min
+        assertTrue(oldArchives[3].isFile()); // -2 min
+        assertTrue(oldArchives[4].isFile()); // -1 min
+        assertTrue(archive.exists()); // new archive
 
         assertTrue("Original file should remain intact", flowFile.isFile());
     }
-
 
     @Test
     public void testArchiveStorageSizeLimit() throws Exception {
@@ -143,22 +215,63 @@ public class TestFlowConfigurationArchiveManager {
 
         // Now, we will test storage size limit. There should be following old archives created above:
         // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
-        // if maxStorage = 20 bytes, The oldest four files should be removed,
-        // resulting two files of -1min, and newly created archive, 20 bytes in total.
-        FlowConfigurationArchiveManager archiveManager = new FlowConfigurationArchiveManager(flowFile.toPath(),
-                archiveDir.toPath(), maxTime, 20);
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "20b");
 
         final File archive = archiveManager.archive();
-        assertTrue(archive.isFile());
 
-        assertFalse(oldArchives[0].exists());
-        assertFalse(oldArchives[1].exists());
-        assertFalse(oldArchives[2].exists());
-        assertFalse(oldArchives[3].exists());
-        assertTrue(oldArchives[4].isFile());
+        assertTrue(!oldArchives[0].exists()); // -5 min
+        assertTrue(!oldArchives[1].exists()); // -4 min
+        assertTrue(!oldArchives[2].exists()); // -3 min
+        assertTrue(!oldArchives[3].exists()); // -2 min
+        assertTrue(oldArchives[4].exists()); // -1 min
+        assertTrue(archive.exists()); // new archive
 
         assertTrue("Original file should remain intact", flowFile.isFile());
     }
 
+    @Test
+    public void testArchiveStorageCountLimit() throws Exception {
+
+        final long intervalMillis = 60_000;
+        File[] oldArchives = new File[5];
+        createSimulatedOldArchives(oldArchives, intervalMillis);
+
+        // Now, we will test count limit. There should be following old archives created above:
+        // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(2,null, null);
+
+        final File archive = archiveManager.archive();
+
+        assertTrue(!oldArchives[0].exists()); // -5 min
+        assertTrue(!oldArchives[1].exists()); // -4 min
+        assertTrue(!oldArchives[2].exists()); // -3 min
+        assertTrue(!oldArchives[3].exists()); // -2 min
+        assertTrue(oldArchives[4].exists()); // -1 min
+        assertTrue(archive.exists()); // new archive
+
+        assertTrue("Original file should remain intact", flowFile.isFile());
+    }
+
+    @Test
+    public void testLargeConfigFile() throws Exception{
+        final long intervalMillis = 60_000;
+        File[] oldArchives = new File[5];
+        createSimulatedOldArchives(oldArchives, intervalMillis);
+
+        // Now, we will test storage size limit. There should be following old archives created above:
+        // -5 min, -4 min, -3min, -2min, -1min, each of those have 10 bytes.
+        final FlowConfigurationArchiveManager archiveManager = createArchiveManager(null,null, "3b");
+
+        final File archive = archiveManager.archive();
+
+        assertTrue(!oldArchives[0].exists()); // -5 min
+        assertTrue(!oldArchives[1].exists()); // -4 min
+        assertTrue(!oldArchives[2].exists()); // -3 min
+        assertTrue(!oldArchives[3].exists()); // -2 min
+        assertTrue(!oldArchives[4].exists()); // -1 min
+        assertTrue("Even if flow config file is larger than maxStorage file, it can be archived", archive.exists()); // new archive
+
+        assertTrue("Original file should remain intact", flowFile.isFile());
+    }
 
 }
