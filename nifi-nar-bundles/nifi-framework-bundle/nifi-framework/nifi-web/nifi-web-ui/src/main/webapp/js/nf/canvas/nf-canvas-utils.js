@@ -953,6 +953,11 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
+            // ensure the user has write permissions to the current process group
+            if (nf.Canvas.canWrite() === false) {
+                return false;
+            }
+
             if (nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }

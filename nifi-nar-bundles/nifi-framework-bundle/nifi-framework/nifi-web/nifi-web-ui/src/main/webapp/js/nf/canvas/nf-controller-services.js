@@ -492,20 +492,20 @@ nf.ControllerServices = (function () {
         if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
             return dataContext.component.parentGroupId;
         } else {
-            return 'Controller'
+            return 'Controller';
         }
     };
 
     /**
-     * Determines if the user is authorized for the parent of the specified controller service.
+     * Determines if the user has write permissions for the parent of the specified controller service.
      *
      * @param dataContext
-     * @returns {boolean}
+     * @returns {boolean} whether the user has write permissions for the parent of the controller service
      */
-    var isAuthorizedForControllerServiceParent = function (dataContext) {
+    var canWriteControllerServiceParent = function (dataContext) {
         // we know the process group for this controller service is part
         // of the current breadcrumb trail
-        var isAuthorizedForProcessGroup = function (processGroupId) {
+        var canWriteProcessGroupParent = function (processGroupId) {
             var breadcrumbs = nf.ng.Bridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
 
             var isAuthorized = false;
@@ -520,7 +520,7 @@ nf.ControllerServices = (function () {
         };
 
         if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
-            return isAuthorizedForProcessGroup(dataContext.component.parentGroupId);
+            return canWriteProcessGroupParent(dataContext.component.parentGroupId);
         } else {
             return nf.Common.canModifyController();
         }
@@ -667,7 +667,7 @@ nf.ControllerServices = (function () {
                 }
             }
 
-            if (dataContext.permissions.canWrite && isAuthorizedForControllerServiceParent(dataContext)) {
+            if (dataContext.permissions.canWrite && canWriteControllerServiceParent(dataContext)) {
                 markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 

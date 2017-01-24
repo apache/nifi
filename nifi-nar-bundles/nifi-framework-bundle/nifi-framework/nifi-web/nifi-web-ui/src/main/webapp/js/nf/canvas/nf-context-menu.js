@@ -52,8 +52,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components 
      */
     var isDeletable = function (selection) {
-        // deleting is only allowed if the user also has write permissions to the current group
-        return nf.CanvasUtils.areDeletable(selection) && nf.Canvas.canWrite();
+        return nf.CanvasUtils.areDeletable(selection);
     };
 
     /**
