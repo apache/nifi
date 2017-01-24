@@ -29,6 +29,13 @@
 			"type" : "int",
 			"logicalType" : "date"
 		}
+    }, {
+		"name" : "decimal", "type": {
+			"type" : "bytes",
+			"logicalType" : "decimal",
+			"precision" : 5,
+			"scale" : 2
+		}
 	}
   ]
 }
