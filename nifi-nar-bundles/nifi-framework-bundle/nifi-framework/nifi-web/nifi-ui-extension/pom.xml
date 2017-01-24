@@ -31,9 +31,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-user-actions</artifactId>
-        </dependency>
     </dependencies>
 </project>

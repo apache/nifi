@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -129,6 +130,7 @@ public final class NarClassLoaders {
         // find all nar files and create class loaders for them.
         final Map<String, Bundle> narDirectoryBundleLookup = new LinkedHashMap<>();
         final Map<String, ClassLoader> narCoordinateClassLoaderLookup = new HashMap<>();
+        final Map<String, Set<BundleCoordinate>> narIdBundleLookup = new HashMap<>();
 
         // make sure the nar directory is there and accessible
         FileUtils.ensureDirectoryExistAndCanReadAndWrite(frameworkWorkingDir);
@@ -184,8 +186,10 @@ public final class NarClassLoaders {
                     // remove the jetty nar since its already loaded
                     narCoordinateClassLoaderLookup.put(narDetail.getCoordinate().getCoordinate(), jettyClassLoader);
                     narDetailsIter.remove();
-                    break;
                 }
+
+                // populate bundle lookup
+                narIdBundleLookup.computeIfAbsent(narDetail.getCoordinate().getId(), id -> new HashSet<>()).add(narDetail.getCoordinate());
             }
 
             // ensure the jetty nar was found
@@ -209,9 +213,32 @@ public final class NarClassLoaders {
                         narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), jettyClassLoader);
                     } else {
                         final String dependencyCoordinateStr = narDependencyCoordinate.getCoordinate();
+
+                        // if the declared dependency has already been loaded
                         if (narCoordinateClassLoaderLookup.containsKey(dependencyCoordinateStr)) {
                             final ClassLoader narDependencyClassLoader = narCoordinateClassLoaderLookup.get(dependencyCoordinateStr);
                             narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), narDependencyClassLoader);
+                        } else {
+                            // get all bundles that match the declared dependency id
+                            final Set<BundleCoordinate> coordinates = narIdBundleLookup.get(narDependencyCoordinate.getId());
+
+                            // ensure there are known bundles that match the declared dependency id
+                            if (coordinates != null && !coordinates.contains(narDependencyCoordinate)) {
+                                // ensure the declared dependency only has one possible bundle
+                                if (coordinates.size() == 1) {
+                                    // get the bundle with the matching id
+                                    final BundleCoordinate coordinate = coordinates.stream().findFirst().get();
+
+                                    // if that bundle is loaded, use it
+                                    if (narCoordinateClassLoaderLookup.containsKey(coordinate.getCoordinate())) {
+                                        logger.warn(String.format("While loading '%s' unable to locate exact NAR dependency '%s'. Only found one possible match '%s'. Continuing...",
+                                                narDetail.getCoordinate().getCoordinate(), dependencyCoordinateStr, coordinate.getCoordinate()));
+
+                                        final ClassLoader narDependencyClassLoader = narCoordinateClassLoaderLookup.get(coordinate.getCoordinate());
+                                        narClassLoader = createNarClassLoader(narDetail.getWorkingDirectory(), narDependencyClassLoader);
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -229,7 +256,7 @@ public final class NarClassLoaders {
 
             // see if any nars couldn't be loaded
             for (final BundleDetails narDetail : narDetails) {
-                logger.warn(String.format("Unable to resolve required dependency '%s'. Skipping NAR %s",
+                logger.warn(String.format("Unable to resolve required dependency '%s'. Skipping NAR '%s'",
                         narDetail.getDependencyCoordinate().getId(), narDetail.getWorkingDirectory().getAbsolutePath()));
             }
         }

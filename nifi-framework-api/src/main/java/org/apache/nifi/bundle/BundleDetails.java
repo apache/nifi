@@ -17,6 +17,9 @@
 package org.apache.nifi.bundle;
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Metadata about a bundle.
@@ -99,6 +102,20 @@ public class BundleDetails {
     @Override
     public String toString() {
         return coordinate.toString();
+    }
+
+    public Date getBuildTimestampDate() {
+        if (buildTimestamp != null && !buildTimestamp.isEmpty()) {
+            try {
+                SimpleDateFormat buildTimestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                Date buildTimestampDate = buildTimestampFormat.parse(buildTimestamp);
+                return buildTimestampDate;
+            } catch (ParseException parseEx) {
+                return null;
+            }
+        } else {
+            return null;
+        }
     }
 
     /**

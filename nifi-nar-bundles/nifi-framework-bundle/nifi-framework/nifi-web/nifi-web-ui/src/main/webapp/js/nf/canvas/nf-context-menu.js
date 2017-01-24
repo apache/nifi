@@ -530,8 +530,8 @@
         {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
         {condition: canManagePolicies, menuItem: {clazz: 'fa fa-key', text: 'Access policies', action: 'managePolicies'}},
-        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertical', action: 'alignVertical'}},
-        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}},
+        {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertically', action: 'alignVertical'}},
+        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontally', action: 'alignHorizontal'}},
         {condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
         {condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}}
     ];

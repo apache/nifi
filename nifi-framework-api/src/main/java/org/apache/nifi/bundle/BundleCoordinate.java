@@ -38,7 +38,7 @@ public class BundleCoordinate {
             throw new IllegalStateException("Id is required for BundleCoordinate");
         }
 
-        this.coordinate = group + ":" + id + ":" + version;
+        this.coordinate = this.group + ":" + this.id + ":" + this.version;
     }
 
     private boolean isBlank(String str) {

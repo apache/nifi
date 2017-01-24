@@ -39,6 +39,12 @@
 
 /* controller-service settings */
 
+#controller-service-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 /*
     Service references
 */

@@ -295,7 +295,7 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType(), requestReportingTask.getBundle());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
@@ -304,7 +304,7 @@ public class ControllerResource extends ApplicationResource {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateReportingTask(requestReportingTask),
                 (reportingTaskEntity) -> {
                     final ReportingTaskDTO reportingTask = reportingTaskEntity.getComponent();
 
@@ -393,7 +393,7 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
+                    final ConfigurableComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType(), requestControllerService.getBundle());
                     if (authorizable.isRestricted()) {
                         lookup.getRestrictedComponents().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     }
@@ -402,7 +402,7 @@ public class ControllerResource extends ApplicationResource {
                         AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
                     }
                 },
-                null,
+                () -> serviceFacade.verifyCreateControllerService(requestControllerService),
                 (controllerServiceEntity) -> {
                     final ControllerServiceDTO controllerService = controllerServiceEntity.getComponent();
 

@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -81,6 +82,7 @@ public class ExtensionManager {
         definitionMap.put(FlowFileRepository.class, new HashSet<>());
         definitionMap.put(FlowFileSwapManager.class, new HashSet<>());
         definitionMap.put(ContentRepository.class, new HashSet<>());
+        definitionMap.put(StateProvider.class, new HashSet<>());
     }
 
     /**

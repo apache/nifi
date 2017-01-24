@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -36,15 +37,16 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     public StandardReportingTaskNode(final ReportingTask reportingTask, final String id, final FlowController controller,
                                      final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-                                     final VariableRegistry variableRegistry, final ComponentLog logger) {
-        super(reportingTask, id, controller, processScheduler, validationContextFactory, variableRegistry, logger);
+                                     final VariableRegistry variableRegistry, final BundleCoordinate bundleCoordinate, final ComponentLog logger) {
+        super(reportingTask, id, controller, processScheduler, validationContextFactory, variableRegistry, bundleCoordinate, logger);
         this.flowController = controller;
     }
 
     public StandardReportingTaskNode(final ReportingTask reportingTask, final String id, final FlowController controller,
-        final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
-        final String componentType, final String canonicalClassName, final VariableRegistry variableRegistry, final ComponentLog logger) {
-        super(reportingTask, id, controller, processScheduler, validationContextFactory, componentType, canonicalClassName,variableRegistry, logger);
+                                     final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
+                                     final String componentType, final String canonicalClassName, final VariableRegistry variableRegistry,
+                                     final BundleCoordinate bundleCoordinate, final boolean isExtensionMissing, final ComponentLog logger) {
+        super(reportingTask, id, controller, processScheduler, validationContextFactory, componentType, canonicalClassName,variableRegistry, bundleCoordinate, isExtensionMissing, logger);
         this.flowController = controller;
     }
 

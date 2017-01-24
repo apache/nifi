@@ -18,9 +18,7 @@
 <div id="new-reporting-task-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
-            <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name">Tag Cloud:</div>
-            </div>
+            <div flex="25" layout="row" layout-align="start center"></div>
             <div flex layout="row" layout-align="space-between center" id="reporting-task-type-filter-controls" class="filter-status">
                 <div id="reporting-task-type-filter-status">
                     Displaying&nbsp;<span id="displayed-reporting-task-types"></span>&nbsp;of&nbsp;<span id="total-reporting-task-types"></span>
@@ -33,7 +31,6 @@
         <div flex layout="row" style="padding-top:0;height: 90%;">
             <div flex="25" id="reporting-task-tag-cloud-container">
                 <div class="setting">
-                    <div class="setting-name">Tags</div>
                     <div class="setting-field">
                         <div id="reporting-task-tag-cloud"></div>
                     </div>
@@ -41,8 +38,10 @@
             </div>
             <div layout="column" flex id="reporting-task-types-container">
                 <div id="reporting-task-types-table" class="unselectable"></div>
-                <div id="reporting-task-type-name-title" class="ellipsis">Selected Reporting Task:</div>
-                <div id="reporting-task-type-name" class="ellipsis"></div>
+                <div id="reporting-task-type-container">
+                    <div id="reporting-task-type-name"></div>
+                    <div id="reporting-task-type-bundle"></div>
+                </div>
                 <div id="reporting-task-description-container" class="hidden">
                     <div id="reporting-task-type-description" class="ellipsis multiline"></div>
                     <span class="hidden" id="selected-reporting-task-name"></span>

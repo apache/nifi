@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.web.api.dto.BundleDTO;
 
 public interface AuthorizableLookup {
 
@@ -43,7 +44,7 @@ public interface AuthorizableLookup {
      * @param type processor type
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getProcessorByType(String type);
+    ConfigurableComponentAuthorizable getProcessorByType(String type, BundleDTO bundle);
 
     /**
      * Get the authorizable for querying Provenance.
@@ -144,10 +145,11 @@ public interface AuthorizableLookup {
      * controller service. The intent of this method is to provide access to the PropertyDescriptors
      * prior to the component being created.
      *
-     * @param type processor type
+     * @param type controller service type
+     * @param bundle bundle
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getControllerServiceByType(String type);
+    ConfigurableComponentAuthorizable getControllerServiceByType(String type, BundleDTO bundle);
 
     /**
      * Get the authorizable referencing component.
@@ -171,10 +173,11 @@ public interface AuthorizableLookup {
      * reporting task. The intent of this method is to provide access to the PropertyDescriptors
      * prior to the component being created.
      *
-     * @param type processor type
+     * @param type reporting task type
+     * @param bundle bundle
      * @return authorizable
      */
-    ConfigurableComponentAuthorizable getReportingTaskByType(String type);
+    ConfigurableComponentAuthorizable getReportingTaskByType(String type, BundleDTO bundle);
 
     /**
      * Get the authorizable Template.

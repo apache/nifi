@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.util.BundleUtils;
+import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,25 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.util.DomUtils;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 public class ControllerServiceLoader {
 
@@ -180,8 +180,7 @@ public class ControllerServiceLoader {
     private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
 
-        // TODO pass in bundle coordinate
-        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), null, false);
+        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), BundleUtils.getBundle(dto.getType(), dto.getBundle()), false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         return node;

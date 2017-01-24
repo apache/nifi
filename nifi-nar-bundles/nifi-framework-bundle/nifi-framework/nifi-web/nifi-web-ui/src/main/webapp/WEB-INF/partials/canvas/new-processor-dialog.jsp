@@ -18,9 +18,7 @@
 <div id="new-processor-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
-            <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name">Tag Cloud:</div>
-            </div>
+            <div flex="25" layout="row" layout-align="start center"></div>
             <div flex layout="row" layout-align="space-between center" id="processor-type-filter-controls">
                 <div id="processor-type-filter-status" class="filter-status">
                     Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span
@@ -41,8 +39,10 @@
             </div>
             <div layout="column" flex id="processor-types-container">
                 <div id="processor-types-table" class="unselectable"></div>
-                <div id="processor-type-name-title" class="ellipsis">Selected Processor:</div>
-                <div id="processor-type-name" class="ellipsis"></div>
+                <div id="processor-type-container">
+                    <div id="processor-type-name"></div>
+                    <div id="processor-type-bundle"></div>
+                </div>
                 <div id="processor-description-container">
                     <div id="processor-type-description" class="ellipsis multiline"></div>
                     <span class="hidden" id="selected-processor-name"></span>

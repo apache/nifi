@@ -441,6 +441,14 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Processor methods
     // ----------------------------------------
+
+    /**
+     * Verifies the specified processor can be created.
+     *
+     * @param processorDTO processor
+     */
+    void verifyCreateProcessor(ProcessorDTO processorDTO);
+
     /**
      * Creates a new Processor.
      *
@@ -1321,6 +1329,14 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Controller Services methods
     // ----------------------------------------
+
+    /**
+     * Verifies the specified controller service can be created.
+     *
+     * @param controllerServiceDTO service
+     */
+    void verifyCreateControllerService(ControllerServiceDTO controllerServiceDTO);
+
     /**
      * Creates a controller service.
      *
@@ -1420,6 +1436,14 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Reporting Task methods
     // ----------------------------------------
+
+    /**
+     * Verifies the specified reporting task can be created.
+     *
+     * @param reportingTaskDTO task
+     */
+    void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO);
+
     /**
      * Creates a reporting task.
      *

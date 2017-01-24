@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 import javax.ws.rs.WebApplicationException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.component.details.ExtensionDetails;
@@ -72,6 +73,9 @@ import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.event.NodeEvent;
@@ -122,6 +126,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -137,7 +143,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
@@ -1234,6 +1239,7 @@ public final class DtoFactory {
         dto.setId(reportingTaskNode.getIdentifier());
         dto.setName(reportingTaskNode.getName());
         dto.setType(reportingTaskNode.getCanonicalClassName());
+        dto.setBundle(createBundleDto(reportingTaskNode.getBundleCoordinate()));
         dto.setSchedulingStrategy(reportingTaskNode.getSchedulingStrategy().name());
         dto.setSchedulingPeriod(reportingTaskNode.getSchedulingPeriod());
         dto.setState(reportingTaskNode.getScheduledState().name());
@@ -1242,6 +1248,7 @@ public final class DtoFactory {
         dto.setComments(reportingTaskNode.getComments());
         dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(reportingTaskNode.isRestricted());
+        dto.setExtensionMissing(reportingTaskNode.isExtensionMissing());
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
@@ -1307,11 +1314,13 @@ public final class DtoFactory {
         dto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
         dto.setName(controllerServiceNode.getName());
         dto.setType(controllerServiceNode.getCanonicalClassName());
+        dto.setBundle(createBundleDto(controllerServiceNode.getBundleCoordinate()));
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
         dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(controllerServiceNode.isRestricted());
+        dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
 
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
@@ -2056,6 +2065,20 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates a bundle DTO from the specified class.
+     *
+     * @param coordinate bundle coordinates
+     * @return dto
+     */
+    public BundleDTO createBundleDto(final BundleCoordinate coordinate) {
+        final BundleDTO dto = new BundleDTO();
+        dto.setGroup(coordinate.getGroup());
+        dto.setArtifact(coordinate.getId());
+        dto.setVersion(coordinate.getVersion());
+        return dto;
+    }
+
+    /**
      * Gets the DocumentedTypeDTOs from the specified classes.
      *
      * @param classes classes
@@ -2068,12 +2091,15 @@ public final class DtoFactory {
         sortedClasses.addAll(classes);
 
         for (final Class<?> cls : sortedClasses) {
-            final DocumentedTypeDTO type = new DocumentedTypeDTO();
-            type.setType(cls.getName());
-            type.setDescription(getCapabilityDescription(cls));
-            type.setUsageRestriction(getUsageRestriction(cls));
-            type.setTags(getTags(cls));
-            types.add(type);
+            for (final Bundle bundle : ExtensionManager.getBundles(cls.getName())) {
+                final DocumentedTypeDTO type = new DocumentedTypeDTO();
+                type.setType(cls.getName());
+                type.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
+                type.setDescription(getCapabilityDescription(cls));
+                type.setUsageRestriction(getUsageRestriction(cls));
+                type.setTags(getTags(cls));
+                types.add(type);
+            }
         }
 
         return types;
@@ -2098,8 +2124,10 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
         dto.setRestricted(node.isRestricted());
+        dto.setExtensionMissing(node.isExtensionMissing());
 
         dto.setType(node.getCanonicalClassName());
+        dto.setBundle(createBundleDto(node.getBundleCoordinate()));
         dto.setName(node.getName());
         dto.setState(node.getScheduledState().toString());
 
@@ -2466,16 +2494,23 @@ public final class DtoFactory {
 
     public SystemDiagnosticsSnapshotDTO.VersionInfoDTO createVersionInfoDTO() {
         final SystemDiagnosticsSnapshotDTO.VersionInfoDTO dto = new SystemDiagnosticsSnapshotDTO.VersionInfoDTO();
-        dto.setNiFiVersion(properties.getUiTitle());
         dto.setJavaVendor(System.getProperty("java.vendor"));
         dto.setJavaVersion(System.getProperty("java.version"));
         dto.setOsName(System.getProperty("os.name"));
         dto.setOsVersion(System.getProperty("os.version"));
         dto.setOsArchitecture(System.getProperty("os.arch"));
-        dto.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
-        dto.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
-        dto.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
-        dto.setBuildTimestamp(properties.getBuildTimestamp());
+
+        final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+        final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
+
+        dto.setNiFiVersion(frameworkDetails.getCoordinate().getVersion());
+
+        // Get build info
+        dto.setBuildTag(frameworkDetails.getBuildTag());
+        dto.setBuildRevision(frameworkDetails.getBuildRevision());
+        dto.setBuildBranch(frameworkDetails.getBuildBranch());
+        dto.setBuildTimestamp(frameworkDetails.getBuildTimestampDate());
+
         return dto;
     }
 

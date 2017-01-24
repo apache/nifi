@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -40,6 +24,7 @@ import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.User;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -49,6 +34,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -61,6 +47,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 
 public class TestFlowController {
 
@@ -71,6 +74,7 @@ public class TestFlowController {
     private AuditService auditService;
     private StringEncryptor encryptor;
     private NiFiProperties nifiProperties;
+    private Bundle systemBundle;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
 
@@ -86,6 +90,10 @@ public class TestFlowController {
         otherProps.put("nifi.remote.input.secure", "");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(null, otherProps);
         encryptor = StringEncryptor.createEncryptor(nifiProperties);
+
+        // use the system bundle
+        systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
+        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -284,7 +292,8 @@ public class TestFlowController {
 
     @Test
     public void testCreateMissingProcessor() throws ProcessorInstantiationException {
-        final ProcessorNode procNode = controller.createProcessor("org.apache.nifi.NonExistingProcessor", "1234-Processor", null);
+        final ProcessorNode procNode = controller.createProcessor("org.apache.nifi.NonExistingProcessor", "1234-Processor",
+                systemBundle.getBundleDetails().getCoordinate());
         assertNotNull(procNode);
         assertEquals("org.apache.nifi.NonExistingProcessor", procNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingProcessor", procNode.getComponentType());
@@ -301,7 +310,8 @@ public class TestFlowController {
 
     @Test
     public void testCreateMissingReportingTask() throws ReportingTaskInstantiationException {
-        final ReportingTaskNode taskNode = controller.createReportingTask("org.apache.nifi.NonExistingReportingTask", "1234-Reporting-Task", true);
+        final ReportingTaskNode taskNode = controller.createReportingTask("org.apache.nifi.NonExistingReportingTask", "1234-Reporting-Task",
+                systemBundle.getBundleDetails().getCoordinate(), true);
         assertNotNull(taskNode);
         assertEquals("org.apache.nifi.NonExistingReportingTask", taskNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingReportingTask", taskNode.getComponentType());
@@ -315,7 +325,8 @@ public class TestFlowController {
 
     @Test
     public void testCreateMissingControllerService() throws ProcessorInstantiationException {
-        final ControllerServiceNode serviceNode = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service", false);
+        final ControllerServiceNode serviceNode = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "1234-Controller-Service",
+                systemBundle.getBundleDetails().getCoordinate(), false);
         assertNotNull(serviceNode);
         assertEquals("org.apache.nifi.NonExistingControllerService", serviceNode.getCanonicalClassName());
         assertEquals("(Missing) NonExistingControllerService", serviceNode.getComponentType());
@@ -334,7 +345,8 @@ public class TestFlowController {
 
     @Test
     public void testProcessorDefaultScheduleAnnotation() throws ProcessorInstantiationException,ClassNotFoundException,InstantiationException,IllegalAccessException {
-        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor", null);
+        ProcessorNode p_scheduled = controller.createProcessor(DummyScheduledProcessor.class.getName(),"1234-ScheduledProcessor",
+                systemBundle.getBundleDetails().getCoordinate());
         assertEquals(5,p_scheduled.getMaxConcurrentTasks());
         assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
         assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
@@ -365,7 +377,8 @@ public class TestFlowController {
     public void testDeleteProcessGroup() {
         ProcessGroup pg = controller.createProcessGroup("my-process-group");
         pg.setName("my-process-group");
-        ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service", false);
+        ControllerServiceNode cs = controller.createControllerService("org.apache.nifi.NonExistingControllerService", "my-controller-service",
+                systemBundle.getBundleDetails().getCoordinate(), false);
         pg.addControllerService(cs);
         controller.getRootGroup().addProcessGroup(pg);
         controller.getRootGroup().removeProcessGroup(pg);

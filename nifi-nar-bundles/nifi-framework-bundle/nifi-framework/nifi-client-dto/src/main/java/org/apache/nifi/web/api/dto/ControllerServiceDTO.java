@@ -32,10 +32,12 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     private String name;
     private String type;
+    private BundleDTO bundle;
     private String comments;
     private String state;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean isExtensionMissing;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
@@ -73,6 +75,22 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    /**
+     * The details of the artifact that bundled this controller service type.
+     *
+     * @return The bundle details
+     */
+    @ApiModelProperty(
+            value = "The details of the artifact that bundled this processor type."
+    )
+    public BundleDTO getBundle() {
+        return bundle;
+    }
+
+    public void setBundle(BundleDTO bundle) {
+        this.bundle = bundle;
     }
 
     /**
@@ -115,6 +133,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return whether the underlying extension is missing
+     */
+    @ApiModelProperty(
+            value = "Whether the underlying extension is missing."
+    )
+    public Boolean getExtensionMissing() {
+        return isExtensionMissing;
+    }
+
+    public void setExtensionMissing(Boolean extensionMissing) {
+        isExtensionMissing = extensionMissing;
     }
 
     /**

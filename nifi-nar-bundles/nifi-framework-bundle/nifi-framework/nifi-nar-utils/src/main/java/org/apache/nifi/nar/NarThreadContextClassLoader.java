@@ -20,6 +20,7 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
@@ -32,6 +33,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,7 +44,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import org.apache.nifi.util.NiFiProperties;
 
 /**
  * THREAD SAFE
@@ -69,6 +70,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(FlowFileRepository.class);
         narSpecificClasses.add(FlowFileSwapManager.class);
         narSpecificClasses.add(ContentRepository.class);
+        narSpecificClasses.add(StateProvider.class);
     }
 
     private NarThreadContextClassLoader() {

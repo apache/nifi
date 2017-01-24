@@ -91,8 +91,10 @@ public class TestStandardProcessorNode {
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, null, null, null, null);
         processor.initialize(initContext);
 
+        final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
+
         final StandardProcessorNode procNode = new StandardProcessorNode(processor, uuid, createValidationContextFactory(), null, null,
-                NiFiProperties.createBasicNiFiProperties(null, null), VariableRegistry.EMPTY_REGISTRY, Mockito.mock(ComponentLog.class));
+                NiFiProperties.createBasicNiFiProperties(null, null), VariableRegistry.EMPTY_REGISTRY, coordinate, Mockito.mock(ComponentLog.class));
         final ScheduledExecutorService taskScheduler = new FlowEngine(2, "TestClasspathResources", true);
 
         final StandardProcessContext processContext = new StandardProcessContext(procNode, null, null, null, null);
@@ -392,12 +394,13 @@ public class TestStandardProcessorNode {
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
         final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
+        final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);
         processor.initialize(initContext);
 
         return new StandardProcessorNode(processor, uuid, validationContextFactory, processScheduler, null,
-                niFiProperties, variableRegistry, componentLog);
+                niFiProperties, variableRegistry, coordinate, componentLog);
     }
 
     private boolean containsResource(URL[] resources, URL resourceToFind) {

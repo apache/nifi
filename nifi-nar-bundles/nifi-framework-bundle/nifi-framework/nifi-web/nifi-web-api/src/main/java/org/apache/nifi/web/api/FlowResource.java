@@ -35,12 +35,15 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -928,6 +931,10 @@ public class FlowResource extends ApplicationResource {
     public Response getProcessorTypes() throws InterruptedException {
         authorizeFlow();
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
         entity.setProcessorTypes(serviceFacade.getProcessorTypes());
@@ -972,6 +979,10 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
         entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType));
@@ -1009,6 +1020,10 @@ public class FlowResource extends ApplicationResource {
     public Response getReportingTaskTypes() throws InterruptedException {
         authorizeFlow();
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
         entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes());
@@ -1045,6 +1060,10 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getPrioritizers() throws InterruptedException {
         authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
 
         // create response entity
         final PrioritizerTypesEntity entity = new PrioritizerTypesEntity();
@@ -1084,7 +1103,6 @@ public class FlowResource extends ApplicationResource {
         // create the about dto
         final AboutDTO aboutDTO = new AboutDTO();
         aboutDTO.setTitle("NiFi");
-        aboutDTO.setVersion(getProperties().getUiTitle());
         aboutDTO.setUri(generateResourceUri());
         aboutDTO.setTimezone(new Date());
 
@@ -1092,11 +1110,17 @@ public class FlowResource extends ApplicationResource {
         final NiFiProperties properties = getProperties();
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
+        final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+        final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
+
+        // set the version
+        aboutDTO.setVersion(frameworkDetails.getCoordinate().getVersion());
+
         // Get build info
-        aboutDTO.setBuildTag(properties.getProperty(NiFiProperties.BUILD_TAG));
-        aboutDTO.setBuildRevision(properties.getProperty(NiFiProperties.BUILD_REVISION));
-        aboutDTO.setBuildBranch(properties.getProperty(NiFiProperties.BUILD_BRANCH));
-        aboutDTO.setBuildTimestamp(properties.getBuildTimestamp());
+        aboutDTO.setBuildTag(frameworkDetails.getBuildTag());
+        aboutDTO.setBuildRevision(frameworkDetails.getBuildRevision());
+        aboutDTO.setBuildBranch(frameworkDetails.getBuildBranch());
+        aboutDTO.setBuildTimestamp(frameworkDetails.getBuildTimestampDate());
 
         // create the response entity
         final AboutEntity entity = new AboutEntity();

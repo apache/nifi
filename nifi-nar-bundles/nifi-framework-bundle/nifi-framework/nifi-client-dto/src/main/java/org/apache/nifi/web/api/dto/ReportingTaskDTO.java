@@ -30,10 +30,12 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     private String name;
     private String type;
+    private BundleDTO bundle;
     private String state;
     private String comments;
     private Boolean persistsState;
     private Boolean restricted;
+    private Boolean isExtensionMissing;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -91,6 +93,22 @@ public class ReportingTaskDTO extends ComponentDTO {
     }
 
     /**
+     * The details of the artifact that bundled this processor type.
+     *
+     * @return The bundle details
+     */
+    @ApiModelProperty(
+            value = "The details of the artifact that bundled this processor type."
+    )
+    public BundleDTO getBundle() {
+        return bundle;
+    }
+
+    public void setBundle(BundleDTO bundle) {
+        this.bundle = bundle;
+    }
+
+    /**
      * The frequency with which to schedule the reporting task. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *
      * @return The scheduling period
@@ -132,6 +150,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setRestricted(Boolean restricted) {
         this.restricted = restricted;
+    }
+
+    /**
+     * @return whether the underlying extension is missing
+     */
+    @ApiModelProperty(
+            value = "Whether the underlying extension is missing."
+    )
+    public Boolean getExtensionMissing() {
+        return isExtensionMissing;
+    }
+
+    public void setExtensionMissing(Boolean extensionMissing) {
+        isExtensionMissing = extensionMissing;
     }
 
     /**

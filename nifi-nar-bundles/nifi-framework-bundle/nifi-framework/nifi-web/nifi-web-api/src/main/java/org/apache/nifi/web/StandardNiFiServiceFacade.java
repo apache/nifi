@@ -396,11 +396,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCreateProcessor(ProcessorDTO processorDTO) {
+        processorDAO.verifyCreate(processorDTO);
+    }
+
+    @Override
     public void verifyUpdateProcessor(final ProcessorDTO processorDTO) {
         // if group does not exist, then the update request is likely creating it
         // so we don't verify since it will fail
         if (processorDAO.hasProcessor(processorDTO.getId())) {
             processorDAO.verifyUpdate(processorDTO);
+        } else {
+            verifyCreateProcessor(processorDTO);
         }
     }
 
@@ -444,11 +451,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCreateControllerService(ControllerServiceDTO controllerServiceDTO) {
+        controllerServiceDAO.verifyCreate(controllerServiceDTO);
+    }
+
+    @Override
     public void verifyUpdateControllerService(final ControllerServiceDTO controllerServiceDTO) {
         // if service does not exist, then the update request is likely creating it
         // so we don't verify since it will fail
         if (controllerServiceDAO.hasControllerService(controllerServiceDTO.getId())) {
             controllerServiceDAO.verifyUpdate(controllerServiceDTO);
+        } else {
+            verifyCreateControllerService(controllerServiceDTO);
         }
     }
 
@@ -463,11 +477,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCreateReportingTask(ReportingTaskDTO reportingTaskDTO) {
+        reportingTaskDAO.verifyCreate(reportingTaskDTO);
+    }
+
+    @Override
     public void verifyUpdateReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         // if tasks does not exist, then the update request is likely creating it
         // so we don't verify since it will fail
         if (reportingTaskDAO.hasReportingTask(reportingTaskDTO.getId())) {
             reportingTaskDAO.verifyUpdate(reportingTaskDTO);
+        } else {
+            verifyCreateReportingTask(reportingTaskDTO);
         }
     }
 
@@ -1657,7 +1678,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     }
 
                     try {
-                        final ControllerService controllerService = controllerFacade.createTemporaryControllerService(dto.getType()).getControllerServiceImplementation();
+                        final ControllerService controllerService = controllerFacade.createTemporaryControllerService(dto.getType(), dto.getBundle()).getControllerServiceImplementation();
                         controllerService.getPropertyDescriptors().forEach(descriptor -> {
                             if (dto.getProperties().get(descriptor.getName()) == null) {
                                 dto.getProperties().put(descriptor.getName(), descriptor.getDefaultValue());
@@ -1681,7 +1702,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     }
 
                     try {
-                        final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(dto.getType());
+                        final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(dto.getType(), dto.getBundle());
                         processorNode.getPropertyDescriptors().forEach(descriptor -> {
                             if (config.getProperties().get(descriptor.getName()) == null) {
                                 config.getProperties().put(descriptor.getName(), descriptor.getDefaultValue());

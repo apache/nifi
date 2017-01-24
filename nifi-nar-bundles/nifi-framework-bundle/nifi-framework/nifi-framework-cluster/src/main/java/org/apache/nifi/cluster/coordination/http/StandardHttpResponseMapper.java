@@ -26,6 +26,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ControllerConfigurati
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceReferenceEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerger;
@@ -44,10 +45,12 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpoint
 import org.apache.nifi.cluster.coordination.http.endpoints.OutputPortsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortStatusEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.PrioritizerTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorStatusEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProvenanceEventEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProvenanceQueryEndpointMerger;
@@ -55,6 +58,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupEnd
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
@@ -124,6 +128,10 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
+        endpointMergers.add(new ProcessorTypesEndpointMerger());
+        endpointMergers.add(new ControllerServiceTypesEndpointMerger());
+        endpointMergers.add(new ReportingTaskTypesEndpointMerger());
+        endpointMergers.add(new PrioritizerTypesEndpointMerger());
         endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());
         endpointMergers.add(new FlowConfigurationEndpointMerger());

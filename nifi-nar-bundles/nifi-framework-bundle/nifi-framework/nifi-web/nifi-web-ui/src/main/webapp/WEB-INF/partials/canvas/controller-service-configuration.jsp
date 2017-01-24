@@ -42,6 +42,10 @@
                             <span id="controller-service-type"></span>
                         </div>
                     </div>
+                    <div class="setting">
+                        <div class="setting-name">Bundle</div>
+                        <div id="controller-service-bundle" class="setting-field"></div>
+                    </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">

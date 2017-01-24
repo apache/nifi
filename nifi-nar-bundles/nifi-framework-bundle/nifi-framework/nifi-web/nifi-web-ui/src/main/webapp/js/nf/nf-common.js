@@ -211,6 +211,46 @@
         },
 
         /**
+         * Formats the bundle of a component for the new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        bundleFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (nfCommon.isDefinedAndNotNull(dataContext.bundle)) {
+                return nfCommon.escapeHtml(nfCommon.formatBundle(dataContext.bundle));
+            } else {
+                return 'NA';
+            }
+        },
+
+        /**
+         * Formats the bundle label.
+         *
+         * @param bundle
+         */
+        formatBundle: function (bundle) {
+            if (nfCommon.isDefinedAndNotNull(bundle)) {
+                return bundle.artifact + '-' + bundle.version + ' (' + bundle.group + ')';
+            } else {
+                return 'NA';
+            }
+        },
+
+        /**
+         * Formats the bundle coordinates label.
+         *
+         * @param bundle
+         */
+        formatBundleCoordinates: function (bundle) {
+            return nfCommon.formatBundle(bundle);
+        },
+
+        /**
          * Sets the current user.
          *
          * @param currentUser

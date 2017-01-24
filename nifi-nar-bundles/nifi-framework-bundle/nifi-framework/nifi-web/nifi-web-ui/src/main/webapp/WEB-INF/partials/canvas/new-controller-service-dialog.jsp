@@ -18,9 +18,7 @@
 <div id="new-controller-service-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
-            <div flex="25" layout="row" layout-align="start center">
-                <div class="setting-name">Tag Cloud:</div>
-            </div>
+            <div flex="25" layout="row" layout-align="start center"></div>
             <div flex layout="row" layout-align="space-between center" id="controller-service-type-filter-controls" class="filter-status">
                 <div id="controller-service-type-filter-status">
                     Displaying&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;of&nbsp;<span id="total-controller-service-types"></span>
@@ -40,8 +38,10 @@
             </div>
             <div layout="column" flex id="controller-service-types-container">
                 <div id="controller-service-types-table" class="unselectable"></div>
-                <div id="controller-service-type-name-title" class="ellipsis">Selected Controller Service:</div>
-                <div id="controller-service-type-name" class="ellipsis"></div>
+                <div id="controller-service-type-container">
+                    <div id="controller-service-type-name"></div>
+                    <div id="controller-service-type-bundle"></div>
+                </div>
                 <div id="controller-service-description-container" class="hidden">
                     <div id="controller-service-type-description" class="ellipsis multiline"></div>
                     <span class="hidden" id="selected-controller-service-name"></span>

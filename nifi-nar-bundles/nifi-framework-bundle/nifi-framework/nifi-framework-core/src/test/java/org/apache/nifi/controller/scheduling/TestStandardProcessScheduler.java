@@ -16,24 +16,10 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -55,6 +41,7 @@ import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -74,6 +61,23 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class TestStandardProcessScheduler {
 
     private StandardProcessScheduler scheduler = null;
@@ -84,11 +88,17 @@ public class TestStandardProcessScheduler {
     private FlowController controller;
     private ProcessGroup rootGroup;
     private NiFiProperties nifiProperties;
+    private Bundle systemBundle;
 
     @Before
     public void setup() throws InitializationException {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessScheduler.class.getResource("/nifi.properties").getFile());
         this.nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+
+        // load the system bundle
+        systemBundle = ExtensionManager.createSystemBundle(nifiProperties);
+        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+
         scheduler = new StandardProcessScheduler(Mockito.mock(ControllerServiceProvider.class), null, stateMgrProvider, variableRegistry, nifiProperties);
         scheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, Mockito.mock(SchedulingAgent.class));
 
@@ -99,7 +109,8 @@ public class TestStandardProcessScheduler {
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory, variableRegistry, logger);
+        taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory,
+                variableRegistry, systemBundle.getBundleDetails().getCoordinate(), logger);
 
         controller = Mockito.mock(FlowController.class);
         rootGroup = new MockProcessGroup();
@@ -139,13 +150,14 @@ public class TestStandardProcessScheduler {
 
         final StandardControllerServiceProvider serviceProvider =
                 new StandardControllerServiceProvider(controller, scheduler, null, Mockito.mock(StateManagerProvider.class), variableRegistry, nifiProperties);
-        final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service", true);
+        final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service",
+                systemBundle.getBundleDetails().getCoordinate(), true);
         rootGroup.addControllerService(service);
 
         final ProcessorNode procNode = new StandardProcessorNode(proc, uuid,
                 new StandardValidationContextFactory(serviceProvider, variableRegistry),
                 scheduler, serviceProvider, nifiProperties, VariableRegistry.EMPTY_REGISTRY,
-                Mockito.mock(ComponentLog.class));
+                systemBundle.getBundleDetails().getCoordinate(), Mockito.mock(ComponentLog.class));
         rootGroup.addProcessor(procNode);
 
         Map<String,String> procProps = new HashMap<>();
@@ -219,7 +231,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         assertFalse(serviceNode.isActive());
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         final ExecutorService executor = Executors.newCachedThreadPool();
@@ -258,7 +270,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -296,7 +308,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         scheduler.enableControllerService(serviceNode);
         assertTrue(serviceNode.isActive());
@@ -330,7 +342,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(FailingService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         scheduler.enableControllerService(serviceNode);
         Thread.sleep(1000);
         scheduler.shutdown();
@@ -363,8 +375,8 @@ public class TestStandardProcessScheduler {
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
-            final ControllerServiceNode serviceNode = provider
-                    .createControllerService(RandomShortDelayEnablingService.class.getName(), "1", false);
+            final ControllerServiceNode serviceNode = provider.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",
+                    systemBundle.getBundleDetails().getCoordinate(), false);
 
             executor.execute(new Runnable() {
                 @Override
@@ -405,7 +417,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(Long.MAX_VALUE);
         scheduler.enableControllerService(serviceNode);
@@ -431,7 +443,7 @@ public class TestStandardProcessScheduler {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider, variableRegistry, nifiProperties);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
-                "1", false);
+                "1", systemBundle.getBundleDetails().getCoordinate(), false);
         final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(3000);
         scheduler.enableControllerService(serviceNode);

@@ -30,8 +30,9 @@ import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -77,6 +78,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
+    public void verifyCreate(final ProcessorDTO processorDTO) {
+        verifyCreate(processorDTO.getType(), processorDTO.getBundle());
+    }
+
+    @Override
     public ProcessorNode createProcessor(final String groupId, ProcessorDTO processorDTO) {
         if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
@@ -92,8 +98,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         try {
             // attempt to create the processor
-            // TODO get bundle coordinate from DTO, or do a look up if it doesn't exist
-            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), null);
+            ProcessorNode processor = flowController.createProcessor(processorDTO.getType(), processorDTO.getId(), BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle()));
 
             // ensure we can perform the update before we add the processor to the flow
             verifyUpdate(processor, processorDTO);

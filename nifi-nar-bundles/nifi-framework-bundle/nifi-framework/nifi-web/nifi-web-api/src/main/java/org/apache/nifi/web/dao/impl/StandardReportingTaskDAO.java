@@ -16,24 +16,17 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.regex.Matcher;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
-
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -41,6 +34,14 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.quartz.CronExpression;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.regex.Matcher;
 
 public class StandardReportingTaskDAO extends ComponentDAO implements ReportingTaskDAO {
 
@@ -60,6 +61,11 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     }
 
     @Override
+    public void verifyCreate(final ReportingTaskDTO reportingTaskDTO) {
+        verifyCreate(reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+    }
+
+    @Override
     public ReportingTaskNode createReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         // ensure the type is specified
         if (reportingTaskDTO.getType() == null) {
@@ -68,7 +74,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         try {
             // create the reporting task
-            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(reportingTaskDTO.getType(), reportingTaskDTO.getId(), true);
+            final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
+                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), BundleUtils.getBundle(reportingTaskDTO.getType(), reportingTaskDTO.getBundle()), true);
 
             // ensure we can perform the update
             verifyUpdate(reportingTask, reportingTaskDTO);

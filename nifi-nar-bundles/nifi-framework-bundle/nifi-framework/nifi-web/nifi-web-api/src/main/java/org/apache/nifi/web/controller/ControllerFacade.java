@@ -88,11 +88,13 @@ import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
@@ -202,8 +204,8 @@ public class ControllerFacade implements Authorizable {
      * @return processor
      * @throws ProcessorInstantiationException when unable to instantiate the processor
      */
-    public ProcessorNode createTemporaryProcessor(String type) throws ProcessorInstantiationException {
-        return flowController.createProcessor(type, UUID.randomUUID().toString(), false);
+    public ProcessorNode createTemporaryProcessor(String type, BundleDTO bundle) throws ProcessorInstantiationException {
+        return flowController.createProcessor(type, UUID.randomUUID().toString(), BundleUtils.getBundle(type, bundle), false);
     }
 
     /**
@@ -213,8 +215,8 @@ public class ControllerFacade implements Authorizable {
      * @return reporting task
      * @throws ReportingTaskInstantiationException when unable to instantiate the reporting task
      */
-    public ReportingTaskNode createTemporaryReportingTask(String type) throws ReportingTaskInstantiationException {
-        return flowController.createReportingTask(type, UUID.randomUUID().toString(), false, false);
+    public ReportingTaskNode createTemporaryReportingTask(String type, BundleDTO bundle) throws ReportingTaskInstantiationException {
+        return flowController.createReportingTask(type, UUID.randomUUID().toString(), BundleUtils.getBundle(type, bundle), false, false);
     }
 
     /**
@@ -223,8 +225,8 @@ public class ControllerFacade implements Authorizable {
      * @param type type of controller service
      * @return controller service
      */
-    public ControllerServiceNode createTemporaryControllerService(String type) {
-        return flowController.createControllerService(type, UUID.randomUUID().toString(), false);
+    public ControllerServiceNode createTemporaryControllerService(String type, BundleDTO bundle) {
+        return flowController.createControllerService(type, UUID.randomUUID().toString(), BundleUtils.getBundle(type, bundle), false);
     }
 
     /**

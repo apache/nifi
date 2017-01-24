@@ -1845,6 +1845,7 @@
                 // populate the controller service settings
                 nfCommon.populateField('controller-service-id', controllerService['id']);
                 nfCommon.populateField('controller-service-type', nfCommon.substringAfterLast(controllerService['type'], '.'));
+                nfCommon.populateField('controller-service-bundle', nfCommon.formatBundleCoordinates(controllerService['bundle']));
                 $('#controller-service-name').val(controllerService['name']);
                 $('#controller-service-comments').val(controllerService['comments']);
 
@@ -2014,6 +2015,7 @@
                 // populate the controller service settings
                 nfCommon.populateField('controller-service-id', controllerService['id']);
                 nfCommon.populateField('controller-service-type', nfCommon.substringAfterLast(controllerService['type'], '.'));
+                nfCommon.populateField('controller-service-bundle', nfCommon.formatBundleCoordinates(controllerService['bundle']));
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
 

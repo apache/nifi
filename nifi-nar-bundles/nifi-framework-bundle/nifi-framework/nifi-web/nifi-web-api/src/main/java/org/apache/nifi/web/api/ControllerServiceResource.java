@@ -36,6 +36,7 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -124,10 +125,12 @@ public class ControllerServiceResource extends ApplicationResource {
      * Populates the uri for the specified controller service.
      */
     public ControllerServiceDTO populateRemainingControllerServiceContent(final ControllerServiceDTO controllerService) {
+        final BundleDTO bundle = controllerService.getBundle();
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
-        if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
-            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType());
+        if (uiExtensionMapping.hasUiExtension(controllerService.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion())) {
+            final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(controllerService.getType(), bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
             for (final UiExtension uiExtension : uiExtensions) {
                 if (UiExtensionType.ControllerServiceConfiguration.equals(uiExtension.getExtensionType())) {
                     controllerService.setCustomUiUrl(uiExtension.getContextPath() + "/configure");

@@ -41,6 +41,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.controller.ControllerFacade;
@@ -146,9 +147,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ConfigurableComponentAuthorizable getProcessorByType(String type) {
+    public ConfigurableComponentAuthorizable getProcessorByType(String type, BundleDTO bundle) {
         try {
-            final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(type);
+            final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(type, bundle);
             return new ProcessorConfigurableComponentAuthorizable(processorNode);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create processor to verify if it references any Controller Services.");
@@ -255,9 +256,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ConfigurableComponentAuthorizable getControllerServiceByType(String type) {
+    public ConfigurableComponentAuthorizable getControllerServiceByType(String type, BundleDTO bundle) {
         try {
-            final ControllerServiceNode controllerService = controllerFacade.createTemporaryControllerService(type);
+            final ControllerServiceNode controllerService = controllerFacade.createTemporaryControllerService(type, bundle);
             return new ControllerServiceConfigurableComponentAuthorizable(controllerService);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create controller service to verify if it references any Controller Services.");
@@ -314,9 +315,9 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public ConfigurableComponentAuthorizable getReportingTaskByType(String type) {
+    public ConfigurableComponentAuthorizable getReportingTaskByType(String type, BundleDTO bundle) {
         try {
-            final ReportingTaskNode reportingTask = controllerFacade.createTemporaryReportingTask(type);
+            final ReportingTaskNode reportingTask = controllerFacade.createTemporaryReportingTask(type, bundle);
             return new ReportingTaskConfigurableComponentAuthorizable(reportingTask);
         } catch (final Exception e) {
             throw new AccessDeniedException("Unable to create reporting to verify if it references any Controller Services.");
@@ -622,11 +623,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         if (snippet.getProcessors() != null) {
-            processors.addAll(snippet.getProcessors().stream().map(processor -> getProcessorByType(processor.getType())).collect(Collectors.toSet()));
+            processors.addAll(snippet.getProcessors().stream().map(processor -> getProcessorByType(processor.getType(), processor.getBundle())).collect(Collectors.toSet()));
         }
 
         if (snippet.getControllerServices() != null) {
-            controllerServices.addAll(snippet.getControllerServices().stream().map(controllerService -> getControllerServiceByType(controllerService.getType())).collect(Collectors.toSet()));
+            controllerServices.addAll(snippet.getControllerServices().stream().map(
+                    controllerService -> getControllerServiceByType(controllerService.getType(), controllerService.getBundle())).collect(Collectors.toSet()));
         }
 
         if (snippet.getProcessGroups() != null) {
