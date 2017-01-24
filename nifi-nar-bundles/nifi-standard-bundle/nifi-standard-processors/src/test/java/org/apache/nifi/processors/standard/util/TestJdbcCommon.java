@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,17 +40,28 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
+import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -350,11 +362,15 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToAvroStreamForBigDecimal() throws SQLException, IOException {
+        final BigDecimal bigDecimal = new BigDecimal(38D);
+
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
         when(metadata.getColumnType(1)).thenReturn(Types.NUMERIC);
         when(metadata.getColumnName(1)).thenReturn("The.Chairman");
         when(metadata.getTableName(1)).thenReturn("1the::table");
+        when(metadata.getPrecision(1)).thenReturn(bigDecimal.precision());
+        when(metadata.getScale(1)).thenReturn(bigDecimal.scale());
 
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
@@ -367,24 +383,28 @@ public class TestJdbcCommon {
             }
         }).when(rs).next();
 
-        final BigDecimal bigDecimal = new BigDecimal(38D);
         when(rs.getObject(Mockito.anyInt())).thenReturn(bigDecimal);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        JdbcCommon.convertToAvroStream(rs, baos, true);
+        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
+                .builder().convertNames(true).useLogicalTypes(true).build();
+        JdbcCommon.convertToAvroStream(rs, baos, options, null);
 
         final byte[] serializedBytes = baos.toByteArray();
 
         final InputStream instream = new ByteArrayInputStream(serializedBytes);
 
-        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        final GenericData genericData = new GenericData();
+        genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(null, null, genericData);
         try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals("_1the__table", record.getSchema().getName());
-                assertEquals(bigDecimal.toString(), record.get("The_Chairman").toString());
+                assertEquals(bigDecimal, record.get("The_Chairman"));
             }
         }
     }
@@ -522,6 +542,100 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals(Short.toString(s), record.get("t_int").toString());
+            }
+        }
+    }
+
+    @Test
+    public void testConvertToAvroStreamForDateTimeAsString() throws SQLException, IOException, ParseException {
+        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
+                .builder().convertNames(true).useLogicalTypes(false).build();
+
+        testConvertToAvroStreamForDateTime(options,
+                (record, date) -> assertEquals(new Utf8(date.toString()), record.get("date")),
+                (record, time) -> assertEquals(new Utf8(time.toString()), record.get("time")),
+                (record, timestamp) -> assertEquals(new Utf8(timestamp.toString()), record.get("timestamp"))
+        );
+    }
+
+    @Test
+    public void testConvertToAvroStreamForDateTimeAsLogicalType() throws SQLException, IOException, ParseException {
+        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
+                .builder().convertNames(true).useLogicalTypes(true).build();
+
+        testConvertToAvroStreamForDateTime(options,
+                (record, date) -> {
+                    final int daysSinceEpoch = (int) record.get("date");
+                    final long millisSinceEpoch = TimeUnit.MILLISECONDS.convert(daysSinceEpoch, TimeUnit.DAYS);
+                    assertEquals(date, new java.sql.Date(millisSinceEpoch));
+                },
+                (record, time) -> assertEquals(time, new Time((int) record.get("time"))),
+                (record, timestamp) -> assertEquals(timestamp, new Timestamp((long) record.get("timestamp")))
+        );
+    }
+
+    private void testConvertToAvroStreamForDateTime(
+            JdbcCommon.AvroConversionOptions options, BiConsumer<GenericRecord, java.sql.Date> assertDate,
+            BiConsumer<GenericRecord, Time> assertTime, BiConsumer<GenericRecord, Timestamp> assertTimeStamp)
+            throws SQLException, IOException, ParseException {
+
+        final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+
+        final ResultSet rs = mock(ResultSet.class);
+        when(rs.getMetaData()).thenReturn(metadata);
+
+        BiFunction<String, String, Long> toMillis = (format, dateStr) -> {
+            try {
+                final SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+                dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+                return dateFormat.parse(dateStr).getTime();
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        when(metadata.getColumnCount()).thenReturn(3);
+        when(metadata.getTableName(anyInt())).thenReturn("table");
+
+        when(metadata.getColumnType(1)).thenReturn(Types.DATE);
+        when(metadata.getColumnName(1)).thenReturn("date");
+        final java.sql.Date date = new java.sql.Date(toMillis.apply("yyyy/MM/dd", "2017/05/10"));
+        when(rs.getObject(1)).thenReturn(date);
+
+        when(metadata.getColumnType(2)).thenReturn(Types.TIME);
+        when(metadata.getColumnName(2)).thenReturn("time");
+        final Time time = new Time(toMillis.apply("HH:mm:ss.SSS", "12:34:56.789"));
+        when(rs.getObject(2)).thenReturn(time);
+
+        when(metadata.getColumnType(3)).thenReturn(Types.TIMESTAMP);
+        when(metadata.getColumnName(3)).thenReturn("timestamp");
+        final Timestamp timestamp = new Timestamp(toMillis.apply("yyyy/MM/dd HH:mm:ss.SSS", "2017/05/11 19:59:39.123"));
+        when(rs.getObject(3)).thenReturn(timestamp);
+
+        final AtomicInteger counter = new AtomicInteger(1);
+        Mockito.doAnswer(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                return counter.getAndDecrement() > 0;
+            }
+        }).when(rs).next();
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        JdbcCommon.convertToAvroStream(rs, baos, options, null);
+
+        final byte[] serializedBytes = baos.toByteArray();
+
+        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                record = dataFileReader.next(record);
+                assertDate.accept(record, date);
+                assertTime.accept(record, time);
+                assertTimeStamp.accept(record, timestamp);
             }
         }
     }

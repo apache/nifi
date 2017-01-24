@@ -26,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -82,6 +83,7 @@ public class TestAvroReaderWithEmbeddedSchema {
         final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
         final long millisSinceMidnight = secondsSinceMidnight * 1000L;
 
+        final BigDecimal bigDecimal = new BigDecimal("123.45");
 
         final byte[] serialized;
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
@@ -94,6 +96,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             record.put("timestampMillis", timeLong);
             record.put("timestampMicros", timeLong * 1000L);
             record.put("date", 17260);
+            record.put("decimal", ByteBuffer.wrap(bigDecimal.unscaledValue().toByteArray()));
 
             writer.append(record);
             writer.flush();
@@ -110,6 +113,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMillis").get().getFieldType());
             assertEquals(RecordFieldType.TIMESTAMP, recordSchema.getDataType("timestampMicros").get().getFieldType());
             assertEquals(RecordFieldType.DATE, recordSchema.getDataType("date").get().getFieldType());
+            assertEquals(RecordFieldType.DOUBLE, recordSchema.getDataType("decimal").get().getFieldType());
 
             final Record record = reader.nextRecord();
             assertEquals(new java.sql.Time(millisSinceMidnight), record.getValue("timeMillis"));
@@ -119,6 +123,7 @@ public class TestAvroReaderWithEmbeddedSchema {
             final DateFormat noTimeOfDayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
             noTimeOfDayDateFormat.setTimeZone(TimeZone.getTimeZone("gmt"));
             assertEquals(noTimeOfDayDateFormat.format(new java.sql.Date(timeLong)), noTimeOfDayDateFormat.format(record.getValue("date")));
+            assertEquals(bigDecimal.doubleValue(), record.getValue("decimal"));
         }
     }
 

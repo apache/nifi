@@ -26,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
@@ -40,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import org.apache.avro.Conversions;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Array;
 import org.apache.avro.generic.GenericRecord;
@@ -74,9 +76,11 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("timestampMillis", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampMicros", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
+        // Avro decimal is represented as double in NiFi type system.
+        fields.add(new RecordField("decimal", RecordFieldType.DOUBLE.getDataType()));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
-        final String expectedTime = "2017-04-04 14:20:33.000";
+        final String expectedTime = "2017-04-04 14:20:33.789";
         final DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long timeLong = df.parse(expectedTime).getTime();
@@ -87,6 +91,9 @@ public abstract class TestWriteAvroResult {
         values.put("timestampMillis", new Timestamp(timeLong));
         values.put("timestampMicros", new Timestamp(timeLong));
         values.put("date", new Date(timeLong));
+        // Avro decimal is represented as double in NiFi type system.
+        final BigDecimal expectedDecimal = new BigDecimal("123.45");
+        values.put("decimal", expectedDecimal.doubleValue());
         final Record record = new MapRecord(recordSchema, values);
 
         final byte[] data;
@@ -98,16 +105,19 @@ public abstract class TestWriteAvroResult {
         try (final InputStream in = new ByteArrayInputStream(data)) {
             final GenericRecord avroRecord = readRecord(in, schema);
             final long secondsSinceMidnight = 33 + (20 * 60) + (14 * 60 * 60);
-            final long millisSinceMidnight = secondsSinceMidnight * 1000L;
+            final long millisSinceMidnight = (secondsSinceMidnight * 1000L) + 789;
 
             assertEquals((int) millisSinceMidnight, avroRecord.get("timeMillis"));
             assertEquals(millisSinceMidnight * 1000L, avroRecord.get("timeMicros"));
             assertEquals(timeLong, avroRecord.get("timestampMillis"));
             assertEquals(timeLong * 1000L, avroRecord.get("timestampMicros"));
             assertEquals(17260, avroRecord.get("date"));
+            // Double value will be converted into logical decimal if Avro schema is defined as logical decimal.
+            final Schema decimalSchema = schema.getField("decimal").schema();
+            final BigDecimal decimal = new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal"), decimalSchema, decimalSchema.getLogicalType());
+            assertEquals(expectedDecimal, decimal);
         }
     }
-
 
     @Test
     public void testDataTypes() throws IOException {

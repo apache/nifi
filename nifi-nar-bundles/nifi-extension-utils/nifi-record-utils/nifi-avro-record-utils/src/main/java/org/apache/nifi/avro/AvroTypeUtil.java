@@ -17,7 +17,9 @@
 
 package org.apache.nifi.avro;
 
+import org.apache.avro.Conversions;
 import org.apache.avro.LogicalType;
+import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -39,6 +41,8 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -61,6 +65,7 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIME_MICROS = "time-micros";
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
+    private static final String LOGICAL_TYPE_DECIMAL = "decimal";
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) throws SchemaNotFoundException {
         if (recordSchema == null) {
@@ -107,6 +112,10 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_TIMESTAMP_MILLIS:
                 case LOGICAL_TYPE_TIMESTAMP_MICROS:
                     return RecordFieldType.TIMESTAMP.getDataType();
+                case LOGICAL_TYPE_DECIMAL:
+                    // We convert Decimal to Double.
+                    // Alternatively we could convert it to String, but numeric type is generally more preferable by users.
+                    return RecordFieldType.DOUBLE.getDataType();
             }
         }
 
@@ -262,6 +271,10 @@ public class AvroTypeUtil {
      * Convert a raw value to an Avro object to serialize in Avro type system.
      * The counter-part method which reads an Avro object back to a raw value is {@link #normalizeValue(Object, Schema)}.
      */
+    public static Object convertToAvroObject(final Object rawValue, final Schema fieldSchema) {
+        return convertToAvroObject(rawValue, fieldSchema, fieldSchema.getName());
+    }
+
     private static Object convertToAvroObject(final Object rawValue, final Schema fieldSchema, final String fieldName) {
         if (rawValue == null) {
             return null;
@@ -311,6 +324,19 @@ public class AvroTypeUtil {
             }
             case BYTES:
             case FIXED:
+                final LogicalType logicalType = fieldSchema.getLogicalType();
+                if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
+                    final LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
+                    final BigDecimal decimal;
+                    if (rawValue instanceof BigDecimal) {
+                        decimal = (BigDecimal) rawValue;
+                    } else if (rawValue instanceof Double) {
+                        decimal = new BigDecimal((Double) rawValue, new MathContext(decimalType.getPrecision()));
+                    } else {
+                        throw new IllegalTypeConversionException("Cannot convert value " + rawValue + " of type " + rawValue.getClass() + " to a logical decimal");
+                    }
+                    return new Conversions.DecimalConversion().toBytes(decimal, fieldSchema, logicalType);
+                }
                 if (rawValue instanceof byte[]) {
                     return ByteBuffer.wrap((byte[]) rawValue);
                 }
@@ -529,6 +555,10 @@ public class AvroTypeUtil {
                 return new MapRecord(childSchema, values);
             case BYTES:
                 final ByteBuffer bb = (ByteBuffer) value;
+                final LogicalType logicalType = avroSchema.getLogicalType();
+                if (logicalType != null && LOGICAL_TYPE_DECIMAL.equals(logicalType.getName())) {
+                    return new Conversions.DecimalConversion().fromBytes(bb, avroSchema, logicalType);
+                }
                 return AvroTypeUtil.convertByteArray(bb.array());
             case FIXED:
                 final GenericFixed fixed = (GenericFixed) value;
