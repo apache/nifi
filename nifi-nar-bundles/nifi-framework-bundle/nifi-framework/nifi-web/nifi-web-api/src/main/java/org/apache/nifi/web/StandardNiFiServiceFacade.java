@@ -49,6 +49,7 @@ import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.event.NodeEvent;
+import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -3333,6 +3334,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NodeIdentifier nodeIdentifier = clusterCoordinator.getNodeIdentifier(nodeId);
         if (nodeIdentifier == null) {
             throw new UnknownNodeException("Cannot remove Node with ID " + nodeId + " because it is not part of the cluster");
+        }
+
+        final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
+        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
+            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId + " because it is not disconnected, current state = " + nodeConnectionStatus.getState());
         }
 
         clusterCoordinator.removeNode(nodeIdentifier, userDn);
