@@ -294,12 +294,12 @@ image::nifi-processor-menu.png["Processor Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with a Processor:
 
-- *Configure*: This option allows the user to establish or change the configuration of the Processor. (See <<Configuring_a_Processor>>.)
+- *Configure*: This option allows the user to establish or change the configuration of the Processor (see <<Configuring_a_Processor>>).
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
 - *Status History*: This option opens a graphical representation of the Processor's statistical information over time.
 - *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
 - *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
-- *Data provenance*: This option displays the NiFi Data Provenance table, with information about  data provenance events for the FlowFiles routed through that Processor
+- *Data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *Usage*: This option takes the user to the Processor's usage documentation.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
 - *Center in view*: This option centers the view of the canvas on the given Processor.
@@ -1670,10 +1670,7 @@ image:iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
 and will no longer be available to add to the canvas.
 
-
-
-
-
+[[data_provenance]]
 == Data Provenance
 While monitoring a dataflow, users often need a way to determine what happened to a particular data object (FlowFile).
 NiFi's Data Provenance page provides that information. Because NiFi records and indexes data provenance details
@@ -1690,11 +1687,36 @@ replay data at any point within the dataflow, and see a graphical representation
 
 image:provenance-annotated.png["Provenance Table"]
 
-Each point in a dataflow where a FlowFile is processed in some way is considered a "processing event". Various types of processing
+[[provenance_events]]
+=== Provenance Events
+
+Each point in a dataflow where a FlowFile is processed in some way is considered a 'provenance event'. Various types of provenance
 events occur, depending on the dataflow design. For example, when data is brought into the flow, a RECEIVE event occurs, and when
 data is sent out of the flow, a SEND event occurs. Other types of processing events may occur, such as if the data is cloned (CLONE event), routed (ROUTE event), modified (CONTENT_MODIFIED or ATTRIBUTES_MODIFIED event),
 split (FORK event), combined with other data objects (JOIN event), and ultimately removed from the flow (DROP event).
 
+The provenance event types are:
+
+[options="header"]
+|======================
+|Provenance Event        |Description
+|ADDINFO                 |Indicates a provenance event when additional information such as a new linkage to a new URI or UUID is added
+|ATTRIBUTES_MODIFIED     |Indicates that a FlowFile's attributes were modified in some way
+|CLONE                   |Indicates that a FlowFile is an exact duplicate of its parent FlowFile
+|CONTENT_MODIFIED        |Indicates that a FlowFile's content was modified in some way
+|CREATE                  |Indicates that a FlowFile was generated from data that was not received from a remote system or external process
+|DOWNLOAD                |Indicates that the contents of a FlowFile were downloaded by a user or external entity
+|DROP                    |Indicates a provenance event for the conclusion of an object's life for some reason other than object expiration
+|EXPIRE                  |Indicates a provenance event for the conclusion of an object's life due to the object not being processed in a timely manner
+|FETCH                   |Indicates that the contents of a FlowFile were overwritten using the contents of some external resource
+|FORK                    |Indicates that one or more FlowFiles were derived from a parent FlowFile
+|JOIN                    |Indicates that a single FlowFile is derived from joining together multiple parent FlowFiles
+|RECEIVE                 |Indicates a provenance event for receiving data from an external process
+|REPLAY                  |Indicates a provenance event for replaying a FlowFile
+|ROUTE                   |Indicates that a FlowFile was routed to a specified relationship and provides information about why the FlowFile was routed to this relationship
+|SEND                    |Indicates a provenance event for sending data to an external process
+|UNKNOWN                 |Indicates that the type of provenance event is unknown because the user who is attempting to access the event is not authorized to know the type
+|======================
 
 === Searching for Events
 One of the most common tasks performed in the Data Provenance page is a search for a given FlowFile to determine what happened to it. To do this,

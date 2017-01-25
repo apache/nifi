@@ -152,7 +152,7 @@ The ProcessSession, often referred to as simply a "session," provides
 a mechanism by which FlowFiles can be created, destroyed, examined, cloned, and transferred to other
 Processors. Additionally, a ProcessSession provides mechanism for creating modified versions of
 FlowFiles, by adding or removing attributes, or by modifying the FlowFile's content. The ProcessSession
-also exposes a mechanism for emitting provenance events that provide for the ability to track the
+also exposes a mechanism for emitting <<provenance_events>> that provide for the ability to track the
 lineage and history of a FlowFile. After operations are performed on one or more FlowFiles, a
 ProcessSession can be either committed or rolled back.
 
@@ -680,7 +680,7 @@ ATTRIBUTES_MODIFIED event, the framework will emit a CONTENT_MODIFIED
 event. The framework will not emit an ATTRIBUTES_MODIFIED event if any
 other event is emitted for that FlowFile (either by the
 Processor or the framework). This is due to the fact that all
-Provenance Events know about the attributes of the FlowFile before the
+<<provenance_events>> know about the attributes of the FlowFile before the
 event occurred as well as those attributes that occurred as a result
 of the processing of that FlowFile, and as a result the
 ATTRIBUTES_MODIFIED is generally considered redundant and would result
@@ -848,6 +848,31 @@ Because this documentation is in an HTML format, you may include images and tabl
 to best describe this component.  The same methods can be used to provide advanced
 documentation for Processors, ControllerServices and ReportingTasks.
 
+[[provenance_events]]
+== Provenance Events
+
+The different event types for provenance reporting are:
+
+[options="header"]
+|======================
+|Provenance Event        |Description
+|ADDINFO                 |Indicates a provenance event for adding additional information such as new linkage to a new URI or UUID
+|ATTRIBUTES_MODIFIED     |Indicates that a FlowFile's attributes were modified in some way. This event is not needed when another event is reported at the same time, as the other event will already contain all FlowFile attributes
+|CLONE                   |Indicates that a FlowFile is an exact duplicate of its parent FlowFile
+|CONTENT_MODIFIED        |Indicates that a FlowFile's content was modified in some way. When using this Event Type, it is advisable to provide details about how the content is modified
+|CREATE                  |Indicates that a FlowFile was generated from data that was not received from a remote system or external process
+|DOWNLOAD                |Indicates that the contents of a FlowFile were downloaded by a user or external entity
+|DROP                    |Indicates a provenance event for the conclusion of an object's life for some reason other than object expiration
+|EXPIRE                  |Indicates a provenance event for the conclusion of an object's life due to the object not being processed in a timely manner
+|FETCH                   |Indicates that the contents of a FlowFile were overwritten using the contents of some external resource. This is similar to the RECEIVE event but varies in that RECEIVE events are intended to be used as the event that introduces the FlowFile into the system, whereas FETCH is used to indicate that the contents of an existing FlowFile were overwritten
+|FORK                    |Indicates that one or more FlowFiles were derived from a parent FlowFile
+|JOIN                    |Indicates that a single FlowFile is derived from joining together multiple parent FlowFiles
+|RECEIVE                 |Indicates a provenance event for receiving data from an external process. This Event Type is expected to be the first event for a FlowFile. As such, a Processor that receives data from an external source and uses that data to replace the content of an existing FlowFile should use the FETCH event type, rather than the RECEIVE event type
+|REPLAY                  |Indicates a provenance event for replaying a FlowFile. The UUID of the event indicates the UUID of the original FlowFile that is being replayed. The event contains one Parent UUID that is also the UUID of the FlowFile that is being replayed and one Child UUID that is the UUID of the a newly created FlowFile that will be re-queued for processing
+|ROUTE                   |Indicates that a FlowFile was routed to a specified relationship and provides information about why the FlowFile was routed to this relationship
+|SEND                    |Indicates a provenance event for sending data to an external process
+|UNKNOWN                 |Indicates that the type of provenance event is unknown because the user who is attempting to access the event is not authorized to know the type
+|======================
 
 
 == Common Processor Patterns
