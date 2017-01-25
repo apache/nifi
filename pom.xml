@@ -1221,6 +1221,12 @@ language governing permissions and limitations under the License. -->
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
+             <dependency>
+                 <groupId>org.apache.nifi</groupId>
+                 <artifactId>nifi-tcp-nar</artifactId>
+                 <version>1.2.0-SNAPSHOT</version>
+                 <type>nar</type>
+             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-splunk-nar</artifactId>

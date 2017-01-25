@@ -17,8 +17,10 @@
 
 package org.apache.nifi.processors.gettcp;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 import org.apache.nifi.util.TestRunner;
@@ -71,10 +73,11 @@ public final class TestGetTCP {
 
     @Test
     public void testSuccessInteraction() throws Exception {
-        Server server = setupTCPServer(9999);
-        testRunner.setProperty(GetTCP.ENDPOINT_LIST, "localhost:" + 9999);
+        int port = this.availablePort();
+        Server server = setupTCPServer(port);
+        testRunner.setProperty(GetTCP.ENDPOINT_LIST, "localhost:" + port);
         testRunner.run(1000, false);
-        this.sendToSocket(new InetSocketAddress(9999), "Hello\r");
+        this.sendToSocket(new InetSocketAddress(port), "Hello\r");
         Thread.sleep(200);
         testRunner.assertAllFlowFilesTransferred(GetTCP.REL_SUCCESS, 1);
         testRunner.clearTransferState();
@@ -84,17 +87,18 @@ public final class TestGetTCP {
 
     @Test
     public void testPartialInteraction() throws Exception {
-        Server server = setupTCPServer(9999);
-        testRunner.setProperty(GetTCP.ENDPOINT_LIST, "localhost:" + 9999);
-        testRunner.setProperty(GetTCP.RECEIVE_BUFFER_SIZE, "2");
+        int port = this.availablePort();
+        Server server = setupTCPServer(port);
+        testRunner.setProperty(GetTCP.ENDPOINT_LIST, "localhost:" + port);
+        testRunner.setProperty(GetTCP.RECEIVE_BUFFER_SIZE, "2B");
         testRunner.run(1000, false);
-        this.sendToSocket(new InetSocketAddress(9999), "Hello\r");
-        Thread.sleep(200);
+        this.sendToSocket(new InetSocketAddress(port), "Hello\r");
+        Thread.sleep(300);
         testRunner.assertAllFlowFilesTransferred(GetTCP.REL_PARTIAL, 3);
         testRunner.clearTransferState();
 
-        this.sendToSocket(new InetSocketAddress(9999), "H\r");
-        Thread.sleep(200);
+        this.sendToSocket(new InetSocketAddress(port), "H\r");
+        Thread.sleep(300);
         testRunner.assertAllFlowFilesTransferred(GetTCP.REL_SUCCESS, 1);
         testRunner.clearTransferState();
         testRunner.shutdown();
@@ -114,5 +118,25 @@ public final class TestGetTCP {
         out.write(message);
         out.flush();
         socket.close();
+    }
+
+    /**
+     * Will determine the available port used by test server.
+     */
+    private int availablePort() {
+        ServerSocket s = null;
+        try {
+            s = new ServerSocket(0);
+            s.setReuseAddress(true);
+            return s.getLocalPort();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to discover available port.", e);
+        } finally {
+            try {
+                s.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
     }
 }

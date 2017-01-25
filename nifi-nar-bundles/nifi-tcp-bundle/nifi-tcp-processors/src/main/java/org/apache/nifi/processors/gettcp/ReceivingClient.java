@@ -29,11 +29,9 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Implementation of receiving network client.
  */
-public class ReceivingClient extends AbstractSocketHandler {
+class ReceivingClient extends AbstractSocketHandler {
 
     private final ScheduledExecutorService connectionScheduler;
-
-    private volatile InetSocketAddress backupAddress;
 
     private volatile int reconnectAttempts;
 
@@ -46,10 +44,6 @@ public class ReceivingClient extends AbstractSocketHandler {
     public ReceivingClient(InetSocketAddress address, ScheduledExecutorService connectionScheduler, int readingBufferSize, byte endOfMessageByte) {
         super(address, readingBufferSize, endOfMessageByte);
         this.connectionScheduler = connectionScheduler;
-    }
-
-    public void setBackupAddress(InetSocketAddress backupAddress) {
-        this.backupAddress = backupAddress;
     }
 
     public void setReconnectAttempts(int reconnectAttempts) {
@@ -89,21 +83,8 @@ public class ReceivingClient extends AbstractSocketHandler {
                         }
                         connectionScheduler.schedule(this, delayMillisBeforeReconnect, TimeUnit.MILLISECONDS);
                     } else {
-                        if (backupAddress == null) {
-                            connectionError.set(e);
-                        } else {
-                            try {
-                                if (logger.isInfoEnabled()) {
-                                    logger.info("Every attempt to connect to '" + address + "' has failed.");
-                                    logger.info("Attempting to conect to secondary endppoint '" + backupAddress + "'.");
-                                }
-                                rootChannel = doConnect(backupAddress);
-                                connectedAddress = backupAddress;
-                            } catch (Exception re) {
-                                logger.error("Failed to connect to secondary endpoint.");
-                                connectionError.set(re);
-                            }
-                        }
+                        connectionError.set(e);
+                        logger.error("Failed to connect to secondary endpoint.");
                         latch.countDown();
                     }
                 }

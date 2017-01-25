@@ -40,6 +40,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -90,10 +91,10 @@ public class GetTCP extends AbstractSessionFactoryProcessor {
     public static final PropertyDescriptor RECEIVE_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("receive-buffer-size")
             .displayName("Receive Buffer Size")
-            .description("The size of the buffer to receive data in")
+            .description("The size of the buffer to receive data in. Default 16384 (16MB).")
             .required(false)
-            .defaultValue("2048")
-            .addValidator(StandardValidators.createLongValidator(1, 2048, true))
+            .defaultValue("16MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor END_OF_MESSAGE_BYTE = new PropertyDescriptor.Builder()
@@ -175,7 +176,7 @@ public class GetTCP extends AbstractSessionFactoryProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws ProcessException {
-        this.receiveBufferSize = context.getProperty(RECEIVE_BUFFER_SIZE).asInteger();
+        this.receiveBufferSize = context.getProperty(RECEIVE_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         this.originalServerAddressList = context.getProperty(ENDPOINT_LIST).getValue();
         this.endOfMessageByte = ((byte) context.getProperty(END_OF_MESSAGE_BYTE).asInteger().intValue());
         this.connectionAttemptCount = context.getProperty(CONNECTION_ATTEMPT_COUNT).asInteger();
