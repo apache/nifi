@@ -512,6 +512,10 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
         }
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET, getClusterCoordinatorNode());
+        }
+
         // get the specified relationship
         final NodeDTO dto = serviceFacade.getNode(id);
 
