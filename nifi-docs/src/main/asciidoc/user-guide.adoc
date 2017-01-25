@@ -495,41 +495,71 @@ image::scheduling-tab.png["Scheduling Tab"]
 
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
-* *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
+*Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
 	at which the Processor is run is defined by the `Run schedule' option (see below).
-* *Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
+
+*Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
 	feeding this Processor. This mode is currently considered experimental and is not supported by all Processors. When this mode is
 	selected, the `Run schedule' option is not configurable, as the Processor is not triggered to run periodically but
         as the result of an event. Additionally, this is the only mode for which the `Concurrent tasks'
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
 	the administrator has configured.
-* *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
-	Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of
-	increasing the complexity of the configuration. This value is made up of six fields, each separated by a space. These
-	fields include:
-** Seconds
-** Minutes
-** Hours
-** Day of Month
-** Month
-** Day of Week
-** Year
 
-The value for each of these fields should be a number, range, or increment.
-Range here refers to a syntax of <number>-<number>.
-For example,the Seconds field could be set to 0-30, meaning that the Processor should only be scheduled if the time is 0 to 30 seconds
-after the minute. Additionally, a value of `*` indicates that all values are valid for this field. Multiple values can also
-be entered using a `,` as a separator: `0,5,10,15,30`.
-An increment is written as <start value>/<increment>. For example, settings a value of `0/10` for the seconds fields means that valid
-values are 0, 10, 20, 30, 40, and 50. However, if we change this to `5/10`, valid values become 5, 15, 25, 35, 45, and 55.
+*CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
+		Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of
+		increasing the complexity of the configuration. The CRON driven scheduling value is a string of six required fields and one
+		optional field, each separated by a space. These fields are:
 
-For the Month field, valid values are 1 (January) through 12 (December).
-
-For the Day of Week field, valid values are 1 (Sunday) through 7 (Saturday). Additionally, a value of `L` may be appended to one of these
-values to indicate the last occurrence of this day in the month. For example, `1L` can be used to indicate the last Monday of the month.
+[cols="1,1", options="header"]
+|===
+|Field
+|Valid values
 
 
-Next, the Scheduling Tab provides a configuration option named `Concurrent tasks.' This controls how many threads the Processor
+|Seconds
+|0-59
+
+|Minutes
+|0-59
+
+|Hours
+|0-23
+
+|Day of Month
+|1-31
+
+|Month
+|1-12 or JAN-DEC
+
+|Day of Week
+|1-7 or SUN-SAT
+
+|Year (optional)
+|empty, 1970-2099
+|===
+
+You typically specify values one of the following ways:
+
+* *Number*: Specify one or more valid value. You can enter more than one value using a comma-separated list.
+* *Range*: Specify a range using the <number>-<number> syntax.
+* *Increment*: Specify an increment using <start value>/<increment> syntax. For example, in the Minutes field, 0/15 indicates the minutes 0, 15, 30, and 45.
+
+You should also be aware of several valid special characters:
+
+* *  -- Indicates that all values are valid for that field.
+* ?  -- Indicates that no specific value is specified. This special character is valid in the Days of Month and Days of Week field.
+* L  -- You can append L to one of the Day of Week values, to specify the last occurrence of this day in the month. For
+example, 1L indicates the last Sunday of the month.
+
+For example:
+
+* The string `0 0 13 * * ?` indicates that you want to schedule the processor to run at 1:00 PM every day.
+* The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
+* The string `0 15 10 ? * 6L 2011-2017` indicates that you want to schedule the processor to run at 10:15 AM, on the last Friday of every month, between 2011 and 2017.
+
+For additional information and examples, see the http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial] in the Quartz documentation.
+
+Next, the Scheduling Tab provides a configuration option named `Concurrent tasks`. This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
 resources that then are not usable by other Processors. This essentially provides a relative weighting of Processors -- it controls
