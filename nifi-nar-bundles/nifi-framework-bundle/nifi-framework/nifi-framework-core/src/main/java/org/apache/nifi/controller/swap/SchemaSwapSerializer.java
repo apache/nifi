@@ -46,7 +46,7 @@ import org.apache.nifi.repository.schema.SimpleRecordField;
 public class SchemaSwapSerializer implements SwapSerializer {
     static final String SERIALIZATION_NAME = "Schema Swap Serialization";
 
-    private final RecordSchema schema = SwapSchema.FULL_SWAP_FILE_SCHEMA_V1;
+    private final RecordSchema schema = SwapSchema.FULL_SWAP_FILE_SCHEMA_V2;
     private final RecordSchema flowFileSchema = new RecordSchema(schema.getField(SwapSchema.FLOWFILE_CONTENTS).getSubFields());
 
     @Override
@@ -78,7 +78,7 @@ public class SchemaSwapSerializer implements SwapSerializer {
 
         // Create a simple record to hold the summary and the flowfile contents
         final RecordField summaryField = new SimpleRecordField(SwapSchema.SWAP_SUMMARY, FieldType.COMPLEX, Repetition.EXACTLY_ONE);
-        final RecordField contentsField = new ComplexRecordField(SwapSchema.FLOWFILE_CONTENTS, Repetition.ZERO_OR_MORE, FlowFileSchema.FLOWFILE_SCHEMA_V1.getFields());
+        final RecordField contentsField = new ComplexRecordField(SwapSchema.FLOWFILE_CONTENTS, Repetition.ZERO_OR_MORE, FlowFileSchema.FLOWFILE_SCHEMA_V2.getFields());
         final List<RecordField> fields = new ArrayList<>(2);
         fields.add(summaryField);
         fields.add(contentsField);

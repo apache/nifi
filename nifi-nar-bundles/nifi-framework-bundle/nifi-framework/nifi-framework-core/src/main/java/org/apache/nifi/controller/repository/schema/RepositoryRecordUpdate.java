@@ -38,7 +38,7 @@ public class RepositoryRecordUpdate implements Record {
 
     @Override
     public Object getFieldValue(final String fieldName) {
-        if (RepositoryRecordSchema.REPOSITORY_RECORD_UPDATE_V1.equals(fieldName)) {
+        if (RepositoryRecordSchema.REPOSITORY_RECORD_UPDATE_V2.equals(fieldName)) {
             final String actionType = (String) fieldMap.getFieldValue(RepositoryRecordSchema.ACTION_TYPE);
             final UpdateType updateType = UpdateType.valueOf(actionType);
 
