@@ -1678,7 +1678,7 @@ You can use the following command line options with the ZooKeeper Migrator:
 * `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
 * `-r,--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f,--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s,--send` option.
 * `-s,--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f,--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z,--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r,--receive` option.
-* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server to use, specified by a  connection string with path, in the format of _host:port/znode/path_.
+* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
 
 [[migrating_between_source_destination_zookeepers]]
 ==== Migrating Between Source and Destination ZooKeepers
@@ -1737,9 +1737,9 @@ If the state-management.xml specifies Open, no authentication is required.
 5. Migrate the ZooKeeper data to the destination ZooKeeper. If the source and destination ZooKeepers are the same, the `--ignore-source` option can be added to the following examples.
 
 * For an open ZooKeeper:
-** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -f /*path*/*to*/*export*/*zk-source-data.json*
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -f /*path*/*to*/*export*/*zk-source-data.json*
 * For a ZooKeeper using Kerberos for authentication:
-** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
 
 6. Once the migration has completed successfully, start the processors in the NiFi flow.  Processing should continue from the point at which it was stopped when the NiFi flow was stopped.
 

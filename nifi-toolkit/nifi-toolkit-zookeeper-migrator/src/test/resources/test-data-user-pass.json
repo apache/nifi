@@ -1,21 +1,13 @@
 [
   {
-    "connectString": "127.0.0.1:62406",
-    "path": "/nifi",
-    "auth": [
-      110,
-      105,
-      102,
-      105,
-      58,
-      110,
-      105,
-      102,
-      105
-    ]
+    "connectString": "127.0.0.1:62317/nifi",
+    "servers": [
+      "127.0.0.1:62317"
+    ],
+    "path": "/nifi"
   },
   {
-    "path": "/nifi",
+    "path": "/",
     "data": [
       115,
       111,
@@ -30,8 +22,8 @@
     "stat": {
       "czxid": 2,
       "mzxid": 2,
-      "ctime": 1478010596964,
-      "mtime": 1478010596964,
+      "ctime": 1485792794977,
+      "mtime": 1485792794977,
       "version": 0,
       "cversion": 0,
       "aversion": 0,

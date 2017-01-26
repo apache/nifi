@@ -43,6 +43,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
@@ -66,23 +67,14 @@ class ZooKeeperMigrator {
 
     private final ZooKeeperEndpointConfig zooKeeperEndpointConfig;
 
-    ZooKeeperMigrator(String zookeeperEndpoint) {
-        LOGGER.debug("ZooKeeper endpoint parameter: {}", zookeeperEndpoint);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(zookeeperEndpoint), "zookeeper endpoint must not be null");
-        final String[] connectStringPath = zookeeperEndpoint.split("/", 2);
-        Preconditions.checkArgument(connectStringPath.length >= 1, "invalid ZooKeeper endpoint: %s", zookeeperEndpoint);
-        final String connectString = connectStringPath[0];
-        final String path;
-        if (connectStringPath.length == 2) {
-            path = connectStringPath[1];
-        } else {
-            path = "";
-        }
-        this.zooKeeperEndpointConfig = new ZooKeeperEndpointConfig(connectString, "/" + path);
+    ZooKeeperMigrator(String zooKeeperConnectString) {
+        LOGGER.debug("ZooKeeper connect string parameter: {}", zooKeeperConnectString);
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(zooKeeperConnectString), "ZooKeeper connect string must not be null");
+        this.zooKeeperEndpointConfig = new ZooKeeperEndpointConfig(zooKeeperConnectString);
     }
 
     void readZooKeeper(OutputStream zkData, AuthMode authMode, byte[] authData) throws IOException, KeeperException, InterruptedException, ExecutionException {
-        ZooKeeper zooKeeper = getZooKeeper(zooKeeperEndpointConfig, authMode, authData);
+        ZooKeeper zooKeeper = getZooKeeper(zooKeeperEndpointConfig.getConnectString(), authMode, authData);
         JsonWriter jsonWriter = new JsonWriter(new BufferedWriter(new OutputStreamWriter(zkData)));
         jsonWriter.setIndent("  ");
         JsonParser jsonParser = new JsonParser();
@@ -93,8 +85,8 @@ class ZooKeeperMigrator {
         // persist source ZooKeeperEndpointConfig
         gson.toJson(jsonParser.parse(gson.toJson(zooKeeperEndpointConfig)).getAsJsonObject(), jsonWriter);
 
-        LOGGER.info("Persisting data from source ZooKeeper: {}", zooKeeperEndpointConfig);
-        final List<CompletableFuture<Void>> readFutures = streamPaths(getNode(zooKeeper, zooKeeperEndpointConfig.getPath()))
+        LOGGER.info("Retrieving data from source ZooKeeper: {}", zooKeeperEndpointConfig);
+        final List<CompletableFuture<Void>> readFutures = streamPaths(getNode(zooKeeper, "/"))
                 .parallel()
                 .map(node ->
                         CompletableFuture.supplyAsync(() -> {
@@ -125,7 +117,12 @@ class ZooKeeperMigrator {
     }
 
     void writeZooKeeper(InputStream zkData, AuthMode authMode, byte[] authData, boolean ignoreSource) throws IOException, ExecutionException, InterruptedException {
-        ZooKeeper zooKeeper = getZooKeeper(zooKeeperEndpointConfig, authMode, authData);
+        // ensure that the chroot path exists
+        ZooKeeper zooKeeperRoot = getZooKeeper(Joiner.on(',').join(zooKeeperEndpointConfig.getServers()), authMode, authData);
+        ensureNodeExists(zooKeeperRoot, zooKeeperEndpointConfig.getPath(), CreateMode.PERSISTENT);
+        closeZooKeeper(zooKeeperRoot);
+
+        ZooKeeper zooKeeper = getZooKeeper(zooKeeperEndpointConfig.getConnectString(), authMode, authData);
         JsonReader jsonReader = new JsonReader(new BufferedReader(new InputStreamReader(zkData)));
         Gson gson = new GsonBuilder().create();
 
@@ -134,10 +131,12 @@ class ZooKeeperMigrator {
         // determine source ZooKeeperEndpointConfig for this data
         final ZooKeeperEndpointConfig sourceZooKeeperEndpointConfig = gson.fromJson(jsonReader, ZooKeeperEndpointConfig.class);
         LOGGER.info("Source data was obtained from ZooKeeper: {}", sourceZooKeeperEndpointConfig);
-        Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath()),
-                "Source ZooKeeper %s from %s is invalid", sourceZooKeeperEndpointConfig, zkData);
-        Preconditions.checkArgument(!(zooKeeperEndpointConfig.equals(sourceZooKeeperEndpointConfig) && !ignoreSource),
-                "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
+        Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath())
+                && sourceZooKeeperEndpointConfig.getServers() != null && sourceZooKeeperEndpointConfig.getServers().size() > 0, "Source ZooKeeper %s from %s is invalid",
+                sourceZooKeeperEndpointConfig, zkData);
+        Preconditions.checkArgument(Collections.disjoint(zooKeeperEndpointConfig.getServers(), sourceZooKeeperEndpointConfig.getServers())
+                        || !zooKeeperEndpointConfig.getPath().equals(sourceZooKeeperEndpointConfig.getPath()) || ignoreSource,
+                "Source ZooKeeper config %s for the data provided can not contain the same server and path as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
         // stream through each node read from the json input
@@ -271,9 +270,8 @@ class ZooKeeperMigrator {
     }
 
     private DataStatAclNode transformNode(DataStatAclNode node, AuthMode destinationAuthMode) {
-        String migrationPath = '/' + Joiner.on('/').skipNulls().join(Splitter.on('/').omitEmptyStrings().trimResults().split(zooKeeperEndpointConfig.getPath() + node.getPath()));
         // For the NiFi use case, all nodes will be migrated to CREATOR_ALL_ACL
-        final DataStatAclNode migratedNode = new DataStatAclNode(migrationPath, node.getData(), node.getStat(),
+        final DataStatAclNode migratedNode = new DataStatAclNode(node.getPath(), node.getData(), node.getStat(),
                 destinationAuthMode.equals(AuthMode.OPEN) ? ZooDefs.Ids.OPEN_ACL_UNSAFE : ZooDefs.Ids.CREATOR_ALL_ACL,
                 node.getEphemeralOwner());
         LOGGER.info("transformed original node {} to {}", node, migratedNode);
@@ -298,11 +296,11 @@ class ZooKeeperMigrator {
         return node.getStat();
     }
 
-    private ZooKeeper getZooKeeper(ZooKeeperEndpointConfig zooKeeperEndpointConfig, AuthMode authMode, byte[] authData) throws IOException {
+    private ZooKeeper getZooKeeper(String zooKeeperConnectString, AuthMode authMode, byte[] authData) throws IOException {
         CountDownLatch connectionLatch = new CountDownLatch(1);
-        ZooKeeper zooKeeper = new ZooKeeper(zooKeeperEndpointConfig.getConnectString(), 3000, watchedEvent -> {
+        ZooKeeper zooKeeper = new ZooKeeper(zooKeeperConnectString, 3000, watchedEvent -> {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperEndpointConfig);
+                LOGGER.debug("ZooKeeper server state changed to {} in {}", watchedEvent.getState(), zooKeeperConnectString);
             }
             if (watchedEvent.getType().equals(Watcher.Event.EventType.None) && watchedEvent.getState().equals(Watcher.Event.KeeperState.SyncConnected)) {
                 connectionLatch.countDown();
@@ -315,12 +313,12 @@ class ZooKeeperMigrator {
         } catch (InterruptedException e) {
             closeZooKeeper(zooKeeper);
             Thread.currentThread().interrupt();
-            throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperEndpointConfig), e);
+            throw new IOException(String.format("interrupted while waiting for ZooKeeper connection to %s", zooKeeperConnectString), e);
         }
 
         if (!connected) {
             closeZooKeeper(zooKeeper);
-            throw new IOException(String.format("unable to connect to %s", zooKeeperEndpointConfig));
+            throw new IOException(String.format("unable to connect to %s", zooKeeperConnectString));
         }
 
         if (authMode.equals(AuthMode.DIGEST)) {

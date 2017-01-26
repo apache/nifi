@@ -19,8 +19,10 @@ package org.apache.nifi.toolkit.zkmigrator
 import com.google.gson.Gson
 import com.google.gson.stream.JsonReader
 import org.apache.curator.test.TestingServer
+import org.apache.curator.utils.ZKPaths
 import org.apache.zookeeper.CreateMode
 import org.apache.zookeeper.WatchedEvent
+import org.apache.zookeeper.ZKUtil
 import org.apache.zookeeper.ZooDefs
 import org.apache.zookeeper.ZooKeeper
 import spock.lang.Ignore
@@ -49,21 +51,22 @@ class ZooKeeperMigratorTest extends Specification {
         noExceptionThrown()
     }
 
-    def "Receive from open ZooKeeper without ACL migration"() {
+    def "Receive from open ZooKeeper"() {
         given:
         def server = new TestingServer()
         def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
         })
-        def migrationPathRoot = '/nifi'
-        client.create(migrationPathRoot, 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
-        def subPath = '1'
-        client.create("$migrationPathRoot/$subPath", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
-        subPath = '1/a'
-        client.create("$migrationPathRoot/$subPath", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL)
-        subPath = '2'
-        client.create("$migrationPathRoot/$subPath", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
-        subPath = '3'
-        client.create("$migrationPathRoot/$subPath", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        def migrationPathRoot = '/nifi/components'
+        ZKPaths.mkdirs(client, migrationPathRoot)
+        client.setData(migrationPathRoot, 'some data'.bytes, 0)
+        def componentName = '1'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        componentName = '1/a'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL)
+        componentName = '2'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
+        componentName = '3'
+        client.create("$migrationPathRoot/$componentName", 'some data'.bytes, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
         def outputFilePath = 'target/test-data.json'
 
         when:
@@ -72,7 +75,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def persistedData = new Gson().fromJson(new JsonReader(new FileReader(outputFilePath)), List) as List
-        6 == persistedData.size();
+        persistedData.size() == 6
     }
 
     def "Send to open ZooKeeper without ACL migration"() {
@@ -87,8 +90,8 @@ class ZooKeeperMigratorTest extends Specification {
 
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, migrationPathRoot, [])
-        6 == nodes.size()
+        def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
+        nodes.size() == 6
     }
 
     def "Send to open ZooKeeper without ACL migration with new multi-node parent"() {
@@ -103,8 +106,8 @@ class ZooKeeperMigratorTest extends Specification {
 
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, migrationPathRoot, [])
-        6 == nodes.size()
+        def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
+        nodes.size() == 7
     }
 
     def "Receive all nodes from ZooKeeper root"() {
@@ -123,7 +126,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def persistedData = new Gson().fromJson(new JsonReader(new FileReader(outputFilePath)), List) as List
-        5 == persistedData.size();
+        persistedData.size() == 5
     }
 
     def "Receive Zookeeper node created with username and password"() {
@@ -144,7 +147,7 @@ class ZooKeeperMigratorTest extends Specification {
         then:
         noExceptionThrown()
         def persistedData = new Gson().fromJson(new JsonReader(new FileReader(outputFilePath)), List) as List
-        2 == persistedData.size();
+        persistedData.size() == 2
     }
 
     def "Send to Zookeeper a node created with username and password"() {
@@ -162,48 +165,59 @@ class ZooKeeperMigratorTest extends Specification {
 
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, migrationPathRoot, [])
-        2 == nodes.size()
+        def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
+        nodes.size() == 3
     }
 
-    def "Send to open Zookeeper root"() {
+    def "Send to open Zookeeper with ACL migration"() {
         given:
         def server = new TestingServer()
         def client = new ZooKeeper(server.connectString, 3000, { WatchedEvent watchedEvent ->
         })
-        def migrationPathRoot = '/'
+        def migrationPathRoot = '/nifi-open'
 
         when:
         ZooKeeperMigratorMain.main(['-s', '-z', "$server.connectString$migrationPathRoot", '-f', 'src/test/resources/test-data-user-pass.json'] as String[])
 
         then:
         noExceptionThrown()
-        def nodes = getChildren(client, migrationPathRoot, [])
-        4 == nodes.size()
+        def nodes = ZKPaths.getSortedChildren(client, '/').collect { ZKUtil.listSubTreeBFS(client, "/$it") }.flatten()
+        nodes.size() == 3
     }
 
     def "Parse Zookeeper connect string and path"() {
         when:
-        def zooKeeperMigrator = new ZooKeeperMigrator("$connectStringAndPath")
-        def tokens = connectStringAndPath.split('/', 2) as List
-        def connectString = tokens[0]
-        def path = '/' + (tokens.size() > 1 ? tokens[1] : '')
+        def zooKeeperMigrator = new ZooKeeperMigrator("$connectString")
 
         then:
-        connectString == zooKeeperMigrator.getZooKeeperEndpointConfig().connectString
-        path == zooKeeperMigrator.getZooKeeperEndpointConfig().path
+        zooKeeperMigrator.zooKeeperEndpointConfig.connectString == connectString
+        zooKeeperMigrator.zooKeeperEndpointConfig.servers == servers.split(',').collect()
+        zooKeeperMigrator.zooKeeperEndpointConfig.path == path
 
         where:
-        connectStringAndPath       || _
-        '127.0.0.1'                || _
-        '127.0.0.1/'               || _
-        '127.0.0.1:2181'           || _
-        '127.0.0.1:2181/'          || _
-        '127.0.0.1/path'           || _
-        '127.0.0.1/path/node'      || _
-        '127.0.0.1:2181/'          || _
-        '127.0.0.1:2181/path'      || _
-        '127.0.0.1:2181/path/node' || _
+        connectString                                       | path         | servers                                   || _
+        '127.0.0.1'                                         | '/'          | '127.0.0.1'                               || _
+        '127.0.0.1,127.0.0.2'                               | '/'          | '127.0.0.1,127.0.0.2'                     || _
+        '127.0.0.1/'                                        | '/'          | '127.0.0.1'                               || _
+        '127.0.0.1,127.0.0.2/'                              | '/'          | '127.0.0.1,127.0.0.2'                     || _
+        '127.0.0.1:2181'                                    | '/'          | '127.0.0.1:2181'                          || _
+        '127.0.0.1,127.0.0.2:2181'                          | '/'          | '127.0.0.1,127.0.0.2:2181'                || _
+        '127.0.0.1:2181/'                                   | '/'          | '127.0.0.1:2181'                          || _
+        '127.0.0.1,127.0.0.2:2181/'                         | '/'          | '127.0.0.1,127.0.0.2:2181'                || _
+        '127.0.0.1/path'                                    | '/path'      | '127.0.0.1'                               || _
+        '127.0.0.1,127.0.0.2/path'                          | '/path'      | '127.0.0.1,127.0.0.2'                     || _
+        '127.0.0.1/path/node'                               | '/path/node' | '127.0.0.1'                               || _
+        '127.0.0.1,127.0.0.2/path/node'                     | '/path/node' | '127.0.0.1,127.0.0.2'                     || _
+        '127.0.0.1:2181/'                                   | '/'          | '127.0.0.1:2181'                          || _
+        '127.0.0.1,127.0.0.2:2181/'                         | '/'          | '127.0.0.1,127.0.0.2:2181'                || _
+        '127.0.0.1:2181/path'                               | '/path'      | '127.0.0.1:2181'                          || _
+        '127.0.0.1,127.0.0.2:2181/path'                     | '/path'      | '127.0.0.1,127.0.0.2:2181'                || _
+        '127.0.0.1:2181/path/node'                          | '/path/node' | '127.0.0.1:2181'                          || _
+        '127.0.0.1,127.0.0.2:2181/path/node'                | '/path/node' | '127.0.0.1,127.0.0.2:2181'                || _
+        '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183'           | '/'          | '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183' || _
+        '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183/'          | '/'          | '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183' || _
+        '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183/path'      | '/path'      | '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183' || _
+        '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183/path/node' | '/path/node' | '127.0.0.1,127.0.0.2:2182,127.0.0.3:2183' || _
     }
 
     def "Test ignore source"() {
@@ -215,7 +229,7 @@ class ZooKeeperMigratorTest extends Specification {
         when: "data is read from the source zookeeper"
         ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
 
-        then: "verify the data has been written the output file"
+        then: "verify the data has been written to the output file"
         new File(dataPath).exists()
 
         when: "data is sent to the same zookeeper as the the source zookeeper without ignore source"
@@ -231,13 +245,21 @@ class ZooKeeperMigratorTest extends Specification {
         noExceptionThrown()
     }
 
-    def List<String> getChildren(ZooKeeper client, String path, List<String> ag) {
-        def children = client.getChildren(path, null)
-        ag.add path
-        children.forEach {
-            def childPath = "/${(path.tokenize('/') + it).join('/')}"
-            getChildren(client, childPath, ag)
-        }
-        ag
+    def "Send to same ZooKeeper with different path"() {
+        def server = new TestingServer()
+        def connectString = "$server.connectString"
+        def dataPath = 'target/test-data-different-path.json'
+
+        when: "data is read from the source zookeeper"
+        ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
+
+        then: "verify the data has been written to the output file"
+        new File(dataPath).exists()
+
+        when: "data is sent to the same zookeeper as the the source zookeeper with a different path"
+        ZooKeeperMigratorMain.main(['-s', '-z', "$connectString/new-path", '-f', dataPath] as String[])
+
+        then: "no exceptions are thrown"
+        noExceptionThrown()
     }
 }
