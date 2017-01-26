@@ -269,7 +269,9 @@ public class GetTCP extends AbstractSessionFactoryProcessor {
     }
 
     /**
-     *
+     * This handles the taking the message that has been received off the wire and writing it to the
+     * content of a flow file. If only a partial message is received then the flow file is sent to
+     * the Partial Relationship. If a full message is received then it is sent to the Success relationship.
      */
     private class NiFiDelegatingMessageHandler implements MessageHandler {
         private final ProcessSessionFactory sessionFactory;

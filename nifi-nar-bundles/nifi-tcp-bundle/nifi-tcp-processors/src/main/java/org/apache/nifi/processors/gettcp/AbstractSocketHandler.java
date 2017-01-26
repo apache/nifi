@@ -56,6 +56,8 @@ abstract class AbstractSocketHandler {
     protected final byte endOfMessageByte;
 
     /**
+     * This constructor configures the address to bind to, the size of the buffer to use for reading and
+     * the byte pattern to use for demarcating the end of a message.
      *
      * @param address the socket address
      * @param readingBufferSize the buffer size
@@ -70,7 +72,10 @@ abstract class AbstractSocketHandler {
     }
 
     /**
+     * Once the handler is constructed this should be called to start the handler. Although,
+     * this method is safe to be called by multiple threads, it should only be called once.
      *
+     * @throws IllegalStateException if it fails to start listening on the port that is configured.
      *
      */
     public void start() {
@@ -96,7 +101,9 @@ abstract class AbstractSocketHandler {
     }
 
     /**
-     *
+     * This should be called to stop the handler from listening on the socket. Although it is reccommended
+     * that this is called once, by a single thread. This method does protect itself from being called by more
+     * than one thread and more than one time.
      *
      */
     public void stop() {
@@ -135,6 +142,7 @@ abstract class AbstractSocketHandler {
     }
 
     /**
+     * This must be overriden by an implementing class and should establish the socket connection.
      *
      * @throws Exception if an exception occurs
      */
@@ -149,6 +157,8 @@ abstract class AbstractSocketHandler {
     abstract void processData(SelectionKey selectionKey, ByteBuffer buffer) throws IOException;
 
     /**
+     * This does not perform any work at this time as all current implementations of this class
+     * provide the client side of the connection and thus do not accept connections.
      *
      * @param selectionKey the selection key
      * @throws IOException if there is a problem
@@ -193,14 +203,21 @@ abstract class AbstractSocketHandler {
         }
 
         /**
+         * Accept the selectable channel
          *
+         * @throws IOException in the event that something goes wrong accepting it.
          */
         private void accept(SelectionKey selectionKey) throws IOException {
             AbstractSocketHandler.this.doAccept(selectionKey);
         }
 
         /**
+         * This will connect the channel, if it is in a pending state then this will finish
+         * establishing the connection. Finally the sockethandler is registered with this
+         * channel.
          *
+         * @throws IOException if anyhting goes wrong during the connection establishment
+         * or registering of the handler.
          */
         private void connect(SelectionKey selectionKey) throws IOException {
             SocketChannel clientChannel = (SocketChannel) selectionKey.channel();
