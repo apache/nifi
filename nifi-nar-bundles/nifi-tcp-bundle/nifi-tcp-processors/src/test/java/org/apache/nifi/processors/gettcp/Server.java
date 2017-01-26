@@ -35,9 +35,9 @@ public class Server extends AbstractSocketHandler {
     }
 
     /**
-     *
-     * @param address
-     * @param readingBufferSize
+     * @param address           the socket address
+     * @param readingBufferSize the buffer size
+     * @param endOfMessageByte  the byte indicating the EOM
      */
     public Server(InetSocketAddress address, int readingBufferSize, byte endOfMessageByte) {
         super(address, readingBufferSize, endOfMessageByte);

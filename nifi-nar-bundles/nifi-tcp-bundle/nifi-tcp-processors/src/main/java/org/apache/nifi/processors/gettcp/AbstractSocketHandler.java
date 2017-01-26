@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,8 +57,9 @@ abstract class AbstractSocketHandler {
 
     /**
      *
-     * @param address
-     * @param server
+     * @param address the socket address
+     * @param readingBufferSize the buffer size
+     * @param endOfMessageByte the byte indicating EOM
      */
     public AbstractSocketHandler(InetSocketAddress address, int readingBufferSize, byte endOfMessageByte) {
         this.address = address;
@@ -71,7 +71,7 @@ abstract class AbstractSocketHandler {
 
     /**
      *
-     * @return
+     *
      */
     public void start() {
         if (this.isRunning.compareAndSet(false, true)) {
@@ -97,7 +97,7 @@ abstract class AbstractSocketHandler {
 
     /**
      *
-     * @param force
+     *
      */
     public void stop() {
         if (this.isRunning.compareAndSet(true, false)) {
@@ -136,7 +136,7 @@ abstract class AbstractSocketHandler {
 
     /**
      *
-     * @throws Exception
+     * @throws Exception if an exception occurs
      */
     abstract InetSocketAddress connect() throws Exception;
 
@@ -144,14 +144,14 @@ abstract class AbstractSocketHandler {
      * Will process the data received from the channel
      * @param selectionKey key for the channel the data came from
      * @param buffer buffer of received data
-     * @throws IOException
+     * @throws IOException if there is a problem processing the data
      */
     abstract void processData(SelectionKey selectionKey, ByteBuffer buffer) throws IOException;
 
     /**
      *
-     * @param selectionKey
-     * @throws IOException
+     * @param selectionKey the selection key
+     * @throws IOException if there is a problem
      */
     void doAccept(SelectionKey selectionKey) throws IOException {
         // noop
