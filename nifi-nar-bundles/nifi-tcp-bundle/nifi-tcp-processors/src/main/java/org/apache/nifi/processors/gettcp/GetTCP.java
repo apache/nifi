@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
@@ -269,7 +268,9 @@ public class GetTCP extends AbstractSessionFactoryProcessor {
     }
 
     /**
-     *
+     * This handles taking the message that has been received off the wire and writing it to the
+     * content of a flowfile. If only a partial message is received then the flowfile is sent to
+     * the Partial relationship. If a full message is received then it is sent to the Success relationship.
      */
     private class NiFiDelegatingMessageHandler implements MessageHandler {
         private final ProcessSessionFactory sessionFactory;

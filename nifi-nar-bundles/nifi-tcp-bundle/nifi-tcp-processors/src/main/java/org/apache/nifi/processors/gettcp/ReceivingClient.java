@@ -59,7 +59,9 @@ class ReceivingClient extends AbstractSocketHandler {
     }
 
     /**
-     *
+     * Connects to the endpoint specified and if that fails, will attempt to connect to the
+     * secondary endpoint up to the number of reconnection attempts (inclusive) using the
+     * configured delay between attempts.
      */
     @Override
     InetSocketAddress connect() throws Exception {
@@ -119,7 +121,7 @@ class ReceivingClient extends AbstractSocketHandler {
     }
 
     /**
-     *
+     * Process the message that has arrived off the wire.
      */
     @Override
     void processData(SelectionKey selectionKey, ByteBuffer messageBuffer) throws IOException {
