@@ -614,14 +614,6 @@
             // add hover effect and click handler for opening the dialog
             $('#provenance-search-button').click(function () {
                 $('#provenance-search-dialog').modal('show');
-
-                // adjust the field width for a potential scrollbar
-                var searchFieldContainer = $('#searchable-fields-container');
-                if (searchFieldContainer.get(0).scrollHeight > Math.round(searchFieldContainer.innerHeight())) {
-                    $('input.searchable-field-input').width(245);
-                } else {
-                    $('input.searchable-field-input').width(260);
-                }
             });
 
             // define a custom formatter for the more details column
