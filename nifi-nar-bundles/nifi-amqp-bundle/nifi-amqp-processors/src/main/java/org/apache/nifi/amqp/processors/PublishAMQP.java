@@ -70,6 +70,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "It is an optional property. If kept empty the messages will be sent to a default AMQP exchange.")
             .required(true)
             .defaultValue("")
+            .expressionLanguageSupported(true)
             .addValidator(Validator.VALID)
             .build();
     public static final PropertyDescriptor ROUTING_KEY = new PropertyDescriptor.Builder()
@@ -79,6 +80,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
                     + "corresponds to a destination queue name, otherwise a binding from the Exchange to a Queue via Routing Key must be set "
                     + "(usually by the AMQP administrator)")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -130,15 +132,19 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
         FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             BasicProperties amqpProperties = this.extractAmqpPropertiesFromFlowFile(flowFile);
+            String routingKey = context.getProperty(ROUTING_KEY).evaluateAttributeExpressions(flowFile).getValue();
+            if (routingKey == null){
+                throw new IllegalArgumentException("Failed to determine 'routing key' with provided value '"
+                        + context.getProperty(ROUTING_KEY) + "' after evaluating it as expression against incoming FlowFile.");
+            }
+            String exchange = context.getProperty(EXCHANGE).evaluateAttributeExpressions(flowFile).getValue();
 
             byte[] messageContent = this.extractMessage(flowFile, processSession);
 
             try {
-                this.targetResource.publish(messageContent, amqpProperties);
+                this.targetResource.publish(messageContent, amqpProperties, routingKey, exchange);
                 processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.getProvenanceReporter().send(flowFile,
-                        this.amqpConnection.toString() + "/E:" + context.getProperty(EXCHANGE).getValue() + "/RK:"
-                                + context.getProperty(ROUTING_KEY).getValue());
+                processSession.getProvenanceReporter().send(flowFile, this.amqpConnection.toString() + "/E:" + exchange + "/RK:" + routingKey);
             } catch (Exception e) {
                 processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
                 this.getLogger().error("Failed while sending message to AMQP via " + this.targetResource, e);
@@ -168,9 +174,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
      */
     @Override
     protected AMQPPublisher finishBuildingTargetResource(ProcessContext context) {
-        String exchangeName = context.getProperty(EXCHANGE).getValue();
-        String routingKey = context.getProperty(ROUTING_KEY).getValue();
-        return new AMQPPublisher(this.amqpConnection, exchangeName, routingKey, this.getLogger());
+        return new AMQPPublisher(this.amqpConnection, this.getLogger());
     }
 
     /**
