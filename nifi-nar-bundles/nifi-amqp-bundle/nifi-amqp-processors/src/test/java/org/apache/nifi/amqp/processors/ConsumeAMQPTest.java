@@ -17,12 +17,14 @@
 package org.apache.nifi.amqp.processors;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -46,8 +48,8 @@ public class ConsumeAMQPTest {
 
         Connection connection = new TestConnection(exchangeToRoutingKeymap, routingMap);
 
-        try (AMQPPublisher sender = new AMQPPublisher(connection, "myExchange", "key1", null)) {
-            sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN);
+        try (AMQPPublisher sender = new AMQPPublisher(connection, mock(ComponentLog.class))) {
+            sender.publish("hello".getBytes(), MessageProperties.PERSISTENT_TEXT_PLAIN, "key1", "myExchange");
 
             ConsumeAMQP pubProc = new LocalConsumeAMQP(connection);
             TestRunner runner = TestRunners.newTestRunner(pubProc);
