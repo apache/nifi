@@ -18,6 +18,8 @@ package org.apache.nifi.dbcp;
 
 import java.sql.Connection;
 
+import javax.sql.DataSource;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
@@ -31,4 +33,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 public interface DBCPService extends ControllerService {
     public Connection getConnection()  throws ProcessException;
+
+    default DataSource getDataSource()  throws ProcessException {
+        throw new UnsupportedOperationException();
+    }
 }

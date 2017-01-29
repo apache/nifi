@@ -29,6 +29,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -44,6 +45,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.sql.DataSource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -101,6 +104,37 @@ public class DBCPServiceTest {
         createInsertSelectDrop(connection);
 
         connection.close(); // return to pool
+    }
+
+    /**
+     * Test database getDataSource() using Derby. Connect, create table, insert, select, drop table.
+     *
+     */
+    @Test
+    public void testGetDataSource() throws InitializationException, SQLException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("test-good1", service);
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+
+        runner.enableControllerService(service);
+
+        runner.assertValid(service);
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
+        Assert.assertNotNull(dbcpService);
+        final DataSource dataSource = dbcpService.getDataSource();
+        Assert.assertNotNull(dataSource);
+
+        createInsertSelectDrop(dataSource);
     }
 
     /**
@@ -486,5 +520,26 @@ public class DBCPServiceTest {
 
         st.close();
     }
+
+    protected void createInsertSelectDrop(DataSource dataSource) throws SQLException {
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+        try {
+            jdbcTemplate.execute(dropTable);
+        } catch (final Exception e) {
+            // table may not exist, this is not serious problem.
+        }
+
+        jdbcTemplate.execute(createTable);
+
+        jdbcTemplate.update("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
+        jdbcTemplate.update("insert into restaurants values (2, 'Estradas', 'Daly City')");
+        jdbcTemplate.update("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
+
+        int nrOfRows = jdbcTemplate.queryForObject("select count(*) from restaurants", Integer.class);
+        assertEquals(3, nrOfRows);
+    }
+
 
 }
