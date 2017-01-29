@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -78,8 +81,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.bin.Bin;
 import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.BinManager;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackager;
@@ -621,11 +622,11 @@ public class MergeContent extends BinFiles {
             byte[] property = null;
             final String descriptorValue = context.getProperty(descriptor).evaluateAttributeExpressions().getValue();
             if (descriptorValue != null && flowFiles != null && flowFiles.size() > 0) {
-                final String content = new String(readContent(descriptorValue));
+                final String content = new String(readContent(descriptorValue), StandardCharsets.UTF_8);
                 final FlowFile flowFile = flowFiles.get(0);
                 if (flowFile != null && content != null) {
                     final PropertyValue propVal = context.newPropertyValue(content).evaluateAttributeExpressions(flowFile);
-                    property = propVal.getValue().getBytes();
+                    property = propVal.getValue().getBytes(StandardCharsets.UTF_8);
                 }
             }
             return property;
@@ -639,7 +640,7 @@ public class MergeContent extends BinFiles {
                 if (flowFile != null) {
                     final String value = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
                     if (value != null) {
-                        property = value.getBytes();
+                        property = value.getBytes(StandardCharsets.UTF_8);
                     }
                 }
             }
@@ -780,7 +781,6 @@ public class MergeContent extends BinFiles {
                                         if (attributes.containsKey(CoreAttributes.MIME_TYPE.key())) {
                                             attributes.put("content-type", attributes.get(CoreAttributes.MIME_TYPE.key()));
                                         }
-
                                         packager.packageFlowFile(in, out, attributes, flowFile.getSize());
                                     }
                                 }
