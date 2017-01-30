@@ -40,6 +40,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipOutputStream;
 
 import org.apache.avro.Schema;
@@ -810,6 +811,8 @@ public class MergeContent extends BinFiles {
 
         private final int compressionLevel;
 
+        private List<FlowFile> unmerged = new ArrayList<>();
+
         public ZipMerge(final int compressionLevel) {
             this.compressionLevel = compressionLevel;
         }
@@ -820,6 +823,7 @@ public class MergeContent extends BinFiles {
 
             final ProcessSession session = bin.getSession();
             final List<FlowFile> contents = bin.getContents();
+            unmerged.addAll(contents);
 
             FlowFile bundle = session.create(contents);
 
@@ -835,10 +839,15 @@ public class MergeContent extends BinFiles {
                             final String entryName = path + flowFile.getAttribute(CoreAttributes.FILENAME.key());
                             final ZipEntry zipEntry = new ZipEntry(entryName);
                             zipEntry.setSize(flowFile.getSize());
-                            out.putNextEntry(zipEntry);
+                            try {
+                                out.putNextEntry(zipEntry);
 
-                            bin.getSession().exportTo(flowFile, out);
-                            out.closeEntry();
+                                bin.getSession().exportTo(flowFile, out);
+                                out.closeEntry();
+                                unmerged.remove(flowFile);
+                            } catch (ZipException e) {
+                                getLogger().error("Encountered exception merging {}", new Object[]{flowFile}, e);
+                            }
                         }
 
                         out.finish();
@@ -858,7 +867,7 @@ public class MergeContent extends BinFiles {
 
         @Override
         public List<FlowFile> getUnmergedFlowFiles() {
-            return Collections.emptyList();
+            return unmerged;
         }
     }
 
