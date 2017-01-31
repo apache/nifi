@@ -37,6 +37,16 @@
 			<groupId>org.apache.avro</groupId>
 			<artifactId>avro</artifactId>
 		</dependency>
+        <!-- Used by Apache Avro and needed for handling Json types returned by various methods -->
+        <!-- https://mvnrepository.com/artifact/org.codehaus.jackson/jackson-mapper-asl -->
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-mapper-asl</artifactId>
+            <version>1.9.13</version>
+            <!--<scope>provided</scope>-->
+        </dependency>
+
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-registry-service</artifactId>
@@ -47,6 +57,11 @@
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
-        
+        <dependency>
+            <groupId>pl.pragmatists</groupId>
+            <artifactId>JUnitParams</artifactId>
+            <version>1.0.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

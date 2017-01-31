@@ -20,7 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,10 +36,17 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.htrace.fasterxml.jackson.databind.node.JsonNodeType;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.node.BooleanNode;
+import org.codehaus.jackson.node.DoubleNode;
+import org.codehaus.jackson.node.IntNode;
+import org.codehaus.jackson.node.LongNode;
+import org.codehaus.jackson.node.TextNode;
 
 /**
  * Various CSV related utility operations relevant to transforming contents of
@@ -79,17 +90,131 @@ class CSVUtils {
             Field field = fields.get(i);
             Type type = field.schema().getType();
             if (Type.INT == type) {
-                avroRecord.put(field.name(), Integer.parseInt(parsedRecord[i]));
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,IntNode.class);
+                    avroRecord.put(field.name(),defaultValue.getIntValue());
+                }else {
+                    avroRecord.put(field.name(), Integer.parseInt(parsedRecord[i]));
+                }
             } else if (Type.BOOLEAN == type) {
-                avroRecord.put(field.name(), Boolean.getBoolean(parsedRecord[i]));
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,BooleanNode.class);
+                    avroRecord.put(field.name(),defaultValue.getBooleanValue());
+                }else {
+                    avroRecord.put(field.name(), Boolean.parseBoolean(parsedRecord[i]));
+                }
             } else if (Type.DOUBLE == type) {
-                avroRecord.put(field.name(), Double.parseDouble(parsedRecord[i]));
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,DoubleNode.class);
+                    avroRecord.put(field.name(),defaultValue.getDoubleValue());
+                }else {
+                    avroRecord.put(field.name(), Double.parseDouble(parsedRecord[i]));
+                }
             } else if (Type.FLOAT == type) {
-                avroRecord.put(field.name(), Float.parseFloat(parsedRecord[i]));
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,DoubleNode.class);
+                    avroRecord.put(field.name(),defaultValue.getDoubleValue());
+                }else {
+                    avroRecord.put(field.name(), Float.parseFloat(parsedRecord[i]));
+                }
             } else if (Type.LONG == type) {
-                avroRecord.put(field.name(), Long.parseLong(parsedRecord[i]));
-            } else if (Type.BYTES == type || Type.ARRAY == type || Type.ENUM == type || Type.FIXED == type
-                    || Type.MAP == type || Type.NULL == type || Type.RECORD == type || Type.UNION == type) {
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,LongNode.class);
+                    avroRecord.put(field.name(),defaultValue.getLongValue());
+                }else {
+                    avroRecord.put(field.name(), Long.parseLong(parsedRecord[i]));
+                }
+            }else if (Type.STRING == type) {
+                if(null == parsedRecord[i]){
+                    final JsonNode defaultValue = possiblyGetDefaultValue(field,TextNode.class);
+                    avroRecord.put(field.name(),defaultValue.getTextValue());
+                }else {
+                    avroRecord.put(field.name(), parsedRecord[i]);
+                }
+            } else if (Type.BYTES == type){
+                avroRecord.put(field.name(), encodeLogicalType(field,parsedRecord[i]));
+            } else if (Type.UNION == type) {
+                List<Schema> fieldTypes = field.schema().getTypes();
+                if (null == parsedRecord[i]) {
+                    if(null == field.defaultValue()){
+                        throw new IllegalArgumentException("The field '" + field.name() + "' is NULL and there is no " +
+                                "default value supplied in the Avro Schema");
+                    }else {
+
+                        final JsonNode defaultValue = field.defaultValue();
+                        if(defaultValue instanceof IntNode){
+                            avroRecord.put(field.name(),defaultValue.getIntValue());
+                        }else if(defaultValue instanceof BooleanNode){
+                            avroRecord.put(field.name(),defaultValue.getBooleanValue());
+                        }else if(defaultValue instanceof DoubleNode){
+                            avroRecord.put(field.name(),defaultValue.getDoubleValue());
+                        }else if(defaultValue instanceof LongNode){
+                            avroRecord.put(field.name(),defaultValue.getLongValue());
+                        }else if(defaultValue instanceof TextNode){
+                            avroRecord.put(field.name(),defaultValue.getTextValue());
+                        }
+                    }
+                } else {
+                    //we need to walk the field types and see if the parsedRecord field either is
+                    //or can be converted to this type.
+                    for (Schema fieldSchema : fieldTypes) {
+
+                        Type fieldType = fieldSchema.getType();
+                        if(Type.NULL == fieldType){
+                            //already handled NULL value before
+                            continue;
+                        }
+                        if (Type.INT == fieldType) {
+                            try {
+                                avroRecord.put(field.name(), Integer.parseInt(parsedRecord[i]));
+                                break;
+                            } catch (NumberFormatException nfe) {
+                                //swallow this as there may be a different type the field can parse into.
+                            }
+                        } else if (Type.BOOLEAN == fieldType) {
+                            //we need to check and see if this really is a boolean value -- true or false,
+                            //if it is neither then the data is not valid!
+                            if (parsedRecord[i].equalsIgnoreCase("true")) {
+                                avroRecord.put(field.name(), "true");
+                                break;
+                            } else if (parsedRecord[i].equalsIgnoreCase("false")) {
+                                avroRecord.put(field.name(), "false");
+                                break;
+                            }
+
+                        } else if (Type.DOUBLE == fieldType) {
+                            try {
+                                avroRecord.put(field.name(), Double.parseDouble(parsedRecord[i]));
+                                break;
+                            } catch (NumberFormatException nfe) {
+                                //swallow this as there may be a different type the field can parse into.
+                            }
+                        } else if (Type.FLOAT == fieldType) {
+                            try {
+                                avroRecord.put(field.name(), Float.parseFloat(parsedRecord[i]));
+                                break;
+                            } catch (NumberFormatException nfe) {
+                                //swallow this as there may be a different type the field can parse into.
+                            }
+                        } else if (Type.LONG == fieldType) {
+                            try {
+                                avroRecord.put(field.name(), Long.parseLong(parsedRecord[i]));
+                                break;
+                            } catch (NumberFormatException nfe) {
+                                //swallow this as there may be a different type the field can parse into.
+                            }
+                        } else if (Type.STRING == fieldType) {
+                            avroRecord.put(field.name(), parsedRecord[i]);
+                            break;
+                        }else if (Type.BYTES == fieldType){
+                                avroRecord.put(field.name(), encodeLogicalType(field,parsedRecord[i]));
+                        } else {
+                            throw new IllegalArgumentException("The field type '" + fieldType + "' is not supported at the moment");
+                        }
+                    }
+                }
+            } else if (Type.ARRAY == type || Type.ENUM == type || Type.FIXED == type
+                    || Type.MAP == type || Type.NULL == type || Type.RECORD == type) {
                 throw new IllegalArgumentException("The field type '" + type + "' is not supported at the moment");
             } else {
                 avroRecord.put(field.name(), parsedRecord[i]);
@@ -98,6 +223,64 @@ class CSVUtils {
         return avroRecord;
     }
 
+    private static ByteBuffer encodeLogicalType(final Field field, final String fieldValue){
+        if(!"decimal".contentEquals(field.getProp("logicalType"))){
+            throw new IllegalArgumentException("The field '" + field.name() + "' has a logical type of '" +
+                    field.getProp("logicalType") + "' that is currently not supported.");
+        }
+
+        final JsonNode rawPrecision = field.getJsonProp("precision");
+        if(null == rawPrecision){
+            throw new IllegalArgumentException("The field '" + field.name() + "' is missing the required precision " +
+                    "property");
+        }
+        int precision = rawPrecision.asInt();
+        final JsonNode rawScale = field.getJsonProp("scale");
+        int scale = null == rawScale ? 0 : rawScale.asInt();
+
+
+        NumberFormat numberFormat = DecimalFormat.getInstance();
+        numberFormat.setGroupingUsed(false);
+
+        //according to the 1.7.7 spec:
+        //If a logical type is invalid, for example a decimal with scale greater than its precision,
+        // then implementations should ignore the logical type and use the underlying Avro type.
+        if(scale < precision){
+            //write out with the specified precision and scale.
+            numberFormat.setMaximumIntegerDigits(precision);
+            numberFormat.setMaximumFractionDigits(scale);
+        }
+
+        if(null == fieldValue){
+            //use the default if it is there, otherwise throw...
+            JsonNode defaultValue = field.defaultValue();
+            if(null == defaultValue){
+                throw new IllegalArgumentException("The field '" + field.name() + "' is NULL and there is no " +
+                        "default value supplied in the Avro Schema");
+            }
+            return ByteBuffer.wrap(numberFormat.format(new BigDecimal(defaultValue.asText())).getBytes(StandardCharsets.UTF_8));
+        }else {
+            return ByteBuffer.wrap(numberFormat.format(new BigDecimal(fieldValue)).getBytes(StandardCharsets.UTF_8));
+        }
+    }
+    private static <T extends JsonNode> JsonNode possiblyGetDefaultValue(final Field field, final Class<T> expectedDefaultType){
+        //need to check and see if there is a default value to use, if not then we need to throw
+        //an error as the data is not valid.
+        if(null == field.defaultValue()){
+            throw new IllegalArgumentException("The field '" + field.name() + "' is NULL and there is no " +
+                    "default value supplied in the Avro Schema");
+        }else{
+            if(field.defaultValue().getClass() == expectedDefaultType) {
+                return field.defaultValue();
+            }else{
+                //since we do not support schema evolution here we need to throw an exception here
+                //as the data is in error.
+                throw new IllegalArgumentException("The field '" + field.name() + "' has a default value that " +
+                        "does not match the field type. Field Type is: '" + expectedDefaultType.getName() + "' and the " +
+                        "default value type is: '" + field.defaultValue().toString());
+            }
+        }
+    }
     /**
      * Parses provided record into fields using provided delimiter. The
      * 'quoteChar' is used to ensure that if a delimiter char is in quotes it
@@ -113,13 +296,25 @@ class CSVUtils {
             }
             boolean atLastChar = (i == record.length() - 1);
             if (atLastChar) {
-                result.add(record.substring(start));
+
+                if(record.charAt(i) == delimiter){
+                    //missing last column value, add NULL
+                    result.add(record.substring(start,i));
+                    result.add(null);
+                }else{
+                    result.add(record.substring(start));
+                }
             } else if (record.charAt(i) == delimiter && !inQuotes) {
-                result.add(record.substring(start, i));
+                if (start == i) {
+                    //There is no value, so add NULL to indicated the absence of a value for this field.
+                    result.add(null);
+                } else {
+                    result.add(record.substring(start, i));
+                }
                 start = i + 1;
             }
         }
-        return result.toArray(new String[] {});
+        return result.toArray(new String[]{});
     }
 
     /**
@@ -133,7 +328,45 @@ class CSVUtils {
         try {
             for (Field field : fields) {
                 out.write(delimiterToUse.getBytes(StandardCharsets.UTF_8));
-                out.write(record.get(field.name()).toString().getBytes(StandardCharsets.UTF_8));
+                Object fieldValue = record.get(field.name());
+                if (null == fieldValue) {
+                    out.write(new byte[0]);
+                } else {
+                    if(Type.BYTES == field.schema().getType()){
+                        //need to create it from the ByteBuffer it is serialized as.
+                        //need to ensure the type is one of the logical ones we support and if so convert it.
+                        if(!"decimal".contentEquals(field.getProp("logicalType"))){
+                            throw new IllegalArgumentException("The field '" + field.name() + "' has a logical type of '" +
+                                    field.getProp("logicalType") + "' that is currently not supported.");
+                        }
+
+                        final JsonNode rawPrecision = field.getJsonProp("precision");
+                        if(null == rawPrecision){
+                            throw new IllegalArgumentException("The field '" + field.name() + "' is missing the required precision " +
+                                    "property");
+                        }
+                        int precision = rawPrecision.asInt();
+                        final JsonNode rawScale = field.getJsonProp("scale");
+                        int scale = null == rawScale ? 0 : rawScale.asInt();
+
+                        //write out the decimal with the precision and scale.
+                        NumberFormat numberFormat = DecimalFormat.getInstance();
+                        numberFormat.setGroupingUsed(false);
+                        //according to the 1.7.7 spec:
+                        //If a logical type is invalid, for example a decimal with scale greater than its precision,
+                        // then implementations should ignore the logical type and use the underlying Avro type.
+                        if(scale < precision){
+                            //write out with the specified precision and scale.
+                            numberFormat.setMaximumIntegerDigits(precision);
+                            numberFormat.setMaximumFractionDigits(scale);
+                            numberFormat.setMinimumFractionDigits(scale);
+                        }
+                        final String rawValue  = new String(((ByteBuffer)fieldValue).array());
+                        out.write(numberFormat.format(new BigDecimal(rawValue)).getBytes(StandardCharsets.UTF_8));
+                    }else {
+                        out.write(fieldValue.toString().getBytes(StandardCharsets.UTF_8));
+                    }
+                }
                 if (delimiterToUse.length() == 0) {
                     delimiterToUse = String.valueOf(delimiter);
                 }
