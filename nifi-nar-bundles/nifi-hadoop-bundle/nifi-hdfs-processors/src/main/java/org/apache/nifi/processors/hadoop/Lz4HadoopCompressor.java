@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.hadoop;
 
 import java.io.BufferedInputStream;
@@ -34,123 +50,118 @@ import org.apache.nifi.util.StopWatch;
 
 /**
  * This class allows NiFi to generate Lz4-compressed data that may be loaded to HDFS.
- *
+ * <p>
  * Per https://issues.apache.org/jira/browse/NIFI-3420 data compressed
  * using the Lz4 CLI is not readable by the native Hadoop Lz4 codec. This
- * processor adds the ability to convert data into a Hadoop-readable Lz4
+ * processor adds the ability to convert data into Hadoop-readable block compressed Lz4
  * data by using the actual Hadoop Lz4 codec to do the compression.
  */
 @SideEffectFree
 @Tags({"Lz4", "Hadoop", "HDFS"})
-@CapabilityDescription("Compress data as Hadoop-readable lz4.")
-public class Lz4HadoopCompressor extends AbstractProcessor
-{
-  public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("").build();
+@CapabilityDescription("Compress data as block compressed lz4.")
+public class Lz4HadoopCompressor extends AbstractProcessor {
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("").build();
 
-  private Set<Relationship> relationships;
-  private List<PropertyDescriptor> properties;
+    private Set<Relationship> relationships;
+    private List<PropertyDescriptor> properties;
 
-  public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
-      .name("Buffer Size")
-      .defaultValue("" + 64 * 1024)
-      .description("The size of the buffer to use for lz4 decompression, default 64k")
-      .expressionLanguageSupported(true)
-      .addValidator(StandardValidators.INTEGER_VALIDATOR)
-      .required(true)
-      .build();
+    public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("Lz4 Buffer Size")
+            .displayName("Lz4 Buffer Size")
+            .defaultValue("" + 64 * 1024)
+            .description("The size of the buffer to use for lz4 decompression, default 64k")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .required(true)
+            .build();
 
-  @Override
-  public Set<Relationship> getRelationships() {
-    return relationships;
-  }
-
-  @Override
-  protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-    return properties;
-  }
-
-  @Override
-  public void init(final ProcessorInitializationContext context)
-  {
-    final Set<Relationship> relationships = new HashSet<>();
-    relationships.add(REL_SUCCESS);
-    this.relationships = Collections.unmodifiableSet(relationships);
-
-    final List<PropertyDescriptor> properties = new ArrayList<>();
-    properties.add(BUFFER_SIZE);
-    this.properties = Collections.unmodifiableList(properties);
-  }
-
-  @Override
-  public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException
-  {
-    FlowFile flowFile = session.get();
-
-    if (flowFile == null) {
-      return;
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
     }
 
-    final int bufferSize = context.getProperty(BUFFER_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
+    }
 
-    // Use a buffer to store compressed data
-    final DataOutputBuffer compressedDataBuffer = new DataOutputBuffer(bufferSize);
+    @Override
+    public void init(final ProcessorInitializationContext context) {
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        this.relationships = Collections.unmodifiableSet(relationships);
 
-    // Raw buffer to use for reading from the input stream -> passed to block compression algorithm
-    final byte[] rawBuffer = new byte[bufferSize];
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(BUFFER_SIZE);
+        this.properties = Collections.unmodifiableList(properties);
+    }
 
-    int compressionOverhead = (bufferSize / 6) + 32;
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
 
-    // Define the stream that does the compression and outputs to a compressedDataBuffer
-    // to store data
-    final CompressionOutputStream compressedStream = new BlockCompressorStream(
-        compressedDataBuffer, new Lz4Compressor(bufferSize), bufferSize, compressionOverhead);
-
-    // Wrap the compression stream in a data output stream
-    final DataOutputStream compressedOut = new DataOutputStream(new BufferedOutputStream(compressedStream));
-
-    try {
-      final StopWatch stopWatch = new StopWatch(true);
-
-      session.write(flowFile, new StreamCallback()
-      {
-        @Override
-        public void process(InputStream in, OutputStream out) throws IOException
-        {
-          try (final BufferedInputStream reader = new BufferedInputStream(in, bufferSize);
-              final BufferedOutputStream writer = new BufferedOutputStream(out, bufferSize)) {
-            compressedDataBuffer.reset();
-            int bytesRead;
-
-            while ((bytesRead = reader.read(rawBuffer, 0, bufferSize)) != -1) {
-              // Write the output of the compression
-              compressedOut.write(rawBuffer, 0, bytesRead);
-              compressedOut.flush();
-
-              compressedStream.finish();
-
-              writer.write(compressedDataBuffer.getData(), 0, compressedDataBuffer.getLength());
-            }
-
-            writer.flush();
-          } catch (Exception ex) {
-            ex.printStackTrace();
-            getLogger().error("Failed to output compressed data");
-          }
+        if (flowFile == null) {
+            return;
         }
-      });
 
-      session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-      getLogger().info("Succesfully compressed bytes to lz4");
-    } catch (final Exception e) {
-      throw new ProcessException(e);
-    } finally {
-      try {
-        compressedOut.close();
-      } catch (IOException e) {
-        getLogger().error("Failed to close compressed output stream");
-      }
+        final int bufferSize = context.getProperty(BUFFER_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+
+        // Use a buffer to store compressed data
+        final DataOutputBuffer compressedDataBuffer = new DataOutputBuffer(bufferSize);
+
+        // Raw buffer to use for reading from the input stream -> passed to block compression algorithm
+        final byte[] rawBuffer = new byte[bufferSize];
+
+        int compressionOverhead = (bufferSize / 255) + 16; // Magic numbers from Lz4Codec class in Hadoop
+
+        // Define the stream that does the compression and outputs to a compressedDataBuffer
+        // to store data
+        final CompressionOutputStream compressedStream = new BlockCompressorStream(
+                compressedDataBuffer, new Lz4Compressor(bufferSize), bufferSize, compressionOverhead);
+
+        // Wrap the compression stream in a data output stream
+        final DataOutputStream compressedOut = new DataOutputStream(new BufferedOutputStream(compressedStream));
+
+        try {
+            final StopWatch stopWatch = new StopWatch(true);
+
+            session.write(flowFile, new StreamCallback() {
+                @Override
+                public void process(InputStream in, OutputStream out) throws IOException {
+                    try (final BufferedInputStream reader = new BufferedInputStream(in, bufferSize);
+                         final BufferedOutputStream writer = new BufferedOutputStream(out, bufferSize)) {
+                        compressedDataBuffer.reset();
+                        int bytesRead;
+
+                        while ((bytesRead = reader.read(rawBuffer, 0, bufferSize)) != -1) {
+                            // Write the output of the compression
+                            compressedOut.write(rawBuffer, 0, bytesRead);
+                            compressedOut.flush();
+
+                            compressedStream.finish();
+
+                            writer.write(compressedDataBuffer.getData(), 0, compressedDataBuffer.getLength());
+                            writer.flush();
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        getLogger().error("Failed to output compressed data");
+                    }
+                }
+            });
+
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            getLogger().info("Succesfully compressed bytes to lz4");
+        } catch (final Exception e) {
+            throw new ProcessException(e);
+        } finally {
+            try {
+                compressedOut.close();
+            } catch (IOException e) {
+                getLogger().error("Failed to close compressed output stream");
+            }
+        }
+
+        session.transfer(flowFile, REL_SUCCESS);
     }
-
-    session.transfer(flowFile, REL_SUCCESS);
-  }
 }
