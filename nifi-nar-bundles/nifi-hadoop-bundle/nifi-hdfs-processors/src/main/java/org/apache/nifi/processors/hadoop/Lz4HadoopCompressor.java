@@ -29,10 +29,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import net.jpountz.lz4.LZ4BlockInputStream;
+import net.jpountz.lz4.LZ4BlockOutputStream;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.compress.BlockCompressorStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
-import org.apache.hadoop.io.compress.lz4.Lz4Compressor;
+
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -106,42 +108,24 @@ public class Lz4HadoopCompressor extends AbstractProcessor {
 
         final int bufferSize = context.getProperty(BUFFER_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
 
-        // Use a buffer to store compressed data
-        final DataOutputBuffer compressedDataBuffer = new DataOutputBuffer(bufferSize);
-
         // Raw buffer to use for reading from the input stream -> passed to block compression algorithm
         final byte[] rawBuffer = new byte[bufferSize];
-
-        int compressionOverhead = (bufferSize / 255) + 16; // Magic numbers from Lz4Codec class in Hadoop
-
-        // Define the stream that does the compression and outputs to a compressedDataBuffer
-        // to store data
-        final CompressionOutputStream compressedStream = new BlockCompressorStream(
-                compressedDataBuffer, new Lz4Compressor(bufferSize), bufferSize, compressionOverhead);
-
-        // Wrap the compression stream in a data output stream
-        final DataOutputStream compressedOut = new DataOutputStream(new BufferedOutputStream(compressedStream));
 
         try {
             final StopWatch stopWatch = new StopWatch(true);
 
-            session.write(flowFile, new StreamCallback() {
+            flowFile = session.write(flowFile, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
                     try (final BufferedInputStream reader = new BufferedInputStream(in, bufferSize);
-                         final BufferedOutputStream writer = new BufferedOutputStream(out, bufferSize)) {
-                        compressedDataBuffer.reset();
+                         final BufferedOutputStream writer = new BufferedOutputStream(out, bufferSize);
+                         final LZ4BlockOutputStream compressionStream = new LZ4BlockOutputStream(writer, bufferSize)) {
                         int bytesRead;
 
                         while ((bytesRead = reader.read(rawBuffer, 0, bufferSize)) != -1) {
                             // Write the output of the compression
-                            compressedOut.write(rawBuffer, 0, bytesRead);
-                            compressedOut.flush();
-
-                            compressedStream.finish();
-
-                            writer.write(compressedDataBuffer.getData(), 0, compressedDataBuffer.getLength());
-                            writer.flush();
+                            compressionStream.write(rawBuffer, 0, bytesRead);
+                            compressionStream.flush();
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -154,12 +138,6 @@ public class Lz4HadoopCompressor extends AbstractProcessor {
             getLogger().info("Succesfully compressed bytes to lz4");
         } catch (final Exception e) {
             throw new ProcessException(e);
-        } finally {
-            try {
-                compressedOut.close();
-            } catch (IOException e) {
-                getLogger().error("Failed to close compressed output stream");
-            }
         }
 
         session.transfer(flowFile, REL_SUCCESS);

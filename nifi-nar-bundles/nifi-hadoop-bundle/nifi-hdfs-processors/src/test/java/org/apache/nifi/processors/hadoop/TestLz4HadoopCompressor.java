@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import net.jpountz.lz4.LZ4BlockInputStream;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.compress.BlockDecompressorStream;
 import org.apache.hadoop.io.compress.CompressionInputStream;
@@ -43,11 +44,11 @@ public class TestLz4HadoopCompressor
         byte[] decompressed = new byte[BUFFER_SIZE];
         int decompressedBytes;
         // Connect the decompressor stream to the input stream of compressed data
-        CompressionInputStream inflateFilter = new BlockDecompressorStream(is, new Lz4Decompressor(BUFFER_SIZE), BUFFER_SIZE);
+
+        LZ4BlockInputStream decompressorStream = new LZ4BlockInputStream(is);
 
         // Read and decompress the data in the input stream
-
-        while ((decompressedBytes = inflateFilter.read(decompressed, 0, BUFFER_SIZE)) != -1) {
+        while ((decompressedBytes = decompressorStream.read(decompressed, 0, BUFFER_SIZE)) != -1) {
             os.write(decompressed, 0, decompressedBytes);
             os.flush();
             bytesTotal += decompressedBytes;
@@ -82,16 +83,16 @@ public class TestLz4HadoopCompressor
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Lz4HadoopCompressor.REL_SUCCESS, 1);
+
         final MockFlowFile output = runner.getFlowFilesForRelationship(Lz4HadoopCompressor.REL_SUCCESS).get(0);
 
         BufferedInputStream is = new BufferedInputStream(new ByteArrayInputStream(output.toByteArray()));
 
-        BufferedOutputStream os = new BufferedOutputStream(new ByteArrayOutputStream(BUFFER_SIZE));
+        ByteArrayOutputStream os = new ByteArrayOutputStream(BUFFER_SIZE);
 
         int decompressedBytes = decompress(is, os);
 
-        byte[] decompressed = new byte[decompressedBytes];
-        os.write(decompressed, 0, decompressedBytes);
+        byte[] decompressed = os.toByteArray();
 
         assertArrayEquals("original array not equals compress/decompressed array", decompressed,
                 rawData);
@@ -111,24 +112,34 @@ public class TestLz4HadoopCompressor
     public void testMultiBuffer() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new Lz4HadoopCompressor());
 
-        byte[] rawData = generate(BUFFER_SIZE * 50);
+        byte[] rawData = generate(BUFFER_SIZE * 500);
 
         runner.enqueue(rawData);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Lz4HadoopCompressor.REL_SUCCESS, 1);
+
         final MockFlowFile output = runner.getFlowFilesForRelationship(Lz4HadoopCompressor.REL_SUCCESS).get(0);
 
         BufferedInputStream is = new BufferedInputStream(new ByteArrayInputStream(output.toByteArray()));
 
-        BufferedOutputStream os = new BufferedOutputStream(new ByteArrayOutputStream(BUFFER_SIZE));
+        ByteArrayOutputStream os = new ByteArrayOutputStream(BUFFER_SIZE);
 
         int decompressedBytes = decompress(is, os);
 
-        byte[] decompressed = new byte[decompressedBytes];
-        os.write(decompressed, 0, decompressedBytes);
+        byte[] decompressed = os.toByteArray();
 
         assertArrayEquals("original array not equals compress/decompressed array", decompressed,
                 rawData);
+
+        BufferedOutputStream rawWriter = new BufferedOutputStream(new FileOutputStream("/tmp/raw.lz4"));
+        BufferedOutputStream fileWriter = new BufferedOutputStream(new FileOutputStream("/tmp/test.lz4"));
+        fileWriter.write(output.toByteArray());
+        fileWriter.flush();
+        fileWriter.close();
+
+        rawWriter.write(rawData);
+        rawWriter.flush();
+        rawWriter.close();
     }
 }
