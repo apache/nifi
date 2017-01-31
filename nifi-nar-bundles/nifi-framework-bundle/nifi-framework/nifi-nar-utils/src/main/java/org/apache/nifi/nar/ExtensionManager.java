@@ -308,12 +308,21 @@ public class ExtensionManager {
     public static void logClassLoaderMapping() {
         final StringBuilder builder = new StringBuilder();
 
-        builder.append("Extension Type Mapping to Classloader:");
+        builder.append("Extension Type Mapping to Bundle:");
         for (final Map.Entry<Class, Set<Class>> entry : definitionMap.entrySet()) {
-            builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" type || Classloader ===");
+            builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 
             for (final Class type : entry.getValue()) {
-                builder.append("\n\t").append(type.getName()).append(" || ");//.append(getClassLoader(type.getName()));
+                final List<Bundle> bundles = classNameBundleLookup.containsKey(type.getName()) ?
+                        classNameBundleLookup.get(type.getName()) : Collections.emptyList();
+
+                builder.append("\n\t").append(type.getName());
+
+                for (final Bundle bundle : bundles) {
+                    final String coordinate = bundle.getBundleDetails().getCoordinate().getCoordinate();
+                    final String workingDir = bundle.getBundleDetails().getWorkingDirectory().getPath();
+                    builder.append("\n\t\t").append(coordinate).append(" || ").append(workingDir);
+                }
             }
 
             builder.append("\n\t=== End ").append(entry.getKey().getSimpleName()).append(" types ===");

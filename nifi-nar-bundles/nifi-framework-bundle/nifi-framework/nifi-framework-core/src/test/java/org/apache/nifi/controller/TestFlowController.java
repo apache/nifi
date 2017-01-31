@@ -364,7 +364,8 @@ public class TestFlowController {
 
     @Test
     public void testProcessorDefaultSettingsAnnotation() throws ProcessorInstantiationException,ClassNotFoundException {
-        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor", null);
+
+        ProcessorNode p_settings = controller.createProcessor(DummySettingsProcessor.class.getName(),"1234-SettingsProcessor", systemBundle.getBundleDetails().getCoordinate());
         assertEquals("5 sec",p_settings.getYieldPeriod());
         assertEquals("1 min",p_settings.getPenalizationPeriod());
         assertEquals(LogLevel.DEBUG,p_settings.getBulletinLevel());

@@ -85,19 +85,6 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testListenTCP2() throws IOException, InterruptedException {
-        final List<String> messages = new ArrayList<>();
-        messages.add("This is message 1\nThis is message 2\nThis is message 3\nThis is message 4\nThis is message 5\n");
-
-        runTCP(messages, 5, null);
-
-        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
-        for (int i=0; i < mockFlowFiles.size(); i++) {
-            mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
-        }
-    }
-
-    @Test
     public void testListenTCPBatching() throws IOException, InterruptedException {
         runner.setProperty(ListenTCP.MAX_BATCH_SIZE, "3");
 
@@ -250,7 +237,7 @@ public class TestListenTCP {
             }
 
             // want to fail here if the queue size isn't what we expect
-            Assert.assertEquals(expectedTransferred, proc.getQueueSize());
+            Assert.assertEquals(messages.size(), proc.getQueueSize());
 
             // call onTrigger until we processed all the frames, or a certain amount of time passes
             int numTransferred = 0;

@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -60,7 +59,6 @@ import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -84,7 +82,6 @@ public class TestStandardProcessorNode {
 
     @Test(timeout = 10000)
     public void testStart() throws InterruptedException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessorNode.class.getResource("/conf/nifi.properties").getFile());
         final ProcessorThatThrowsExceptionOnScheduled processor = new ProcessorThatThrowsExceptionOnScheduled();
         final String uuid = UUID.randomUUID().toString();
 
@@ -145,8 +142,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        discoverExtensions(procNode);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -189,8 +184,6 @@ public class TestStandardProcessorNode {
 
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp, otherProp));
         final StandardProcessorNode procNode = createProcessorNode(processor);
-
-        discoverExtensions(procNode);
 
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
@@ -260,8 +253,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        discoverExtensions(procNode);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -308,8 +299,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathProcessor processor = new ModifiesClasspathProcessor(Arrays.asList(classpathProp1, classpathProp2));
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        discoverExtensions(procNode);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Should have an InstanceClassLoader here
             final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
@@ -348,8 +337,6 @@ public class TestStandardProcessorNode {
         final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
         final StandardProcessorNode procNode = createProcessorNode(processor);
 
-        discoverExtensions(procNode);
-
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())){
             // Can't validate the ClassLoader here b/c the class is missing the annotation
 
@@ -377,30 +364,22 @@ public class TestStandardProcessorNode {
         }
     }
 
-    private void discoverExtensions(final StandardProcessorNode procNode) {
-        final BundleCoordinate bc = new BundleCoordinate("group", "artifact", "version");
-        final BundleDetails bd = new BundleDetails.Builder().workingDir(new File("src/test/resources")).coordinate(bc).build();
-
-        final Set<Bundle> bundles = new HashSet<>();
-        bundles.add(new Bundle(bd, procNode.getProcessor().getClass().getClassLoader()));
-
-        // Load all of the extensions in src/test/java of this project
-        ExtensionManager.discoverExtensions(bundles);
-    }
-
     private StandardProcessorNode createProcessorNode(Processor processor) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", null);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
         final ComponentLog componentLog = Mockito.mock(ComponentLog.class);
-        final BundleCoordinate coordinate = Mockito.mock(BundleCoordinate.class);
+
+        final Bundle systemBundle = ExtensionManager.createSystemBundle(niFiProperties);
+        ExtensionManager.discoverExtensions(Collections.singleton(systemBundle));
+        ExtensionManager.createInstanceClassLoader(processor.getClass().getName(), uuid, systemBundle);
 
         ProcessorInitializationContext initContext = new StandardProcessorInitializationContext(uuid, componentLog, null, null, null);
         processor.initialize(initContext);
 
         return new StandardProcessorNode(processor, uuid, validationContextFactory, processScheduler, null,
-                niFiProperties, variableRegistry, coordinate, componentLog);
+                niFiProperties, variableRegistry, systemBundle.getBundleDetails().getCoordinate(), componentLog);
     }
 
     private boolean containsResource(URL[] resources, URL resourceToFind) {

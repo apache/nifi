@@ -56,7 +56,7 @@ public class BundleCoordinateTest {
         assertEquals(BundleCoordinate.DEFAULT_GROUP, coordinate.getGroup());
         assertEquals(id, coordinate.getId());
         assertEquals(version, coordinate.getVersion());
-        assertEquals(group + ":" + id + ":" + version, coordinate.getCoordinate());
+        assertEquals(BundleCoordinate.DEFAULT_GROUP + ":" + id + ":" + version, coordinate.getCoordinate());
     }
 
     @Test
@@ -69,6 +69,6 @@ public class BundleCoordinateTest {
         assertEquals(group, coordinate.getGroup());
         assertEquals(id, coordinate.getId());
         assertEquals(BundleCoordinate.DEFAULT_VERSION, coordinate.getVersion());
-        assertEquals(group + ":" + id + ":" + version, coordinate.getCoordinate());
+        assertEquals(group + ":" + id + ":" + BundleCoordinate.DEFAULT_VERSION, coordinate.getCoordinate());
     }
 }

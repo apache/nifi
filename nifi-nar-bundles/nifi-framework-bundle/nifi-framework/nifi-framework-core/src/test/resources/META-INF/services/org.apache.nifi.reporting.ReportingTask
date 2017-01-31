@@ -12,8 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.controller.service.util.TestControllerService
-org.apache.nifi.controller.service.mock.ServiceA
-org.apache.nifi.controller.service.mock.ServiceB
-org.apache.nifi.controller.service.mock.ServiceC
-org.apache.nifi.controller.service.mock.ServiceD
+org.apache.nifi.controller.service.mock.DummyReportingTask

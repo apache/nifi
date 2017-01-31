@@ -161,8 +161,7 @@ public class ControllerServiceLoader {
         // create a new id for the clone seeded from the original id so that it is consistent in a cluster
         final UUID id = UUID.nameUUIDFromBytes(controllerService.getIdentifier().getBytes(StandardCharsets.UTF_8));
 
-        // TODO pass in bundle coordinate
-        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), null, false);
+        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), controllerService.getBundleCoordinate(), false);
         clone.setName(controllerService.getName());
         clone.setComments(controllerService.getComments());
 
