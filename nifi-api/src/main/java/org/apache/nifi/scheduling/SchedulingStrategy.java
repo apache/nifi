@@ -71,7 +71,11 @@ public enum SchedulingStrategy {
      * Indicates that the component will be scheduled to run according to a
      * Cron-style expression
      */
-    CRON_DRIVEN(1, "* * * * * ?");
+    CRON_DRIVEN(1, "* * * * * ?"),
+    /**
+     * Component will only run one time before stopping automatically
+     */
+    RUN_ONCE(1, "0 sec");
 
     private final int defaultConcurrentTasks;
     private final String defaultSchedulingPeriod;

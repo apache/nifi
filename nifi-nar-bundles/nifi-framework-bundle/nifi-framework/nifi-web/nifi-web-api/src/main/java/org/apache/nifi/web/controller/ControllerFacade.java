@@ -1633,6 +1633,8 @@ public class ControllerFacade implements Authorizable {
         } else if (SchedulingStrategy.PRIMARY_NODE_ONLY.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("primary", searchStr)) {
             // PRIMARY_NODE_ONLY has been deprecated as a SchedulingStrategy and replaced by PRIMARY as an ExecutionNode.
             matches.add("Scheduling strategy: On primary node");
+        } else if (SchedulingStrategy.RUN_ONCE.equals(procNode.getSchedulingStrategy()) && StringUtils.containsIgnoreCase("once", searchStr)) {
+            matches.add("Scheduling strategy: Run once");
         }
 
         // consider execution node

@@ -504,6 +504,11 @@ The first configuration option is the Scheduling Strategy. There are three possi
         as the result of an event. Additionally, this is the only mode for which the `Concurrent tasks'
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
 	the administrator has configured.
+	
+*Run once*: In this mode the Processor will run once and then automatically stop.  This is convenient when developing and debugging flows,
+  or when building "visual scripts" for ad-hoc process integration or iterative analytics.
+  For example, individual processors set to `Run once' can be selected on the canvas with a shift-click.  Then clicking `Start' on the Operate Palette
+  will start those processors which will run once and stop.  Then one can modify processing parameters and repeat.	
 
 *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
 		Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of

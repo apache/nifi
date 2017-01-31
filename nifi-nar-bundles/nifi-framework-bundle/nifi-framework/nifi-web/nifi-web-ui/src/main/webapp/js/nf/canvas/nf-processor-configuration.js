@@ -69,6 +69,12 @@ nf.ProcessorConfiguration = (function () {
             description: 'Processor will be scheduled to run on at specific times based on the specified CRON string.'
         });
 
+        // add an option for RUN_ONCE driven
+        strategies.push({
+            text: 'Run once',
+            value: 'RUN_ONCE',
+            description: 'Processor will be scheduled to run one time before stopping automatically.'
+        });
         return strategies;
     };
 
@@ -190,6 +196,8 @@ nf.ProcessorConfiguration = (function () {
                 concurrentTasks = $('#event-driven-concurrently-schedulable-tasks');
             } else if (schedulingStrategy === 'CRON_DRIVEN') {
                 concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks');
+            } else if (schedulingStrategy === 'RUN_ONCE') {
+                concurrentTasks = $('#run-once-concurrently-schedulable-tasks');
             } else {
                 concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks');
             }
@@ -204,6 +212,8 @@ nf.ProcessorConfiguration = (function () {
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
+        } else if (schedulingStrategy === 'RUN_ONCE') {
+           schedulingPeriod = $('#run-once-scheduling-period');
         } else if (schedulingStrategy !== 'EVENT_DRIVEN') {
             schedulingPeriod = $('#timer-driven-scheduling-period');
         }
@@ -257,8 +267,10 @@ nf.ProcessorConfiguration = (function () {
             concurrentTasks = $('#event-driven-concurrently-schedulable-tasks');
         } else if (schedulingStrategy === 'CRON_DRIVEN') {
             concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks');
+        } else if (schedulingStrategy === 'RUN_ONCE') {
+            concurrentTasks = $('#run-once-concurrently-schedulable-tasks');
         } else {
-            concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks');
+        	concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks');
         }
 
         // get the concurrent tasks if appropriate
@@ -270,6 +282,8 @@ nf.ProcessorConfiguration = (function () {
         var schedulingPeriod;
         if (schedulingStrategy === 'CRON_DRIVEN') {
             schedulingPeriod = $('#cron-driven-scheduling-period');
+        } else if (schedulingStrategy === 'RUN_ONCE') {
+            schedulingPeriod = $('#run-once-scheduling-period');
         } else if (schedulingStrategy !== 'EVENT_DRIVEN') {
             schedulingPeriod = $('#timer-driven-scheduling-period');
         }
@@ -609,7 +623,7 @@ nf.ProcessorConfiguration = (function () {
                     // get the updated processor'
                     var processorResponse = processorResult[0];
                     processor = processorResponse.component;
-                    
+
                     // get the processor history
                     var processorHistory = historyResult[0].componentHistory;
 
@@ -642,6 +656,15 @@ nf.ProcessorConfiguration = (function () {
                         $('#run-duration-setting-container').hide();
                     }
 
+                    // a function to update the show-hide status of the run duration as applicable to the selected scheduling strategy
+                    updateRunDurationVisibiltyAsApplicable = function(){
+                        if (processor.supportsBatching === true) {
+                            $('#run-duration-setting-container').show();
+                        } else {
+                            $('#run-duration-setting-container').hide();
+                        }
+                    }
+
                     // select the appropriate bulletin level
                     $('#bulletin-level-combo').combo('setSelectedOption', {
                         value: processor.config['bulletinLevel']
@@ -663,6 +686,8 @@ nf.ProcessorConfiguration = (function () {
                                 $('#timer-driven-options').hide();
                                 $('#event-driven-options').show();
                                 $('#cron-driven-options').hide();
+                                $('#run-once-options').hide();
+                                updateRunDurationVisibiltyAsApplicable();
                             } else {
                                 $('#event-driven-warning').hide();
 
@@ -670,10 +695,20 @@ nf.ProcessorConfiguration = (function () {
                                     $('#timer-driven-options').hide();
                                     $('#event-driven-options').hide();
                                     $('#cron-driven-options').show();
+                                    $('#run-once-options').hide();
+                                    updateRunDurationVisibiltyAsApplicable();
+                                } else if (selectedOption.value === 'RUN_ONCE'){
+                                    $('#timer-driven-options').hide();
+                                    $('#event-driven-options').hide();
+                                    $('#cron-driven-options').hide();
+                                    $('#run-once-options').show();
+                                    $('#run-duration-setting-container').hide();
                                 } else {
                                     $('#timer-driven-options').show();
                                     $('#event-driven-options').hide();
                                     $('#cron-driven-options').hide();
+                                    $('#run-once-options').hide();
+                                    updateRunDurationVisibiltyAsApplicable();
                                 }
                             }
                         }
@@ -701,6 +736,7 @@ nf.ProcessorConfiguration = (function () {
                     $('#timer-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['TIMER_DRIVEN']);
                     $('#event-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['EVENT_DRIVEN']);
                     $('#cron-driven-concurrently-schedulable-tasks').val(defaultConcurrentTasks['CRON_DRIVEN']);
+                    $('#run-once-concurrently-schedulable-tasks').val(defaultConcurrentTasks['RUN_ONCE']);
 
                     // get the appropriate concurrent tasks field
                     var concurrentTasks;
@@ -708,8 +744,10 @@ nf.ProcessorConfiguration = (function () {
                         concurrentTasks = $('#event-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
                     } else if (schedulingStrategy === 'CRON_DRIVEN') {
                         concurrentTasks = $('#cron-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
+                    } else if (schedulingStrategy === 'RUN_ONCE') {
+                        concurrentTasks = $('#run-once-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
                     } else {
-                        concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
+                    	concurrentTasks = $('#timer-driven-concurrently-schedulable-tasks').val(processor.config['concurrentlySchedulableTaskCount']);
                     }
 
                     // conditionally allow the user to specify the concurrent tasks
@@ -725,10 +763,13 @@ nf.ProcessorConfiguration = (function () {
                     var defaultSchedulingPeriod = processor.config['defaultSchedulingPeriod'];
                     $('#cron-driven-scheduling-period').val(defaultSchedulingPeriod['CRON_DRIVEN']);
                     $('#timer-driven-scheduling-period').val(defaultSchedulingPeriod['TIMER_DRIVEN']);
+                    $('#run-once-scheduling-period').val(defaultSchedulingPeriod['RUN_ONCE']);
 
                     // set the scheduling period as appropriate
                     if (processor.config['schedulingStrategy'] === 'CRON_DRIVEN') {
                         $('#cron-driven-scheduling-period').val(processor.config['schedulingPeriod']);
+                    } else if (processor.config['schedulingStrategy'] === 'RUN_ONCE') {
+                        $('#run-once-scheduling-period').val(processor.config['schedulingPeriod']);
                     } else if (processor.config['schedulingStrategy'] !== 'EVENT_DRIVEN') {
                         $('#timer-driven-scheduling-period').val(processor.config['schedulingPeriod']);
                     }

@@ -55,6 +55,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
     private final StandardProcessContext processContext;
     private final FlowController flowController;
     private final int numRelationships;
+    private int invocationCount = 0;
 
     public ContinuallyRunProcessorTask(final SchedulingAgent schedulingAgent, final ProcessorNode procNode,
             final FlowController flowController, final ProcessContextFactory contextFactory, final ScheduleState scheduleState,
@@ -84,6 +85,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
 
     @Override
     public Boolean call() {
+        invocationCount = 0;
         // make sure processor is not yielded
         if (isYielded(procNode)) {
             return false;
@@ -128,7 +130,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
 
         final long startNanos = System.nanoTime();
         final long finishNanos = startNanos + batchNanos;
-        int invocationCount = 0;
+
         try {
             try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getIdentifier())) {
                 boolean shouldRun = true;
@@ -201,8 +203,15 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                 scheduleState.decrementActiveThreadCount();
             }
         }
-
         return false;
     }
 
+    /**
+     * Allows querying the invocation count before and after a call() when
+     * we need to see if any work was actually done.
+     *
+     */
+    public int getInvocationCount() {
+        return invocationCount;
+    }
 }

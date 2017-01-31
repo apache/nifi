@@ -1245,6 +1245,7 @@ public final class DtoFactory {
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
         defaultSchedulingPeriod.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod());
+        defaultSchedulingPeriod.put(SchedulingStrategy.RUN_ONCE.name(), SchedulingStrategy.RUN_ONCE.getDefaultSchedulingPeriod());
         dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
 
         // sort a copy of the properties
@@ -2547,11 +2548,13 @@ public final class DtoFactory {
         defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), String.valueOf(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks()));
         defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), String.valueOf(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks()));
         defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), String.valueOf(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks()));
+        defaultConcurrentTasks.put(SchedulingStrategy.RUN_ONCE.name(), String.valueOf(SchedulingStrategy.RUN_ONCE.getDefaultConcurrentTasks()));
         dto.setDefaultConcurrentTasks(defaultConcurrentTasks);
 
         final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
         defaultSchedulingPeriod.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod());
+        defaultSchedulingPeriod.put(SchedulingStrategy.RUN_ONCE.name(), SchedulingStrategy.RUN_ONCE.getDefaultSchedulingPeriod());
         dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
 
         return dto;

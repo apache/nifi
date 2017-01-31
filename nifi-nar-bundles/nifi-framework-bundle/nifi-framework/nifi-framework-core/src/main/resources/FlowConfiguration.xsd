@@ -342,6 +342,7 @@
             <xs:enumeration value="TIMER_DRIVEN"></xs:enumeration>
             <xs:enumeration value="PRIMARY_NODE_ONLY"></xs:enumeration>
             <xs:enumeration value="CRON_DRIVEN"></xs:enumeration>
+            <xs:enumeration value="RUN_ONCE"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
     

@@ -197,6 +197,9 @@
                     if (schedulingStrategy === 'EVENT_DRIVEN') {
                         showRunSchedule = false;
                         schedulingStrategy = 'Event driven';
+                    } else if (schedulingStrategy === 'RUN_ONCE') { 
+                        showRunSchedule = false;
+                        schedulingStrategy = 'Run once';
                     } else if (schedulingStrategy === 'CRON_DRIVEN') {
                         schedulingStrategy = 'CRON driven';
                     } else if (schedulingStrategy === 'TIMER_DRIVEN') {

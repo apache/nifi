@@ -486,6 +486,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
         }
             break;
+        case RUN_ONCE: {
+            final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod),
+                    TimeUnit.NANOSECONDS);
+            if (schedulingNanos < 0) {
+                throw new IllegalArgumentException("Scheduling Period must be positive");
+            }
+            this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
+        }
+            break;
         case EVENT_DRIVEN:
         default:
             return;
