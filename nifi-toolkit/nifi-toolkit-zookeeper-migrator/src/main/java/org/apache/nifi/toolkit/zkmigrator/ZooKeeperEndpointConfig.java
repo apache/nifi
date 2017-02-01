@@ -28,7 +28,7 @@ import java.util.Objects;
 
 class ZooKeeperEndpointConfig {
     private final String connectString;
-    private final List servers;
+    private final List<String> servers;
     private final String path;
 
     ZooKeeperEndpointConfig(String connectString) {

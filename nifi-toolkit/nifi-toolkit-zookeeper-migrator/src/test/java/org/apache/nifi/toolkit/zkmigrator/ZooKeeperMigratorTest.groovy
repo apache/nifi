@@ -229,7 +229,7 @@ class ZooKeeperMigratorTest extends Specification {
         when: "data is read from the source zookeeper"
         ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
 
-        then: "verify the data has been written the output file"
+        then: "verify the data has been written to the output file"
         new File(dataPath).exists()
 
         when: "data is sent to the same zookeeper as the the source zookeeper without ignore source"
@@ -240,6 +240,24 @@ class ZooKeeperMigratorTest extends Specification {
 
         when: "data is sent to the same zookeeper as the source zookeeper with ignore source option is set"
         ZooKeeperMigratorMain.main(['-s', '-z', connectString, '-f', dataPath, '--ignore-source'] as String[])
+
+        then: "no exceptions are thrown"
+        noExceptionThrown()
+    }
+
+    def "Send to same ZooKeeper with different path"() {
+        def server = new TestingServer()
+        def connectString = "$server.connectString"
+        def dataPath = 'target/test-data-different-path.json'
+
+        when: "data is read from the source zookeeper"
+        ZooKeeperMigratorMain.main(['-r', '-z', connectString, '-f', dataPath] as String[])
+
+        then: "verify the data has been written to the output file"
+        new File(dataPath).exists()
+
+        when: "data is sent to the same zookeeper as the the source zookeeper with a different path"
+        ZooKeeperMigratorMain.main(['-s', '-z', "$connectString/new-path", '-f', dataPath] as String[])
 
         then: "no exceptions are thrown"
         noExceptionThrown()

@@ -134,8 +134,9 @@ class ZooKeeperMigrator {
         Preconditions.checkArgument(!Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getConnectString()) && !Strings.isNullOrEmpty(sourceZooKeeperEndpointConfig.getPath())
                 && sourceZooKeeperEndpointConfig.getServers() != null && sourceZooKeeperEndpointConfig.getServers().size() > 0, "Source ZooKeeper %s from %s is invalid",
                 sourceZooKeeperEndpointConfig, zkData);
-        Preconditions.checkArgument(Collections.disjoint(zooKeeperEndpointConfig.getServers(), sourceZooKeeperEndpointConfig.getServers()) || ignoreSource,
-                "Source ZooKeeper config %s for the data provided can not be the same as the configured destination ZooKeeper config %s",
+        Preconditions.checkArgument(Collections.disjoint(zooKeeperEndpointConfig.getServers(), sourceZooKeeperEndpointConfig.getServers())
+                        || !zooKeeperEndpointConfig.getPath().equals(sourceZooKeeperEndpointConfig.getPath()) || ignoreSource,
+                "Source ZooKeeper config %s for the data provided can not contain the same server and path as the configured destination ZooKeeper config %s",
                 sourceZooKeeperEndpointConfig, zooKeeperEndpointConfig);
 
         // stream through each node read from the json input
