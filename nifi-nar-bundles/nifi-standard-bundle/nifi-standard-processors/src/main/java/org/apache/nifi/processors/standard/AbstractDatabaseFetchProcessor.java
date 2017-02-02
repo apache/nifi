@@ -108,8 +108,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             .name("Columns to Return")
             .description("A comma-separated list of column names to be used in the query. If your database requires "
                     + "special treatment of the names (quoting, e.g.), each name should include such treatment. If no "
-                    + "column names are supplied, all columns in the specified table will be returned.\nNOTE: If Expression Language is present "
-                    + "for this property and it refers to flow file attribute(s), then the Table Name property must also contain Expression Language.")
+                    + "column names are supplied, all columns in the specified table will be returned. NOTE: It is important "
+                    + "to use consistent column names for a given table for incremental fetch to work properly.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -124,8 +124,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     + "can be used to retrieve only those rows that have been added/updated since the last retrieval. Note that some "
                     + "JDBC types such as bit/boolean are not conducive to maintaining maximum value, so columns of these "
                     + "types should not be listed in this property, and will result in error(s) during processing. If no columns "
-                    + "are provided, all rows from the table will be considered, which could have a performance impact.\nNOTE: If Expression Language is "
-                    + "present for this property and it refers to flow file attribute(s), then the Table Name property must also contain Expression Language.")
+                    + "are provided, all rows from the table will be considered, which could have a performance impact. NOTE: It is important "
+                    + "to use consistent max-value column names for a given table for incremental fetch to work properly.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
