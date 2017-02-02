@@ -1040,14 +1040,20 @@
             if (date.length !== 3 || time.length !== 3) {
                 return new Date();
             }
+            var year = parseInt(date[2], 10);
+            var month = parseInt(date[0], 10) - 1; // new Date() accepts months 0 - 11
+            var day = parseInt(date[1], 10);
+            var hours = parseInt(time[0], 10);
+            var minutes = parseInt(time[1], 10);
 
             // detect if there is millis
-            var seconds = time[2].split(/\./);
-            if (seconds.length === 2) {
-                return new Date(parseInt(date[2], 10), parseInt(date[0], 10), parseInt(date[1], 10), parseInt(time[0], 10), parseInt(time[1], 10), parseInt(seconds[0], 10), parseInt(seconds[1], 10));
-            } else {
-                return new Date(parseInt(date[2], 10), parseInt(date[0], 10), parseInt(date[1], 10), parseInt(time[0], 10), parseInt(time[1], 10), parseInt(time[2], 10), 0);
+            var secondsSpec = time[2].split(/\./);
+            var seconds = parseInt(secondsSpec[0], 10);
+            var milliseconds = 0;
+            if (secondsSpec.length === 2) {
+                milliseconds = parseInt(secondsSpec[1], 10);
             }
+            return new Date(year, month, day, hours, minutes, seconds, milliseconds);
         },
 
         /**
