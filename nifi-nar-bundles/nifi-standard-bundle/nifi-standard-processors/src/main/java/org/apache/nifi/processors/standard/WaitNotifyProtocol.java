@@ -81,7 +81,7 @@ public class WaitNotifyProtocol {
 
         public long getCount(final String counterName) {
             final Long count = counts.get(counterName);
-            return count != null ? count : -1;
+            return count != null ? count : 0;
         }
 
     }
@@ -91,6 +91,58 @@ public class WaitNotifyProtocol {
     public WaitNotifyProtocol(final AtomicDistributedMapCacheClient cache) {
         this.cache = cache;
     }
+
+    /**
+     * Notify a signal to increase a counter.
+     * @param signalId a key in the underlying cache engine
+     * @param deltas a map containing counterName and delta entries
+     * @param attributes attributes to save in the cache entry
+     * @return A Signal instance, merged with an existing signal if any
+     * @throws IOException thrown when it failed interacting with the cache engine
+     * @throws ConcurrentModificationException thrown if other process is also updating the same signal and failed to update after few retry attempts
+     */
+    public Signal notify(final String signalId, final Map<String, Integer> deltas, final Map<String, String> attributes)
+            throws IOException, ConcurrentModificationException {
+
+        for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
+
+            final CacheEntry<String, String> existingEntry = cache.fetch(signalId, stringSerializer, stringDeserializer);
+
+            final Signal existingSignal = getSignal(signalId);
+            final Signal signal = existingSignal != null ? existingSignal : new Signal();
+
+            if (attributes != null) {
+                signal.attributes.putAll(attributes);
+            }
+
+            deltas.forEach((counterName, delta) -> {
+                long count = signal.counts.containsKey(counterName) ? signal.counts.get(counterName) : 0;
+                count += delta;
+                signal.counts.put(counterName, count);
+            });
+
+            final String signalJson = objectMapper.writeValueAsString(signal);
+            final long revision = existingEntry != null ? existingEntry.getRevision() : -1;
+
+
+            if (cache.replace(signalId, signalJson, stringSerializer, stringSerializer, revision)) {
+                return signal;
+            }
+
+            long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
+            logger.info("Waiting for {} ms to retry... {}.{}", waitMillis, signalId, deltas);
+            try {
+                Thread.sleep(waitMillis);
+            } catch (InterruptedException e) {
+                final String msg = String.format("Interrupted while waiting for retrying signal [%s] counter [%s].", signalId, deltas);
+                throw new ConcurrentModificationException(msg, e);
+            }
+        }
+
+        final String msg = String.format("Failed to update signal [%s] counter [%s] after retrying %d times.", signalId, deltas, MAX_REPLACE_RETRY_COUNT);
+        throw new ConcurrentModificationException(msg);
+    }
+
 
     /**
      * Notify a signal to increase a counter.
@@ -105,43 +157,10 @@ public class WaitNotifyProtocol {
     public Signal notify(final String signalId, final String counterName, final int delta, final Map<String, String> attributes)
             throws IOException, ConcurrentModificationException {
 
-        for (int i = 0; i < MAX_REPLACE_RETRY_COUNT; i++) {
+        final Map<String, Integer> deltas = new HashMap<>();
+        deltas.put(counterName, delta);
+        return notify(signalId, deltas, attributes);
 
-            final CacheEntry<String, String> existingEntry = cache.fetch(signalId, stringSerializer, stringDeserializer);
-
-            Signal signal = getSignal(signalId);
-            if (signal == null) {
-                signal = new Signal();
-            }
-
-            if (attributes != null) {
-                signal.attributes.putAll(attributes);
-            }
-
-            long count = signal.counts.containsKey(counterName) ? signal.counts.get(counterName) : 0;
-            count += delta;
-            signal.counts.put(counterName, count);
-
-            final String signalJson = objectMapper.writeValueAsString(signal);
-            final long revision = existingEntry != null ? existingEntry.getRevision() : -1;
-
-
-            if (cache.replace(signalId, signalJson, stringSerializer, stringSerializer, revision)) {
-                return signal;
-            }
-
-            long waitMillis = REPLACE_RETRY_WAIT_MILLIS * (i + 1);
-            logger.info("Waiting for {} ms to retry... {}.{}", waitMillis, signalId, counterName);
-            try {
-                Thread.sleep(waitMillis);
-            } catch (InterruptedException e) {
-                final String msg = String.format("Interrupted while waiting for retrying signal [%s] counter [%s].", signalId, counterName);
-                throw new ConcurrentModificationException(msg, e);
-            }
-        }
-
-        final String msg = String.format("Failed to update signal [%s] counter [%s] after retrying %d times.", signalId, counterName, MAX_REPLACE_RETRY_COUNT);
-        throw new ConcurrentModificationException(msg);
     }
 
     /**

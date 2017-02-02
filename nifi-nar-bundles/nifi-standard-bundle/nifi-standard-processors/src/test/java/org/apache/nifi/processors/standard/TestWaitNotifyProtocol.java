@@ -134,6 +134,15 @@ public class TestWaitNotifyProtocol {
         assertEquals(4, cacheEntry.getRevision());
         assertEquals("{\"counts\":{\"a\":12,\"b\":2,\"c\":3},\"attributes\":{}}", cacheEntry.getValue());
 
+        final Map<String, Integer> deltas = new HashMap<>();
+        deltas.put("a", 10);
+        deltas.put("b", 25);
+        protocol.notify("signal-id", deltas, null);
+
+        cacheEntry = cacheEntries.get("signal-id");
+        assertEquals(5, cacheEntry.getRevision());
+        assertEquals("{\"counts\":{\"a\":22,\"b\":27,\"c\":3},\"attributes\":{}}", cacheEntry.getValue());
+
     }
 
     @Test
