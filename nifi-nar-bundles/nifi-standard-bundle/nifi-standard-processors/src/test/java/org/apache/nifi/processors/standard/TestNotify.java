@@ -38,6 +38,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestNotify {
 
@@ -113,6 +114,145 @@ public class TestNotify {
     }
 
     @Test
+    public void testNotifyCountersBatch() throws InitializationException, IOException {
+        runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
+        runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
+        runner.setProperty(Notify.SIGNAL_BUFFER_COUNT, "2");
+
+        final Map<String, String> props1 = new HashMap<>();
+        props1.put("releaseSignalAttribute", "someDataProcessing");
+        props1.put("key", "data1");
+        props1.put("status", "success");
+        runner.enqueue(new byte[]{}, props1);
+
+        final Map<String, String> props2 = new HashMap<>();
+        props2.put("releaseSignalAttribute", "someDataProcessing");
+        props2.put("key", "data2");
+        props2.put("status", "success");
+        runner.enqueue(new byte[]{}, props2);
+
+        final Map<String, String> props3 = new HashMap<>();
+        props3.put("releaseSignalAttribute", "someDataProcessing");
+        props3.put("key", "data3");
+        props3.put("status", "failure");
+        runner.enqueue(new byte[]{}, props3);
+
+        runner.run();
+
+        // Limited by the buffer count
+        runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 2);
+        runner.clearTransferState();
+
+        Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getAttributes();
+        assertEquals("Same attribute key will be overwritten by the latest signal", "data2", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(2));
+        assertEquals(2, signal.getCount("success"));
+        assertEquals(0, signal.getCount("failure"));
+
+        // Run it again, and it should process remaining one flow file.
+        runner.run();
+        runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        cachedAttributes = signal.getAttributes();
+        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(3));
+        assertEquals(2, signal.getCount("success"));
+        assertEquals(1, signal.getCount("failure"));
+
+    }
+
+    @Test
+    public void testNotifyCountersUsingDelta() throws InitializationException, IOException {
+        runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
+        runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
+        runner.setProperty(Notify.SIGNAL_COUNTER_DELTA, "${record.count}");
+        runner.setProperty(Notify.SIGNAL_BUFFER_COUNT, "10");
+
+        final Map<String, String> props1 = new HashMap<>();
+        props1.put("releaseSignalAttribute", "someDataProcessing");
+        props1.put("key", "data1");
+        props1.put("status", "success");
+        props1.put("record.count", "1024");
+        runner.enqueue(new byte[]{}, props1);
+
+        final Map<String, String> props2 = new HashMap<>();
+        props2.put("releaseSignalAttribute", "someDataProcessing");
+        props2.put("key", "data2");
+        props2.put("status", "success");
+        props2.put("record.count", "2048");
+        runner.enqueue(new byte[]{}, props2);
+
+        final Map<String, String> props3 = new HashMap<>();
+        props3.put("releaseSignalAttribute", "someDataProcessing");
+        props3.put("key", "data3");
+        props3.put("status", "failure");
+        props3.put("record.count", "512");
+        runner.enqueue(new byte[]{}, props3);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 3);
+        runner.clearTransferState();
+
+        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getAttributes();
+        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(3584));
+        assertEquals(3072, signal.getCount("success"));
+        assertEquals(512, signal.getCount("failure"));
+    }
+
+    @Test
+    public void testIllegalDelta() throws InitializationException, IOException {
+        runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, ".*");
+        runner.setProperty(Notify.SIGNAL_COUNTER_NAME, "${status}");
+        runner.setProperty(Notify.SIGNAL_COUNTER_DELTA, "${record.count}");
+        runner.setProperty(Notify.SIGNAL_BUFFER_COUNT, "10");
+
+        final Map<String, String> props1 = new HashMap<>();
+        props1.put("releaseSignalAttribute", "someDataProcessing");
+        props1.put("key", "data1");
+        props1.put("status", "success");
+        props1.put("record.count", "1024");
+        runner.enqueue(new byte[]{}, props1);
+
+        final Map<String, String> props2 = new HashMap<>();
+        props2.put("releaseSignalAttribute", "someDataProcessing");
+        props2.put("key", "data2");
+        props2.put("status", "success");
+        props2.put("record.count", "2048 records");
+        runner.enqueue(new byte[]{}, props2);
+
+        final Map<String, String> props3 = new HashMap<>();
+        props3.put("releaseSignalAttribute", "someDataProcessing");
+        props3.put("key", "data3");
+        props3.put("status", "failure");
+        props3.put("record.count", "512");
+        runner.enqueue(new byte[]{}, props3);
+
+        runner.run();
+
+        // Only failed records should be transferred to failure.
+        runner.assertTransferCount(Notify.REL_SUCCESS, 2);
+        runner.assertTransferCount(Notify.REL_FAILURE, 1);
+        runner.clearTransferState();
+
+        final Signal signal = new WaitNotifyProtocol(service).getSignal("someDataProcessing");
+        Map<String, String> cachedAttributes = signal.getAttributes();
+        assertEquals("Same attribute key will be overwritten by the latest signal", "data3", cachedAttributes.get("key"));
+        assertTrue(signal.isTotalCountReached(1536));
+        assertEquals(1024, signal.getCount("success"));
+        assertEquals(512, signal.getCount("failure"));
+
+    }
+
+    @Test
     public void testRegex() throws InitializationException, IOException {
         runner.setProperty(Notify.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
         runner.setProperty(Notify.ATTRIBUTE_CACHE_REGEX, "key[0-9]*");
@@ -156,13 +296,14 @@ public class TestNotify {
         final Map<String, String> props = new HashMap<>();
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[] {}, props);
-        runner.run();
-
-        //Expect the processor to receive an IO exception from the cache service and route to failure
-        runner.assertAllFlowFilesTransferred(Notify.REL_FAILURE, 1);
-        runner.assertTransferCount(Notify.REL_FAILURE, 1);
-
+        try {
+            runner.run();
+            fail("Processor should throw RuntimeException in case it receives an IO exception from the cache service and yield for a while.");
+        } catch (final AssertionError e) {
+            assertTrue(e.getCause() instanceof RuntimeException);
+        }
         service.setFailOnCalls(false);
+
     }
 
     static class MockCacheClient extends AbstractControllerService implements AtomicDistributedMapCacheClient {
