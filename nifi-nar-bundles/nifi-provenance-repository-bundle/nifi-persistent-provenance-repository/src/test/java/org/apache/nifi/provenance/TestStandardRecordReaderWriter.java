@@ -21,8 +21,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.NopTocWriter;
@@ -32,6 +36,9 @@ import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.apache.nifi.provenance.TestUtil.createFlowFile;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWriter {
 
@@ -106,6 +113,42 @@ public class TestStandardRecordReaderWriter extends AbstractTestRecordReaderWrit
         final long nanos = System.nanoTime() - startNanos;
         final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
         System.out.println("Took " + millis + " millis to read " + numEvents + " events");
+    }
+
+    @Test
+    public void testWriteUtfLargerThan64k() throws IOException, InterruptedException {
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "1.txt");
+        attributes.put("uuid", UUID.randomUUID().toString());
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+        final String seventyK = StringUtils.repeat("X", 70000);
+        assertTrue(seventyK.length() > 65535);
+        assertTrue(seventyK.getBytes("UTF-8").length > 65535);
+        builder.setDetails(seventyK);
+        final ProvenanceEventRecord record = builder.build();
+
+        try (final ByteArrayOutputStream headerOut = new ByteArrayOutputStream();
+             final DataOutputStream out = new DataOutputStream(headerOut)) {
+            out.writeUTF(PersistentProvenanceRepository.class.getName());
+            out.writeInt(9);
+        }
+
+        try (final ByteArrayOutputStream recordOut = new ByteArrayOutputStream();
+            final StandardRecordWriter writer = new StandardRecordWriter(recordOut, null, false, 0)) {
+
+            writer.writeHeader(1L);
+            recordOut.reset();
+
+            writer.writeRecord(record, 1L);
+        }
     }
 
     @Override
