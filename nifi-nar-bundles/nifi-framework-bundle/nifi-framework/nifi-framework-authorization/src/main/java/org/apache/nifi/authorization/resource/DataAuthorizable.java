@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization.resource;
 
+import java.util.Map;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -23,12 +24,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.ResourceNotFoundException;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Authorizable for authorizing access to data. Data based authorizable requires authorization for the entire DN chain.
@@ -67,28 +63,24 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
 
         AuthorizationResult result = null;
 
-        // calculate the dn chain
-        final List<String> dnChain = NiFiUserUtils.buildProxiedEntitiesChain(user);
-        for (final String identity : dnChain) {
+        // authorize each element in the chain
+        NiFiUser chainedUser = user;
+        do {
             try {
-                final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
-                final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
-                    @Override
-                    public boolean isAnonymous() {
-                        // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
-                        return user.isAnonymous();
-                    }
-                };
+                // perform the current user authorization
+                result = Authorizable.super.checkAuthorization(authorizer, action, chainedUser, resourceContext);
 
-                result = Authorizable.super.checkAuthorization(authorizer, action, chainUser, resourceContext);
+                // if authorization is not approved, reject
+                if (!Result.Approved.equals(result.getResult())) {
+                    return result;
+                }
+
+                // go to the next user in the chain
+                chainedUser = chainedUser.getChain();
             } catch (final ResourceNotFoundException e) {
                 result = AuthorizationResult.denied("Unknown source component.");
             }
-
-            if (!Result.Approved.equals(result.getResult())) {
-                break;
-            }
-        }
+        } while (chainedUser != null);
 
         if (result == null) {
             result = AuthorizationResult.denied();
@@ -103,23 +95,18 @@ public class DataAuthorizable implements Authorizable, EnforcePolicyPermissionsT
             throw new AccessDeniedException("Unknown user.");
         }
 
-        // calculate the dn chain
-        final List<String> dnChain = NiFiUserUtils.buildProxiedEntitiesChain(user);
-        for (final String identity : dnChain) {
+        // authorize each element in the chain
+        NiFiUser chainedUser = user;
+        do {
             try {
-                final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
-                final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
-                    @Override
-                    public boolean isAnonymous() {
-                        // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
-                        return user.isAnonymous();
-                    }
-                };
+                // perform the current user authorization
+                Authorizable.super.authorize(authorizer, action, chainedUser, resourceContext);
 
-                Authorizable.super.authorize(authorizer, action, chainUser, resourceContext);
+                // go to the next user in the chain
+                chainedUser = chainedUser.getChain();
             } catch (final ResourceNotFoundException e) {
                 throw new AccessDeniedException("Unknown source component.");
             }
-        }
+        } while (chainedUser != null);
     }
 }

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.authorization.user;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utility methods for retrieving information about the current application user.
@@ -72,13 +72,18 @@ public final class NiFiUserUtils {
 
         // build the dn chain
         NiFiUser chainedUser = user;
-        do {
+        while (chainedUser != null) {
             // add the entry for this user
-            proxyChain.add(chainedUser.getIdentity());
+            if (chainedUser.isAnonymous()) {
+                // use an empty string to represent an anonymous user in the proxy entities chain
+                proxyChain.add(StringUtils.EMPTY);
+            } else {
+                proxyChain.add(chainedUser.getIdentity());
+            }
 
             // go to the next user in the chain
             chainedUser = chainedUser.getChain();
-        } while (chainedUser != null);
+        }
 
         return proxyChain;
     }
