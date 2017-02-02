@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
@@ -179,7 +180,14 @@ public class ControllerServiceLoader {
     private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
 
-        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), BundleUtils.getBundle(dto.getType(), dto.getBundle()), false);
+        BundleCoordinate coordinate;
+        try {
+            coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+        } catch (final IllegalStateException e) {
+            coordinate = BundleCoordinate.MISSING_COORDINATE;
+        }
+
+        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), coordinate, false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         return node;

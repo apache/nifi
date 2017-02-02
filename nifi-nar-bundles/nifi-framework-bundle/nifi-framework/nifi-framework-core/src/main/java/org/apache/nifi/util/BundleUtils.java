@@ -28,26 +28,98 @@ import java.util.List;
  */
 public final class BundleUtils {
 
-    public static BundleCoordinate getBundle(final String type, final BundleDTO bundleDTO) {
-        final Bundle bundle;
-        if (bundleDTO == null) {
-            final List<Bundle> bundles = ExtensionManager.getBundles(type);
-            if (bundles.isEmpty()) {
-                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
-            } else if (bundles.size() > 1) {
-                throw new IllegalStateException(String.format("Multiple versions of %s exist. Please specify the desired bundle.", type));
+    private static BundleCoordinate findBundleForType(final String type) {
+        final List<Bundle> bundles = ExtensionManager.getBundles(type);
+        if (bundles.isEmpty()) {
+            throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
+        } else if (bundles.size() > 1) {
+            throw new IllegalStateException(String.format("Multiple versions of %s exist. Please specify the desired bundle.", type));
+        } else {
+            return bundles.get(0).getBundleDetails().getCoordinate();
+        }
+    }
+
+    private static BundleCoordinate findCompatibleBundle(final String type, final BundleDTO bundleDTO, final boolean allowCompatibleBundle) {
+        final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+        final Bundle bundle = ExtensionManager.getBundle(coordinate);
+
+        if (bundle == null) {
+            if (allowCompatibleBundle) {
+                return findBundleForType(type);
             } else {
-                bundle = bundles.get(0);
+                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
             }
         } else {
-            final BundleCoordinate coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
-            bundle = ExtensionManager.getBundle(coordinate);
-            if (bundle == null) {
-                throw new IllegalStateException(String.format("%s is not known to this NiFi instance.", type));
-            }
+            return bundle.getBundleDetails().getCoordinate();
         }
+    }
 
-        return bundle.getBundleDetails().getCoordinate();
+    /**
+     * Gets a bundle that supports the specified type. If the bundle is specified, an
+     * exact match must be available.
+     *
+     *  <ul>
+     *      <li>If bundleDTO is specified</li>
+     *      <ul>
+     *          <li>Matching bundle found, use it</li>
+     *          <li>No matching bundle found, IllegalStateException</li>
+     *      </ul>
+     *      <li>If bundleDTO is not specified</li>
+     *      <ul>
+     *          <li>One bundle that supports the specified type, use it</li>
+     *          <li>No bundle that supports the specified type, IllegalStateException</li>
+     *          <li>Multiple bundle that supports the specified type, IllegalStateException</li>
+     *      </ul>
+     *  </ul>
+     *
+     * @param type the component type
+     * @param bundleDTO bundle to find the component
+     * @return the bundle coordinate
+     * @throws IllegalStateException bundle not found
+     */
+    public static BundleCoordinate getBundle(final String type, final BundleDTO bundleDTO) {
+        if (bundleDTO == null) {
+            return findBundleForType(type);
+        } else {
+            return findCompatibleBundle(type, bundleDTO, false);
+        }
+    }
+
+    /**
+     * Gets a compatible bundle that supports the specified type. If the bundle is
+     * specified but is not available, a compatible bundle may be returned if there
+     * is only one.
+     *
+     *  <ul>
+     *      <li>If bundleDTO is specified</li>
+     *      <ul>
+     *          <li>Matching bundle found, use it</li>
+     *          <li>No matching bundle found</li>
+     *          <ul>
+     *              <li>One bundle that supports the specified type, use it</li>
+     *              <li>No bundle that supports the specified type, IllegalStateException</li>
+     *              <li>Multiple bundle that supports the specified type, IllegalStateException</li>
+     *          </ul>
+     *      </ul>
+     *      <li>If bundleDTO is not specified</li>
+     *      <ul>
+     *          <li>One bundle that supports the specified type, use it</li>
+     *          <li>No bundle that supports the specified type, IllegalStateException</li>
+     *          <li>Multiple bundle that supports the specified type, IllegalStateException</li>
+     *      </ul>
+     *  </ul>
+     *
+     * @param type the component type
+     * @param bundleDTO bundle to find the component
+     * @return the bundle coordinate
+     * @throws IllegalStateException no compatible bundle found
+     */
+    public static BundleCoordinate getCompatibleBundle(final String type, final BundleDTO bundleDTO) {
+        if (bundleDTO == null) {
+            return findBundleForType(type);
+        } else {
+            return findCompatibleBundle(type, bundleDTO, true);
+        }
     }
 
 }

@@ -20,6 +20,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -513,7 +514,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             throws ReportingTaskInstantiationException {
         // create a new reporting task node when the controller is not initialized or the flow is empty
         if (!controllerInitialized || existingFlowEmpty) {
-            final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), BundleUtils.getBundle(dto.getType(), dto.getBundle()), false);
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+            } catch (final IllegalStateException e) {
+                coordinate = BundleCoordinate.MISSING_COORDINATE;
+            }
+
+            final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), coordinate, false);
             reportingTask.setName(dto.getName());
             reportingTask.setComments(dto.getComments());
             reportingTask.setSchedulingPeriod(dto.getSchedulingPeriod());
@@ -964,8 +972,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
             final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
-            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(),
-                    BundleUtils.getBundle(processorDTO.getType(), processorDTO.getBundle()), false);
+
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
+            } catch (final IllegalStateException e) {
+                coordinate = BundleCoordinate.MISSING_COORDINATE;
+            }
+
+            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), coordinate, false);
             processGroup.addProcessor(procNode);
             updateProcessor(procNode, processorDTO, processGroup, controller);
         }

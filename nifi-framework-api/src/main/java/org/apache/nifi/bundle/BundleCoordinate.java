@@ -21,6 +21,9 @@ package org.apache.nifi.bundle;
  */
 public class BundleCoordinate {
 
+    private static final String MISSING = "missing";
+    public static final BundleCoordinate MISSING_COORDINATE = new BundleCoordinate(MISSING, MISSING, MISSING);
+
     public static final String DEFAULT_GROUP = "default";
     public static final String DEFAULT_VERSION = "default";
 

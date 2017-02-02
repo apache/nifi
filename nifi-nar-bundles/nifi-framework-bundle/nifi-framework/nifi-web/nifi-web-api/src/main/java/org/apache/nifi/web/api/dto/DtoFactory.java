@@ -2075,6 +2075,7 @@ public final class DtoFactory {
         dto.setGroup(coordinate.getGroup());
         dto.setArtifact(coordinate.getId());
         dto.setVersion(coordinate.getVersion());
+        dto.setMissing(coordinate == BundleCoordinate.MISSING_COORDINATE);
         return dto;
     }
 

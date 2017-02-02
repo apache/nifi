@@ -17,6 +17,7 @@
 package org.apache.nifi.fingerprint;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
@@ -346,9 +347,16 @@ public class FingerprintFactory {
         Processor processor = null;
         try {
             if (controller != null) {
-                processor = controller.createProcessor(className, UUID.randomUUID().toString(), BundleUtils.getBundle(className, bundle), false).getProcessor();
+                BundleCoordinate purposedCoordinate;
+                try {
+                    purposedCoordinate = BundleUtils.getCompatibleBundle(className, bundle);
+                } catch (final IllegalStateException e) {
+                    purposedCoordinate = BundleCoordinate.MISSING_COORDINATE;
+                }
+
+                processor = controller.createProcessor(className, UUID.randomUUID().toString(), purposedCoordinate, false).getProcessor();
             }
-        } catch (ProcessorInstantiationException e) {
+        } catch (ProcessorInstantiationException | IllegalStateException e) {
             logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", className, e.toString());
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
@@ -578,8 +586,14 @@ public class FingerprintFactory {
         ControllerService controllerService = null;
         try {
             if (controller != null) {
-                controllerService = controller.createControllerService(dto.getType(), UUID.randomUUID().toString(),
-                        BundleUtils.getBundle(dto.getType(), dto.getBundle()), false).getControllerServiceImplementation();
+                BundleCoordinate coordinate;
+                try {
+                    coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+                } catch (final IllegalStateException e) {
+                    coordinate = BundleCoordinate.MISSING_COORDINATE;
+                }
+
+                controllerService = controller.createControllerService(dto.getType(), UUID.randomUUID().toString(), coordinate, false).getControllerServiceImplementation();
             }
         } catch (Exception e) {
             logger.warn("Unable to create ControllerService of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());
@@ -615,8 +629,14 @@ public class FingerprintFactory {
         ReportingTask reportingTask = null;
         try {
             if (controller != null) {
-                reportingTask = controller.createReportingTask(dto.getType(), UUID.randomUUID().toString(),
-                        BundleUtils.getBundle(dto.getType(), dto.getBundle()), false, false).getReportingTask();
+                BundleCoordinate coordinate;
+                try {
+                    coordinate = BundleUtils.getCompatibleBundle(dto.getType(), dto.getBundle());
+                } catch (final IllegalStateException e) {
+                    coordinate = BundleCoordinate.MISSING_COORDINATE;
+                }
+
+                reportingTask = controller.createReportingTask(dto.getType(), UUID.randomUUID().toString(), coordinate, false, false).getReportingTask();
             }
         } catch (Exception e) {
             logger.warn("Unable to create ReportingTask of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());

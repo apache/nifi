@@ -235,7 +235,11 @@
          */
         formatBundle: function (bundle) {
             if (nfCommon.isDefinedAndNotNull(bundle)) {
-                return bundle.artifact + '-' + bundle.version + ' (' + bundle.group + ')';
+                if (bundle.missing === true) {
+                    return 'Bundle Missing';
+                } else {
+                    return bundle.artifact + ':' + bundle.version + ' - ' + bundle.group;
+                }
             } else {
                 return 'NA';
             }
