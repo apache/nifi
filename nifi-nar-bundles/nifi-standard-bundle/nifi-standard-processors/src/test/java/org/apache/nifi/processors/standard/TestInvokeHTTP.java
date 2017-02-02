@@ -184,6 +184,31 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
+    @Test
+    public void testFailingHttpRequest() throws Exception {
+
+        runner = TestRunners.newTestRunner(InvokeHTTP.class);
+
+        // Remember: we expect that connecting to the following URL should raise a Java exception
+        runner.setProperty(InvokeHTTP.PROP_URL, "http://127.0.0.1:0");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 1);
+        runner.assertPenalizeCount(1);
+
+        // expected in request java.exception
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).get(0);
+        bundle.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, "java.lang.IllegalArgumentException");
+
+    }
+
     public static class MyProxyHandler extends AbstractHandler {
 
         @Override
