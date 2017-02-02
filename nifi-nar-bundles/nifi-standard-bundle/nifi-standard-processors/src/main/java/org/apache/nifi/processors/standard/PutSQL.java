@@ -60,6 +60,9 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -96,10 +99,11 @@ import java.util.regex.Pattern;
                 + "sql.args.1.value, sql.args.2.value, sql.args.3.value, and so on. The type of the sql.args.1.value Parameter is specified by the sql.args.1.type attribute."),
         @ReadsAttribute(attribute = "sql.args.N.format", description = "This attribute is always optional, but default options may not always work for your data. "
                 + "Incoming FlowFiles are expected to be parametrized SQL statements. In some cases "
-                + "a format option needs to be specified, currently this is only applicable for binary data types. For binary data types "
+                + "a format option needs to be specified, currently this is only applicable for binary data types and timestamps. For binary data types "
                 + "available options are 'ascii', 'base64' and 'hex'.  In 'ascii' format each string character in your attribute value represents a single byte, this is the default format "
                 + "and the format provided by Avro Processors. In 'base64' format your string is a Base64 encoded string.  In 'hex' format the string is hex encoded with all "
-                + "letters in upper case and no '0x' at the beginning.")
+                + "letters in upper case and no '0x' at the beginning. For timestamps, the format can be specified according to java.time.format.DateTimeFormatter."
+                + "Customer and named patterns are accepted i.e. ('yyyy-MM-dd','ISO_OFFSET_DATE_TIME')")
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "sql.generated.key", description = "If the database generated a key for an INSERT statement and the Obtain Generated Keys property is set to true, "
@@ -792,11 +796,19 @@ public class PutSQL extends AbstractProcessor {
                 case Types.TIMESTAMP:
                     long lTimestamp=0L;
 
-                    if(LONG_PATTERN.matcher(parameterValue).matches()){
-                        lTimestamp = Long.parseLong(parameterValue);
+                    // Backwards compatibility note: Format was unsupported for a timestamp field.
+                    if (valueFormat.equals("")) {
+                        if(LONG_PATTERN.matcher(parameterValue).matches()){
+                            lTimestamp = Long.parseLong(parameterValue);
+                        } else {
+                            final SimpleDateFormat dateFormat  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                            lTimestamp = parsedDate.getTime();
+                        }
                     }else {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                        java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                        final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
+                        TemporalAccessor accessor = dtFormatter.parse(parameterValue);
+                        java.util.Date parsedDate = java.util.Date.from(Instant.from(accessor));
                         lTimestamp = parsedDate.getTime();
                     }
 
@@ -839,6 +851,26 @@ public class PutSQL extends AbstractProcessor {
         }
     }
 
+    private DateTimeFormatter getDateTimeFormatter(String pattern) {
+        switch(pattern) {
+            case "BASIC_ISO_DATE": return DateTimeFormatter.BASIC_ISO_DATE;
+            case "ISO_LOCAL_DATE": return DateTimeFormatter.ISO_LOCAL_DATE;
+            case "ISO_OFFSET_DATE": return DateTimeFormatter.ISO_OFFSET_DATE;
+            case "ISO_DATE": return DateTimeFormatter.ISO_DATE;
+            case "ISO_LOCAL_TIME": return DateTimeFormatter.ISO_LOCAL_TIME;
+            case "ISO_OFFSET_TIME": return DateTimeFormatter.ISO_OFFSET_TIME;
+            case "ISO_TIME": return DateTimeFormatter.ISO_TIME;
+            case "ISO_LOCAL_DATE_TIME": return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+            case "ISO_OFFSET_DATE_TIME": return DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+            case "ISO_ZONED_DATE_TIME": return DateTimeFormatter.ISO_ZONED_DATE_TIME;
+            case "ISO_DATE_TIME": return DateTimeFormatter.ISO_DATE_TIME;
+            case "ISO_ORDINAL_DATE": return DateTimeFormatter.ISO_ORDINAL_DATE;
+            case "ISO_WEEK_DATE": return DateTimeFormatter.ISO_WEEK_DATE;
+            case "ISO_INSTANT": return DateTimeFormatter.ISO_INSTANT;
+            case "RFC_1123_DATE_TIME": return DateTimeFormatter.RFC_1123_DATE_TIME;
+            default: return DateTimeFormatter.ofPattern(pattern);
+        }
+    }
 
     /**
      * A FlowFileFilter that is responsible for ensuring that the FlowFiles returned either belong
