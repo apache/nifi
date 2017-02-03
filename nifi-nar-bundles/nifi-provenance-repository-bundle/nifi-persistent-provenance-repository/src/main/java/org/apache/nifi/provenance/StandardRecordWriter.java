@@ -410,8 +410,8 @@ public class StandardRecordWriter implements RecordWriter {
             out.writeUTF(utfString);
         } catch (UTFDataFormatException e) {
             final String truncated = utfString.substring(0, getCharsInUTFLength(utfString, MAX_ALLOWED_UTF_LENGTH));
-            logger.warn("Truncating UTF value!  Attempted to write string with char length {} and UTF length greater than "
-                            + "supported maximum allowed ({}), truncating to char length {}.",
+            logger.warn("Truncating provenance record value!  Attempted to write {} chars that encode to a UTF byte length greater than "
+                            + "supported maximum ({}), truncating to {} chars.",
                     utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
             if (logger.isDebugEnabled()) {
                 logger.warn("String value was:\n{}", truncated);
