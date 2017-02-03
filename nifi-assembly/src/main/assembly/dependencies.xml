@@ -15,11 +15,6 @@
 -->
 <assembly>
     <id>bin</id>
-    <formats>
-        <format>dir</format>
-        <format>zip</format>
-        <format>tar.gz</format>
-    </formats>
     <includeBaseDirectory>true</includeBaseDirectory>
     <baseDirectory>nifi-${project.version}</baseDirectory>
 
