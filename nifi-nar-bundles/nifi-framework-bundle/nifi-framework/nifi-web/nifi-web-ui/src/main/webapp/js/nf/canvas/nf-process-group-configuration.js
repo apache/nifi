@@ -15,9 +15,49 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global nf, define, module, require, exports */
 
-nf.ProcessGroupConfiguration = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['$',
+                'd3',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Client',
+                'nf.ControllerServices',
+                'nf.Canvas',
+                'nf.ProcessGroup',
+                'nf.Shell'],
+            function ($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell) {
+                return (nf.ProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ProcessGroupConfiguration =
+            factory(require('$'),
+                require('d3'),
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Client'),
+                require('nf.ControllerServices'),
+                require('nf.Canvas'),
+                require('nf.ProcessGroup'),
+                require('nf.Shell')));
+    } else {
+        nf.ProcessGroupConfiguration = factory(root.$,
+            root.d3,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Client,
+            root.nf.ControllerServices,
+            root.nf.Canvas,
+            root.nf.ProcessGroup,
+            root.nf.Shell);
+    }
+}(this, function ($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell) {
+    'use strict';
 
     var config = {
         urls: {
@@ -49,7 +89,7 @@ nf.ProcessGroupConfiguration = (function () {
     var saveConfiguration = function (version, groupId) {
         // build the entity
         var entity = {
-            'revision': nf.Client.getRevision({
+            'revision': client.getRevision({
                 'revision': {
                     'version': version
                 }
@@ -70,12 +110,12 @@ nf.ProcessGroupConfiguration = (function () {
             contentType: 'application/json'
         }).done(function (response) {
             // refresh the process group if necessary
-            if (response.permissions.canRead && response.component.parentGroupId === nf.Canvas.getGroupId()) {
-                nf.ProcessGroup.set(response);
+            if (response.permissions.canRead && response.component.parentGroupId === canvas.getGroupId()) {
+                processGroup.set(response);
             }
 
             // show the result dialog
-            nf.Dialog.showOkDialog({
+            dialog.showOkDialog({
                 headerText: 'Process Group Configuration',
                 dialogContent: 'Process group configuration successfully saved.'
             });
@@ -85,13 +125,13 @@ nf.ProcessGroupConfiguration = (function () {
                 saveConfiguration(response.revision.version, groupId);
             });
 
-            nf.Canvas.reload();
-        }).fail(nf.ErrorHandler.handleAjaxError);
+            canvas.reload();
+        }).fail(errorHandler.handleAjaxError);
     };
 
     /**
      * Loads the configuration for the specified process group.
-     * 
+     *
      * @param {string} groupId
      */
     var loadConfiguration = function (groupId) {
@@ -149,15 +189,15 @@ nf.ProcessGroupConfiguration = (function () {
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
-                    if (groupId === nf.Canvas.getGroupId()) {
+                    if (groupId === canvas.getGroupId()) {
                         $('#process-group-configuration').data('process-group', {
                             'permissions': {
                                 canRead: false,
-                                canWrite: nf.Canvas.canWrite()
+                                canWrite: canvas.canWrite()
                             }
                         });
                     } else {
-                        $('#process-group-configuration').data('process-group', nf.ProcessGroup.get(groupId));
+                        $('#process-group-configuration').data('process-group', processGroup.get(groupId));
                     }
 
                     setUnauthorizedText();
@@ -171,15 +211,15 @@ nf.ProcessGroupConfiguration = (function () {
 
         // load the controller services
         var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
-        var controllerServices = nf.ControllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
-        
+        var controllerServices = controllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
+
         // wait for everything to complete
         return $.when(processGroup, controllerServices).done(function (processGroupResult, controllerServicesResult) {
             var controllerServicesResponse = controllerServicesResult[0];
 
             // update the current time
             $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(nf.ErrorHandler.handleAjaxError);
+        }).fail(errorHandler.handleAjaxError);
     };
 
     /**
@@ -187,7 +227,7 @@ nf.ProcessGroupConfiguration = (function () {
      */
     var showConfiguration = function () {
         // show the configuration dialog
-        nf.Shell.showContent('#process-group-configuration').done(function () {
+        shell.showContent('#process-group-configuration').done(function () {
             reset();
         });
 
@@ -195,7 +235,7 @@ nf.ProcessGroupConfiguration = (function () {
         $('#process-group-configuration-tabs').find('.selected-tab').click();
 
         // adjust the table size
-        nf.ProcessGroupConfiguration.resetTableSize();
+        nfProcessGroupConfiguration.resetTableSize();
     };
 
     /**
@@ -211,8 +251,8 @@ nf.ProcessGroupConfiguration = (function () {
         $('#process-group-name').val('');
         $('#process-group-comments').val('');
     };
-    
-    return {
+
+    var nfProcessGroupConfiguration = {
         /**
          * Initializes the settings page.
          */
@@ -231,7 +271,7 @@ nf.ProcessGroupConfiguration = (function () {
                 }],
                 select: function () {
                     var processGroup = $('#process-group-configuration').data('process-group');
-                    var canWrite = nf.Common.isDefinedAndNotNull(processGroup) ? processGroup.permissions.canWrite : false;
+                    var canWrite = common.isDefinedAndNotNull(processGroup) ? processGroup.permissions.canWrite : false;
 
                     var tab = $(this).text();
                     if (tab === 'General') {
@@ -254,21 +294,21 @@ nf.ProcessGroupConfiguration = (function () {
                         }
 
                         // resize the table
-                        nf.ProcessGroupConfiguration.resetTableSize();
+                        nfProcessGroupConfiguration.resetTableSize();
                     }
                 }
             });
 
             // initialize each tab
             initGeneral();
-            nf.ControllerServices.init(getControllerServicesTable());
+            controllerServices.init(getControllerServicesTable());
         },
 
         /**
          * Update the size of the grid based on its container's current size.
          */
         resetTableSize: function () {
-            nf.ControllerServices.resetTableSize(getControllerServicesTable());
+            controllerServices.resetTableSize(getControllerServicesTable());
         },
 
         /**
@@ -285,7 +325,7 @@ nf.ProcessGroupConfiguration = (function () {
                 var selectedTab = $('#process-group-configuration-tabs li.selected-tab').text();
                 if (selectedTab === 'Controller Services') {
                     var controllerServicesUri = config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
-                    nf.ControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
+                    controllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 }
             });
 
@@ -320,4 +360,6 @@ nf.ProcessGroupConfiguration = (function () {
             $('#process-group-configuration-tabs').find('li:eq(1)').click();
         }
     };
-}());
+
+    return nfProcessGroupConfiguration;
+}));

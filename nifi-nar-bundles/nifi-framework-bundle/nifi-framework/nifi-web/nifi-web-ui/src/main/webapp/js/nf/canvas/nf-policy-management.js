@@ -787,7 +787,7 @@ nf.PolicyManagement = (function () {
                         $('#shell-close-button').click();
 
                         // load the correct group and unselect everything if necessary
-                        nf.CanvasUtils.enterGroup(processGroupId).done(function () {
+                        nf.ProcessGroup.enterGroup(processGroupId).done(function () {
                             nf.CanvasUtils.getSelection().classed('selected', false);
 
                             // inform Angular app that values have changed

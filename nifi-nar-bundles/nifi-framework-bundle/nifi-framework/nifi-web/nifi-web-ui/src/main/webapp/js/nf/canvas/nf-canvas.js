@@ -17,91 +17,6 @@
 
 /* global nf, d3 */
 
-$(document).ready(function () {
-    if (nf.Canvas.SUPPORTS_SVG) {
-
-        //Create Angular App
-        var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
-
-        //Define Dependency Injection Annotations
-        nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
-        nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider', '$compile', 'headerCtrl', 'graphControlsCtrl'];
-        nf.ng.ServiceProvider.$inject = [];
-        nf.ng.BreadcrumbsCtrl.$inject = ['serviceProvider'];
-        nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl', 'flowStatusCtrl'];
-        nf.ng.Canvas.FlowStatusCtrl.$inject = ['serviceProvider'];
-        nf.ng.Canvas.GlobalMenuCtrl.$inject = ['serviceProvider'];
-        nf.ng.Canvas.ToolboxCtrl.$inject = ['processorComponent',
-            'inputPortComponent',
-            'outputPortComponent',
-            'groupComponent',
-            'remoteGroupComponent',
-            'funnelComponent',
-            'templateComponent',
-            'labelComponent'];
-        nf.ng.ProcessorComponent.$inject = ['serviceProvider'];
-        nf.ng.InputPortComponent.$inject = ['serviceProvider'];
-        nf.ng.OutputPortComponent.$inject = ['serviceProvider'];
-        nf.ng.GroupComponent.$inject = ['serviceProvider'];
-        nf.ng.RemoteProcessGroupComponent.$inject = ['serviceProvider'];
-        nf.ng.FunnelComponent.$inject = ['serviceProvider'];
-        nf.ng.TemplateComponent.$inject = ['serviceProvider'];
-        nf.ng.LabelComponent.$inject = ['serviceProvider'];
-        nf.ng.Canvas.GraphControlsCtrl.$inject = ['serviceProvider', 'navigateCtrl', 'operateCtrl'];
-        nf.ng.Canvas.NavigateCtrl.$inject = [];
-        nf.ng.Canvas.OperateCtrl.$inject = [];
-        nf.ng.BreadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
-        nf.ng.DraggableDirective.$inject = [];
-
-        //Configure Angular App
-        app.config(nf.ng.AppConfig);
-
-        //Define Angular App Controllers
-        app.controller('ngCanvasAppCtrl', nf.ng.AppCtrl);
-
-        //Define Angular App Services
-        app.service('serviceProvider', nf.ng.ServiceProvider);
-        app.service('breadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
-        app.service('headerCtrl', nf.ng.Canvas.HeaderCtrl);
-        app.service('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
-        app.service('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
-        app.service('flowStatusCtrl', nf.ng.Canvas.FlowStatusCtrl);
-        app.service('processorComponent', nf.ng.ProcessorComponent);
-        app.service('inputPortComponent', nf.ng.InputPortComponent);
-        app.service('outputPortComponent', nf.ng.OutputPortComponent);
-        app.service('groupComponent', nf.ng.GroupComponent);
-        app.service('remoteGroupComponent', nf.ng.RemoteProcessGroupComponent);
-        app.service('funnelComponent', nf.ng.FunnelComponent);
-        app.service('templateComponent', nf.ng.TemplateComponent);
-        app.service('labelComponent', nf.ng.LabelComponent);
-        app.service('graphControlsCtrl', nf.ng.Canvas.GraphControlsCtrl);
-        app.service('navigateCtrl', nf.ng.Canvas.NavigateCtrl);
-        app.service('operateCtrl', nf.ng.Canvas.OperateCtrl);
-
-        //Define Angular App Directives
-        app.directive('nfBreadcrumbs', nf.ng.BreadcrumbsDirective);
-        app.directive('nfDraggable', nf.ng.DraggableDirective);
-
-        //Manually Boostrap Angular App
-        nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
-
-        // initialize the NiFi
-        nf.Canvas.init();
-
-        //initialize toolbox components tooltips
-        $('.component-button').qtip($.extend({}, nf.Common.config.tooltipConfig));
-    } else {
-        $('#message-title').text('Unsupported Browser');
-        $('#message-content').text('Flow graphs are shown using SVG. Please use a browser that supports rendering SVG.');
-
-        // show the error pane
-        $('#message-pane').show();
-
-        // hide the splash screen
-        nf.Canvas.hideSplash();
-    }
-});
-
 nf.Canvas = (function () {
 
     var SCALE = 1;
@@ -509,7 +424,7 @@ nf.Canvas = (function () {
 
         // listen for events to go to process groups
         $('body').on('GoTo:ProcessGroup', function (e, item) {
-            nf.CanvasUtils.enterGroup(item.id).done(function () {
+            nf.ProcessGroup.enterGroup(item.id).done(function () {
                 nf.CanvasUtils.getSelection().classed('selected', false);
 
                 // inform Angular app that values have changed
@@ -905,7 +820,6 @@ nf.Canvas = (function () {
 
                     // initialize the component behaviors
                     nf.Draggable.init();
-                    nf.Selectable.init();
                     nf.Connectable.init();
 
                     // initialize the chart
@@ -930,7 +844,7 @@ nf.Canvas = (function () {
                     nf.ConnectionDetails.init();
                     nf.RemoteProcessGroupDetails.init();
                     nf.GoTo.init();
-                    nf.Graph.init().done(function () {
+                    nf.Graph.init(nf.Canvas.getGroupId()).done(function () {
                         nf.ng.Bridge.injector.get('graphControlsCtrl').init();
 
                         // determine the split between the polling
@@ -1026,6 +940,27 @@ nf.Canvas = (function () {
                 return false;
             } else {
                 return permissions.canWrite === true;
+            }
+        },
+
+        /**
+         * Reloads a connection's source and destination.
+         *
+         * @param {string} sourceComponentId          The connection source id
+         * @param {string} destinationComponentId     The connection destination id
+         */
+        reloadConnectionSourceAndDestination: function (sourceComponentId, destinationComponentId) {
+            if (nf.Common.isBlank(sourceComponentId) === false) {
+                var source = d3.select('#id-' + sourceComponentId);
+                if (source.empty() === false) {
+                    nf.Graph.reload(source);
+                }
+            }
+            if (nf.Common.isBlank(destinationComponentId) === false) {
+                var destination = d3.select('#id-' + destinationComponentId);
+                if (destination.empty() === false) {
+                    nf.Graph.reload(destination);
+                }
             }
         },
 

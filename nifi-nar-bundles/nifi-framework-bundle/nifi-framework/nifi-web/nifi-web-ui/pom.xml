@@ -435,34 +435,15 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-error-handler.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-shell.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-custom-ui.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-services.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-processor-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/nf-processor-details.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-policy-management.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-ports.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-label-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-connection-configuration.js</include>
-                                                <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-graph.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-processor.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-port.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-process-group.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-draggable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connectable.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-selectable.js</include>
@@ -471,6 +452,28 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-actions.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-details.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-remote-process-group-ports.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-processor.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-processor-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/nf-processor-details.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-port.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-port-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-port-details.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-process-group.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-process-group-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-connection-configuration.js</include>
+                                                <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
@@ -490,9 +493,6 @@
                                                 <include>${staging.dir}/js/nf/canvas/header/components/nf-ng-label-component.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-breadcrumbs-directive.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/directives/nf-ng-draggable-directive.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
-                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>

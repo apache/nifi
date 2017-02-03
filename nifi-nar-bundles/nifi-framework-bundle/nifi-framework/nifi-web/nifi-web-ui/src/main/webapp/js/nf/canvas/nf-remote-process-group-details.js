@@ -15,9 +15,29 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global nf, define, module, require, exports */
 
-nf.RemoteProcessGroupDetails = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['$',
+                'nf.Common',
+                'nf.CanvasUtils'],
+            function ($, common, canvasUtils) {
+                return (nf.RemoteProcessGroupDetails = factory($, common, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.RemoteProcessGroupDetails =
+            factory(require('$'),
+                require('nf.Common'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.RemoteProcessGroupDetails = factory(root.$,
+            root.nf.Common,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, common, canvasUtils) {
+    'use strict';
+
     return {
         init: function () {
             $('#remote-process-group-details').modal({
@@ -81,4 +101,4 @@ nf.RemoteProcessGroupDetails = (function () {
             }
         }
     };
-}());
+}));

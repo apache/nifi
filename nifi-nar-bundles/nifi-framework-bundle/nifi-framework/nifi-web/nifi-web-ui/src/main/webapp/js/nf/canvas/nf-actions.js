@@ -98,7 +98,7 @@ nf.Actions = (function () {
         enterGroup: function (selection) {
             if (selection.size() === 1 && nf.CanvasUtils.isProcessGroup(selection)) {
                 var selectionData = selection.datum();
-                nf.CanvasUtils.enterGroup(selectionData.id);
+                nf.ProcessGroup.enterGroup(selectionData.id);
             }
         },
 
@@ -106,7 +106,7 @@ nf.Actions = (function () {
          * Exits the current process group but entering the parent group.
          */
         leaveGroup: function () {
-            nf.CanvasUtils.enterGroup(nf.Canvas.getParentGroupId());
+            nf.ProcessGroup.enterGroup(nf.Canvas.getParentGroupId());
         },
 
         /**

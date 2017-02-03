@@ -15,9 +15,31 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global nf, define, module, require, exports */
 
-nf.Snippet = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.CanvasUtils',
+                'nf.Canvas'],
+            function ($, d3, canvasUtils, canvas) {
+                return (nf.Snippet = factory($, d3, canvasUtils, canvas));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Snippet =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.CanvasUtils'),
+                require('nf.Canvas')));
+    } else {
+        nf.Snippet = factory(root.$,
+            root.d3,
+            root.nf.CanvasUtils,
+            root.nf.Canvas);
+    }
+}(this, function ($, d3, canvasUtils, canvas) {
+    'use strict';
 
     var config = {
         urls: {
@@ -29,12 +51,12 @@ nf.Snippet = (function () {
     return {
         /**
          * Marshals snippet from the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection to marshal
          */
         marshal: function (selection) {
             var snippet = {
-                parentGroupId: nf.Canvas.getGroupId(),
+                parentGroupId: canvas.getGroupId(),
                 processors: {},
                 funnels: {},
                 inputPorts: {},
@@ -49,31 +71,31 @@ nf.Snippet = (function () {
             selection.each(function (d) {
                 var selected = d3.select(this);
 
-                if (nf.CanvasUtils.isProcessor(selected)) {
+                if (canvasUtils.isProcessor(selected)) {
                     snippet.processors[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isFunnel(selected)) {
+                } else if (canvasUtils.isFunnel(selected)) {
                     snippet.funnels[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isLabel(selected)) {
+                } else if (canvasUtils.isLabel(selected)) {
                     snippet.labels[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isInputPort(selected)) {
+                } else if (canvasUtils.isInputPort(selected)) {
                     snippet.inputPorts[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isOutputPort(selected)) {
+                } else if (canvasUtils.isOutputPort(selected)) {
                     snippet.outputPorts[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isProcessGroup(selected)) {
+                } else if (canvasUtils.isProcessGroup(selected)) {
                     snippet.processGroups[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isRemoteProcessGroup(selected)) {
+                } else if (canvasUtils.isRemoteProcessGroup(selected)) {
                     snippet.remoteProcessGroups[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isConnection(selected)) {
+                } else if (canvasUtils.isConnection(selected)) {
                     snippet.connections[d.id] = nf.Client.getRevision(selected.datum());
                 }
             });
 
             return snippet;
         },
-        
+
         /**
          * Creates a snippet.
-         * 
+         *
          * @argument {object} snippet       The snippet
          */
         create: function (snippet) {
@@ -89,10 +111,10 @@ nf.Snippet = (function () {
                 contentType: 'application/json'
             });
         },
-        
+
         /**
          * Copies the snippet to the specified group and origin.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          * @argument {object} origin            The origin
          */
@@ -105,16 +127,16 @@ nf.Snippet = (function () {
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/snippet-instance',
+                url: config.urls.processGroups + '/' + encodeURIComponent(canvas.getGroupId()) + '/snippet-instance',
                 data: JSON.stringify(copySnippetRequestEntity),
                 dataType: 'json',
                 contentType: 'application/json'
             });
         },
-        
+
         /**
          * Removes the specified snippet.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          */
         remove: function (snippetId) {
@@ -123,10 +145,10 @@ nf.Snippet = (function () {
                 url: config.urls.snippets + '/' + encodeURIComponent(snippetId)
             });
         },
-        
+
         /**
          * Moves the snippet into the specified group.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          * @argument {string} newGroupId        The new group id
          */
@@ -147,4 +169,4 @@ nf.Snippet = (function () {
             });
         }
     };
-}());
+}));

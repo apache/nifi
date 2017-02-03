@@ -598,8 +598,9 @@ nf.ControllerServices = (function () {
      * Initializes the controller services tab.
      * 
      * @param {jQuery} serviceTable
+     * @param {function} showSettings
      */
-    var initControllerServices = function (serviceTable) {
+    var initControllerServices = function (serviceTable, showSettings) {
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
             if (!dataContext.permissions.canRead) {
@@ -810,7 +811,7 @@ nf.ControllerServices = (function () {
                              // reload the corresponding group
                              nf.ProcessGroupConfiguration.showConfiguration(groupId);
                          } else {
-                             nf.Settings.showSettings();
+                             showSettings();
                          }
                      });
                  }
@@ -927,10 +928,11 @@ nf.ControllerServices = (function () {
     return {
         /**
          * Initializes the status page.
-         * 
+         *
          * @param {jQuery} serviceTable
+         * @param {function} showSettings
          */
-        init: function (serviceTable) {
+        init: function (serviceTable, showSettings) {
             if (!initialized) {
                 // initialize the new controller service dialog
                 initNewControllerServiceDialog();
@@ -940,7 +942,7 @@ nf.ControllerServices = (function () {
             }
 
             // initialize the controller service table
-            initControllerServices(serviceTable);
+            initControllerServices(serviceTable, showSettings);
         },
 
         /**
