@@ -108,7 +108,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
     private final AtomicReference<ProcessGroup> processGroup;
-    private final Processor processor;
+    private final AtomicReference<ProcessorDetails> processorRef;
     private final AtomicReference<String> identifier;
     private final Map<Connection, Connectable> destinations;
     private final Map<Relationship, Set<Connection>> connections;
@@ -124,13 +124,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicInteger concurrentTaskCount;
     private final AtomicLong yieldExpiration;
     private final AtomicLong schedulingNanos;
-    private final boolean triggerWhenEmpty;
-    private final boolean sideEffectFree;
-    private final boolean triggeredSerially;
-    private final boolean triggerWhenAnyDestinationAvailable;
-    private final boolean eventDrivenSupported;
-    private final boolean batchSupported;
-    private final Requirement inputRequirement;
     private final ProcessScheduler processScheduler;
     private long runNanos = 0L;
     private final NiFiProperties nifiProperties;
@@ -155,7 +148,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                  final VariableRegistry variableRegistry, final BundleCoordinate bundleCoordinate, final boolean isExtensionMissing, final ComponentLog logger) {
 
         super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, bundleCoordinate, isExtensionMissing, logger);
-        this.processor = processor;
+
+        final ProcessorDetails processorDetails = new ProcessorDetails(processor);
+        this.processorRef = new AtomicReference<>(processorDetails);
+
         identifier = new AtomicReference<>(uuid);
         destinations = new HashMap<>();
         connections = new HashMap<>();
@@ -176,26 +172,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
         this.nifiProperties = nifiProperties;
 
-        final Class<?> procClass = processor.getClass();
-        triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
-        sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
-        batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
-        triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
-        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
-        eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
-
-        final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
-        if (inputRequirementPresent) {
-            inputRequirement = procClass.getAnnotation(InputRequirement.class).value();
-        } else {
-            inputRequirement = Requirement.INPUT_ALLOWED;
-        }
-
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
         executionNode = ExecutionNode.ALL;
         try {
-            if (procClass.isAnnotationPresent(DefaultSchedule.class)) {
-                DefaultSchedule dsc = procClass.getAnnotation(DefaultSchedule.class);
+            if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
+                DefaultSchedule dsc = processorDetails.getProcClass().getAnnotation(DefaultSchedule.class);
                 try {
                     this.setSchedulingStrategy(dsc.strategy());
                 } catch (Throwable ex) {
@@ -207,7 +188,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
                     LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
-                if (!triggeredSerially) {
+                if (!processorDetails.isTriggeredSerially()) {
                     try {
                         setMaxConcurrentTasks(dsc.concurrentTasks());
                     } catch (Throwable ex) {
@@ -305,7 +286,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public boolean isTriggerWhenEmpty() {
-        return triggerWhenEmpty;
+        return processorRef.get().isTriggerWhenEmpty();
     }
 
     /**
@@ -314,12 +295,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public boolean isSideEffectFree() {
-        return sideEffectFree;
+        return processorRef.get().isSideEffectFree();
     }
 
     @Override
     public boolean isHighThroughputSupported() {
-        return batchSupported;
+        return processorRef.get().isBatchSupported();
     }
 
     /**
@@ -329,7 +310,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public boolean isTriggerWhenAnyDestinationAvailable() {
-        return triggerWhenAnyDestinationAvailable;
+        return processorRef.get().isTriggerWhenAnyDestinationAvailable();
     }
 
     /**
@@ -390,6 +371,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      *         annotation, if one exists, else <code>null</code>.
      */
     public String getProcessorDescription() {
+        final Processor processor = processorRef.get().getProcessor();
         final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
         String description = null;
         if (capDesc != null) {
@@ -421,7 +403,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isEventDrivenSupported() {
-        return this.eventDrivenSupported;
+        return processorRef.get().isEventDrivenSupported();
     }
 
     /**
@@ -436,7 +418,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
-        if (schedulingStrategy == SchedulingStrategy.EVENT_DRIVEN && !eventDrivenSupported) {
+        if (schedulingStrategy == SchedulingStrategy.EVENT_DRIVEN && !processorRef.get().isEventDrivenSupported()) {
             // not valid. Just ignore it. We don't throw an Exception because if
             // a developer changes a Processor so that
             // it no longer supports EventDriven mode, we don't want the app to
@@ -550,6 +532,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public void yield() {
+        final Processor processor = processorRef.get().getProcessor();
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);
         yield(yieldMillis, TimeUnit.MILLISECONDS);
 
@@ -617,14 +600,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (taskCount < 1 && getSchedulingStrategy() != SchedulingStrategy.EVENT_DRIVEN) {
             throw new IllegalArgumentException();
         }
-        if (!triggeredSerially) {
+        if (!isTriggeredSerially()) {
             concurrentTaskCount.set(taskCount);
         }
     }
 
     @Override
     public boolean isTriggeredSerially() {
-        return triggeredSerially;
+        return processorRef.get().isTriggeredSerially();
     }
 
     /**
@@ -843,6 +826,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         Relationship returnRel = specRel;
 
         final Set<Relationship> relationships;
+        final Processor processor = processorRef.get().getProcessor();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             relationships = processor.getRelationships();
         }
@@ -858,7 +842,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Processor getProcessor() {
-        return this.processor;
+        return processorRef.get().getProcessor();
+    }
+
+    @Override
+    public void setProcessor(Processor processor) {
+        final ProcessorDetails processorDetails = new ProcessorDetails(processor);
+        processorRef.set(processorDetails);
     }
 
     /**
@@ -889,6 +879,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
         final Set<Relationship> relationships;
+        final Processor processor = processorRef.get().getProcessor();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             relationships = processor.getRelationships();
         }
@@ -945,7 +936,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+            final Processor processor = processorRef.get().getProcessor();
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                 validationResults = getProcessor().validate(validationContext);
             }
 
@@ -995,7 +987,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
                 final Collection<ValidationResult> validationResults;
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+                final Processor processor = processorRef.get().getProcessor();
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
                     validationResults = getProcessor().validate(validationContext);
                 }
 
@@ -1046,7 +1039,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Requirement getInputRequirement() {
-        return inputRequirement;
+        return processorRef.get().getInputRequirement();
     }
 
     /**
@@ -1072,14 +1065,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Collection<Relationship> getRelationships() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+        final Processor processor = processorRef.get().getProcessor();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             return getProcessor().getRelationships();
         }
     }
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass(), processor.getIdentifier())) {
+        final Processor processor = processorRef.get().getProcessor();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             return getProcessor().toString();
         }
     }
@@ -1096,6 +1091,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        final Processor processor = processorRef.get().getProcessor();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
             processor.onTrigger(context, sessionFactory);
         }
@@ -1267,6 +1263,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (!this.isValid()) {
             throw new IllegalStateException( "Processor " + this.getName() + " is not in a valid state due to " + this.getValidationErrors());
         }
+        final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
         if (this.scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.STARTING)) { // will ensure that the Processor represented by this node can only be started once
             final Runnable startProcRunnable = new Runnable() {
@@ -1310,7 +1307,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             };
             taskScheduler.execute(startProcRunnable);
         } else {
-            final String procName = this.processor.getClass().getSimpleName();
+            final String procName = processorRef.getClass().getSimpleName();
             LOG.warn("Can not start '" + procName
                     + "' since it's already in the process of being started or it is DISABLED - "
                     + scheduledState.get());
@@ -1349,7 +1346,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public <T extends ProcessContext & ControllerServiceLookup> void stop(final ScheduledExecutorService scheduler,
         final T processContext, final SchedulingAgent schedulingAgent, final ScheduleState scheduleState) {
-        LOG.info("Stopping processor: " + this.processor.getClass());
+
+        final Processor processor = processorRef.get().getProcessor();
+        LOG.info("Stopping processor: " + processor.getClass());
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
             scheduleState.incrementActiveThreadCount();
 
@@ -1425,6 +1424,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </p>
      */
     private <T> void invokeTaskAsCancelableFuture(final SchedulingAgentCallback callback, final Callable<T> task) {
+        final Processor processor = processorRef.get().getProcessor();
         final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
         final long onScheduleTimeout = timeoutString == null ? 60000
                 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
@@ -1432,19 +1432,19 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try {
             taskFuture.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
         } catch (final InterruptedException e) {
-            LOG.warn("Thread was interrupted while waiting for processor '" + this.processor.getClass().getSimpleName()
+            LOG.warn("Thread was interrupted while waiting for processor '" + processor.getClass().getSimpleName()
                     + "' lifecycle OnScheduled operation to finish.");
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while executing one of processor's OnScheduled tasks.", e);
         } catch (final TimeoutException e) {
             taskFuture.cancel(true);
             LOG.warn("Timed out while waiting for OnScheduled of '"
-                    + this.processor.getClass().getSimpleName()
+                    + processor.getClass().getSimpleName()
                     + "' processor to finish. An attempt is made to cancel the task via Thread.interrupt(). However it does not "
                     + "guarantee that the task will be canceled since the code inside current OnScheduled operation may "
                 + "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues, "
                     + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '"
-                    + this.processor + "' that needs to be documented, reported and eventually fixed.");
+                    + processor + "' that needs to be documented, reported and eventually fixed.");
             throw new RuntimeException("Timed out while executing one of processor's OnScheduled task.", e);
         } catch (final ExecutionException e){
             throw new RuntimeException("Failed while executing one of processor's OnScheduled task.", e);
@@ -1458,4 +1458,73 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final ProcessGroup group = getProcessGroup();
         return group == null ? null : group.getIdentifier();
     }
+
+    private static final class ProcessorDetails {
+
+        private final Processor processor;
+        private final Class<?> procClass;
+        private final boolean triggerWhenEmpty;
+        private final boolean sideEffectFree;
+        private final boolean triggeredSerially;
+        private final boolean triggerWhenAnyDestinationAvailable;
+        private final boolean eventDrivenSupported;
+        private final boolean batchSupported;
+        private final Requirement inputRequirement;
+
+        public ProcessorDetails(final Processor processor) {
+            this.processor = processor;
+
+            procClass = processor.getClass();
+            triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
+            sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
+            batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
+            triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
+            triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
+            eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
+
+            final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
+            if (inputRequirementPresent) {
+                inputRequirement = procClass.getAnnotation(InputRequirement.class).value();
+            } else {
+                inputRequirement = Requirement.INPUT_ALLOWED;
+            }
+        }
+
+        public Processor getProcessor() {
+            return processor;
+        }
+
+        public Class<?> getProcClass() {
+            return procClass;
+        }
+
+        public boolean isTriggerWhenEmpty() {
+            return triggerWhenEmpty;
+        }
+
+        public boolean isSideEffectFree() {
+            return sideEffectFree;
+        }
+
+        public boolean isTriggeredSerially() {
+            return triggeredSerially;
+        }
+
+        public boolean isTriggerWhenAnyDestinationAvailable() {
+            return triggerWhenAnyDestinationAvailable;
+        }
+
+        public boolean isEventDrivenSupported() {
+            return eventDrivenSupported;
+        }
+
+        public boolean isBatchSupported() {
+            return batchSupported;
+        }
+
+        public Requirement getInputRequirement() {
+            return inputRequirement;
+        }
+    }
+
 }

@@ -313,8 +313,8 @@ public class ExtensionManager {
             builder.append("\n\t=== ").append(entry.getKey().getSimpleName()).append(" Type ===");
 
             for (final Class type : entry.getValue()) {
-                final List<Bundle> bundles = classNameBundleLookup.containsKey(type.getName()) ?
-                        classNameBundleLookup.get(type.getName()) : Collections.emptyList();
+                final List<Bundle> bundles = classNameBundleLookup.containsKey(type.getName())
+                        ? classNameBundleLookup.get(type.getName()) : Collections.emptyList();
 
                 builder.append("\n\t").append(type.getName());
 

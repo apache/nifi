@@ -275,6 +275,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return serviceNode;
     }
 
+    public void changeControllerServiceType(final ControllerServiceNode existingControllerService, final String newType, final BundleCoordinate bundleCoordinate) {
+
+    }
+
     @Override
     public Set<ConfiguredComponent> disableReferencingServices(final ControllerServiceNode serviceNode) {
         // Get a list of all Controller Services that need to be disabled, in the order that they need to be

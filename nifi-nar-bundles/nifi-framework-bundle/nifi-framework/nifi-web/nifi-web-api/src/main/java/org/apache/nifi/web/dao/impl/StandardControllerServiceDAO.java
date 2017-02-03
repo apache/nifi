@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ConfiguredComponent;
@@ -30,6 +31,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
@@ -143,6 +145,9 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         // perform the update
         configureControllerService(controllerService, controllerServiceDTO);
 
+        // attempt to change the underlying controller service if an updated bundle is specified
+        updateBundle(controllerService, controllerServiceDTO);
+
         // enable or disable as appropriate
         if (isNotNull(controllerServiceDTO.getState())) {
             final ControllerServiceState purposedControllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
@@ -158,6 +163,33 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
 
         return controllerService;
+    }
+
+    private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
+        BundleDTO bundleDTO = controllerServiceDTO.getBundle();
+        if (bundleDTO != null) {
+            BundleCoordinate existingCoordinate = controllerService.getBundleCoordinate();
+            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+
+            // determine if this update is changing the bundle for the cs
+            if (!existingCoordinate.equals(incomingCoordinate)) {
+                // if it is changing the bundle, only allow it to change to a different version within same group and id
+                if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
+                        || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
+                    throw new IllegalArgumentException(String.format(
+                            "Unable to update controller service %s from %s to %s because bundle group and id must be the same.",
+                            controllerServiceDTO.getId(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
+                }
+                // if we made it here we can attempt to change the underlying controller service using the new bundle, a
+                // ControllerServiceInstantiationException will be thrown if the request bundle coordinate does not exsit
+                try {
+                    flowController.changeControllerServiceType(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate);
+                } catch (ControllerServiceInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
+                            controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
+            }
+        }
     }
 
     @Override

@@ -65,6 +65,7 @@ import org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater;
 import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
+import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
@@ -1145,6 +1146,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 Thread.currentThread().setContextClassLoader(ctxClassLoader);
             }
         }
+    }
+
+    public void changeProcessorType(final ProcessorNode existingProcessorNode, final String newType, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
+        if (existingProcessorNode == null) {
+            throw new IllegalStateException("Existing ProcessorNode cannot be null");
+        }
+
+        final String existingIdentifier = existingProcessorNode.getProcessor().getIdentifier();
+        final Processor newProcessor = instantiateProcessor(newType, existingIdentifier, bundleCoordinate);
+        existingProcessorNode.setProcessor(newProcessor);
+        existingProcessorNode.setBundleCoordinate(bundleCoordinate);
     }
 
     /**
@@ -3012,6 +3024,25 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         return serviceNode;
+    }
+
+    public void changeControllerServiceType(final ControllerServiceNode existingControllerService, final String newType, final BundleCoordinate bundleCoordinate)
+            throws ControllerServiceInstantiationException {
+        if (existingControllerService == null) {
+            throw new IllegalStateException("Existing ControllerServiceNode cannot be null");
+        }
+
+        // create a new controller service node so we can get the underlying
+        final String existingId = existingControllerService.getIdentifier();
+        final ControllerServiceNode controllerServiceNode = controllerServiceProvider.createControllerService(newType, existingId, bundleCoordinate, false);
+
+        // set the new proxy and impl into the existing node
+        existingControllerService.setControllerServiceAndProxy(
+                controllerServiceNode.getProxiedControllerService(),
+                controllerServiceNode.getControllerServiceImplementation());
+
+        // update the existing node with the new bundle
+        existingControllerService.setBundleCoordinate(bundleCoordinate);
     }
 
     @Override

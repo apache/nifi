@@ -167,4 +167,13 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * {@link #disable(ScheduledExecutorService)}.
      */
     boolean isActive();
+
+    /**
+     * Sets a new proxy and implementation for this node.
+     *
+     * @param proxiedControllerService the proxied controller service
+     * @param implementation the actual implementation controller service
+     */
+    void setControllerServiceAndProxy(final ControllerService proxiedControllerService, final ControllerService implementation);
+
 }

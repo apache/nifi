@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -61,8 +62,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final VariableRegistry variableRegistry;
     private final ComponentLog logger;
 
-    private final BundleCoordinate bundleCoordinate;
-    private final boolean isExtensionMissing;
+    private final AtomicReference<BundleCoordinate> bundleCoordinate;
+    private final AtomicBoolean isExtensionMissing;
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
@@ -79,8 +80,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         this.componentType = componentType;
         this.componentCanonicalClass = componentCanonicalClass;
         this.variableRegistry = variableRegistry;
-        this.bundleCoordinate = bundleCoordinate;
-        this.isExtensionMissing = isExtensionMissing;
+        this.bundleCoordinate = new AtomicReference<>(bundleCoordinate);
+        this.isExtensionMissing = new AtomicBoolean(isExtensionMissing);
         this.logger = logger;
     }
 
@@ -91,12 +92,22 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public BundleCoordinate getBundleCoordinate() {
-        return bundleCoordinate;
+        return bundleCoordinate.get();
+    }
+
+    @Override
+    public void setBundleCoordinate(BundleCoordinate bundleCoordinate) {
+        this.bundleCoordinate.set(bundleCoordinate);
+    }
+
+    @Override
+    public void setExtensionMissing(boolean extensionMissing) {
+        this.isExtensionMissing.set(extensionMissing);
     }
 
     @Override
     public boolean isExtensionMissing() {
-        return isExtensionMissing;
+        return isExtensionMissing.get();
     }
 
     @Override

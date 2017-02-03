@@ -78,6 +78,8 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract Processor getProcessor();
 
+    public abstract void setProcessor(Processor processor);
+
     public abstract void yield(long period, TimeUnit timeUnit);
 
     public abstract void setAutoTerminatedRelationships(Set<Relationship> relationships);

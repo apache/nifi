@@ -61,8 +61,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
 
-    private final ControllerService proxedControllerService;
-    private final ControllerService implementation;
+    private final AtomicReference<ControllerServiceHolder> controllerServiceHolder = new AtomicReference<>(null);
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<ControllerServiceState> stateRef = new AtomicReference<>(ControllerServiceState.DISABLED);
 
@@ -90,8 +89,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                                          final BundleCoordinate bundleCoordinate, final boolean isExtensionMissing, final ComponentLog logger) {
 
         super(implementation, id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, bundleCoordinate, isExtensionMissing, logger);
-        this.proxedControllerService = proxiedControllerService;
-        this.implementation = implementation;
+        setControllerServiceAndProxy(proxiedControllerService, implementation);
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
 
@@ -129,12 +127,18 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public ControllerService getProxiedControllerService() {
-        return proxedControllerService;
+        return controllerServiceHolder.get().getProxiedControllerService();
     }
 
     @Override
     public ControllerService getControllerServiceImplementation() {
-        return implementation;
+        return controllerServiceHolder.get().getImplementation();
+    }
+
+    @Override
+    public void setControllerServiceAndProxy(final ControllerService proxiedControllerService, final ControllerService implementation) {
+        final ControllerServiceHolder controllerServiceHolder = new ControllerServiceHolder(proxiedControllerService, implementation);
+        this.controllerServiceHolder.set(controllerServiceHolder);
     }
 
     @Override
@@ -212,7 +216,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void verifyCanDelete() {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Controller Service " + implementation.getIdentifier() + " cannot be deleted because it is not disabled");
+            throw new IllegalStateException("Controller Service " + getControllerServiceImplementation().getIdentifier() + " cannot be deleted because it is not disabled");
         }
     }
 
@@ -237,7 +241,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         }
 
         if (!activeReferencesIdentifiers.isEmpty()) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be disabled because it is referenced by " + activeReferencesIdentifiers.size() +
+            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be disabled because it is referenced by " + activeReferencesIdentifiers.size() +
                 " components that are currently running: [" + StringUtils.join(activeReferencesIdentifiers, ", ") + "]");
         }
     }
@@ -245,18 +249,18 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void verifyCanEnable() {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be enabled because it is not disabled");
+            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
         if (!isValid()) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
+            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + getValidationErrors());
         }
     }
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be enabled because it is not disabled");
+            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled");
         }
 
         final Set<String> ids = new HashSet<>();
@@ -267,7 +271,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         final Collection<ValidationResult> validationResults = getValidationErrors(ids);
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
-                throw new IllegalStateException(implementation.getIdentifier() + " cannot be enabled because it is not valid: " + result);
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not valid: " + result);
             }
         }
     }
@@ -275,7 +279,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void verifyCanUpdate() {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be updated because it is not disabled");
+            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be updated because it is not disabled");
         }
     }
 
@@ -447,5 +451,27 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             results = super.getValidationErrors(serviceIdentifiersNotToValidate);
         }
         return results != null ? results : Collections.emptySet();
+    }
+
+    /**
+     * Helper to atomically get/set the proxy and implementation.
+     */
+    private static class ControllerServiceHolder {
+
+        private final ControllerService proxiedControllerService;
+        private final ControllerService implementation;
+
+        public ControllerServiceHolder(ControllerService proxiedControllerService, ControllerService implementation) {
+            this.proxiedControllerService = proxiedControllerService;
+            this.implementation = implementation;
+        }
+
+        public ControllerService getProxiedControllerService() {
+            return proxiedControllerService;
+        }
+
+        public ControllerService getImplementation() {
+            return implementation;
+        }
     }
 }

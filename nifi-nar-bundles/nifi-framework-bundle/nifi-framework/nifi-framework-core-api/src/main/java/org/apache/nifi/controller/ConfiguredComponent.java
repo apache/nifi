@@ -53,7 +53,11 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     BundleCoordinate getBundleCoordinate();
 
+    void setBundleCoordinate(BundleCoordinate bundleCoordinate);
+
     boolean isExtensionMissing();
+
+    void setExtensionMissing(boolean extensionMissing);
 
     /**
      * @return the any validation errors for this connectable
