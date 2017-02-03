@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -293,7 +293,7 @@
 
                 // allow policy configuration conditionally if embedded in
                 if (top !== window && common.canAccessTenants()) {
-                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.Canvas) && parent.nf.Canvas.isConfigurableAuthorizer()) {
+                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isConfigurableAuthorizer()) {
                         markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
                     }
                 }

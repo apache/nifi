@@ -15,9 +15,55 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
-nf.ProcessorConfiguration = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.ng.Bridge',
+                'nf.Processor',
+                'nf.ClusterSummary',
+                'nf.CustomUi',
+                'nf.UniversalCapture',
+                'nf.Connection'],
+            function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection) {
+                return (nf.ProcessorConfiguration = factory($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ProcessorConfiguration =
+            factory(require('jquery'),
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.ng.Bridge'),
+                require('nf.Processor'),
+                require('nf.ClusterSummary'),
+                require('nf.CustomUi'),
+                require('nf.UniversalCapture'),
+                require('nf.Connection')));
+    } else {
+        nf.ProcessorConfiguration = factory(root.$,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.ng.Bridge,
+            root.nf.Processor,
+            root.nf.ClusterSummary,
+            root.nf.CustomUi,
+            root.nf.UniversalCapture,
+            root.nf.Connection);
+    }
+}(this, function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection) {
+    'use strict';
 
     // possible values for a processor's run duration (in millis)
     var RUN_DURATION_VALUES = [0, 25, 50, 100, 250, 500, 1000, 2000];
@@ -87,7 +133,7 @@ nf.ProcessorConfiguration = (function () {
             text: 'Primary node',
             value: 'PRIMARY',
             description: 'Processor will be scheduled to run only on the primary node',
-            disabled: !nf.ClusterSummary.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+            disabled: !clusterSummary.isClustered() && processor.config['executionNode'] === 'PRIMARY'
         }];
     };
 
@@ -106,15 +152,15 @@ nf.ProcessorConfiguration = (function () {
             if (errors.length === 1) {
                 content = $('<span></span>').text(errors[0]);
             } else {
-                content = nf.Common.formatUnorderedList(errors);
+                content = common.formatUnorderedList(errors);
             }
 
-            nf.Dialog.showOkDialog({
+            dialog.showOkDialog({
                 dialogContent: content,
                 headerText: 'Processor Configuration'
             });
         } else {
-            nf.ErrorHandler.handleAjaxError(xhr, status, error);
+            errorHandler.handleAjaxError(xhr, status, error);
         }
     };
 
@@ -137,7 +183,7 @@ nf.ProcessorConfiguration = (function () {
 
         // build the relationship container element
         var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipCheckbox).append(relationshipLabel).append(relationshipValue).appendTo('#auto-terminate-relationship-names');
-        if (!nf.Common.isBlank(relationship.description)) {
+        if (!common.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
         }
@@ -209,7 +255,7 @@ nf.ProcessorConfiguration = (function () {
         }
 
         // check the scheduling period
-        if (nf.Common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (details.config['schedulingPeriod'] + '')) {
+        if (common.isDefinedAndNotNull(schedulingPeriod) && schedulingPeriod.val() !== (details.config['schedulingPeriod'] + '')) {
             return true;
         }
 
@@ -275,7 +321,7 @@ nf.ProcessorConfiguration = (function () {
         }
 
         // get the scheduling period if appropriate
-        if (nf.Common.isDefinedAndNotNull(schedulingPeriod)) {
+        if (common.isDefinedAndNotNull(schedulingPeriod)) {
             processorConfigDto['schedulingPeriod'] = schedulingPeriod.val();
         }
 
@@ -359,22 +405,22 @@ nf.ProcessorConfiguration = (function () {
         var config = processor['config'];
 
         // ensure numeric fields are specified correctly
-        if (nf.Common.isDefinedAndNotNull(config['concurrentlySchedulableTaskCount']) && !$.isNumeric(config['concurrentlySchedulableTaskCount'])) {
+        if (common.isDefinedAndNotNull(config['concurrentlySchedulableTaskCount']) && !$.isNumeric(config['concurrentlySchedulableTaskCount'])) {
             errors.push('Concurrent tasks must be an integer value');
         }
-        if (nf.Common.isDefinedAndNotNull(config['schedulingPeriod']) && nf.Common.isBlank(config['schedulingPeriod'])) {
+        if (common.isDefinedAndNotNull(config['schedulingPeriod']) && common.isBlank(config['schedulingPeriod'])) {
             errors.push('Run schedule must be specified');
         }
-        if (nf.Common.isBlank(config['penaltyDuration'])) {
+        if (common.isBlank(config['penaltyDuration'])) {
             errors.push('Penalty duration must be specified');
         }
-        if (nf.Common.isBlank(config['yieldDuration'])) {
+        if (common.isBlank(config['yieldDuration'])) {
             errors.push('Yield duration must be specified');
         }
 
         if (errors.length > 0) {
-            nf.Dialog.showOkDialog({
-                dialogContent: nf.Common.formatUnorderedList(errors),
+            dialog.showOkDialog({
+                dialogContent: common.formatUnorderedList(errors),
                 headerText: 'Processor Configuration'
             });
             return false;
@@ -389,11 +435,11 @@ nf.ProcessorConfiguration = (function () {
      * @param {object} processor
      */
     var reloadProcessorConnections = function (processor) {
-        var connections = nf.Connection.getComponentConnections(processor.id);
+        var connections = nfConnection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
             if (connection.permissions.canRead) {
                 if (connection.sourceId === processor.id) {
-                    nf.Connection.reload(connection.id);
+                    nfConnection.reload(connection.id);
                 }
             }
         });
@@ -410,7 +456,7 @@ nf.ProcessorConfiguration = (function () {
             // determine if changes have been made
             if (isSaveRequired()) {
                 // see if those changes should be saved
-                nf.Dialog.showYesNoDialog({
+                dialog.showYesNoDialog({
                     headerText: 'Processor Configuration',
                     dialogContent: 'Save changes before going to this Controller Service?',
                     noHandler: function () {
@@ -443,8 +489,8 @@ nf.ProcessorConfiguration = (function () {
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
             // set the revision
-            var d = nf.Processor.get(processor.id);
-            updatedProcessor['revision'] = nf.Client.getRevision(d);
+            var d = nfProcessor.get(processor.id);
+            updatedProcessor['revision'] = client.getRevision(d);
 
             // update the selected component
             return $.ajax({
@@ -455,7 +501,7 @@ nf.ProcessorConfiguration = (function () {
                 contentType: 'application/json'
             }).done(function (response) {
                 // set the new processor state based on the response
-                nf.Processor.set(response);
+                nfProcessor.set(response);
             }).fail(handleProcessorConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -489,7 +535,7 @@ nf.ProcessorConfiguration = (function () {
                 }],
                 select: function () {
                     // remove all property detail dialogs
-                    nf.UniversalCapture.removeAllPropertyDetailDialogs();
+                    universalCapture.removeAllPropertyDetailDialogs();
 
                     // update the processor property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
@@ -523,7 +569,7 @@ nf.ProcessorConfiguration = (function () {
                         $('#processor-configuration').removeData('processorDetails');
                     },
                     open: function () {
-                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -566,7 +612,7 @@ nf.ProcessorConfiguration = (function () {
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function (propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
-                    var d = nf.Processor.get(processor.id);
+                    var d = nfProcessor.get(processor.id);
                     return $.ajax({
                         type: 'GET',
                         url: d.uri + '/descriptors',
@@ -574,7 +620,7 @@ nf.ProcessorConfiguration = (function () {
                             propertyName: propertyName
                         },
                         dataType: 'json'
-                    }).fail(nf.ErrorHandler.handleAjaxError);
+                    }).fail(errorHandler.handleAjaxError);
                 },
                 goToServiceDeferred: goToServiceFromProperty
             });
@@ -586,7 +632,7 @@ nf.ProcessorConfiguration = (function () {
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
-            if (nf.CanvasUtils.isProcessor(selection)) {
+            if (canvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
 
                 // get the processor details
@@ -595,7 +641,7 @@ nf.ProcessorConfiguration = (function () {
                 var requests = [];
 
                 // reload the processor in case an property descriptors have updated
-                requests.push(nf.Processor.reload(processor.id));
+                requests.push(nfProcessor.reload(processor.id));
 
                 // get the processor history
                 requests.push($.ajax({
@@ -609,7 +655,7 @@ nf.ProcessorConfiguration = (function () {
                     // get the updated processor'
                     var processorResponse = processorResult[0];
                     processor = processorResponse.component;
-                    
+
                     // get the processor history
                     var processorHistory = historyResult[0].componentHistory;
 
@@ -624,7 +670,7 @@ nf.ProcessorConfiguration = (function () {
 
                     // populate the processor settings
                     $('#processor-id').text(processor['id']);
-                    $('#processor-type').text(nf.Common.substringAfterLast(processor['type'], '.'));
+                    $('#processor-type').text(common.substringAfterLast(processor['type'], '.'));
                     $('#processor-name').val(processor['name']);
                     $('#processor-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(processorEnableStyle);
                     $('#penalty-duration').val(processor.config['penaltyDuration']);
@@ -690,7 +736,7 @@ nf.ProcessorConfiguration = (function () {
                     });
 
                     // show the execution node option if we're cluster or we're currently configured to run on the primary node only
-                    if (nf.ClusterSummary.isClustered() || executionNode === 'PRIMARY') {
+                    if (clusterSummary.isClustered() || executionNode === 'PRIMARY') {
                         $('#execution-node-options').show();
                     } else {
                         $('#execution-node-options').hide();
@@ -713,7 +759,7 @@ nf.ProcessorConfiguration = (function () {
                     }
 
                     // conditionally allow the user to specify the concurrent tasks
-                    if (nf.Common.isDefinedAndNotNull(concurrentTasks)) {
+                    if (common.isDefinedAndNotNull(concurrentTasks)) {
                         if (processor.supportsParallelProcessing === true) {
                             concurrentTasks.prop('disabled', false);
                         } else {
@@ -734,7 +780,7 @@ nf.ProcessorConfiguration = (function () {
                     }
 
                     // load the relationship list
-                    if (!nf.Common.isEmpty(processor.relationships)) {
+                    if (!common.isEmpty(processor.relationships)) {
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship);
                         });
@@ -763,7 +809,7 @@ nf.ProcessorConfiguration = (function () {
                                     $('#processor-configuration').modal('hide');
 
                                     // inform Angular app values have changed
-                                    nf.ng.Bridge.digest();
+                                    angularBridge.digest();
                                 });
                             }
                         }
@@ -783,7 +829,7 @@ nf.ProcessorConfiguration = (function () {
                         }];
 
                     // determine if we should show the advanced button
-                    if (nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
+                    if (common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                         buttons.push({
                             buttonText: 'Advanced',
                             clazz: 'fa fa-cog button-icon',
@@ -799,9 +845,9 @@ nf.ProcessorConfiguration = (function () {
                                         $('#processor-configuration').modal('hide');
 
                                         // show the custom ui
-                                        nf.CustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, true).done(function () {
+                                        customUi.showCustomUi(processorResponse, processor.config.customUiUrl, true).done(function () {
                                             // once the custom ui is closed, reload the processor
-                                            nf.Processor.reload(processor.id);
+                                            nfProcessor.reload(processor.id);
 
                                             // and reload the processor's outgoing connections
                                             reloadProcessorConnections(processor);
@@ -814,7 +860,7 @@ nf.ProcessorConfiguration = (function () {
                                     // determine if changes have been made
                                     if (isSaveRequired()) {
                                         // see if those changes should be saved
-                                        nf.Dialog.showYesNoDialog({
+                                        dialog.showYesNoDialog({
                                             headerText: 'Save',
                                             dialogContent: 'Save changes before opening the advanced configuration?',
                                             noHandler: openCustomUi,
@@ -853,8 +899,8 @@ nf.ProcessorConfiguration = (function () {
                     if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
-                }).fail(nf.ErrorHandler.handleAjaxError);
+                }).fail(errorHandler.handleAjaxError);
             }
         }
     };
-}());
+}));

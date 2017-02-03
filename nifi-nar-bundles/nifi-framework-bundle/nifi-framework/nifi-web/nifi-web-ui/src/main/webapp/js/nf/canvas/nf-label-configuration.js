@@ -15,9 +15,43 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
-nf.LabelConfiguration = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.ng.Bridge',
+                'nf.Label'],
+            function ($, d3, errorHandler, common, client, canvasUtils, angularBridge, label) {
+                return (nf.LabelConfiguration = factory($, d3, errorHandler, common, client, canvasUtils, angularBridge, label));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.LabelConfiguration =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.ng.Bridge'),
+                require('nf.Label')));
+    } else {
+        nf.LabelConfiguration = factory(root.$,
+            root.d3,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.ng.Bridge,
+            root.nf.Label);
+    }
+}(this, function ($, d3, errorHandler, common, client, canvasUtils, angularBridge, label) {
+    'use strict';
 
     var labelId = '';
 
@@ -48,7 +82,7 @@ nf.LabelConfiguration = (function () {
 
                             // build the label entity
                             var labelEntity = {
-                                'revision': nf.Client.getRevision(labelData),
+                                'revision': client.getRevision(labelData),
                                 'component': {
                                     'id': labelId,
                                     'label': labelValue,
@@ -67,11 +101,11 @@ nf.LabelConfiguration = (function () {
                                 contentType: 'application/json'
                             }).done(function (response) {
                                 // get the label out of the response
-                                nf.Label.set(response);
+                                label.set(response);
 
                                 // inform Angular app values have changed
-                                nf.ng.Bridge.digest();
-                            }).fail(nf.ErrorHandler.handleAjaxError);
+                                angularBridge.digest();
+                            }).fail(errorHandler.handleAjaxError);
 
                             // reset and hide the dialog
                             this.modal('hide');
@@ -132,18 +166,18 @@ nf.LabelConfiguration = (function () {
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
-            if (nf.CanvasUtils.isLabel(selection)) {
+            if (canvasUtils.isLabel(selection)) {
                 var selectionData = selection.datum();
 
                 // get the label value
                 var labelValue = '';
-                if (nf.Common.isDefinedAndNotNull(selectionData.component.label)) {
+                if (common.isDefinedAndNotNull(selectionData.component.label)) {
                     labelValue = selectionData.component.label;
                 }
 
                 // get the font size
                 var fontSize = '12px';
-                if (nf.Common.isDefinedAndNotNull(selectionData.component.style['font-size'])) {
+                if (common.isDefinedAndNotNull(selectionData.component.style['font-size'])) {
                     fontSize = selectionData.component.style['font-size'];
                 }
 
@@ -161,4 +195,4 @@ nf.LabelConfiguration = (function () {
             }
         }
     };
-}());
+}));

@@ -15,18 +15,34 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Selectable = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['d3',
+                'nf.ng.Bridge',
+                'nf.ContextMenu'],
+            function (d3, angularBridge, contextMenu) {
+                return (nf.Selectable = factory(d3, angularBridge, contextMenu));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Selectable =
+            factory(require('d3'),
+                require('nf.ng.Bridge'),
+                require('nf.ContextMenu')));
+    } else {
+        nf.Selectable = factory(root.d3,
+            root.nf.ng.Bridge,
+            root.nf.ContextMenu);
+    }
+}(this, function (d3, angularBridge, contextMenu) {
+    'use strict';
 
-    return {
-        init: function () {
+    var nfSelectable = {
 
-        },
-        
         select: function (g) {
             // hide any context menus as necessary
-            nf.ContextMenu.hide();
+            contextMenu.hide();
 
             // only need to update selection if necessary
             if (!g.classed('selected')) {
@@ -44,18 +60,26 @@ nf.Selectable = (function () {
                 }
             }
 
-            // inform Angular app that values have changed
-            nf.ng.Bridge.digest();
+            // inform Angular app that values have changed since the
+            // enabled operate palette buttons are based off of the selection
+            angularBridge.digest();
 
             // stop propagation
             d3.event.stopPropagation();
         },
-        
+
+        /**
+         * Activates the select behavior for the components in the specified selection.
+         *
+         * @param {selection} components
+         */
         activate: function (components) {
             components.on('mousedown.selection', function () {
                 // get the clicked component to update selection
-                nf.Selectable.select(d3.select(this));
+                nfSelectable.select(d3.select(this));
             });
         }
     };
-}());
+
+    return nfSelectable;
+}));

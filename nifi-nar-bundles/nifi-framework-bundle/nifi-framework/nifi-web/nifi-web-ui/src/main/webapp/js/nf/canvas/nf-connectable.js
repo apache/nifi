@@ -15,9 +15,31 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Connectable = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['d3',
+                'nf.Connection',
+                'nf.ConnectionConfiguration',
+                'nf.CanvasUtils'],
+            function (d3, connection, connectionConfiguration, canvasUtils) {
+                return (nf.Connectable = factory(d3, connection, connectionConfiguration, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Connectable =
+            factory(require('d3'),
+                require('nf.Connection'),
+                require('nf.ConnectionConfiguration'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.Connectable = factory(root.d3,
+            root.nf.Connection,
+            root.nf.ConnectionConfiguration,
+            root.nf.CanvasUtils);
+    }
+}(this, function (d3, connection, connectionConfiguration, canvasUtils) {
+    'use strict';
 
     var connect;
     var canvas;
@@ -56,7 +78,7 @@ nf.Connectable = (function () {
                     d3.event.sourceEvent.stopPropagation();
 
                     // unselect the previous components
-                    nf.CanvasUtils.getSelection().classed('selected', false);
+                    canvasUtils.getSelection().classed('selected', false);
 
                     // mark the source component has selected
                     var source = d3.select(this.parentNode).classed('selected', true);
@@ -106,7 +128,7 @@ nf.Connectable = (function () {
                         // component to itself. requiring the mouse to have actually moved before
                         // checking the eligiblity of the destination addresses the issue
                         return (Math.abs(origin[0] - d3.event.x) > 10 || Math.abs(origin[1] - d3.event.y) > 10) &&
-                            nf.CanvasUtils.isValidConnectionDestination(d3.select(this));
+                            canvasUtils.isValidConnectionDestination(d3.select(this));
                     });
 
                     // update the drag line
@@ -126,12 +148,12 @@ nf.Connectable = (function () {
                                 var x = pathDatum.x;
                                 var y = pathDatum.y;
                                 var componentOffset = pathDatum.sourceWidth / 2;
-                                var xOffset = nf.Connection.config.selfLoopXOffset;
-                                var yOffset = nf.Connection.config.selfLoopYOffset;
+                                var xOffset = connection.config.selfLoopXOffset;
+                                var yOffset = connection.config.selfLoopYOffset;
                                 return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
                             } else {
                                 // get the position on the destination perimeter
-                                var end = nf.CanvasUtils.getPerimeterPoint(pathDatum, {
+                                var end = canvasUtils.getPerimeterPoint(pathDatum, {
                                     'x': destinationData.position.x,
                                     'y': destinationData.position.y,
                                     'width': destinationData.dimensions.width,
@@ -190,11 +212,16 @@ nf.Connectable = (function () {
 
                         // create the connection
                         var destinationData = destination.datum();
-                        nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
+                        connectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
                     }
                 });
         },
 
+        /**
+         * Activates the connect behavior for the components in the specified selection.
+         *
+         * @param {selection} components
+         */
         activate: function (components) {
             components
                 .classed('connectable', true)
@@ -203,7 +230,7 @@ nf.Connectable = (function () {
                         var selection = d3.select(this);
 
                         // ensure the current component supports connection source
-                        if (nf.CanvasUtils.isValidConnectionSource(selection)) {
+                        if (canvasUtils.isValidConnectionSource(selection)) {
                             // see if theres already a connector rendered
                             var addConnect = d3.select('text.add-connect');
                             if (addConnect.empty()) {
@@ -245,6 +272,11 @@ nf.Connectable = (function () {
                 });
         },
 
+        /**
+         * Deactivates the connect behavior for the components in the specified selection.
+         *
+         * @param {selection} components
+         */
         deactivate: function (components) {
             components
                 .classed('connectable', false)
@@ -254,4 +286,4 @@ nf.Connectable = (function () {
                 .on('mouseout.connectable', null);
         }
     };
-}());
+}));

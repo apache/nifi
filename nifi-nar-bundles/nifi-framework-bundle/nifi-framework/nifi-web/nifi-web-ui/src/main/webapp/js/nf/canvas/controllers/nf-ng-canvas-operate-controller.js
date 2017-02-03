@@ -15,323 +15,207 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.Canvas.OperateCtrl = function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.Dialog',
+                'nf.Birdseye',
+                'nf.CanvasUtils',
+                'nf.Common',
+                'nf.Client',
+                'nf.Processor'],
+            function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
+                return (nf.ng.Canvas.OperateCtrl = factory($, d3, dialog, birdseye, canvasUtils, common, client, processor));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.Canvas.OperateCtrl =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Dialog'),
+                require('nf.Birdseye'),
+                require('nf.CanvasUtils'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.Processor')));
+    } else {
+        nf.ng.Canvas.OperateCtrl = factory(root.$,
+            root.d3,
+            root.nf.Dialog,
+            root.nf.Birdseye,
+            root.nf.CanvasUtils,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.Processor);
+    }
+}(this, function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
     'use strict';
 
-    // updates the color if its a valid hex color string
-    var updateColor = function () {
-        var hex = $('#fill-color-value').val();
+    return function () {
+        'use strict';
 
-        // only update the fill color when its a valid hex color string
-        // #[six hex characters|three hex characters] case insensitive
-        if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hex)) {
-            $('#fill-color').minicolors('value', hex);
-        }
-    };
+        // updates the color if its a valid hex color string
+        var updateColor = function () {
+            var hex = $('#fill-color-value').val();
 
-    function OperateCtrl() {
-
-        /**
-         * The canvas operator's create template component.
-         */
-        this.template = {
-
-            /**
-             * The canvas operator's create template component's modal.
-             */
-            modal: {
-
-                /**
-                 * Gets the modal element.
-                 *
-                 * @returns {*|jQuery|HTMLElement}
-                 */
-                getElement: function () {
-                    return $('#new-template-dialog');
-                },
-
-                /**
-                 * Initialize the modal.
-                 */
-                init: function () {
-                    // configure the create template dialog
-                    this.getElement().modal({
-                        scrollableContentStyle: 'scrollable',
-                        headerText: 'Create Template'
-                    });
-                },
-
-                /**
-                 * Updates the modal config.
-                 *
-                 * @param {string} name             The name of the property to update.
-                 * @param {object|array} config     The config for the `name`.
-                 */
-                update: function (name, config) {
-                    this.getElement().modal(name, config);
-                },
-
-                /**
-                 * Show the modal.
-                 */
-                show: function () {
-                    this.getElement().modal('show');
-                },
-
-                /**
-                 * Hide the modal.
-                 */
-                hide: function () {
-                    this.getElement().modal('hide');
-                }
+            // only update the fill color when its a valid hex color string
+            // #[six hex characters|three hex characters] case insensitive
+            if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hex)) {
+                $('#fill-color').minicolors('value', hex);
             }
         };
 
-        /**
-         * The canvas operator's create template component.
-         */
-        this.templateUpload = {
+        function OperateCtrl() {
 
             /**
-             * The canvas operator's create template component's modal.
+             * The canvas operator's create template component.
              */
-            modal: {
+            this.template = {
 
                 /**
-                 * Gets the modal element.
-                 *
-                 * @returns {*|jQuery|HTMLElement}
+                 * The canvas operator's create template component's modal.
                  */
-                getElement: function () {
-                    return $('#upload-template-dialog');
-                },
+                modal: {
 
-                /**
-                 * Initialize the modal.
-                 */
-                init: function () {
-                    // initialize the form
-                    var templateForm = $('#template-upload-form').ajaxForm({
-                        url: '../nifi-api/process-groups/',
-                        dataType: 'xml',
-                        beforeSubmit: function (formData, $form, options) {
-                            // ensure uploading to the current process group
-                            options.url += (encodeURIComponent(nf.Canvas.getGroupId()) + '/templates/upload');
-                        },
-                        success: function (response, statusText, xhr, form) {
-                            // see if the import was successful and inform the user
-                            if (response.documentElement.tagName === 'templateEntity') {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'Success',
-                                    dialogContent: 'Template successfully imported.'
-                                });
-                            } else {
-                                // import failed
-                                var statusText = 'Unable to import template. Please check the log for errors.';
-                                if (response.documentElement.tagName === 'errorResponse') {
-                                    // if a more specific error was given, use it
-                                    var errorMessage = response.documentElement.getAttribute('statusText');
-                                    if (!nf.Common.isBlank(errorMessage)) {
-                                        statusText = errorMessage;
-                                    }
-                                }
+                    /**
+                     * Gets the modal element.
+                     *
+                     * @returns {*|jQuery|HTMLElement}
+                     */
+                    getElement: function () {
+                        return $('#new-template-dialog');
+                    },
 
-                                // show reason
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'Unable to Upload',
-                                    dialogContent: nf.Common.escapeHtml(statusText)
-                                });
-                            }
-                        },
-                        error: function (xhr, statusText, error) {
-                            // request failed
-                            nf.Dialog.showOkDialog({
-                                headerText: 'Unable to Upload',
-                                dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                            });
-                        }
-                    });
+                    /**
+                     * Initialize the modal.
+                     */
+                    init: function () {
+                        // configure the create template dialog
+                        this.getElement().modal({
+                            scrollableContentStyle: 'scrollable',
+                            headerText: 'Create Template'
+                        });
+                    },
 
-                    // configure the upload template dialog
-                    this.getElement().modal({
-                        headerText: 'Upload Template',
-                        buttons: [{
-                            buttonText: 'Upload',
-                            color: {
-                                base: '#728E9B',
-                                hover: '#004849',
-                                text: '#ffffff'
-                            },
-                            handler: {
-                                click: function () {
-                                    var selectedTemplate = $('#selected-template-name').text();
+                    /**
+                     * Updates the modal config.
+                     *
+                     * @param {string} name             The name of the property to update.
+                     * @param {object|array} config     The config for the `name`.
+                     */
+                    update: function (name, config) {
+                        this.getElement().modal(name, config);
+                    },
 
-                                    // submit the template if necessary
-                                    if (nf.Common.isBlank(selectedTemplate)) {
-                                        $('#upload-template-status').text('No template selected. Please browse to select a template.');
-                                    } else {
-                                        templateForm.submit();
+                    /**
+                     * Show the modal.
+                     */
+                    show: function () {
+                        this.getElement().modal('show');
+                    },
 
-                                        // hide the dialog
-                                        $('#upload-template-dialog').modal('hide');
-                                    }
-                                }
-                            }
-                        }, {
-                            buttonText: 'Cancel',
-                            color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
-                            },
-                            handler: {
-                                click: function () {
-                                    // hide the dialog
-                                    $('#upload-template-dialog').modal('hide');
-                                }
-                            }
-                        }],
-                        handler: {
-                            close: function () {
-                                // set the filename
-                                $('#selected-template-name').text('');
-                                $('#upload-template-status').text('');
-
-                                // reset the form to ensure that the change fire will fire
-                                templateForm.resetForm();
-                            }
-                        }
-                    });
-
-                    // add a handler for the change file input chain event
-                    $('#template-file-field').on('change', function (e) {
-                        var filename = $(this).val();
-                        if (!nf.Common.isBlank(filename)) {
-                            filename = filename.replace(/^.*[\\\/]/, '');
-                        }
-
-                        // set the filename and clear any status
-                        $('#selected-template-name').text(filename);
-                        $('#upload-template-status').text('');
-                    });
-                },
-
-                /**
-                 * Updates the modal config.
-                 *
-                 * @param {string} name             The name of the property to update.
-                 * @param {object|array} config     The config for the `name`.
-                 */
-                update: function (name, config) {
-                    this.getElement().modal(name, config);
-                },
-
-                /**
-                 * Show the modal.
-                 */
-                show: function () {
-                    this.getElement().modal('show');
-                },
-
-                /**
-                 * Hide the modal.
-                 */
-                hide: function () {
-                    this.getElement().modal('hide');
+                    /**
+                     * Hide the modal.
+                     */
+                    hide: function () {
+                        this.getElement().modal('hide');
+                    }
                 }
-            }
-        };
-
-        /**
-         * The canvas operator's fillcolor component.
-         */
-        this.fillcolor = {
+            };
 
             /**
-             * The canvas operator's fillcolor component's modal.
+             * The canvas operator's create template component.
              */
-            modal: {
+            this.templateUpload = {
 
                 /**
-                 * Gets the modal element.
-                 *
-                 * @returns {*|jQuery|HTMLElement}
+                 * The canvas operator's create template component's modal.
                  */
-                getElement: function () {
-                    return $('#fill-color-dialog');
-                },
+                modal: {
 
-                /**
-                 * Initialize the modal.
-                 */
-                init: function () {
-                    // configure the create fillcolor dialog
-                    this.getElement().modal({
-                        scrollableContentStyle: 'scrollable',
-                        headerText: 'Change Color',
-                        buttons: [{
-                            buttonText: 'Apply',
-                            color: {
-                                base: '#728E9B',
-                                hover: '#004849',
-                                text: '#ffffff'
+                    /**
+                     * Gets the modal element.
+                     *
+                     * @returns {*|jQuery|HTMLElement}
+                     */
+                    getElement: function () {
+                        return $('#upload-template-dialog');
+                    },
+
+                    /**
+                     * Initialize the modal.
+                     */
+                    init: function () {
+                        // initialize the form
+                        var templateForm = $('#template-upload-form').ajaxForm({
+                            url: '../nifi-api/process-groups/',
+                            dataType: 'xml',
+                            beforeSubmit: function (formData, $form, options) {
+                                // ensure uploading to the current process group
+                                options.url += (encodeURIComponent(canvasUtils.getGroupId()) + '/templates/upload');
                             },
-                            handler: {
-                                click: function () {
-                                    var selection = nf.CanvasUtils.getSelection();
-
-                                    // color the selected components
-                                    selection.each(function (d) {
-                                        var selected = d3.select(this);
-                                        var selectedData = selected.datum();
-
-                                        // get the color and update the styles
-                                        var color = $('#fill-color').minicolors('value');
-
-                                        // ensure the color actually changed
-                                        if (color !== selectedData.component.style['background-color']) {
-                                            // build the request entity
-                                            var entity = {
-                                                'revision': nf.Client.getRevision(selectedData),
-                                                'component': {
-                                                    'id': selectedData.id,
-                                                    'style': {
-                                                        'background-color': color
-                                                    }
-                                                }
-                                            };
-
-                                            // update the style for the specified component
-                                            $.ajax({
-                                                type: 'PUT',
-                                                url: selectedData.uri,
-                                                data: JSON.stringify(entity),
-                                                dataType: 'json',
-                                                contentType: 'application/json'
-                                            }).done(function (response) {
-                                                // update the component
-                                                nf[selectedData.type].set(response);
-                                            }).fail(function (xhr, status, error) {
-                                                if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                                                    nf.Dialog.showOkDialog({
-                                                        headerText: 'Error',
-                                                        dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                                                    });
-                                                }
-                                            }).always(function(){
-                                                nf.Birdseye.refresh();
-                                            });
-                                        }
+                            success: function (response, statusText, xhr, form) {
+                                // see if the import was successful and inform the user
+                                if (response.documentElement.tagName === 'templateEntity') {
+                                    dialog.showOkDialog({
+                                        headerText: 'Success',
+                                        dialogContent: 'Template successfully imported.'
                                     });
+                                } else {
+                                    // import failed
+                                    var statusText = 'Unable to import template. Please check the log for errors.';
+                                    if (response.documentElement.tagName === 'errorResponse') {
+                                        // if a more specific error was given, use it
+                                        var errorMessage = response.documentElement.getAttribute('statusText');
+                                        if (!common.isBlank(errorMessage)) {
+                                            statusText = errorMessage;
+                                        }
+                                    }
 
-                                    // close the dialog
-                                    $('#fill-color-dialog').modal('hide');
+                                    // show reason
+                                    dialog.showOkDialog({
+                                        headerText: 'Unable to Upload',
+                                        dialogContent: common.escapeHtml(statusText)
+                                    });
                                 }
+                            },
+                            error: function (xhr, statusText, error) {
+                                // request failed
+                                dialog.showOkDialog({
+                                    headerText: 'Unable to Upload',
+                                    dialogContent: common.escapeHtml(xhr.responseText)
+                                });
                             }
-                        },
-                            {
+                        });
+
+                        // configure the upload template dialog
+                        this.getElement().modal({
+                            headerText: 'Upload Template',
+                            buttons: [{
+                                buttonText: 'Upload',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                handler: {
+                                    click: function () {
+                                        var selectedTemplate = $('#selected-template-name').text();
+
+                                        // submit the template if necessary
+                                        if (common.isBlank(selectedTemplate)) {
+                                            $('#upload-template-status').text('No template selected. Please browse to select a template.');
+                                        } else {
+                                            templateForm.submit();
+
+                                            // hide the dialog
+                                            $('#upload-template-dialog').modal('hide');
+                                        }
+                                    }
+                                }
+                            }, {
                                 buttonText: 'Cancel',
                                 color: {
                                     base: '#E3E8EB',
@@ -340,130 +224,283 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 },
                                 handler: {
                                     click: function () {
-                                        // close the dialog
-                                        $('#fill-color-dialog').modal('hide');
+                                        // hide the dialog
+                                        $('#upload-template-dialog').modal('hide');
                                     }
                                 }
                             }],
-                        handler: {
-                            close: function () {
-                                // clear the current color
-                                $('#fill-color-value').val('');
-                                $('#fill-color').minicolors('value', '');
+                            handler: {
+                                close: function () {
+                                    // set the filename
+                                    $('#selected-template-name').text('');
+                                    $('#upload-template-status').text('');
+
+                                    // reset the form to ensure that the change fire will fire
+                                    templateForm.resetForm();
+                                }
                             }
-                        }
-                    });
-                },
+                        });
 
-                /**
-                 * Updates the modal config.
-                 *
-                 * @param {string} name             The name of the property to update.
-                 * @param {object|array} config     The config for the `name`.
-                 */
-                update: function (name, config) {
-                    this.getElement().modal(name, config);
-                },
+                        // add a handler for the change file input chain event
+                        $('#template-file-field').on('change', function (e) {
+                            var filename = $(this).val();
+                            if (!common.isBlank(filename)) {
+                                filename = filename.replace(/^.*[\\\/]/, '');
+                            }
 
-                /**
-                 * Show the modal.
-                 */
-                show: function () {
-                    this.getElement().modal('show');
-                },
-
-                /**
-                 * Hide the modal.
-                 */
-                hide: function () {
-                    this.getElement().modal('hide');
-                },
-
-                /**
-                 * The canvas operator's fillcolor component modal's minicolors.
-                 */
-                minicolors: {
+                            // set the filename and clear any status
+                            $('#selected-template-name').text(filename);
+                            $('#upload-template-status').text('');
+                        });
+                    },
 
                     /**
-                     * Gets the minicolors element.
+                     * Updates the modal config.
+                     *
+                     * @param {string} name             The name of the property to update.
+                     * @param {object|array} config     The config for the `name`.
+                     */
+                    update: function (name, config) {
+                        this.getElement().modal(name, config);
+                    },
+
+                    /**
+                     * Show the modal.
+                     */
+                    show: function () {
+                        this.getElement().modal('show');
+                    },
+
+                    /**
+                     * Hide the modal.
+                     */
+                    hide: function () {
+                        this.getElement().modal('hide');
+                    }
+                }
+            };
+
+            /**
+             * The canvas operator's fillcolor component.
+             */
+            this.fillcolor = {
+
+                /**
+                 * The canvas operator's fillcolor component's modal.
+                 */
+                modal: {
+
+                    /**
+                     * Gets the modal element.
                      *
                      * @returns {*|jQuery|HTMLElement}
                      */
                     getElement: function () {
-                        return $('#fill-color');
+                        return $('#fill-color-dialog');
                     },
 
                     /**
-                     * Initialize the minicolors.
+                     * Initialize the modal.
                      */
                     init: function () {
-                        // configure the minicolors
-                        this.getElement().minicolors({
-                            inline: true,
-                            change: function (hex, opacity) {
-                                // update the value
-                                $('#fill-color-value').val(hex);
+                        // configure the create fillcolor dialog
+                        this.getElement().modal({
+                            scrollableContentStyle: 'scrollable',
+                            headerText: 'Change Color',
+                            buttons: [{
+                                buttonText: 'Apply',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                handler: {
+                                    click: function () {
+                                        var selection = canvasUtils.getSelection();
 
-                                // always update the preview
-                                if (hex.toLowerCase() === '#ffffff') {
-                                    //special case #ffffff implies default fill
-                                    $('#fill-color-processor-preview-icon').css({
-                                        'color': nf.Processor.defaultIconColor(),
-                                        'background-color': hex
-                                    });
-                                } else {
-                                    $('#fill-color-processor-preview-icon').css({
-                                        'color': nf.Common.determineContrastColor(
-                                            nf.Common.substringAfterLast(
-                                                hex, '#')),
-                                        'background-color': hex
-                                    });
+                                        // color the selected components
+                                        selection.each(function (d) {
+                                            var selected = d3.select(this);
+                                            var selectedData = selected.datum();
+
+                                            // get the color and update the styles
+                                            var color = $('#fill-color').minicolors('value');
+
+                                            // ensure the color actually changed
+                                            if (color !== selectedData.component.style['background-color']) {
+                                                // build the request entity
+                                                var entity = {
+                                                    'revision': client.getRevision(selectedData),
+                                                    'component': {
+                                                        'id': selectedData.id,
+                                                        'style': {
+                                                            'background-color': color
+                                                        }
+                                                    }
+                                                };
+
+                                                // update the style for the specified component
+                                                $.ajax({
+                                                    type: 'PUT',
+                                                    url: selectedData.uri,
+                                                    data: JSON.stringify(entity),
+                                                    dataType: 'json',
+                                                    contentType: 'application/json'
+                                                }).done(function (response) {
+                                                    // update the component
+                                                    canvasUtils.getComponentByType(selectedData.type).set(response);
+                                                }).fail(function (xhr, status, error) {
+                                                    if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+                                                        dialog.showOkDialog({
+                                                            headerText: 'Error',
+                                                            dialogContent: common.escapeHtml(xhr.responseText)
+                                                        });
+                                                    }
+                                                }).always(function () {
+                                                    birdseye.refresh();
+                                                });
+                                            }
+                                        });
+
+                                        // close the dialog
+                                        $('#fill-color-dialog').modal('hide');
+                                    }
                                 }
-
-                                var borderColor = hex;
-                                if (borderColor.toLowerCase() === '#ffffff') {
-                                    borderColor = 'rgba(0,0,0,0.25)';
+                            },
+                                {
+                                    buttonText: 'Cancel',
+                                    color: {
+                                        base: '#E3E8EB',
+                                        hover: '#C7D2D7',
+                                        text: '#004849'
+                                    },
+                                    handler: {
+                                        click: function () {
+                                            // close the dialog
+                                            $('#fill-color-dialog').modal('hide');
+                                        }
+                                    }
+                                }],
+                            handler: {
+                                close: function () {
+                                    // clear the current color
+                                    $('#fill-color-value').val('');
+                                    $('#fill-color').minicolors('value', '');
                                 }
-                                $('#fill-color-processor-preview').css({
-                                    'border-color': borderColor
-                                });
-
-                                $('#fill-color-label-preview').css({
-                                    'background': hex
-                                });
-                                $('#fill-color-label-preview-value').css('color',
-                                    nf.Common.determineContrastColor(nf.Common.substringAfterLast(hex, '#'))
-                                );
                             }
                         });
+                    },
 
-                        // apply fill color from field on blur and enter press
-                        $('#fill-color-value').on('blur', updateColor).on('keyup', function (e) {
-                            var code = e.keyCode ? e.keyCode : e.which;
-                            if (code === $.ui.keyCode.ENTER) {
-                                updateColor();
-                            }
-                        });
+                    /**
+                     * Updates the modal config.
+                     *
+                     * @param {string} name             The name of the property to update.
+                     * @param {object|array} config     The config for the `name`.
+                     */
+                    update: function (name, config) {
+                        this.getElement().modal(name, config);
+                    },
+
+                    /**
+                     * Show the modal.
+                     */
+                    show: function () {
+                        this.getElement().modal('show');
+                    },
+
+                    /**
+                     * Hide the modal.
+                     */
+                    hide: function () {
+                        this.getElement().modal('hide');
+                    },
+
+                    /**
+                     * The canvas operator's fillcolor component modal's minicolors.
+                     */
+                    minicolors: {
+
+                        /**
+                         * Gets the minicolors element.
+                         *
+                         * @returns {*|jQuery|HTMLElement}
+                         */
+                        getElement: function () {
+                            return $('#fill-color');
+                        },
+
+                        /**
+                         * Initialize the minicolors.
+                         */
+                        init: function () {
+                            // configure the minicolors
+                            this.getElement().minicolors({
+                                inline: true,
+                                change: function (hex, opacity) {
+                                    // update the value
+                                    $('#fill-color-value').val(hex);
+
+                                    // always update the preview
+                                    if (hex.toLowerCase() === '#ffffff') {
+                                        //special case #ffffff implies default fill
+                                        $('#fill-color-processor-preview-icon').css({
+                                            'color': processor.defaultIconColor(),
+                                            'background-color': hex
+                                        });
+                                    } else {
+                                        $('#fill-color-processor-preview-icon').css({
+                                            'color': common.determineContrastColor(
+                                                common.substringAfterLast(
+                                                    hex, '#')),
+                                            'background-color': hex
+                                        });
+                                    }
+
+                                    var borderColor = hex;
+                                    if (borderColor.toLowerCase() === '#ffffff') {
+                                        borderColor = 'rgba(0,0,0,0.25)';
+                                    }
+                                    $('#fill-color-processor-preview').css({
+                                        'border-color': borderColor
+                                    });
+
+                                    $('#fill-color-label-preview').css({
+                                        'background': hex
+                                    });
+                                    $('#fill-color-label-preview-value').css('color',
+                                        common.determineContrastColor(common.substringAfterLast(hex, '#'))
+                                    );
+                                }
+                            });
+
+                            // apply fill color from field on blur and enter press
+                            $('#fill-color-value').on('blur', updateColor).on('keyup', function (e) {
+                                var code = e.keyCode ? e.keyCode : e.which;
+                                if (code === $.ui.keyCode.ENTER) {
+                                    updateColor();
+                                }
+                            });
+                        }
                     }
                 }
-            }
-        };
-    }
-
-    OperateCtrl.prototype = {
-        constructor: OperateCtrl,
-
-        /**
-         * Initializes the canvas operate controller.
-         */
-        init: function () {
-            this.template.modal.init();
-            this.templateUpload.modal.init();
-            this.fillcolor.modal.init();
-            this.fillcolor.modal.minicolors.init();
+            };
         }
-    }
 
-    var operateCtrl = new OperateCtrl();
-    return operateCtrl;
-};
+        OperateCtrl.prototype = {
+            constructor: OperateCtrl,
+
+            /**
+             * Initializes the canvas operate controller.
+             */
+            init: function () {
+                this.template.modal.init();
+                this.templateUpload.modal.init();
+                this.fillcolor.modal.init();
+                this.fillcolor.modal.minicolors.init();
+            }
+        }
+
+        var operateCtrl = new OperateCtrl();
+        return operateCtrl;
+    };
+}));

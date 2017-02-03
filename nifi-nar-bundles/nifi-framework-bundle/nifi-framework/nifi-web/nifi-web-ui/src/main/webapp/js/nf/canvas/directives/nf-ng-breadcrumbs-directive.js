@@ -15,20 +15,36 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.BreadcrumbsDirective = function (breadcrumbsCtrl) {
-    return {
-        restrict: 'E',
-        templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
-        scope: {
-            'breadcrumbs': '=',
-            'clickFunc': '=',
-            'highlightCrumbId': '=',
-            'separatorFunc': '='
-        },
-        link: function (scope, element, attrs) {
-            breadcrumbsCtrl.registerMouseWheelEvent(element);
-        }
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([],
+            function () {
+                return (nf.ng.BreadcrumbsDirective = factory());
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.BreadcrumbsDirective =
+            factory());
+    } else {
+        nf.ng.BreadcrumbsDirective = factory();
+    }
+}(this, function () {
+    'use strict';
+
+    return function (breadcrumbsCtrl) {
+        return {
+            restrict: 'E',
+            templateUrl: 'views/nf-ng-breadcrumbs-directive-view.html',
+            scope: {
+                'breadcrumbs': '=',
+                'clickFunc': '=',
+                'highlightCrumbId': '=',
+                'separatorFunc': '='
+            },
+            link: function (scope, element, attrs) {
+                breadcrumbsCtrl.registerMouseWheelEvent(element);
+            }
+        };
     };
-};
+}));

@@ -15,28 +15,47 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['nf.ng.Bridge'],
-            function (angularBridge) {
-                return (nf.ng.AppCtrl = factory(angularBridge));
+        define(['nf.ng.Bridge',
+                'nf.Common',
+                'nf.CanvasUtils',
+                'nf.ClusterSummary',
+                'nf.Actions'],
+            function (angularBridge, canvasUtils, common, clusterSummary, actions) {
+                return (nf.ng.AppCtrl = factory(angularBridge, canvasUtils, common, clusterSummary, actions));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
-        module.exports = (nf.ng.AppCtrl = factory(require('nf.ng.Bridge')));
+        module.exports = (nf.ng.AppCtrl =
+            factory(require('nf.ng.Bridge'),
+                require('nf.CanvasUtils'),
+                require('nf.Common'),
+                require('nf.ClusterSummary'),
+                require('nf.Actions')));
     } else {
-        nf.ng.AppCtrl = factory(root.nf.ng.Bridge);
+        nf.ng.AppCtrl = factory(root.nf.ng.Bridge,
+            root.nf.CanvasUtils,
+            root.nf.Common,
+            root.nf.ClusterSummary,
+            root.nf.Actions);
     }
-}(this, function (angularBridge) {
+}(this, function (angularBridge, canvasUtils, common, clusterSummary, actions) {
     'use strict';
 
     return function ($scope, serviceProvider) {
         'use strict';
 
         function AppCtrl(serviceProvider) {
-            //global nf namespace for reference throughout angular app
-            this.nf = nf;
+            //add essential modules to the scope for availability throughout the angular container
+            this.nf = {
+                "Common": common,
+                "ClusterSummary": clusterSummary,
+                "Actions": actions,
+                "CanvasUtils": canvasUtils,
+            };
+
             //any registered angular service is available through the serviceProvider
             this.serviceProvider = serviceProvider;
         }

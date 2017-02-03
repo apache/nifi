@@ -15,77 +15,97 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.Canvas.NavigateCtrl = function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['nf.CanvasUtils',
+                'nf.ContextMenu'],
+            function (canvasUtils, contextMenu) {
+                return (nf.ng.Canvas.NavigateCtrl = factory(canvasUtils, contextMenu));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.Canvas.NavigateCtrl =
+            factory(require('nf.CanvasUtils'),
+                require('nf.ContextMenu')));
+    } else {
+        nf.ng.Canvas.NavigateCtrl = factory(root.nf.CanvasUtils,
+            root.nf.ContextMenu);
+    }
+}(this, function (canvasUtils, contextMenu) {
     'use strict';
 
-    function NavigateCtrl() {
+    return function () {
+        'use strict';
 
-        /**
-         * Zoom in on the canvas.
-         */
-        this.zoomIn = function () {
-            nf.Canvas.View.zoomIn();
+        function NavigateCtrl() {
 
-            // hide the context menu
-            nf.ContextMenu.hide();
+            /**
+             * Zoom in on the canvas.
+             */
+            this.zoomIn = function () {
+                canvasUtils.zoomCanvasViewIn();
 
-            // refresh the canvas
-            nf.Canvas.View.refresh({
-                transition: true
-            });
-        };
+                // hide the context menu
+                contextMenu.hide();
 
-        /**
-         * Zoom out on the canvas.
-         */
-        this.zoomOut = function () {
-            nf.Canvas.View.zoomOut();
+                // refresh the canvas
+                canvasUtils.refreshCanvasView({
+                    transition: true
+                });
+            };
 
-            // hide the context menu
-            nf.ContextMenu.hide();
+            /**
+             * Zoom out on the canvas.
+             */
+            this.zoomOut = function () {
+                canvasUtils.zoomCanvasViewOut();
 
-            // refresh the canvas
-            nf.Canvas.View.refresh({
-                transition: true
-            });
-        };
+                // hide the context menu
+                contextMenu.hide();
 
-        /**
-         * Zoom fit on the canvas.
-         */
-        this.zoomFit = function () {
-            nf.Canvas.View.fit();
+                // refresh the canvas
+                canvasUtils.refreshCanvasView({
+                    transition: true
+                });
+            };
 
-            // hide the context menu
-            nf.ContextMenu.hide();
+            /**
+             * Zoom fit on the canvas.
+             */
+            this.zoomFit = function () {
+                canvasUtils.fitCanvasView();
 
-            // refresh the canvas
-            nf.Canvas.View.refresh({
-                transition: true
-            });
-        };
+                // hide the context menu
+                contextMenu.hide();
 
-        /**
-         * Zoom actual size on the canvas.
-         */
-        this.zoomActualSize = function () {
-            nf.Canvas.View.actualSize();
+                // refresh the canvas
+                canvasUtils.refreshCanvasView({
+                    transition: true
+                });
+            };
 
-            // hide the context menu
-            nf.ContextMenu.hide();
+            /**
+             * Zoom actual size on the canvas.
+             */
+            this.zoomActualSize = function () {
+                canvasUtils.actualSizeCanvasView();
 
-            // refresh the canvas
-            nf.Canvas.View.refresh({
-                transition: true
-            });
-        };
-    }
-    NavigateCtrl.prototype = {
-        constructor: NavigateCtrl
-    }
+                // hide the context menu
+                contextMenu.hide();
 
-    var navigateCtrl = new NavigateCtrl();
-    return navigateCtrl;
-};
+                // refresh the canvas
+                canvasUtils.refreshCanvasView({
+                    transition: true
+                });
+            };
+        }
+
+        NavigateCtrl.prototype = {
+            constructor: NavigateCtrl
+        }
+
+        var navigateCtrl = new NavigateCtrl();
+        return navigateCtrl;
+    };
+}));

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 /* requires qtip plugin to be loaded first*/
 

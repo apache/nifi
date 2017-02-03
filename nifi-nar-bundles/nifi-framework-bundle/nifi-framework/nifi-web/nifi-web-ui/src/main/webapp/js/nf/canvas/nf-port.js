@@ -15,9 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Port = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils'],
+            function ($, d3, common, client, canvasUtils) {
+                return (nf.Port = factory($, d3, common, client, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Port =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.Port = factory(root.$,
+            root.d3,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, d3, common, client, canvasUtils) {
+    'use strict';
+
+    var nfConnectable;
+    var nfDraggable;
+    var nfSelectable;
+    var nfContextMenu;
 
     var PREVIEW_NAME_LENGTH = 15;
     var OFFSET_VALUE = 25;
@@ -88,7 +118,7 @@ nf.Port = (function () {
                 }
             })
             .classed('selected', selected)
-            .call(nf.CanvasUtils.position);
+            .call(canvasUtils.position);
 
         // port border
         port.append('rect')
@@ -121,7 +151,7 @@ nf.Port = (function () {
         var offset = 0;
 
         // conditionally render the remote banner
-        if (nf.Canvas.getParentGroupId() === null) {
+        if (canvasUtils.getParentGroupId() === null) {
             offset = OFFSET_VALUE;
 
             // port remote banner
@@ -162,12 +192,12 @@ nf.Port = (function () {
             });
 
         // make ports selectable
-        port.call(nf.Selectable.activate).call(nf.ContextMenu.activate);
+        port.call(nfSelectable.activate).call(nfContextMenu.activate);
 
         // only activate dragging and connecting if appropriate
         port.filter(function (d) {
             return d.permissions.canWrite && d.permissions.canRead;
-        }).call(nf.Draggable.activate).call(nf.Connectable.activate);
+        }).call(nfDraggable.activate).call(nfConnectable.activate);
     };
 
     /**
@@ -197,7 +227,7 @@ nf.Port = (function () {
             var details = port.select('g.port-details');
 
             // update the component behavior as appropriate
-            nf.CanvasUtils.editable(port);
+            canvasUtils.editable(port, nfConnectable, nfDraggable);
 
             // if this process group is visible, render everything
             if (port.classed('visible')) {
@@ -205,7 +235,7 @@ nf.Port = (function () {
                     details = port.append('g').attr('class', 'port-details');
 
                     var offset = 0;
-                    if (nf.Canvas.getParentGroupId() === null) {
+                    if (canvasUtils.getParentGroupId() === null) {
                         offset = OFFSET_VALUE;
 
                         // port transmitting icon
@@ -252,7 +282,7 @@ nf.Port = (function () {
                     // -------------------
                     // active thread count
                     // -------------------
-                    
+
                     // active thread count
                     details.append('text')
                         .attr({
@@ -283,9 +313,9 @@ nf.Port = (function () {
                             // handle based on the number of tokens in the port name
                             if (words.length === 1) {
                                 // apply ellipsis to the port name as necessary
-                                nf.CanvasUtils.ellipsis(portName, name);
+                                canvasUtils.ellipsis(portName, name);
                             } else {
-                                nf.CanvasUtils.multilineEllipsis(portName, 2, name);
+                                canvasUtils.multilineEllipsis(portName, 2, name);
                             }
                         }).append('title').text(function (d) {
                         return d.component.name;
@@ -341,7 +371,7 @@ nf.Port = (function () {
                 'fill': function (d) {
                     var fill = '#728e9b';
 
-                    if  (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
                         fill = '#cf9f5d';
                     } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
                         fill = '#7dc7a0';
@@ -377,7 +407,7 @@ nf.Port = (function () {
                 var tip = d3.select('#run-status-tip-' + d.id);
 
                 // if there are validation errors generate a tooltip
-                if (d.permissions.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
+                if (d.permissions.canRead && !common.isEmpty(d.component.validationErrors)) {
                     // create the tip if necessary
                     if (tip.empty()) {
                         tip = d3.select('#port-tooltips').append('div')
@@ -389,16 +419,16 @@ nf.Port = (function () {
 
                     // update the tip
                     tip.html(function () {
-                            var list = nf.Common.formatUnorderedList(d.component.validationErrors);
-                            if (list === null || list.length === 0) {
-                                return '';
-                            } else {
-                                return $('<div></div>').append(list).html();
-                            }
-                        });
+                        var list = common.formatUnorderedList(d.component.validationErrors);
+                        if (list === null || list.length === 0) {
+                            return '';
+                        } else {
+                            return $('<div></div>').append(list).html();
+                        }
+                    });
 
                     // add the tooltip
-                    nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
+                    canvasUtils.canvasTooltip(tip, d3.select(this));
                 } else {
                     // remove if necessary
                     if (!tip.empty()) {
@@ -447,7 +477,7 @@ nf.Port = (function () {
             // active thread count
             // -------------------
 
-            nf.CanvasUtils.activeThreadCount(port, d, function (off) {
+            canvasUtils.activeThreadCount(port, d, function (off) {
                 offset = off;
             });
 
@@ -456,10 +486,10 @@ nf.Port = (function () {
             // ---------
 
             port.select('rect.bulletin-background').classed('has-bulletins', function () {
-                return !nf.Common.isEmpty(d.status.aggregateSnapshot.bulletins);
+                return !common.isEmpty(d.status.aggregateSnapshot.bulletins);
             });
-            
-            nf.CanvasUtils.bulletins(port, d, function () {
+
+            canvasUtils.bulletins(port, d, function () {
                 return d3.select('#port-tooltips');
             }, offset);
         });
@@ -491,11 +521,16 @@ nf.Port = (function () {
         });
     };
 
-    return {
+    var nfPort = {
         /**
          * Initializes of the Port handler.
          */
-        init: function () {
+        init: function (connectable, draggable, selectable, contextMenu) {
+            nfConnectable = connectable;
+            nfDraggable = draggable;
+            nfSelectable = selectable;
+            nfContextMenu = contextMenu;
+
             portMap = d3.map();
             removedCache = d3.map();
             addedCache = d3.map();
@@ -516,13 +551,13 @@ nf.Port = (function () {
          */
         add: function (portEntities, options) {
             var selectAll = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (common.isDefinedAndNotNull(options)) {
+                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // determine the appropriate dimensions for this port
             var dimensions = portDimensions;
-            if (nf.Canvas.getParentGroupId() === null) {
+            if (canvasUtils.getParentGroupId() === null) {
                 dimensions = remotePortDimensions;
             }
 
@@ -547,7 +582,7 @@ nf.Port = (function () {
                 $.each(portEntities, function (_, portNode) {
                     add(portNode);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(portEntities)) {
+            } else if (common.isDefinedAndNotNull(portEntities)) {
                 add(portEntities);
             }
 
@@ -556,7 +591,7 @@ nf.Port = (function () {
             selection.enter().call(renderPorts, selectAll);
             selection.call(updatePorts);
         },
-        
+
         /**
          * Populates the graph with the specified ports.
          *
@@ -566,14 +601,14 @@ nf.Port = (function () {
         set: function (portEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (common.isDefinedAndNotNull(options)) {
+                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             // determine the appropriate dimensions for this port
             var dimensions = portDimensions;
-            if (nf.Canvas.getParentGroupId() === null) {
+            if (canvasUtils.getParentGroupId() === null) {
                 dimensions = remotePortDimensions;
             }
 
@@ -581,7 +616,7 @@ nf.Port = (function () {
                 var currentPortEntity = portMap.get(proposedPortEntity.id);
 
                 // set the port if appropriate due to revision and wasn't previously removed
-                if (nf.Client.isNewerRevision(currentPortEntity, proposedPortEntity) && !removedCache.has(proposedPortEntity.id)) {
+                if (client.isNewerRevision(currentPortEntity, proposedPortEntity) && !removedCache.has(proposedPortEntity.id)) {
                     // add the port
                     portMap.set(proposedPortEntity.id, $.extend({
                         type: 'Port',
@@ -609,14 +644,14 @@ nf.Port = (function () {
                 $.each(portEntities, function (_, portNode) {
                     set(portNode);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(portEntities)) {
+            } else if (common.isDefinedAndNotNull(portEntities)) {
                 set(portEntities);
             }
 
             // apply the selection and handle all new ports
             var selection = select();
             selection.enter().call(renderPorts, selectAll);
-            selection.call(updatePorts).call(nf.CanvasUtils.position, transition);
+            selection.call(updatePorts).call(canvasUtils.position, transition);
             selection.exit().call(removePorts);
         },
 
@@ -627,7 +662,7 @@ nf.Port = (function () {
          * @param {string} id
          */
         get: function (id) {
-            if (nf.Common.isUndefined(id)) {
+            if (common.isUndefined(id)) {
                 return portMap.values();
             } else {
                 return portMap.get(id);
@@ -641,7 +676,7 @@ nf.Port = (function () {
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (nf.Common.isDefinedAndNotNull(id)) {
+            if (common.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updatePorts);
             } else {
                 d3.selectAll('g.input-port, g.output-port').call(updatePorts);
@@ -669,7 +704,7 @@ nf.Port = (function () {
                     url: portEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.Port.set(response);
+                    nfPort.set(response);
                 });
             }
         },
@@ -680,7 +715,7 @@ nf.Port = (function () {
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(nf.CanvasUtils.position);
+            d3.select('#id-' + id).call(canvasUtils.position);
         },
 
         /**
@@ -709,7 +744,7 @@ nf.Port = (function () {
          * Removes all ports..
          */
         removeAll: function () {
-            nf.Port.remove(portMap.keys());
+            nfPort.remove(portMap.keys());
         },
 
         /**
@@ -730,4 +765,6 @@ nf.Port = (function () {
             expire(removedCache);
         }
     };
-}());
+
+    return nfPort;
+}));

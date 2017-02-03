@@ -15,10 +15,48 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Draggable = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.Connection',
+                'nf.Birdseye',
+                'nf.CanvasUtils',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Client',
+                'nf.ErrorHandler'],
+            function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+                return (nf.Draggable = factory($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Draggable =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Connection'),
+                require('nf.Birdseye'),
+                require('nf.CanvasUtils'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Client'),
+                require('nf.ErrorHandler')));
+    } else {
+        nf.Draggable = factory(root.$,
+            root.d3,
+            root.nf.Connection,
+            root.nf.Birdseye,
+            root.nf.CanvasUtils,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Client,
+            root.nf.ErrorHandler);
+    }
+}(this, function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+    'use strict';
 
+    var nfCanvas;
     var drag;
 
     /**
@@ -45,8 +83,8 @@ nf.Draggable = (function () {
         var selectedComponents = d3.selectAll('g.component.selected');
 
         // ensure every component is writable
-        if (nf.CanvasUtils.canModify(selectedConnections) === false || nf.CanvasUtils.canModify(selectedComponents) === false) {
-            nf.Dialog.showOkDialog({
+        if (canvasUtils.canModify(selectedConnections) === false || canvasUtils.canModify(selectedComponents) === false) {
+            dialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Must be authorized to modify every component selected.'
             });
@@ -55,7 +93,7 @@ nf.Draggable = (function () {
 
         // go through each selected connection
         selectedConnections.each(function (d) {
-            var connectionUpdate = nf.Draggable.updateConnectionPosition(d, delta);
+            var connectionUpdate = nfDraggable.updateConnectionPosition(d, delta);
             if (connectionUpdate !== null) {
                 updates.set(d.id, connectionUpdate);
             }
@@ -64,10 +102,10 @@ nf.Draggable = (function () {
         // go through each selected component
         selectedComponents.each(function (d) {
             // consider any self looping connections
-            var connections = nf.Connection.getComponentConnections(d.id);
-            $.each(connections, function(_, connection) {
-                if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
-                    var connectionUpdate = nf.Draggable.updateConnectionPosition(nf.Connection.get(connection.id), delta);
+            var connections = connection.getComponentConnections(d.id);
+            $.each(connections, function (_, connection) {
+                if (!updates.has(connection.id) && canvasUtils.getConnectionSourceComponentId(connection) === canvasUtils.getConnectionDestinationComponentId(connection)) {
+                    var connectionUpdate = nfDraggable.updateConnectionPosition(connection.get(connection.id), delta);
                     if (connectionUpdate !== null) {
                         updates.set(connection.id, connectionUpdate);
                     }
@@ -75,10 +113,10 @@ nf.Draggable = (function () {
             });
 
             // consider the component itself
-            updates.set(d.id, nf.Draggable.updateComponentPosition(d, delta));
+            updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
         });
 
-        nf.Draggable.refreshConnections(updates);
+        nfDraggable.refreshConnections(updates);
     };
 
     /**
@@ -88,15 +126,15 @@ nf.Draggable = (function () {
         var selection = d3.selectAll('g.component.selected, g.connection.selected');
         var group = d3.select('g.drop');
 
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            nf.Dialog.showOkDialog({
+        if (canvasUtils.canModify(selection) === false) {
+            dialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Must be authorized to modify every component selected.'
             });
             return;
         }
-        if (nf.CanvasUtils.canModify(group) === false) {
-            nf.Dialog.showOkDialog({
+        if (canvasUtils.canModify(group) === false) {
+            dialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Not authorized to modify the destination group.'
             });
@@ -104,102 +142,104 @@ nf.Draggable = (function () {
         }
 
         // move the seleciton into the group
-        nf.CanvasUtils.moveComponents(selection, group);
+        canvasUtils.moveComponents(selection, group);
     };
 
-    return {
-        init: function () {
+    var nfDraggable = {
+        init: function (canvas) {
+            nfCanvas = canvas;
+
             // handle component drag events
             drag = d3.behavior.drag()
-                    .on('dragstart', function () {
-                        // stop further propagation
-                        d3.event.sourceEvent.stopPropagation();
-                    })
-                    .on('drag', function () {
-                        var dragSelection = d3.select('rect.drag-selection');
+                .on('dragstart', function () {
+                    // stop further propagation
+                    d3.event.sourceEvent.stopPropagation();
+                })
+                .on('drag', function () {
+                    var dragSelection = d3.select('rect.drag-selection');
 
-                        // lazily create the drag selection box
-                        if (dragSelection.empty()) {
-                            // get the current selection
-                            var selection = d3.selectAll('g.component.selected');
+                    // lazily create the drag selection box
+                    if (dragSelection.empty()) {
+                        // get the current selection
+                        var selection = d3.selectAll('g.component.selected');
 
-                            // determine the appropriate bounding box
-                            var minX = null, maxX = null, minY = null, maxY = null;
-                            selection.each(function (d) {
-                                if (minX === null || d.position.x < minX) {
-                                    minX = d.position.x;
-                                }
-                                if (minY === null || d.position.y < minY) {
-                                    minY = d.position.y;
-                                }
-                                var componentMaxX = d.position.x + d.dimensions.width;
-                                var componentMaxY = d.position.y + d.dimensions.height;
-                                if (maxX === null || componentMaxX > maxX) {
-                                    maxX = componentMaxX;
-                                }
-                                if (maxY === null || componentMaxY > maxY) {
-                                    maxY = componentMaxY;
-                                }
+                        // determine the appropriate bounding box
+                        var minX = null, maxX = null, minY = null, maxY = null;
+                        selection.each(function (d) {
+                            if (minX === null || d.position.x < minX) {
+                                minX = d.position.x;
+                            }
+                            if (minY === null || d.position.y < minY) {
+                                minY = d.position.y;
+                            }
+                            var componentMaxX = d.position.x + d.dimensions.width;
+                            var componentMaxY = d.position.y + d.dimensions.height;
+                            if (maxX === null || componentMaxX > maxX) {
+                                maxX = componentMaxX;
+                            }
+                            if (maxY === null || componentMaxY > maxY) {
+                                maxY = componentMaxY;
+                            }
+                        });
+
+                        // create a selection box for the move
+                        d3.select('#canvas').append('rect')
+                            .attr('rx', 6)
+                            .attr('ry', 6)
+                            .attr('x', minX)
+                            .attr('y', minY)
+                            .attr('class', 'drag-selection')
+                            .attr('pointer-events', 'none')
+                            .attr('width', maxX - minX)
+                            .attr('height', maxY - minY)
+                            .attr('stroke-width', function () {
+                                return 1 / canvasUtils.scaleCanvasView();
+                            })
+                            .attr('stroke-dasharray', function () {
+                                return 4 / canvasUtils.scaleCanvasView();
+                            })
+                            .datum({
+                                original: {
+                                    x: minX,
+                                    y: minY
+                                },
+                                x: minX,
+                                y: minY
                             });
+                    } else {
+                        // update the position of the drag selection
+                        dragSelection.attr('x', function (d) {
+                            d.x += d3.event.dx;
+                            return d.x;
+                        })
+                            .attr('y', function (d) {
+                                d.y += d3.event.dy;
+                                return d.y;
+                            });
+                    }
+                })
+                .on('dragend', function () {
+                    // stop further propagation
+                    d3.event.sourceEvent.stopPropagation();
 
-                            // create a selection box for the move
-                            d3.select('#canvas').append('rect')
-                                    .attr('rx', 6)
-                                    .attr('ry', 6)
-                                    .attr('x', minX)
-                                    .attr('y', minY)
-                                    .attr('class', 'drag-selection')
-                                    .attr('pointer-events', 'none')
-                                    .attr('width', maxX - minX)
-                                    .attr('height', maxY - minY)
-                                    .attr('stroke-width', function () {
-                                        return 1 / nf.Canvas.View.scale();
-                                    })
-                                    .attr('stroke-dasharray', function () {
-                                        return 4 / nf.Canvas.View.scale();
-                                    })
-                                    .datum({
-                                        original: {
-                                            x: minX,
-                                            y: minY
-                                        },
-                                        x: minX,
-                                        y: minY
-                                    });
-                        } else {
-                            // update the position of the drag selection
-                            dragSelection.attr('x', function (d) {
-                                        d.x += d3.event.dx;
-                                        return d.x;
-                                    })
-                                    .attr('y', function (d) {
-                                        d.y += d3.event.dy;
-                                        return d.y;
-                                    });
-                        }
-                    })
-                    .on('dragend', function () {
-                        // stop further propagation
-                        d3.event.sourceEvent.stopPropagation();
+                    // get the drag selection
+                    var dragSelection = d3.select('rect.drag-selection');
 
-                        // get the drag selection
-                        var dragSelection = d3.select('rect.drag-selection');
+                    // ensure we found a drag selection
+                    if (dragSelection.empty()) {
+                        return;
+                    }
 
-                        // ensure we found a drag selection
-                        if (dragSelection.empty()) {
-                            return;
-                        }
+                    // either move or update the selections group as appropriate
+                    if (d3.select('g.drop').empty()) {
+                        updateComponentsPosition(dragSelection);
+                    } else {
+                        updateComponentsGroup();
+                    }
 
-                        // either move or update the selections group as appropriate
-                        if (d3.select('g.drop').empty()) {
-                            updateComponentsPosition(dragSelection);
-                        } else {
-                            updateComponentsGroup();
-                        }
-
-                        // remove the drag selection
-                        dragSelection.remove();
-                    });
+                    // remove the drag selection
+                    dragSelection.remove();
+                });
         },
 
         /**
@@ -209,7 +249,7 @@ nf.Draggable = (function () {
          * @param delta The change in position
          * @returns {*}
          */
-        updateComponentPosition: function(d, delta) {
+        updateComponentPosition: function (d, delta) {
             var newPosition = {
                 'x': d.position.x + delta.x,
                 'y': d.position.y + delta.y
@@ -217,7 +257,7 @@ nf.Draggable = (function () {
 
             // build the entity
             var entity = {
-                'revision': nf.Client.getRevision(d),
+                'revision': client.getRevision(d),
                 'component': {
                     'id': d.id,
                     'position': newPosition
@@ -234,7 +274,7 @@ nf.Draggable = (function () {
                     contentType: 'application/json'
                 }).done(function (response) {
                     // update the component
-                    nf[d.type].set(response);
+                    canvasUtils.getComponentByType(d.type).set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
@@ -243,12 +283,12 @@ nf.Draggable = (function () {
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nf.Dialog.showOkDialog({
+                        dialog.showOkDialog({
                             headerText: 'Component Position',
-                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                            dialogContent: common.escapeHtml(xhr.responseText)
                         });
                     } else {
-                        nf.ErrorHandler.handleAjaxError(xhr, status, error);
+                        errorHandler.handleAjaxError(xhr, status, error);
                     }
 
                     deferred.reject();
@@ -263,7 +303,7 @@ nf.Draggable = (function () {
          * @param delta The change in position
          * @returns {*}
          */
-        updateConnectionPosition: function(d, delta) {
+        updateConnectionPosition: function (d, delta) {
             // only update if necessary
             if (d.bends.length === 0) {
                 return null;
@@ -278,7 +318,7 @@ nf.Draggable = (function () {
             });
 
             var entity = {
-                'revision': nf.Client.getRevision(d),
+                'revision': client.getRevision(d),
                 'component': {
                     id: d.id,
                     bends: newBends
@@ -295,7 +335,7 @@ nf.Draggable = (function () {
                     contentType: 'application/json'
                 }).done(function (response) {
                     // update the component
-                    nf.Connection.set(response);
+                    connection.set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
@@ -304,12 +344,12 @@ nf.Draggable = (function () {
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        nf.Dialog.showOkDialog({
+                        dialog.showOkDialog({
                             headerText: 'Component Position',
-                            dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                            dialogContent: common.escapeHtml(xhr.responseText)
                         });
                     } else {
-                        nf.ErrorHandler.handleAjaxError(xhr, status, error);
+                        errorHandler.handleAjaxError(xhr, status, error);
                     }
 
                     deferred.reject();
@@ -322,7 +362,7 @@ nf.Draggable = (function () {
          *
          * @param updates
          */
-        refreshConnections: function(updates) {
+        refreshConnections: function (updates) {
             // wait for all updates to complete
             $.when.apply(window, updates.values()).done(function () {
                 var dragged = $.makeArray(arguments);
@@ -335,7 +375,7 @@ nf.Draggable = (function () {
                         connections.add(component.id);
                     } else {
                         // get connections that need to be refreshed because its attached to this component
-                        var componentConnections = nf.Connection.getComponentConnections(component.id);
+                        var componentConnections = connection.getComponentConnections(component.id);
                         $.each(componentConnections, function (_, connection) {
                             connections.add(connection.id);
                         });
@@ -344,10 +384,10 @@ nf.Draggable = (function () {
 
                 // refresh the connections
                 connections.forEach(function (connectionId) {
-                    nf.Connection.refresh(connectionId);
+                    connection.refresh(connectionId);
                 });
-            }).always(function(){
-                nf.Birdseye.refresh();
+            }).always(function () {
+                birdseye.refresh();
             });
         },
 
@@ -369,4 +409,6 @@ nf.Draggable = (function () {
             components.classed('moveable', false).on('.drag', null);
         }
     };
-}());
+
+    return nfDraggable;
+}));

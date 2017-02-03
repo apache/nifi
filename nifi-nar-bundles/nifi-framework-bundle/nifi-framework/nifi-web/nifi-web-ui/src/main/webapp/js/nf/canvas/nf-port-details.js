@@ -15,9 +15,28 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
-nf.PortDetails = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.CanvasUtils'],
+            function ($, common, canvasUtils) {
+                return (nf.PortDetails = factory($, common, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.PortDetails =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.PortDetails = factory(root.$,
+            root.nf.Common,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, common, canvasUtils) {
+    'use strict';
 
     return {
         init: function () {
@@ -42,9 +61,9 @@ nf.PortDetails = (function () {
                 handler: {
                     close: function () {
                         // clear the processor details
-                        nf.Common.clearField('read-only-port-name');
-                        nf.Common.clearField('read-only-port-id');
-                        nf.Common.clearField('read-only-port-comments');
+                        common.clearField('read-only-port-name');
+                        common.clearField('read-only-port-id');
+                        common.clearField('read-only-port-comments');
                     }
                 }
             });
@@ -52,17 +71,17 @@ nf.PortDetails = (function () {
 
         showDetails: function (selection) {
             // if the specified component is a processor, load its properties
-            if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
+            if (canvasUtils.isInputPort(selection) || canvasUtils.isOutputPort(selection)) {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                nf.Common.populateField('read-only-port-name', selectionData.component.name);
-                nf.Common.populateField('read-only-port-id', selectionData.id);
-                nf.Common.populateField('read-only-port-comments', selectionData.component.comments);
+                common.populateField('read-only-port-name', selectionData.component.name);
+                common.populateField('read-only-port-id', selectionData.id);
+                common.populateField('read-only-port-comments', selectionData.component.comments);
 
                 // show the details
                 $('#port-details').modal('show');
             }
         }
     };
-}());
+}));

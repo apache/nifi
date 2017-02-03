@@ -15,9 +15,45 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global d3, define, module, require, exports */
 
-nf.ProcessGroup = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.Connection',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.Dialog'],
+            function ($, d3, connection, common, client, canvasUtils, dialog) {
+                return (nf.ProcessGroup = factory($, d3, connection, common, client, canvasUtils, dialog));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ProcessGroup =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Connection'),
+                require('nf.Common'),
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.Dialog')));
+    } else {
+        nf.ProcessGroup = factory(root.$,
+            root.d3,
+            root.nf.Connection,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.Dialog);
+    }
+}(this, function ($, d3, connection, common, client, canvasUtils, dialog) {
+    'use strict';
+
+    var nfConnectable;
+    var nfDraggable;
+    var nfSelectable;
+    var nfContextMenu;
 
     var PREVIEW_NAME_LENGTH = 30;
 
@@ -55,7 +91,7 @@ nf.ProcessGroup = (function () {
      * @param {object} d
      */
     var getProcessGroupComments = function (d) {
-        if (nf.Common.isBlank(d.component.comments)) {
+        if (common.isBlank(d.component.comments)) {
             return 'No comments specified';
         } else {
             return d.component.comments;
@@ -90,7 +126,7 @@ nf.ProcessGroup = (function () {
                 'class': 'process-group component'
             })
             .classed('selected', selected)
-            .call(nf.CanvasUtils.position);
+            .call(canvasUtils.position);
 
         // ----
         // body
@@ -146,15 +182,15 @@ nf.ProcessGroup = (function () {
 
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
-                // enter this group on double click
-                nf.CanvasUtils.enterGroup(d.id);
-            })
-            .call(nf.Selectable.activate).call(nf.ContextMenu.activate);
+            // enter this group on double click
+            nfProcessGroup.enterGroup(d.id);
+        })
+            .call(nfSelectable.activate).call(nfContextMenu.activate);
 
         // only support dragging, connection, and drag and drop if appropriate
         processGroup.filter(function (d) {
-                return d.permissions.canWrite && d.permissions.canRead;
-            })
+            return d.permissions.canWrite && d.permissions.canRead;
+        })
             .on('mouseover.drop', function (d) {
                 // Using mouseover/out to workaround chrome issue #122746
 
@@ -167,7 +203,7 @@ nf.ProcessGroup = (function () {
                     var drag = d3.select('rect.drag-selection');
                     if (!drag.empty()) {
                         // filter the current selection by this group
-                        var selection = nf.CanvasUtils.getSelection().filter(function (d) {
+                        var selection = canvasUtils.getSelection().filter(function (d) {
                             return targetData.id === d.id;
                         });
 
@@ -176,7 +212,7 @@ nf.ProcessGroup = (function () {
                             // mark that we are hovering over a drop area if appropriate
                             target.classed('drop', function () {
                                 // get the current selection and ensure its disconnected
-                                return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
+                                return connection.isDisconnected(canvasUtils.getSelection());
                             });
                         }
                     }
@@ -186,8 +222,8 @@ nf.ProcessGroup = (function () {
                 // mark that we are no longer hovering over a drop area unconditionally
                 d3.select(this).classed('drop', false);
             })
-            .call(nf.Draggable.activate)
-            .call(nf.Connectable.activate);
+            .call(nfDraggable.activate)
+            .call(nfConnectable.activate);
     };
 
     // attempt of space between component count and icon for process group contents
@@ -221,7 +257,7 @@ nf.ProcessGroup = (function () {
             var details = processGroup.select('g.process-group-details');
 
             // update the component behavior as appropriate
-            nf.CanvasUtils.editable(processGroup);
+            canvasUtils.editable(processGroup, nfConnectable, nfDraggable);
 
             // if this processor is visible, render everything
             if (processGroup.classed('visible')) {
@@ -812,9 +848,9 @@ nf.ProcessGroup = (function () {
                             processGroupComments.text(null).selectAll('tspan, title').remove();
 
                             // apply ellipsis to the port name as necessary
-                            nf.CanvasUtils.ellipsis(processGroupComments, getProcessGroupComments(d));
+                            canvasUtils.ellipsis(processGroupComments, getProcessGroupComments(d));
                         }).classed('unset', function (d) {
-                        return nf.Common.isBlank(d.component.comments);
+                        return common.isBlank(d.component.comments);
                     }).append('title').text(function (d) {
                         return getProcessGroupComments(d);
                     });
@@ -828,7 +864,7 @@ nf.ProcessGroup = (function () {
                             processGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the process group name as necessary
-                            nf.CanvasUtils.ellipsis(processGroupName, d.component.name);
+                            canvasUtils.ellipsis(processGroupName, d.component.name);
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
@@ -883,25 +919,25 @@ nf.ProcessGroup = (function () {
         // queued count value
         updated.select('text.process-group-queued tspan.count')
             .text(function (d) {
-                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+                return common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
         // queued size value
         updated.select('text.process-group-queued tspan.size')
             .text(function (d) {
-                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
         // in count value
         updated.select('text.process-group-in tspan.count')
             .text(function (d) {
-                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+                return common.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
             });
 
         // in size value
         updated.select('text.process-group-in tspan.size')
             .text(function (d) {
-                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
             });
 
         // in ports value
@@ -925,13 +961,13 @@ nf.ProcessGroup = (function () {
         // out count value
         updated.select('text.process-group-out tspan.count')
             .text(function (d) {
-                return nf.Common.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
+                return common.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
             });
 
         // out size value
         updated.select('text.process-group-out tspan.size')
             .text(function (d) {
-                return ' ' + nf.Common.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
             });
 
         updated.each(function (d) {
@@ -942,7 +978,7 @@ nf.ProcessGroup = (function () {
             // active thread count
             // -------------------
 
-            nf.CanvasUtils.activeThreadCount(processGroup, d, function (off) {
+            canvasUtils.activeThreadCount(processGroup, d, function (off) {
                 offset = off;
             });
 
@@ -951,10 +987,10 @@ nf.ProcessGroup = (function () {
             // ---------
 
             processGroup.select('rect.bulletin-background').classed('has-bulletins', function () {
-                return !nf.Common.isEmpty(d.status.aggregateSnapshot.bulletins);
+                return !common.isEmpty(d.status.aggregateSnapshot.bulletins);
             });
 
-            nf.CanvasUtils.bulletins(processGroup, d, function () {
+            canvasUtils.bulletins(processGroup, d, function () {
                 return d3.select('#process-group-tooltips');
             }, offset);
         });
@@ -985,11 +1021,16 @@ nf.ProcessGroup = (function () {
         });
     };
 
-    return {
+    var nfProcessGroup = {
         /**
          * Initializes of the Process Group handler.
          */
-        init: function () {
+        init: function (connectable, draggable, selectable, contextMenu) {
+            nfConnectable = connectable;
+            nfDraggable = draggable;
+            nfSelectable = selectable;
+            nfContextMenu = contextMenu;
+
             processGroupMap = d3.map();
             removedCache = d3.map();
             addedCache = d3.map();
@@ -1010,8 +1051,8 @@ nf.ProcessGroup = (function () {
          */
         add: function (processGroupEntities, options) {
             var selectAll = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (common.isDefinedAndNotNull(options)) {
+                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // get the current time
@@ -1032,7 +1073,7 @@ nf.ProcessGroup = (function () {
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     add(processGroupEntity);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(processGroupEntities)) {
+            } else if (common.isDefinedAndNotNull(processGroupEntities)) {
                 add(processGroupEntities);
             }
 
@@ -1051,16 +1092,16 @@ nf.ProcessGroup = (function () {
         set: function (processGroupEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (nf.Common.isDefinedAndNotNull(options)) {
-                selectAll = nf.Common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = nf.Common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (common.isDefinedAndNotNull(options)) {
+                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             var set = function (proposedProcessGroupEntity) {
                 var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
 
                 // set the process group if appropriate due to revision and wasn't previously removed
-                if (nf.Client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
+                if (client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
                     processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
                         type: 'ProcessGroup',
                         dimensions: dimensions
@@ -1084,14 +1125,14 @@ nf.ProcessGroup = (function () {
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     set(processGroupEntity);
                 });
-            } else if (nf.Common.isDefinedAndNotNull(processGroupEntities)) {
+            } else if (common.isDefinedAndNotNull(processGroupEntities)) {
                 set(processGroupEntities);
             }
 
             // apply the selection and handle all new process group
             var selection = select();
             selection.enter().call(renderProcessGroups, selectAll);
-            selection.call(updateProcessGroups).call(nf.CanvasUtils.position, transition);
+            selection.call(updateProcessGroups).call(canvasUtils.position, transition);
             selection.exit().call(removeProcessGroups);
         },
 
@@ -1102,7 +1143,7 @@ nf.ProcessGroup = (function () {
          * @param {string} id
          */
         get: function (id) {
-            if (nf.Common.isUndefined(id)) {
+            if (common.isUndefined(id)) {
                 return processGroupMap.values();
             } else {
                 return processGroupMap.get(id);
@@ -1116,7 +1157,7 @@ nf.ProcessGroup = (function () {
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (nf.Common.isDefinedAndNotNull(id)) {
+            if (common.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updateProcessGroups);
             } else {
                 d3.selectAll('g.process-group').call(updateProcessGroups);
@@ -1144,7 +1185,7 @@ nf.ProcessGroup = (function () {
                     url: processGroupEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    nf.ProcessGroup.set(response);
+                    nfProcessGroup.set(response);
                 });
             }
         },
@@ -1155,7 +1196,7 @@ nf.ProcessGroup = (function () {
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(nf.CanvasUtils.position);
+            d3.select('#id-' + id).call(canvasUtils.position);
         },
 
         /**
@@ -1184,7 +1225,7 @@ nf.ProcessGroup = (function () {
          * Removes all process groups.
          */
         removeAll: function () {
-            nf.ProcessGroup.remove(processGroupMap.keys());
+            nfProcessGroup.remove(processGroupMap.keys());
         },
 
         /**
@@ -1203,6 +1244,44 @@ nf.ProcessGroup = (function () {
 
             expire(addedCache);
             expire(removedCache);
+        },
+
+        /**
+         * Enters the specified group.
+         *
+         * @param {string} groupId
+         */
+        enterGroup: function (groupId) { 
+
+            // hide the context menu
+            nfContextMenu.hide();  
+
+            // set the new group id
+            canvasUtils.setGroupId(groupId);  
+
+            // reload the graph
+            return canvasUtils.reload().done(function () { 
+
+                // attempt to restore the view
+                var viewRestored = canvasUtils.restoreUserView();  
+
+                // if the view was not restore attempt to fit
+                if (viewRestored === false) {
+                    canvasUtils.fitCanvasView();  
+
+                    // refresh the canvas
+                    canvasUtils.refreshCanvasView({
+                        transition: true
+                    });
+                }
+            }).fail(function () {
+                dialog.showOkDialog({
+                    headerText: 'Process Group',
+                    dialogContent: 'Unable to enter the selected group.'
+                });
+            });
         }
     };
-}());
+
+    return nfProcessGroup;
+}));

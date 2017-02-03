@@ -15,12 +15,52 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
 /**
  * Lists FlowFiles from a given connection.
  */
-nf.QueueListing = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'Slick',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Shell',
+                'nf.ng.Bridge',
+                'nf.ClusterSummary',
+                'nf.ErrorHandler',
+                'nf.Storage',
+                'nf.CanvasUtils'],
+            function ($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
+                return (nf.QueueListing = factory($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.QueueListing =
+            factory(require('jquery'),
+                require('Slick'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Shell'),
+                require('nf.ng.Bridge'),
+                require('nf.ClusterSummary'),
+                require('nf.ErrorHandler'),
+                require('nf.Storage'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.QueueListing = factory(root.$,
+            root.Slick,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Shell,
+            root.nf.ng.Bridge,
+            root.nf.ClusterSummary,
+            root.nf.ErrorHandler,
+            root.nf.Storage,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -56,17 +96,17 @@ nf.QueueListing = (function () {
         var dataUri = $('#flowfile-uri').text() + '/content';
 
         // perform the request once we've received a token
-        nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+        common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
             var parameters = {};
 
             // conditionally include the ui extension token
-            if (!nf.Common.isBlank(downloadToken)) {
+            if (!common.isBlank(downloadToken)) {
                 parameters['access_token'] = downloadToken;
             }
 
             // conditionally include the cluster node id
             var clusterNodeId = $('#flowfile-cluster-node-id').text();
-            if (!nf.Common.isBlank(clusterNodeId)) {
+            if (!common.isBlank(clusterNodeId)) {
                 parameters['clusterNodeId'] = clusterNodeId;
             }
 
@@ -77,7 +117,7 @@ nf.QueueListing = (function () {
                 window.open(dataUri + '?' + $.param(parameters));
             }
         }).fail(function () {
-            nf.Dialog.showOkDialog({
+            dialog.showOkDialog({
                 headerText: 'Queue Listing',
                 dialogContent: 'Unable to generate access token for downloading content.'
             });
@@ -92,7 +132,7 @@ nf.QueueListing = (function () {
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
-            if (nf.Storage.hasItem('jwt')) {
+            if (storage.hasItem('jwt')) {
                 // generate a token for the ui extension and another for the callback
                 var uiExtensionToken = $.ajax({
                     type: 'POST',
@@ -109,7 +149,7 @@ nf.QueueListing = (function () {
                     var downloadToken = downloadTokenResult[0];
                     deferred.resolve(uiExtensionToken, downloadToken);
                 }).fail(function () {
-                    nf.Dialog.showOkDialog({
+                    dialog.showOkDialog({
                         headerText: 'Queue Listing',
                         dialogContent: 'Unable to generate access token for viewing content.'
                     });
@@ -126,12 +166,12 @@ nf.QueueListing = (function () {
 
             // conditionally include the cluster node id
             var clusterNodeId = $('#flowfile-cluster-node-id').text();
-            if (!nf.Common.isBlank(clusterNodeId)) {
+            if (!common.isBlank(clusterNodeId)) {
                 dataUriParameters['clusterNodeId'] = clusterNodeId;
             }
 
             // include the download token if applicable
-            if (!nf.Common.isBlank(downloadToken)) {
+            if (!common.isBlank(downloadToken)) {
                 dataUriParameters['access_token'] = downloadToken;
             }
 
@@ -157,7 +197,7 @@ nf.QueueListing = (function () {
             };
 
             // include the download token if applicable
-            if (!nf.Common.isBlank(uiExtensionToken)) {
+            if (!common.isBlank(uiExtensionToken)) {
                 contentViewerParameters['access_token'] = uiExtensionToken;
             }
 
@@ -187,7 +227,7 @@ nf.QueueListing = (function () {
 
                 // update the progress
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+                (angularBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(angularBridge.rootScope)).appendTo(progressBar);
                 progressBar.append(label);
             };
 
@@ -223,7 +263,7 @@ nf.QueueListing = (function () {
                 var reject = cancelled;
 
                 // ensure the listing requests are present
-                if (nf.Common.isDefinedAndNotNull(listingRequest)) {
+                if (common.isDefinedAndNotNull(listingRequest)) {
                     $.ajax({
                         type: 'DELETE',
                         url: listingRequest.uri,
@@ -231,20 +271,20 @@ nf.QueueListing = (function () {
                     });
 
                     // use the listing request from when the listing completed
-                    if (nf.Common.isEmpty(listingRequest.flowFileSummaries)) {
+                    if (common.isEmpty(listingRequest.flowFileSummaries)) {
                         if (cancelled === false) {
                             reject = true;
 
                             // show the dialog
-                            nf.Dialog.showOkDialog({
+                            dialog.showOkDialog({
                                 headerText: 'Queue Listing',
                                 dialogContent: 'The queue has no FlowFiles.'
                             });
                         }
                     } else {
                         // update the queue size
-                        $('#total-flowfiles-count').text(nf.Common.formatInteger(listingRequest.queueSize.objectCount));
-                        $('#total-flowfiles-size').text(nf.Common.formatDataSize(listingRequest.queueSize.byteCount));
+                        $('#total-flowfiles-count').text(common.formatInteger(listingRequest.queueSize.objectCount));
+                        $('#total-flowfiles-size').text(common.formatDataSize(listingRequest.queueSize.byteCount));
 
                         // update the last updated time
                         $('#queue-listing-last-refreshed').text(listingRequest.lastUpdated);
@@ -316,7 +356,7 @@ nf.QueueListing = (function () {
                 }).done(function (response) {
                     listingRequest = response.listingRequest;
                     processListingRequest(nextDelay);
-                }).fail(completeListingRequest).fail(nf.ErrorHandler.handleAjaxError);
+                }).fail(completeListingRequest).fail(errorHandler.handleAjaxError);
             };
 
             // issue the request to list the flow files
@@ -335,7 +375,7 @@ nf.QueueListing = (function () {
                 // process the drop request
                 listingRequest = response.listingRequest;
                 processListingRequest(1);
-            }).fail(completeListingRequest).fail(nf.ErrorHandler.handleAjaxError);
+            }).fail(completeListingRequest).fail(errorHandler.handleAjaxError);
         }).promise();
     };
 
@@ -349,13 +389,13 @@ nf.QueueListing = (function () {
         var formatFlowFileDetail = function (label, value) {
             $('<div class="flowfile-detail"></div>').append(
                 $('<div class="detail-name"></div>').text(label)).append(
-                $('<div class="detail-value">' + nf.Common.formatValue(value) + '</div>').ellipsis()).append(
+                $('<div class="detail-value">' + common.formatValue(value) + '</div>').ellipsis()).append(
                 $('<div class="clear"></div>')).appendTo('#additional-flowfile-details');
         };
 
         // formats the content value
         var formatContentValue = function (element, value) {
-            if (nf.Common.isDefinedAndNotNull(value)) {
+            if (common.isDefinedAndNotNull(value)) {
                 element.removeClass('unset').text(value);
             } else {
                 element.addClass('unset').text('No value set');
@@ -363,7 +403,7 @@ nf.QueueListing = (function () {
         };
 
         var params = {};
-        if (nf.Common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
+        if (common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
             params['clusterNodeId'] = flowFileSummary.clusterNodeId;
         }
 
@@ -379,16 +419,16 @@ nf.QueueListing = (function () {
             $('#flowfile-uri').text(flowFile.uri);
 
             // show the flowfile details dialog
-            $('#flowfile-uuid').html(nf.Common.formatValue(flowFile.uuid));
-            $('#flowfile-filename').html(nf.Common.formatValue(flowFile.filename));
-            $('#flowfile-queue-position').html(nf.Common.formatValue(flowFile.position));
-            $('#flowfile-file-size').html(nf.Common.formatValue(flowFile.contentClaimFileSize));
-            $('#flowfile-queued-duration').text(nf.Common.formatDuration(flowFile.queuedDuration));
-            $('#flowfile-lineage-duration').text(nf.Common.formatDuration(flowFile.lineageDuration));
+            $('#flowfile-uuid').html(common.formatValue(flowFile.uuid));
+            $('#flowfile-filename').html(common.formatValue(flowFile.filename));
+            $('#flowfile-queue-position').html(common.formatValue(flowFile.position));
+            $('#flowfile-file-size').html(common.formatValue(flowFile.contentClaimFileSize));
+            $('#flowfile-queued-duration').text(common.formatDuration(flowFile.queuedDuration));
+            $('#flowfile-lineage-duration').text(common.formatDuration(flowFile.lineageDuration));
             $('#flowfile-penalized').text(flowFile.penalized === true ? 'Yes' : 'No');
 
             // conditionally show the cluster node identifier
-            if (nf.Common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
+            if (common.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
                 // save the cluster node id
                 $('#flowfile-cluster-node-id').text(flowFileSummary.clusterNodeId);
 
@@ -396,7 +436,7 @@ nf.QueueListing = (function () {
                 formatFlowFileDetail('Node Address', flowFileSummary.clusterNodeAddress);
             }
 
-            if (nf.Common.isDefinedAndNotNull(flowFile.contentClaimContainer)) {
+            if (common.isDefinedAndNotNull(flowFile.contentClaimContainer)) {
                 // content claim
                 formatContentValue($('#content-container'), flowFile.contentClaimContainer);
                 formatContentValue($('#content-section'), flowFile.contentClaimSection);
@@ -407,9 +447,9 @@ nf.QueueListing = (function () {
                 // input content file size
                 var contentSize = $('#content-size');
                 formatContentValue(contentSize, flowFile.contentClaimFileSize);
-                if (nf.Common.isDefinedAndNotNull(flowFile.contentClaimFileSize)) {
+                if (common.isDefinedAndNotNull(flowFile.contentClaimFileSize)) {
                     // over the default tooltip with the actual byte count
-                    contentSize.attr('title', nf.Common.formatInteger(flowFile.contentClaimFileSizeBytes) + ' bytes');
+                    contentSize.attr('title', common.formatInteger(flowFile.contentClaimFileSizeBytes) + ' bytes');
                 }
 
                 // show the content details
@@ -425,21 +465,21 @@ nf.QueueListing = (function () {
             $.each(flowFile.attributes, function (attributeName, attributeValue) {
                 // create the attribute record
                 var attributeRecord = $('<div class="attribute-detail"></div>')
-                    .append($('<div class="attribute-name">' + nf.Common.formatValue(attributeName) + '</div>').ellipsis())
+                    .append($('<div class="attribute-name">' + common.formatValue(attributeName) + '</div>').ellipsis())
                     .appendTo(attributesContainer);
 
                 // add the current value
                 attributeRecord
-                    .append($('<div class="attribute-value">' + nf.Common.formatValue(attributeValue) + '</div>').ellipsis())
+                    .append($('<div class="attribute-value">' + common.formatValue(attributeValue) + '</div>').ellipsis())
                     .append('<div class="clear"></div>');
             });
 
             // show the dialog
             $('#flowfile-details-dialog').modal('show');
-        }).fail(nf.ErrorHandler.handleAjaxError);
+        }).fail(errorHandler.handleAjaxError);
     };
 
-    return {
+    var nfQueueListing = {
         init: function () {
             initializeListingRequestStatusDialog();
 
@@ -456,12 +496,12 @@ nf.QueueListing = (function () {
 
             // function for formatting data sizes
             var dataSizeFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nf.Common.formatDataSize(value);
+                return common.formatDataSize(value);
             };
 
             // function for formatting durations
             var durationFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nf.Common.formatDuration(value);
+                return common.formatDuration(value);
             };
 
             // function for formatting penalization
@@ -548,7 +588,7 @@ nf.QueueListing = (function () {
             ];
 
             // conditionally show the cluster node identifier
-            if (nf.ClusterSummary.isClustered()) {
+            if (clusterSummary.isClustered()) {
                 queueListingColumns.push({
                     id: 'clusterNodeAddress',
                     name: 'Node',
@@ -559,7 +599,7 @@ nf.QueueListing = (function () {
             }
 
             // add an actions column when the user can access provenance
-            if (nf.Common.canAccessProvenance()) {
+            if (common.canAccessProvenance()) {
                 // function for formatting actions
                 var actionsFormatter = function () {
                     return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
@@ -614,7 +654,7 @@ nf.QueueListing = (function () {
                         $('#shell-close-button').click();
 
                         // open the provenance page with the specified component
-                        nf.Shell.showPage('provenance?' + $.param({
+                        shell.showPage('provenance?' + $.param({
                                 flowFileUuid: item.uuid
                             }));
                     }
@@ -648,7 +688,7 @@ nf.QueueListing = (function () {
             $('#content-download').on('click', downloadContent);
 
             // only show if content viewer is configured
-            if (nf.Common.isContentViewConfigured()) {
+            if (common.isContentViewConfigured()) {
                 $('#content-view').show();
                 $('#content-view').on('click', viewContent);
             }
@@ -690,7 +730,7 @@ nf.QueueListing = (function () {
                         $('#additional-flowfile-details').empty();
                     },
                     open: function () {
-                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -701,7 +741,7 @@ nf.QueueListing = (function () {
          */
         resetTableSize: function () {
             var queueListingGrid = $('#queue-listing-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(queueListingGrid)) {
+            if (common.isDefinedAndNotNull(queueListingGrid)) {
                 queueListingGrid.resizeCanvas();
             }
         },
@@ -717,7 +757,7 @@ nf.QueueListing = (function () {
                 // update the connection name
                 var connectionName = '';
                 if (connection.permissions.canRead) {
-                    connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                    connectionName = canvasUtils.formatConnectionName(connection.component);
                 }
                 if (connectionName === '') {
                     connectionName = 'Connection';
@@ -725,7 +765,7 @@ nf.QueueListing = (function () {
                 $('#queue-listing-header-text').text(connectionName);
 
                 // show the listing container
-                nf.Shell.showContent('#queue-listing-container').done(function () {
+                shell.showContent('#queue-listing-container').done(function () {
                     $('#queue-listing-table').removeData('connection');
 
                     // clear the table
@@ -739,15 +779,17 @@ nf.QueueListing = (function () {
 
                     // reset stats
                     $('#displayed-flowfiles, #total-flowfiles-count').text('0');
-                    $('#total-flowfiles-size').text(nf.Common.formatDataSize(0));
+                    $('#total-flowfiles-size').text(common.formatDataSize(0));
                 });
 
                 // adjust the table size
-                nf.QueueListing.resetTableSize();
+                nfQueueListing.resetTableSize();
 
                 // store the connection for access later
                 $('#queue-listing-table').data('connection', connection);
             });
         }
     };
-}());
+
+    return nfQueueListing;
+}));

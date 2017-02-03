@@ -15,236 +15,273 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.TemplateComponent = function (serviceProvider) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Client',
+                'nf.Birdseye',
+                'nf.Graph',
+                'nf.CanvasUtils',
+                'nf.ErrorHandler',
+                'nf.Dialog',
+                'nf.Common'],
+            function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+                return (nf.ng.TemplateComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.TemplateComponent =
+            factory(require('jquery'),
+                require('nf.Client'),
+                require('nf.Birdseye'),
+                require('nf.Graph'),
+                require('nf.CanvasUtils'),
+                require('nf.ErrorHandler'),
+                require('nf.Dialog'),
+                require('nf.Common')));
+    } else {
+        nf.ng.TemplateComponent = factory(root.$,
+            root.nf.Client,
+            root.nf.Birdseye,
+            root.nf.Graph,
+            root.nf.CanvasUtils,
+            root.nf.ErrorHandler,
+            root.nf.Dialog,
+            root.nf.Common);
+    }
+}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
     'use strict';
 
-    /**
-     * Instantiates the specified template.
-     *
-     * @argument {string} templateId        The template id.
-     * @argument {object} pt                The point that the template was dropped.
-     */
-    var createTemplate = function (templateId, pt) {
-        var instantiateTemplateInstance = {
-            'templateId': templateId,
-            'originX': pt.x,
-            'originY': pt.y
-        };
-
-        // create a new instance of the new template
-        $.ajax({
-            type: 'POST',
-            url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/template-instance',
-            data: JSON.stringify(instantiateTemplateInstance),
-            dataType: 'json',
-            contentType: 'application/json'
-        }).done(function (response) {
-            // populate the graph accordingly
-            nf.Graph.add(response.flow, {
-                'selectAll': true
-            });
-
-            // update component visibility
-            nf.Canvas.View.updateVisibility();
-
-            // update the birdseye
-            nf.Birdseye.refresh();
-        }).fail(nf.ErrorHandler.handleAjaxError);
-    };
-
-    function TemplateComponent() {
-
-        this.icon = 'icon icon-template';
-
-        this.hoverIcon = 'icon icon-template-add';
+    return function (serviceProvider) {
+        'use strict';
 
         /**
-         * The template component's modal.
+         * Instantiates the specified template.
+         *
+         * @argument {string} templateId        The template id.
+         * @argument {object} pt                The point that the template was dropped.
          */
-        this.modal = {
+        var createTemplate = function (templateId, pt) {
+            var instantiateTemplateInstance = {
+                'templateId': templateId,
+                'originX': pt.x,
+                'originY': pt.y
+            };
+
+            // create a new instance of the new template
+            $.ajax({
+                type: 'POST',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/template-instance',
+                data: JSON.stringify(instantiateTemplateInstance),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                // populate the graph accordingly
+                graph.add(response.flow, {
+                    'selectAll': true
+                });
+
+                // update component visibility
+                graph.updateVisibility();
+
+                // update the birdseye
+                birdseye.refresh();
+            }).fail(errorHandler.handleAjaxError);
+        };
+
+        function TemplateComponent() {
+
+            this.icon = 'icon icon-template';
+
+            this.hoverIcon = 'icon icon-template-add';
 
             /**
-             * Gets the modal element.
+             * The template component's modal.
+             */
+            this.modal = {
+
+                /**
+                 * Gets the modal element.
+                 *
+                 * @returns {*|jQuery|HTMLElement}
+                 */
+                getElement: function () {
+                    return $('#instantiate-template-dialog');
+                },
+
+                /**
+                 * Initialize the modal.
+                 */
+                init: function () {
+                    // configure the instantiate template dialog
+                    this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
+                        headerText: 'Add Template'
+                    });
+                },
+
+                /**
+                 * Updates the modal config.
+                 *
+                 * @param {string} name             The name of the property to update.
+                 * @param {object|array} config     The config for the `name`.
+                 */
+                update: function (name, config) {
+                    this.getElement().modal(name, config);
+                },
+
+                /**
+                 * Show the modal.
+                 */
+                show: function () {
+                    this.getElement().modal('show');
+                },
+
+                /**
+                 * Hide the modal.
+                 */
+                hide: function () {
+                    this.getElement().modal('hide');
+                }
+            };
+        }
+
+        TemplateComponent.prototype = {
+            constructor: TemplateComponent,
+
+            /**
+             * Gets the component.
              *
              * @returns {*|jQuery|HTMLElement}
              */
             getElement: function () {
-                return $('#instantiate-template-dialog');
+                return $('#template-component');
             },
 
             /**
-             * Initialize the modal.
+             * Enable the component.
              */
-            init: function () {
-                // configure the instantiate template dialog
-                this.getElement().modal({
-                    scrollableContentStyle: 'scrollable',
-                    headerText: 'Add Template'
-                });
+            enabled: function () {
+                this.getElement().attr('disabled', false);
             },
 
             /**
-             * Updates the modal config.
+             * Disable the component.
+             */
+            disabled: function () {
+                this.getElement().attr('disabled', true);
+            },
+
+            /**
+             * Handler function for when component is dropped on the canvas.
              *
-             * @param {string} name             The name of the property to update.
-             * @param {object|array} config     The config for the `name`.
+             * @argument {object} pt        The point that the component was dropped.
              */
-            update: function (name, config) {
-                this.getElement().modal(name, config);
+            dropHandler: function (pt) {
+                this.promptForTemplate(pt);
             },
 
             /**
-             * Show the modal.
+             * The drag icon for the toolbox component.
+             *
+             * @param event
+             * @returns {*|jQuery|HTMLElement}
              */
-            show: function () {
-                this.getElement().modal('show');
+            dragIcon: function (event) {
+                return $('<div class="icon icon-template-add"></div>');
             },
 
             /**
-             * Hide the modal.
+             * Prompts the user to select a template.
+             *
+             * @argument {object} pt        The point that the template was dropped.
              */
-            hide: function () {
-                this.getElement().modal('hide');
-            }
-        };
-    }
+            promptForTemplate: function (pt) {
+                var templateComponent = this;
+                $.ajax({
+                    type: 'GET',
+                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/flow/templates',
+                    dataType: 'json'
+                }).done(function (response) {
+                    var templates = response.templates;
+                    if (common.isDefinedAndNotNull(templates) && templates.length > 0) {
+                        // sort the templates
+                        templates = templates.sort(function (one, two) {
+                            var oneDate = common.parseDateTime(one.template.timestamp);
+                            var twoDate = common.parseDateTime(two.template.timestamp);
 
-    TemplateComponent.prototype = {
-        constructor: TemplateComponent,
+                            // newest templates first
+                            return twoDate.getTime() - oneDate.getTime();
+                        });
 
-        /**
-         * Gets the component.
-         *
-         * @returns {*|jQuery|HTMLElement}
-         */
-        getElement: function () {
-            return $('#template-component');
-        },
-
-        /**
-         * Enable the component.
-         */
-        enabled: function () {
-            this.getElement().attr('disabled', false);
-        },
-
-        /**
-         * Disable the component.
-         */
-        disabled: function () {
-            this.getElement().attr('disabled', true);
-        },
-
-        /**
-         * Handler function for when component is dropped on the canvas.
-         *
-         * @argument {object} pt        The point that the component was dropped.
-         */
-        dropHandler: function (pt) {
-            this.promptForTemplate(pt);
-        },
-
-        /**
-         * The drag icon for the toolbox component.
-         *
-         * @param event
-         * @returns {*|jQuery|HTMLElement}
-         */
-        dragIcon: function (event) {
-            return $('<div class="icon icon-template-add"></div>');
-        },
-
-        /**
-         * Prompts the user to select a template.
-         *
-         * @argument {object} pt        The point that the template was dropped.
-         */
-        promptForTemplate: function (pt) {
-            var templateComponent = this;
-            $.ajax({
-                type: 'GET',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/flow/templates',
-                dataType: 'json'
-            }).done(function (response) {
-                var templates = response.templates;
-                if (nf.Common.isDefinedAndNotNull(templates) && templates.length > 0) {
-                    // sort the templates
-                    templates = templates.sort(function (one, two) {
-                        var oneDate = nf.Common.parseDateTime(one.template.timestamp);
-                        var twoDate = nf.Common.parseDateTime(two.template.timestamp);
-
-                        // newest templates first
-                        return twoDate.getTime() - oneDate.getTime();
-                    });
-
-                    var options = [];
-                    $.each(templates, function (_, templateEntity) {
-                        if (templateEntity.permissions.canRead === true) {
-                            options.push({
-                                text: templateEntity.template.name,
-                                value: templateEntity.id,
-                                description: nf.Common.escapeHtml(templateEntity.template.description)
-                            });
-                        }
-                    });
-
-                    // configure the templates combo
-                    $('#available-templates').combo({
-                        maxHeight: 300,
-                        options: options
-                    });
-
-                    // update the button model
-                    templateComponent.modal.update('setButtonModel', [{
-                        buttonText: 'Add',
-                        color: {
-                            base: '#728E9B',
-                            hover: '#004849',
-                            text: '#ffffff'
-                        },
-                        handler: {
-                            click: function () {
-                                // get the type of processor currently selected
-                                var selectedOption = $('#available-templates').combo('getSelectedOption');
-                                var templateId = selectedOption.value;
-
-                                // hide the dialog
-                                templateComponent.modal.hide();
-
-                                // instantiate the specified template
-                                createTemplate(templateId, pt);
+                        var options = [];
+                        $.each(templates, function (_, templateEntity) {
+                            if (templateEntity.permissions.canRead === true) {
+                                options.push({
+                                    text: templateEntity.template.name,
+                                    value: templateEntity.id,
+                                    description: common.escapeHtml(templateEntity.template.description)
+                                });
                             }
-                        }
-                    },
-                        {
-                            buttonText: 'Cancel',
+                        });
+
+                        // configure the templates combo
+                        $('#available-templates').combo({
+                            maxHeight: 300,
+                            options: options
+                        });
+
+                        // update the button model
+                        templateComponent.modal.update('setButtonModel', [{
+                            buttonText: 'Add',
                             color: {
-                                base: '#E3E8EB',
-                                hover: '#C7D2D7',
-                                text: '#004849'
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
                             },
                             handler: {
                                 click: function () {
+                                    // get the type of processor currently selected
+                                    var selectedOption = $('#available-templates').combo('getSelectedOption');
+                                    var templateId = selectedOption.value;
+
+                                    // hide the dialog
                                     templateComponent.modal.hide();
+
+                                    // instantiate the specified template
+                                    createTemplate(templateId, pt);
                                 }
                             }
-                        }]);
+                        },
+                            {
+                                buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        templateComponent.modal.hide();
+                                    }
+                                }
+                            }]);
 
-                    // show the dialog
-                    templateComponent.modal.show();
-                } else {
-                    nf.Dialog.showOkDialog({
-                        headerText: 'Instantiate Template',
-                        dialogContent: 'No templates have been loaded into this NiFi.'
-                    });
-                }
+                        // show the dialog
+                        templateComponent.modal.show();
+                    } else {
+                        dialog.showOkDialog({
+                            headerText: 'Instantiate Template',
+                            dialogContent: 'No templates have been loaded into this NiFi.'
+                        });
+                    }
 
-            }).fail(nf.ErrorHandler.handleAjaxError);
+                }).fail(errorHandler.handleAjaxError);
+            }
         }
-    }
 
-    var templateComponent = new TemplateComponent();
-    return templateComponent;
-};
+        var templateComponent = new TemplateComponent();
+        return templateComponent;
+    };
+}));

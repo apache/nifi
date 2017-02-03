@@ -15,12 +15,28 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
 /**
  * Clipboard used for copying and pasting content.
  */
-nf.Clipboard = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common'],
+            function ($, common) {
+                return (nf.Clipboard = factory($, common));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Clipboard =
+            factory(require('jquery'),
+                require('nf.Common')));
+    } else {
+        nf.Clipboard = factory(root.$,
+            root.nf.Common);
+    }
+}(this, function ($, common) {
+    'use strict';
 
     var COPY = 'copy';
     var PASTE = 'paste';
@@ -30,28 +46,28 @@ nf.Clipboard = (function () {
     return {
         /**
          * Add a listener to receive copy and paste events.
-         * 
+         *
          * @argument {object} listener      A clipboard listener
          * @argument {function} funct       Callback when clipboard events occur
          */
         addListener: function (listener, funct) {
             listeners[listener] = funct;
         },
-        
+
         /**
          * Remove the specified listener.
-         * 
+         *
          * @argument {object} listener      A clipboard listener
          */
         removeListener: function (listener) {
-            if (nf.Common.isDefinedAndNotNull(listeners[listener])) {
+            if (common.isDefinedAndNotNull(listeners[listener])) {
                 delete listeners[listener];
             }
         },
-        
+
         /**
          * Copy the specified data.
-         * 
+         *
          * @argument {object} d      The data to copy to the clipboard
          */
         copy: function (d) {
@@ -62,14 +78,14 @@ nf.Clipboard = (function () {
                 listeners[listener].call(listener, COPY, data);
             }
         },
-        
+
         /**
          * Checks to see if any data has been copied.
          */
         isCopied: function () {
-            return nf.Common.isDefinedAndNotNull(data);
+            return common.isDefinedAndNotNull(data);
         },
-        
+
         /**
          * Gets the most recent data thats copied. This operation
          * will remove the corresponding data from the clipboard.
@@ -77,7 +93,7 @@ nf.Clipboard = (function () {
         paste: function () {
             return $.Deferred(function (deferred) {
                 // ensure there was data
-                if (nf.Common.isDefinedAndNotNull(data)) {
+                if (common.isDefinedAndNotNull(data)) {
                     var clipboardData = data;
 
                     // resolve the deferred
@@ -96,4 +112,4 @@ nf.Clipboard = (function () {
             }).promise();
         }
     };
-}());
+}));

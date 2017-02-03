@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -79,7 +79,7 @@
                             url: user.uri + '?' + $.param(client.getRevision(user)),
                             dataType: 'json'
                         }).done(function () {
-                            self.loadUsersTable();
+                            nfUsersTable.loadUsersTable();
                         }).fail(errorHandler.handleAjaxError);
 
                         // hide the dialog
@@ -252,7 +252,7 @@
             });
 
             $.when.apply(window, xhrs).always(function () {
-                self.loadUsersTable().done(function () {
+                nfUsersTable.loadUsersTable().done(function () {
                     // select the new user
                     var row = usersData.getRowById(userEntity.id);
                     usersGrid.setSelectedRows([row]);
@@ -330,7 +330,7 @@
             });
 
             $.when.apply(window, xhrs).always(function () {
-                self.loadUsersTable();
+                nfUsersTable.loadUsersTable();
             }).fail(errorHandler.handleAjaxError);
         }).fail(errorHandler.handleAjaxError);
     };
@@ -349,7 +349,7 @@
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (groupEntity) {
-            self.loadUsersTable().done(function () {
+            nfUsersTable.loadUsersTable().done(function () {
                 // add the user
                 var usersGrid = $('#users-table').data('gridInstance');
                 var usersData = usersGrid.getData();
@@ -385,7 +385,7 @@
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (groupEntity) {
-            self.loadUsersTable();
+            nfUsersTable.loadUsersTable();
         }).fail(errorHandler.handleAjaxError);
     };
 

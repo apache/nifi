@@ -15,386 +15,426 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.QueueListing',
+                'nf.Shell',
+                'nf.PolicyManagement',
+                'nf.ClusterSummary',
+                'nf.ErrorHandler',
+                'nf.Settings',
+                'nf.CanvasUtils'],
+            function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
+                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.Canvas.GlobalMenuCtrl =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.QueueListing'),
+                require('nf.Shell'),
+                require('nf.PolicyManagement'),
+                require('nf.ClusterSummary'),
+                require('nf.ErrorHandler'),
+                require('nf.Settings'),
+                require('nf.CanvasUtils')));
+    } else {
+        nf.ng.Canvas.GlobalMenuCtrl = factory(root.$,
+            root.nf.Common,
+            root.nf.QueueListing,
+            root.nf.Shell,
+            root.nf.PolicyManagement,
+            root.nf.ClusterSummary,
+            root.nf.ErrorHandler,
+            root.nf.Settings,
+            root.nf.CanvasUtils);
+    }
+}(this, function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
     'use strict';
 
-    var config = {
-        urls: {
-            helpDocument: '../nifi-docs/documentation',
-            controllerAbout: '../nifi-api/flow/about'
-        }
-    };
+    return function (serviceProvider) {
+        'use strict';
 
-    function GlobalMenuCtrl(serviceProvider) {
-
-        /**
-         * The summary menu item controller.
-         */
-        this.summary = {
-
-            /**
-             * The summary menu item's shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the summary shell.
-                 */
-                launch: function () {
-                    nf.Shell.showPage('summary');
-                }
+        var config = {
+            urls: {
+                helpDocument: '../nifi-docs/documentation',
+                controllerAbout: '../nifi-api/flow/about'
             }
         };
 
-        /**
-         * The counters menu item controller.
-         */
-        this.counters = {
+        function GlobalMenuCtrl(serviceProvider) {
 
             /**
-             * The counters menu item's shell controller.
+             * The summary menu item controller.
              */
-            shell: {
+            this.summary = {
 
                 /**
-                 * Launch the counters shell.
+                 * The summary menu item's shell controller.
                  */
-                launch: function () {
-                    if (nf.Common.canAccessCounters()) {
-                        nf.Shell.showPage('counters');
+                shell: {
+
+                    /**
+                     * Launch the summary shell.
+                     */
+                    launch: function () {
+                        shell.showPage('summary');
                     }
                 }
-            }
-        };
-
-        /**
-         * The bulletin board menu item controller.
-         */
-        this.bulletinBoard = {
+            };
 
             /**
-             * The bulletin board menu item's shell controller.
+             * The counters menu item controller.
              */
-            shell: {
+            this.counters = {
 
                 /**
-                 * Launch the bulletin board shell.
+                 * The counters menu item's shell controller.
                  */
-                launch: function () {
-                    nf.Shell.showPage('bulletin-board');
-                }
-            }
-        };
+                shell: {
 
-        /**
-         * The data provenance menu item controller.
-         */
-        this.dataProvenance = {
-
-            /**
-             * The data provenance menu item's shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the data provenance shell.
-                 */
-                launch: function () {
-                    if (nf.Common.canAccessProvenance()) {
-                        nf.Shell.showPage('provenance');
+                    /**
+                     * Launch the counters shell.
+                     */
+                    launch: function () {
+                        if (common.canAccessCounters()) {
+                            shell.showPage('counters');
+                        }
                     }
                 }
-            }
-        };
-
-        /**
-         * The controller settings menu item controller.
-         */
-        this.controllerSettings = {
+            };
 
             /**
-             * The controller settings menu item's shell controller.
+             * The bulletin board menu item controller.
              */
-            shell: {
+            this.bulletinBoard = {
 
                 /**
-                 * Launch the settings shell.
+                 * The bulletin board menu item's shell controller.
                  */
-                launch: function () {
-                    nf.Settings.showSettings();
-                }
-            }
-        };
+                shell: {
 
-        /**
-         * The cluster menu item controller.
-         */
-        this.cluster = {
-
-            /**
-             * Determines if the cluster menu item is enabled.
-             *
-             * @returns {*|boolean}
-             */
-            visible: function () {
-                return nf.ClusterSummary.isConnectedToCluster();
-            },
-
-            /**
-             * The cluster menu item's shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the cluster shell.
-                 */
-                launch: function () {
-                    if (nf.Common.canAccessController()) {
-                        nf.Shell.showPage('cluster');
+                    /**
+                     * Launch the bulletin board shell.
+                     */
+                    launch: function () {
+                        shell.showPage('bulletin-board');
                     }
                 }
-            }
-        };
-
-        /**
-         * The flow config history menu item controller.
-         */
-        this.flowConfigHistory = {
+            };
 
             /**
-             * The flow config history menu item's shell controller.
+             * The data provenance menu item controller.
              */
-            shell: {
+            this.dataProvenance = {
 
                 /**
-                 * Launch the history shell.
+                 * The data provenance menu item's shell controller.
                  */
-                launch: function () {
-                    nf.Shell.showPage('history');
-                }
-            }
-        };
+                shell: {
 
-        /**
-         * The users menu item controller.
-         */
-        this.users = {
-
-            /**
-             * The users menu item's shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the users shell.
-                 */
-                launch: function () {
-                    if (nf.Common.canAccessTenants()) {
-                        nf.Shell.showPage('users');
+                    /**
+                     * Launch the data provenance shell.
+                     */
+                    launch: function () {
+                        if (common.canAccessProvenance()) {
+                            shell.showPage('provenance');
+                        }
                     }
                 }
-            }
-        };
-
-        /**
-         * The policies menu item controller.
-         */
-        this.policies = {
+            };
 
             /**
-             * The policies menu item's shell controller.
+             * The controller settings menu item controller.
              */
-            shell: {
+            this.controllerSettings = {
 
                 /**
-                 * Launch the policies shell.
+                 * The controller settings menu item's shell controller.
                  */
-                launch: function () {
-                    if (nf.Common.canModifyPolicies() && nf.Common.canAccessTenants()) {
-                        nf.PolicyManagement.showGlobalPolicies();
+                shell: {
+
+                    /**
+                     * Launch the settings shell.
+                     */
+                    launch: function () {
+                        settings.showSettings();
                     }
                 }
-            }
-        };
-
-        /**
-         * The templates menu item controller.
-         */
-        this.templates = {
+            };
 
             /**
-             * The templates menu item's shell controller.
+             * The cluster menu item controller.
              */
-            shell: {
+            this.cluster = {
 
                 /**
-                 * Launch the templates shell.
-                 */
-                launch: function () {
-                    nf.Shell.showPage('templates?' + $.param({
-                            groupId: nf.Canvas.getGroupId()
-                        }));
-                }
-            }
-        };
-
-        /**
-         * The help menu item controller.
-         */
-        this.help = {
-
-            /**
-             * The help menu item's shell controller.
-             */
-            shell: {
-
-                /**
-                 * Launch the help documentation shell.
-                 */
-                launch: function () {
-                    nf.Shell.showPage(config.urls.helpDocument);
-                }
-            }
-        };
-
-        /**
-         * The about menu item controller.
-         */
-        this.about = {
-
-            /**
-             * Initialize the about details.
-             */
-            init: function () {
-                // get the about details
-                $.ajax({
-                    type: 'GET',
-                    url: config.urls.controllerAbout,
-                    dataType: 'json'
-                }).done(function (response) {
-                    var aboutDetails = response.about;
-                    // set the document title and the about title
-                    document.title = aboutDetails.title;
-                    $('#nf-version').text(aboutDetails.version);
-                    var showVersionDetail = false;
-                    if (aboutDetails.buildTag && aboutDetails.buildTag !== 'HEAD') {
-                        $('#nf-about-build-tag').text(aboutDetails.buildTag);
-                        $('#nf-version-detail-tag').show();
-                        showVersionDetail = true;
-                    }
-                    if (aboutDetails.buildRevision) {
-                        $('#nf-about-build-revision').text(aboutDetails.buildRevision);
-                        $('#nf-about-build-branch').text(aboutDetails.buildBranch);
-                        $('#nf-version-detail-commit').show();
-                        showVersionDetail = true
-                    }
-                    if (aboutDetails.buildTimestamp) {
-                        $('#nf-about-build-timestamp').text(aboutDetails.buildTimestamp);
-                        $('#nf-version-detail-timestamp').show();
-                        showVersionDetail = true;
-                    }
-                    if (showVersionDetail) {
-                        $('#nf-version-detail').show();
-                    }
-
-                    // store the content viewer url if available
-                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
-                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
-                        nf.QueueListing.initFlowFileDetailsDialog();
-                    }
-                }).fail(nf.ErrorHandler.handleAjaxError);
-
-                this.modal.init();
-            },
-
-            /**
-             * The about menu item's modal controller.
-             */
-            modal: {
-
-                /**
-                 * Gets the modal element.
+                 * Determines if the cluster menu item is enabled.
                  *
-                 * @returns {*|jQuery|HTMLElement}
+                 * @returns {*|boolean}
                  */
-                getElement: function () {
-                    return $('#nf-about');
+                visible: function () {
+                    return clusterSummary.isConnectedToCluster();
                 },
 
                 /**
-                 * Initialize the modal.
+                 * The cluster menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the cluster shell.
+                     */
+                    launch: function () {
+                        if (common.canAccessController()) {
+                            shell.showPage('cluster');
+                        }
+                    }
+                }
+            };
+
+            /**
+             * The flow config history menu item controller.
+             */
+            this.flowConfigHistory = {
+
+                /**
+                 * The flow config history menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the history shell.
+                     */
+                    launch: function () {
+                        shell.showPage('history');
+                    }
+                }
+            };
+
+            /**
+             * The users menu item controller.
+             */
+            this.users = {
+
+                /**
+                 * The users menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the users shell.
+                     */
+                    launch: function () {
+                        if (common.canAccessTenants()) {
+                            shell.showPage('users');
+                        }
+                    }
+                }
+            };
+
+            /**
+             * The policies menu item controller.
+             */
+            this.policies = {
+
+                /**
+                 * The policies menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the policies shell.
+                     */
+                    launch: function () {
+                        if (common.canModifyPolicies() && common.canAccessTenants()) {
+                            policyManagement.showGlobalPolicies();
+                        }
+                    }
+                }
+            };
+
+            /**
+             * The templates menu item controller.
+             */
+            this.templates = {
+
+                /**
+                 * The templates menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the templates shell.
+                     */
+                    launch: function () {
+                        shell.showPage('templates?' + $.param({
+                                groupId: canvasUtils.getGroupId()
+                            }));
+                    }
+                }
+            };
+
+            /**
+             * The help menu item controller.
+             */
+            this.help = {
+
+                /**
+                 * The help menu item's shell controller.
+                 */
+                shell: {
+
+                    /**
+                     * Launch the help documentation shell.
+                     */
+                    launch: function () {
+                        shell.showPage(config.urls.helpDocument);
+                    }
+                }
+            };
+
+            /**
+             * The about menu item controller.
+             */
+            this.about = {
+
+                /**
+                 * Initialize the about details.
                  */
                 init: function () {
-                    var aboutModal = this;
+                    // get the about details
+                    $.ajax({
+                        type: 'GET',
+                        url: config.urls.controllerAbout,
+                        dataType: 'json'
+                    }).done(function (response) {
+                        var aboutDetails = response.about;
+                        // set the document title and the about title
+                        document.title = aboutDetails.title;
+                        $('#nf-version').text(aboutDetails.version);
+                        var showVersionDetail = false;
+                        if (aboutDetails.buildTag && aboutDetails.buildTag !== 'HEAD') {
+                            $('#nf-about-build-tag').text(aboutDetails.buildTag);
+                            $('#nf-version-detail-tag').show();
+                            showVersionDetail = true;
+                        }
+                        if (aboutDetails.buildRevision) {
+                            $('#nf-about-build-revision').text(aboutDetails.buildRevision);
+                            $('#nf-about-build-branch').text(aboutDetails.buildBranch);
+                            $('#nf-version-detail-commit').show();
+                            showVersionDetail = true
+                        }
+                        if (aboutDetails.buildTimestamp) {
+                            $('#nf-about-build-timestamp').text(aboutDetails.buildTimestamp);
+                            $('#nf-version-detail-timestamp').show();
+                            showVersionDetail = true;
+                        }
+                        if (showVersionDetail) {
+                            $('#nf-version-detail').show();
+                        }
 
-                    var resizeAbout = function(){
-                        var dialog = $(this);
-                        var top = $('#nf-about-pic-container').height() + $('.dialog-header').height() + 10; //10 for padding-top
-                        dialog.find('.dialog-content').css('top', top);
-                    };
+                        // store the content viewer url if available
+                        if (!common.isBlank(aboutDetails.contentViewerUrl)) {
+                            $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
+                            queueListing.initFlowFileDetailsDialog();
+                        }
+                    }).fail(errorHandler.handleAjaxError);
 
-                    this.getElement().modal({
-                        scrollableContentStyle: 'scrollable',
-                        headerText: 'About Apache NiFi',
-                        handler: {
-                          resize: resizeAbout
-                        },
-                        buttons: [{
-                            buttonText: 'Ok',
-                            color: {
-                                base: '#728E9B',
-                                hover: '#004849',
-                                text: '#ffffff'
-                            },
+                    this.modal.init();
+                },
+
+                /**
+                 * The about menu item's modal controller.
+                 */
+                modal: {
+
+                    /**
+                     * Gets the modal element.
+                     *
+                     * @returns {*|jQuery|HTMLElement}
+                     */
+                    getElement: function () {
+                        return $('#nf-about');
+                    },
+
+                    /**
+                     * Initialize the modal.
+                     */
+                    init: function () {
+                        var aboutModal = this;
+
+                        var resizeAbout = function () {
+                            var dialog = $(this);
+                            var top = $('#nf-about-pic-container').height() + $('.dialog-header').height() + 10; //10 for padding-top
+                            dialog.find('.dialog-content').css('top', top);
+                        };
+
+                        this.getElement().modal({
+                            scrollableContentStyle: 'scrollable',
+                            headerText: 'About Apache NiFi',
                             handler: {
-                                click: function () {
-                                    aboutModal.hide();
+                                resize: resizeAbout
+                            },
+                            buttons: [{
+                                buttonText: 'Ok',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                handler: {
+                                    click: function () {
+                                        aboutModal.hide();
+                                    }
                                 }
-                            }
-                        }]
-                    });
-                },
+                            }]
+                        });
+                    },
 
-                /**
-                 * Updates the modal config.
-                 *
-                 * @param {string} name             The name of the property to update.
-                 * @param {object|array} config     The config for the `name`.
-                 */
-                update: function (name, config) {
-                    this.getElement().modal(name, config);
-                },
+                    /**
+                     * Updates the modal config.
+                     *
+                     * @param {string} name             The name of the property to update.
+                     * @param {object|array} config     The config for the `name`.
+                     */
+                    update: function (name, config) {
+                        this.getElement().modal(name, config);
+                    },
 
-                /**
-                 * Show the modal
-                 */
-                show: function () {
-                    this.getElement().modal('show');
-                },
+                    /**
+                     * Show the modal
+                     */
+                    show: function () {
+                        this.getElement().modal('show');
+                    },
 
-                /**
-                 * Hide the modal
-                 */
-                hide: function () {
-                    this.getElement().modal('hide');
+                    /**
+                     * Hide the modal
+                     */
+                    hide: function () {
+                        this.getElement().modal('hide');
+                    }
                 }
             }
         }
-    }
 
-    GlobalMenuCtrl.prototype = {
-        constructor: GlobalMenuCtrl,
+        GlobalMenuCtrl.prototype = {
+            constructor: GlobalMenuCtrl,
 
-        /**
-         * Initialize the global menu controls.
-         */
-        init: function () {
-            this.about.init();
+            /**
+             * Initialize the global menu controls.
+             */
+            init: function () {
+                this.about.init();
+            }
         }
-    }
 
-    var globalMenuCtrl = new GlobalMenuCtrl();
-    return globalMenuCtrl;
-};
+        var globalMenuCtrl = new GlobalMenuCtrl();
+        return globalMenuCtrl;
+    };
+}));

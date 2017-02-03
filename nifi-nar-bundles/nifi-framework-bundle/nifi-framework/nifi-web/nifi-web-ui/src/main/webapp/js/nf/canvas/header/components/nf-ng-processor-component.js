@@ -15,656 +15,696 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.ng.ProcessorComponent = function (serviceProvider) {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'Slick',
+                'nf.Client',
+                'nf.Birdseye',
+                'nf.Graph',
+                'nf.CanvasUtils',
+                'nf.ErrorHandler',
+                'nf.Dialog',
+                'nf.Common'],
+            function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+                return (nf.ng.ProcessorComponent = factory($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ng.ProcessorComponent =
+            factory(require('jquery'),
+                require('Slick'),
+                require('nf.Client'),
+                require('nf.Birdseye'),
+                require('nf.Graph'),
+                require('nf.CanvasUtils'),
+                require('nf.ErrorHandler'),
+                require('nf.Dialog'),
+                require('nf.Common')));
+    } else {
+        nf.ng.ProcessorComponent = factory(root.$,
+            root.Slick,
+            root.nf.Client,
+            root.nf.Birdseye,
+            root.nf.Graph,
+            root.nf.CanvasUtils,
+            root.nf.ErrorHandler,
+            root.nf.Dialog,
+            root.nf.Common);
+    }
+}(this, function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
     'use strict';
 
-    /**
-     * Filters the processor type table.
-     */
-    var applyFilter = function () {
-        // get the dataview
-        var processorTypesGrid = $('#processor-types-table').data('gridInstance');
+    return function (serviceProvider) {
+        'use strict';
 
-        // ensure the grid has been initialized
-        if (nf.Common.isDefinedAndNotNull(processorTypesGrid)) {
-            var processorTypesData = processorTypesGrid.getData();
+        /**
+         * Filters the processor type table.
+         */
+        var applyFilter = function () {
+            // get the dataview
+            var processorTypesGrid = $('#processor-types-table').data('gridInstance');
 
-            // update the search criteria
-            processorTypesData.setFilterArgs({
-                searchString: getFilterText()
+            // ensure the grid has been initialized
+            if (common.isDefinedAndNotNull(processorTypesGrid)) {
+                var processorTypesData = processorTypesGrid.getData();
+
+                // update the search criteria
+                processorTypesData.setFilterArgs({
+                    searchString: getFilterText()
+                });
+                processorTypesData.refresh();
+
+                // update the buttons to possibly trigger the disabled state
+                $('#new-processor-dialog').modal('refreshButtons');
+
+                // update the selection if possible
+                if (processorTypesData.getLength() > 0) {
+                    processorTypesGrid.setSelectedRows([0]);
+                }
+            }
+        };
+
+        /**
+         * Determines if the item matches the filter.
+         *
+         * @param {object} item     The item to filter.
+         * @param {object} args     The filter criteria.
+         * @returns {boolean}       Whether the item matches the filter.
+         */
+        var matchesRegex = function (item, args) {
+            if (args.searchString === '') {
+                return true;
+            }
+
+            try {
+                // perform the row filtering
+                var filterExp = new RegExp(args.searchString, 'i');
+            } catch (e) {
+                // invalid regex
+                return false;
+            }
+
+            // determine if the item matches the filter
+            var matchesLabel = item['label'].search(filterExp) >= 0;
+            var matchesTags = item['tags'].search(filterExp) >= 0;
+            return matchesLabel || matchesTags;
+        };
+
+        /**
+         * Performs the filtering.
+         *
+         * @param {object} item     The item subject to filtering.
+         * @param {object} args     Filter arguments.
+         * @returns {Boolean}       Whether or not to include the item.
+         */
+        var filter = function (item, args) {
+            // determine if the item matches the filter
+            var matchesFilter = matchesRegex(item, args);
+
+            // determine if the row matches the selected tags
+            var matchesTags = true;
+            if (matchesFilter) {
+                var tagFilters = $('#processor-tag-cloud').tagcloud('getSelectedTags');
+                var hasSelectedTags = tagFilters.length > 0;
+                if (hasSelectedTags) {
+                    matchesTags = matchesSelectedTags(tagFilters, item['tags']);
+                }
+            }
+
+            // determine if this row should be visible
+            var matches = matchesFilter && matchesTags;
+
+            // if this row is currently selected and its being filtered
+            if (matches === false && $('#selected-processor-type').text() === item['type']) {
+                // clear the selected row
+                $('#processor-type-description').text('');
+                $('#processor-type-name').text('');
+                $('#selected-processor-name').text('');
+                $('#selected-processor-type').text('');
+
+                // clear the active cell the it can be reselected when its included
+                var processTypesGrid = $('#processor-types-table').data('gridInstance');
+                processTypesGrid.resetActiveCell();
+            }
+
+            return matches;
+        };
+
+        /**
+         * Determines if the specified tags match all the tags selected by the user.
+         *
+         * @argument {string[]} tagFilters      The tag filters.
+         * @argument {string} tags              The tags to test.
+         */
+        var matchesSelectedTags = function (tagFilters, tags) {
+            var selectedTags = [];
+            $.each(tagFilters, function (_, filter) {
+                selectedTags.push(filter);
             });
-            processorTypesData.refresh();
 
-            // update the buttons to possibly trigger the disabled state
-            $('#new-processor-dialog').modal('refreshButtons');
+            // normalize the tags
+            var normalizedTags = tags.toLowerCase();
 
-            // update the selection if possible
-            if (processorTypesData.getLength() > 0) {
-                processorTypesGrid.setSelectedRows([0]);
-            }
-        }
-    };
+            var matches = true;
+            $.each(selectedTags, function (i, selectedTag) {
+                if (normalizedTags.indexOf(selectedTag) === -1) {
+                    matches = false;
+                    return false;
+                }
+            });
 
-    /**
-     * Determines if the item matches the filter.
-     *
-     * @param {object} item     The item to filter.
-     * @param {object} args     The filter criteria.
-     * @returns {boolean}       Whether the item matches the filter.
-     */
-    var matchesRegex = function (item, args) {
-        if (args.searchString === '') {
-            return true;
-        }
+            return matches;
+        };
 
-        try {
-            // perform the row filtering
-            var filterExp = new RegExp(args.searchString, 'i');
-        } catch (e) {
-            // invalid regex
-            return false;
-        }
+        /**
+         * Sorts the specified data using the specified sort details.
+         *
+         * @param {object} sortDetails
+         * @param {object} data
+         */
+        var sort = function (sortDetails, data) {
+            // defines a function for sorting
+            var comparer = function (a, b) {
+                var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                return aString === bString ? 0 : aString > bString ? 1 : -1;
+            };
 
-        // determine if the item matches the filter
-        var matchesLabel = item['label'].search(filterExp) >= 0;
-        var matchesTags = item['tags'].search(filterExp) >= 0;
-        return matchesLabel || matchesTags;
-    };
+            // perform the sort
+            data.sort(comparer, sortDetails.sortAsc);
+        };
 
-    /**
-     * Performs the filtering.
-     *
-     * @param {object} item     The item subject to filtering.
-     * @param {object} args     Filter arguments.
-     * @returns {Boolean}       Whether or not to include the item.
-     */
-    var filter = function (item, args) {
-        // determine if the item matches the filter
-        var matchesFilter = matchesRegex(item, args);
+        /**
+         * Get the text out of the filter field. If the filter field doesn't
+         * have any text it will contain the text 'filter list' so this method
+         * accounts for that.
+         */
+        var getFilterText = function () {
+            return $('#processor-type-filter').val();
+        };
 
-        // determine if the row matches the selected tags
-        var matchesTags = true;
-        if (matchesFilter) {
-            var tagFilters = $('#processor-tag-cloud').tagcloud('getSelectedTags');
-            var hasSelectedTags = tagFilters.length > 0;
-            if (hasSelectedTags) {
-                matchesTags = matchesSelectedTags(tagFilters, item['tags']);
-            }
-        }
+        /**
+         * Resets the filtered processor types.
+         */
+        var resetProcessorDialog = function () {
+            // clear the selected tag cloud
+            $('#processor-tag-cloud').tagcloud('clearSelectedTags');
 
-        // determine if this row should be visible
-        var matches = matchesFilter && matchesTags;
+            // clear any filter strings
+            $('#processor-type-filter').val('');
 
-        // if this row is currently selected and its being filtered
-        if (matches === false && $('#selected-processor-type').text() === item['type']) {
+            // reapply the filter
+            applyFilter();
+
             // clear the selected row
             $('#processor-type-description').text('');
             $('#processor-type-name').text('');
             $('#selected-processor-name').text('');
             $('#selected-processor-type').text('');
 
-            // clear the active cell the it can be reselected when its included
+            // unselect any current selection
             var processTypesGrid = $('#processor-types-table').data('gridInstance');
+            processTypesGrid.setSelectedRows([]);
             processTypesGrid.resetActiveCell();
-        }
-
-        return matches;
-    };
-
-    /**
-     * Determines if the specified tags match all the tags selected by the user.
-     *
-     * @argument {string[]} tagFilters      The tag filters.
-     * @argument {string} tags              The tags to test.
-     */
-    var matchesSelectedTags = function (tagFilters, tags) {
-        var selectedTags = [];
-        $.each(tagFilters, function (_, filter) {
-            selectedTags.push(filter);
-        });
-
-        // normalize the tags
-        var normalizedTags = tags.toLowerCase();
-
-        var matches = true;
-        $.each(selectedTags, function (i, selectedTag) {
-            if (normalizedTags.indexOf(selectedTag) === -1) {
-                matches = false;
-                return false;
-            }
-        });
-
-        return matches;
-    };
-
-    /**
-     * Sorts the specified data using the specified sort details.
-     *
-     * @param {object} sortDetails
-     * @param {object} data
-     */
-    var sort = function (sortDetails, data) {
-        // defines a function for sorting
-        var comparer = function (a, b) {
-            var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-            return aString === bString ? 0 : aString > bString ? 1 : -1;
         };
-
-        // perform the sort
-        data.sort(comparer, sortDetails.sortAsc);
-    };
-
-    /**
-     * Get the text out of the filter field. If the filter field doesn't
-     * have any text it will contain the text 'filter list' so this method
-     * accounts for that.
-     */
-    var getFilterText = function () {
-        return $('#processor-type-filter').val();
-    };
-
-    /**
-     * Resets the filtered processor types.
-     */
-    var resetProcessorDialog = function () {
-        // clear the selected tag cloud
-        $('#processor-tag-cloud').tagcloud('clearSelectedTags');
-
-        // clear any filter strings
-        $('#processor-type-filter').val('');
-
-        // reapply the filter
-        applyFilter();
-
-        // clear the selected row
-        $('#processor-type-description').text('');
-        $('#processor-type-name').text('');
-        $('#selected-processor-name').text('');
-        $('#selected-processor-type').text('');
-
-        // unselect any current selection
-        var processTypesGrid = $('#processor-types-table').data('gridInstance');
-        processTypesGrid.setSelectedRows([]);
-        processTypesGrid.resetActiveCell();
-    };
-
-    /**
-     * Create the processor and add to the graph.
-     *
-     * @argument {string} name              The processor name.
-     * @argument {string} processorType     The processor type.
-     * @argument {object} pt                The point that the processor was dropped.
-     */
-    var createProcessor = function (name, processorType, pt) {
-        var processorEntity = {
-            'revision': nf.Client.getRevision({
-                'revision': {
-                    'version': 0
-                }
-            }),
-            'component': {
-                'type': processorType,
-                'name': name,
-                'position': {
-                    'x': pt.x,
-                    'y': pt.y
-                }
-            }
-        };
-
-        // create a new processor of the defined type
-        $.ajax({
-            type: 'POST',
-            url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/processors',
-            data: JSON.stringify(processorEntity),
-            dataType: 'json',
-            contentType: 'application/json'
-        }).done(function (response) {
-            // add the processor to the graph
-            nf.Graph.add({
-                'processors': [response]
-            }, {
-                'selectAll': true
-            });
-
-            // update component visibility
-            nf.Canvas.View.updateVisibility();
-
-            // update the birdseye
-            nf.Birdseye.refresh();
-        }).fail(nf.ErrorHandler.handleAjaxError);
-    };
-
-    /**
-     * Whether the specified item is selectable.
-     *
-     * @param item process type
-     */
-    var isSelectable = function (item) {
-        return nf.Common.isBlank(item.usageRestriction) || nf.Common.canAccessRestrictedComponents();
-    };
-
-    function ProcessorComponent() {
-
-        this.icon = 'icon icon-processor';
-
-        this.hoverIcon = 'icon icon-processor-add';
 
         /**
-         * The processor component's modal.
+         * Create the processor and add to the graph.
+         *
+         * @argument {string} name              The processor name.
+         * @argument {string} processorType     The processor type.
+         * @argument {object} pt                The point that the processor was dropped.
          */
-        this.modal = {
+        var createProcessor = function (name, processorType, pt) {
+            var processorEntity = {
+                'revision': client.getRevision({
+                    'revision': {
+                        'version': 0
+                    }
+                }),
+                'component': {
+                    'type': processorType,
+                    'name': name,
+                    'position': {
+                        'x': pt.x,
+                        'y': pt.y
+                    }
+                }
+            };
+
+            // create a new processor of the defined type
+            $.ajax({
+                type: 'POST',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/processors',
+                data: JSON.stringify(processorEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                // add the processor to the graph
+                graph.add({
+                    'processors': [response]
+                }, {
+                    'selectAll': true
+                });
+
+                // update component visibility
+                graph.updateVisibility();
+
+                // update the birdseye
+                birdseye.refresh();
+            }).fail(errorHandler.handleAjaxError);
+        };
+
+        /**
+         * Whether the specified item is selectable.
+         *
+         * @param item process type
+         */
+        var isSelectable = function (item) {
+            return common.isBlank(item.usageRestriction) || common.canAccessRestrictedComponents();
+        };
+
+        function ProcessorComponent() {
+
+            this.icon = 'icon icon-processor';
+
+            this.hoverIcon = 'icon icon-processor-add';
 
             /**
-             * The processor component modal's filter.
+             * The processor component's modal.
              */
-            filter: {
+            this.modal = {
 
                 /**
-                 * Initialize the filter.
+                 * The processor component modal's filter.
+                 */
+                filter: {
+
+                    /**
+                     * Initialize the filter.
+                     */
+                    init: function () {
+                        // initialize the processor type table
+                        var processorTypesColumns = [
+                            {
+                                id: 'type',
+                                name: 'Type',
+                                field: 'label',
+                                formatter: common.typeFormatter,
+                                sortable: true,
+                                resizable: true
+                            },
+                            {
+                                id: 'tags',
+                                name: 'Tags',
+                                field: 'tags',
+                                sortable: true,
+                                resizable: true
+                            }
+                        ];
+
+                        var processorTypesOptions = {
+                            forceFitColumns: true,
+                            enableTextSelectionOnCells: true,
+                            enableCellNavigation: true,
+                            enableColumnReorder: false,
+                            autoEdit: false,
+                            multiSelect: false,
+                            rowHeight: 24
+                        };
+
+                        // initialize the dataview
+                        var processorTypesData = new Slick.Data.DataView({
+                            inlineFilters: false
+                        });
+                        processorTypesData.setItems([]);
+                        processorTypesData.setFilterArgs({
+                            searchString: getFilterText()
+                        });
+                        processorTypesData.setFilter(filter);
+
+                        // initialize the sort
+                        sort({
+                            columnId: 'type',
+                            sortAsc: true
+                        }, processorTypesData);
+
+                        // initialize the grid
+                        var processorTypesGrid = new Slick.Grid('#processor-types-table', processorTypesData, processorTypesColumns, processorTypesOptions);
+                        processorTypesGrid.setSelectionModel(new Slick.RowSelectionModel());
+                        processorTypesGrid.registerPlugin(new Slick.AutoTooltips());
+                        processorTypesGrid.setSortColumn('type', true);
+                        processorTypesGrid.onSort.subscribe(function (e, args) {
+                            sort({
+                                columnId: args.sortCol.field,
+                                sortAsc: args.sortAsc
+                            }, processorTypesData);
+                        });
+                        processorTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
+                            if ($.isArray(args.rows) && args.rows.length === 1) {
+                                var processorTypeIndex = args.rows[0];
+                                var processorType = processorTypesGrid.getDataItem(processorTypeIndex);
+
+                                // set the processor type description
+                                if (common.isDefinedAndNotNull(processorType)) {
+                                    if (common.isBlank(processorType.description)) {
+                                        $('#processor-type-description')
+                                            .attr('title', '')
+                                            .html('<span class="unset">No description specified</span>');
+                                    } else {
+                                        $('#processor-type-description')
+                                            .width($('#processor-description-container').innerWidth() - 1)
+                                            .html(processorType.description)
+                                            .ellipsis();
+                                    }
+
+                                    // populate the dom
+                                    $('#processor-type-name').text(processorType.label).ellipsis();
+                                    $('#selected-processor-name').text(processorType.label);
+                                    $('#selected-processor-type').text(processorType.type);
+
+                                    // refresh the buttons based on the current selection
+                                    $('#new-processor-dialog').modal('refreshButtons');
+                                }
+                            }
+                        });
+                        processorTypesGrid.onViewportChanged.subscribe(function (e, args) {
+                            common.cleanUpTooltips($('#processor-types-table'), 'div.view-usage-restriction');
+                        });
+
+                        // wire up the dataview to the grid
+                        processorTypesData.onRowCountChanged.subscribe(function (e, args) {
+                            processorTypesGrid.updateRowCount();
+                            processorTypesGrid.render();
+
+                            // update the total number of displayed processors
+                            $('#displayed-processor-types').text(args.current);
+                        });
+                        processorTypesData.onRowsChanged.subscribe(function (e, args) {
+                            processorTypesGrid.invalidateRows(args.rows);
+                            processorTypesGrid.render();
+                        });
+                        processorTypesData.syncGridSelection(processorTypesGrid, false);
+
+                        // hold onto an instance of the grid
+                        $('#processor-types-table').data('gridInstance', processorTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
+                            var usageRestriction = $(this).find('div.view-usage-restriction');
+                            if (usageRestriction.length && !usageRestriction.data('qtip')) {
+                                var rowId = $(this).find('span.row-id').text();
+
+                                // get the status item
+                                var item = processorTypesData.getItemById(rowId);
+
+                                // show the tooltip
+                                if (common.isDefinedAndNotNull(item.usageRestriction)) {
+                                    usageRestriction.qtip($.extend({}, common.config.tooltipConfig, {
+                                        content: item.usageRestriction,
+                                        position: {
+                                            container: $('#summary'),
+                                            at: 'bottom right',
+                                            my: 'top left',
+                                            adjust: {
+                                                x: 4,
+                                                y: 4
+                                            }
+                                        }
+                                    }));
+                                }
+                            }
+                        });
+
+                        // load the available processor types, this select is shown in the
+                        // new processor dialog when a processor is dragged onto the screen
+                        $.ajax({
+                            type: 'GET',
+                            url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.processorTypes,
+                            dataType: 'json'
+                        }).done(function (response) {
+                            var tags = [];
+
+                            // begin the update
+                            processorTypesData.beginUpdate();
+
+                            // go through each processor type
+                            $.each(response.processorTypes, function (i, documentedType) {
+                                var type = documentedType.type;
+
+                                // create the row for the processor type
+                                processorTypesData.addItem({
+                                    id: i,
+                                    label: common.substringAfterLast(type, '.'),
+                                    type: type,
+                                    description: common.escapeHtml(documentedType.description),
+                                    usageRestriction: common.escapeHtml(documentedType.usageRestriction),
+                                    tags: documentedType.tags.join(', ')
+                                });
+
+                                // count the frequency of each tag for this type
+                                $.each(documentedType.tags, function (i, tag) {
+                                    tags.push(tag.toLowerCase());
+                                });
+                            });
+
+                            // end the udpate
+                            processorTypesData.endUpdate();
+
+                            // set the total number of processors
+                            $('#total-processor-types, #displayed-processor-types').text(response.processorTypes.length);
+
+                            // create the tag cloud
+                            $('#processor-tag-cloud').tagcloud({
+                                tags: tags,
+                                select: applyFilter,
+                                remove: applyFilter
+                            });
+                        }).fail(errorHandler.handleAjaxError);
+                    }
+                },
+
+                /**
+                 * Gets the modal element.
+                 *
+                 * @returns {*|jQuery|HTMLElement}
+                 */
+                getElement: function () {
+                    return $('#new-processor-dialog');
+                },
+
+                /**
+                 * Initialize the modal.
                  */
                 init: function () {
-                    // initialize the processor type table
-                    var processorTypesColumns = [
-                        {
-                            id: 'type',
-                            name: 'Type',
-                            field: 'label',
-                            formatter: nf.Common.typeFormatter,
-                            sortable: true,
-                            resizable: true
-                        },
-                        {
-                            id: 'tags',
-                            name: 'Tags',
-                            field: 'tags',
-                            sortable: true,
-                            resizable: true
-                        }
-                    ];
+                    this.filter.init();
 
-                    var processorTypesOptions = {
-                        forceFitColumns: true,
-                        enableTextSelectionOnCells: true,
-                        enableCellNavigation: true,
-                        enableColumnReorder: false,
-                        autoEdit: false,
-                        multiSelect: false,
-                        rowHeight: 24
-                    };
-
-                    // initialize the dataview
-                    var processorTypesData = new Slick.Data.DataView({
-                        inlineFilters: false
-                    });
-                    processorTypesData.setItems([]);
-                    processorTypesData.setFilterArgs({
-                        searchString: getFilterText()
-                    });
-                    processorTypesData.setFilter(filter);
-
-                    // initialize the sort
-                    sort({
-                        columnId: 'type',
-                        sortAsc: true
-                    }, processorTypesData);
-
-                    // initialize the grid
-                    var processorTypesGrid = new Slick.Grid('#processor-types-table', processorTypesData, processorTypesColumns, processorTypesOptions);
-                    processorTypesGrid.setSelectionModel(new Slick.RowSelectionModel());
-                    processorTypesGrid.registerPlugin(new Slick.AutoTooltips());
-                    processorTypesGrid.setSortColumn('type', true);
-                    processorTypesGrid.onSort.subscribe(function (e, args) {
-                        sort({
-                            columnId: args.sortCol.field,
-                            sortAsc: args.sortAsc
-                        }, processorTypesData);
-                    });
-                    processorTypesGrid.onSelectedRowsChanged.subscribe(function (e, args) {
-                        if ($.isArray(args.rows) && args.rows.length === 1) {
-                            var processorTypeIndex = args.rows[0];
-                            var processorType = processorTypesGrid.getDataItem(processorTypeIndex);
-
-                            // set the processor type description
-                            if (nf.Common.isDefinedAndNotNull(processorType)) {
-                                if (nf.Common.isBlank(processorType.description)) {
-                                    $('#processor-type-description')
-                                        .attr('title', '')
-                                        .html('<span class="unset">No description specified</span>');
-                                } else {
-                                    $('#processor-type-description')
-                                        .width($('#processor-description-container').innerWidth() - 1)
-                                        .html(processorType.description)
-                                        .ellipsis();
-                                }
-
-                                // populate the dom
-                                $('#processor-type-name').text(processorType.label).ellipsis();
-                                $('#selected-processor-name').text(processorType.label);
-                                $('#selected-processor-type').text(processorType.type);
-
-                                // refresh the buttons based on the current selection
-                                $('#new-processor-dialog').modal('refreshButtons');
+                    // configure the new processor dialog
+                    this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
+                        headerText: 'Add Processor',
+                        handler: {
+                            resize: function () {
+                                $('#processor-type-description')
+                                    .width($('#processor-description-container').innerWidth() - 1)
+                                    .text($('#processor-type-description').attr('title'))
+                                    .ellipsis();
                             }
                         }
                     });
-                    processorTypesGrid.onViewportChanged.subscribe(function (e, args) {
-                        nf.Common.cleanUpTooltips($('#processor-types-table'), 'div.view-usage-restriction');
-                    });
+                },
 
-                    // wire up the dataview to the grid
-                    processorTypesData.onRowCountChanged.subscribe(function (e, args) {
-                        processorTypesGrid.updateRowCount();
-                        processorTypesGrid.render();
+                /**
+                 * Updates the modal config.
+                 *
+                 * @param {string} name             The name of the property to update.
+                 * @param {object|array} config     The config for the `name`.
+                 */
+                update: function (name, config) {
+                    this.getElement().modal(name, config);
+                },
 
-                        // update the total number of displayed processors
-                        $('#displayed-processor-types').text(args.current);
-                    });
-                    processorTypesData.onRowsChanged.subscribe(function (e, args) {
-                        processorTypesGrid.invalidateRows(args.rows);
-                        processorTypesGrid.render();
-                    });
-                    processorTypesData.syncGridSelection(processorTypesGrid, false);
+                /**
+                 * Show the modal
+                 */
+                show: function () {
+                    this.getElement().modal('show');
+                },
 
-                    // hold onto an instance of the grid
-                    $('#processor-types-table').data('gridInstance', processorTypesGrid).on('mouseenter', 'div.slick-cell', function (e) {
-                        var usageRestriction = $(this).find('div.view-usage-restriction');
-                        if (usageRestriction.length && !usageRestriction.data('qtip')) {
-                            var rowId = $(this).find('span.row-id').text();
-
-                            // get the status item
-                            var item = processorTypesData.getItemById(rowId);
-
-                            // show the tooltip
-                            if (nf.Common.isDefinedAndNotNull(item.usageRestriction)) {
-                                usageRestriction.qtip($.extend({}, nf.Common.config.tooltipConfig, {
-                                    content: item.usageRestriction,
-                                    position: {
-                                        container: $('#summary'),
-                                        at: 'bottom right',
-                                        my: 'top left',
-                                        adjust: {
-                                            x: 4,
-                                            y: 4
-                                        }
-                                    }
-                                }));
-                            }
-                        }
-                    });
-
-                    // load the available processor types, this select is shown in the
-                    // new processor dialog when a processor is dragged onto the screen
-                    $.ajax({
-                        type: 'GET',
-                        url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.processorTypes,
-                        dataType: 'json'
-                    }).done(function (response) {
-                        var tags = [];
-
-                        // begin the update
-                        processorTypesData.beginUpdate();
-
-                        // go through each processor type
-                        $.each(response.processorTypes, function (i, documentedType) {
-                            var type = documentedType.type;
-
-                            // create the row for the processor type
-                            processorTypesData.addItem({
-                                id: i,
-                                label: nf.Common.substringAfterLast(type, '.'),
-                                type: type,
-                                description: nf.Common.escapeHtml(documentedType.description),
-                                usageRestriction: nf.Common.escapeHtml(documentedType.usageRestriction),
-                                tags: documentedType.tags.join(', ')
-                            });
-
-                            // count the frequency of each tag for this type
-                            $.each(documentedType.tags, function (i, tag) {
-                                tags.push(tag.toLowerCase());
-                            });
-                        });
-
-                        // end the udpate
-                        processorTypesData.endUpdate();
-
-                        // set the total number of processors
-                        $('#total-processor-types, #displayed-processor-types').text(response.processorTypes.length);
-
-                        // create the tag cloud
-                        $('#processor-tag-cloud').tagcloud({
-                            tags: tags,
-                            select: applyFilter,
-                            remove: applyFilter
-                        });
-                    }).fail(nf.ErrorHandler.handleAjaxError);
+                /**
+                 * Hide the modal
+                 */
+                hide: function () {
+                    this.getElement().modal('hide');
                 }
-            },
+            };
+        }
+
+        ProcessorComponent.prototype = {
+            constructor: ProcessorComponent,
 
             /**
-             * Gets the modal element.
+             * Gets the component.
              *
              * @returns {*|jQuery|HTMLElement}
              */
             getElement: function () {
-                return $('#new-processor-dialog');
+                return $('#processor-component');
             },
 
             /**
-             * Initialize the modal.
+             * Enable the component.
              */
-            init: function () {
-                this.filter.init();
-
-                // configure the new processor dialog
-                this.getElement().modal({
-                    scrollableContentStyle: 'scrollable',
-                    headerText: 'Add Processor',
-                    handler: {
-                        resize: function () {
-                            $('#processor-type-description')
-                                .width($('#processor-description-container').innerWidth() - 1)
-                                .text($('#processor-type-description').attr('title'))
-                                .ellipsis();
-                        }
-                    }
-                });
+            enabled: function () {
+                this.getElement().attr('disabled', false);
             },
 
             /**
-             * Updates the modal config.
+             * Disable the component.
+             */
+            disabled: function () {
+                this.getElement().attr('disabled', true);
+            },
+
+            /**
+             * Handler function for when component is dropped on the canvas.
              *
-             * @param {string} name             The name of the property to update.
-             * @param {object|array} config     The config for the `name`.
+             * @argument {object} pt        The point that the component was dropped
              */
-            update: function (name, config) {
-                this.getElement().modal(name, config);
+            dropHandler: function (pt) {
+                this.promptForProcessorType(pt);
             },
 
             /**
-             * Show the modal
+             * The drag icon for the toolbox component.
+             *
+             * @param event
+             * @returns {*|jQuery|HTMLElement}
              */
-            show: function () {
-                this.getElement().modal('show');
+            dragIcon: function (event) {
+                return $('<div class="icon icon-processor-add"></div>');
             },
 
             /**
-             * Hide the modal
+             * Prompts the user to select the type of new processor to create.
+             *
+             * @argument {object} pt        The point that the processor was dropped
              */
-            hide: function () {
-                this.getElement().modal('hide');
-            }
-        };
-    }
+            promptForProcessorType: function (pt) {
+                var processorComponent = this;
 
-    ProcessorComponent.prototype = {
-        constructor: ProcessorComponent,
+                // handles adding the selected processor at the specified point
+                var addProcessor = function () {
+                    // get the type of processor currently selected
+                    var name = $('#selected-processor-name').text();
+                    var processorType = $('#selected-processor-type').text();
 
-        /**
-         * Gets the component.
-         *
-         * @returns {*|jQuery|HTMLElement}
-         */
-        getElement: function () {
-            return $('#processor-component');
-        },
-
-        /**
-         * Enable the component.
-         */
-        enabled: function () {
-            this.getElement().attr('disabled', false);
-        },
-
-        /**
-         * Disable the component.
-         */
-        disabled: function () {
-            this.getElement().attr('disabled', true);
-        },
-
-        /**
-         * Handler function for when component is dropped on the canvas.
-         *
-         * @argument {object} pt        The point that the component was dropped
-         */
-        dropHandler: function (pt) {
-            this.promptForProcessorType(pt);
-        },
-
-        /**
-         * The drag icon for the toolbox component.
-         * 
-         * @param event
-         * @returns {*|jQuery|HTMLElement}
-         */
-        dragIcon: function (event) {
-            return $('<div class="icon icon-processor-add"></div>');
-        },
-
-        /**
-         * Prompts the user to select the type of new processor to create.
-         *
-         * @argument {object} pt        The point that the processor was dropped
-         */
-        promptForProcessorType: function (pt) {
-            var processorComponent = this;
-
-            // handles adding the selected processor at the specified point
-            var addProcessor = function () {
-                // get the type of processor currently selected
-                var name = $('#selected-processor-name').text();
-                var processorType = $('#selected-processor-type').text();
-
-                // ensure something was selected
-                if (name === '' || processorType === '') {
-                    nf.Dialog.showOkDialog({
-                        headerText: 'Add Processor',
-                        dialogContent: 'The type of processor to create must be selected.'
-                    });
-                } else {
-                    // create the new processor
-                    createProcessor(name, processorType, pt);
-                }
-
-                // hide the dialog
-                processorComponent.modal.hide();
-            };
-
-            // get the grid reference
-            var grid = $('#processor-types-table').data('gridInstance');
-
-            // add the processor when its double clicked in the table
-            var gridDoubleClick = function (e, args) {
-                var processorType = grid.getDataItem(args.row);
-
-                if (isSelectable(processorType)) {
-                    $('#selected-processor-name').text(processorType.label);
-                    $('#selected-processor-type').text(processorType.type);
-
-                    addProcessor();
-                }
-            };
-
-            // register a handler for double click events
-            grid.onDblClick.subscribe(gridDoubleClick);
-
-            // update the button model
-            this.modal.update('setButtonModel', [{
-                buttonText: 'Add',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                disabled: function () {
-                    var selected = grid.getSelectedRows();
-
-                    if (selected.length > 0) {
-                        // grid configured with multi-select = false
-                        var item = grid.getDataItem(selected[0]);
-                        return isSelectable(item) === false;
+                    // ensure something was selected
+                    if (name === '' || processorType === '') {
+                        dialog.showOkDialog({
+                            headerText: 'Add Processor',
+                            dialogContent: 'The type of processor to create must be selected.'
+                        });
                     } else {
-                        return grid.getData().getLength() === 0;
+                        // create the new processor
+                        createProcessor(name, processorType, pt);
                     }
-                },
-                handler: {
-                    click: addProcessor
-                }
-            },
-                {
-                    buttonText: 'Cancel',
+
+                    // hide the dialog
+                    processorComponent.modal.hide();
+                };
+
+                // get the grid reference
+                var grid = $('#processor-types-table').data('gridInstance');
+
+                // add the processor when its double clicked in the table
+                var gridDoubleClick = function (e, args) {
+                    var processorType = grid.getDataItem(args.row);
+
+                    if (isSelectable(processorType)) {
+                        $('#selected-processor-name').text(processorType.label);
+                        $('#selected-processor-type').text(processorType.type);
+
+                        addProcessor();
+                    }
+                };
+
+                // register a handler for double click events
+                grid.onDblClick.subscribe(gridDoubleClick);
+
+                // update the button model
+                this.modal.update('setButtonModel', [{
+                    buttonText: 'Add',
                     color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    disabled: function () {
+                        var selected = grid.getSelectedRows();
+
+                        if (selected.length > 0) {
+                            // grid configured with multi-select = false
+                            var item = grid.getDataItem(selected[0]);
+                            return isSelectable(item) === false;
+                        } else {
+                            return grid.getData().getLength() === 0;
+                        }
                     },
                     handler: {
-                        click: function () {
-                            $('#new-processor-dialog').modal('hide');
-                        }
+                        click: addProcessor
                     }
-                }]);
-
-            // set a new handler for closing the the dialog
-            this.modal.update('setCloseHandler', function () {
-                // remove the handler
-                grid.onDblClick.unsubscribe(gridDoubleClick);
-
-                // clear the current filters
-                resetProcessorDialog();
-            });
-
-            // show the dialog
-            this.modal.show();
-
-            // setup the filter
-            $('#processor-type-filter').focus().off('keyup').on('keyup', function (e) {
-                var code = e.keyCode ? e.keyCode : e.which;
-                if (code === $.ui.keyCode.ENTER) {
-                    var selected = grid.getSelectedRows();
-
-                    if (selected.length > 0) {
-                        // grid configured with multi-select = false
-                        var item = grid.getDataItem(selected[0]);
-                        if (isSelectable(item)) {
-                            addProcessor();
+                },
+                    {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                $('#new-processor-dialog').modal('hide');
+                            }
                         }
-                    }
-                } else {
-                    applyFilter();
-                }
-            });
+                    }]);
 
-            // adjust the grid canvas now that its been rendered
-            grid.resizeCanvas();
-            grid.setSelectedRows([0]);
+                // set a new handler for closing the the dialog
+                this.modal.update('setCloseHandler', function () {
+                    // remove the handler
+                    grid.onDblClick.unsubscribe(gridDoubleClick);
+
+                    // clear the current filters
+                    resetProcessorDialog();
+                });
+
+                // show the dialog
+                this.modal.show();
+
+                // setup the filter
+                $('#processor-type-filter').focus().off('keyup').on('keyup', function (e) {
+                    var code = e.keyCode ? e.keyCode : e.which;
+                    if (code === $.ui.keyCode.ENTER) {
+                        var selected = grid.getSelectedRows();
+
+                        if (selected.length > 0) {
+                            // grid configured with multi-select = false
+                            var item = grid.getDataItem(selected[0]);
+                            if (isSelectable(item)) {
+                                addProcessor();
+                            }
+                        }
+                    } else {
+                        applyFilter();
+                    }
+                });
+
+                // adjust the grid canvas now that its been rendered
+                grid.resizeCanvas();
+                grid.setSelectedRows([0]);
+            }
         }
-    }
 
-    var processorComponent = new ProcessorComponent();
-    return processorComponent;
-};
+        var processorComponent = new ProcessorComponent();
+        return processorComponent;
+    };
+}));

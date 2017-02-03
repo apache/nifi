@@ -15,22 +15,34 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['nf.ErrorHandler', 'nf.Common', 'nf.Canvas', 'nf.ContextMenu'], function (ajaxErrorHandler, common, canvas, contextMenu) {
-            return (nf.ErrorHandler = factory(ajaxErrorHandler, common, canvas, contextMenu));
-        });
+        define(['nf.ErrorHandler',
+                'nf.Common',
+                'nf.Canvas',
+                'nf.ContextMenu'],
+            function (ajaxErrorHandler, common, canvas, contextMenu) {
+                return (nf.ErrorHandler = factory(ajaxErrorHandler, common, canvas, contextMenu));
+            });
     } else if (typeof exports === 'object' && typeof module === 'object') {
-        module.exports = (nf.ErrorHandler = factory(require('nf.ErrorHandler'), require('nf.Common'), require('nf.Canvas'), require('nf.ContextMenu')));
+        module.exports = (nf.ErrorHandler =
+            factory(require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Canvas'),
+                require('nf.ContextMenu')));
     } else {
-        nf.ErrorHandler = factory(root.nf.ErrorHandler, root.nf.Common, root.nf.Canvas, root.nf.ContextMenu);
+        nf.ErrorHandler = factory(root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Canvas,
+            root.nf.ContextMenu);
     }
 }(this, function (ajaxErrorHandler, common, canvas, contextMenu) {
     'use strict';
 
     return {
+
         /**
          * Method for handling ajax errors. This also closes the canvas.
          *

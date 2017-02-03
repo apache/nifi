@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* global nf, top, define, module, require, exports */
+/* global top, define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -1065,8 +1065,8 @@
             // determine the desired action
             if (processGroupsGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('go-to')) {
-                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.CanvasUtils) && common.isDefinedAndNotNull(parent.nf.Shell)) {
-                        parent.nf.CanvasUtils.enterGroup(item.id);
+                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.ProcessGroup) && common.isDefinedAndNotNull(parent.nf.Shell)) {
+                        parent.nf.ProcessGroup.enterGroup(item.id);
                         parent.$('#shell-close-button').click();
                     }
                 } else if (target.hasClass('show-process-group-status-history')) {

@@ -15,9 +15,47 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.RemoteProcessGroupConfiguration = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Dialog',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.ng.Bridge',
+                'nf.RemoteProcessGroup'],
+            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
+                return (nf.RemoteProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.RemoteProcessGroupConfiguration =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.ErrorHandler'),
+                require('nf.Common'),
+                require('nf.Dialog'),
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.ng.Bridge'),
+                require('nf.RemoteProcessGroup')));
+    } else {
+        nf.RemoteProcessGroupConfiguration = factory(root.$,
+            root.d3,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.ng.Bridge,
+            root.nf.RemoteProcessGroup);
+    }
+}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
+    'use strict';
+
     return {
         init: function () {
             $('#remote-process-group-configuration').modal({
@@ -35,20 +73,20 @@ nf.RemoteProcessGroupConfiguration = (function () {
                             var remoteProcessGroupId = $('#remote-process-group-id').text();
                             var remoteProcessGroupData = d3.select('#id-' + remoteProcessGroupId).datum();
 
-                                // create the remote process group details
-                                var remoteProcessGroupEntity = {
-                                    'revision': nf.Client.getRevision(remoteProcessGroupData),
-                                    'component': {
-                                        id: remoteProcessGroupId,
-                                        communicationsTimeout: $('#remote-process-group-timeout').val(),
-                                        yieldDuration: $('#remote-process-group-yield-duration').val(),
-                                        transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
-                                        proxyHost: $('#remote-process-group-proxy-host').val(),
-                                        proxyPort: $('#remote-process-group-proxy-port').val(),
-                                        proxyUser: $('#remote-process-group-proxy-user').val(),
-                                        proxyPassword: $('#remote-process-group-proxy-password').val()
-                                    }
-                                };
+                            // create the remote process group details
+                            var remoteProcessGroupEntity = {
+                                'revision': client.getRevision(remoteProcessGroupData),
+                                'component': {
+                                    id: remoteProcessGroupId,
+                                    communicationsTimeout: $('#remote-process-group-timeout').val(),
+                                    yieldDuration: $('#remote-process-group-yield-duration').val(),
+                                    transportProtocol: $('#remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
+                                    proxyHost: $('#remote-process-group-proxy-host').val(),
+                                    proxyPort: $('#remote-process-group-proxy-port').val(),
+                                    proxyUser: $('#remote-process-group-proxy-user').val(),
+                                    proxyPassword: $('#remote-process-group-proxy-password').val()
+                                }
+                            };
 
                             // update the selected component
                             $.ajax({
@@ -59,11 +97,11 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                 contentType: 'application/json'
                             }).done(function (response) {
                                 // refresh the remote process group component
-                                nf.RemoteProcessGroup.set(response);
+                                nfRemoteProcessGroup.set(response);
 
                                 // inform Angular app values have changed
-                                nf.ng.Bridge.digest();
-                                
+                                angularBridge.digest();
+
                                 // close the details panel
                                 $('#remote-process-group-configuration').modal('hide');
                             }).fail(function (xhr, status, error) {
@@ -74,15 +112,15 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     if (errors.length === 1) {
                                         content = $('<span></span>').text(errors[0]);
                                     } else {
-                                        content = nf.Common.formatUnorderedList(errors);
+                                        content = common.formatUnorderedList(errors);
                                     }
 
-                                    nf.Dialog.showOkDialog({
+                                    dialog.showOkDialog({
                                         dialogContent: content,
                                         headerText: 'Remote Process Group Configuration'
                                     });
                                 } else {
-                                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
+                                    errorHandler.handleAjaxError(xhr, status, error);
                                 }
                             });
                         }
@@ -122,12 +160,12 @@ nf.RemoteProcessGroupConfiguration = (function () {
             // initialize the transport protocol combo
             $('#remote-process-group-transport-protocol-combo').combo({
                 options: [{
-                        text: 'RAW',
-                        value: 'RAW'
-                    }, {
-                        text: 'HTTP',
-                        value: 'HTTP'
-                    }]
+                    text: 'RAW',
+                    value: 'RAW'
+                }, {
+                    text: 'HTTP',
+                    value: 'HTTP'
+                }]
             });
         },
 
@@ -138,7 +176,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
          */
         showConfiguration: function (selection) {
             // if the specified component is a remote process group, load its properties
-            if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
+            if (canvasUtils.isRemoteProcessGroup(selection)) {
                 var selectionData = selection.datum();
 
                 // populate the port settings
@@ -164,4 +202,4 @@ nf.RemoteProcessGroupConfiguration = (function () {
             }
         }
     };
-}());
+}));
