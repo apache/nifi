@@ -704,6 +704,70 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
+            <id>generateArchives</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>nifi-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make shared resource</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <formats>
+                                        <format>dir</format>
+                                        <format>zip</format>
+                                        <format>tar.gz</format>
+                                    </formats>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>dir-only</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <finalName>nifi-${project.version}</finalName>
+                            <attach>false</attach>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>make shared resource</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <configuration>
+                                    <formats>
+                                        <format>dir</format>
+                                    </formats>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>build-info-no-git</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
