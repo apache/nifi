@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -68,7 +69,10 @@ public class PutFile extends AbstractProcessor {
     public static final String IGNORE_RESOLUTION = "ignore";
     public static final String FAIL_RESOLUTION = "fail";
 
+    // TODO: This seems to be unused. Should it be removed (uncovered as part of NIFI-940)
     public static final String FILE_MODIFY_DATE_ATTRIBUTE = "file.lastModifiedTime";
+
+
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -77,6 +81,15 @@ public class PutFile extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor FILENAME_EXPRESSION = new PropertyDescriptor.Builder()
+            .name("filenameExpression")
+            .displayName("Filename Attribute Expression")
+            .description("If unset, the original flowfile attribute filename will be used, while if set, the filename used will be the string will be resulting from the configured expression language.")
+            .required(true)
+            .defaultValue("${filename}")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .build();
     public static final PropertyDescriptor MAX_DESTINATION_FILES = new PropertyDescriptor.Builder()
             .name("Maximum File Count")
@@ -163,6 +176,7 @@ public class PutFile extends AbstractProcessor {
         supDescriptors.add(CHANGE_PERMISSIONS);
         supDescriptors.add(CHANGE_OWNER);
         supDescriptors.add(CHANGE_GROUP);
+        supDescriptors.add(FILENAME_EXPRESSION);
         properties = Collections.unmodifiableList(supDescriptors);
     }
 
@@ -185,6 +199,15 @@ public class PutFile extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
         final Path configuredRootDirPath = Paths.get(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
+
+        // Extract the dynamic filename attribute
+        final Path dynamicFilename;
+        if (!context.getProperty(FILENAME_EXPRESSION).isSet()) {
+             dynamicFilename = Paths.get(context.getProperty(FILENAME_EXPRESSION).evaluateAttributeExpressions(flowFile).getValue()).getFileName();
+        } else {
+            dynamicFilename = Paths.get(flowFile.getAttribute(CoreAttributes.FILENAME.key())).getFileName();
+        }
+
         final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
         final Integer maxDestinationFiles = context.getProperty(MAX_DESTINATION_FILES).asInteger();
         final ComponentLog logger = getLogger();
@@ -192,8 +215,8 @@ public class PutFile extends AbstractProcessor {
         Path tempDotCopyFile = null;
         try {
             final Path rootDirPath = configuredRootDirPath;
-            final Path tempCopyFile = rootDirPath.resolve("." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            final Path copyFile = rootDirPath.resolve(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            final Path tempCopyFile = rootDirPath.resolve("." + dynamicFilename.toString());
+            final Path copyFile = rootDirPath.resolve(dynamicFilename);
 
             if (!Files.exists(rootDirPath)) {
                 if (context.getProperty(CREATE_DIRS).asBoolean()) {
@@ -269,26 +292,8 @@ public class PutFile extends AbstractProcessor {
                 }
             }
 
-            final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-            if (owner != null && !owner.trim().isEmpty()) {
-                try {
-                    UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
-                    Files.setOwner(dotCopyFile, lookupService.lookupPrincipalByName(owner));
-                } catch (Exception e) {
-                    logger.warn("Could not set file owner to {} because {}", new Object[]{owner, e});
-                }
-            }
-
-            final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-            if (group != null && !group.trim().isEmpty()) {
-                try {
-                    UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
-                    PosixFileAttributeView view = Files.getFileAttributeView(dotCopyFile, PosixFileAttributeView.class);
-                    view.setGroup(lookupService.lookupPrincipalByGroupName(group));
-                } catch (Exception e) {
-                    logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
-                }
-            }
+            changeOwner(context, flowFile, dotCopyFile, logger);
+            changeGroup(context, flowFile, dotCopyFile, logger);
 
             boolean renamed = false;
             for (int i = 0; i < 10; i++) { // try rename up to 10 times.
@@ -385,5 +390,30 @@ public class PutFile extends AbstractProcessor {
             }
         }
         return permissions;
+    }
+
+    protected void changeOwner(final ProcessContext context, FlowFile flowFile, final Path file, ComponentLog logger) {
+        final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
+        if (owner != null && !owner.trim().isEmpty()) {
+            try {
+                UserPrincipalLookupService lookupService = file.getFileSystem().getUserPrincipalLookupService();
+                Files.setOwner(file, lookupService.lookupPrincipalByName(owner));
+            } catch (Exception e) {
+                logger.warn("Could not set file owner to {} because {}", new Object[]{owner, e});
+            }
+        }
+    }
+
+    protected void changeGroup(final ProcessContext context, FlowFile flowFile, final Path file, ComponentLog logger) {
+        final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
+        if (group != null && !group.trim().isEmpty()) {
+            try {
+                UserPrincipalLookupService lookupService = file.getFileSystem().getUserPrincipalLookupService();
+                PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
+                view.setGroup(lookupService.lookupPrincipalByGroupName(group));
+            } catch (Exception e) {
+                logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+            }
+        }
     }
 }
