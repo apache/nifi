@@ -113,7 +113,7 @@ public class SchemaRecordWriter {
                 out.writeLong((Long) value);
                 break;
             case STRING:
-                writeUTFLimited(out, (String) value);
+                writeUTFLimited(out, (String) value, field.getFieldName());
                 break;
             case LONG_STRING:
                 final byte[] charArray = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -134,7 +134,7 @@ public class SchemaRecordWriter {
                 break;
             case UNION:
                 final NamedValue namedValue = (NamedValue) value;
-                writeUTFLimited(out, namedValue.getName());
+                writeUTFLimited(out, namedValue.getName(), field.getFieldName());
                 final Record childRecord = (Record) namedValue.getValue();
                 writeRecordFields(childRecord, out);
                 break;
@@ -145,14 +145,14 @@ public class SchemaRecordWriter {
         }
     }
 
-    private void writeUTFLimited(final DataOutputStream out, final String utfString) throws IOException {
+    private void writeUTFLimited(final DataOutputStream out, final String utfString, final String fieldName) throws IOException {
         try {
             out.writeUTF(utfString);
         } catch (UTFDataFormatException e) {
-            final String truncated = utfString.substring(0, getCharsInUTFLength(utfString, MAX_ALLOWED_UTF_LENGTH));
-            logger.warn("Truncating repository record value!  Attempted to write {} chars that encode to a UTF byte length greater than "
+            final String truncated = utfString.substring(0, getCharsInUTF8Limit(utfString, MAX_ALLOWED_UTF_LENGTH));
+            logger.warn("Truncating repository record value for field '{}'!  Attempted to write {} chars that encode to a UTF8 byte length greater than "
                             + "supported maximum ({}), truncating to {} chars.",
-                    utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
+                    (fieldName == null) ? "" : fieldName, utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
             if (logger.isDebugEnabled()) {
                 logger.warn("String value was:\n{}", truncated);
             }
@@ -160,28 +160,29 @@ public class SchemaRecordWriter {
         }
     }
 
+    static int getCharsInUTF8Limit(final String str, final int utf8Limit) {
+        // Calculate how much of String fits within UTF8 byte limit based on RFC3629.
+        //
+        // Java String values use char[] for storage, so character values >0xFFFF that
+        // map to 4 byte UTF8 representations are not considered.
 
-    static int getCharsInUTFLength(final String str, final int utfLimit) {
-        // see java.io.DataOutputStream.writeUTF()
-        int strlen = str.length();
-        int utflen = 0;
-        int c;
+        final int charsInOriginal = str.length();
+        int bytesInUTF8 = 0;
 
-        /* use charAt instead of copying String to Char array */
-        for (int i = 0; i < strlen; i++) {
-            c = str.charAt(i);
-            if ((c >= 0x0001) & (c <= 0x007F)) {
-                utflen++;
-            } else if (c > 0x07FF) {
-                utflen += 3;
+        for (int i = 0; i < charsInOriginal; i++) {
+            final int curr = str.charAt(i);
+            if (curr < 0x0080) {
+                bytesInUTF8++;
+            } else if (curr < 0x0800) {
+                bytesInUTF8 += 2;
             } else {
-                utflen += 2;
+                bytesInUTF8 += 3;
             }
-            if (utflen > utfLimit) {
+            if (bytesInUTF8 > utf8Limit) {
                 return i;
             }
         }
-        return strlen;
+        return charsInOriginal;
     }
 
 }
