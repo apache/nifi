@@ -20,6 +20,7 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
@@ -49,6 +50,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import javax.sql.DataSource;
 
 import static org.apache.nifi.processors.hive.SelectHiveQL.HIVEQL_OUTPUT_FORMAT;
 import static org.junit.Assert.assertEquals;
@@ -274,6 +277,13 @@ public class TestSelectHiveQL {
      */
     private class DBCPServiceSimpleImpl extends AbstractControllerService implements HiveDBCPService {
 
+        BasicDataSource dataSource = new BasicDataSource();
+        
+        public DBCPServiceSimpleImpl() {
+            dataSource.setDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");
+            dataSource.setUrl("jdbc:derby:" + DB_LOCATION + ";create=true");
+        }
+
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -293,6 +303,11 @@ public class TestSelectHiveQL {
         @Override
         public String getConnectionURL() {
             return "jdbc:derby:" + DB_LOCATION + ";create=true";
+        }
+
+        @Override
+        public DataSource getDataSource() throws ProcessException {
+            return dataSource;
         }
     }
 
