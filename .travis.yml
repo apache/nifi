@@ -38,7 +38,7 @@ before_install:
   - mvn apache-rat:check
 
 install:
-  - mvn -q -T 2C -DskipTests=true clean install
+  - mvn -q -T 2C -DskipTests=true -Pdir-only clean install
 
 script:
   - mvn -Pcontrib-check verify
