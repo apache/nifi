@@ -73,6 +73,7 @@
     	<module>nifi-ranger-bundle</module>
         <module>nifi-websocket-bundle</module>
         <module>nifi-tcp-bundle</module>
+        <module>nifi-gcp-bundle</module>
   </modules>
     
   <dependencyManagement>

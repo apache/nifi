@@ -1196,6 +1196,11 @@ The derived work is adapted from
   release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
 and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
+  (ASLv2) Google Cloud Java Client
+    The following NOTICE information applies:
+      Google Cloud Java Client
+      Copyright Google Inc. All Rights Reserved.
+
 ************************
 Common Development and Distribution License 1.1
 ************************

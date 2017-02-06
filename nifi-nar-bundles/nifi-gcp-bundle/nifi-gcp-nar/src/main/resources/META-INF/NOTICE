@@ -1,0 +1,16 @@
+nifi-gcp-nar
+Copyright 2015-2016 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Google Cloud Java Client
+    The following NOTICE information applies:
+      Google Cloud Java Client
+      Copyright Google Inc. All Rights Reserved.
