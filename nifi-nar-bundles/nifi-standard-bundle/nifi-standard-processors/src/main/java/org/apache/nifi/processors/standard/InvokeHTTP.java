@@ -104,6 +104,8 @@ import org.joda.time.format.DateTimeFormatter;
     @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
     @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
     @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
+    @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
+    @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be the body of the HTTP response.")})
 @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Send request header "
@@ -118,6 +120,9 @@ public final class InvokeHTTP extends AbstractProcessor {
     public final static String REQUEST_URL = "invokehttp.request.url";
     public final static String TRANSACTION_ID = "invokehttp.tx.id";
     public final static String REMOTE_DN = "invokehttp.remote.dn";
+    public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
+    public final static String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
+
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
@@ -127,6 +132,7 @@ public final class InvokeHTTP extends AbstractProcessor {
     // attributes.
     public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
+            EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
     // properties
@@ -753,6 +759,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             if (requestFlowFile != null) {
                 logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
                 requestFlowFile = session.penalize(requestFlowFile);
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
+                requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_MESSAGE, e.getMessage());
                 // transfer original to failure
                 session.transfer(requestFlowFile, REL_FAILURE);
             } else {
