@@ -60,6 +60,9 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -792,11 +795,19 @@ public class PutSQL extends AbstractProcessor {
                 case Types.TIMESTAMP:
                     long lTimestamp=0L;
 
-                    if(LONG_PATTERN.matcher(parameterValue).matches()){
-                        lTimestamp = Long.parseLong(parameterValue);
+                    // Backwards compatibility note: Format was unsupported for a timestamp field.
+                    if (valueFormat.equals("")) {
+                        if(LONG_PATTERN.matcher(parameterValue).matches()){
+                            lTimestamp = Long.parseLong(parameterValue);
+                        } else {
+                            final SimpleDateFormat dateFormat  = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+                            java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                            lTimestamp = parsedDate.getTime();
+                        }
                     }else {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-                        java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                        final DateTimeFormatter dtFormatter = getDateTimeFormatter(valueFormat);
+                        TemporalAccessor accessor = dtFormatter.parse(parameterValue);
+                        java.util.Date parsedDate = java.util.Date.from(Instant.from(accessor));
                         lTimestamp = parsedDate.getTime();
                     }
 
@@ -839,6 +850,26 @@ public class PutSQL extends AbstractProcessor {
         }
     }
 
+    private DateTimeFormatter getDateTimeFormatter(String pattern) {
+        switch(pattern) {
+            case "BASIC_ISO_DATE": return DateTimeFormatter.BASIC_ISO_DATE;
+            case "ISO_LOCAL_DATE": return DateTimeFormatter.ISO_LOCAL_DATE;
+            case "ISO_OFFSET_DATE": return DateTimeFormatter.ISO_OFFSET_DATE;
+            case "ISO_DATE": return DateTimeFormatter.ISO_DATE;
+            case "ISO_LOCAL_TIME": return DateTimeFormatter.ISO_LOCAL_TIME;
+            case "ISO_OFFSET_TIME": return DateTimeFormatter.ISO_OFFSET_TIME;
+            case "ISO_TIME": return DateTimeFormatter.ISO_TIME;
+            case "ISO_LOCAL_DATE_TIME": return DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+            case "ISO_OFFSET_DATE_TIME": return DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+            case "ISO_ZONED_DATE_TIME": return DateTimeFormatter.ISO_ZONED_DATE_TIME;
+            case "ISO_DATE_TIME": return DateTimeFormatter.ISO_DATE_TIME;
+            case "ISO_ORDINAL_DATE": return DateTimeFormatter.ISO_ORDINAL_DATE;
+            case "ISO_WEEK_DATE": return DateTimeFormatter.ISO_WEEK_DATE;
+            case "ISO_INSTANT": return DateTimeFormatter.ISO_INSTANT;
+            case "RFC_1123_DATE_TIME": return DateTimeFormatter.RFC_1123_DATE_TIME;
+            default: return DateTimeFormatter.ofPattern(pattern);
+        }
+    }
 
     /**
      * A FlowFileFilter that is responsible for ensuring that the FlowFiles returned either belong
