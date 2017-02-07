@@ -87,6 +87,7 @@ language governing permissions and limitations under the License. -->
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.min-version>3.1.0</maven.min-version>
+        <maven.surefire.arguments/>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
@@ -1503,7 +1504,7 @@ language governing permissions and limitations under the License. -->
                             <include>**/*Spec.class</include>
                         </includes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
+                        <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true ${maven.surefire.arguments}</argLine>
                     </configuration>
                     <dependencies>
                         <dependency>
