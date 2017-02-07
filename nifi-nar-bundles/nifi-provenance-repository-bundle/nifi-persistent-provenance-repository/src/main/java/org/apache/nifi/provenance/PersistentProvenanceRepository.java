@@ -1688,16 +1688,19 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 try {
                     record = reader.nextRecord();
                 } catch (final EOFException eof) {
+                    // record will be null and reader can no longer be used
                 } catch (final Exception e) {
-                    logger.warn("Failed to generate Provenance Event Record from Journal due to " + e + "; it's possible that the record wasn't "
-                            + "completely written to the file. This record will be skipped.");
+                    logger.warn("Failed to generate Provenance Event Record from Journal due to " + e + "; it's "
+                            + "possible that the record wasn't completely written to the file. This journal will be "
+                            + "skipped.");
                     if (logger.isDebugEnabled()) {
                         logger.warn("", e);
                     }
 
                     if (eventReporter != null) {
-                        eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read Provenance Event Record from Journal due to " + e
-                                + "; it's possible that hte record wasn't completely written to the file. This record will be skipped.");
+                        eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read Provenance Event "
+                                + "Record from Journal due to " + e + "; it's possible that the record wasn't "
+                                + "completely written to the file. This journal will be skipped.");
                     }
                 }
 
@@ -1834,6 +1837,21 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                             try {
                                 nextRecord = reader.nextRecord();
                             } catch (final EOFException eof) {
+                                // record will be null and reader can no longer be used
+                            } catch (final Exception e) {
+                                logger.warn("Failed to generate Provenance Event Record from Journal due to " + e
+                                        + "; it's possible that the record wasn't completely written to the file. "
+                                        + "The remainder of this journal will be skipped.");
+                                if (logger.isDebugEnabled()) {
+                                    logger.warn("", e);
+                                }
+
+                                if (eventReporter != null) {
+                                    eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Failed to read "
+                                            + "Provenance Event Record from Journal due to " + e + "; it's possible "
+                                            + "that the record wasn't completely written to the file. The remainder "
+                                            + "of this journal will be skipped.");
+                                }
                             }
 
                             if (nextRecord != null) {
