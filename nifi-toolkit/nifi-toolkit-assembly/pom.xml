@@ -74,6 +74,10 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-admin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-zookeeper-migrator</artifactId>
         </dependency>
         <dependency>

@@ -78,6 +78,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -1380,6 +1381,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         });
     }
 
+    @Override
+    public BulletinEntity createBulletin(final BulletinDTO bulletinDTO, final Boolean canRead){
+        final Bulletin bulletin = BulletinFactory.createBulletin(bulletinDTO.getCategory(),bulletinDTO.getLevel(),bulletinDTO.getMessage());
+        bulletinRepository.addBulletin(bulletin);
+        return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin),canRead);
+    }
 
     @Override
     public FunnelEntity createFunnel(final Revision revision, final String groupId, final FunnelDTO funnelDTO) {
