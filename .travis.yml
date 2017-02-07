@@ -15,6 +15,13 @@
 
 language: java
 
+env:
+  - USER_LANGUAGE=en USER_REGION=US'
+  - USER_LANGUAGE=fr USER_REGION=FR'
+  - USER_LANGUAGE=ja USER_REGION=JP'
+  - USER_LANGUAGE=pt USER_REGION=BR'
+  - USER_LANGUAGE=default USER_REGION=default
+
 os:
   - linux
 
@@ -35,10 +42,15 @@ before_install:
   - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
   - sed -i.bak -e 's|https://nexus.codehaus.org/snapshots/|https://oss.sonatype.org/content/repositories/codehaus-snapshots/|g' ~/.m2/settings.xml
   - echo "MAVEN_OPTS='-Xmx2g -XX:+UseG1GC'" > ~/.mavenrc
-  - mvn apache-rat:check
+  - cat ~/.mavenrc
+  - mvn -q apache-rat:check
 
 install:
   - mvn -q -T 2C -DskipTests=true -Pdir-only clean install
 
 script:
+  # Replace variables seems to be the only option to pass proper values to surefire
+  # Note: The reason the sed is done as part of script is to ensure the pom hack 
+  # won't affect the 'clean install' above
+  - bash .travis.sh
   - mvn -Pcontrib-check verify
