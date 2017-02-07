@@ -466,7 +466,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         } else {
             // compile the attributes-to-send filter pattern
             if (PROP_ATTRIBUTES_TO_SEND.getName().equalsIgnoreCase(descriptor.getName())) {
-                if (newValue.isEmpty()) {
+                if (newValue == null || newValue.isEmpty()) {
                     regexAttributesToSend = null;
                 } else {
                     final String trimmedValue = StringUtils.trimToEmpty(newValue);
