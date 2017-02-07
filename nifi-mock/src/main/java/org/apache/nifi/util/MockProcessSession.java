@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,8 @@ public class MockProcessSession implements ProcessSession {
     private boolean committed = false;
     private boolean rolledback = false;
     private final Set<Long> removedFlowFiles = new HashSet<>();
+
+    private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
         this.processor = processor;
@@ -715,8 +718,18 @@ public class MockProcessSession implements ProcessSession {
             throw new IllegalArgumentException("I only accept MockFlowFile");
         }
 
+        final MockFlowFile mockFlowFile = (MockFlowFile) flowFile;
         beingProcessed.remove(flowFile.getId());
-        processorQueue.offer((MockFlowFile) flowFile);
+        processorQueue.offer(mockFlowFile);
+        updateLastQueuedDate(mockFlowFile);
+
+    }
+
+    private void updateLastQueuedDate(MockFlowFile mockFlowFile) {
+        // Simulate StandardProcessSession.updateLastQueuedDate,
+        // which is called when a flow file is transferred to a relationship.
+        mockFlowFile.setLastEnqueuedDate(System.currentTimeMillis());
+        mockFlowFile.setEnqueuedIndex(enqueuedIndex.incrementAndGet());
     }
 
     @Override
@@ -737,14 +750,11 @@ public class MockProcessSession implements ProcessSession {
         }
 
         validateState(flowFile);
-        List<MockFlowFile> list = transferMap.get(relationship);
-        if (list == null) {
-            list = new ArrayList<>();
-            transferMap.put(relationship, list);
-        }
+        List<MockFlowFile> list = transferMap.computeIfAbsent(relationship, r -> new ArrayList<>());
 
         beingProcessed.remove(flowFile.getId());
         list.add((MockFlowFile) flowFile);
+        updateLastQueuedDate((MockFlowFile) flowFile);
     }
 
     @Override
@@ -753,23 +763,8 @@ public class MockProcessSession implements ProcessSession {
             transfer(flowFiles);
             return;
         }
-        if(!processor.getRelationships().contains(relationship)){
-            throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
-        }
-
         for (final FlowFile flowFile : flowFiles) {
-            validateState(flowFile);
-        }
-
-        List<MockFlowFile> list = transferMap.get(relationship);
-        if (list == null) {
-            list = new ArrayList<>();
-            transferMap.put(relationship, list);
-        }
-
-        for (final FlowFile flowFile : flowFiles) {
-            beingProcessed.remove(flowFile.getId());
-            list.add((MockFlowFile) flowFile);
+            transfer(flowFile, relationship);
         }
     }
 

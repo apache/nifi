@@ -51,10 +51,14 @@ public class MockFlowFile implements FlowFileRecord {
 
     private byte[] data = new byte[0];
 
+    private long lastEnqueuedDate = 0;
+    private long enqueuedIndex = 0;
+
     public MockFlowFile(final long id) {
         this.creationTime = System.nanoTime();
         this.id = id;
         entryDate = System.currentTimeMillis();
+        lastEnqueuedDate = entryDate;
         attributes.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()) + ".mockFlowFile");
         attributes.put(CoreAttributes.PATH.key(), "target");
 
@@ -290,7 +294,11 @@ public class MockFlowFile implements FlowFileRecord {
 
     @Override
     public Long getLastQueueDate() {
-        return entryDate;
+        return lastEnqueuedDate;
+    }
+
+    public void setLastEnqueuedDate(long lastEnqueuedDate) {
+        this.lastEnqueuedDate = lastEnqueuedDate;
     }
 
     @Override
@@ -315,7 +323,11 @@ public class MockFlowFile implements FlowFileRecord {
 
     @Override
     public long getQueueDateIndex() {
-        return 0;
+        return enqueuedIndex;
+    }
+
+    public void setEnqueuedIndex(long enqueuedIndex) {
+        this.enqueuedIndex = enqueuedIndex;
     }
 
     public boolean isAttributeEqual(final String attributeName, final String expectedValue) {
