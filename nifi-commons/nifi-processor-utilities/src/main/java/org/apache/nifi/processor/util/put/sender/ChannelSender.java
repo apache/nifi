@@ -80,8 +80,15 @@ public abstract class ChannelSender {
      * @throws IOException if there was an error communicating over the channel
      */
     public void send(final byte[] data) throws IOException {
-        write(data);
-        lastUsed = System.currentTimeMillis();
+        try {
+            write(data);
+            lastUsed = System.currentTimeMillis();
+        } catch (IOException e) {
+            // failed to send data over the channel, we close it to force
+            // the creation of a new one next time
+            close();
+            throw e;
+        }
     }
 
     /**

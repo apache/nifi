@@ -25,8 +25,8 @@ import org.apache.nifi.processor.util.listen.event.EventFactory;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
 import org.apache.nifi.processor.util.listen.response.socket.SSLSocketChannelResponder;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
