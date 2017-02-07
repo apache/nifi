@@ -20,12 +20,16 @@
         <artifactId>nifi</artifactId>
         <version>1.2.0-SNAPSHOT</version>
     </parent>
+    <properties>
+        <client.version>1.2.0-SNAPSHOT</client.version>
+    </properties>
     <artifactId>nifi-toolkit</artifactId>
     <packaging>pom</packaging>
     <modules>
         <module>nifi-toolkit-tls</module>
         <module>nifi-toolkit-encrypt-config</module>
         <module>nifi-toolkit-s2s</module>
+        <module>nifi-toolkit-admin</module>
         <module>nifi-toolkit-zookeeper-migrator</module>
         <module>nifi-toolkit-flowfile-repo</module>
         <module>nifi-toolkit-assembly</module>

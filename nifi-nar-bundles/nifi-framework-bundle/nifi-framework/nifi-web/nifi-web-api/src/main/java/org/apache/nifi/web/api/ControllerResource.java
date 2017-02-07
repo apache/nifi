@@ -40,10 +40,12 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -261,6 +263,7 @@ public class ControllerResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
+
     public Response createReportingTask(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
@@ -326,6 +329,71 @@ public class ControllerResource extends ApplicationResource {
 
                     // build the response
                     return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                }
+        );
+    }
+
+    /**
+     * Creates a Bulletin.
+     *
+     * @param httpServletRequest  request
+     * @param requestBulletinEntity A bulletinEntity.
+     * @return A bulletinEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("bulletin")
+    @ApiOperation(
+            value = "Creates a new bulletin",
+            response = BulletinEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller", type = "")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response createBulletin(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The reporting task configuration details.",
+                    required = true
+            ) final BulletinEntity requestBulletinEntity) {
+
+        if (requestBulletinEntity == null || requestBulletinEntity.getBulletin() == null) {
+            throw new IllegalArgumentException("Bulletin details must be specified.");
+        }
+
+        final BulletinDTO requestBulletin = requestBulletinEntity.getBulletin();
+        if (requestBulletin.getId() != null) {
+            throw new IllegalArgumentException("A bulletin ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestBulletin.getMessage())) {
+            throw new IllegalArgumentException("The bulletin message must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestBulletinEntity);
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                requestBulletinEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                (bulletinEntity) -> {
+                    final BulletinDTO bulletin = bulletinEntity.getBulletin();
+                    final BulletinEntity entity = serviceFacade.createBulletin(bulletin,true);
+                    return generateOkResponse(entity).build();
                 }
         );
     }

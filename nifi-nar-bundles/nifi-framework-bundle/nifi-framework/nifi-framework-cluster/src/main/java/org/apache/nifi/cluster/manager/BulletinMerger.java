@@ -24,6 +24,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.Lists;
 
 public final class BulletinMerger {
 
@@ -71,7 +74,12 @@ public final class BulletinMerger {
             }
         }
 
-        Collections.sort(bulletinEntities, (BulletinEntity o1, BulletinEntity o2) -> {
+        final List<BulletinEntity> entities = Lists.newArrayList();
+
+        final Map<String,List<BulletinEntity>> groupingEntities = bulletinEntities.stream().collect(Collectors.groupingBy(b -> b.getBulletin().getMessage()));
+        groupingEntities.values().stream().map(e -> e.get(0)).forEach(entities::add);
+
+        Collections.sort(entities, (BulletinEntity o1, BulletinEntity o2) -> {
             final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
             if (timeComparison != 0) {
                 return timeComparison;
@@ -80,6 +88,6 @@ public final class BulletinMerger {
             return o1.getNodeAddress().compareTo(o2.getNodeAddress());
         });
 
-        return bulletinEntities;
+        return entities;
     }
 }
