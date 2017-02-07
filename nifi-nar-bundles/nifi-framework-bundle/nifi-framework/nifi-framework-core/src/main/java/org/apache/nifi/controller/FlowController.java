@@ -145,6 +145,7 @@ import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
+import org.apache.nifi.persistence.FlowConfigurationDAO;
 import org.apache.nifi.processor.GhostProcessor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -239,6 +240,7 @@ import static java.util.Objects.requireNonNull;
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
     // default repository implementations
+    public static final String DEFAULT_FLOW_CONFIGURATION_IMPLEMENTATION = "org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO";
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
     public static final String DEFAULT_CONTENT_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.FileSystemRepository";
     public static final String DEFAULT_PROVENANCE_REPO_IMPLEMENTATION = "org.apache.nifi.provenance.VolatileProvenanceRepository";
@@ -267,6 +269,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final FlowFileEventRepository flowFileEventRepository;
     private final ProvenanceRepository provenanceRepository;
     private final BulletinRepository bulletinRepository;
+    private final FlowConfigurationDAO flowConfigurationDAO;
     private final StandardProcessScheduler processScheduler;
     private final SnippetManager snippetManager;
     private final long gracefulShutdownSeconds;
@@ -469,6 +472,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             this.stateManagerProvider = StandardStateManagerProvider.create(nifiProperties, this.variableRegistry);
         } catch (final IOException e) {
             throw new RuntimeException(e);
+        }
+
+        try{
+            this.flowConfigurationDAO = createFlowConfigurationDAO(nifiProperties);
+        } catch (final Exception e) {
+            throw new RuntimeException("Unable to create Flow Configuration DAO", e);
         }
 
         processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider, this.variableRegistry, this.nifiProperties);
@@ -825,6 +834,24 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
+    private FlowConfigurationDAO createFlowConfigurationDAO(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        final String implementationClassName = properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_IMPLEMENTATION, DEFAULT_FLOW_CONFIGURATION_IMPLEMENTATION);
+        if (implementationClassName == null) {
+            throw new RuntimeException("Cannot create Flow Configuration DAO because the NiFi Properties is missing the following property: "
+                    + NiFiProperties.FLOW_CONFIGURATION_IMPLEMENTATION);
+        }
+
+        try {
+            final FlowConfigurationDAO flowConfiguration = NarThreadContextClassLoader.createInstance(implementationClassName, FlowConfigurationDAO.class, properties);
+            synchronized (flowConfiguration) {
+                flowConfiguration.initialize(encryptor, properties);
+            }
+            return flowConfiguration;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private ContentRepository createContentRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final String implementationClassName = properties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION, DEFAULT_CONTENT_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
@@ -1172,6 +1199,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public SnippetManager getSnippetManager() {
         return snippetManager;
+    }
+
+    public FlowConfigurationDAO getFlowConfigurationDAO() {
+        return flowConfigurationDAO;
     }
 
     public StateManagerProvider getStateManagerProvider() {

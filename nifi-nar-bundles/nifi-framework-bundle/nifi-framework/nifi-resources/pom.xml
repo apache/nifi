@@ -37,6 +37,7 @@
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
 
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
+        <nifi.flow.configuration.implementation>org.apache.nifi.persistence.StandardXMLFlowConfigurationDAO</nifi.flow.configuration.implementation>
         <nifi.flow.configuration.archive.enabled>true</nifi.flow.configuration.archive.enabled>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
         <nifi.flow.configuration.archive.max.time>30 days</nifi.flow.configuration.archive.max.time>

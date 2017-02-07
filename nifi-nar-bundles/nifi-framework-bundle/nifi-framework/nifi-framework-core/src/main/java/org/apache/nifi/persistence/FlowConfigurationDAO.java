@@ -25,11 +25,21 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.util.NiFiProperties;
 
 /**
  * Interface to define service methods for FlowController configuration.
  */
 public interface FlowConfigurationDAO {
+    /**
+     * Performs any initialization needed. This should be called only by the
+     * framework.
+     * @param encryptor protected property encryptor/decryptor
+     * @param nifiProperties collection of NiFi properties
+     * @throws IOException thrown if Flow Configuration fails to initialize
+     */
+    void initialize(StringEncryptor encryptor, NiFiProperties nifiProperties) throws IOException;
 
     /**
      * @return <code>true</code> if a file containing the flow is present, <code>false</code> otherwise
@@ -110,4 +120,17 @@ public interface FlowConfigurationDAO {
      */
     void save(FlowController flow, boolean archive) throws IOException;
 
+    /**
+     * Overwrites the existing Flow Configuration using the one provided in the input stream
+     * @param is to use to overwrite the existing flow
+     * @throws IOException if flow fails to be overwritten
+     */
+    void overwriteFlow(final InputStream is) throws IOException;
+
+    /**
+     * Copies the current Flow Configuration to the output stream
+     * @param os to copy the current flow too
+     * @throws IOException thrown if Flow fails to copy to output stream
+     */
+    void copyCurrentFlow(final OutputStream os) throws IOException;
 }
