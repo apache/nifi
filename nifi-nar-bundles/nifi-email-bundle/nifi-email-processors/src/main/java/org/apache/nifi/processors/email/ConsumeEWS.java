@@ -465,8 +465,7 @@ public class ConsumeEWS extends AbstractProcessor {
         try {
             emailMessage.setFlag(Flags.Flag.DELETED, this.shouldSetDeleteFlag);
         } catch (MessagingException e) {
-            this.logger.warn("Failed to set DELETE Flag on the message", e);
-            this.getLogger().warn("Failed to set DELETE Flag on the message");
+            this.logger.warn("Failed to set DELETE Flag on the message, data duplication may occur.");
         }
     }
 
@@ -480,6 +479,8 @@ public class ConsumeEWS extends AbstractProcessor {
             this.fillMessageQueueIfNecessary(context);
             emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
+            context.yield();
+            this.logger.error("Failed retrieving messages from EWS.", e);
             Thread.currentThread().interrupt();
             this.logger.debug("Current thread is interrupted");
         }
