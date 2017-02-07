@@ -34,6 +34,7 @@ import java.util.Map;
 
 import static org.apache.nifi.controller.repository.RepositoryRecordType.SWAP_IN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +63,7 @@ public class SchemaRepositoryRecordSerdeTest {
         resourceClaimManager.purge();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testV1CreateCantHandleLongAttributeName() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
         Map<String, String> attributes = new HashMap<>();
@@ -73,9 +74,14 @@ public class SchemaRepositoryRecordSerdeTest {
         attributes.put(stringBuilder.toString(), "testValue");
         schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testV1CreateCantHandleLongAttributeValue() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
         Map<String, String> attributes = new HashMap<>();
@@ -86,6 +92,11 @@ public class SchemaRepositoryRecordSerdeTest {
         attributes.put("testName", stringBuilder.toString());
         schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream,
                 RepositoryRecordSchema.CREATE_OR_UPDATE_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
@@ -98,6 +109,11 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put(stringBuilder.toString(), "testValue");
         schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
@@ -110,6 +126,11 @@ public class SchemaRepositoryRecordSerdeTest {
         }
         attributes.put("testName", stringBuilder.toString());
         schemaRepositoryRecordSerde.serializeRecord(createCreateFlowFileRecord(attributes), dataOutputStream);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
@@ -126,7 +147,7 @@ public class SchemaRepositoryRecordSerdeTest {
         assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testV1SwapInCantHandleLongAttributeName() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
         Map<String, String> attributes = new HashMap<>();
@@ -139,9 +160,14 @@ public class SchemaRepositoryRecordSerdeTest {
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testV1SwapInCantHandleLongAttributeValue() throws IOException {
         RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1.writeTo(dataOutputStream);
         Map<String, String> attributes = new HashMap<>();
@@ -154,6 +180,11 @@ public class SchemaRepositoryRecordSerdeTest {
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream, RepositoryRecordSchema.SWAP_IN_SCHEMA_V1, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V1);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertNotEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
@@ -169,6 +200,11 @@ public class SchemaRepositoryRecordSerdeTest {
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
@@ -184,6 +220,11 @@ public class SchemaRepositoryRecordSerdeTest {
         record.setSwapLocation("fake");
         assertEquals(SWAP_IN, record.getType());
         schemaRepositoryRecordSerde.serializeRecord(record, dataOutputStream);
+
+        DataInputStream dataInputStream = createDataInputStream();
+        schemaRepositoryRecordSerde.readHeader(dataInputStream);
+        RepositoryRecord repositoryRecord = schemaRepositoryRecordSerde.deserializeRecord(dataInputStream, 2);
+        assertEquals(attributes, repositoryRecord.getCurrent().getAttributes());
     }
 
     @Test
