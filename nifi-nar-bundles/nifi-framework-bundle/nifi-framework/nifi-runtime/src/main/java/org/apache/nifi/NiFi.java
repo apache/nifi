@@ -320,7 +320,7 @@ public class NiFi {
         if (null == key) {
             return "";
         } else if (!isHexKeyValid(key)) {
-          throw new IllegalArgumentException("The key \""+key+"\" was not provided in valid hex format and of the correct length");
+          throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
         } else {
           return key;
         }
