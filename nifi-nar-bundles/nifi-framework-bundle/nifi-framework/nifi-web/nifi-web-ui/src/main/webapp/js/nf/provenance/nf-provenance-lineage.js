@@ -665,10 +665,6 @@
 
             // set up a slider for the showing the timeline of events
             var slider = $('#provenance-lineage-slider').slider({
-                min: minMillis,
-                max: maxMillis,
-                step: (maxMillis - minMillis) / config.sliderTickCount,
-                value: maxMillis,
                 change: slide,
                 slide: slide
             });
