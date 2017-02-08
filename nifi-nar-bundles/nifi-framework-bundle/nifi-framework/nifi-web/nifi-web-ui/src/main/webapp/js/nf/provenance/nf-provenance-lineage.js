@@ -507,7 +507,7 @@
 
                 // update the slider min/max/step values
                 var step = (maxMillis - minMillis) / config.sliderTickCount;
-                slider.slider('option', 'min', minMillis).slider('option', 'max', maxMillis).slider('option', 'step', step).slider('value', maxMillis);
+                slider.slider('option', 'min', minMillis).slider('option', 'max', maxMillis).slider('option', 'step', step > 0 ? step : 1).slider('value', maxMillis);
 
                 // populate the event timeline
                 $('#event-time').text(formatEventTime(maxMillis, provenanceTableCtrl));
