@@ -17,6 +17,7 @@
 package org.apache.nifi.bootstrap;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,7 +36,12 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.nio.file.FileAlreadyExistsException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1028,17 +1034,36 @@ public class RunNiFi {
         cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir=" + nifiLogDir);
         cmd.add("org.apache.nifi.NiFi");
         if (props.containsKey(NIFI_BOOTSTRAP_SENSITIVE_KEY) && !StringUtils.isBlank(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY))) {
-            File password_file = new File(confDir, "sensitive.key");
+            Path sensitiveKeyFile = Paths.get(confDir+"/sensitive.key");
 
-            // Restrict permissions:
-            password_file.setReadable(false,false);
-            password_file.setReadable(true,true);
-            password_file.setWritable(false,false);
-            password_file.setWritable(true,true);
-            FileWriter sensitive_key_writer = new FileWriter(password_file,false);
-            sensitive_key_writer.write(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
-            sensitive_key_writer.close();
-            cmd.add("-K " + password_file.getAbsolutePath());
+
+            try {
+                // Initially create file with the empty permission set (so nobody can get a file descriptor on it):
+                Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+                FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(perms);
+                sensitiveKeyFile = Files.createFile(sensitiveKeyFile, attr);
+
+                // Then, once created, add owner-only rights:
+                perms.add(PosixFilePermission.OWNER_WRITE);
+                perms.add(PosixFilePermission.OWNER_READ);
+                attr = PosixFilePermissions.asFileAttribute(perms);
+                Files.setPosixFilePermissions(sensitiveKeyFile, perms);
+
+            } catch (final FileAlreadyExistsException  faee) {
+                cmdLogger.error("The sensitive.key file {} already exists. That shouldn't have been. Aborting.", sensitiveKeyFile);
+                System.exit(1);
+            } catch (final Exception e) {
+                cmdLogger.error("Other failure relating to setting permissions on {}. "
+                        + "(so that only the owner can read it). "
+                        + "This is fatal to the bootstrap process for security reasons. Exception was: {}", sensitiveKeyFile, e);
+                System.exit(1);
+            }
+
+            //FileWriter sensitiveKeyWriter = new FileWriter(sensitiveKeyFile,false);
+            BufferedWriter sensitiveKeyWriter = Files.newBufferedWriter(sensitiveKeyFile, StandardCharsets.UTF_8);
+            sensitiveKeyWriter.write(props.get(NIFI_BOOTSTRAP_SENSITIVE_KEY));
+            sensitiveKeyWriter.close();
+            cmd.add("-K " + sensitiveKeyFile.toFile().getAbsolutePath());
         }
 
         builder.command(cmd);
