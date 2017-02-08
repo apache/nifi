@@ -158,7 +158,7 @@
                             <div class="graph-control-action-icon icon icon-group"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
-                    <div id="operate-color" class="action-button" title="Fill Color">
+                    <div id="operate-color" class="action-button" title="Change Color">
                         <button ng-click="appCtrl.nf.Actions['fillColor'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.isColorable(appCtrl.nf.CanvasUtils.getSelection());">
                             <div class="graph-control-action-icon fa fa-paint-brush"></div></button>
