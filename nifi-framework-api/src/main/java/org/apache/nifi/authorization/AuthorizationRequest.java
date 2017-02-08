@@ -20,11 +20,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Represents an authorization request for a given user/entity performing an action against a resource within some userContext.
  */
 public class AuthorizationRequest {
+
+    public static final String DEFAULT_EXPLANATION = "Unable to perform the desired action.";
 
     private final Resource resource;
     private final String identity;
@@ -33,6 +36,7 @@ public class AuthorizationRequest {
     private final boolean isAnonymous;
     private final Map<String, String> userContext;
     private final Map<String, String> resourceContext;
+    private final Supplier<String> explanationSupplier;
 
     private AuthorizationRequest(final Builder builder) {
         Objects.requireNonNull(builder.resource, "The resource is required when creating an authorization request");
@@ -47,6 +51,16 @@ public class AuthorizationRequest {
         this.isAnonymous = builder.isAnonymous;
         this.userContext = builder.userContext == null ? null : Collections.unmodifiableMap(builder.userContext);
         this.resourceContext = builder.resourceContext == null ? null : Collections.unmodifiableMap(builder.resourceContext);
+        this.explanationSupplier = () -> {
+            final String explanation = builder.explanationSupplier.get();
+
+            // ensure the specified supplier returns non null
+            if (explanation == null) {
+                return DEFAULT_EXPLANATION;
+            } else {
+                return explanation;
+            }
+        };
     }
 
     /**
@@ -113,6 +127,15 @@ public class AuthorizationRequest {
     }
 
     /**
+     * A supplier for the explanation if access is denied. Non null.
+     *
+     * @return The explanation supplier if access is denied
+     */
+    public Supplier<String> getExplanationSupplier() {
+        return explanationSupplier;
+    }
+
+    /**
      * AuthorizationRequest builder.
      */
     public static final class Builder {
@@ -124,6 +147,7 @@ public class AuthorizationRequest {
         private RequestAction action;
         private Map<String, String> userContext;
         private Map<String, String> resourceContext;
+        private Supplier<String> explanationSupplier = () -> DEFAULT_EXPLANATION;
 
         public Builder resource(final Resource resource) {
             this.resource = resource;
@@ -160,6 +184,13 @@ public class AuthorizationRequest {
         public Builder resourceContext(final Map<String, String> resourceContext) {
             if (resourceContext != null) {
                 this.resourceContext = new HashMap<>(resourceContext);
+            }
+            return this;
+        }
+
+        public Builder explanationSupplier(final Supplier<String> explanationSupplier) {
+            if (explanationSupplier != null) {
+                this.explanationSupplier = explanationSupplier;
             }
             return this;
         }

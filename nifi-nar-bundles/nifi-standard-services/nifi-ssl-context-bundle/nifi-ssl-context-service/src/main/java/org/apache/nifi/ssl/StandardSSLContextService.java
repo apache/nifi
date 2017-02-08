@@ -101,7 +101,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("key-password")
             .displayName("Key Password")
             .description("The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, "
-                + "then the Keystore Password will be assumed to be the same as the Key Password.")
+                    + "then the Keystore Password will be assumed to be the same as the Key Password.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .required(false)
@@ -118,6 +118,11 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     private static final List<PropertyDescriptor> properties;
     private ConfigurationContext configContext;
+    private boolean isValidated;
+
+    // TODO: This can be made configurable if necessary
+    private static final int VALIDATION_CACHE_EXPIRATION = 5;
+    private int validationCacheCount = 0;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -161,6 +166,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         createSSLContext(ClientAuth.REQUIRED);
     }
 
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
+        resetValidationCache();
+    }
+
     private static Validator createFileExistsAndReadableValidator() {
         return new Validator() {
             // Not using the FILE_EXISTS_VALIDATOR because the default is to
@@ -200,6 +211,16 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final Collection<ValidationResult> results = new ArrayList<>();
+
+        if (isValidated) {
+            validationCacheCount++;
+            if (validationCacheCount > VALIDATION_CACHE_EXPIRATION) {
+                resetValidationCache();
+            } else {
+                return results;
+            }
+        }
+
         results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.KEYSTORE));
         results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
 
@@ -228,7 +249,19 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                         .build());
             }
         }
+
+        isValidated = results.isEmpty();
+
         return results;
+    }
+
+    private void resetValidationCache() {
+        validationCacheCount = 0;
+        isValidated = false;
+    }
+
+    protected int getValidationCacheExpiration() {
+        return VALIDATION_CACHE_EXPIRATION;
     }
 
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
@@ -251,7 +284,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 SslContextFactory.createSslContext(
                         validationContext.getProperty(KEYSTORE).getValue(),
                         validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                    keyPassword,
+                        keyPassword,
                         validationContext.getProperty(KEYSTORE_TYPE).getValue(),
                         protocol);
                 return;
@@ -260,7 +293,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             SslContextFactory.createSslContext(
                     validationContext.getProperty(KEYSTORE).getValue(),
                     validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                keyPassword,
+                    keyPassword,
                     validationContext.getProperty(KEYSTORE_TYPE).getValue(),
                     validationContext.getProperty(TRUSTSTORE).getValue(),
                     validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
@@ -432,7 +465,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return count;
     }
 
-    public static enum KeystoreValidationGroup {
+    public enum KeystoreValidationGroup {
 
         KEYSTORE, TRUSTSTORE
     }

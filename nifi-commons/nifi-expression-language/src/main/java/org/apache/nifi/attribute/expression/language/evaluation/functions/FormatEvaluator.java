@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -31,10 +32,12 @@ public class FormatEvaluator extends StringEvaluator {
 
     private final DateEvaluator subject;
     private final Evaluator<String> format;
+    private final Evaluator<String> timeZone;
 
-    public FormatEvaluator(final DateEvaluator subject, final Evaluator<String> format) {
+    public FormatEvaluator(final DateEvaluator subject, final Evaluator<String> format, final Evaluator<String> timeZone) {
         this.subject = subject;
         this.format = format;
+        this.timeZone = timeZone;
     }
 
     @Override
@@ -50,7 +53,17 @@ public class FormatEvaluator extends StringEvaluator {
             return null;
         }
 
-        return new StringQueryResult(new SimpleDateFormat(format, Locale.US).format(subjectValue));
+        final SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.US);
+
+        if(timeZone != null) {
+            final QueryResult<String> tzResult = timeZone.evaluate(attributes);
+            final String tz = tzResult.getValue();
+            if(tz != null && TimeZone.getTimeZone(tz) != null) {
+                sdf.setTimeZone(TimeZone.getTimeZone(tz));
+            }
+        }
+
+        return new StringQueryResult(sdf.format(subjectValue));
     }
 
     @Override

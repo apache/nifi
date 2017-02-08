@@ -137,16 +137,16 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         public void run() {
                             LOG.debug("{} Determining URL of connection", this);
                             final InetAddress inetAddress = socket.getInetAddress();
-                            String hostname = inetAddress.getHostName();
-                            final int slashIndex = hostname.indexOf("/");
+                            String clientHostName = inetAddress.getHostName();
+                            final int slashIndex = clientHostName.indexOf("/");
                             if (slashIndex == 0) {
-                                hostname = hostname.substring(1);
+                                clientHostName = clientHostName.substring(1);
                             } else if (slashIndex > 0) {
-                                hostname = hostname.substring(0, slashIndex);
+                                clientHostName = clientHostName.substring(0, slashIndex);
                             }
 
-                            final int port = socket.getPort();
-                            final String peerUri = "nifi://" + hostname + ":" + port;
+                            final int clientPort = socket.getPort();
+                            final String peerUri = "nifi://" + clientHostName + ":" + clientPort;
                             LOG.debug("{} Connection URL is {}", this, peerUri);
 
                             final CommunicationsSession commsSession;
@@ -211,7 +211,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 protocol.setRootProcessGroup(rootGroup.get());
                                 protocol.setNodeInformant(nodeInformant);
 
-                                final PeerDescription description = new PeerDescription("localhost", getPort(), sslContext != null);
+                                final PeerDescription description = new PeerDescription(clientHostName, clientPort, sslContext != null);
                                 peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());
                                 LOG.debug("Handshaking....");
                                 protocol.handshake(peer);

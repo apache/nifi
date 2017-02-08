@@ -83,7 +83,7 @@ nf.Settings = (function () {
             $('#settings-save').off('click').on('click', function () {
                 saveSettings(response.revision.version);
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     }
 
     /**
@@ -281,6 +281,9 @@ nf.Settings = (function () {
             });
             reportingTaskTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-reporting-task-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (reportingTaskTypesData.getLength() > 0) {
                 reportingTaskTypesGrid.setSelectedRows([0]);
@@ -399,7 +402,7 @@ nf.Settings = (function () {
             var row = reportingTaskData.getRowById(reportingTaskEntity.id);
             reportingTaskGrid.setSelectedRows([row]);
             reportingTaskGrid.scrollRowIntoView(row);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-reporting-task-dialog').modal('hide');
@@ -433,8 +436,21 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nf.Common.typeFormatter,
+                sortable: false,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true
+            }
         ];
 
         // initialize the dataview
@@ -577,7 +593,7 @@ nf.Settings = (function () {
                 select: applyReportingTaskTypeFilter,
                 remove: applyReportingTaskTypeFilter
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
@@ -598,7 +614,7 @@ nf.Settings = (function () {
                             var item = reportingTaskTypesGrid.getDataItem(selected[0]);
                             return isSelectable(item) === false;
                         } else {
-                            return false;
+                            return reportingTaskTypesGrid.getData().getLength() === 0;
                         }
                     },
                     handler: {
@@ -738,7 +754,7 @@ nf.Settings = (function () {
                 }
             }
 
-            if (dataContext.permissions.canWrite) {
+            if (dataContext.permissions.canWrite && nf.Common.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 
@@ -801,7 +817,7 @@ nf.Settings = (function () {
                 } else if (target.hasClass('stop-reporting-task')) {
                     nf.ReportingTask.stop(reportingTaskEntity);
                 } else if (target.hasClass('delete-reporting-task')) {
-                    nf.ReportingTask.remove(reportingTaskEntity);
+                    nf.ReportingTask.promptToDeleteReportingTask(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
                     nf.ComponentState.showState(reportingTaskEntity, canClear);
@@ -977,7 +993,7 @@ nf.Settings = (function () {
 
             // update the current time
             $('#settings-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**

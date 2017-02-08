@@ -37,6 +37,11 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+
 public class TestSplitXml {
 
     SAXParserFactory factory;
@@ -67,15 +72,18 @@ public class TestSplitXml {
         });
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0);
+        originalFlowFile.assertAttributeExists(FRAGMENT_ID.key());
+        originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "6");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 6);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT));
         Arrays.asList(0, 1, 2, 3, 4, 5).forEach((index) -> {
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SplitXml.REL_SPLIT).get(index);
-            flowFile.assertAttributeEquals("fragment.index", Integer.toString(index));
-            flowFile.assertAttributeEquals("fragment.count", "6");
-            flowFile.assertAttributeEquals("segment.original.filename", "test.xml");
+            flowFile.assertAttributeEquals(FRAGMENT_INDEX.key(), Integer.toString(index));
+            flowFile.assertAttributeEquals(FRAGMENT_COUNT.key(), "6");
+            flowFile.assertAttributeEquals(SEGMENT_ORIGINAL_FILENAME.key(), "test.xml");
         });
     }
 
@@ -86,6 +94,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 12);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
@@ -99,6 +108,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-bundle-1"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "12");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 12);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));
@@ -118,6 +128,7 @@ public class TestSplitXml {
         runner.enqueue(Paths.get("src/test/resources/TestXml/namespace.xml"));
         runner.run();
         runner.assertTransferCount(SplitXml.REL_ORIGINAL, 1);
+        runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT.key(), "2");
         runner.assertTransferCount(SplitXml.REL_SPLIT, 2);
 
         parseFlowFiles(runner.getFlowFilesForRelationship(SplitXml.REL_ORIGINAL));

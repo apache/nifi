@@ -18,6 +18,7 @@ package org.apache.nifi.processors.kafka;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
@@ -207,6 +208,62 @@ public class PutKafkaTest {
         ConsumerIterator<byte[], byte[]> consumer = this.buildConsumer(topicName);
         assertEquals("Hello World", new String(consumer.next().message(), StandardCharsets.UTF_8));
         assertEquals("Goodbye僠<僠WILDBOOMSTUFF僠>僠", new String(consumer.next().message(), StandardCharsets.UTF_8));
+        runner.shutdown();
+    }
+
+    @Test
+    public void validateDeprecatedPartitionStrategy() {
+        String topicName = "validateDeprecatedPartitionStrategy";
+        PutKafka putKafka = new PutKafka();
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PutKafka.TOPIC, topicName);
+        runner.setProperty(PutKafka.CLIENT_NAME, "foo");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
+
+        // Old configuration using deprecated property still work.
+        runner.setProperty(PutKafka.PARTITION_STRATEGY, PutKafka.USER_DEFINED_PARTITIONING);
+        runner.setProperty(PutKafka.PARTITION, "${partition}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("partition", "0");
+        runner.enqueue("Hello World\nGoodbye".getBytes(StandardCharsets.UTF_8), attributes);
+        runner.run(1, false);
+
+        runner.assertAllFlowFilesTransferred(PutKafka.REL_SUCCESS, 1);
+        ConsumerIterator<byte[], byte[]> consumer = this.buildConsumer(topicName);
+        assertEquals("Hello World", new String(consumer.next().message(), StandardCharsets.UTF_8));
+        assertEquals("Goodbye", new String(consumer.next().message(), StandardCharsets.UTF_8));
+
+        runner.shutdown();
+    }
+
+    @Test
+    public void validatePartitionOutOfBounds() {
+        String topicName = "validatePartitionOutOfBounds";
+        PutKafka putKafka = new PutKafka();
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PutKafka.TOPIC, topicName);
+        runner.setProperty(PutKafka.CLIENT_NAME, "foo");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:" + kafkaLocal.getKafkaPort());
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\n");
+        runner.setProperty(PutKafka.PARTITION, "${partition}");
+
+        runner.assertValid();
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("partition", "123");
+        runner.enqueue("Hello World\nGoodbye".getBytes(StandardCharsets.UTF_8), attributes);
+        runner.run(1, false);
+
+        assertTrue("Error message should be logged", runner.getLogger().getErrorMessages().size() > 0);
+        runner.assertTransferCount(PutKafka.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutKafka.REL_FAILURE, 1);
+
         runner.shutdown();
     }
 

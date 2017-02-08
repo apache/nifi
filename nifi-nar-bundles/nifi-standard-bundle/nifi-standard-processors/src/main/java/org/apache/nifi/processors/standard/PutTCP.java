@@ -107,8 +107,8 @@ public class PutTCP extends AbstractPutEventProcessor {
     @Override
     protected ChannelSender createSender(final ProcessContext context) throws IOException {
         final String protocol = TCP_VALUE.getValue();
-        final String hostname = context.getProperty(HOSTNAME).getValue();
-        final int port = context.getProperty(PORT).asInteger();
+        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int bufferSize = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final SSLContextService sslContextService = (SSLContextService) context.getProperty(SSL_CONTEXT_SERVICE).asControllerService();
@@ -133,8 +133,8 @@ public class PutTCP extends AbstractPutEventProcessor {
     @Override
     protected String createTransitUri(final ProcessContext context) {
         final String protocol = TCP_VALUE.getValue();
-        final String host = context.getProperty(HOSTNAME).getValue();
-        final String port = context.getProperty(PORT).getValue();
+        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
 
         return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
     }

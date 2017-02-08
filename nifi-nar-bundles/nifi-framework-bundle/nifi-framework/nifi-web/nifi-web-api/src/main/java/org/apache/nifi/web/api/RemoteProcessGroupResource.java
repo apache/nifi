@@ -29,6 +29,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -158,7 +159,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             value = "Deletes a remote process group",
             response = RemoteProcessGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /remote-process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /remote-process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -203,7 +205,12 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
+
+                    // ensure write permission to the remote process group
                     remoteProcessGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    remoteProcessGroup.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteRemoteProcessGroup(id),
                 (revision, remoteProcessGroupEntity) -> {
@@ -469,6 +476,13 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         if (!id.equals(requestRemoteProcessGroup.getId())) {
             throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
                     + "remote process group id of the requested resource (%s).", requestRemoteProcessGroup.getId(), id));
+        }
+
+        final PositionDTO proposedPosition = requestRemoteProcessGroup.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (isReplicateRequest()) {

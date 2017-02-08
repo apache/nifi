@@ -64,6 +64,12 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
+
 @SideEffectFree
 @SupportsBatching
 @Tags({ "avro", "split" })
@@ -217,13 +223,14 @@ public class SplitAvro extends AbstractProcessor {
             final String fragmentIdentifier = UUID.randomUUID().toString();
             IntStream.range(0, splits.size()).forEach((i) -> {
                 FlowFile split = splits.get(i);
-                split = session.putAttribute(split, "fragment.identifier", fragmentIdentifier);
-                split = session.putAttribute(split, "fragment.index", Integer.toString(i));
-                split = session.putAttribute(split, "segment.original.filename", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-                split = session.putAttribute(split, "fragment.count", Integer.toString(splits.size()));
+                split = session.putAttribute(split, FRAGMENT_ID.key(), fragmentIdentifier);
+                split = session.putAttribute(split, FRAGMENT_INDEX.key(), Integer.toString(i));
+                split = session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME.key(), flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+                split = session.putAttribute(split, FRAGMENT_COUNT.key(), Integer.toString(splits.size()));
                 session.transfer(split, REL_SPLIT);
             });
-            session.transfer(flowFile, REL_ORIGINAL);
+            final FlowFile originalFlowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, splits.size());
+            session.transfer(originalFlowFile, REL_ORIGINAL);
         } catch (ProcessException e) {
             getLogger().error("Failed to split {} due to {}", new Object[]{flowFile, e.getMessage()}, e);
             session.transfer(flowFile, REL_FAILURE);

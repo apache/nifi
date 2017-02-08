@@ -17,6 +17,7 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -24,6 +25,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -45,6 +47,10 @@ import java.util.concurrent.TimeUnit;
  */
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
+@DynamicProperty(name = "JDBC property name", value = "JDBC property value", supportsExpressionLanguage = true,
+        description = "Specifies a property name and value to be set on the JDBC connection(s). "
+                + "If Expression Language is used, evaluation will be performed upon the controller service being enabled. "
+                + "Note that no flow file input (attributes, e.g.) is available for use in Expression Language constructs for these properties.")
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
@@ -148,6 +154,18 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         return properties;
     }
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
+
     /**
      * Configures connection pool by creating an instance of the
      * {@link BasicDataSource} based on configuration provided with
@@ -192,6 +210,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
+
+        context.getProperties().keySet().stream().filter(PropertyDescriptor::isDynamic)
+                .forEach((dynamicPropDescriptor) -> dataSource.addConnectionProperty(dynamicPropDescriptor.getName(),
+                        context.getProperty(dynamicPropDescriptor).evaluateAttributeExpressions().getValue()));
+
     }
 
     /**

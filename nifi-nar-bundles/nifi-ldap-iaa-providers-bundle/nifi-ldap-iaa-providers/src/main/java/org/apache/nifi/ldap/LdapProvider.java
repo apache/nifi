@@ -174,14 +174,14 @@ public class LdapProvider implements LoginIdentityProvider {
         context.setReferral(referralStrategy.getValue());
 
         // url
-        final String url = configurationContext.getProperty("Url");
+        final String urls = configurationContext.getProperty("Url");
 
-        if (StringUtils.isBlank(url)) {
+        if (StringUtils.isBlank(urls)) {
             throw new ProviderCreationException("LDAP identity provider 'Url' must be specified.");
         }
 
         // connection
-        context.setUrl(url);
+        context.setUrls(StringUtils.split(urls));
 
         // search criteria
         final String userSearchBase = configurationContext.getProperty("User Search Base");

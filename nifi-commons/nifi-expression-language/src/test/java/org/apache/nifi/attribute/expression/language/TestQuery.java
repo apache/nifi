@@ -72,6 +72,7 @@ public class TestQuery {
         assertValid("${hostname()}");
         assertValid("${literal(3)}");
         assertValid("${random()}");
+        assertValid("${getStateValue('the_count')}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -192,9 +193,8 @@ public class TestQuery {
     }
 
     @Test
-    @Ignore("Depends on TimeZone")
     public void testDateToNumber() {
-        final Query query = Query.compile("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):toNumber()}");
+        final Query query = Query.compile("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):toNumber()}");
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
@@ -898,6 +898,9 @@ public class TestQuery {
 
         verifyEquals("${entryDate:toNumber():toDate():format('yyyy')}", attributes, String.valueOf(year));
 
+        // test for not existing attribute (NIFI-1962)
+        assertEquals("", Query.evaluateExpressions("${notExistingAtt:toDate()}", attributes, null));
+
         attributes.clear();
         attributes.put("month", "3");
         attributes.put("day", "4");
@@ -1331,6 +1334,15 @@ public class TestQuery {
     }
 
     @Test
+    public void testDateFormatConversionWithTimeZone() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("blue", "20130917162643");
+        verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'GMT')}", attributes, "2013/09/17 16:26:43.000Z");
+        verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'Europe/Paris')}", attributes, "2013/09/17 18:26:43.000Z");
+        verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'America/Los_Angeles')}", attributes, "2013/09/17 09:26:43.000Z");
+    }
+
+    @Test
     public void testNot() {
         verifyEquals("${ab:notNull():not()}", new HashMap<String, String>(), true);
     }
@@ -1486,6 +1498,32 @@ public class TestQuery {
         assertEquals(1, expressions.size());
         assertEquals("${abc}", expressions.get(0));
         assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes));
+    }
+
+    @Test
+    public void testGetStateValue() {
+        final Map<String, String> stateValues = new HashMap<>();
+        stateValues.put("abc", "xyz");
+        stateValues.put("123", "qwe");
+        stateValues.put("true", "asd");
+        stateValues.put("iop", "098");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "iop");
+        attributes.put("4321", "123");
+        attributes.put("false", "bnm");
+
+        String query = "${getStateValue('abc')}";
+        verifyEquals(query, attributes, stateValues, "xyz");
+
+        query = "${getStateValue(${'4321':toString()})}";
+        verifyEquals(query, attributes, stateValues, "qwe");
+
+        query = "${getStateValue(${literal(true):toString()})}";
+        verifyEquals(query, attributes, stateValues, "asd");
+
+        query = "${getStateValue(${abc}):equals('098')}";
+        verifyEquals(query, attributes, stateValues, true);
     }
 
     @Test
@@ -1657,12 +1695,33 @@ public class TestQuery {
           verifyEquals("${string:unescapeHtml4()}", attributes, "special ♣");
         }
 
+    @Test
+    public void testIfElse() {
+        final Map<String, String> attributes = new HashMap<>();
+        verifyEquals("${attr:isNull():ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "b");
+        attributes.put("attr", "hello");
+        verifyEquals("${attr:isNull():ifElse('a', 'b')}", attributes, "b");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "b");
+        attributes.put("attr", "true");
+        verifyEquals("${attr:ifElse('a', 'b')}", attributes, "a");
+
+        verifyEquals("${attr2:isNull():ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${literal(true):ifElse('a', 'b')}", attributes, "a");
+        verifyEquals("${literal(true):ifElse(false, 'b')}", attributes, "false");
+
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
+        verifyEquals(expression,attributes, null, expectedResult);
+    }
+
+    private void verifyEquals(final String expression, final Map<String, String> attributes, final Map<String, String> stateValues, final Object expectedResult) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
+        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null, stateValues));
 
         final Query query = Query.compile(expression);
-        final QueryResult<?> result = query.evaluate(attributes);
+        final QueryResult<?> result = query.evaluate(attributes, stateValues);
 
         if (expectedResult instanceof Long) {
             if (ResultType.NUMBER.equals(result.getResultType())) {

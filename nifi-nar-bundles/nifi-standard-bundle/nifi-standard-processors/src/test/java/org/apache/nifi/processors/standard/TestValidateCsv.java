@@ -61,6 +61,25 @@ public class TestValidateCsv {
     }
 
     @Test
+    public void testNullValues() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        runner.setProperty(ValidateCsv.SCHEMA, "Null, Null, Null");
+
+        runner.enqueue("#Name,Birthdate,Weight\nJohn,\"\",63.2\nBob,,45.0");
+        runner.run();
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("#Name,Birthdate,Weight\nJohn,,63.2\nBob,,45.0");
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
+    }
+
+    @Test
     public void testUniqueWithSplit() {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
         runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");

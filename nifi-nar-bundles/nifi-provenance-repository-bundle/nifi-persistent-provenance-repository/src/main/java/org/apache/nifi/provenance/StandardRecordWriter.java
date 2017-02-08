@@ -19,6 +19,7 @@ package org.apache.nifi.provenance;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UTFDataFormatException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -34,6 +35,9 @@ import org.slf4j.LoggerFactory;
  */
 @Deprecated
 public class StandardRecordWriter extends CompressableRecordWriter implements RecordWriter {
+
+    public static final int MAX_ALLOWED_UTF_LENGTH = 65_535;
+
     private static final Logger logger = LoggerFactory.getLogger(StandardRecordWriter.class);
     public static final int SERIALIZATION_VERISON = 9;
     public static final String SERIALIZATION_NAME = "org.apache.nifi.provenance.PersistentProvenanceRepository";
@@ -72,7 +76,7 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
         final ProvenanceEventType recordType = record.getEventType();
 
         out.writeLong(recordIdentifier);
-        out.writeUTF(record.getEventType().name());
+        writeUTFLimited(out, record.getEventType().name());
         out.writeLong(record.getEventTime());
         out.writeLong(record.getFlowFileEntryDate());
         out.writeLong(record.getEventDuration());
@@ -101,9 +105,9 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
         // If Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
         if (record.getContentClaimSection() != null && record.getContentClaimContainer() != null && record.getContentClaimIdentifier() != null) {
             out.writeBoolean(true);
-            out.writeUTF(record.getContentClaimContainer());
-            out.writeUTF(record.getContentClaimSection());
-            out.writeUTF(record.getContentClaimIdentifier());
+            writeUTFLimited(out, record.getContentClaimContainer());
+            writeUTFLimited(out, record.getContentClaimSection());
+            writeUTFLimited(out, record.getContentClaimIdentifier());
             if (record.getContentClaimOffset() == null) {
                 out.writeLong(0L);
             } else {
@@ -117,9 +121,9 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
         // If Previous Content Claim Info is present, write out a 'TRUE' followed by claim info. Else, write out 'false'.
         if (record.getPreviousContentClaimSection() != null && record.getPreviousContentClaimContainer() != null && record.getPreviousContentClaimIdentifier() != null) {
             out.writeBoolean(true);
-            out.writeUTF(record.getPreviousContentClaimContainer());
-            out.writeUTF(record.getPreviousContentClaimSection());
-            out.writeUTF(record.getPreviousContentClaimIdentifier());
+            writeUTFLimited(out, record.getPreviousContentClaimContainer());
+            writeUTFLimited(out, record.getPreviousContentClaimSection());
+            writeUTFLimited(out, record.getPreviousContentClaimIdentifier());
             if (record.getPreviousContentClaimOffset() == null) {
                 out.writeLong(0L);
             } else {
@@ -157,7 +161,7 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
     }
 
     protected void writeUUID(final DataOutputStream out, final String uuid) throws IOException {
-        out.writeUTF(uuid);
+        writeUTFLimited(out, uuid);
     }
 
     protected void writeUUIDs(final DataOutputStream out, final Collection<String> list) throws IOException {
@@ -176,7 +180,7 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
             out.writeBoolean(false);
         } else {
             out.writeBoolean(true);
-            out.writeUTF(toWrite);
+            writeUTFLimited(out, toWrite);
         }
     }
 
@@ -194,6 +198,45 @@ public class StandardRecordWriter extends CompressableRecordWriter implements Re
         out.writeInt(bytes.length);
         out.write(bytes);
     }
+
+    private void writeUTFLimited(final java.io.DataOutputStream out, final String utfString) throws IOException {
+        try {
+            out.writeUTF(utfString);
+        } catch (UTFDataFormatException e) {
+            final String truncated = utfString.substring(0, getCharsInUTFLength(utfString, MAX_ALLOWED_UTF_LENGTH));
+            logger.warn("Truncating repository record value!  Attempted to write {} chars that encode to a UTF byte length greater than "
+                            + "supported maximum ({}), truncating to {} chars.",
+                    utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
+            if (logger.isDebugEnabled()) {
+                logger.warn("String value was:\n{}", truncated);
+            }
+            out.writeUTF(truncated);
+        }
+    }
+
+    static int getCharsInUTFLength(final String str, final int utfLimit) {
+        // see java.io.DataOutputStream.writeUTF()
+        int strlen = str.length();
+        int utflen = 0;
+        int c;
+
+        /* use charAt instead of copying String to Char array */
+        for (int i = 0; i < strlen; i++) {
+            c = str.charAt(i);
+            if ((c >= 0x0001) & (c <= 0x007F)) {
+                utflen++;
+            } else if (c > 0x07FF) {
+                utflen += 3;
+            } else {
+                utflen += 2;
+            }
+            if (utflen > utfLimit) {
+                return i;
+            }
+        }
+        return strlen;
+    }
+
 
 
     @Override

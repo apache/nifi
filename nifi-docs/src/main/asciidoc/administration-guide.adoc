@@ -322,7 +322,7 @@ nifi.security.user.login.identity.provider=ldap-provider
 |`Referral Strategy` | Strategy for handling referrals. Possible values are FOLLOW, IGNORE, THROW.
 |`Connect Timeout` | Duration of connect timeout. (i.e. 10 secs).
 |`Read Timeout` | Duration of read timeout. (i.e. 10 secs).
-|`Url` | Url of the LDAP servier (i.e. ldap://<hostname>:<port>).
+|`Url` | Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
 |`User Search Base` | Base DN for searching for users (i.e. CN=Users,DC=example,DC=com).
 |`User Search Filter` | Filter for searching for users against the 'User Search Base'. (i.e. sAMAccountName={0}). The user specified name is inserted into '{0}'.
 |`Identity Strategy` | Strategy to identify users. Possible values are USE_DN and USE_USERNAME. The default functionality if this property is missing is USE_DN in order to retain backward
@@ -867,8 +867,8 @@ Additional Resources
 * http://security.stackexchange.com/a/6415/16485[Bcrypt vs PBKDF2]
 * http://wildlyinaccurate.com/bcrypt-choosing-a-work-factor/[Choosing a work factor for Bcrypt]
 * https://docs.spring.io/spring-security/site/docs/current/apidocs/org/springframework/security/crypto/bcrypt/BCrypt.html[Spring Security Bcrypt]
-* https://www.openssl.org/docs/manmaster/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
-* https://www.openssl.org/docs/manmaster/crypto/PKCS5_PBKDF2_HMAC.html[OpenSSL PBKDF2 KDF]
+* https://www.openssl.org/docs/man1.1.0/crypto/EVP_BytesToKey.html[OpenSSL EVP BytesToKey PKCS#1v1.5]
+* https://wiki.openssl.org/index.php/Manual:PKCS5_PBKDF2_HMAC(3)[OpenSSL PBKDF2 KDF]
 * http://security.stackexchange.com/a/29139/16485[OpenSSL KDF flaws description]
 
 Salt and IV Encoding
@@ -1113,12 +1113,35 @@ When applied to 'login-identity-providers.xml', the property elements are update
    </provider>
 ----
 
+[encrypt_config_property_migration]
+Sensitive Property Key Migration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update `bootstrap.conf` with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
 
 * old key -> new key
 * old key -> new password
 * old password -> new key
 * old password -> new password
+
+[encrypt_config_flow_migration]
+Existing Flow Migration
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This tool can also be used to change the value of `nifi.sensitive.props.key` for an existing flow. The tool will read the existing `flow.xml.gz` and decrypt any sensitive component properties using the original key,
+then re-encrypt the sensitive properties with the new key, and write out a new version of the `flow.xml.gz`, or overwrite the existing one.
+
+The current sensitive properties key is not provided as a command-line argument, as it is read directly from `nifi.properties`. As this file is a required parameter, the `-x`/`--encryptFlowXmlOnly` flags tell the tool *not* to attempt to encrypt the properties in `nifi.properties`, but rather to *only* update the `nifi.sensitive.props.key` value with the new key. The exception to this is if the `nifi.properties` is *already* encrypted, the new sensitive property key will also be encrypted before being written to `nifi.properties`.
+
+The following command would migrate the sensitive properties key in place, meaning it would overwrite the existing `flow.xml.gz` and `nifi.properties`:
+----
+./encrypt-config.sh -f /path/to/flow.xml.gz -n ./path/to/nifi.properties -s newpassword -x
+----
+
+The following command would migrate the sensitive properties key and write out a separate `flow.xml.gz` and `nifi.properties`:
+----
+./encrypt-config.sh -f ./path/to/src/flow.xml.gz -g /path/to/dest/flow.xml.gz -n /path/to/src/nifi.properties -o /path/to/dest/nifi.properties -s newpassword -x
+----
 
 [[encrypt-config_password]]
 Password Key Derivation
@@ -1655,7 +1678,7 @@ You can use the following command line options with the ZooKeeper Migrator:
 * `-k,--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a,--auth` option.
 * `-r,--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f,--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s,--send` option.
 * `-s,--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f,--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z,--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r,--receive` option.
-* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server to use, specified by a  connection string with path, in the format of _host:port/znode/path_.
+* `-z,--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
 
 [[migrating_between_source_destination_zookeepers]]
 ==== Migrating Between Source and Destination ZooKeepers
@@ -1714,9 +1737,9 @@ If the state-management.xml specifies Open, no authentication is required.
 5. Migrate the ZooKeeper data to the destination ZooKeeper. If the source and destination ZooKeepers are the same, the `--ignore-source` option can be added to the following examples.
 
 * For an open ZooKeeper:
-** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -f /*path*/*to*/*export*/*zk-source-data.json*
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -f /*path*/*to*/*export*/*zk-source-data.json*
 * For a ZooKeeper using Kerberos for authentication:
-** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/ -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
+** zk-migrator.sh -s -z *destinationHostname:destinationClientPort*/*destinationRootPath*/components -k /*path*/*to*/*jaasconfig*/*jaas-config.conf* -f /*path*/*to*/*export*/*zk-source-data.json*
 
 6. Once the migration has completed successfully, start the processors in the NiFi flow.  Processing should continue from the point at which it was stopped when the NiFi flow was stopped.
 
@@ -2218,6 +2241,8 @@ the connection a failure. The default value is _5 secs_.
 from the remote node before considering the communication with the node a failure. The default value is _5 secs_.
 |nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
+|nifi.cluster.flow.election.max.wait.time|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default is _5 min_. Note that the time starts as soon as the first vote is cast.
+|nifi.cluster.flow.election.max.candidates|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach at least this number of nodes in the cluster.
 |====
 
 [[claim_management]]

@@ -1086,4 +1086,18 @@ public abstract class NiFiProperties {
         };
     }
 
+    /**
+     * This method is used to validate the NiFi properties when the file is loaded
+     * for the first time. The objective is to stop NiFi startup in case a property
+     * is not correctly configured and could cause issues afterwards.
+     */
+    public void validate() {
+        // REMOTE_INPUT_HOST should be a valid hostname
+        String remoteInputHost = getProperty(REMOTE_INPUT_HOST);
+        if(!StringUtils.isBlank(remoteInputHost) && remoteInputHost.split(":").length > 1) { // no scheme/port needed here (http://)
+            throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
+        }
+        // Other properties to validate...
+    }
+
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.distributed.cache.server;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,8 +32,6 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.distributed.cache.protocol.ProtocolHandshake;
 import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.io.socket.SocketChannelInputStream;
@@ -121,9 +121,9 @@ public abstract class AbstractCacheServer implements CacheServer {
                                 return;
                             }
                             try (final InputStream in = new BufferedInputStream(rawInputStream);
-                                final OutputStream out = new BufferedOutputStream(rawOutputStream)) {
+                                 final OutputStream out = new BufferedOutputStream(rawOutputStream)) {
 
-                                final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(1);
+                                final VersionNegotiator versionNegotiator = getVersionNegotiator();
 
                                 ProtocolHandshake.receiveHandshake(in, out, versionNegotiator);
 
@@ -161,6 +161,14 @@ public abstract class AbstractCacheServer implements CacheServer {
         thread.setDaemon(true);
         thread.setName("Distributed Cache Server: " + identifier);
         thread.start();
+    }
+
+    /**
+     * Refer {@link org.apache.nifi.distributed.cache.protocol.ProtocolHandshake#initiateHandshake(InputStream, OutputStream, VersionNegotiator)}
+     * for details of each version enhancements.
+     */
+    protected StandardVersionNegotiator getVersionNegotiator() {
+        return new StandardVersionNegotiator(1);
     }
 
     @Override

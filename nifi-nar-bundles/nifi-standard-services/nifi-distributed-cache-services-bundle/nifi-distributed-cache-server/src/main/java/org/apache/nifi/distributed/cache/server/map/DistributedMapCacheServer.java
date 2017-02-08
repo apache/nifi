@@ -17,6 +17,7 @@
 package org.apache.nifi.distributed.cache.server.map;
 
 import java.io.File;
+import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
 
@@ -69,10 +70,14 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir) throws IOException {
+        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
     }
 
 }

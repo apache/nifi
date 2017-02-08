@@ -88,7 +88,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                     headerText: 'Configuration Error'
                 });
             } else {
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
             }
         });
     };
@@ -230,7 +230,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the remote group was dropped.
          */
         promptForRemoteProcessGroupUri: function (pt) {
-            var self = this;
+            var remoteProcessGroupComponent = this;
             var addRemoteProcessGroup = function () {
                 // create the remote process group
                 createRemoteProcessGroup(pt);
@@ -256,7 +256,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                     },
                     handler: {
                         click: function () {
-                            self.modal.hide();
+                            remoteProcessGroupComponent.modal.hide();
                         }
                     }
                 }]);

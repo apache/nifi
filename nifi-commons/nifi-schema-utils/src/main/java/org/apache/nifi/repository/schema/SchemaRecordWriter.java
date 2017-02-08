@@ -17,15 +17,23 @@
 
 package org.apache.nifi.repository.schema;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UTFDataFormatException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 public class SchemaRecordWriter {
+
+    public static final int MAX_ALLOWED_UTF_LENGTH = 65_535;
+
+    private static final Logger logger = LoggerFactory.getLogger(SchemaRecordWriter.class);
 
     public void writeRecord(final Record record, final OutputStream out) throws IOException {
         // write sentinel value to indicate that there is a record. This allows the reader to then read one
@@ -105,7 +113,7 @@ public class SchemaRecordWriter {
                 out.writeLong((Long) value);
                 break;
             case STRING:
-                out.writeUTF((String) value);
+                writeUTFLimited(out, (String) value);
                 break;
             case LONG_STRING:
                 final byte[] charArray = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -126,7 +134,7 @@ public class SchemaRecordWriter {
                 break;
             case UNION:
                 final NamedValue namedValue = (NamedValue) value;
-                out.writeUTF(namedValue.getName());
+                writeUTFLimited(out, namedValue.getName());
                 final Record childRecord = (Record) namedValue.getValue();
                 writeRecordFields(childRecord, out);
                 break;
@@ -136,4 +144,44 @@ public class SchemaRecordWriter {
                 break;
         }
     }
+
+    private void writeUTFLimited(final DataOutputStream out, final String utfString) throws IOException {
+        try {
+            out.writeUTF(utfString);
+        } catch (UTFDataFormatException e) {
+            final String truncated = utfString.substring(0, getCharsInUTFLength(utfString, MAX_ALLOWED_UTF_LENGTH));
+            logger.warn("Truncating repository record value!  Attempted to write {} chars that encode to a UTF byte length greater than "
+                            + "supported maximum ({}), truncating to {} chars.",
+                    utfString.length(), MAX_ALLOWED_UTF_LENGTH, truncated.length());
+            if (logger.isDebugEnabled()) {
+                logger.warn("String value was:\n{}", truncated);
+            }
+            out.writeUTF(truncated);
+        }
+    }
+
+
+    static int getCharsInUTFLength(final String str, final int utfLimit) {
+        // see java.io.DataOutputStream.writeUTF()
+        int strlen = str.length();
+        int utflen = 0;
+        int c;
+
+        /* use charAt instead of copying String to Char array */
+        for (int i = 0; i < strlen; i++) {
+            c = str.charAt(i);
+            if ((c >= 0x0001) & (c <= 0x007F)) {
+                utflen++;
+            } else if (c > 0x07FF) {
+                utflen += 3;
+            } else {
+                utflen += 2;
+            }
+            if (utflen > utfLimit) {
+                return i;
+            }
+        }
+        return strlen;
+    }
+
 }

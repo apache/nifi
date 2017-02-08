@@ -253,7 +253,7 @@ nf.ComponentState = (function () {
 
                             // reload the table with no state
                             loadComponentState()
-                        }).fail(nf.Common.handleAjaxError);
+                        }).fail(nf.ErrorHandler.handleAjaxError);
                     } else {
                         nf.Dialog.showOkDialog({
                             headerText: 'Component State',
@@ -265,12 +265,24 @@ nf.ComponentState = (function () {
 
             // initialize the queue listing table
             var componentStateColumns = [
-                {id: 'key', field: 'key', name: 'Key', sortable: true, resizable: true},
-                {id: 'value', field: 'value', name: 'Value', sortable: true, resizable: true}
+                {
+                    id: 'key',
+                    field: 'key',
+                    name: 'Key',
+                    sortable: true,
+                    resizable: true
+                },
+                {
+                    id: 'value',
+                    field: 'value',
+                    name: 'Value',
+                    sortable: true,
+                    resizable: true
+                }
             ];
 
             // conditionally show the cluster node identifier
-            if (nf.Canvas.isClustered()) {
+            if (nf.ClusterSummary.isClustered()) {
                 componentStateColumns.push({
                     id: 'scope',
                     field: 'scope',
@@ -378,7 +390,7 @@ nf.ComponentState = (function () {
                 // reset the grid size
                 var componentStateGrid = componentStateTable.data('gridInstance');
                 componentStateGrid.resizeCanvas();
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         }
     };
 }());

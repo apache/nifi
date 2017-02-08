@@ -36,6 +36,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -435,6 +436,13 @@ public class ProcessorResource extends ApplicationResource {
                     + "not equal the processor id of the requested resource (%s).", requestProcessorDTO.getId(), id));
         }
 
+        final PositionDTO proposedPosition = requestProcessorDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessorEntity);
         }
@@ -488,6 +496,7 @@ public class ProcessorResource extends ApplicationResource {
             response = ProcessorEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
                     @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
@@ -532,7 +541,12 @@ public class ProcessorResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final ConfigurableComponentAuthorizable processor = lookup.getProcessor(id);
+
+                    // ensure write permission to the processor
                     processor.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    processor.getAuthorizable().getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processor, authorizer, lookup, false);

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,7 +32,6 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.dom.DOMSource;
 
 import org.apache.nifi.persistence.TemplateDeserializer;
-import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -193,8 +193,10 @@ public class TemplateUtils {
                 processorConfig.setAutoTerminatedRelationships(null);
             }
 
-            for (final RelationshipDTO relationship : processorDTO.getRelationships()) {
-                relationship.setDescription(null);
+            if (processorDTO.getRelationships() != null) {
+                for (final RelationshipDTO relationship : processorDTO.getRelationships()) {
+                    relationship.setDescription(null);
+                }
             }
 
             processorDTO.setValidationErrors(null);

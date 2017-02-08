@@ -189,7 +189,7 @@ nf.ConnectionConfiguration = (function () {
 
             // populate the port information
             $('#input-port-source').show();
-            $('#input-port-source-name').text(inputPortName);
+            $('#input-port-source-name').text(inputPortName).attr('title', inputPortName);
 
             // populate the connection source details
             $('#connection-source-id').val(inputPortData.id);
@@ -244,8 +244,8 @@ nf.ConnectionConfiguration = (function () {
 
             // populate the source processor information
             $('#processor-source').show();
-            $('#processor-source-name').text(processorName);
-            $('#processor-source-type').text(processorType);
+            $('#processor-source-name').text(processorName).attr('title', processorName);
+            $('#processor-source-type').text(processorType).attr('title', processorType);
 
             // populate the connection source details
             $('#connection-source-id').val(processorData.id);
@@ -340,7 +340,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -416,7 +416,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -443,7 +443,7 @@ nf.ConnectionConfiguration = (function () {
             var outputPortName = outputPortData.permissions.canRead ? outputPortData.component.name : outputPortData.id;
 
             $('#output-port-destination').show();
-            $('#output-port-destination-name').text(outputPortName);
+            $('#output-port-destination-name').text(outputPortName).attr('title', outputPortName);
 
             // populate the connection destination details
             $('#connection-destination-id').val(outputPortData.id);
@@ -482,8 +482,8 @@ nf.ConnectionConfiguration = (function () {
             var processorType = processorData.permissions.canRead ? nf.Common.substringAfterLast(processorData.component.type, '.') : 'Processor';
 
             $('#processor-destination').show();
-            $('#processor-destination-name').text(processorName);
-            $('#processor-destination-type').text(processorType);
+            $('#processor-destination-name').text(processorName).attr('title', processorName);
+            $('#processor-destination-type').text(processorType).attr('title', processorType);
 
             // populate the connection destination details
             $('#connection-destination-id').val(processorData.id);
@@ -565,7 +565,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -641,7 +641,7 @@ nf.ConnectionConfiguration = (function () {
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -926,7 +926,7 @@ nf.ConnectionConfiguration = (function () {
                 nf.Birdseye.refresh();
             }).fail(function (xhr, status, error) {
                 // handle the error
-                nf.Common.handleAjaxError(xhr, status, error);
+                nf.ErrorHandler.handleAjaxError(xhr, status, error);
             });
         }
     };
@@ -1000,7 +1000,7 @@ nf.ConnectionConfiguration = (function () {
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     });
                 } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                 }
             });
         } else {
@@ -1179,7 +1179,7 @@ nf.ConnectionConfiguration = (function () {
                     opacity: 0.6
                 });
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**
@@ -1240,7 +1240,7 @@ nf.ConnectionConfiguration = (function () {
 
                 // show the border if necessary
                 var relationshipNames = $('#relationship-names');
-                if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > relationshipNames.innerHeight()) {
+                if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > Math.round(relationshipNames.innerHeight())) {
                     relationshipNames.css('border-width', '1px');
                 }
             }).fail(function () {
@@ -1307,7 +1307,7 @@ nf.ConnectionConfiguration = (function () {
                     if (nf.CanvasUtils.isProcessGroup(source) || nf.CanvasUtils.isRemoteProcessGroup(source)) {
                         // populate the connection source details
                         $('#connection-source-id').val(connection.source.id);
-                        $('#read-only-output-port-name').text(connection.source.name);
+                        $('#read-only-output-port-name').text(connection.source.name).attr('title', connection.source.name);
                     }
 
                     // if the destination is a process gorup or remote process group, select the appropriate port if applicable
@@ -1414,7 +1414,7 @@ nf.ConnectionConfiguration = (function () {
 
                     // show the border if necessary
                     var relationshipNames = $('#relationship-names');
-                    if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > relationshipNames.innerHeight()) {
+                    if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > Math.round(relationshipNames.innerHeight())) {
                         relationshipNames.css('border-width', '1px');
                     }
                 }).fail(function () {

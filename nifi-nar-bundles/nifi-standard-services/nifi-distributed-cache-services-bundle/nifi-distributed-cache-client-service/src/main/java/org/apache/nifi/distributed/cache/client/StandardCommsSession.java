@@ -45,6 +45,8 @@ public class StandardCommsSession implements CommsSession {
     private final SocketChannelOutputStream out;
     private final InterruptableOutputStream bufferedOut;
 
+    private int protocolVersion;
+
     public StandardCommsSession(final String hostname, final int port) throws IOException {
         socketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
         socketChannel.configureBlocking(false);
@@ -122,4 +124,15 @@ public class StandardCommsSession implements CommsSession {
     public long getTimeout(final TimeUnit timeUnit) {
         return timeUnit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
+
+    @Override
+    public int getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    @Override
+    public void setProtocolVersion(final int protocolVersion) {
+        this.protocolVersion = protocolVersion;
+    }
+
 }

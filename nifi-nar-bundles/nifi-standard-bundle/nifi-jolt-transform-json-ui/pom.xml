@@ -221,12 +221,7 @@ language governing permissions and limitations under the License. -->
                     <excludes combine.children="append">
                         <exclude>src/main/frontend/package.json</exclude>
                         <exclude>src/main/webapp/css/main.css</exclude>
-                        <exclude>src/main/webapp/js/jsonlint/*</exclude>
                         <exclude>src/main/webapp/js/js-beautify/*</exclude>
-                        <exclude>src/main/webapp/js/jquery/*</exclude>
-                        <exclude>src/main/webapp/js/codemirror/</exclude>
-                        <exclude>src/main/webapp/js/angular/**/*</exclude>
-                        <exclude>src/main/webapp/js/angular-ui/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>

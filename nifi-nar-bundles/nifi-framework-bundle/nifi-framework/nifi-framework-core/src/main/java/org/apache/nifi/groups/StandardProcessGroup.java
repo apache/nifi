@@ -619,6 +619,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             group.removeLabel(label);
         }
 
+        for (final ControllerServiceNode cs : group.getControllerServices(false)) {
+            group.removeControllerService(cs);
+        }
+
         for (final ProcessGroup childGroup : new ArrayList<>(group.getProcessGroups())) {
             group.removeProcessGroup(childGroup);
         }
@@ -2322,6 +2326,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             for (final Connection connection : connections.values()) {
                 connection.verifyCanDelete();
+            }
+
+            for(final ControllerServiceNode cs : controllerServices.values()) {
+                cs.verifyCanDelete();
             }
 
             for (final ProcessGroup childGroup : processGroups.values()) {

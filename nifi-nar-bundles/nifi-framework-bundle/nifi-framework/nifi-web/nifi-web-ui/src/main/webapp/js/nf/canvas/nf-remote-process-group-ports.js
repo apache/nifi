@@ -68,8 +68,9 @@ nf.RemoteProcessGroupPorts = (function () {
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // TODO - update the revision
-                                // nf.Client.setRevision(response.revision);
+                                // Update the RemoteProcessGroup revision.
+                                // RemotePorts share revision with parent RemoteProcessGroup.
+                                remoteProcessGroupData.revision = response.revision;
 
                                 // get the response
                                 var remotePort = response.remoteProcessGroupPort;
@@ -99,7 +100,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                         headerText: 'Remote Process Group Ports'
                                     });
                                 } else {
-                                    nf.Common.handleAjaxError(xhr, status, error);
+                                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
                                 }
                             }).always(function () {
                                 // close the dialog
@@ -298,8 +299,9 @@ nf.RemoteProcessGroupPorts = (function () {
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
-                        // TODO - update the revision
-                        // nf.Client.setRevision(response.revision);
+                        // Update the RemoteProcessGroup revision.
+                        // RemotePorts share revision with parent RemoteProcessGroup.
+                        remoteProcessGroupData.revision = response.revision;
 
                         // get the response
                         var remotePort = response.remoteProcessGroupPort;
@@ -349,7 +351,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                 dialogContent: content
                             });
                         } else {
-                            nf.Common.handleAjaxError(xhr, status, error);
+                            nf.ErrorHandler.handleAjaxError(xhr, status, error);
                         }
                     });
                 });
@@ -546,7 +548,7 @@ nf.RemoteProcessGroupPorts = (function () {
 
                     // show the details
                     $('#remote-process-group-ports').modal('show');
-                }).fail(nf.Common.handleAjaxError);
+                }).fail(nf.ErrorHandler.handleAjaxError);
             }
         }
     };

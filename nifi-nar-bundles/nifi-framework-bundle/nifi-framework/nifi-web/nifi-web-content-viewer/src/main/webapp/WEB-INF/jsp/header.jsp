@@ -21,7 +21,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
         <title>NiFi</title>
-        <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/assets/reset.css/reset.css" type="text/css" />
         <link rel="stylesheet" href="css/main.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/css/common-ui.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
@@ -30,7 +30,7 @@
         <link rel="stylesheet" href="../nifi/css/message-page.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="../nifi/assets/jquery/dist/jquery.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>

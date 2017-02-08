@@ -51,7 +51,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     function TemplateComponent() {
@@ -162,7 +162,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the template was dropped.
          */
         promptForTemplate: function (pt) {
-            var self = this;
+            var templateComponent = this;
             $.ajax({
                 type: 'GET',
                 url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/flow/templates',
@@ -170,6 +170,15 @@ nf.ng.TemplateComponent = function (serviceProvider) {
             }).done(function (response) {
                 var templates = response.templates;
                 if (nf.Common.isDefinedAndNotNull(templates) && templates.length > 0) {
+                    // sort the templates
+                    templates = templates.sort(function (one, two) {
+                        var oneDate = nf.Common.parseDateTime(one.template.timestamp);
+                        var twoDate = nf.Common.parseDateTime(two.template.timestamp);
+
+                        // newest templates first
+                        return twoDate.getTime() - oneDate.getTime();
+                    });
+
                     var options = [];
                     $.each(templates, function (_, templateEntity) {
                         if (templateEntity.permissions.canRead === true) {
@@ -188,7 +197,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
                     });
 
                     // update the button model
-                    self.modal.update('setButtonModel', [{
+                    templateComponent.modal.update('setButtonModel', [{
                         buttonText: 'Add',
                         color: {
                             base: '#728E9B',
@@ -202,7 +211,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
                                 var templateId = selectedOption.value;
 
                                 // hide the dialog
-                                self.modal.hide();
+                                templateComponent.modal.hide();
 
                                 // instantiate the specified template
                                 createTemplate(templateId, pt);
@@ -218,13 +227,13 @@ nf.ng.TemplateComponent = function (serviceProvider) {
                             },
                             handler: {
                                 click: function () {
-                                    self.modal.hide();
+                                    templateComponent.modal.hide();
                                 }
                             }
                         }]);
 
                     // show the dialog
-                    self.modal.show();
+                    templateComponent.modal.show();
                 } else {
                     nf.Dialog.showOkDialog({
                         headerText: 'Instantiate Template',
@@ -232,7 +241,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
                     });
                 }
 
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         }
     }
 

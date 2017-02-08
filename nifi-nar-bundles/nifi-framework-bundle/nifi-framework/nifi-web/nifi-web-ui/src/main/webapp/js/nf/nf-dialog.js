@@ -15,36 +15,47 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global nf, define, module, require, exports */
 
-$(document).ready(function () {
-    // configure the ok dialog
-    $('#nf-ok-dialog').modal({
-        scrollableContentStyle: 'scrollable',
-        handler: {
-            close: function () {
-                // clear the content
-                $('#nf-ok-dialog-content').empty();
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery'], function ($) {
+            return (nf.Dialog = factory($));
+        });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Dialog = factory(require('jquery')));
+    } else {
+        nf.Dialog = factory(root.$);
+    }
+}(this, function ($) {
+    'use strict';
+
+    $(document).ready(function () {
+        // configure the ok dialog
+        $('#nf-ok-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            handler: {
+                close: function () {
+                    // clear the content
+                    $('#nf-ok-dialog-content').empty();
+                }
             }
-        }
+        });
+
+        // configure the yes/no dialog
+        $('#nf-yes-no-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            handler: {
+                close: function () {
+                    // clear the content and reset the button model
+                    $('#nf-yes-no-dialog-content').empty();
+                    $('#nf-yes-no-dialog').modal('setButtonModel', []);
+                }
+            }
+        });
     });
 
-    // configure the yes/no dialog
-    $('#nf-yes-no-dialog').modal({
-        scrollableContentStyle: 'scrollable',
-        handler: {
-            close: function () {
-                // clear the content and reset the button model
-                $('#nf-yes-no-dialog-content').empty();
-                $('#nf-yes-no-dialog').modal('setButtonModel', []);
-            }
-        }
-    });
-});
-
-nf.Dialog = (function () {
-
-    return {
+    var nfDialog = {
         /**
          * Shows an general dialog with an Okay button populated with the
          * specified dialog content.
@@ -140,6 +151,28 @@ nf.Dialog = (function () {
 
             // show the dialog
             $('#nf-yes-no-dialog').modal('setHeaderText', options.headerText).modal('show');
+        },
+
+        /**
+         * Shows a message when disconnected from the cluster.
+         */
+        showDisconnectedFromClusterMessage: function () {
+            nfDialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.'
+            });
+        },
+
+        /**
+         * Shows a message when connected to the cluster.
+         */
+        showConnectedToClusterMessage: function () {
+            nfDialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.'
+            });
         }
     };
-}());
+
+    return nfDialog;
+}));

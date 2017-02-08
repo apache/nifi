@@ -34,9 +34,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
@@ -184,6 +188,31 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
+    @Test
+    public void testFailingHttpRequest() throws Exception {
+
+        runner = TestRunners.newTestRunner(InvokeHTTP.class);
+
+        // Remember: we expect that connecting to the following URL should raise a Java exception
+        runner.setProperty(InvokeHTTP.PROP_URL, "http://127.0.0.1:0");
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 1);
+        runner.assertPenalizeCount(1);
+
+        // expected in request java.exception
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).get(0);
+        bundle.assertAttributeEquals(InvokeHTTP.EXCEPTION_CLASS, "java.lang.IllegalArgumentException");
+
+    }
+
     public static class MyProxyHandler extends AbstractHandler {
 
         @Override
@@ -206,5 +235,31 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
                 response.setContentLength(0);
             }
         }
+    }
+
+    @Test
+    public void testOnPropertyModified() throws Exception {
+        final InvokeHTTP processor = new InvokeHTTP();
+        final Field regexAttributesToSendField = InvokeHTTP.class.getDeclaredField("regexAttributesToSend");
+        regexAttributesToSendField.setAccessible(true);
+
+        assertNull(regexAttributesToSendField.get(processor));
+
+        // Set Attributes to Send.
+        processor.onPropertyModified(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, null, "uuid");
+        assertNotNull(regexAttributesToSendField.get(processor));
+
+        // Null clear Attributes to Send. NIFI-1125: Throws NullPointerException.
+        processor.onPropertyModified(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, "uuid", null);
+        assertNull(regexAttributesToSendField.get(processor));
+
+        // Set Attributes to Send.
+        processor.onPropertyModified(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, null, "uuid");
+        assertNotNull(regexAttributesToSendField.get(processor));
+
+        // Clear Attributes to Send with empty string.
+        processor.onPropertyModified(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, "uuid", "");
+        assertNull(regexAttributesToSendField.get(processor));
+
     }
 }

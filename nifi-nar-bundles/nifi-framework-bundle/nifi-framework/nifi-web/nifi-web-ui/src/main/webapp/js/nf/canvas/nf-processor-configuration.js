@@ -87,7 +87,7 @@ nf.ProcessorConfiguration = (function () {
             text: 'Primary node',
             value: 'PRIMARY',
             description: 'Processor will be scheduled to run only on the primary node',
-            disabled: !nf.Canvas.isClustered() && processor.config['executionNode'] === 'PRIMARY'
+            disabled: !nf.ClusterSummary.isClustered() && processor.config['executionNode'] === 'PRIMARY'
         }];
     };
 
@@ -114,7 +114,7 @@ nf.ProcessorConfiguration = (function () {
                 headerText: 'Processor Configuration'
             });
         } else {
-            nf.Common.handleAjaxError(xhr, status, error);
+            nf.ErrorHandler.handleAjaxError(xhr, status, error);
         }
     };
 
@@ -501,7 +501,7 @@ nf.ProcessorConfiguration = (function () {
 
                     // show the border around the processor relationships if necessary
                     var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
                 }
@@ -562,6 +562,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
+                supportsGoTo: true,
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function (propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
@@ -573,7 +574,7 @@ nf.ProcessorConfiguration = (function () {
                             propertyName: propertyName
                         },
                         dataType: 'json'
-                    }).fail(nf.Common.handleAjaxError);
+                    }).fail(nf.ErrorHandler.handleAjaxError);
                 },
                 goToServiceDeferred: goToServiceFromProperty
             });
@@ -689,7 +690,7 @@ nf.ProcessorConfiguration = (function () {
                     });
 
                     // show the execution node option if we're cluster or we're currently configured to run on the primary node only
-                    if (nf.Canvas.isClustered() || executionNode === 'PRIMARY') {
+                    if (nf.ClusterSummary.isClustered() || executionNode === 'PRIMARY') {
                         $('#execution-node-options').show();
                     } else {
                         $('#execution-node-options').hide();
@@ -849,10 +850,10 @@ nf.ProcessorConfiguration = (function () {
 
                     // show the border if necessary
                     var processorRelationships = $('#auto-terminate-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
+                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
-                }).fail(nf.Common.handleAjaxError);
+                }).fail(nf.ErrorHandler.handleAjaxError);
             }
         }
     };

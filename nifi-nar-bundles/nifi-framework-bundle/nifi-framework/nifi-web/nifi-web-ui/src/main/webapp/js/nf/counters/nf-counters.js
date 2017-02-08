@@ -15,14 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf, top */
+/* global nf, top, define, module, require, exports */
 
-$(document).ready(function () {
-    // initialize the counters page
-    nf.Counters.init();
-});
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.Common',
+                'nf.CountersTable',
+                'nf.ErrorHandler',
+                'nf.Storage'],
+            function ($, common, countersTable, errorHandler, storage) {
+                return (nf.Counters = factory($, common, countersTable, errorHandler, storage));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Counters =
+            factory(require('jquery'),
+                require('nf.Common'),
+                require('nf.CountersTable'),
+                require('nf.ErrorHandler'),
+                require('nf.Storage')));
+    } else {
+        nf.Counters = factory(root.$,
+            root.nf.Common,
+            root.nf.CountersTable,
+            root.nf.ErrorHandler,
+            root.nf.Storage);
+    }
+}(this, function ($, common, countersTable, errorHandler, storage) {
+    'use strict';
 
-nf.Counters = (function () {
+    $(document).ready(function () {
+        // initialize the counters page
+        nfCounters.init();
+    });
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -44,9 +69,9 @@ nf.Counters = (function () {
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            nf.Common.setCurrentUser(currentUser);
+            common.setCurrentUser(currentUser);
 
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(errorHandler.handleAjaxError);
     };
 
     /**
@@ -55,7 +80,7 @@ nf.Counters = (function () {
     var initializeCountersPage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            nf.CountersTable.loadCountersTable();
+            countersTable.loadCountersTable();
         });
 
         // return a deferred for page initialization
@@ -68,8 +93,8 @@ nf.Counters = (function () {
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the banners response is specified
-                    if (nf.Common.isDefinedAndNotNull(response.banners)) {
-                        if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                    if (common.isDefinedAndNotNull(response.banners)) {
+                        if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -83,7 +108,7 @@ nf.Counters = (function () {
                             updateTop('counters');
                         }
 
-                        if (nf.Common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                        if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -99,7 +124,7 @@ nf.Counters = (function () {
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    nf.Common.handleAjaxError(xhr, status, error);
+                    errorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -108,20 +133,20 @@ nf.Counters = (function () {
         }).promise();
     };
 
-    return {
+    var nfCounters = {
         /**
          * Initializes the counters page.
          */
         init: function () {
-            nf.Storage.init();
-            
+            storage.init();
+
             // load the current user
             loadCurrentUser().done(function () {
                 // create the counters table
-                nf.CountersTable.init();
+                countersTable.init();
 
                 // load the table
-                nf.CountersTable.loadCountersTable().done(function () {
+                countersTable.loadCountersTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeCountersPage().done(function () {
                         var setBodySize = function () {
@@ -131,14 +156,14 @@ nf.Counters = (function () {
                                     'height': $(window).height() + 'px',
                                     'width': $(window).width() + 'px'
                                 });
-                                
+
                                 $('#counters').css('margin', 40);
                                 $('#counters-table').css('bottom', 127);
                                 $('#counters-refresh-container').css('margin', 40);
                             }
 
                             // configure the initial grid height
-                            nf.CountersTable.resetTableSize();
+                            countersTable.resetTableSize();
                         };
 
                         // get the about details
@@ -156,15 +181,15 @@ nf.Counters = (function () {
 
                             // set the initial size
                             setBodySize();
-                        }).fail(nf.Common.handleAjaxError);
+                        }).fail(errorHandler.handleAjaxError);
 
                         $(window).on('resize', function (e) {
                             setBodySize();
                             // resize dialogs when appropriate
                             var dialogs = $('.dialog');
                             for (var i = 0, len = dialogs.length; i < len; i++) {
-                                if ($(dialogs[i]).is(':visible')){
-                                    setTimeout(function(dialog){
+                                if ($(dialogs[i]).is(':visible')) {
+                                    setTimeout(function (dialog) {
                                         dialog.modal('resize');
                                     }, 50, $(dialogs[i]));
                                 }
@@ -173,8 +198,8 @@ nf.Counters = (function () {
                             // resize grids when appropriate
                             var gridElements = $('*[class*="slickgrid_"]');
                             for (var j = 0, len = gridElements.length; j < len; j++) {
-                                if ($(gridElements[j]).is(':visible')){
-                                    setTimeout(function(gridElement){
+                                if ($(gridElements[j]).is(':visible')) {
+                                    setTimeout(function (gridElement) {
                                         gridElement.data('gridInstance').resizeCanvas();
                                     }, 50, $(gridElements[j]));
                                 }
@@ -184,12 +209,12 @@ nf.Counters = (function () {
                             var tabsContainers = $('.tab-container');
                             var tabsContents = [];
                             for (var k = 0, len = tabsContainers.length; k < len; k++) {
-                                if ($(tabsContainers[k]).is(':visible')){
+                                if ($(tabsContainers[k]).is(':visible')) {
                                     tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                nf.Common.toggleScrollable(tabsContent.get(0));
+                                common.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });
@@ -197,4 +222,6 @@ nf.Counters = (function () {
             });
         }
     };
-}());
+
+    return nfCounters;
+}));

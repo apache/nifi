@@ -43,6 +43,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -88,10 +89,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
@@ -99,8 +101,8 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -287,6 +289,13 @@ public class ProcessGroupResource extends ApplicationResource {
                     + "not equal the process group id of the requested resource (%s).", requestProcessGroupDTO.getId(), id));
         }
 
+        final PositionDTO proposedPosition = requestProcessGroupDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestProcessGroupEntity);
         }
@@ -330,6 +339,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = ProcessGroupEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services by any encapsulated components - /controller-services/{uuid}", type = ""),
                     @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components", type = "")
             }
     )
@@ -375,12 +386,18 @@ public class ProcessGroupResource extends ApplicationResource {
                 requestProcessGroupEntity,
                 requestRevision,
                 lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
 
                     // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
                     // read to any referenced services by encapsulated components
                     authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false);
+
+                    // ensure write permission to the parent process group, if applicable... if this is the root group the
+                    // request will fail later but still need to handle authorization here
+                    final Authorizable parentAuthorizable = processGroupAuthorizable.getAuthorizable().getParentAuthorizable();
+                    if (parentAuthorizable != null) {
+                        parentAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
                 },
                 () -> serviceFacade.verifyDeleteProcessGroup(id),
                 (revision, processGroupEntity) -> {
@@ -443,6 +460,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestProcessGroupEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Process group ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestProcessGroupEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestProcessGroupEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestProcessGroupEntity.getComponent().getParentGroupId())) {
@@ -600,6 +624,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (StringUtils.isBlank(requestProcessor.getType())) {
             throw new IllegalArgumentException("The type of processor to create must be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestProcessor.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestProcessor.getParentGroupId() != null && !groupId.equals(requestProcessor.getParentGroupId())) {
@@ -760,6 +791,13 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Input port ID cannot be specified.");
         }
 
+        final PositionDTO proposedPosition = requestPortEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (requestPortEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestPortEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestPortEntity.getComponent().getParentGroupId(), groupId));
@@ -899,6 +937,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestPortEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Output port ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestPortEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestPortEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestPortEntity.getComponent().getParentGroupId())) {
@@ -1043,6 +1088,13 @@ public class ProcessGroupResource extends ApplicationResource {
             throw new IllegalArgumentException("Funnel ID cannot be specified.");
         }
 
+        final PositionDTO proposedPosition = requestFunnelEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
+        }
+
         if (requestFunnelEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestFunnelEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
                     requestFunnelEntity.getComponent().getParentGroupId(), groupId));
@@ -1183,6 +1235,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestLabelEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Label ID cannot be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestLabelEntity.getComponent().getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestLabelEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestLabelEntity.getComponent().getParentGroupId())) {
@@ -1332,6 +1391,13 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestRemoteProcessGroupDTO.getTargetUri() == null) {
             throw new IllegalArgumentException("The URI of the process group must be specified.");
+        }
+
+        final PositionDTO proposedPosition = requestRemoteProcessGroupDTO.getPosition();
+        if (proposedPosition != null) {
+            if (proposedPosition.getX() == null || proposedPosition.getY() == null) {
+                throw new IllegalArgumentException("The x and y coordinate of the proposed position must be specified.");
+            }
         }
 
         if (requestRemoteProcessGroupDTO.getParentGroupId() != null && !groupId.equals(requestRemoteProcessGroupDTO.getParentGroupId())) {
@@ -1491,6 +1557,15 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestConnectionEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Connection ID cannot be specified.");
+        }
+
+        final List<PositionDTO> proposedBends = requestConnectionEntity.getComponent().getBends();
+        if (proposedBends != null) {
+            for (final PositionDTO proposedBend : proposedBends) {
+                if (proposedBend.getX() == null || proposedBend.getY() == null) {
+                    throw new IllegalArgumentException("The x and y coordinate of the each bend must be specified.");
+                }
+            }
         }
 
         if (requestConnectionEntity.getComponent().getParentGroupId() != null && !groupId.equals(requestConnectionEntity.getComponent().getParentGroupId())) {
@@ -1977,6 +2052,7 @@ public class ProcessGroupResource extends ApplicationResource {
     )
     public Response uploadTemplate(
             @Context final HttpServletRequest httpServletRequest,
+            @Context final UriInfo uriInfo,
             @ApiParam(
                     value = "The process group id.",
                     required = true
@@ -2012,14 +2088,11 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (isReplicateRequest()) {
             // convert request accordingly
-            URI importUri = null;
-            try {
-                importUri = new URI(generateResourceUri("process-groups", groupId, "templates", "import"));
-            } catch (final URISyntaxException e) {
-                throw new WebApplicationException(e);
-            }
+            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+            uriBuilder.segment("process-groups", groupId, "templates", "import");
+            final URI importUri = uriBuilder.build();
 
-            // change content type to JSON for serializing entity
+            // change content type to XML for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_XML);
 

@@ -20,6 +20,7 @@ package org.apache.nifi.provenance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -161,6 +162,31 @@ public class TestSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter
                 assertNotNull(event.getUpdatedAttributes());
                 assertTrue(event.getUpdatedAttributes().isEmpty());
             }
+        }
+    }
+
+    @Test
+    public void testAddOneRecordReadTwice() throws IOException {
+        final RecordField unitTestField = new SimpleRecordField("Unit Test Field", FieldType.STRING, Repetition.EXACTLY_ONE);
+        final Consumer<List<RecordField>> schemaModifier = fields -> fields.add(unitTestField);
+
+        final Map<RecordField, Object> toAdd = new HashMap<>();
+        toAdd.put(unitTestField, "hello");
+
+        try (final ByteArraySchemaRecordWriter writer = createSchemaWriter(schemaModifier, toAdd)) {
+            writer.writeHeader(1L);
+            writer.writeRecord(createEvent(), 3L);
+        }
+
+        try (final InputStream in = new FileInputStream(journalFile);
+            final TocReader tocReader = new StandardTocReader(tocFile);
+            final RecordReader reader = createReader(in, journalFile.getName(), tocReader, 10000)) {
+
+            final ProvenanceEventRecord firstEvent = reader.nextRecord();
+            assertNotNull(firstEvent);
+
+            final ProvenanceEventRecord secondEvent = reader.nextRecord();
+            assertNull(secondEvent);
         }
     }
 

@@ -683,7 +683,7 @@ nf.GoTo = (function () {
 
                 // show the upstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**
@@ -734,7 +734,7 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.ErrorHandler.handleAjaxError);
         },
 
         /**

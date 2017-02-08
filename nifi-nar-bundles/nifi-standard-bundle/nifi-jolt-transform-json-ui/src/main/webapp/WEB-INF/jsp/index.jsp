@@ -20,17 +20,17 @@
 <head>
     <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/lib/codemirror.css"/>
     <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/addon/lint/lint.css">
-    <link rel="stylesheet" type="text/css" href="../nifi/assets/angular-material/angular-material.css">
+    <link rel="stylesheet" type="text/css" href="../nifi/assets/angular-material/angular-material.min.css">
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 
 <body ng-app="standardUI" ng-cloak>
 
 <!--Parent Libraries-->
+<script type="text/javascript" src="../nifi/assets/jsonlint/lib/jsonlint.js"></script>
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
 <script type="text/javascript" src="../nifi/js/codemirror/addon/lint/lint.js"></script>
 <script type="text/javascript" src="../nifi/js/codemirror/addon/lint/json-lint.js"></script>
-<script type="text/javascript" src="../nifi/js/jsonlint/jsonlint.min.js"></script>
 <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
 <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
 <script type="text/javascript" src="../nifi/assets/angular/angular.min.js"></script>

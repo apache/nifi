@@ -33,4 +33,9 @@ public class EmptyPreparedQuery implements PreparedQuery {
     public String evaluateExpressions(Map<String, String> valueLookup, AttributeValueDecorator decorator) throws ProcessException {
         return value;
     }
+
+    @Override
+    public String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator, Map<String, String> stateVariables) throws ProcessException {
+        return value;
+    }
 }

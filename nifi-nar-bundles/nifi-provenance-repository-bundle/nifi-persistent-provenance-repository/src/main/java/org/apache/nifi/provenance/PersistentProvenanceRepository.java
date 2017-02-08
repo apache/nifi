@@ -2384,14 +2384,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         if (user == null) {
-            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because no user id was provided");
+            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because no user id was provided in the lineage request.");
         }
 
         if (userId == null || userId.equals(user.getIdentity())) {
             return submission;
         }
 
-        throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request");
+        throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request.");
     }
 
     @Override
@@ -2405,14 +2405,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         if (user == null) {
-            throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because no user id was provided");
+            throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because no user id was provided in the provenance request.");
         }
 
         if (userId == null || userId.equals(user.getIdentity())) {
             return submission;
         }
 
-        throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request");
+        throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request.");
     }
 
     @Override

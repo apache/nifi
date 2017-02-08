@@ -15,9 +15,19 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global nf, define, module, require, exports */
 
-nf.Storage = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define([], function () {
+            return (nf.Storage = factory());
+        });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Storage = factory());
+    } else {
+        nf.Storage = factory();
+    }
+}(this, function () {
 
     // Store items for two days before being eligible for removal.
     var MILLIS_PER_DAY = 86400000;
@@ -37,7 +47,7 @@ nf.Storage = (function () {
 
     /**
      * Checks the expiration for the specified entry.
-     * 
+     *
      * @param {object} entry
      * @returns {boolean}
      */
@@ -53,10 +63,10 @@ nf.Storage = (function () {
             return false;
         }
     };
-    
+
     /**
      * Gets an enty for the key. The entry expiration is not checked.
-     * 
+     *
      * @param {string} key
      */
     var getEntry = function (key) {
@@ -74,7 +84,7 @@ nf.Storage = (function () {
             return null;
         }
     };
-    
+
     return {
         /**
          * Initializes the storage. Items will be persisted for two days. Once the scripts runs
@@ -85,17 +95,17 @@ nf.Storage = (function () {
                 try {
                     // get the next item
                     var key = localStorage.key(i);
-                    
+
                     // attempt to get the item which will expire if necessary
-                    nf.Storage.getItem(key);
+                    this.getItem(key);
                 } catch (e) {
                 }
             }
         },
-        
+
         /**
          * Stores the specified item.
-         * 
+         *
          * @param {string} key
          * @param {object} item
          * @param {integer} expires
@@ -113,23 +123,23 @@ nf.Storage = (function () {
             // store the item
             localStorage.setItem(key, JSON.stringify(entry));
         },
-        
+
         /**
          * Returns whether there is an entry for this key. This will not check the expiration. If
          * the entry is expired, it will return null on a subsequent getItem invocation.
-         * 
+         *
          * @param {string} key
          * @returns {boolean}
          */
         hasItem: function (key) {
             return getEntry(key) !== null;
         },
-        
+
         /**
          * Gets the item with the specified key. If an item with this key does
          * not exist, null is returned. If an item exists but cannot be parsed
          * or is malformed/unrecognized, null is returned.
-         * 
+         *
          * @param {type} key
          */
         getItem: function (key) {
@@ -140,7 +150,7 @@ nf.Storage = (function () {
 
             // if the entry is expired, drop it and return null
             if (checkExpiration(entry)) {
-                nf.Storage.removeItem(key);
+                this.removeItem(key);
                 return null;
             }
 
@@ -151,11 +161,11 @@ nf.Storage = (function () {
                 return null;
             }
         },
-        
+
         /**
          * Gets the expiration for the specified item. This will not check the expiration. If
          * the entry is expired, it will return null on a subsequent getItem invocation.
-         * 
+         *
          * @param {string} key
          * @returns {integer}
          */
@@ -172,14 +182,14 @@ nf.Storage = (function () {
                 return null;
             }
         },
-        
+
         /**
          * Removes the item with the specified key.
-         * 
+         *
          * @param {type} key
          */
         removeItem: function (key) {
             localStorage.removeItem(key);
         }
     };
-}());
+}));

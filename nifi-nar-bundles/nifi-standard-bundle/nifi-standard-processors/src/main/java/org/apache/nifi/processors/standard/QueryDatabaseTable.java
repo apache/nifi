@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -70,18 +71,21 @@ import java.util.stream.IntStream;
 @EventDriven
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "select", "jdbc", "query", "database"})
-@CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
-        + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
-        + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
-        + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
-        + "select query. FlowFile attribute 'querydbtable.row.count' indicates how many rows were selected.")
+@SeeAlso({GenerateTableFetch.class, ExecuteSQL.class})
+@CapabilityDescription("Generates and executes a SQL select query to fetch all rows whose values in the specified Maximum Value column(s) are larger than the "
+        + "previously-seen maxima. Query result will be converted to Avro format. Expression Language is supported for several properties, but no incoming "
+        + "connections are permitted. The Variable Registry may be used to provide values for any property containing Expression Language. If it is desired to "
+        + "leverage flow file attributes to perform these queries, the GenerateTableFetch and/or ExecuteSQL processors can be used for this purpose. "
+        + "Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
+        + "a timer or cron expression, using the standard scheduling methods. This processor is intended to be run on the Primary Node only. FlowFile attribute "
+        + "'querydbtable.row.count' indicates how many rows were selected.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
 @WritesAttributes({
-        @WritesAttribute(attribute = "querydbtable.row.count"),
+        @WritesAttribute(attribute = "querydbtable.row.count", description="The number of rows selected by the query"),
         @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
         @WritesAttribute(attribute="fragment.count", description="If 'Max Rows Per Flow File' is set then this is the total number of  "
@@ -108,6 +112,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
@@ -118,6 +123,18 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+
+    public static final PropertyDescriptor MAX_FRAGMENTS = new PropertyDescriptor.Builder()
+            .name("qdbt-max-frags")
+            .displayName("Maximum Number of Fragments")
+            .description("The maximum number of fragments. If the value specified is zero, then all fragments are returned. " +
+                    "This prevents OutOfMemoryError when this processor ingests huge table.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public QueryDatabaseTable() {
@@ -134,6 +151,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
+        pds.add(MAX_FRAGMENTS);
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -174,11 +192,14 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final DatabaseAdapter dbAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
-        final String tableName = context.getProperty(TABLE_NAME).getValue();
-        final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
-        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
-        final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions().getValue();
+        final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer maxFragments = context.getProperty(MAX_FRAGMENTS).isSet()
+                ? context.getProperty(MAX_FRAGMENTS).evaluateAttributeExpressions().asInteger()
+                : 0;
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
 
         final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
@@ -199,9 +220,21 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
         //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
-        for(final Map.Entry<String,String> maxProp : maxValueProperties.entrySet()){
-            if (!statePropertyMap.containsKey(maxProp.getKey().toLowerCase())) {
-                statePropertyMap.put(maxProp.getKey().toLowerCase(), maxProp.getValue());
+        for (final Map.Entry<String, String> maxProp : maxValueProperties.entrySet()) {
+            String maxPropKey = maxProp.getKey().toLowerCase();
+            String fullyQualifiedMaxPropKey = getStateKey(tableName, maxPropKey);
+            if (!statePropertyMap.containsKey(fullyQualifiedMaxPropKey)) {
+                String newMaxPropValue;
+                // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
+                // the value has been stored under a key that is only the column name. Fall back to check the column name,
+                // but store the new initial max value under the fully-qualified key.
+                if (statePropertyMap.containsKey(maxPropKey)) {
+                    newMaxPropValue = statePropertyMap.get(maxPropKey);
+                } else {
+                    newMaxPropValue = maxProp.getValue();
+                }
+                statePropertyMap.put(fullyQualifiedMaxPropKey, newMaxPropValue);
+
             }
         }
 
@@ -234,7 +267,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
-            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             try {
                 logger.debug("Executing query {}", new Object[]{selectQuery});
@@ -283,12 +316,18 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     }
 
                     fragmentIndex++;
+                    if (maxFragments > 0 && fragmentIndex >= maxFragments) {
+                        break;
+                    }
                 }
 
                 for (int i = 0; i < resultSetFlowFiles.size(); i++) {
                     // Add maximum values as attributes
                     for (Map.Entry<String, String> entry : statePropertyMap.entrySet()) {
-                        resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + entry.getKey(), entry.getValue()));
+                        // Get just the column name from the key
+                        String key = entry.getKey();
+                        String colName = key.substring(key.lastIndexOf(NAMESPACE_DELIMITER) + NAMESPACE_DELIMITER.length());
+                        resultSetFlowFiles.set(i, session.putAttribute(resultSetFlowFiles.get(i), "maxvalue." + colName, entry.getValue()));
                     }
 
                     //set count on all FlowFiles
@@ -333,9 +372,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             List<String> whereClauses = new ArrayList<>(maxValColumnNames.size());
             IntStream.range(0, maxValColumnNames.size()).forEach((index) -> {
                 String colName = maxValColumnNames.get(index);
-                String maxValue = stateMap.get(colName.toLowerCase());
+                String maxValueKey = getStateKey(tableName, colName);
+                String maxValue = stateMap.get(maxValueKey);
+                if (StringUtils.isEmpty(maxValue)) {
+                    // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
+                    // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
+                    // maximum value is observed, it will be stored under the fully-qualified key from then on.
+                    maxValue = stateMap.get(colName.toLowerCase());
+                }
                 if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(colName.toLowerCase());
+                    Integer type = columnTypeMap.get(maxValueKey);
                     if (type == null) {
                         // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled.
                         throw new IllegalArgumentException("No column type found for: " + colName);
@@ -355,7 +401,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
 
     protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
-        final Map<String,String> defaultMaxValues = new HashMap<String, String>();
+        final Map<String,String> defaultMaxValues = new HashMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final String key = entry.getKey().getName();
@@ -391,15 +437,22 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 if (nrOfColumns > 0) {
                     for (int i = 1; i <= nrOfColumns; i++) {
                         String colName = meta.getColumnName(i).toLowerCase();
-                        Integer type = columnTypeMap.get(colName);
+                        String fullyQualifiedMaxValueKey = getStateKey(meta.getTableName(i), colName);
+                        Integer type = columnTypeMap.get(fullyQualifiedMaxValueKey);
                         // Skip any columns we're not keeping track of or whose value is null
                         if (type == null || resultSet.getObject(i) == null) {
                             continue;
                         }
-                        String maxValueString = newColMap.get(colName);
+                        String maxValueString = newColMap.get(fullyQualifiedMaxValueKey);
+                        // If we can't find the value at the fully-qualified key name, it is possible (under a previous scheme)
+                        // the value has been stored under a key that is only the column name. Fall back to check the column name; either way, when a new
+                        // maximum value is observed, it will be stored under the fully-qualified key from then on.
+                        if (StringUtils.isEmpty(maxValueString)) {
+                            maxValueString = newColMap.get(colName);
+                        }
                         String newMaxValueString = getMaxValueFromRow(resultSet, i, type, maxValueString, dbAdapter.getName());
                         if (newMaxValueString != null) {
-                            newColMap.put(colName, newMaxValueString);
+                            newColMap.put(fullyQualifiedMaxValueKey, newMaxValueString);
                         }
                     }
                 }

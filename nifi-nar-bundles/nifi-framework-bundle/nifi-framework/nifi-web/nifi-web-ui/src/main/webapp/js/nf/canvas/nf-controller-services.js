@@ -74,6 +74,9 @@ nf.ControllerServices = (function () {
             });
             controllerServiceTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-controller-service-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (controllerServiceTypesData.getLength() > 0) {
                 controllerServiceTypesGrid.setSelectedRows([0]);
@@ -249,7 +252,7 @@ nf.ControllerServices = (function () {
             var row = controllerServicesData.getRowById(controllerServiceEntity.id);
             controllerServicesGrid.setSelectedRows([row]);
             controllerServicesGrid.scrollRowIntoView(row);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-controller-service-dialog').modal('hide');
@@ -263,8 +266,21 @@ nf.ControllerServices = (function () {
     var initNewControllerServiceDialog = function () {
         // initialize the processor type table
         var controllerServiceTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: false, resizable: true},
-            {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
+            {
+                id: 'type',
+                name: 'Type',
+                field: 'label',
+                formatter: nf.Common.typeFormatter,
+                sortable: false,
+                resizable: true
+            },
+            {
+                id: 'tags',
+                name: 'Tags',
+                field: 'tags',
+                sortable: false,
+                resizable: true
+            }
         ];
 
         // initialize the dataview
@@ -400,7 +416,7 @@ nf.ControllerServices = (function () {
                 select: applyControllerServiceTypeFilter,
                 remove: applyControllerServiceTypeFilter
             });
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
 
         // initialize the controller service dialog
         $('#new-controller-service-dialog').modal({
@@ -489,7 +505,37 @@ nf.ControllerServices = (function () {
         if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
             return dataContext.component.parentGroupId;
         } else {
-            return 'Controller'
+            return 'Controller';
+        }
+    };
+
+    /**
+     * Determines if the user has write permissions for the parent of the specified controller service.
+     *
+     * @param dataContext
+     * @returns {boolean} whether the user has write permissions for the parent of the controller service
+     */
+    var canWriteControllerServiceParent = function (dataContext) {
+        // we know the process group for this controller service is part
+        // of the current breadcrumb trail
+        var canWriteProcessGroupParent = function (processGroupId) {
+            var breadcrumbs = nf.ng.Bridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+
+            var isAuthorized = false;
+            $.each(breadcrumbs, function (_, breadcrumbEntity) {
+                if (breadcrumbEntity.id === processGroupId) {
+                    isAuthorized = breadcrumbEntity.permissions.canWrite;
+                    return false;
+                }
+            });
+
+            return isAuthorized;
+        };
+
+        if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+            return canWriteProcessGroupParent(dataContext.component.parentGroupId);
+        } else {
+            return nf.Common.canModifyController();
         }
     };
 
@@ -634,7 +680,7 @@ nf.ControllerServices = (function () {
                 }
             }
 
-            if (dataContext.permissions.canWrite) {
+            if (dataContext.permissions.canWrite && canWriteControllerServiceParent(dataContext)) {
                 markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 
@@ -648,11 +694,44 @@ nf.ControllerServices = (function () {
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
-            {id: 'name', name: 'Name', formatter: nameFormatter, sortable: true, resizable: true},
-            {id: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true},
-            {id: 'parentGroupId', name: 'Process Group', formatter: groupIdFormatter, sortable: true, resizeable: true}
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                resizable: false,
+                formatter: moreControllerServiceDetails,
+                sortable: true,
+                width: 90,
+                maxWidth: 90,
+                toolTip: 'Sorts based on presence of bulletins'
+            },
+            {
+                id: 'name',
+                name: 'Name',
+                formatter: nameFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'type',
+                name: 'Type',
+                formatter: typeFormatter,
+                sortable: true,
+                resizable: true
+            },
+            {
+                id: 'state',
+                name: 'State',
+                formatter: controllerServiceStateFormatter,
+                sortable: true,
+                resizeable: true
+            },
+            {
+                id: 'parentGroupId',
+                name: 'Process Group',
+                formatter: groupIdFormatter,
+                sortable: true,
+                resizeable: true
+            }
         ];
 
         // action column should always be last
@@ -698,7 +777,7 @@ nf.ControllerServices = (function () {
                 } else if (target.hasClass('disable-controller-service')) {
                     nf.ControllerService.disable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('delete-controller-service')) {
-                    nf.ControllerService.remove(serviceTable, controllerServiceEntity);
+                    nf.ControllerService.promptToDeleteController(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
                     nf.ComponentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
                 } else if (target.hasClass('edit-access-policies')) {
@@ -908,7 +987,7 @@ nf.ControllerServices = (function () {
                         var item = grid.getDataItem(selected[0]);
                         return isSelectable(item) === false;
                     } else {
-                        return false;
+                        return grid.getData().getLength() === 0;
                     }
                 },
                 handler: {

@@ -162,7 +162,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
             xmlStreamWriter.writeEndElement();
         } else {
-            xmlStreamWriter.writeCharacters("This processor has no state management.");
+            xmlStreamWriter.writeCharacters("This component does not store state.");
         }
     }
 
@@ -180,7 +180,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         writeSimpleElement(xmlStreamWriter, "h3", "Restricted: ");
 
         if(restricted != null) {
-            writeSimpleElement(xmlStreamWriter, "td", restricted.value());
+            xmlStreamWriter.writeCharacters(restricted.value());
+        } else {
+            xmlStreamWriter.writeCharacters("This component is not restricted.");
         }
     }
 

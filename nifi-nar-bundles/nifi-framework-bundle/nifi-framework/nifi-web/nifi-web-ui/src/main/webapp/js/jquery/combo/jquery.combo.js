@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* requires qtip plugin to be loaded first*/
+
 /**
  * Create a new combo box. The options are specified in the following
  * format:

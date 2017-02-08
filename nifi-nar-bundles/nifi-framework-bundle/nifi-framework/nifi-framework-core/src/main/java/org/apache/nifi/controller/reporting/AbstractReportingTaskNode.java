@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -40,7 +41,13 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.AnnotationUtils;
+
 public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractReportingTaskNode.class);
 
     private final ReportingTask reportingTask;
     private final ProcessScheduler processScheduler;
@@ -72,6 +79,23 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         this.reportingTask = reportingTask;
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
+
+        final Class<?> reportingClass = reportingTask.getClass();
+
+        DefaultSchedule dsc = AnnotationUtils.findAnnotation(reportingClass, DefaultSchedule.class);
+        if(dsc != null) {
+            try {
+                this.setSchedulingStrategy(dsc.strategy());
+            } catch (Throwable ex) {
+                LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+            }
+            try {
+                this.setSchedulingPeriod(dsc.period());
+            } catch (Throwable ex) {
+                this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
+                LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
+            }
+        }
     }
 
     @Override

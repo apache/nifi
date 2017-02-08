@@ -34,4 +34,11 @@ public interface Resource {
      * @return name of this resource
      */
     String getName();
+
+    /**
+     * The description of this resource that may be safely used in messages to the client.
+     *
+     * @return safe description
+     */
+    String getSafeDescription();
 }

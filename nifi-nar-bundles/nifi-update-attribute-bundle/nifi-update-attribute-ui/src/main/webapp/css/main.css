@@ -225,8 +225,16 @@ div.large-label-container {
     padding-top: 20px;
 }
 
+#selected-rule-actions-container div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
 #selected-rule-conditions-container {
     padding-top: 68px;
+}
+
+#selected-rule-conditions-container div.slick-viewport {
+    overflow-x: hidden !important;
 }
 
 #selected-rule-name {

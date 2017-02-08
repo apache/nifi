@@ -37,6 +37,9 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             });
             processorTypesData.refresh();
 
+            // update the buttons to possibly trigger the disabled state
+            $('#new-processor-dialog').modal('refreshButtons');
+
             // update the selection if possible
             if (processorTypesData.getLength() > 0) {
                 processorTypesGrid.setSelectedRows([0]);
@@ -232,7 +235,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -266,9 +269,23 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 init: function () {
                     // initialize the processor type table
                     var processorTypesColumns = [
-                        {id: 'type', name: 'Type', field: 'label', formatter: nf.Common.typeFormatter, sortable: true, resizable: true},
-                        {id: 'tags', name: 'Tags', field: 'tags', sortable: true, resizable: true}
+                        {
+                            id: 'type',
+                            name: 'Type',
+                            field: 'label',
+                            formatter: nf.Common.typeFormatter,
+                            sortable: true,
+                            resizable: true
+                        },
+                        {
+                            id: 'tags',
+                            name: 'Tags',
+                            field: 'tags',
+                            sortable: true,
+                            resizable: true
+                        }
                     ];
+
                     var processorTypesOptions = {
                         forceFitColumns: true,
                         enableTextSelectionOnCells: true,
@@ -423,7 +440,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                             select: applyFilter,
                             remove: applyFilter
                         });
-                    }).fail(nf.Common.handleAjaxError);
+                    }).fail(nf.ErrorHandler.handleAjaxError);
                 }
             },
 
@@ -440,8 +457,6 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
              * Initialize the modal.
              */
             init: function () {
-                var self = this;
-                
                 this.filter.init();
 
                 // configure the new processor dialog
@@ -536,7 +551,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
          * @argument {object} pt        The point that the processor was dropped
          */
         promptForProcessorType: function (pt) {
-            var self = this;
+            var processorComponent = this;
 
             // handles adding the selected processor at the specified point
             var addProcessor = function () {
@@ -556,7 +571,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 }
 
                 // hide the dialog
-                self.modal.hide();
+                processorComponent.modal.hide();
             };
 
             // get the grid reference
@@ -593,7 +608,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                         var item = grid.getDataItem(selected[0]);
                         return isSelectable(item) === false;
                     } else {
-                        return false;
+                        return grid.getData().getLength() === 0;
                     }
                 },
                 handler: {

@@ -34,6 +34,7 @@ language governing permissions and limitations under the License. -->
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
         <module>nifi-toolkit</module>
+        <module>nifi-docker</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
@@ -105,7 +106,6 @@ language governing permissions and limitations under the License. -->
         <hbase.version>1.1.2</hbase.version>
         <storm.version>1.0.1</storm.version>
     </properties>
-
 
     <repositories>
         <repository>
@@ -1221,6 +1221,12 @@ language governing permissions and limitations under the License. -->
                 <version>1.2.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
+             <dependency>
+                 <groupId>org.apache.nifi</groupId>
+                 <artifactId>nifi-tcp-nar</artifactId>
+                 <version>1.2.0-SNAPSHOT</version>
+                 <type>nar</type>
+             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-splunk-nar</artifactId>
@@ -1375,7 +1381,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
-                <version>1.11.8</version>
+                <version>1.11.68</version>
             </dependency>
             <!-- Ranger dependencies, only included when using -Pinclude-ranger -->
             <dependency>

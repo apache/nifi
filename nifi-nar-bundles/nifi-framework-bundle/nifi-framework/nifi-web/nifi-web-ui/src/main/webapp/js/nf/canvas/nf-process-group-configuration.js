@@ -85,9 +85,8 @@ nf.ProcessGroupConfiguration = (function () {
                 saveConfiguration(response.revision.version, groupId);
             });
 
-            // inform Angular app values have changed
-            nf.ng.Bridge.digest();
-        }).fail(nf.Common.handleAjaxError);
+            nf.Canvas.reload();
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**
@@ -180,7 +179,7 @@ nf.ProcessGroupConfiguration = (function () {
 
             // update the current time
             $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(nf.ErrorHandler.handleAjaxError);
     };
 
     /**

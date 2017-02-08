@@ -28,8 +28,9 @@ import java.lang.annotation.Inherited;
 
 /**
  * <p>
- * Marker interface that a Processor can use to configure the schedule strategy, the  period and the number of concurrent tasks.
- * Note that the number of Concurrent tasks will be ignored if the annotion @TriggerSerialy is used
+ * Marker interface that a Processor can use to configure default settings for the schedule strategy, the period and the number of concurrent tasks.
+ * Marker interface that a ReportingTask can use to configure default settings the  schedule strategy and the period.
+ * Note that the number of Concurrent tasks will be ignored if the annotation @TriggerSerialy is used
  * </p>
  */
 @Documented

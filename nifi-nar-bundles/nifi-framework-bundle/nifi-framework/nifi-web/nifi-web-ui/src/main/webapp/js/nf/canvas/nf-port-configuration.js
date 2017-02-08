@@ -103,7 +103,7 @@ nf.PortConfiguration = (function () {
                                 $('#port-configuration').modal('hide');
 
                                 // handle the error
-                                nf.Common.handleAjaxError(xhr, status, error);
+                                nf.ErrorHandler.handleAjaxError(xhr, status, error);
                             }
                         });
                     }
