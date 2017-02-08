@@ -678,10 +678,10 @@ nf.ControllerServices = (function () {
                 if (dataContext.component.persistsState === true) {
                     markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
-            }
 
-            if (dataContext.permissions.canWrite && canWriteControllerServiceParent(dataContext)) {
-                markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                if (canWriteControllerServiceParent(dataContext)) {
+                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
+                }
             }
 
             // allow policy configuration conditionally
