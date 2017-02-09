@@ -449,6 +449,35 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testNoInputWithAttributes() throws Exception {
+        addHandler(new GetOrHeadHandler());
+
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/status/200");
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "GET");
+        runner.setProperty(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, "myAttribute");
+        runner.setIncomingConnection(false);
+        runner.setNonLoopConnection(false);
+
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        // expected in response
+        // status code, status message, all headers from server response --> ff attributes
+        // server response message body into payload of ff
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
+    }
+
+    @Test
     public void testNoInputFail() throws Exception {
         addHandler(new GetOrHeadHandler());
 
