@@ -34,7 +34,7 @@ import org.apache.nifi.schemaregistry.services.SchemaRegistry;
  * Base processor for implementing transform-like processors that integrate with
  * Schema Registry (see {@link SchemaRegistry})
  */
-abstract class BaseContentTransformerViaSchemaRegistry extends BaseContentTransformer implements RegistryCommon {
+abstract class AbstractTransformer extends BaseTransformer implements RegistryCommon {
 
     static final List<PropertyDescriptor> BASE_DESCRIPTORS;
 
@@ -42,7 +42,6 @@ abstract class BaseContentTransformerViaSchemaRegistry extends BaseContentTransf
         List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(REGISTRY_SERVICE);
         descriptors.add(SCHEMA_NAME);
-        descriptors.add(SCHEMA_TYPE);
         BASE_DESCRIPTORS = Collections.unmodifiableList(descriptors);
     }
 
@@ -58,38 +57,22 @@ abstract class BaseContentTransformerViaSchemaRegistry extends BaseContentTransf
     }
 
     /**
-     *
-     */
-    @Override
-    protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties) {
-        Schema schema = RegistryCommon.retrieveSchema(this.schemaRegistryDelegate, contextProperties);
-        return this.transform(in, out, contextProperties, schema);
-    }
-
-    /**
      * This operation is designed to allow sub-classes to provide
-     * implementations that read content of the provided {@link InputStream} and
-     * write content (same or different) into the provided {@link OutputStream}.
-     * Both {@link InputStream} and {@link OutputStream} represent the content
-     * of the in/out {@link FlowFile} and are both required to NOT be null;
+     * implementations that read content of the provided {@link InputStream}
+     * that represent the content of the incoming {@link FlowFile}.
      * <p>
      * The returned {@link Map} represents attributes that will be added to the
-     * outgoing FlowFile. It can be null, in which case no attributes will be
-     * added to the resulting {@link FlowFile}.
+     * outgoing FlowFile.
      *
      *
      * @param in
-     *            {@link InputStream} representing data to be transformed
-     * @param out
-     *            {@link OutputStream} representing target stream to wrote
-     *            transformed data. Can be null if no output needs to be
-     *            written.
+     *            {@link InputStream} representing data to be transformer
      * @param contextProperties
      *            instance of {@link InvocationContextProperties}
      * @param schema
-     *            instance of {@link Schema}
+     *            instance of avro {@link Schema}
      */
-    protected abstract Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema);
+    protected abstract Map<String, String> transform(InputStream in, InvocationContextProperties contextProperties, Schema schema);
 
     /**
      *
@@ -97,5 +80,14 @@ abstract class BaseContentTransformerViaSchemaRegistry extends BaseContentTransf
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return BASE_DESCRIPTORS;
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties) {
+        Schema schema = RegistryCommon.retrieveSchema(this.schemaRegistryDelegate, contextProperties);
+        return this.transform(in, contextProperties, schema);
     }
 }

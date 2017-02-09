@@ -59,7 +59,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.
  */
@@ -132,65 +131,55 @@ public abstract class AbstractHadoopControllerService extends AbstractController
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    private static final Object RESOURCES_LOCK = new Object();
-
-    private long kerberosReloginThreshold;
-    private long lastKerberosReloginTime;
     private static KerberosProperties kerberosProperties;
-    protected List<PropertyDescriptor> propertyDescriptors;
-    private static File kerberosConfigFile;
-    private boolean kerberosEnabled;
-    protected String schemaDirectory;
 
-    // variables shared by all threads of this processor
+    private static File kerberosConfigFile;
+
+    private volatile long kerberosReloginThreshold;
+
+    private volatile long lastKerberosReloginTime;
+
+    protected static final List<PropertyDescriptor> DESCRIPTORS;
+
+    static {
+        List<PropertyDescriptor> props = new ArrayList<>();
+        props.add(HADOOP_CONFIGURATION_RESOURCES);
+        props.add(COMPRESSION_CODEC);
+        props.add(DIRECTORY);
+        if (kerberosProperties != null) {
+            props.add(kerberosProperties.getKerberosPrincipal());
+            props.add(kerberosProperties.getKerberosKeytab());
+        }
+        props.add(KERBEROS_RELOGIN_PERIOD);
+        props.add(ADDITIONAL_CLASSPATH_RESOURCES);
+        DESCRIPTORS = Collections.unmodifiableList(props);
+    }
+
+    private boolean kerberosEnabled;
+
+    protected volatile String schemaDirectory;
+
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
     private final AtomicReference<HdfsResources> hdfsResources = new AtomicReference<>();
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
-
     private static KerberosProperties getKerberosProperties(File kerberosConfigFile) {
         return new KerberosProperties(kerberosConfigFile);
     }
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
-    }
-
-    @Override
-    protected void init(final ControllerServiceInitializationContext context) {
-
-        hdfsResources.set(new HdfsResources(null, null, null));
-
-        kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosProperties = getKerberosProperties(kerberosConfigFile);
-
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(HADOOP_CONFIGURATION_RESOURCES);
-        props.add(COMPRESSION_CODEC);
-        props.add(DIRECTORY);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
-        props.add(KERBEROS_RELOGIN_PERIOD);
-        props.add(ADDITIONAL_CLASSPATH_RESOURCES);
-        propertyDescriptors = Collections.unmodifiableList(props);
-    }
-
     @OnEnabled
     public void enable(ConfigurationContext context) throws InitializationException {
-
         kerberosReloginThreshold = context.getProperty(KERBEROS_RELOGIN_PERIOD).asTimePeriod(TimeUnit.SECONDS);
 
         schemaDirectory = context.getProperty(DIRECTORY).getValue();
-        if(!schemaDirectory.endsWith("/")){
+        if (!schemaDirectory.endsWith("/")) {
             schemaDirectory += "/";
         }
         try {
-
-                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-                hdfsResources.set(setupHDFSResources(configResources, context));
+            String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+            hdfsResources.set(setupHDFSResources(configResources, context));
 
         } catch (IOException ex) {
             getLogger().error("HDFS Configuration error - {}", new Object[] { ex });
@@ -199,18 +188,34 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         }
     }
 
+    @OnDisabled
+    public void close() throws Exception {
+        hdfsResources.set(new HdfsResources(null, null, null));
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return DESCRIPTORS;
+    }
+
+    @Override
+    protected void init(ControllerServiceInitializationContext context) {
+        hdfsResources.set(new HdfsResources(null, null, null));
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosProperties = getKerberosProperties(kerberosConfigFile);
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-        final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-        final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+        String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+        String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+        String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
 
-        final List<ValidationResult> results = new ArrayList<>();
+        List<ValidationResult> results = new ArrayList<>();
 
         if (!StringUtils.isBlank(configResources)) {
             try {
                 ValidationResources resources = validationResourceHolder.get();
-
                 // if no resources in the holder, or if the holder has different resources loaded,
                 // then load the Configuration and set the new resources in the holder
                 if (resources == null || !configResources.equals(resources.getConfigResources())) {
@@ -219,10 +224,8 @@ public abstract class AbstractHadoopControllerService extends AbstractController
                     validationResourceHolder.set(resources);
                 }
 
-                final Configuration conf = resources.getConfiguration();
-                results.addAll(KerberosProperties.validatePrincipalAndKeytab(
-                        this.getClass().getSimpleName(), conf, principal, keytab, getLogger()));
-
+                Configuration conf = resources.getConfiguration();
+                results.addAll(KerberosProperties.validatePrincipalAndKeytab(this.getClass().getSimpleName(), conf, principal, keytab, getLogger()));
             } catch (IOException e) {
                 results.add(new ValidationResult.Builder()
                         .valid(false)
@@ -235,16 +238,71 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         return results;
     }
 
-
-
-    @OnDisabled
-    public void close() throws Exception {
-        hdfsResources.set(new HdfsResources(null, null, null));
+    /**
+     * This exists in order to allow unit tests to override it so that they
+     * don't take several minutes waiting for UDP packets to be received
+     *
+     * @param config
+     *            the configuration to use
+     * @return the FileSystem that is created for the given Configuration
+     * @throws IOException
+     *             if unable to create the FileSystem
+     */
+    protected FileSystem getFileSystem(Configuration config) throws IOException {
+        return FileSystem.get(config);
     }
 
+    /**
+     *
+     */
+    FileSystem getFileSystem() {
+        // trigger Relogin if necessary
+        getUserGroupInformation();
+        return hdfsResources.get().getFileSystem();
+    }
+
+    /**
+     * Setup Hadoop Configuration and FileSystem based on the supplied
+     * configuration resources.
+     */
+    HdfsResources setupHDFSResources(String configResources, ConfigurationContext context) throws IOException {
+        Configuration config = getConfigurationFromResources(configResources);
+        config.setClassLoader(Thread.currentThread().getContextClassLoader()); // set the InstanceClassLoader
+
+        // first check for timeout on HDFS connection, because FileSystem has a
+        // hard coded 15 minute timeout
+        checkHdfsUriForTimeout(config);
+
+        // If kerberos is enabled, create the file system as the kerberos principal
+        FileSystem fs;
+        UserGroupInformation ugi;
+        if (SecurityUtil.isSecurityEnabled(config)) {
+            String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
+            String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
+            fs = getFileSystemAsUser(config, ugi);
+            lastKerberosReloginTime = System.currentTimeMillis() / 1000;
+            kerberosEnabled = true;
+        } else {
+            config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
+            config.set("hadoop.security.authentication", "simple");
+            ugi = SecurityUtil.loginSimple(config);
+            fs = getFileSystemAsUser(config, ugi);
+        }
+
+        Path workingDir = fs.getWorkingDirectory();
+        getLogger().info("Initialized HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
+                new Object[] { workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString() });
+
+        return new HdfsResources(config, fs, ugi);
+    }
+
+    /**
+     *
+     */
     private static Configuration getConfigurationFromResources(String configResources) throws IOException {
         boolean foundResources = false;
-        final Configuration config = new ExtendedConfiguration();
+        Configuration config = new ExtendedConfiguration();
         if (null != configResources) {
             String[] resources = configResources.split(",");
             for (String resource : resources) {
@@ -269,56 +327,10 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         }
         return config;
     }
-    /*
-     * Setup Hadoop Configuration and FileSystem based on the supplied configuration resources.
-     */
-    HdfsResources setupHDFSResources(String configResources, ConfigurationContext context) throws IOException {
-        Configuration config = getConfigurationFromResources(configResources);
-       // config.set("dfs.client.use.datanode.hostname","true");
-        config.setClassLoader(Thread.currentThread().getContextClassLoader()); // set the InstanceClassLoader
-
-        // first check for timeout on HDFS connection, because FileSystem has a hard coded 15 minute timeout
-        checkHdfsUriForTimeout(config);
-
-
-        // If kerberos is enabled, create the file system as the kerberos principal
-        // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
-        FileSystem fs;
-        UserGroupInformation ugi;
-        synchronized (RESOURCES_LOCK) {
-            if (SecurityUtil.isSecurityEnabled(config)) {
-                String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-                String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
-                ugi = SecurityUtil.loginKerberos(config, principal, keyTab);
-                fs = getFileSystemAsUser(config, ugi);
-                lastKerberosReloginTime = System.currentTimeMillis() / 1000;
-                kerberosEnabled = true;
-            } else {
-                config.set("ipc.client.fallback-to-simple-auth-allowed", "true");
-                config.set("hadoop.security.authentication", "simple");
-                ugi = SecurityUtil.loginSimple(config);
-                fs = getFileSystemAsUser(config, ugi);
-            }
-        }
-
-        final Path workingDir = fs.getWorkingDirectory();
-        getLogger().info("Initialized HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
-
-        return new HdfsResources(config, fs, ugi);
-    }
 
     /**
-     * This exists in order to allow unit tests to override it so that they don't take several minutes waiting for UDP packets to be received
      *
-     * @param config the configuration to use
-     * @return the FileSystem that is created for the given Configuration
-     * @throws IOException if unable to create the FileSystem
      */
-    protected FileSystem getFileSystem(final Configuration config) throws IOException {
-        return FileSystem.get(config);
-    }
-
     private FileSystem getFileSystemAsUser(final Configuration config, UserGroupInformation ugi) throws IOException {
         try {
             return ugi.doAs(new PrivilegedExceptionAction<FileSystem>() {
@@ -381,44 +393,9 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         };
     }
 
-
-//    /**
-//     * Returns the relative path of the child that does not include the filename or the root path.
-//     *
-//     * @param root  the path to relativize from
-//     * @param child the path to relativize
-//     * @return the relative path
-//     */
-//    public static String getPathDifference(final Path root, final Path child) {
-//        final int depthDiff = child.depth() - root.depth();
-//        if (depthDiff <= 1) {
-//            return "".intern();
-//        }
-//        String lastRoot = root.getName();
-//        Path childsParent = child.getParent();
-//        final StringBuilder builder = new StringBuilder();
-//        builder.append(childsParent.getName());
-//        for (int i = (depthDiff - 3); i >= 0; i--) {
-//            childsParent = childsParent.getParent();
-//            String name = childsParent.getName();
-//            if (name.equals(lastRoot) && childsParent.toString().endsWith(root.toString())) {
-//                break;
-//            }
-//            builder.insert(0, Path.SEPARATOR).insert(0, name);
-//        }
-//        return builder.toString();
-//    }
-
-  //  protected Configuration getConfiguration() {
-//        return hdfsResources.get().getConfiguration();
-//    }
-
-    FileSystem getFileSystem() {
-        // trigger Relogin if necessary
-        getUserGroupInformation();
-        return hdfsResources.get().getFileSystem();
-    }
-
+    /**
+     *
+     */
     private UserGroupInformation getUserGroupInformation() {
         // if kerberos is enabled, check if the ticket should be renewed before returning
         UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
@@ -428,6 +405,9 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         return userGroupInformation;
     }
 
+    /**
+     *
+     */
     private void tryKerberosRelogin(UserGroupInformation ugi) {
         try {
             getLogger().info("Kerberos ticket age exceeds threshold [{} seconds] " +
@@ -444,11 +424,16 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         }
     }
 
+    /**
+     *
+     */
     private boolean isTicketOld() {
         return (System.currentTimeMillis() / 1000 - lastKerberosReloginTime) > kerberosReloginThreshold;
     }
 
-
+    /**
+     *
+     */
     static protected class HdfsResources {
         private final Configuration configuration;
         private final FileSystem fileSystem;
@@ -473,6 +458,9 @@ public abstract class AbstractHadoopControllerService extends AbstractController
         }
     }
 
+    /**
+     *
+     */
     static protected class ValidationResources {
         private final String configResources;
         private final Configuration configuration;
@@ -502,6 +490,7 @@ public abstract class AbstractHadoopControllerService extends AbstractController
 
         private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
 
+        @Override
         public Class<?> getClassByNameOrNull(String name) {
             Map<String, WeakReference<Class<?>>> map;
 
@@ -530,6 +519,5 @@ public abstract class AbstractHadoopControllerService extends AbstractController
                 return clazz;
             }
         }
-
     }
 }

@@ -29,7 +29,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 @Tags({ "registry", "schema", "avro", "json", "transform" })
 @CapabilityDescription("Transforms JSON content of the Flow File to Avro using the schema provided by the Schema Registry Service.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-public final class TransformJsonToAvroViaSchemaRegistry extends BaseContentTransformerViaSchemaRegistry {
+public final class TransformJsonToAvro extends AbstractContentTransformer {
 
     /**
      *

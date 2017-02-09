@@ -17,25 +17,28 @@
 package org.apache.nifi.schemaregistry.processors;
 
 import java.io.InputStream;
-import java.util.Collections;
+import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.avro.Schema;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 
-@Tags({"registry", "schema"})
-@CapabilityDescription("Extracts the schema for the content of the incoming FlowFile using the provided Schema Registry Service.")
-@WritesAttributes({@WritesAttribute(attribute="schema.text", description="Textual representation of the schema retrieved from the Schema Registry")})
-public final class UpdateAttributeWithSchemaViaSchemaRegistry extends BaseTransformerViaSchemaRegistry {
+
+@Tags({ "registry", "schema", "avro", "json", "transform" })
+@CapabilityDescription("Transforms AVRO content of the Flow File to JSON using the schema provided by the Schema Registry Service.")
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+public final class TransformAvroToJson extends AbstractContentTransformer {
 
     /**
      *
      */
     @Override
-    protected Map<String, String> transform(InputStream in, InvocationContextProperties contextProperties, Schema schema) {
-        return Collections.unmodifiableMap(Collections.singletonMap(SCHEMA_ATTRIBUTE_NAME, schema.toString()));
+    protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema) {
+        GenericRecord avroRecord = AvroUtils.read(in, schema);
+        JsonUtils.write(avroRecord, out);
+        return null;
     }
 }

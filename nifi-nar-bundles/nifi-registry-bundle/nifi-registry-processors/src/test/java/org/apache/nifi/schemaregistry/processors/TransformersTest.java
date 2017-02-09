@@ -17,9 +17,7 @@
 package org.apache.nifi.schemaregistry.processors;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.runners.Parameterized.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,14 +26,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 
-import junitparams.JUnitParamsRunner;
-import junitparams.Parameters;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import junitparams.JUnitParamsRunner;
+import junitparams.Parameters;
 
 @RunWith(JUnitParamsRunner.class)
 public class TransformersTest {
@@ -176,7 +173,7 @@ public class TransformersTest {
         }
 
     }
-    
+
     /**
      * Simple wrapper around getting the test resource file that is used by the above test cases
      *

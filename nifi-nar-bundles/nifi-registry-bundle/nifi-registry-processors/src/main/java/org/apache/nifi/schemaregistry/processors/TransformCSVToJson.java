@@ -36,7 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 @Tags({ "csv", "json", "transform", "registry", "schema" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Transforms CSV content of the Flow File to JSON using the schema provided by the Schema Registry Service.")
-public final class TransformCSVToJsonViaSchemaRegistry extends AbstractCSVTransformerViaRegistryProcessor {
+public final class TransformCSVToJson extends AbstractCSVTransformer {
 
     private static final List<PropertyDescriptor> DESCRIPTORS;
 

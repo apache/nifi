@@ -12,11 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.schemaregistry.processors.UpdateAttributeWithSchemaViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformJsonToAvroViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformAvroToJsonViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformCSVToAvroViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformCSVToJsonViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformAvroToCSVViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.TransformJsonToCSVViaSchemaRegistry
-org.apache.nifi.schemaregistry.processors.ExtractAvroFieldsViaSchemaRegistry
+org.apache.nifi.schemaregistry.processors.UpdateAttributeWithSchema
+org.apache.nifi.schemaregistry.processors.TransformJsonToAvro
+org.apache.nifi.schemaregistry.processors.TransformAvroToJson
+org.apache.nifi.schemaregistry.processors.TransformCSVToAvro
+org.apache.nifi.schemaregistry.processors.TransformCSVToJson
+org.apache.nifi.schemaregistry.processors.TransformAvroToCSV
+org.apache.nifi.schemaregistry.processors.TransformJsonToCSV
+org.apache.nifi.schemaregistry.processors.ExtractAvroFields

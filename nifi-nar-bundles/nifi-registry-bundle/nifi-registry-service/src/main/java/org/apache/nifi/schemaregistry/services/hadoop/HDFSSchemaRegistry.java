@@ -17,8 +17,13 @@
 
 package org.apache.nifi.schemaregistry.services.hadoop;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.util.Properties;
+
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -27,19 +32,10 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.Properties;
-
 @Tags({ "schema", "registry", "avro", "json", "csv" })
 @CapabilityDescription("Provides a service for registering and accessing schemas stored in HDFS. You can register schema "
         + "as a dynamic property where 'name' represents the schema name.")
 public final class HDFSSchemaRegistry extends AbstractHadoopControllerService implements SchemaRegistry {
-
-
 
     @Override
     public String retrieveSchemaText(String schemaName) {
@@ -60,9 +56,6 @@ public final class HDFSSchemaRegistry extends AbstractHadoopControllerService im
         final StopWatch stopWatch = new StopWatch(true);
         StringBuilder schema = new StringBuilder();
         try {
-
-//            inputStream = hdfs.open(path, 16384);
-//            schema = inputStream.readUTF();
             stream = new BufferedReader(new InputStreamReader(hdfs.open(path, 16384)));
             stream.lines().forEach(schema::append);
 
@@ -85,18 +78,9 @@ public final class HDFSSchemaRegistry extends AbstractHadoopControllerService im
                 + "support this operation, since schemas are only identified by name.");
     }
 
-
     @Override
     @OnDisabled
     public void close() throws Exception {
-
+        // no op
     }
-
-//    @Override
-//    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-//        return new PropertyDescriptor.Builder().required(false).name(propertyDescriptorName)
-//                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).dynamic(true).expressionLanguageSupported(true)
-//                .build();
-//    }
-
 }

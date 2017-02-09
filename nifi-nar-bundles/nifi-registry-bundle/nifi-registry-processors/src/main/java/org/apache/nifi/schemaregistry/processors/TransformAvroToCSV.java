@@ -16,29 +16,40 @@
  */
 package org.apache.nifi.schemaregistry.processors;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 
-
-@Tags({ "registry", "schema", "avro", "json", "transform" })
-@CapabilityDescription("Transforms AVRO content of the Flow File to JSON using the schema provided by the Schema Registry Service.")
+@Tags({ "registry", "schema", "avro", "csv", "transform" })
+@CapabilityDescription("Transforms AVRO content of the Flow File to CSV using the schema provided by the Schema Registry Service.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-public final class TransformAvroToJsonViaSchemaRegistry extends BaseContentTransformerViaSchemaRegistry {
+public final class TransformAvroToCSV extends AbstractCSVTransformer {
 
     /**
      *
      */
     @Override
     protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema) {
-        GenericRecord avroRecord = AvroUtils.read(in, schema);
-        JsonUtils.write(avroRecord, out);
+        byte[] buff = null;
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            IOUtils.copy(in, bos);
+            buff = bos.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        ByteArrayInputStream is = new ByteArrayInputStream(buff);
+        GenericRecord avroRecord = AvroUtils.read(is, schema);
+        CSVUtils.write(avroRecord, this.delimiter, out);
         return null;
     }
 }

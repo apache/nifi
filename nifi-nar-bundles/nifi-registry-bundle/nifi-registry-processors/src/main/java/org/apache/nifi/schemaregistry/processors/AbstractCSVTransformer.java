@@ -30,7 +30,7 @@ import org.apache.nifi.schemaregistry.services.SchemaRegistry;
  * transformations that integrate with Schema Registry (see
  * {@link SchemaRegistry})
  */
-abstract class AbstractCSVTransformerViaRegistryProcessor extends BaseContentTransformerViaSchemaRegistry {
+abstract class AbstractCSVTransformer extends AbstractContentTransformer {
 
     static final List<PropertyDescriptor> BASE_CSV_DESCRIPTORS;
 

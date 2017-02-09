@@ -17,27 +17,25 @@
 package org.apache.nifi.schemaregistry.processors;
 
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 
-@Tags({ "registry", "schema", "csv", "json", "transform" })
-@CapabilityDescription("Transforms JSON content of the Flow File to CSV using the schema provided by the Schema Registry Service.")
-@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-public final class TransformJsonToCSVViaSchemaRegistry extends AbstractCSVTransformerViaRegistryProcessor {
+@Tags({"registry", "schema"})
+@CapabilityDescription("Extracts the schema for the content of the incoming FlowFile using the provided Schema Registry Service.")
+@WritesAttributes({@WritesAttribute(attribute="schema.text", description="Textual representation of the schema retrieved from the Schema Registry")})
+public final class UpdateAttributeWithSchema extends AbstractTransformer {
 
     /**
      *
      */
     @Override
-    protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema) {
-        GenericRecord avroRecord = JsonUtils.read(in, schema);
-        CSVUtils.write(avroRecord, this.delimiter, out);
-        return null;
+    protected Map<String, String> transform(InputStream in, InvocationContextProperties contextProperties, Schema schema) {
+        return Collections.unmodifiableMap(Collections.singletonMap(SCHEMA_ATTRIBUTE_NAME, schema.toString()));
     }
 }

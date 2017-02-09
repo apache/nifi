@@ -36,7 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 @Tags({ "csv", "avro", "transform", "registry", "schema" })
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Transforms CSV content of the Flow File to Avro using the schema provided by the Schema Registry Service.")
-public final class TransformCSVToAvroViaSchemaRegistry extends AbstractCSVTransformerViaRegistryProcessor {
+public final class TransformCSVToAvro extends AbstractCSVTransformer {
 
     private static final List<PropertyDescriptor> DESCRIPTORS;
 

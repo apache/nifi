@@ -40,7 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @DynamicProperty(name = "Avro field name", value = "FlowFile attribute name to set the extracted field",
                  description = "The value of the Avro field specified by 'Avro field name' will be extracted and set as "
                          + "FlowFile attribute under name specified by the value of this property.")
-public final class ExtractAvroFieldsViaSchemaRegistry extends BaseTransformerViaSchemaRegistry {
+public final class ExtractAvroFields extends AbstractTransformer {
 
     private static final List<PropertyDescriptor> DESCRIPTORS;
 
