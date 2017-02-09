@@ -17,7 +17,13 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -53,6 +59,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TlsHelper {
     private static final Logger logger = LoggerFactory.getLogger(TlsHelper.class);
@@ -184,8 +192,27 @@ public class TlsHelper {
         return createKeyPairGenerator(algorithm, keySize).generateKeyPair();
     }
 
-    public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
+    public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, String domainAlternativeName,
+            KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
         JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(requestedDn), keyPair.getPublic());
+
+        // add Subject Alternative Name
+        if(StringUtils.isNotBlank(domainAlternativeName)) {
+            try {
+                List<GeneralName> namesList = new ArrayList<>();
+                for(String alternativeName : domainAlternativeName.split(",")) {
+                    namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
+                }
+
+                GeneralNames subjectAltName = new GeneralNames(namesList.toArray(new GeneralName [] {}));
+                ExtensionsGenerator extGen = new ExtensionsGenerator();
+                extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltName);
+                jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
+            } catch (IOException e) {
+                throw new OperatorCreationException("Error while adding " + domainAlternativeName + " as Subject Alternative Name.", e);
+            }
+        }
+
         JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
         return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
