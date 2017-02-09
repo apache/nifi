@@ -38,9 +38,11 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,6 +51,11 @@ import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 
 /**
@@ -58,6 +65,7 @@ public class TestGenerateTableFetch {
 
     TestRunner runner;
     GenerateTableFetch processor;
+    DBCPServiceSimpleImpl dbcp;
 
     private final static String DB_LOCATION = "target/db_gtf";
 
@@ -93,7 +101,9 @@ public class TestGenerateTableFetch {
     @Before
     public void setUp() throws Exception {
         processor = new GenerateTableFetch();
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
+        //Mock the DBCP Controller Service so we can control the Results
+        dbcp = spy(new DBCPServiceSimpleImpl());
+
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner = TestRunners.newTestRunner(processor);
@@ -512,6 +522,47 @@ public class TestGenerateTableFetch {
         // Note there is no WHERE clause here. Because we are using dynamic tables (i.e. Expression Language,
         // even when not referring to flow file attributes), the old state key/value is not retrieved
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+    }
+
+    @Test
+    public void testRidiculousRowCount() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+        long rowCount= Long.parseLong(Integer.toString(Integer.MAX_VALUE)) + 100;
+        int partitionSize = 1000000;
+        int expectedFileCount = (int)(rowCount/partitionSize) + 1;
+
+        Connection conn = mock(Connection.class);
+        when(dbcp.getConnection()).thenReturn(conn);
+        Statement st = mock(Statement.class);
+        when(conn.createStatement()).thenReturn(st);
+        doNothing().when(st).close();
+        ResultSet rs = mock(ResultSet.class);
+        when(st.executeQuery(anyString())).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn((int)rowCount);
+        when(rs.getLong(1)).thenReturn(rowCount);
+
+        final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
+        when(rs.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSetMetaData.getColumnCount()).thenReturn(2);
+        when(resultSetMetaData.getTableName(1)).thenReturn("");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.INTEGER);
+        when(resultSetMetaData.getColumnName(1)).thenReturn("COUNT");
+        when(resultSetMetaData.getColumnType(2)).thenReturn(Types.INTEGER);
+        when(resultSetMetaData.getColumnName(2)).thenReturn("ID");
+        when(rs.getInt(2)).thenReturn(1000);
+
+
+        runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
+        runner.setIncomingConnection(false);
+        runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
+        runner.setProperty(GenerateTableFetch.PARTITION_SIZE, Integer.toString(partitionSize));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(REL_SUCCESS, expectedFileCount);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
+        String query = new String(flowFile.toByteArray());
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE ORDER BY ID FETCH NEXT 1000000 ROWS ONLY", query);
+        runner.clearTransferState();
     }
 
 
