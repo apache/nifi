@@ -241,6 +241,10 @@
                             }
                         });
 
+                        $('#template-file-field-button').on('click', function (e) {
+                            $('#template-file-field').click();
+                        });
+
                         // add a handler for the change file input chain event
                         $('#template-file-field').on('change', function (e) {
                             var filename = $(this).val();
