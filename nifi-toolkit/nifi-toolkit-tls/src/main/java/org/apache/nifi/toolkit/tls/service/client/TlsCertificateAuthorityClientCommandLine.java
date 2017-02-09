@@ -18,6 +18,12 @@
 package org.apache.nifi.toolkit.tls.service.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
@@ -28,25 +34,20 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 /**
  * Command line parser for a TlsClientConfig object and a main entry point to invoke the parser and run the CA client
  */
 public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAuthorityCommandLine {
     public static final String DESCRIPTION = "Generates a private key and gets it signed by the certificate authority.";
     public static final String CERTIFICATE_DIRECTORY = "certificateDirectory";
+    public static final String SUBJECT_ALTERNATIVE_NAMES = "subjectAlternativeNames";
     public static final String DEFAULT_CERTIFICATE_DIRECTORY = ".";
 
     private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityClientCommandLine.class);
     private final InputStreamFactory inputStreamFactory;
 
     private String certificateDirectory;
+    private String domainAlternativeNames;
 
     public TlsCertificateAuthorityClientCommandLine() {
         this(FileInputStream::new);
@@ -56,6 +57,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         super(DESCRIPTION);
         this.inputStreamFactory = inputStreamFactory;
         addOptionWithArg("C", CERTIFICATE_DIRECTORY, "The file to write the CA certificate to", DEFAULT_CERTIFICATE_DIRECTORY);
+        addOptionWithArg("S", SUBJECT_ALTERNATIVE_NAMES, "Comma-separated list of domains to use as Subject Alternative Names in the certificate");
     }
 
     public static void main(String[] args) throws Exception {
@@ -110,11 +112,16 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
         certificateDirectory = commandLine.getOptionValue(CERTIFICATE_DIRECTORY, DEFAULT_CERTIFICATE_DIRECTORY);
+        domainAlternativeNames = commandLine.getOptionValue(SUBJECT_ALTERNATIVE_NAMES);
         return commandLine;
     }
 
     public String getCertificateDirectory() {
         return certificateDirectory;
+    }
+
+    public String getDomainAlternativeNames() {
+        return domainAlternativeNames;
     }
 
     public TlsClientConfig createClientConfig() throws IOException {
@@ -129,6 +136,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
             TlsClientConfig tlsClientConfig = new TlsClientConfig();
             tlsClientConfig.setCaHostname(getCertificateAuthorityHostname());
             tlsClientConfig.setDn(getDn());
+            tlsClientConfig.setDomainAlternativeNames(getDomainAlternativeNames());
             tlsClientConfig.setToken(getToken());
             tlsClientConfig.setPort(getPort());
             tlsClientConfig.setKeyStore(KEYSTORE + getKeyStoreType().toLowerCase());
@@ -140,4 +148,5 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
             return tlsClientConfig;
         }
     }
+
 }

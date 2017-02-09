@@ -41,6 +41,7 @@ public class TlsConfig {
     private String signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
 
     private String dn;
+    private String domainAlternativeNames;
     private String keyStore;
     private String keyStoreType = DEFAULT_KEY_STORE_TYPE;
     private String keyStorePassword;
@@ -205,5 +206,13 @@ public class TlsConfig {
         if (StringUtils.isEmpty(dn)) {
             dn = calcDefaultDn(caHostname);
         }
+    }
+
+    public String getDomainAlternativeNames() {
+        return domainAlternativeNames;
+    }
+
+    public void setDomainAlternativeNames(String domainAlternativeNames) {
+        this.domainAlternativeNames = domainAlternativeNames;
     }
 }

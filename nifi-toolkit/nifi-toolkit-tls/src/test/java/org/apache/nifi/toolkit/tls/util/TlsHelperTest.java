@@ -17,21 +17,14 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.apache.nifi.security.util.CertificateUtils;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.AdditionalMatchers;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,20 +46,43 @@ import java.security.Provider;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.bouncycastle.asn1.pkcs.Attribute;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.AdditionalMatchers;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsHelperTest {
+    public static final Logger logger = LoggerFactory.getLogger(TlsHelperTest.class);
+
     private static final boolean originalUnlimitedCrypto = TlsHelper.isUnlimitedStrengthCryptographyEnabled();
 
     private int days;
@@ -279,5 +295,59 @@ public class TlsHelperTest {
         } catch (IOException e) {
             assertEquals(ioException2, e);
         }
+    }
+
+    @Test
+    public void testShouldIncludeSANFromCSR() throws Exception {
+        // Arrange
+        final List<String> SAN_ENTRIES = Arrays.asList("127.0.0.1", "nifi.nifi.apache.org");
+        final String SAN = StringUtils.join(SAN_ENTRIES, ",");
+        final int SAN_COUNT = SAN_ENTRIES.size();
+        final String DN = "CN=localhost";
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        logger.info("Generating CSR with DN: " + DN);
+
+        // Act
+        JcaPKCS10CertificationRequest csrWithSan = TlsHelper.generateCertificationRequest(DN, SAN, keyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        logger.info("Created CSR with SAN: " + SAN);
+        String testCsrPem = TlsHelper.pemEncodeJcaObject(csrWithSan);
+        logger.info("Encoded CSR as PEM: " + testCsrPem);
+
+        // Assert
+        String subjectName = csrWithSan.getSubject().toString();
+        logger.info("CSR Subject Name: " + subjectName);
+        assert subjectName.equals(DN);
+
+        List<String> extractedSans = extractSanFromCsr(csrWithSan);
+        assert extractedSans.size() == SAN_COUNT;
+        List<String> formattedSans = SAN_ENTRIES.stream().map(s -> "DNS: " + s).collect(Collectors.toList());
+        assert extractedSans.containsAll(formattedSans);
+    }
+
+    private List<String> extractSanFromCsr(JcaPKCS10CertificationRequest csr) {
+        List<String> sans = new ArrayList<>();
+        Attribute[] certAttributes = csr.getAttributes();
+        for (Attribute attribute : certAttributes) {
+            if (attribute.getAttrType().equals(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest)) {
+                Extensions extensions = Extensions.getInstance(attribute.getAttrValues().getObjectAt(0));
+                GeneralNames gns = GeneralNames.fromExtensions(extensions, Extension.subjectAlternativeName);
+                GeneralName[] names = gns.getNames();
+                for (GeneralName name : names) {
+                    logger.info("Type: " + name.getTagNo() + " | Name: " + name.getName());
+                    String title = "";
+                    if (name.getTagNo() == GeneralName.dNSName) {
+                        title = "DNS";
+                    } else if (name.getTagNo() == GeneralName.iPAddress) {
+                        title = "IP Address";
+                        // name.toASN1Primitive();
+                    } else if (name.getTagNo() == GeneralName.otherName) {
+                        title = "Other Name";
+                    }
+                    sans.add(title + ": " + name.getName());
+                }
+            }
+        }
+
+        return sans;
     }
 }

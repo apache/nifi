@@ -17,7 +17,33 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import javax.crypto.Cipher;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -34,25 +60,6 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.crypto.Cipher;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 public class TlsHelper {
     private static final Logger logger = LoggerFactory.getLogger(TlsHelper.class);
@@ -184,8 +191,27 @@ public class TlsHelper {
         return createKeyPairGenerator(algorithm, keySize).generateKeyPair();
     }
 
-    public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
+    public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, String domainAlternativeNames,
+            KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
         JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(requestedDn), keyPair.getPublic());
+
+        // add Subject Alternative Name(s)
+        if(StringUtils.isNotBlank(domainAlternativeNames)) {
+            try {
+                List<GeneralName> namesList = new ArrayList<>();
+                for(String alternativeName : domainAlternativeNames.split(",")) {
+                    namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
+                }
+
+                GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName [] {}));
+                ExtensionsGenerator extGen = new ExtensionsGenerator();
+                extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
+                jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
+            } catch (IOException e) {
+                throw new OperatorCreationException("Error while adding " + domainAlternativeNames + " as Subject Alternative Name.", e);
+            }
+        }
+
         JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
         return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
