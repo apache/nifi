@@ -181,6 +181,15 @@
                 resizable: true,
                 cssClass: 'cell-right',
                 headerCssClass: 'header-right'
+            },
+            {
+                id: 'uptime',
+                field: 'uptime',
+                name: 'Uptime',
+                sortable: true,
+                resizable: true,
+                cssClass: 'cell-right',
+                headerCssClass: 'header-right'
             }
         ],
         tableIdColumn: 'id',
@@ -496,7 +505,7 @@
             {
                 id: 'uptime',
                 field: 'nodeStartTime',
-                name: 'Uptime',
+                name: 'Started At',
                 formatter: valueFormatter,
                 resizable: true,
                 sortable: true,
@@ -944,7 +953,8 @@
                     gcOldGen: garbageCollection[0].collectionCount + ' times (' +
                     garbageCollection[0].collectionTime + ')',
                     gcNewGen: garbageCollection[1].collectionCount + ' times (' +
-                    garbageCollection[1].collectionTime + ')'
+                    garbageCollection[1].collectionTime + ')',
+                    uptime: snapshot.uptime
                 });
             });
             jvmTab.rowCount = jvmTableRows.length;

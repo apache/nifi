@@ -2299,6 +2299,9 @@
                     addGarbageCollection(garbageCollectionContainer, garbageCollection);
                 });
             }
+            
+            // uptime
+            $('#uptime').text(aggregateSnapshot.uptime);
 
             // available processors
             $('#available-processors').text(aggregateSnapshot.availableProcessors);
