@@ -133,8 +133,21 @@
                 }
             }
 
+            // determine if the row matches the selected source group
+            var matchesGroup = true;
+            if (matchesFilter && matchesTags) {
+                var bundleGroup = $('#processor-bundle-group-combo').combo('getSelectedOption');
+                if (common.isDefinedAndNotNull(bundleGroup) && bundleGroup.value !== '') {
+                    if (common.isDefinedAndNotNull(item.bundle)) {
+                        matchesGroup = (item.bundle.group === bundleGroup.value);
+                    } else {
+                        matchesGroup = false;
+                    }
+                }
+            }
+
             // determine if this row should be visible
-            var matches = matchesFilter && matchesTags;
+            var matches = matchesFilter && matchesTags && matchesGroup;
 
             // if this row is currently selected and its being filtered
             if (matches === false && $('#selected-processor-type').text() === item['type']) {
@@ -180,24 +193,6 @@
         };
 
         /**
-         * Sorts the specified data using the specified sort details.
-         *
-         * @param {object} sortDetails
-         * @param {object} data
-         */
-        var sort = function (sortDetails, data) {
-            // defines a function for sorting
-            var comparer = function (a, b) {
-                var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
-            };
-
-            // perform the sort
-            data.sort(comparer, sortDetails.sortAsc);
-        };
-
-        /**
          * Get the text out of the filter field. If the filter field doesn't
          * have any text it will contain the text 'filter list' so this method
          * accounts for that.
@@ -212,6 +207,11 @@
         var resetProcessorDialog = function () {
             // clear the selected tag cloud
             $('#processor-tag-cloud').tagcloud('clearSelectedTags');
+
+            // reset the group combo
+            $('#processor-bundle-group-combo').combo('setSelectedOption', {
+                value: ''
+            });
 
             // clear any filter strings
             $('#processor-type-filter').val('');
@@ -321,10 +321,10 @@
                                 resizable: true
                             },
                             {
-                                id: 'bundle',
-                                name: 'Bundle',
-                                field: 'bundle',
-                                formatter: common.bundleFormatter,
+                                id: 'version',
+                                name: 'Version',
+                                field: 'version',
+                                formatter: common.typeVersionFormatter,
                                 sortable: true,
                                 resizable: true
                             },
@@ -358,7 +358,7 @@
                         processorTypesData.setFilter(filter);
 
                         // initialize the sort
-                        sort({
+                        common.sortType({
                             columnId: 'type',
                             sortAsc: true
                         }, processorTypesData);
@@ -369,7 +369,7 @@
                         processorTypesGrid.registerPlugin(new Slick.AutoTooltips());
                         processorTypesGrid.setSortColumn('type', true);
                         processorTypesGrid.onSort.subscribe(function (e, args) {
-                            sort({
+                            common.sortType({
                                 columnId: args.sortCol.field,
                                 sortAsc: args.sortAsc
                             }, processorTypesData);
@@ -392,9 +392,15 @@
                                             .ellipsis();
                                     }
 
+                                    var bundle = common.formatBundle(processorType.bundle);
+                                    var type = processorType.label;
+                                    if (common.isDefinedAndNotNull(processorType.bundle)) {
+                                        type += (' ' + processorType.bundle.version);
+                                    }
+
                                     // populate the dom
                                     var bundle = common.formatBundleCoordinates(processorType.bundle);
-                                    $('#processor-type-name').text(processorType.label).attr('title', processorType.label);
+                                    $('#processor-type-name').text(type).attr('title', type);
                                     $('#processor-type-bundle').text(bundle).attr('title', bundle);
                                     $('#selected-processor-name').text(processorType.label);
                                     $('#selected-processor-type').text(processorType.type).data('bundle', processorType.bundle);
@@ -457,6 +463,7 @@
                             dataType: 'json'
                         }).done(function (response) {
                             var tags = [];
+                            var groups = d3.set();
 
                             // begin the update
                             processorTypesData.beginUpdate();
@@ -464,6 +471,11 @@
                             // go through each processor type
                             $.each(response.processorTypes, function (i, documentedType) {
                                 var type = documentedType.type;
+
+                                // record the group
+                                if (common.isDefinedAndNotNull(documentedType.bundle)) {
+                                        groups.add(documentedType.bundle.group);
+                                }
 
                                 // create the row for the processor type
                                 processorTypesData.addItem({
@@ -493,6 +505,24 @@
                                 tags: tags,
                                 select: applyFilter,
                                 remove: applyFilter
+                            });
+
+                            // build the combo options
+                            var options = [{
+                                text: 'all groups',
+                                value: ''
+                            }];
+                            groups.forEach(function (group) {
+                                options.push({
+                                    text: group,
+                                    value: group
+                                });
+                            });
+
+                            // initialize the bundle group combo
+                            $('#processor-bundle-group-combo').combo({
+                                options: options,
+                                select: applyFilter
                             });
                         }).fail(nfErrorHandler.handleAjaxError);
                     }

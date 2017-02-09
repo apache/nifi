@@ -454,8 +454,8 @@ public class ControllerFacade implements Authorizable {
      *
      * @return types
      */
-    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class));
+    public Set<DocumentedTypeDTO> getFlowFileProcessorTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class), bundleGroup, bundleArtifact, type);
     }
 
     /**
@@ -464,7 +464,7 @@ public class ControllerFacade implements Authorizable {
      * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class), null, null, null);
     }
 
     /**
@@ -491,7 +491,7 @@ public class ControllerFacade implements Authorizable {
      * @param serviceType type
      * @return the ControllerService types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String bundleGroup, final String bundleArtifact, final String type) {
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
@@ -500,16 +500,16 @@ public class ControllerFacade implements Authorizable {
             matchingServiceImplementions = new HashSet<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class type : serviceImplementations) {
-                if (implementsServiceType(serviceType, type)) {
-                    matchingServiceImplementions.add(type);
+            for (final Class csClass : serviceImplementations) {
+                if (implementsServiceType(serviceType, csClass)) {
+                    matchingServiceImplementions.add(csClass);
                 }
             }
         } else {
             matchingServiceImplementions = serviceImplementations;
         }
 
-        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
+        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions, bundleGroup, bundleArtifact, type);
     }
 
     /**
@@ -517,8 +517,8 @@ public class ControllerFacade implements Authorizable {
      *
      * @return the ReportingTask types that this controller supports
      */
-    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
-        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
+    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class), bundleGroup, bundleArtifact, type);
     }
 
     /**

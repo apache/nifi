@@ -22,22 +22,16 @@
 #new-reporting-task-dialog {
     min-height:620px;
     height: 620px;
-    width: 760px;
+    width: 800px;
     min-width: 760px;
-}
-
-#new-reporting-task-dialog span.link{
-    cursor: pointer;
-    color: #004849;
-    font-weight: bold;
-    display: inline-block;
-    background-color: #E3E8EB;
-    border-radius: 2px;
-    padding: 1px 4px;
 }
 
 #reporting-task-types-container {
     padding: 0px;
+}
+
+#reporting-task-bundle-group-combo {
+    margin-right: 2px;
 }
 
 #reporting-task-description-container {

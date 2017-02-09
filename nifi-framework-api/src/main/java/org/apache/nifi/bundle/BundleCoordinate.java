@@ -25,7 +25,7 @@ public class BundleCoordinate {
     public static final BundleCoordinate MISSING_COORDINATE = new BundleCoordinate(MISSING, MISSING, MISSING);
 
     public static final String DEFAULT_GROUP = "default";
-    public static final String DEFAULT_VERSION = "default";
+    public static final String DEFAULT_VERSION = "unversioned";
 
     private final String group;
     private final String id;

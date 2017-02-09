@@ -15,10 +15,12 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-controller-service-dialog" layout="column" class="hidden large-dialog">
+<div id="new-controller-service-dialog" layout="column" class="hidden">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
-            <div flex="25" layout="row" layout-align="start center"></div>
+            <div flex="25" layout="row" layout-align="start center">
+                <div class="setting-name" style="margin-top: 10px;">Source</div>
+            </div>
             <div flex layout="row" layout-align="space-between center" id="controller-service-type-filter-controls" class="filter-status">
                 <div id="controller-service-type-filter-status">
                     Displaying&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;of&nbsp;<span id="total-controller-service-types"></span>
@@ -30,6 +32,11 @@
         </div>
         <div flex layout="row" style="padding-top:0;height: 90%;">
             <div flex="25" id="controller-service-tag-cloud-container">
+                <div class="setting">
+                    <div class="setting-field">
+                        <div id="controller-service-bundle-group-combo"></div>
+                    </div>
+                </div>
                 <div class="setting">
                     <div class="setting-field">
                         <div id="controller-service-tag-cloud"></div>

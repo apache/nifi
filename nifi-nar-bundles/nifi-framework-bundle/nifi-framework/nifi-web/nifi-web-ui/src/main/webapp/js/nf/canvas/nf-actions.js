@@ -1228,6 +1228,23 @@
         },
 
         /**
+         * Views the state for the specified processor.
+         *
+         * @param {selection} selection
+         */
+        changeVersion: function (selection) {
+            if (selection.size() !== 1 || !nf.CanvasUtils.isProcessor(selection)) {
+                return;
+            }
+
+            // get the processor data
+            var processor = selection.datum();
+
+            // attempt to change the version of the specified component
+            nf.ComponentVersion.promptForVersionChange(processor);
+        },
+
+        /**
          * Aligns the components in the specified selection vertically along the center of the components.
          *
          * @param {array} selection      The selection

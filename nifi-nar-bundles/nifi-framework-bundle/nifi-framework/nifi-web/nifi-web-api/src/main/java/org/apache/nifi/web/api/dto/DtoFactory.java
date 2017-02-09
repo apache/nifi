@@ -2086,20 +2086,33 @@ public final class DtoFactory {
      * @return dtos
      */
     @SuppressWarnings("rawtypes")
-    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<Class> classes) {
+    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<Class> classes, final String bundleGroup, final String bundleArtifact, final String type) {
         final Set<DocumentedTypeDTO> types = new LinkedHashSet<>();
         final Set<Class> sortedClasses = new TreeSet<>(CLASS_NAME_COMPARATOR);
         sortedClasses.addAll(classes);
 
         for (final Class<?> cls : sortedClasses) {
             for (final Bundle bundle : ExtensionManager.getBundles(cls.getName())) {
-                final DocumentedTypeDTO type = new DocumentedTypeDTO();
-                type.setType(cls.getName());
-                type.setBundle(createBundleDto(bundle.getBundleDetails().getCoordinate()));
-                type.setDescription(getCapabilityDescription(cls));
-                type.setUsageRestriction(getUsageRestriction(cls));
-                type.setTags(getTags(cls));
-                types.add(type);
+                final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+
+                // only include classes that meet the criteria if specified
+                if (bundleGroup != null && !bundleGroup.equals(coordinate.getGroup())) {
+                    continue;
+                }
+                if (bundleArtifact != null && !bundleArtifact.equals(coordinate.getId())) {
+                    continue;
+                }
+                if (type != null && !type.equals(cls.getName())) {
+                    continue;
+                }
+
+                final DocumentedTypeDTO dto = new DocumentedTypeDTO();
+                dto.setType(cls.getName());
+                dto.setBundle(createBundleDto(coordinate));
+                dto.setDescription(getCapabilityDescription(cls));
+                dto.setUsageRestriction(getUsageRestriction(cls));
+                dto.setTags(getTags(cls));
+                types.add(dto);
             }
         }
 

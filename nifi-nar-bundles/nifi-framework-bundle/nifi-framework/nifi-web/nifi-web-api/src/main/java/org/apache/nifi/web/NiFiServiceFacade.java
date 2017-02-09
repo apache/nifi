@@ -328,24 +328,33 @@ public interface NiFiServiceFacade {
     /**
      * Returns the list of processor types.
      *
-     * @return The list of available processor types
+     * @param bundleGroup if specified, must be member of bundle group
+     * @param bundleArtifact if specified, must be member of bundle artifact
+     * @param type if specified, type must match
+     * @return The list of available processor types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getProcessorTypes();
+    Set<DocumentedTypeDTO> getProcessorTypes(final String bundleGroup, final String bundleArtifact, final String type);
 
     /**
      * Returns the list of controller service types.
      *
      * @param serviceType Filters only service types that implement this type
-     * @return The list of available controller types
+     * @param bundleGroup if specified, must be member of bundle group
+     * @param bundleArtifact if specified, must be member of bundle artifact
+     * @param type if specified, type must match
+     * @return The list of available controller types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getControllerServiceTypes(String serviceType);
+    Set<DocumentedTypeDTO> getControllerServiceTypes(String serviceType, final String bundleGroup, final String bundleArtifact, final String type);
 
     /**
      * Returns the list of reporting task types.
      *
-     * @return The list of available reporting task types
+     * @param bundleGroup if specified, must be member of bundle group
+     * @param bundleArtifact if specified, must be member of bundle artifact
+     * @param type if specified, type must match
+     * @return The list of available reporting task types matching specified criteria
      */
-    Set<DocumentedTypeDTO> getReportingTaskTypes();
+    Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type);
 
     /**
      * Returns the list of prioritizer types.

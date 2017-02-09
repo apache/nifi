@@ -928,7 +928,23 @@ public class FlowResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getProcessorTypes() throws InterruptedException {
+    public Response getProcessorTypes(
+            @ApiParam(
+                value = "If specified, will only return types that are a member of this bundle group.",
+                required = false
+            )
+            @QueryParam("bundleGroup") String bundleGroup,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifact") String bundleArtifact,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String type) throws InterruptedException {
+
         authorizeFlow();
 
         if (isReplicateRequest()) {
@@ -937,7 +953,7 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
-        entity.setProcessorTypes(serviceFacade.getProcessorTypes());
+        entity.setProcessorTypes(serviceFacade.getProcessorTypes(bundleGroup, bundleArtifact, type));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -972,10 +988,25 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerServiceTypes(
             @ApiParam(
-                    value = "If specified, will only return controller services of this type.",
+                    value = "If specified, will only return controller services that are compatible with this type of service.",
                     required = false
             )
-            @QueryParam("serviceType") String serviceType) throws InterruptedException {
+            @QueryParam("serviceType") String serviceType,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroup") String bundleGroup,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifact") String bundleArtifact,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String type) throws InterruptedException {
 
         authorizeFlow();
 
@@ -985,7 +1016,7 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
-        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType));
+        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType, bundleGroup, bundleArtifact, type));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -1017,7 +1048,23 @@ public class FlowResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getReportingTaskTypes() throws InterruptedException {
+    public Response getReportingTaskTypes(
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroup") String bundleGroup,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifact") String bundleArtifact,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String type) throws InterruptedException {
+
         authorizeFlow();
 
         if (isReplicateRequest()) {
@@ -1026,7 +1073,7 @@ public class FlowResource extends ApplicationResource {
 
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
-        entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes());
+        entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes(bundleGroup, bundleArtifact, type));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

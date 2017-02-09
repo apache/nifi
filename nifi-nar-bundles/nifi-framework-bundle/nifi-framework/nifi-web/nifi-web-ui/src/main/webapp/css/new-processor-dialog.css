@@ -22,18 +22,8 @@
 #new-processor-dialog {
     min-height:620px;
     height: 620px;
-    width: 760px;
+    width: 800px;
     min-width: 760px;
-}
-
-#new-processor-dialog span.link{
-    cursor: pointer;
-    color: #004849;
-    font-weight: bold;
-    display: inline-block;
-    background-color: #E3E8EB;
-    border-radius: 2px;
-    padding: 1px 4px;
 }
 
 #processor-types-container {
@@ -47,6 +37,10 @@
 #processor-type-container {
     padding: 20px 0 5px 0;
     display: flex;
+}
+
+#processor-bundle-group-combo {
+    margin-right: 2px;
 }
 
 #processor-type-name {

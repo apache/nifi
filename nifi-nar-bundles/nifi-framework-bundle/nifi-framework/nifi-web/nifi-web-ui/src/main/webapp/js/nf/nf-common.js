@@ -185,6 +185,38 @@
         currentUser: undefined,
 
         /**
+         * Sorts the specified type data using the specified sort details.
+         *
+         * @param {object} sortDetails
+         * @param {object} data
+         */
+        sortType: function (sortDetails, data) {
+            // compares two bundles
+            var compareBundle = function (a, b) {
+                var aBundle = nf.Common.formatBundle(a[sortDetails.columnId]);
+                var bBundle = nf.Common.formatBundle(b[sortDetails.columnId]);
+                return aBundle === bBundle ? 0 : aBundle > bBundle ? 1 : -1;
+            };
+
+            // defines a function for sorting
+            var comparer = function (a, b) {
+                if (sortDetails.columnId === 'version') {
+                    // TODO - attempt to parse version using convention x.y.z[-(extra bits)]
+                    var aVersion = nf.Common.isDefinedAndNotNull(a.bundle[sortDetails.columnId]) ? a.bundle[sortDetails.columnId] : '';
+                    var bVersion = nf.Common.isDefinedAndNotNull(b.bundle[sortDetails.columnId]) ? b.bundle[sortDetails.columnId] : '';
+                    return aVersion === bVersion ? compareBundle(a, b) : aVersion > bVersion ? 1 : -1;
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                    return aString === bString ? compareBundle(a, b) : aString > bString ? 1 : -1;
+                }
+            };
+
+            // perform the sort
+            data.sort(comparer, sortDetails.sortAsc);
+        },
+
+        /**
          * Formats type of a component for a new instance dialog.
          *
          * @param row
@@ -205,13 +237,13 @@
             }
 
             // type
-            markup += value;
+            markup += nfCommon.escapeHtml(value);
 
             return markup;
         },
 
         /**
-         * Formats the bundle of a component for the new instance dialog.
+         * Formats the bundle of a component type for the new instance dialog.
          *
          * @param row
          * @param cell
@@ -220,12 +252,79 @@
          * @param dataContext
          * @returns {string}
          */
-        bundleFormatter: function (row, cell, value, columnDef, dataContext) {
+        typeBundleFormatter: function (row, cell, value, columnDef, dataContext) {
             if (nfCommon.isDefinedAndNotNull(dataContext.bundle)) {
                 return nfCommon.escapeHtml(nfCommon.formatBundle(dataContext.bundle));
             } else {
                 return 'NA';
             }
+        },
+
+        /**
+         * Formats the bundle of a component type for the new instance dialog.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        typeVersionFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (nfCommon.isDefinedAndNotNull(dataContext.bundle)) {
+                return nfCommon.escapeHtml(dataContext.bundle.version);
+            } else {
+                return 'unversioned';
+            }
+        },
+
+        /**
+         * Formatter for the type column.
+         *
+         * @param {type} row
+         * @param {type} cell
+         * @param {type} value
+         * @param {type} columnDef
+         * @param {type} dataContext
+         * @returns {String}
+         */
+        instanceTypeFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            return nfCommon.escapeHtml(nfCommon.formatType(dataContext.component));
+        },
+
+        /**
+         * Formats the bundle of a component instance for the component listing table.
+         *
+         * @param row
+         * @param cell
+         * @param value
+         * @param columnDef
+         * @param dataContext
+         * @returns {string}
+         */
+        instanceBundleFormatter: function (row, cell, value, columnDef, dataContext) {
+            if (!dataContext.permissions.canRead) {
+                return '';
+            }
+
+            return nfCommon.typeBundleFormatter(row, cell, value, columnDef, dataContext.component);
+        },
+
+        /**
+         * Formats the type of this component.
+         *
+         * @param dataContext component datum
+         */
+        formatType: function (dataContext) {
+            var typeString = nfCommon.substringAfterLast(dataContext.type, '.');
+            if (nfCommon.isDefinedAndNotNull(dataContext.bundle) && dataContext.bundle.version !== 'unversioned') {
+                typeString += (' - ' + dataContext.bundle.version);
+            }
+            return typeString;
         },
 
         /**
@@ -238,20 +337,11 @@
                 if (bundle.missing === true) {
                     return 'Bundle Missing';
                 } else {
-                    return bundle.artifact + ':' + bundle.version + ' - ' + bundle.group;
+                    return bundle.group + ' - ' + bundle.artifact;
                 }
             } else {
                 return 'NA';
             }
-        },
-
-        /**
-         * Formats the bundle coordinates label.
-         *
-         * @param bundle
-         */
-        formatBundleCoordinates: function (bundle) {
-            return nfCommon.formatBundle(bundle);
         },
 
         /**

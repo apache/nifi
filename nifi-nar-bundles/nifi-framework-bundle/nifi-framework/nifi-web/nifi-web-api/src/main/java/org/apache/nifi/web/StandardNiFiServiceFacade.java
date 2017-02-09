@@ -2386,18 +2386,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<DocumentedTypeDTO> getProcessorTypes() {
-        return controllerFacade.getFlowFileProcessorTypes();
+    public Set<DocumentedTypeDTO> getProcessorTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getFlowFileProcessorTypes(bundleGroup, bundleArtifact, type);
     }
 
     @Override
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
-        return controllerFacade.getControllerServiceTypes(serviceType);
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getControllerServiceTypes(serviceType, bundleGroup, bundleArtifact, type);
     }
 
     @Override
-    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
-        return controllerFacade.getReportingTaskTypes();
+    public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroup, final String bundleArtifact, final String type) {
+        return controllerFacade.getReportingTaskTypes(bundleGroup, bundleArtifact, type);
     }
 
     @Override

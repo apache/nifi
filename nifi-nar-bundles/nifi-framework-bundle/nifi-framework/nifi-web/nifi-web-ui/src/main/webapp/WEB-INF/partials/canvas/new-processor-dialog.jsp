@@ -15,10 +15,12 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-processor-dialog" layout="column" class="hidden large-dialog">
+<div id="new-processor-dialog" layout="column" class="hidden">
     <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
-            <div flex="25" layout="row" layout-align="start center"></div>
+            <div flex="25" layout="row" layout-align="start center">
+                <div class="setting-name" style="margin-top: 10px;">Source</div>
+            </div>
             <div flex layout="row" layout-align="space-between center" id="processor-type-filter-controls">
                 <div id="processor-type-filter-status" class="filter-status">
                     Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span
@@ -32,6 +34,12 @@
         <div flex layout="row" style="padding-top:0;height: 90%;">
             <div flex="25" id="processor-tag-cloud-container">
                 <div class="setting">
+                    <div class="setting-field">
+                        <div id="processor-bundle-group-combo"></div>
+                    </div>
+                </div>
+                <div class="setting">
+                    <div class="setting-name">Tags</div>
                     <div class="setting-field">
                         <div id="processor-tag-cloud"></div>
                     </div>

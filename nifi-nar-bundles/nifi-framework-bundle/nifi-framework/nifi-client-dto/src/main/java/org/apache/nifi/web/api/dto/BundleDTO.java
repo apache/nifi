@@ -100,7 +100,8 @@ public class BundleDTO {
      * @return whether the bundle is missing
      */
     @ApiModelProperty(
-            value = "The version of the bundle."
+            value = "The version of the bundle.",
+            readOnly = true
     )
     public Boolean getMissing() {
         return isMissing;

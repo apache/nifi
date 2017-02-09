@@ -325,6 +325,28 @@
     };
 
     /**
+     * Determines whether the current selection is a processor with more than one version.
+     *
+     * @param {selection} selection
+     */
+    var canChangeProcessorVersion = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+        if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
+            return false;
+        }
+
+        if (nf.CanvasUtils.isProcessor(selection)) {
+            // TODO - only show when processor has multiple versions?
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    /**
      * Determines whether the current selection is a process group.
      *
      * @param {selection} selection
@@ -513,6 +535,7 @@
         {condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'Status History', action: 'showStats'}},
         {condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
         {condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
+        {condition: canChangeProcessorVersion, menuItem: {clazz: 'fa fa-exchange', text: 'Change version', action: 'changeVersion'}},
         {condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
         {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
         {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
