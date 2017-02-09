@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
 import org.apache.nifi.processors.standard.TestNotify.MockCacheClient;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -59,6 +60,22 @@ public class TestWait {
 
         // no cache key attribute
         runner.assertAllFlowFilesTransferred(Wait.REL_WAIT, 1);
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testWaitKeepInUpstreamConnection() throws InitializationException {
+        runner.setProperty(Wait.RELEASE_SIGNAL_IDENTIFIER, "${releaseSignalAttribute}");
+        runner.setProperty(Wait.WAIT_MODE, Wait.WAIT_MODE_KEEP_IN_UPSTREAM);
+
+        final Map<String, String> props = new HashMap<>();
+        props.put("releaseSignalAttribute", "1");
+        runner.enqueue(new byte[]{}, props);
+
+        runner.run();
+
+        // The FlowFile stays in the upstream connection.
+        runner.assertQueueNotEmpty();
         runner.clearTransferState();
     }
 

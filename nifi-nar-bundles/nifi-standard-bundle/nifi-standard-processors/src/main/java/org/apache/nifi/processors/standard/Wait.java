@@ -146,6 +146,24 @@ public class Wait extends AbstractProcessor {
         .expressionLanguageSupported(false)
         .build();
 
+    public static final AllowableValue WAIT_MODE_TRANSFER_TO_WAIT = new AllowableValue("wait", "Transfer to wait relationship",
+            "Transfer a FlowFile to the 'wait' relationship when whose release signal has not been notified yet." +
+                    " This mode allows other incoming FlowFiles to be enqueued by moving FlowFiles into the wait relationship.");
+
+    public static final AllowableValue WAIT_MODE_KEEP_IN_UPSTREAM = new AllowableValue("keep", "Keep in the upstream connection",
+            "Transfer a FlowFile to the upstream connection where it comes from when whose release signal has not been notified yet." +
+                    " This mode helps keeping upstream connection being full so that the upstream source processor" +
+                    " will not be scheduled while back-pressure is active and limit incoming FlowFiles. ");
+
+    public static final PropertyDescriptor WAIT_MODE = new PropertyDescriptor.Builder()
+        .name("Wait Mode")
+        .description("Specifies how to handle a FlowFile waiting for a notify signal")
+        .defaultValue(WAIT_MODE_TRANSFER_TO_WAIT.getValue())
+        .required(true)
+        .allowableValues(WAIT_MODE_TRANSFER_TO_WAIT, WAIT_MODE_KEEP_IN_UPSTREAM)
+        .expressionLanguageSupported(false)
+        .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
         .description("A FlowFile with a matching release signal in the cache will be routed to this relationship")
@@ -185,6 +203,7 @@ public class Wait extends AbstractProcessor {
         descriptors.add(EXPIRATION_DURATION);
         descriptors.add(DISTRIBUTED_CACHE_SERVICE);
         descriptors.add(ATTRIBUTE_COPY_MODE);
+        descriptors.add(WAIT_MODE);
         return descriptors;
     }
 
@@ -259,7 +278,17 @@ public class Wait extends AbstractProcessor {
                 if (logger.isDebugEnabled()) {
                     logger.debug("No release signal yet for {} on FlowFile {}", new Object[] {signalId, flowFile});
                 }
-                session.transfer(flowFile, REL_WAIT);
+
+
+                final String waitMode = context.getProperty(WAIT_MODE).getValue();
+                if (WAIT_MODE_TRANSFER_TO_WAIT.getValue().equals(waitMode)) {
+                    session.transfer(flowFile, REL_WAIT);
+                } else if (WAIT_MODE_KEEP_IN_UPSTREAM.getValue().equals(waitMode)) {
+                    // Transfer to self.
+                    session.transfer(flowFile);
+                } else {
+                    throw new ProcessException("Unsupported wait mode " + waitMode + " was specified.");
+                }
                 return;
             }
 
