@@ -18,10 +18,12 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -50,7 +52,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractReportingTaskNode.class);
 
-    private final ReportingTask reportingTask;
+    private final AtomicReference<ReportingTaskDetails> reportingTaskRef;
     private final ProcessScheduler processScheduler;
     private final ControllerServiceLookup serviceLookup;
 
@@ -60,28 +62,27 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private volatile String comment;
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
 
-    public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
+    public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-                                     final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry,
-                                     final BundleCoordinate bundleCoordinate, final ComponentLog logger) {
+                                     final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
-            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry, bundleCoordinate, false, logger);
+            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry, false);
     }
 
 
-    public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
+    public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
                                      final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
                                      final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
-                                     final BundleCoordinate bundleCoordinate, final boolean isExtensionMissing, final ComponentLog logger) {
+                                     final boolean isExtensionMissing) {
 
-        super(reportingTask, id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, bundleCoordinate, isExtensionMissing, logger);
-        this.reportingTask = reportingTask;
+        super(id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, variableRegistry, isExtensionMissing);
+        this.reportingTaskRef = new AtomicReference<>(new ReportingTaskDetails(reportingTask));
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
 
-        final Class<?> reportingClass = reportingTask.getClass();
+        final Class<?> reportingClass = reportingTask.getComponent().getClass();
 
         DefaultSchedule dsc = AnnotationUtils.findAnnotation(reportingClass, DefaultSchedule.class);
         if(dsc != null) {
@@ -97,6 +98,21 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
                 LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
             }
         }
+    }
+
+    @Override
+    public ConfigurableComponent getComponent() {
+        return reportingTaskRef.get().getReportingTask();
+    }
+
+    @Override
+    public BundleCoordinate getBundleCoordinate() {
+        return reportingTaskRef.get().getBundleCoordinate();
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return reportingTaskRef.get().getComponentLog();
     }
 
     @Override
@@ -126,7 +142,12 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public ReportingTask getReportingTask() {
-        return reportingTask;
+        return reportingTaskRef.get().getReportingTask();
+    }
+
+    @Override
+    public void setReportingTask(final LoggableComponent<ReportingTask> reportingTask) {
+        this.reportingTaskRef.set(new ReportingTaskDetails(reportingTask));
     }
 
     @Override
@@ -178,50 +199,50 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     @Override
     public void verifyCanDelete() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot delete " + reportingTask.getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot delete " + getReportingTask().getIdentifier() + " because it is currently running");
         }
     }
 
     @Override
     public void verifyCanDisable() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot disable " + reportingTask.getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot disable " + getReportingTask().getIdentifier() + " because it is currently running");
         }
 
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot disable " + reportingTask.getIdentifier() + " because it is already disabled");
+            throw new IllegalStateException("Cannot disable " + getReportingTask().getIdentifier() + " because it is already disabled");
         }
     }
 
     @Override
     public void verifyCanEnable() {
         if (!isDisabled()) {
-            throw new IllegalStateException("Cannot enable " + reportingTask.getIdentifier() + " because it is not disabled");
+            throw new IllegalStateException("Cannot enable " + getReportingTask().getIdentifier() + " because it is not disabled");
         }
     }
 
     @Override
     public void verifyCanStart() {
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot start " + reportingTask.getIdentifier() + " because it is currently disabled");
+            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is currently disabled");
         }
 
         if (isRunning()) {
-            throw new IllegalStateException("Cannot start " + reportingTask.getIdentifier() + " because it is already running");
+            throw new IllegalStateException("Cannot start " + getReportingTask().getIdentifier() + " because it is already running");
         }
     }
 
     @Override
     public void verifyCanStop() {
         if (!isRunning()) {
-            throw new IllegalStateException("Cannot stop " + reportingTask.getIdentifier() + " because it is not running");
+            throw new IllegalStateException("Cannot stop " + getReportingTask().getIdentifier() + " because it is not running");
         }
     }
 
     @Override
     public void verifyCanUpdate() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot update " + reportingTask.getIdentifier() + " because it is currently running");
+            throw new IllegalStateException("Cannot update " + getReportingTask().getIdentifier() + " because it is currently running");
         }
     }
 
@@ -275,5 +296,30 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
             results = super.getValidationErrors(serviceIdentifiersNotToValidate);
         }
         return results != null ? results : Collections.emptySet();
+    }
+
+    private static class ReportingTaskDetails {
+
+        private final ReportingTask reportingTask;
+        private final ComponentLog componentLog;
+        private final BundleCoordinate bundleCoordinate;
+
+        public ReportingTaskDetails(final LoggableComponent<ReportingTask> reportingTask) {
+            this.reportingTask = reportingTask.getComponent();
+            this.componentLog = reportingTask.getLogger();
+            this.bundleCoordinate = reportingTask.getBundleCoordinate();
+        }
+
+        public ReportingTask getReportingTask() {
+            return reportingTask;
+        }
+
+        public ComponentLog getComponentLog() {
+            return componentLog;
+        }
+
+        public BundleCoordinate getBundleCoordinate() {
+            return bundleCoordinate;
+        }
     }
 }

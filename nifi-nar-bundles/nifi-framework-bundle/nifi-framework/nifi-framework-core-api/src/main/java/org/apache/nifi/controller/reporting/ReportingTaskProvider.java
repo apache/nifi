@@ -111,4 +111,15 @@ public interface ReportingTaskProvider {
      * STOPPED, or if the Reporting Task has active threads
      */
     void disableReportingTask(ReportingTaskNode reportingTask);
+
+    /**
+     * Changes the underlying ReportingTask held by the node to an instance of the new type.
+     *
+     * @param reportingTask the ReportingTaskNode being updated
+     * @param newType the fully qualified class name of the new type
+     * @param bundleCoordinate the bundle coordinate of the new type
+     * @throws ReportingTaskInstantiationException if unable to create an instance of the new type
+     */
+    void changeType(final ReportingTaskNode reportingTask, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException;
+
 }

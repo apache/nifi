@@ -439,6 +439,7 @@
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-component-version.js</include>
                                                 <include>${staging.dir}/js/nf/nf-shell.js</include>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>

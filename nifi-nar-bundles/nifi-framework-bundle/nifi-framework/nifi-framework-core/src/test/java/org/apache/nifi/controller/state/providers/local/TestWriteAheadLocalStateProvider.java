@@ -32,6 +32,7 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
+import org.apache.nifi.logging.ComponentLog;
 import org.junit.After;
 import org.junit.Before;
 import org.wali.WriteAheadRepository;
@@ -71,6 +72,11 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
 
             @Override
             public SSLContext getSSLContext() {
+                return null;
+            }
+
+            @Override
+            public ComponentLog getLogger() {
                 return null;
             }
         });

@@ -213,26 +213,20 @@ public class ExtensionManager {
             throw new IllegalArgumentException("Bundle is required");
         }
 
-        // Check if we already have a ClassLoader for this instance
-        ClassLoader instanceClassLoader = instanceClassloaderLookup.get(instanceIdentifier);
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
 
-        // If we don't then we'll create a new ClassLoader for this instance and add it to the map for future lookups
-        if (instanceClassLoader == null) {
-            final ClassLoader registeredClassLoader = bundle.getClassLoader();
-
-            // If the class is annotated with @RequiresInstanceClassLoading and the registered ClassLoader is a URLClassLoader
-            // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
-            // InstanceClassLoader that has the NAR ClassLoader as a parent
-            if (requiresInstanceClassLoading.contains(classType) && (registeredClassLoader instanceof URLClassLoader)) {
-                final URLClassLoader registeredUrlClassLoader = (URLClassLoader) registeredClassLoader;
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
-            } else {
-                instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], registeredClassLoader);
-            }
-
-            instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
+        // If the class is annotated with @RequiresInstanceClassLoading and the registered ClassLoader is a URLClassLoader
+        // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
+        // InstanceClassLoader that has the NAR ClassLoader as a parent
+        ClassLoader instanceClassLoader;
+        if (requiresInstanceClassLoading.contains(classType) && (bundleClassLoader instanceof URLClassLoader)) {
+            final URLClassLoader registeredUrlClassLoader = (URLClassLoader) bundleClassLoader;
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+        } else {
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], bundleClassLoader);
         }
 
+        instanceClassloaderLookup.put(instanceIdentifier, instanceClassLoader);
         return instanceClassLoader;
     }
 

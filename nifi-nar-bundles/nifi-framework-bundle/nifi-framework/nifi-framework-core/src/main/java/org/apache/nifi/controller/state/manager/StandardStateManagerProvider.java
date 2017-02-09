@@ -46,7 +46,9 @@ import org.apache.nifi.controller.state.StandardStateProviderInitializationConte
 import org.apache.nifi.controller.state.config.StateManagerConfiguration;
 import org.apache.nifi.controller.state.config.StateProviderConfiguration;
 import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -185,7 +187,8 @@ public class StandardStateManagerProvider implements StateManagerProvider{
         }
 
         final SSLContext sslContext = SslContextFactory.createSslContext(properties, false);
-        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext);
+        final ComponentLog logger = new SimpleProcessLogger(providerId, provider);
+        final StateProviderInitializationContext initContext = new StandardStateProviderInitializationContext(providerId, propertyMap, sslContext, logger);
 
         synchronized (provider) {
             provider.initialize(initContext);

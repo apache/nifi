@@ -21,6 +21,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -33,8 +34,8 @@ import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.controller.service.mock.ServiceC;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
@@ -181,7 +182,7 @@ public class TestStandardControllerServiceProvider {
     @Test(timeout = 90000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
         final ProcessScheduler scheduler = createScheduler();
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);
         }
     }
@@ -396,9 +397,10 @@ public class TestStandardControllerServiceProvider {
     }
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
-        final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
+        final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(new DummyProcessor(), systemBundle.getBundleDetails().getCoordinate(), null);
+        final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider, niFiProperties,
-                VariableRegistry.EMPTY_REGISTRY, systemBundle.getBundleDetails().getCoordinate(), Mockito.mock(ComponentLog.class));
+                VariableRegistry.EMPTY_REGISTRY);
 
         final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null, variableRegistry);
         group.addProcessor(procNode);

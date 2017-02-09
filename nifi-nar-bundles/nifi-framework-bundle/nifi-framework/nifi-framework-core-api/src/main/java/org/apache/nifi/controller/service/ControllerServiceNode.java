@@ -18,6 +18,7 @@ package org.apache.nifi.controller.service;
 
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.List;
@@ -174,6 +175,7 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * @param proxiedControllerService the proxied controller service
      * @param implementation the actual implementation controller service
      */
-    void setControllerServiceAndProxy(final ControllerService proxiedControllerService, final ControllerService implementation);
+    void setControllerServiceAndProxy(final LoggableComponent<ControllerService> proxiedControllerService,
+                                      final LoggableComponent<ControllerService> implementation);
 
 }

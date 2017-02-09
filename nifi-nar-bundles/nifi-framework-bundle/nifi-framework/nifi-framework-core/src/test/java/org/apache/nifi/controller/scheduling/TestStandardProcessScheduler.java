@@ -25,6 +25,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -54,6 +55,7 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
@@ -109,8 +111,8 @@ public class TestStandardProcessScheduler {
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null, variableRegistry);
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
-        taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory,
-                variableRegistry, systemBundle.getBundleDetails().getCoordinate(), logger);
+        final LoggableComponent<ReportingTask> loggableComponent = new LoggableComponent<>(reportingTask, systemBundle.getBundleDetails().getCoordinate(), logger);
+        taskNode = new StandardReportingTaskNode(loggableComponent, UUID.randomUUID().toString(), null, scheduler, validationContextFactory, variableRegistry);
 
         controller = Mockito.mock(FlowController.class);
         rootGroup = new MockProcessGroup();
@@ -154,10 +156,10 @@ public class TestStandardProcessScheduler {
                 systemBundle.getBundleDetails().getCoordinate(), true);
         rootGroup.addControllerService(service);
 
-        final ProcessorNode procNode = new StandardProcessorNode(proc, uuid,
+        final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(proc, systemBundle.getBundleDetails().getCoordinate(), null);
+        final ProcessorNode procNode = new StandardProcessorNode(loggableComponent, uuid,
                 new StandardValidationContextFactory(serviceProvider, variableRegistry),
-                scheduler, serviceProvider, nifiProperties, VariableRegistry.EMPTY_REGISTRY,
-                systemBundle.getBundleDetails().getCoordinate(), Mockito.mock(ComponentLog.class));
+                scheduler, serviceProvider, nifiProperties, VariableRegistry.EMPTY_REGISTRY);
         rootGroup.addProcessor(procNode);
 
         Map<String,String> procProps = new HashMap<>();

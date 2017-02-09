@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -30,6 +31,7 @@ import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
@@ -115,6 +117,9 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         // perform the update
         configureReportingTask(reportingTask, reportingTaskDTO);
 
+        // attempt to change the underlying processor if an updated bundle is specified
+        updateBundle(reportingTask, reportingTaskDTO);
+
         // configure scheduled state
         // see if an update is necessary
         if (isNotNull(reportingTaskDTO.getState())) {
@@ -155,6 +160,33 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         }
 
         return reportingTask;
+    }
+
+    private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
+        BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        if (bundleDTO != null) {
+            BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
+            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+
+            // determine if this update is changing the bundle for the reporting task
+            if (!existingCoordinate.equals(incomingCoordinate)) {
+                // if it is changing the bundle, only allow it to change to a different version within same group and id
+                if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
+                        || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
+                    throw new IllegalArgumentException(String.format(
+                            "Unable to update reporting task %s from %s to %s because bundle group and id must be the same.",
+                            reportingTaskDTO.getId(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
+                }
+                // if we made it here we can attempt to change the underlying reporting task using the new bundle, a
+                // ReportingTaskInstantiationException will be thrown if the request bundle coordinate does not exist
+                try {
+                    reportingTaskProvider.changeType(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate);
+                } catch (ReportingTaskInstantiationException e) {
+                    throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
+                            reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
+                }
+            }
+        }
     }
 
     private List<String> validateProposedConfiguration(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {

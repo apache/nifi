@@ -357,7 +357,7 @@ public class TestFlowController {
 
     @Test
     public void testReportingTaskDefaultScheduleAnnotation() throws ReportingTaskInstantiationException {
-        ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), null);
+        ReportingTaskNode p_scheduled = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
         assertEquals(SchedulingStrategy.CRON_DRIVEN,p_scheduled.getSchedulingStrategy());
         assertEquals("0 0 0 1/1 * ?",p_scheduled.getSchedulingPeriod());
     }

@@ -27,6 +27,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -196,11 +197,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
             originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id), nifiProperties));
 
-            final ComponentLog logger = new SimpleProcessLogger(id, originalService);
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id,
-                    validationContextFactory, this, variableRegistry, bundleCoordinate, logger);
+            final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(originalService, bundleCoordinate, serviceLogger);
+            final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, serviceLogger);
+
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(
+                    proxiedLoggableComponent, originalLoggableComponent, id, validationContextFactory, this, variableRegistry);
             serviceNodeHolder.set(serviceNode);
             serviceNode.setName(rawClass.getSimpleName());
 
@@ -268,15 +271,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
 
-        final ComponentLog logger = new SimpleProcessLogger(id, proxiedService);
+        final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, null);
 
-        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, proxiedService, id,
-                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, bundleCoordinate, true, logger);
+        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, id,
+                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry, true);
         return serviceNode;
-    }
-
-    public void changeControllerServiceType(final ControllerServiceNode existingControllerService, final String newType, final BundleCoordinate bundleCoordinate) {
-
     }
 
     @Override
