@@ -39,6 +39,8 @@ public class SystemDiagnostics implements Cloneable {
     private int totalThreads;
     private int daemonThreads;
 
+    private long uptime;
+
     private StorageUsage flowFileRepositoryStorageUsage;
     private Map<String, StorageUsage> contentRepositoryStorageUsage;
     private Map<String, GarbageCollection> garbageCollection;
@@ -181,6 +183,14 @@ public class SystemDiagnostics implements Cloneable {
         this.creationTimestamp = creationTimestamp;
     }
 
+    public long getUptime() {
+        return uptime;
+    }
+
+    public void setUptime(long uptime) {
+        this.uptime = uptime;
+    }
+
     @Override
     public SystemDiagnostics clone() {
         final SystemDiagnostics clonedObj = new SystemDiagnostics();
@@ -212,6 +222,7 @@ public class SystemDiagnostics implements Cloneable {
         clonedObj.usedHeap = usedHeap;
         clonedObj.usedNonHeap = usedNonHeap;
         clonedObj.creationTimestamp = creationTimestamp;
+        clonedObj.uptime = uptime;
 
         return clonedObj;
     }

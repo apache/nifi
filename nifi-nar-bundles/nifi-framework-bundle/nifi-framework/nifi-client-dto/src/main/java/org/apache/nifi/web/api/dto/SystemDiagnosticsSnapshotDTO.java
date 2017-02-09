@@ -58,6 +58,8 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
     private Integer totalThreads;
     private Integer daemonThreads;
 
+    private String uptime;
+
     private StorageUsageDTO flowFileRepositoryStorageUsage;
     private Set<StorageUsageDTO> contentRepositoryStorageUsage;
     private Set<GarbageCollectionDTO> garbageCollection;
@@ -315,6 +317,15 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         this.versionInfo = versionInfo;
     }
 
+    @ApiModelProperty("The uptime of the Java virtual machine")
+    public String getUptime() {
+        return uptime;
+    }
+
+    public void setUptime(String uptime) {
+        this.uptime = uptime;
+    }
+
     @Override
     public SystemDiagnosticsSnapshotDTO clone() {
         final SystemDiagnosticsSnapshotDTO other = new SystemDiagnosticsSnapshotDTO();
@@ -357,6 +368,8 @@ public class SystemDiagnosticsSnapshotDTO implements Cloneable {
         }
 
         other.setVersionInfo(getVersionInfo().clone());
+
+        other.setUptime(getUptime());
 
         return other;
     }

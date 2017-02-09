@@ -2409,6 +2409,9 @@ public final class DtoFactory {
         final SystemDiagnosticsSnapshotDTO.VersionInfoDTO versionInfoDto = createVersionInfoDTO();
         snapshot.setVersionInfo(versionInfoDto);
 
+        // uptime
+        snapshot.setUptime(FormatUtils.formatHoursMinutesSeconds(sysDiagnostics.getUptime(), TimeUnit.MILLISECONDS));
+
         return dto;
     }
 
