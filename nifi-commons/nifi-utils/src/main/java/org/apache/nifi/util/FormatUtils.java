@@ -35,8 +35,8 @@ public class FormatUtils {
     private static final double BYTES_IN_TERABYTE = BYTES_IN_GIGABYTE * 1024;
 
     // for Time Durations
-    private static final String NANOS = join(UNION, "ns", "nano", "nanos", "nanoseconds");
-    private static final String MILLIS = join(UNION, "ms", "milli", "millis", "milliseconds");
+    private static final String NANOS = join(UNION, "ns", "nano", "nanos", "nanosecond", "nanoseconds");
+    private static final String MILLIS = join(UNION, "ms", "milli", "millis", "millisecond", "milliseconds");
     private static final String SECS = join(UNION, "s", "sec", "secs", "second", "seconds");
     private static final String MINS = join(UNION, "m", "min", "mins", "minute", "minutes");
     private static final String HOURS = join(UNION, "h", "hr", "hrs", "hour", "hours");
