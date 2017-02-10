@@ -58,3 +58,9 @@ div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.p
 div.scheduling-period-setting, div.yield-duration-setting {
     margin-left: 20%;
 }
+
+div.relationship-description {
+    color: #888;
+    margin-left: 16px;
+    margin-top: 2px;
+}

@@ -93,12 +93,6 @@ div.processor-relationship-container {
     line-height: normal;
 }
 
-div.relationship-description {
-    color: #888;
-    margin-left: 16px;
-    margin-top: 2px;
-}
-
 #run-duration-container {
     height: 20px;
     width: 340px;
