@@ -42,7 +42,6 @@ public abstract class AbstractGCPProcessor<
             .Builder().name("gcp-project-id")
             .displayName("Project ID")
             .description("Google Cloud Project ID")
-            .expressionLanguageSupported(true)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -52,7 +51,6 @@ public abstract class AbstractGCPProcessor<
             .displayName("Number of retries")
             .description("How many retry attempts should be made before routing to the failure relationship.")
             .defaultValue("6")
-            .expressionLanguageSupported(true)
             .required(true)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
