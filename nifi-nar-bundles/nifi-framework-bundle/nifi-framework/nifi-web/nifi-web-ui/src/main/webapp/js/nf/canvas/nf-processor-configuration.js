@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
@@ -31,12 +31,12 @@
                 'nf.CustomUi',
                 'nf.UniversalCapture',
                 'nf.Connection'],
-            function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, connection) {
-                return (nf.ProcessorConfiguration = factory($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi), universalCapture, connection);
+            function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection) {
+                return (nf.ProcessorConfiguration = factory($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorConfiguration =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
@@ -62,7 +62,7 @@
             root.nf.UniversalCapture,
             root.nf.Connection);
     }
-}(this, function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, connection) {
+}(this, function ($, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfProcessor, clusterSummary, customUi, universalCapture, nfConnection) {
     'use strict';
 
     // possible values for a processor's run duration (in millis)
@@ -435,11 +435,11 @@
      * @param {object} processor
      */
     var reloadProcessorConnections = function (processor) {
-        var connections = nf.Connection.getComponentConnections(processor.id);
+        var connections = nfConnection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
             if (connection.permissions.canRead) {
                 if (connection.sourceId === processor.id) {
-                    nf.Connection.reload(connection.id);
+                    nfConnection.reload(connection.id);
                 }
             }
         });
@@ -535,7 +535,7 @@
                 }],
                 select: function () {
                     // remove all property detail dialogs
-                    nf.UniversalCapture.removeAllPropertyDetailDialogs();
+                    universalCapture.removeAllPropertyDetailDialogs();
 
                     // update the processor property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {

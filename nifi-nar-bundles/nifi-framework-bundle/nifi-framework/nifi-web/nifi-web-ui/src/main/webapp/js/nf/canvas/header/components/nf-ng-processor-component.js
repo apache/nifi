@@ -15,42 +15,45 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
+                'Slick',
                 'nf.Client',
                 'nf.Birdseye',
                 'nf.Graph',
-                'nf.Canvas',
+                'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, client, birdseye, graph, canvas, errorHandler, dialog, common) {
-                return (nf.ng.ProcessorComponent = factory($, client, birdseye, graph, canvas, errorHandler, dialog, common));
+            function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+                return (nf.ng.ProcessorComponent = factory($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProcessorComponent =
             factory(require('jquery'),
+                require('Slick'),
                 require('nf.Client'),
                 require('nf.Birdseye'),
                 require('nf.Graph'),
-                require('nf.Canvas'),
+                require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
                 require('nf.Dialog'),
                 require('nf.Common')));
     } else {
         nf.ng.ProcessorComponent = factory(root.$,
+            root.Slick,
             root.nf.Client,
             root.nf.Birdseye,
             root.nf.Graph,
-            root.nf.Canvas,
+            root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, client, birdseye, graph, canvas, errorHandler, dialog, common) {
+}(this, function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
     'use strict';
 
     return function (serviceProvider) {
@@ -254,7 +257,7 @@
             // create a new processor of the defined type
             $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvas.getGroupId()) + '/processors',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/processors',
                 data: JSON.stringify(processorEntity),
                 dataType: 'json',
                 contentType: 'application/json'
@@ -267,7 +270,7 @@
                 });
 
                 // update component visibility
-                canvas.View.updateVisibility();
+                graph.updateVisibility();
 
                 // update the birdseye
                 birdseye.refresh();

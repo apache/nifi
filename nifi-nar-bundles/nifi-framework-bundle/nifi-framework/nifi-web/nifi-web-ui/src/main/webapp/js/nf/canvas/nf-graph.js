@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['nf.Common',
-                'nf.CanvasUtils',
+        define(['jquery',
+                'd3',
+                'nf.Common',
                 'nf.ng.Bridge',
                 'nf.Label',
                 'nf.Funnel',
@@ -28,32 +29,20 @@
                 'nf.RemoteProcessGroup',
                 'nf.ProcessGroup',
                 'nf.Processor',
-                'nf.Connection'],
-            function (common,
-                      canvasUtils,
-                      angularBridge,
-                      label,
-                      funnel,
-                      port,
-                      remoteProcessGroup,
-                      processGroup,
-                      processor,
-                      connection) {
-                return (nf.Graph = factory(common,
-                    canvasUtils,
-                    angularBridge,
-                    label,
-                    funnel,
-                    port,
-                    remoteProcessGroup,
-                    processGroup,
-                    processor,
-                    connection));
+                'nf.Connection',
+                'nf.CanvasUtils',
+                'nf.Connectable',
+                'nf.Draggable',
+                'nf.Selectable',
+                'nf.ContextMenu'],
+            function ($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu) {
+                return (nf.Graph = factory($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Graph =
-            factory(require('nf.Common'),
-                require('nf.CanvasUtils'),
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.Common'),
                 require('nf.ng.Bridge'),
                 require('nf.Label'),
                 require('nf.Funnel'),
@@ -61,10 +50,16 @@
                 require('nf.RemoteProcessGroup'),
                 require('nf.ProcessGroup'),
                 require('nf.Processor'),
-                require('nf.Connection')));
+                require('nf.Connection'),
+                require('nf.CanvasUtils'),
+                require('nf.Connectable'),
+                require('nf.Draggable'),
+                require('nf.Selectable'),
+                require('nf.ContextMenu')));
     } else {
-        nf.Graph = factory(root.nf.Common,
-            root.nf.CanvasUtils,
+        nf.Graph = factory(root.$,
+            root.d3,
+            root.nf.Common,
             root.nf.ng.Bridge,
             root.nf.Label,
             root.nf.Funnel,
@@ -72,27 +67,15 @@
             root.nf.RemoteProcessGroup,
             root.nf.ProcessGroup,
             root.nf.Processor,
-            root.nf.Connection);
+            root.nf.Connection,
+            root.nf.CanvasUtils,
+            root.nf.Connectable,
+            root.nf.Draggable,
+            root.nf.Selectable,
+            root.nf.ContextMenu);
     }
-}(this, function (common,
-                  canvasUtils,
-                  angularBridge,
-                  label,
-                  funnel,
-                  port,
-                  remoteProcessGroup,
-                  processGroup,
-                  processor,
-                  connection) {
+}(this, function ($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu) {
     'use strict';
-
-    var nfLabel = label;
-    var nfFunnel = funnel;
-    var nfPort = port;
-    var nfRemoteProcessGroup = remoteProcessGroup;
-    var nfProcessGroup = processGroup;
-    var nfProcessor = processor;
-    var nfConnection = connection;
 
     var combinePorts = function (contents) {
         if (common.isDefinedAndNotNull(contents.inputPorts) && common.isDefinedAndNotNull(contents.outputPorts)) {
@@ -118,19 +101,110 @@
         }
     };
 
-    return {
-        init: function (groupId) {
+    /**
+     * Updates component visibility based on their proximity to the screen's viewport.
+     */
+    var updateComponentVisibility = function () {
+        var canvasContainer = $('#canvas-container');
+        var translate = canvasUtils.translateCanvasView();
+        var scale = canvasUtils.scaleCanvasView();
+
+        // scale the translation
+        translate = [translate[0] / scale, translate[1] / scale];
+
+        // get the normalized screen width and height
+        var screenWidth = canvasContainer.width() / scale;
+        var screenHeight = canvasContainer.height() / scale;
+
+        // calculate the screen bounds one screens worth in each direction
+        var screenLeft = -translate[0] - screenWidth;
+        var screenTop = -translate[1] - screenHeight;
+        var screenRight = screenLeft + (screenWidth * 3);
+        var screenBottom = screenTop + (screenHeight * 3);
+
+        // detects whether a component is visible and should be rendered
+        var isComponentVisible = function (d) {
+            if (!canvasUtils.shouldRenderPerScale()) {
+                return false;
+            }
+
+            var left = d.position.x;
+            var top = d.position.y;
+            var right = left + d.dimensions.width;
+            var bottom = top + d.dimensions.height;
+
+            // determine if the component is now visible
+            return screenLeft < right && screenRight > left && screenTop < bottom && screenBottom > top;
+        };
+
+        // detects whether a connection is visible and should be rendered
+        var isConnectionVisible = function (d) {
+            if (!canvasUtils.shouldRenderPerScale()) {
+                return false;
+            }
+
+            var x, y;
+            if (d.bends.length > 0) {
+                var i = Math.min(Math.max(0, d.labelIndex), d.bends.length - 1);
+                x = d.bends[i].x;
+                y = d.bends[i].y;
+            } else {
+                x = (d.start.x + d.end.x) / 2;
+                y = (d.start.y + d.end.y) / 2;
+            }
+
+            return screenLeft < x && screenRight > x && screenTop < y && screenBottom > y;
+        };
+
+        // marks the specific component as visible and determines if its entering or leaving visibility
+        var updateVisibility = function (d, isVisible) {
+            var selection = d3.select('#id-' + d.id);
+            var visible = isVisible(d);
+            var wasVisible = selection.classed('visible');
+
+            // mark the selection as appropriate
+            selection.classed('visible', visible)
+                .classed('entering', function () {
+                    return visible && !wasVisible;
+                }).classed('leaving', function () {
+                return !visible && wasVisible;
+            });
+        };
+
+        // get the all components
+        var graph = nfGraph.get();
+
+        // update the visibility for each component
+        $.each(graph.processors, function (_, d) {
+            updateVisibility(d, isComponentVisible);
+        });
+        $.each(graph.ports, function (_, d) {
+            updateVisibility(d, isComponentVisible);
+        });
+        $.each(graph.processGroups, function (_, d) {
+            updateVisibility(d, isComponentVisible);
+        });
+        $.each(graph.remoteProcessGroups, function (_, d) {
+            updateVisibility(d, isComponentVisible);
+        });
+        $.each(graph.connections, function (_, d) {
+            updateVisibility(d, isConnectionVisible);
+        });
+    };
+
+    var nfGraph = {
+        init: function () {
             // initialize the object responsible for each type of component
-            nfLabel.init();
-            nfFunnel.init();
-            nfPort.init();
-            nfRemoteProcessGroup.init();
-            nfProcessGroup.init();
-            nfProcessor.init();
-            nfConnection.init();
+            nfLabel.init(connectable, draggable, selectable, contextMenu);
+            nfFunnel.init(connectable, draggable, selectable, contextMenu);
+            nfPort.init(connectable, draggable, selectable, contextMenu);
+            nfRemoteProcessGroup.init(connectable, draggable, selectable, contextMenu);
+            nfProcessGroup.init(connectable, draggable, selectable, contextMenu);
+            nfProcessor.init(connectable, draggable, selectable, contextMenu);
+            nfConnection.init(selectable, contextMenu);
 
             // load the graph
-            return nfProcessGroup.enterGroup(groupId);
+            return nfProcessGroup.enterGroup(canvasUtils.getGroupId());
         },
 
         /**
@@ -239,6 +313,48 @@
         },
 
         /**
+         * Gets a graph component `type`.
+         *
+         * @param type  The type of component.
+         */
+        getComponentByType: function (type) {
+            switch (type)
+            {
+                case "Label":
+                    return nfLabel;
+                    break;
+
+                case "Funnel":
+                    return nfFunnel;
+                    break;
+
+                case "Port":
+                    return nfPort;
+                    break;
+
+                case "RemoteProcessGroup":
+                    return nfRemoteProcessGroup;
+                    break;
+
+                case "ProcessGroup":
+                    return nfProcessGroup;
+                    break;
+
+                case "Processor":
+                    return nfProcessor;
+                    break;
+
+                case "Connection":
+                    return nfConnection;
+                    break;
+
+                default:
+                    throw new Error('Unknown component type.');
+                    break;
+            }
+        },
+
+        /**
          * Clears all the components currently on the canvas. This function does not automatically refresh.
          */
         removeAll: function () {
@@ -265,6 +381,23 @@
         },
 
         /**
+         * Updates component visibility based on the current translation/scale.
+         */
+        updateVisibility: function () {
+            updateComponentVisibility();
+            nfGraph.pan();
+        },
+
+        /**
+         * Gets the currently selected components and connections.
+         *
+         * @returns {selection}     The currently selected components and connections
+         */
+        getSelection: function () {
+            return d3.selectAll('g.component.selected, g.connection.selected');
+        },
+
+        /**
          * Reload the component on the canvas.
          *
          * @param component     The component.
@@ -282,4 +415,6 @@
             }
         }
     };
+
+    return nfGraph;
 }));

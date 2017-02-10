@@ -15,30 +15,30 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
                 'nf.CanvasUtils',
-                'nf.Canvas'],
-            function ($, d3, canvasUtils, canvas) {
-                return (nf.Snippet = factory($, d3, canvasUtils, canvas));
+                'nf.Client'],
+            function ($, d3, canvasUtils, client) {
+                return (nf.Snippet = factory($, d3, canvasUtils, client));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Snippet =
             factory(require('jquery'),
                 require('d3'),
                 require('nf.CanvasUtils'),
-                require('nf.Canvas')));
+                require('nf.Client')));
     } else {
         nf.Snippet = factory(root.$,
             root.d3,
             root.nf.CanvasUtils,
-            root.nf.Canvas);
+            root.nf.Client);
     }
-}(this, function ($, d3, canvasUtils, canvas) {
+}(this, function ($, d3, canvasUtils, client) {
     'use strict';
 
     var config = {
@@ -49,6 +49,7 @@
     };
 
     return {
+
         /**
          * Marshals snippet from the specified selection.
          *
@@ -56,7 +57,7 @@
          */
         marshal: function (selection) {
             var snippet = {
-                parentGroupId: canvas.getGroupId(),
+                parentGroupId: canvasUtils.getGroupId(),
                 processors: {},
                 funnels: {},
                 inputPorts: {},
@@ -72,21 +73,21 @@
                 var selected = d3.select(this);
 
                 if (canvasUtils.isProcessor(selected)) {
-                    snippet.processors[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.processors[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isFunnel(selected)) {
-                    snippet.funnels[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.funnels[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isLabel(selected)) {
-                    snippet.labels[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.labels[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isInputPort(selected)) {
-                    snippet.inputPorts[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.inputPorts[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isOutputPort(selected)) {
-                    snippet.outputPorts[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.outputPorts[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isProcessGroup(selected)) {
-                    snippet.processGroups[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.processGroups[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isRemoteProcessGroup(selected)) {
-                    snippet.remoteProcessGroups[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.remoteProcessGroups[d.id] = client.getRevision(selected.datum());
                 } else if (canvasUtils.isConnection(selected)) {
-                    snippet.connections[d.id] = nf.Client.getRevision(selected.datum());
+                    snippet.connections[d.id] = client.getRevision(selected.datum());
                 }
             });
 
@@ -127,7 +128,7 @@
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(canvas.getGroupId()) + '/snippet-instance',
+                url: config.urls.processGroups + '/' + encodeURIComponent(canvasUtils.getGroupId()) + '/snippet-instance',
                 data: JSON.stringify(copySnippetRequestEntity),
                 dataType: 'json',
                 contentType: 'application/json'

@@ -15,35 +15,33 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
-                'nf.ControllerServices',
-                'nf.Canvas',
                 'nf.ProcessGroup',
-                'nf.Shell'],
-            function ($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell) {
-                return (nf.ProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell));
+                'nf.Shell',
+                'nf.CanvasUtils'],
+            function ($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils) {
+                return (nf.ProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessGroupConfiguration =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
-                require('nf.ControllerServices'),
-                require('nf.Canvas'),
                 require('nf.ProcessGroup'),
-                require('nf.Shell')));
+                require('nf.Shell'),
+                require('nf.CanvasUtils')));
     } else {
         nf.ProcessGroupConfiguration = factory(root.$,
             root.d3,
@@ -51,13 +49,14 @@
             root.nf.Common,
             root.nf.Dialog,
             root.nf.Client,
-            root.nf.ControllerServices,
-            root.nf.Canvas,
             root.nf.ProcessGroup,
-            root.nf.Shell);
+            root.nf.Shell,
+            root.nf.CanvasUtils);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, controllerServices, canvas, processGroup, shell) {
+}(this, function ($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils) {
     'use strict';
+
+    var nfControllerServices;
 
     var config = {
         urls: {
@@ -110,7 +109,7 @@
             contentType: 'application/json'
         }).done(function (response) {
             // refresh the process group if necessary
-            if (response.permissions.canRead && response.component.parentGroupId === canvas.getGroupId()) {
+            if (response.permissions.canRead && response.component.parentGroupId === canvasUtils.getGroupId()) {
                 processGroup.set(response);
             }
 
@@ -125,7 +124,7 @@
                 saveConfiguration(response.revision.version, groupId);
             });
 
-            canvas.reload();
+            canvasUtils.reload();
         }).fail(errorHandler.handleAjaxError);
     };
 
@@ -189,11 +188,11 @@
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
-                    if (groupId === canvas.getGroupId()) {
+                    if (groupId === canvasUtils.getGroupId()) {
                         $('#process-group-configuration').data('process-group', {
                             'permissions': {
                                 canRead: false,
-                                canWrite: canvas.canWrite()
+                                canWrite: canvasUtils.canWrite()
                             }
                         });
                     } else {
@@ -211,7 +210,7 @@
 
         // load the controller services
         var controllerServicesUri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
-        var controllerServices = controllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
+        var controllerServices = nfControllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
 
         // wait for everything to complete
         return $.when(processGroup, controllerServices).done(function (processGroupResult, controllerServicesResult) {
@@ -253,10 +252,15 @@
     };
 
     var nfProcessGroupConfiguration = {
+
         /**
-         * Initializes the settings page.
+         * Initialize the process group configuration.
+         *
+         * @param controllerServices    The reference to the controllerServices controller.
          */
-        init: function () {
+        init: function (controllerServices) {
+            nfControllerServices = controllerServices;
+
             // initialize the process group configuration tabs
             $('#process-group-configuration-tabs').tabbs({
                 tabStyle: 'tab',
@@ -301,14 +305,14 @@
 
             // initialize each tab
             initGeneral();
-            controllerServices.init(getControllerServicesTable());
+            nfControllerServices.init(getControllerServicesTable());
         },
 
         /**
          * Update the size of the grid based on its container's current size.
          */
         resetTableSize: function () {
-            controllerServices.resetTableSize(getControllerServicesTable());
+            nfControllerServices.resetTableSize(getControllerServicesTable());
         },
 
         /**
@@ -325,7 +329,7 @@
                 var selectedTab = $('#process-group-configuration-tabs li.selected-tab').text();
                 if (selectedTab === 'Controller Services') {
                     var controllerServicesUri = config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
-                    controllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
+                    nfControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 }
             });
 

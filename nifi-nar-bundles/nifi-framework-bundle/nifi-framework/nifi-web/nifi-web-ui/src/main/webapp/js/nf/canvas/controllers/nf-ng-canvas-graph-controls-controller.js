@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -23,12 +23,11 @@
                 'nf.Actions',
                 'nf.Birdseye',
                 'nf.Storage',
-                'nf.Canvas',
                 'nf.CanvasUtils',
                 'nf.Common',
                 'nf.ProcessGroupConfiguration'],
-            function ($, action, birdseye, storage, canvas, canvasUtils, common, processGroupConfiguration) {
-                return (nf.ng.Canvas.GraphControlsCtrl = factory($, action, birdseye, storage, canvas, canvasUtils, common, processGroupConfiguration));
+            function ($, action, birdseye, storage, canvasUtils, common, processGroupConfiguration) {
+                return (nf.ng.Canvas.GraphControlsCtrl = factory($, action, birdseye, storage, canvasUtils, common, processGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.GraphControlsCtrl =
@@ -36,7 +35,6 @@
                 require('nf.Actions'),
                 require('nf.Birdseye'),
                 require('nf.Storage'),
-                require('nf.Canvas'),
                 require('nf.CanvasUtils'),
                 require('nf.Common'),
                 require('nf.ProcessGroupConfiguration')));
@@ -45,12 +43,11 @@
             root.nf.Actions,
             root.nf.Birdseye,
             root.nf.Storage,
-            root.nf.Canvas,
             root.nf.CanvasUtils,
             root.nf.Common,
             root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, actions, birdseye, storage, canvas, canvasUtils, common, processGroupConfiguration) {
+}(this, function ($, actions, birdseye, storage, canvasUtils, common, processGroupConfiguration) {
     'use strict';
 
     return function (serviceProvider, navigateCtrl, operateCtrl) {
@@ -193,7 +190,7 @@
                 var selection = canvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    if (canvas.getParentGroupId() === null) {
+                    if (canvasUtils.getParentGroupId() === null) {
                         return 'icon-drop';
                     } else {
                         return 'icon-group';
@@ -240,13 +237,13 @@
              */
             getContextName: function () {
                 var selection = canvasUtils.getSelection();
-                var canRead = canvas.canRead();
+                var canRead = canvasUtils.canReadFromGroup();
 
                 if (selection.empty()) {
                     if (canRead) {
-                        return canvas.getGroupName();
+                        return canvasUtils.getGroupName();
                     } else {
-                        return canvas.getGroupId();
+                        return canvasUtils.getGroupId();
                     }
                 } else {
                     if (selection.size() === 1) {
@@ -312,7 +309,7 @@
                 var selection = canvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    return canvas.getGroupId();
+                    return canvasUtils.getGroupId();
                 } else {
                     if (selection.size() === 1) {
                         var d = selection.datum();
@@ -343,7 +340,7 @@
                 var selection = canvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    processGroupConfiguration.showConfiguration(canvas.getGroupId());
+                    processGroupConfiguration.showConfiguration(canvasUtils.getGroupId());
                 }
 
                 if (canvasUtils.isConfigurable(selection)) {

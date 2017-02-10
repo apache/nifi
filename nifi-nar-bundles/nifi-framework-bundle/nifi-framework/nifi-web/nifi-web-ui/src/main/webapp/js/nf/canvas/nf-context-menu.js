@@ -15,43 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
-                'nf.Canvas',
                 'nf.CanvasUtils',
-                'nf.ng.Bridge',
-                'nf.Actions'],
-            function ($, d3, errorHandler, common, canvas, canvasUtils, angularBridge, nfActions) {
-                return (nf.ContextMenu = factory($, d3, errorHandler, common, canvas, canvasUtils, angularBridge, nfActions));
+                'nf.ng.Bridge'],
+            function ($, d3, errorHandler, common, canvasUtils, angularBridge) {
+                return (nf.ContextMenu = factory($, d3, errorHandler, common, canvasUtils, angularBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ContextMenu =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
-                require('nf.Canvas'),
                 require('nf.CanvasUtils'),
-                require('nf.ng.Bridge'),
-                require('nf.Actions')));
+                require('nf.ng.Bridge')));
     } else {
         nf.ContextMenu = factory(root.$,
             root.d3,
             root.nf.ErrorHandler,
             root.nf.Common,
-            root.nf.Canvas,
             root.nf.CanvasUtils,
-            root.nf.ng.Bridge,
-            root.nf.Actions);
+            root.nf.ng.Bridge);
     }
-}(this, function ($, d3, errorHandler, common, canvas, canvasUtils, angularBridge, nfActions) {
+}(this, function ($, d3, errorHandler, common, canvasUtils, angularBridge) {
     'use strict';
+
+    var nfActions;
 
     /**
      * Returns whether the current group is not the root group.
@@ -59,7 +55,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isNotRootGroup = function (selection) {
-        return canvas.getParentGroupId() !== null && selection.empty();
+        return canvasUtils.getParentGroupId() !== null && selection.empty();
     };
 
     /**
@@ -236,7 +232,7 @@
 
         return canvasUtils.isFunnel(selection) || canvasUtils.isProcessor(selection) || canvasUtils.isProcessGroup(selection) ||
             canvasUtils.isRemoteProcessGroup(selection) || canvasUtils.isInputPort(selection) ||
-            (canvasUtils.isOutputPort(selection) && canvas.getParentGroupId() !== null);
+            (canvasUtils.isOutputPort(selection) && canvasUtils.getParentGroupId() !== null);
     };
 
     /**
@@ -252,7 +248,7 @@
 
         return canvasUtils.isFunnel(selection) || canvasUtils.isProcessor(selection) || canvasUtils.isProcessGroup(selection) ||
             canvasUtils.isRemoteProcessGroup(selection) || canvasUtils.isOutputPort(selection) ||
-            (canvasUtils.isInputPort(selection) && canvas.getParentGroupId() !== null);
+            (canvasUtils.isInputPort(selection) && canvasUtils.getParentGroupId() !== null);
     };
 
     /**
@@ -372,14 +368,14 @@
      *
      * @param {type} selection
      */
-    var canMoveToParent = function (selection, nfConnection) {
+    var canMoveToParent = function (selection) {
         if (canvasUtils.canModify(selection) === false) {
             return false;
         }
 
         // TODO - also check can modify in parent
 
-        return !selection.empty() && nfConnection.isDisconnected(selection) && canvas.getParentGroupId() !== null;
+        return !selection.empty() && canvasUtils.getComponentByType('Connection').isDisconnected(selection) && canvasUtils.getParentGroupId() !== null;
     };
 
     /**
@@ -480,11 +476,19 @@
         {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
         {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertical', action: 'alignVertical'}},
-        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', ext: 'Align horizontal', action: 'alignHorizontal'}}
+        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}}
     ];
 
     var nfContextMenu = {
-        init: function () {
+
+        /**
+         * Initialize the context menu.
+         *
+         * @param actions    The reference to the actions controller.
+         */
+        init: function (actions) {
+            nfActions = actions;
+
             $('#context-menu').on('contextmenu', function (evt) {
                 // stop propagation and prevent default
                 evt.preventDefault();
@@ -495,7 +499,7 @@
         /**
          * Shows the context menu.
          */
-        show: function (nfConnection) {
+        show: function () {
             var contextMenu = $('#context-menu').empty();
             var canvasBody = $('#canvas-body').get(0);
             var bannerFooter = $('#banner-footer').get(0);
@@ -507,7 +511,7 @@
             // consider each component action for the current selection
             $.each(actions, function (_, action) {
                 // determine if this action is application for this selection
-                if (action.condition(selection, nfConnection)) {
+                if (action.condition(selection, canvasUtils.getComponentByType('Connection'))) {
                     var menuItem = action.menuItem;
 
                     addMenuItem(contextMenu, {
@@ -554,10 +558,10 @@
          *
          * @param {selection} components    The components to enable the context menu for
          */
-        activate: function (components, nfConnection) {
+        activate: function (components) {
             components.on('contextmenu.selection', function () {
                 // get the clicked component to update selection
-                nfContextMenu.show(nfConnection);
+                nfContextMenu.show();
 
                 // stop propagation and prevent default
                 d3.event.preventDefault();

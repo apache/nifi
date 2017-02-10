@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['nf.Canvas',
+        define(['nf.CanvasUtils',
                 'nf.ContextMenu'],
-            function (canvas, contextMenu) {
-                return (nf.ng.Canvas.NavigateCtrl = factory(canvas, contextMenu));
+            function (canvasUtils, contextMenu) {
+                return (nf.ng.Canvas.NavigateCtrl = factory(canvasUtils, contextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.NavigateCtrl =
-            factory(require('nf.Canvas'),
+            factory(require('nf.CanvasUtils'),
                 require('nf.ContextMenu')));
     } else {
-        nf.ng.Canvas.NavigateCtrl = factory(root.nf.Canvas,
+        nf.ng.Canvas.NavigateCtrl = factory(root.nf.CanvasUtils,
             root.nf.ContextMenu);
     }
-}(this, function (canvas, contextMenu) {
+}(this, function (canvasUtils, contextMenu) {
     'use strict';
 
     return function () {
@@ -44,13 +44,13 @@
              * Zoom in on the canvas.
              */
             this.zoomIn = function () {
-                canvas.View.zoomIn();
+                canvasUtils.zoomCanvasViewIn();
 
                 // hide the context menu
                 contextMenu.hide();
 
                 // refresh the canvas
-                canvas.View.refresh({
+                canvasUtils.refreshCanvasView({
                     transition: true
                 });
             };
@@ -59,13 +59,13 @@
              * Zoom out on the canvas.
              */
             this.zoomOut = function () {
-                canvas.View.zoomOut();
+                canvasUtils.zoomCanvasViewOut();
 
                 // hide the context menu
                 contextMenu.hide();
 
                 // refresh the canvas
-                canvas.View.refresh({
+                canvasUtils.refreshCanvasView({
                     transition: true
                 });
             };
@@ -74,13 +74,13 @@
              * Zoom fit on the canvas.
              */
             this.zoomFit = function () {
-                canvas.View.fit();
+                canvasUtils.fitCanvasView();
 
                 // hide the context menu
                 contextMenu.hide();
 
                 // refresh the canvas
-                canvas.View.refresh({
+                canvasUtils.refreshCanvasView({
                     transition: true
                 });
             };
@@ -89,13 +89,13 @@
              * Zoom actual size on the canvas.
              */
             this.zoomActualSize = function () {
-                canvas.View.actualSize();
+                canvasUtils.actualSizeCanvasView();
 
                 // hide the context menu
                 contextMenu.hide();
 
                 // refresh the canvas
-                canvas.View.refresh({
+                canvasUtils.refreshCanvasView({
                     transition: true
                 });
             };

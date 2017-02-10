@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, top, define, module, require, exports */
+/* global top, define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -33,7 +33,10 @@
                 require('nf.Dialog'),
                 require('nf.Storage')));
     } else {
-        nf.Login = factory(root.$, root.nf.Common, root.nf.Dialog, root.nf.Storage);
+        nf.Login = factory(root.$,
+            root.nf.Common,
+            root.nf.Dialog,
+            root.nf.Storage);
     }
 }(this, function ($, common, dialog, storage) {
     'use strict';

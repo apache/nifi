@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* global nf, top, define, module, require, exports */
+/* global top, define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {

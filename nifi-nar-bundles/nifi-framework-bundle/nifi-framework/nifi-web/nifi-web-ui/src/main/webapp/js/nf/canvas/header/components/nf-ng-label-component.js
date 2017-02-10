@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -23,11 +23,11 @@
                 'nf.Client',
                 'nf.Birdseye',
                 'nf.Graph',
-                'nf.Canvas',
+                'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Label'],
-            function ($, client, birdseye, graph, canvas, errorHandler, label) {
-                return (nf.ng.LabelComponent = factory($, client, birdseye, graph, canvas, errorHandler, label));
+            function ($, client, birdseye, graph, canvasUtils, errorHandler, label) {
+                return (nf.ng.LabelComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler, label));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.LabelComponent =
@@ -35,7 +35,7 @@
                 require('nf.Client'),
                 require('nf.Birdseye'),
                 require('nf.Graph'),
-                require('nf.Canvas'),
+                require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
                 require('nf.Label')));
     } else {
@@ -43,11 +43,11 @@
             root.nf.Client,
             root.nf.Birdseye,
             root.nf.Graph,
-            root.nf.Canvas,
+            root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Label);
     }
-}(this, function ($, client, birdseye, graph, canvas, errorHandler, label) {
+}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler, label) {
     'use strict';
 
     return function (serviceProvider) {
@@ -129,7 +129,7 @@
                 // create a new label
                 $.ajax({
                     type: 'POST',
-                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvas.getGroupId()) + '/labels',
+                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/labels',
                     data: JSON.stringify(labelEntity),
                     dataType: 'json',
                     contentType: 'application/json'

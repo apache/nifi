@@ -15,24 +15,27 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports, parseFloat */
+/* global define, module, require, exports, parseFloat */
 
 // Define a common utility class used across the entire application.
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
+                'd3',
                 'nf.Storage'],
-            function ($, storage) {
-                return (nf.Common = factory($, storage));
+            function ($, d3, storage) {
+                return (nf.Common = factory($, d3, storage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
+            require('d3'),
             require('nf.Storage')));
     } else {
         nf.Common = factory(root.$,
+            root.d3,
             root.nf.Storage);
     }
-}(this, function ($, storage) {
+}(this, function ($, d3, storage) {
     'use strict';
 
     $(document).ready(function () {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -25,16 +25,15 @@
                 'nf.Client',
                 'nf.Dialog',
                 'nf.Common',
-                'nf.Canvas',
+                'nf.CanvasUtils',
                 'nf.ControllerServices',
                 'nf.ErrorHandler',
-                'nf.Settings',
                 'nf.ReportingTask',
                 'nf.Shell',
                 'nf.ComponentState',
                 'nf.PolicyManagement'],
-            function ($, Slick, d3, client, dialog, common, canvas, controllerServices, errorHandler, settings, reportingTask, shell, componentState, policyManagement) {
-                return (nf.Settings = factory($, Slick, d3, client, dialog, common, canvas, controllerServices, errorHandler, settings, reportingTask, shell, componentState, policyManagement));
+            function ($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement) {
+                return (nf.Settings = factory($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -44,10 +43,9 @@
                 require('nf.Client'),
                 require('nf.Dialog'),
                 require('nf.Common'),
-                require('nf.Canvas'),
+                require('nf.CanvasUtils'),
                 require('nf.ControllerServices'),
                 require('nf.ErrorHandler'),
-                require('nf.Settings'),
                 require('nf.ReportingTask'),
                 require('nf.Shell'),
                 require('nf.ComponentState'),
@@ -59,16 +57,15 @@
             root.nf.Client,
             root.nf.Dialog,
             root.nf.Common,
-            root.nf.Canvas,
+            root.nf.CanvasUtils,
             root.nf.ControllerServices,
             root.nf.ErrorHandler,
-            root.nf.Settings,
             root.nf.ReportingTask,
             root.nf.Shell,
             root.nf.ComponentState,
             root.nf.PolicyManagement);
     }
-}(this, function ($, Slick, d3, client, dialog, common, canvas, controllerServices, errorHandler, settings, reportingTask, shell, componentState, policyManagement) {
+}(this, function ($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement) {
     'use strict';
 
 
@@ -807,12 +804,12 @@
                 }
             }
 
-            if (dataContext.permissions.canWrite && nf.Common.canModifyController()) {
+            if (dataContext.permissions.canWrite && common.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 
             // allow policy configuration conditionally
-            if (canvas.isConfigurableAuthorizer() && common.canAccessTenants()) {
+            if (canvasUtils.isConfigurableAuthorizer() && common.canAccessTenants()) {
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
             }
 

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
@@ -32,7 +32,7 @@
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.LabelConfiguration =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),

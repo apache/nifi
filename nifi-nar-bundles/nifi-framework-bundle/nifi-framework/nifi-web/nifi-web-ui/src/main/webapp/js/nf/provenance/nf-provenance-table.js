@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, top, define, module, require, exports */
+/* global top, define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -1270,7 +1270,7 @@
              */
             getEventDetails: function (eventId, clusterNodeId) {
                 var url;
-                if (nf.Common.isDefinedAndNotNull(clusterNodeId)) {
+                if (common.isDefinedAndNotNull(clusterNodeId)) {
                     url = config.urls.provenanceEvents + encodeURIComponent(eventId) + '?' + $.param({
                             clusterNodeId: clusterNodeId
                         });
@@ -1282,7 +1282,7 @@
                     type: 'GET',
                     url: url,
                     dataType: 'json'
-                }).fail(nf.Common.handleAjaxError);
+                }).fail(errorHandler.handleAjaxError);
             },
 
             /**

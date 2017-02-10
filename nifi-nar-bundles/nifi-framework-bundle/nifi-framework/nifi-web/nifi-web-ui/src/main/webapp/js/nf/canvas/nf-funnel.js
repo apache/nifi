@@ -15,49 +15,39 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
-                'nf.Connection',
                 'nf.Common',
-                'nf.Selectable',
                 'nf.Client',
-                'nf.CanvasUtils',
-                'nf.ContextMenu',
-                'nf.Connectable',
-                'nf.Draggable'],
-            function ($, d3, connection, common, selectable, client, canvasUtils, contextMenu, connectable, draggable) {
-                return (nf.Funnel = factory($, d3, connection, common, selectable, client, canvasUtils, contextMenu, connectable, draggable));
+                'nf.CanvasUtils'],
+            function ($, d3, common, client, canvasUtils) {
+                return (nf.Funnel = factory($, d3, common, client, canvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Funnel =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
-                require('nf.Connection'),
                 require('nf.Common'),
-                require('nf.Selectable'),
                 require('nf.Client'),
-                require('nf.CanvasUtils'),
-                require('nf.ContextMenu'),
-                require('nf.Connectable'),
-                require('nf.Draggable')));
+                require('nf.CanvasUtils')));
     } else {
         nf.Funnel = factory(root.$,
             root.d3,
-            root.nf.Connection,
             root.nf.Common,
-            root.nf.Selectable,
             root.nf.Client,
-            root.nf.CanvasUtils,
-            root.nf.ContextMenu,
-            root.nf.Connectable,
-            root.nf.Draggable);
+            root.nf.CanvasUtils);
     }
-}(this, function ($, d3, connection, common, selectable, client, canvasUtils, contextMenu, connectable, draggable) {
+}(this, function ($, d3, common, client, canvasUtils) {
     'use strict';
+
+    var nfConnectable;
+    var nfDraggable;
+    var nfSelectable;
+    var nfContextMenu;
 
     var dimensions = {
         width: 48,
@@ -159,7 +149,7 @@
             .text('\ue803');
 
         // always support selection
-        funnel.call(selectable.activate).call(contextMenu.activate, connection);
+        funnel.call(nfSelectable.activate).call(nfContextMenu.activate);
     };
 
     /**
@@ -188,7 +178,7 @@
             var funnel = d3.select(this);
 
             // update the component behavior as appropriate
-            canvasUtils.editable(funnel, connectable, draggable);
+            canvasUtils.editable(funnel, nfConnectable, nfDraggable);
         });
     };
 
@@ -205,7 +195,12 @@
         /**
          * Initializes of the Processor handler.
          */
-        init: function () {
+        init: function (connectable, draggable, selectable, contextMenu) {
+            nfConnectable = connectable;
+            nfDraggable = draggable;
+            nfSelectable = selectable;
+            nfContextMenu = contextMenu;
+
             funnelMap = d3.map();
             removedCache = d3.map();
             addedCache = d3.map();

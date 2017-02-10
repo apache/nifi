@@ -15,33 +15,31 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
                 'nf.ControllerService',
                 'nf.ControllerServices',
-                'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi'],
-            function ($, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi) {
-                return (nf.ReportingTask = factory($, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi));
+            function ($, errorHandler, common, dialog, client, controllerService, controllerServices, universalCapture, customUi) {
+                return (nf.ReportingTask = factory($, errorHandler, common, dialog, client, controllerService, controllerServices, universalCapture, customUi));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ReportingTask =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
                 require('nf.ControllerService'),
                 require('nf.ControllerServices'),
-                require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi')));
     } else {
@@ -52,12 +50,13 @@
             root.nf.Client,
             root.nf.ControllerService,
             root.nf.ControllerServices,
-            root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi);
     }
-}(this, function ($, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi) {
+}(this, function ($, errorHandler, common, dialog, client, controllerService, controllerServices, universalCapture, customUi) {
     'use strict';
+
+    var nfSettings;
 
     var config = {
         edit: 'edit',
@@ -346,7 +345,9 @@
         /**
          * Initializes the reporting task configuration dialog.
          */
-        init: function () {
+        init: function (settings) {
+            nfSettings = settings;
+
             // initialize the configuration dialog tabs
             $('#reporting-task-configuration-tabs').tabbs({
                 tabStyle: 'tab',
@@ -581,7 +582,7 @@
                                         });
 
                                         // show the settings
-                                        settings.showSettings();
+                                        nfSettings.showSettings();
                                     });
                                 };
 
@@ -722,7 +723,7 @@
 
                                 // show the custom ui
                                 customUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, false).done(function () {
-                                    settings.showSettings();
+                                    nfSettings.showSettings();
                                 });
                             }
                         }

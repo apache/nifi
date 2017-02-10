@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['nf.Canvas',
+        define(['nf.CanvasUtils',
                 'nf.ContextMenu'],
-            function (canvas, contextMenu) {
-                return (nf.ng.Canvas.ToolboxCtrl = factory(canvas, contextMenu));
+            function (canvasUtils, contextMenu) {
+                return (nf.ng.Canvas.ToolboxCtrl = factory(canvasUtils, contextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.ToolboxCtrl =
-            factory(require('nf.Canvas'),
+            factory(require('nf.CanvasUtils'),
                 require('nf.ContextMenu')));
     } else {
-        nf.ng.Canvas.ToolboxCtrl = factory(root.nf.Canvas,
+        nf.ng.Canvas.ToolboxCtrl = factory(root.nf.CanvasUtils,
             root.nf.ContextMenu);
     }
-}(this, function (canvas, contextMenu) {
+}(this, function (canvasUtils, contextMenu) {
     'use strict';
 
     return function (processorComponent,
@@ -130,11 +130,11 @@
                         contextMenu.hide();
                     },
                     stop: function (e, ui) {
-                        var translate = canvas.View.translate();
-                        var scale = canvas.View.scale();
+                        var translate = canvasUtils.translateCanvasView();
+                        var scale = canvasUtils.scaleCanvasView();
 
                         var mouseX = e.originalEvent.pageX;
-                        var mouseY = e.originalEvent.pageY - canvas.CANVAS_OFFSET;
+                        var mouseY = e.originalEvent.pageY - canvasUtils.getCanvasOffset();
 
                         // invoke the drop handler if we're over the canvas
                         if (mouseX >= 0 && mouseY >= 0) {

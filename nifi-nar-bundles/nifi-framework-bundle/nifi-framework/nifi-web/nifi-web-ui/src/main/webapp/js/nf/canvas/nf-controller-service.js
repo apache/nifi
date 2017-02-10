@@ -15,45 +15,41 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
-                'nf.ControllerService',
                 'nf.ControllerServices',
                 'nf.Settings',
                 'nf.UniversalCapture',
                 'nf.CustomUi',
                 'nf.CanvasUtils',
                 'nf.ReportingTask',
-                'nf.Processor',
-                'nf.Canvas'],
-            function ($, d3, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor, canvas) {
-                return (nf.ControllerService = factory($, d3, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor, canvas));
+                'nf.Processor'],
+            function ($, d3, errorHandler, common, dialog, client, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor) {
+                return (nf.ControllerService = factory($, d3, errorHandler, common, dialog, client, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerService =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
-                require('nf.ControllerService'),
                 require('nf.ControllerServices'),
                 require('nf.Settings'),
                 require('nf.UniversalCapture'),
                 require('nf.CustomUi'),
                 require('nf.CanvasUtils'),
                 require('nf.ReportingTask'),
-                require('nf.Processor'),
-                require('nf.Canvas')));
+                require('nf.Processor')));
     } else {
         nf.ControllerService = factory(root.$,
             root.d3,
@@ -61,17 +57,15 @@
             root.nf.Common,
             root.nf.Dialog,
             root.nf.Client,
-            root.nf.ControllerService,
             root.nf.ControllerServices,
             root.nf.Settings,
             root.nf.UniversalCapture,
             root.nf.CustomUi,
             root.nf.CanvasUtils,
             root.nf.ReportingTask,
-            root.nf.Processor,
-            root.nf.Canvas);
+            root.nf.Processor);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, controllerService, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor, canvas) {
+}(this, function ($, d3, errorHandler, common, dialog, client, controllerServices, settings, universalCapture, customUi, canvasUtils, reportingTask, processor) {
     'use strict';
 
     var config = {
@@ -245,7 +239,7 @@
             var reference = referencingComponentEntity.component;
             if (reference.referenceType === 'Processor') {
                 // reload the processor on the canvas if appropriate
-                if (canvas.getGroupId() === reference.groupId) {
+                if (canvasUtils.getGroupId() === reference.groupId) {
                     processor.reload(reference.id);
                 }
 

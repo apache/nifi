@@ -15,36 +15,30 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
                 'nf.CanvasUtils',
-                'nf.Birdseye',
-                'nf.Canvas',
-                'nf.Graph',
                 'nf.Connection'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, birdseye, canvas, graph, connection) {
-                return (nf.ConnectionConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, birdseye, canvas, graph, connection));
+            function ($, d3, errorHandler, common, dialog, client, canvasUtils, connection) {
+                return (nf.ConnectionConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, connection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionConfiguration =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
-                require('nf.Birdseye'),
-                require('nf.Canvas'),
-                require('nf.Graph'),
                 require('nf.Connection')));
     } else {
         nf.ConnectionConfiguration = factory(root.$,
@@ -54,13 +48,13 @@
             root.nf.Dialog,
             root.nf.Client,
             root.nf.CanvasUtils,
-            root.nf.Birdseye,
-            root.nf.Canvas,
-            root.nf.Graph,
             root.nf.Connection);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, birdseye, canvas, graph, connection) {
+}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, connection) {
     'use strict';
+
+    var nfBirdseye;
+    var nfGraph;
 
     var CONNECTION_OFFSET_Y_INCREMENT = 75;
     var CONNECTION_OFFSET_X_INCREMENT = 200;
@@ -239,8 +233,8 @@
             $('#connection-source-component-id').val(inputPortData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvas.getGroupId());
-            $('#connection-source-group-name').text(canvas.getGroupName());
+            $('#connection-source-group-id').val(canvasUtils.getGroupId());
+            $('#connection-source-group-name').text(canvasUtils.getGroupName());
 
             // resolve the deferred
             deferred.resolve();
@@ -265,8 +259,8 @@
             $('#connection-source-component-id').val(funnelData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvas.getGroupId());
-            $('#connection-source-group-name').text(canvas.getGroupName());
+            $('#connection-source-group-id').val(canvasUtils.getGroupId());
+            $('#connection-source-group-name').text(canvasUtils.getGroupName());
 
             // resolve the deferred
             deferred.resolve();
@@ -295,8 +289,8 @@
             $('#connection-source-component-id').val(processorData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvas.getGroupId());
-            $('#connection-source-group-name').text(canvas.getGroupName());
+            $('#connection-source-group-id').val(canvasUtils.getGroupId());
+            $('#connection-source-group-name').text(canvasUtils.getGroupName());
 
             // show the available relationships
             $('#relationship-names-container').show();
@@ -493,8 +487,8 @@
             $('#connection-destination-component-id').val(outputPortData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvas.getGroupId());
-            $('#connection-destination-group-name').text(canvas.getGroupName());
+            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -511,8 +505,8 @@
             $('#connection-destination-component-id').val(funnelData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvas.getGroupId());
-            $('#connection-destination-group-name').text(canvas.getGroupName());
+            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -533,8 +527,8 @@
             $('#connection-destination-component-id').val(processorData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvas.getGroupId());
-            $('#connection-destination-group-name').text(canvas.getGroupName());
+            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -947,26 +941,26 @@
             // create the new connection
             $.ajax({
                 type: 'POST',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(canvas.getGroupId()) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/connections',
                 data: JSON.stringify(connectionEntity),
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
                 // add the connection
-                graph.add({
+                nfGraph.add({
                     'connections': [response]
                 }, {
                     'selectAll': true
                 });
 
                 // reload the connections source/destination components
-                canvas.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
+                canvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
 
                 // update component visibility
-                canvas.View.updateVisibility();
+                nfGraph.updateVisibility();
 
                 // update the birdseye
-                birdseye.refresh();
+                nfBirdseye.refresh();
             }).fail(function (xhr, status, error) {
                 // handle the error
                 errorHandler.handleAjaxError(xhr, status, error);
@@ -1035,7 +1029,7 @@
                 connection.set(response);
 
                 // reload the connections source/destination components
-                canvas.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
+                canvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     dialog.showOkDialog({
@@ -1170,7 +1164,17 @@
     };
 
     var nfConnectionConfiguration = {
-        init: function () {
+
+        /**
+         * Initialize the connection configuration.
+         *
+         * @param birdseye    The reference to the birdseye controller.
+         * @param graph    The reference to the graph controller.
+         */
+        init: function (birdseye, graph) {
+            nfBirdseye = birdseye;
+            nfGraph = graph;
+
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
 

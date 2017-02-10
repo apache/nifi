@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -23,12 +23,12 @@
                 'nf.Client',
                 'nf.Birdseye',
                 'nf.Graph',
-                'nf.Canvas',
+                'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, client, birdseye, graph, canvas, errorHandler, dialog, common) {
-                return (nf.ng.RemoteProcessGroupComponent = factory($, client, birdseye, graph, canvas, errorHandler, dialog, common));
+            function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+                return (nf.ng.RemoteProcessGroupComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.RemoteProcessGroupComponent =
@@ -36,7 +36,7 @@
                 require('nf.Client'),
                 require('nf.Birdseye'),
                 require('nf.Graph'),
-                require('nf.Canvas'),
+                require('nf.CanvasUtils'),
                 require('nf.ErrorHandler'),
                 require('nf.Dialog'),
                 require('nf.Common')));
@@ -45,12 +45,12 @@
             root.nf.Client,
             root.nf.Birdseye,
             root.nf.Graph,
-            root.nf.Canvas,
+            root.nf.CanvasUtils,
             root.nf.ErrorHandler,
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, client, birdseye, graph, canvas, errorHandler, dialog, common) {
+}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
     'use strict';
 
     return function (serviceProvider) {
@@ -88,7 +88,7 @@
             // create a new processor of the defined type
             $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvas.getGroupId()) + '/remote-process-groups',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/remote-process-groups',
                 data: JSON.stringify(remoteProcessGroupEntity),
                 dataType: 'json',
                 contentType: 'application/json'
@@ -104,7 +104,7 @@
                 $('#new-remote-process-group-dialog').modal('hide');
 
                 // update component visibility
-                canvas.View.updateVisibility();
+                graph.updateVisibility();
 
                 // update the birdseye
                 birdseye.refresh();

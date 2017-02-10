@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 /**
  * Lists FlowFiles from a given connection.
@@ -23,6 +23,7 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
+                'Slick',
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Shell',
@@ -31,12 +32,13 @@
                 'nf.ErrorHandler',
                 'nf.Storage',
                 'nf.CanvasUtils'],
-            function ($, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
-                return (nf.QueueListing = factory($, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils));
+            function ($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
+                return (nf.QueueListing = factory($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.QueueListing =
             factory(require('jquery'),
+                require('Slick'),
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Shell'),
@@ -47,6 +49,7 @@
                 require('nf.CanvasUtils')));
     } else {
         nf.QueueListing = factory(root.$,
+            root.Slick,
             root.nf.Common,
             root.nf.Dialog,
             root.nf.Shell,
@@ -56,7 +59,7 @@
             root.nf.Storage,
             root.nf.CanvasUtils);
     }
-}(this, function ($, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
+}(this, function ($, Slick, common, dialog, shell, angularBridge, clusterSummary, errorHandler, storage, canvasUtils) {
     'use strict';
 
     /**

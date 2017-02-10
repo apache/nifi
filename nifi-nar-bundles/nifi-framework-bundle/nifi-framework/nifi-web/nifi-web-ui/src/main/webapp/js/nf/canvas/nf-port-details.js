@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'nf.Common',
                 'nf.CanvasUtils'],
             function ($, common, canvasUtils) {
@@ -27,7 +27,7 @@
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PortDetails =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('nf.Common'),
                 require('nf.CanvasUtils')));
     } else {

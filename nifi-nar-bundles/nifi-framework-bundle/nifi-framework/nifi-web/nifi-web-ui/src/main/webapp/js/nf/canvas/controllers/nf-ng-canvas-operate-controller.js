@@ -15,39 +15,42 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
+                'd3',
                 'nf.Dialog',
                 'nf.Birdseye',
-                'nf.Canvas',
                 'nf.CanvasUtils',
                 'nf.Common',
+                'nf.Client',
                 'nf.Processor'],
-            function ($, dialog, birdseye, canvas, canvasUtils, common, processor) {
-                return (nf.ng.Canvas.OperateCtrl = factory($, dialog, birdseye, canvas, canvasUtils, common, processor));
+            function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
+                return (nf.ng.Canvas.OperateCtrl = factory($, d3, dialog, birdseye, canvasUtils, common, client, processor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.OperateCtrl =
             factory(require('jquery'),
+                require('d3'),
                 require('nf.Dialog'),
                 require('nf.Birdseye'),
-                require('nf.Canvas'),
                 require('nf.CanvasUtils'),
                 require('nf.Common'),
+                require('nf.Client'),
                 require('nf.Processor')));
     } else {
         nf.ng.Canvas.OperateCtrl = factory(root.$,
+            root.d3,
             root.nf.Dialog,
             root.nf.Birdseye,
-            root.nf.Canvas,
             root.nf.CanvasUtils,
             root.nf.Common,
+            root.nf.Client,
             root.nf.Processor);
     }
-}(this, function ($, dialog, birdseye, canvas, canvasUtils, common, processor) {
+}(this, function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
     'use strict';
 
     return function () {
@@ -151,7 +154,7 @@
                             dataType: 'xml',
                             beforeSubmit: function (formData, $form, options) {
                                 // ensure uploading to the current process group
-                                options.url += (encodeURIComponent(canvas.getGroupId()) + '/templates/upload');
+                                options.url += (encodeURIComponent(canvasUtils.getGroupId()) + '/templates/upload');
                             },
                             success: function (response, statusText, xhr, form) {
                                 // see if the import was successful and inform the user
@@ -166,7 +169,7 @@
                                     if (response.documentElement.tagName === 'errorResponse') {
                                         // if a more specific error was given, use it
                                         var errorMessage = response.documentElement.getAttribute('statusText');
-                                        if (!nf.Common.isBlank(errorMessage)) {
+                                        if (!common.isBlank(errorMessage)) {
                                             statusText = errorMessage;
                                         }
                                     }
@@ -174,7 +177,7 @@
                                     // show reason
                                     dialog.showOkDialog({
                                         headerText: 'Unable to Upload',
-                                        dialogContent: nf.Common.escapeHtml(statusText)
+                                        dialogContent: common.escapeHtml(statusText)
                                     });
                                 }
                             },
@@ -182,7 +185,7 @@
                                 // request failed
                                 dialog.showOkDialog({
                                     headerText: 'Unable to Upload',
-                                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
+                                    dialogContent: common.escapeHtml(xhr.responseText)
                                 });
                             }
                         });
@@ -202,7 +205,7 @@
                                         var selectedTemplate = $('#selected-template-name').text();
 
                                         // submit the template if necessary
-                                        if (nf.Common.isBlank(selectedTemplate)) {
+                                        if (common.isBlank(selectedTemplate)) {
                                             $('#upload-template-status').text('No template selected. Please browse to select a template.');
                                         } else {
                                             templateForm.submit();
@@ -241,7 +244,7 @@
                         // add a handler for the change file input chain event
                         $('#template-file-field').on('change', function (e) {
                             var filename = $(this).val();
-                            if (!nf.Common.isBlank(filename)) {
+                            if (!common.isBlank(filename)) {
                                 filename = filename.replace(/^.*[\\\/]/, '');
                             }
 
@@ -327,7 +330,7 @@
                                             if (color !== selectedData.component.style['background-color']) {
                                                 // build the request entity
                                                 var entity = {
-                                                    'revision': nf.Client.getRevision(selectedData),
+                                                    'revision': client.getRevision(selectedData),
                                                     'component': {
                                                         'id': selectedData.id,
                                                         'style': {
@@ -345,7 +348,7 @@
                                                     contentType: 'application/json'
                                                 }).done(function (response) {
                                                     // update the component
-                                                    nf[selectedData.type].set(response);
+                                                    canvasUtils.getComponentByType(selectedData.type).set(response);
                                                 }).fail(function (xhr, status, error) {
                                                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                                         dialog.showOkDialog({

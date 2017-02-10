@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -27,9 +27,9 @@
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
                 'nf.Settings',
-                'nf.Canvas'],
-            function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvas) {
-                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvas));
+                'nf.CanvasUtils'],
+            function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
+                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.GlobalMenuCtrl =
@@ -41,7 +41,7 @@
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
                 require('nf.Settings'),
-                require('nf.Canvas')));
+                require('nf.CanvasUtils')));
     } else {
         nf.ng.Canvas.GlobalMenuCtrl = factory(root.$,
             root.nf.Common,
@@ -51,9 +51,9 @@
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
             root.nf.Settings,
-            root.nf.Canvas);
+            root.nf.CanvasUtils);
     }
-}(this, function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvas) {
+}(this, function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
     'use strict';
 
     return function (serviceProvider) {
@@ -273,7 +273,7 @@
                      */
                     launch: function () {
                         shell.showPage('templates?' + $.param({
-                                groupId: canvas.getGroupId()
+                                groupId: canvasUtils.getGroupId()
                             }));
                     }
                 }

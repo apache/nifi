@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.ErrorHandler',
                 'nf.Common',
@@ -27,14 +27,13 @@
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
-                'nf.Port',
-                'nf.Canvas'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port, canvas) {
-                return (nf.PortConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port, canvas));
+                'nf.Port'],
+            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port) {
+                return (nf.PortConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PortConfiguration =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.ErrorHandler'),
                 require('nf.Common'),
@@ -42,8 +41,7 @@
                 require('nf.Client'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge'),
-                require('nf.Port'),
-                require('nf.Canvas')));
+                require('nf.Port')));
     } else {
         nf.PortConfiguration = factory(root.$,
             root.d3,
@@ -53,10 +51,9 @@
             root.nf.Client,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge,
-            root.nf.Port,
-            root.nf.Canvas);
+            root.nf.Port);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port, canvas) {
+}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port) {
     'use strict';
 
     /**
@@ -197,7 +194,7 @@
                 }
 
                 // show concurrent tasks for root groups only
-                if (canvas.getParentGroupId() === null) {
+                if (canvasUtils.getParentGroupId() === null) {
                     $('#port-concurrent-task-container').show();
                 } else {
                     $('#port-concurrent-task-container').hide();

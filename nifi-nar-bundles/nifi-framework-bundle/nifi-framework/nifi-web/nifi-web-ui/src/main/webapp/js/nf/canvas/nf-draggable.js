@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.Connection',
                 'nf.Birdseye',
@@ -27,14 +27,13 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Client',
-                'nf.Canvas',
                 'nf.ErrorHandler'],
-            function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, canvas, errorHandler) {
-                return (nf.Draggable = factory($, d3, connection, birdseye, canvasUtils, common, dialog, client, canvas, errorHandler));
+            function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+                return (nf.Draggable = factory($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Draggable =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.Connection'),
                 require('nf.Birdseye'),
@@ -42,7 +41,6 @@
                 require('nf.Common'),
                 require('nf.Dialog'),
                 require('nf.Client'),
-                require('nf.Canvas'),
                 require('nf.ErrorHandler')));
     } else {
         nf.Draggable = factory(root.$,
@@ -53,12 +51,12 @@
             root.nf.Common,
             root.nf.Dialog,
             root.nf.Client,
-            root.nf.Canvas,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, canvas, errorHandler) {
+}(this, function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
     'use strict';
 
+    var nfCanvas;
     var drag;
 
     /**
@@ -148,7 +146,9 @@
     };
 
     var nfDraggable = {
-        init: function () {
+        init: function (canvas) {
+            nfCanvas = canvas;
+
             // handle component drag events
             drag = d3.behavior.drag()
                 .on('dragstart', function () {
@@ -193,10 +193,10 @@
                             .attr('width', maxX - minX)
                             .attr('height', maxY - minY)
                             .attr('stroke-width', function () {
-                                return 1 / canvas.View.scale();
+                                return 1 / canvasUtils.scaleCanvasView();
                             })
                             .attr('stroke-dasharray', function () {
-                                return 4 / canvas.View.scale();
+                                return 4 / canvasUtils.scaleCanvasView();
                             })
                             .datum({
                                 original: {
@@ -274,7 +274,7 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     // update the component
-                    nf[d.type].set(response);
+                    canvasUtils.getComponentByType(d.type).set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({

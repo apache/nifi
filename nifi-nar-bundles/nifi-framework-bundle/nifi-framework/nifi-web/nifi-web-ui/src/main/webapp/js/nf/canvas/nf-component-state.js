@@ -15,12 +15,40 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
 /**
  * Views state for a given component.
  */
-nf.ComponentState = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'Slick',
+                'nf.ClusterSummary',
+                'nf.ErrorHandler',
+                'nf.Dialog',
+                'nf.Common'],
+            function ($, Slick, clusterSummary, errorHandler, dialog, common) {
+                return (nf.ComponentState = factory($, Slick, clusterSummary, errorHandler, dialog, common));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ComponentState =
+            factory(require('jquery'),
+                require('Slick'),
+                require('nf.ClusterSummary'),
+                require('nf.ErrorHandler'),
+                require('nf.Dialog'),
+                require('nf.Common')));
+    } else {
+        nf.ComponentState = factory(root.$,
+            root.Slick,
+            root.nf.ClusterSummary,
+            root.nf.ErrorHandler,
+            root.nf.Dialog,
+            root.nf.Common);
+    }
+}(this, function ($, Slick, clusterSummary, errorHandler, dialog, common) {
+    'use strict';
 
     /**
      * Filters the component state table.
@@ -30,7 +58,7 @@ nf.ComponentState = (function () {
         var componentStateTable = $('#component-state-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (nf.Common.isDefinedAndNotNull(componentStateTable)) {
+        if (common.isDefinedAndNotNull(componentStateTable)) {
             var componentStateData = componentStateTable.getData();
 
             // update the search criteria
@@ -67,7 +95,7 @@ nf.ComponentState = (function () {
 
         // conditionally consider the scope
         var matchesScope = false;
-        if (nf.Common.isDefinedAndNotNull(item['scope'])) {
+        if (common.isDefinedAndNotNull(item['scope'])) {
             matchesScope = item['scope'].search(filterExp) >= 0;
         }
 
@@ -83,8 +111,8 @@ nf.ComponentState = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+            var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+            var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
             return aString === bString ? 0 : aString > bString ? 1 : -1;
         };
 
@@ -134,7 +162,7 @@ nf.ComponentState = (function () {
         componentStateData.beginUpdate();
 
         // local state
-        if (nf.Common.isDefinedAndNotNull(localState)) {
+        if (common.isDefinedAndNotNull(localState)) {
             $.each(localState.state, function (i, stateEntry) {
                 componentStateData.addItem($.extend({
                     id: count++,
@@ -143,12 +171,12 @@ nf.ComponentState = (function () {
             });
             totalEntries += localState.totalEntryCount;
 
-            if (nf.Common.isDefinedAndNotNull(localState.state) && localState.totalEntryCount !== localState.state.length) {
+            if (common.isDefinedAndNotNull(localState.state) && localState.totalEntryCount !== localState.state.length) {
                 showPartialDetails = true;
             }
         }
 
-        if (nf.Common.isDefinedAndNotNull(clusterState)) {
+        if (common.isDefinedAndNotNull(clusterState)) {
             $.each(clusterState.state, function (i, stateEntry) {
                 componentStateData.addItem($.extend({
                     id: count++,
@@ -157,7 +185,7 @@ nf.ComponentState = (function () {
             });
             totalEntries += clusterState.totalEntryCount;
 
-            if (nf.Common.isDefinedAndNotNull(clusterState.state) && clusterState.totalEntryCount !== clusterState.state.length) {
+            if (common.isDefinedAndNotNull(clusterState.state) && clusterState.totalEntryCount !== clusterState.state.length) {
                 showPartialDetails = true;
             }
         }
@@ -171,7 +199,7 @@ nf.ComponentState = (function () {
         }
 
         // update the total number of state entries
-        $('#total-component-state-entries').text(nf.Common.formatInteger(totalEntries));
+        $('#total-component-state-entries').text(common.formatInteger(totalEntries));
     };
 
     /**
@@ -253,9 +281,9 @@ nf.ComponentState = (function () {
 
                             // reload the table with no state
                             loadComponentState()
-                        }).fail(nf.ErrorHandler.handleAjaxError);
+                        }).fail(errorHandler.handleAjaxError);
                     } else {
-                        nf.Dialog.showOkDialog({
+                        dialog.showOkDialog({
                             headerText: 'Component State',
                             dialogContent: 'This component has no state to clear.'
                         });
@@ -282,7 +310,7 @@ nf.ComponentState = (function () {
             ];
 
             // conditionally show the cluster node identifier
-            if (nf.ClusterSummary.isClustered()) {
+            if (clusterSummary.isClustered()) {
                 componentStateColumns.push({
                     id: 'scope',
                     field: 'scope',
@@ -390,7 +418,7 @@ nf.ComponentState = (function () {
                 // reset the grid size
                 var componentStateGrid = componentStateTable.data('gridInstance');
                 componentStateGrid.resizeCanvas();
-            }).fail(nf.ErrorHandler.handleAjaxError);
+            }).fail(errorHandler.handleAjaxError);
         }
     };
-}());
+}));

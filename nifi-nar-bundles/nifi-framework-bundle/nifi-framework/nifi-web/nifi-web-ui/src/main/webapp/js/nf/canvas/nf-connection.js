@@ -15,43 +15,44 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
-        define(['$',
+        define(['jquery',
                 'd3',
                 'nf.Common',
-                'nf.Selectable',
+                'nf.Dialog',
+                'nf.ErrorHandler',
                 'nf.Client',
-                'nf.CanvasUtils',
-                'nf.ContextMenu',
-                'nf.Canvas'],
-            function ($, d3, common, selectable, client, canvasUtils, contextMenu, canvas) {
-                return (nf.Connection = factory($, d3, common, selectable, client, canvasUtils, contextMenu, canvas));
+                'nf.CanvasUtils'],
+            function ($, d3, common, dialog, errorHandler, client, canvasUtils) {
+                return (nf.Connection = factory($, d3, common, dialog, errorHandler, client, canvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Connection =
-            factory(require('$'),
+            factory(require('jquery'),
                 require('d3'),
                 require('nf.Common'),
-                require('nf.Selectable'),
+                require('nf.Dialog'),
+                require('nf.ErrorHandler'),
                 require('nf.Client'),
-                require('nf.CanvasUtils'),
-                require('nf.ContextMenu'),
-                require('nf.Canvas')));
+                require('nf.CanvasUtils')));
     } else {
         nf.Connection = factory(root.$,
             root.d3,
             root.nf.Common,
-            root.nf.Selectable,
+            root.nf.Dialog,
+            root.nf.ErrorHandler,
             root.nf.Client,
-            root.nf.CanvasUtils,
-            root.nf.ContextMenu,
-            root.nf.Canvas);
+            root.nf.CanvasUtils);
     }
-}(this, function ($, d3, common, selectable, client, canvasUtils, contextMenu, canvas) {
+}(this, function ($, d3, common, dialog, errorHandler, client, canvasUtils) {
     'use strict';
+
+    var nfCanvas;
+    var nfSelectable;
+    var nfContextMenu;
 
     // the dimensions for the connection label
     var dimensions = {
@@ -231,7 +232,7 @@
      * @param {object} terminal
      */
     var isGroup = function (terminal) {
-        return terminal.groupId !== nf.Canvas.getGroupId() && (isInputPortType(terminal.type) || isOutputPortType(terminal.type));
+        return terminal.groupId !== canvasUtils.getGroupId() && (isInputPortType(terminal.type) || isOutputPortType(terminal.type));
     };
 
     /**
@@ -308,9 +309,9 @@
             })
             .on('mousedown.selection', function () {
                 // select the connection when clicking the selectable path
-                selectable.select(d3.select(this.parentNode));
+                nfSelectable.select(d3.select(this.parentNode));
             })
-            .call(contextMenu.activate, nfConnection);
+            .call(nfContextMenu.activate);
     };
 
     // determines whether the specified connection contains an unsupported relationship
@@ -628,9 +629,9 @@
                         })
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
-                            selectable.select(d3.select(this.parentNode));
+                            nfSelectable.select(d3.select(this.parentNode));
                         })
-                        .call(contextMenu.activate, nfConnection);
+                        .call(nfContextMenu.activate);
 
                     // update the start point
                     canvasUtils.transition(startpoints, transition)
@@ -658,9 +659,9 @@
                         })
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
-                            selectable.select(d3.select(this.parentNode));
+                            nfSelectable.select(d3.select(this.parentNode));
                         })
-                        .call(contextMenu.activate, nfConnection);
+                        .call(nfContextMenu.activate);
 
                     // update the end point
                     canvasUtils.transition(endpoints, transition)
@@ -697,7 +698,7 @@
                             var sourceComponentId = canvasUtils.getConnectionSourceComponentId(connectionData);
                             var destinationComponentId = canvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
-                                nf.Dialog.showOkDialog({
+                                dialog.showOkDialog({
                                     headerText: 'Connection',
                                     dialogContent: 'Looping connections must have at least two bend points.'
                                 });
@@ -738,9 +739,9 @@
                         })
                         .on('mousedown.selection', function () {
                             // select the connection when clicking the label
-                            selectable.select(d3.select(this.parentNode));
+                            nfSelectable.select(d3.select(this.parentNode));
                         })
-                        .call(contextMenu.activate, nfConnection);
+                        .call(nfContextMenu.activate);
 
                     // update the midpoints
                     canvasUtils.transition(midpoints, transition)
@@ -775,9 +776,9 @@
                             })
                             .on('mousedown.selection', function () {
                                 // select the connection when clicking the label
-                                selectable.select(d3.select(this.parentNode));
+                                nfSelectable.select(d3.select(this.parentNode));
                             })
-                            .call(contextMenu.activate, nfConnection);
+                            .call(nfContextMenu.activate);
 
                         // connection label
                         connectionLabelContainer.append('rect')
@@ -1512,12 +1513,12 @@
             nfConnection.set(response);
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                nf.Dialog.showOkDialog({
+                dialog.showOkDialog({
                     headerText: 'Connection',
                     dialogContent: common.escapeHtml(xhr.responseText)
                 });
             } else {
-                nf.ErrorHandler.handleAjaxError(xhr, status, error);
+                errorHandler.handleAjaxError(xhr, status, error);
             }
         });
     };
@@ -1526,7 +1527,7 @@
     var removeConnections = function (removed) {
         // consider reloading source/destination of connection being removed
         removed.each(function (d) {
-            canvas.reloadConnectionSourceAndDestination(d.sourceId, d.destinationId);
+            canvasUtils.reloadConnectionSourceAndDestination(d.sourceId, d.destinationId);
         });
 
         // remove the connection
@@ -1539,7 +1540,10 @@
             selfLoopYOffset: 25
         },
 
-        init: function () {
+        init: function (selectable, contextMenu) {
+            nfSelectable = selectable;
+            nfContextMenu = contextMenu;
+
             connectionMap = d3.map();
             removedCache = d3.map();
             addedCache = d3.map();
@@ -1667,7 +1671,7 @@
                             // user will select new port and updated connect details will be set accordingly
                             nfConnectionConfiguration.showConfiguration(connection, destination).done(function () {
                                 // reload the previous destination
-                                canvas.reloadConnectionSourceAndDestination(null, previousDestinationId);
+                                canvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
                             }).fail(function () {
                                 // reset the connection
                                 connection.call(updateConnections, {
@@ -1686,7 +1690,7 @@
                                     'id': connectionData.id,
                                     'destination': {
                                         'id': destinationData.id,
-                                        'groupId': nf.Canvas.getGroupId(),
+                                        'groupId': canvasUtils.getGroupId(),
                                         'type': destinationType
                                     }
                                 }
@@ -1725,11 +1729,11 @@
                                 nfConnection.set(response);
 
                                 // reload the previous destination and the new source/destination
-                                canvas.reloadConnectionSourceAndDestination(null, previousDestinationId);
-                                canvas.reloadConnectionSourceAndDestination(response.sourceId, response.destinationId);
+                                canvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
+                                canvasUtils.reloadConnectionSourceAndDestination(response.sourceId, response.destinationId);
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400 || xhr.status === 401 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
-                                    nf.Dialog.showOkDialog({
+                                    dialog.showOkDialog({
                                         headerText: 'Connection',
                                         dialogContent: common.escapeHtml(xhr.responseText)
                                     });
@@ -1740,7 +1744,7 @@
                                         'updateLabel': false
                                     });
                                 } else {
-                                    nf.ErrorHandler.handleAjaxError(xhr, status, error);
+                                    errorHandler.handleAjaxError(xhr, status, error);
                                 }
                             });
                         }
@@ -1777,10 +1781,10 @@
                                 .attr('width', width)
                                 .attr('height', height)
                                 .attr('stroke-width', function () {
-                                    return 1 / nf.Canvas.View.scale();
+                                    return 1 / canvasUtils.scaleCanvasView();
                                 })
                                 .attr('stroke-dasharray', function () {
-                                    return 4 / nf.Canvas.View.scale();
+                                    return 4 / canvasUtils.scaleCanvasView();
                                 })
                                 .datum({
                                     x: position.x,
@@ -1920,26 +1924,30 @@
          *
          * @argument {selection} selection          The selection
          */
-        isDisconnected: function (selection) {  // if nothing is selected return
+        isDisconnected: function (selection) { 
 
+            // if nothing is selected return
             if (selection.empty()) {
                 return false;
             }
             var connections = d3.map();
             var components = d3.map();
-            var isDisconnected = true;   // include connections
+            var isDisconnected = true;  
 
+            // include connections
             selection.filter(function (d) {
                 return d.type === 'Connection';
             }).each(function (d) {
                 connections.set(d.id, d);
-            });   // include components and ensure their connections are included
+            });  
 
+            // include components and ensure their connections are included
             selection.filter(function (d) {
                 return d.type !== 'Connection';
             }).each(function (d) {
-                components.set(d.id, d.component);   // check all connections of this component
+                components.set(d.id, d.component);  
 
+                // check all connections of this component
                 $.each(nfConnection.getComponentConnections(d.id), function (_, connection) {
                     if (!connections.has(connection.id)) {
                         isDisconnected = false;
@@ -1947,11 +1955,13 @@
                     }
                 });
             });
-            if (isDisconnected) {  // go through each connection to ensure its source and destination are included
+            if (isDisconnected) { 
 
+                // go through each connection to ensure its source and destination are included
                 connections.forEach(function (id, connection) {
-                    if (isDisconnected) {  // determine whether this connection and its components are included within the selection
+                    if (isDisconnected) { 
 
+                        // determine whether this connection and its components are included within the selection
                         isDisconnected = components.has(canvasUtils.getConnectionSourceComponentId(connection)) && components.has(canvasUtils.getConnectionDestinationComponentId(connection));
                     }
                 });

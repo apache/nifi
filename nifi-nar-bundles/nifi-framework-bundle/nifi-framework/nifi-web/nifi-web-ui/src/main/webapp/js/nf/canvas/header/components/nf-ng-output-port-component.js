@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, define, module, require, exports */
+/* global define, module, require, exports */
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -23,10 +23,10 @@
                 'nf.Client',
                 'nf.Birdseye',
                 'nf.Graph',
-                'nf.Canvas',
+                'nf.CanvasUtils',
                 'nf.ErrorHandler'],
-            function ($, client, birdseye, graph, canvas, errorHandler) {
-                return (nf.ng.OutputPortComponent = factory($, client, birdseye, graph, canvas, errorHandler));
+            function ($, client, birdseye, graph, canvasUtils, errorHandler) {
+                return (nf.ng.OutputPortComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.OutputPortComponent =
@@ -34,17 +34,17 @@
                 require('nf.Client'),
                 require('nf.Birdseye'),
                 require('nf.Graph'),
-                require('nf.Canvas'),
+                require('nf.CanvasUtils'),
                 require('nf.ErrorHandler')));
     } else {
         nf.ng.OutputPortComponent = factory(root.$,
             root.nf.Client,
             root.nf.Birdseye,
             root.nf.Graph,
-            root.nf.Canvas,
+            root.nf.CanvasUtils,
             root.nf.ErrorHandler);
     }
-}(this, function ($, client, birdseye, graph, canvas, errorHandler) {
+}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler) {
     'use strict';
 
     return function (serviceProvider) {
@@ -75,7 +75,7 @@
             // create a new processor of the defined type
             $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvas.getGroupId()) + '/output-ports',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/output-ports',
                 data: JSON.stringify(outputPortEntity),
                 dataType: 'json',
                 contentType: 'application/json'
@@ -88,7 +88,7 @@
                 });
 
                 // update component visibility
-                canvas.View.updateVisibility();
+                graph.updateVisibility();
 
                 // update the birdseye
                 birdseye.refresh();
