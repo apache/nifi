@@ -294,6 +294,10 @@ div.ajax-error:before {
     cursor: move;
 }
 
+span.link:focus {
+    outline: none;
+}
+
 span.link {
     cursor: pointer;
     color: #004849; /*link-color*/
