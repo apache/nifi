@@ -18,8 +18,8 @@ package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.stream.io.BufferedInputStream;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
