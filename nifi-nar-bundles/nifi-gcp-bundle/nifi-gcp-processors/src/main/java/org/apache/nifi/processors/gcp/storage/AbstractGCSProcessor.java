@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 
 import java.util.Arrays;
@@ -33,9 +32,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
 
 /**
  * Base class for creating processors which connect to Google Cloud Storage.
