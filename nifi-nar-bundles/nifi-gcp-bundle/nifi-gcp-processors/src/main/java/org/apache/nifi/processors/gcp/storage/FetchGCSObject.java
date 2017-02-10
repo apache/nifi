@@ -58,8 +58,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_E
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_ENCODING_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_DESC;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CREATE_TIME_ATTR;
@@ -108,7 +106,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = CONTENT_DISPOSITION_ATTR, description = CONTENT_DISPOSITION_DESC),
         @WritesAttribute(attribute = CONTENT_ENCODING_ATTR, description = CONTENT_ENCODING_DESC),
         @WritesAttribute(attribute = CONTENT_LANGUAGE_ATTR, description = CONTENT_LANGUAGE_DESC),
-        @WritesAttribute(attribute = CONTENT_TYPE_ATTR, description = CONTENT_TYPE_DESC),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME/Content-Type of the object"),
         @WritesAttribute(attribute = CRC32C_ATTR, description = CRC32C_DESC),
         @WritesAttribute(attribute = CREATE_TIME_ATTR, description = CREATE_TIME_DESC),
         @WritesAttribute(attribute = UPDATE_TIME_ATTR, description = UPDATE_TIME_DESC),
@@ -237,7 +235,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             }
 
             if (blob.getContentType() != null) {
-                attributes.put(CONTENT_TYPE_ATTR, blob.getContentType());
+                attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
             }
 
             if (blob.getCrc32c() != null) {

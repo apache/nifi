@@ -47,9 +47,6 @@ public class StorageAttributes {
     public static final String CONTENT_LANGUAGE_ATTR = "gcs.content.language";
     public static final String CONTENT_LANGUAGE_DESC = "The content language of the object.";
 
-    public static final String CONTENT_TYPE_ATTR = "gcs.content.type";
-    public static final String CONTENT_TYPE_DESC = "The content type of the object.";
-
     public static final String CRC32C_ATTR = "gcs.crc32c";
     public static final String CRC32C_DESC = "The CRC32C checksum of object's data, encoded in base64 in " +
                                                     "big-endian order.";

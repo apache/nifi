@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -69,8 +70,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_E
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_ENCODING_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_DESC;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CREATE_TIME_ATTR;
@@ -113,7 +112,12 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         value = "The value of a User-Defined Metadata field to add to the GCS Object",
         description = "Allows user-defined metadata to be added to the GCS object as key/value pairs",
         supportsExpressionLanguage = true)
-@ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the GCS object")
+@ReadsAttributes({
+        @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the " +
+                "GCS object"),
+        @ReadsAttribute(attribute = "mime.type", description = "Uses the FlowFile's MIME type as the content-type for " +
+                "the GCS object")
+})
 @WritesAttributes({
         @WritesAttribute(attribute = BUCKET_ATTR, description = BUCKET_DESC),
         @WritesAttribute(attribute = KEY_ATTR, description = KEY_DESC),
@@ -123,7 +127,7 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = CONTENT_DISPOSITION_ATTR, description = CONTENT_DISPOSITION_DESC),
         @WritesAttribute(attribute = CONTENT_ENCODING_ATTR, description = CONTENT_ENCODING_DESC),
         @WritesAttribute(attribute = CONTENT_LANGUAGE_ATTR, description = CONTENT_LANGUAGE_DESC),
-        @WritesAttribute(attribute = CONTENT_TYPE_ATTR, description = CONTENT_TYPE_DESC),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME/Content-Type of the object"),
         @WritesAttribute(attribute = CRC32C_ATTR, description = CRC32C_DESC),
         @WritesAttribute(attribute = CREATE_TIME_ATTR, description = CREATE_TIME_DESC),
         @WritesAttribute(attribute = UPDATE_TIME_ATTR, description = UPDATE_TIME_DESC),
@@ -154,6 +158,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
             .Builder().name("gcs-content-type")
                       .displayName("Content Type")
                       .description("Content Type for the file, i.e. text/plain")
+                      .defaultValue("${mime.type}")
                       .required(false)
                       .expressionLanguageSupported(true)
                       .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -424,7 +429,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                             }
 
                             if (blob.getContentType() != null) {
-                                attributes.put(CONTENT_TYPE_ATTR, blob.getContentType());
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), blob.getContentType());
                             }
 
                             if (blob.getCrc32c() != null) {

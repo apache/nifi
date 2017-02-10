@@ -43,7 +43,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.COMPONENT
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_DISPOSITION_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_ENCODING_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CREATE_TIME_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ENCRYPTION_ALGORITHM_ATTR;
@@ -393,7 +392,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         mockFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), FILENAME);
         mockFlowFile.assertAttributeEquals(CONTENT_ENCODING_ATTR, CONTENT_ENCODING);
         mockFlowFile.assertAttributeEquals(CONTENT_LANGUAGE_ATTR, CONTENT_LANGUAGE);
-        mockFlowFile.assertAttributeEquals(CONTENT_TYPE_ATTR, CONTENT_TYPE);
+        mockFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), CONTENT_TYPE);
         mockFlowFile.assertAttributeEquals(CRC32C_ATTR, CRC32C);
         mockFlowFile.assertAttributeEquals(ENCRYPTION_ALGORITHM_ATTR, ENCRYPTION);
         mockFlowFile.assertAttributeEquals(ENCRYPTION_SHA256_ATTR, ENCRYPTION_SHA256);

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,7 +44,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.COMPONENT
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_DISPOSITION_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_ENCODING_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_LANGUAGE_ATTR;
-import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CONTENT_TYPE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CRC32C_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.CREATE_TIME_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.ENCRYPTION_ALGORITHM_ATTR;
@@ -484,7 +484,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         assertEquals(
                 CONTENT_TYPE,
-                flowFile.getAttribute(CONTENT_TYPE_ATTR)
+                flowFile.getAttribute(CoreAttributes.MIME_TYPE.key())
         );
 
         assertEquals(
