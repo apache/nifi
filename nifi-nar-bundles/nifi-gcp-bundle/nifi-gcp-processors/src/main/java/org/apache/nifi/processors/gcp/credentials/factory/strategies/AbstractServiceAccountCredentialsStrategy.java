@@ -24,10 +24,8 @@ import java.io.InputStream;
 import java.util.Map;
 
 /**
- * Supports Google Cloud Application Default Credentials.
- * Compared to ExplicitApplicationDefaultCredentialsStrategy, this strategy is always
- * willing to provide primary credentials, regardless of user input.  It is intended to be used as an invisible
- * fallback or default strategy.
+ * Abstract class handling any of the service account related credential strategies, whether provided directly to NiFi
+ * or through a flat JSON file. 
  */
 public abstract class AbstractServiceAccountCredentialsStrategy extends AbstractCredentialsStrategy {
     public AbstractServiceAccountCredentialsStrategy(String name, PropertyDescriptor[] requiredProperties) {
