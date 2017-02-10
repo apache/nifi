@@ -43,7 +43,7 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
 
     @Override
     public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
-        return (properties.containsKey(this.strategyProperty)
+        return (properties.get(this.strategyProperty) != null
                 && properties.get(this.strategyProperty).equalsIgnoreCase("true"));
     }
 
