@@ -23,6 +23,7 @@ import org.apache.nifi.processors.gcp.credentials.factory.CredentialsStrategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
 
 /**
@@ -38,6 +39,12 @@ public abstract class AbstractBooleanCredentialsStrategy extends AbstractCredent
                 strategyProperty
         });
         this.strategyProperty = strategyProperty;
+    }
+
+    @Override
+    public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
+        return (properties.containsKey(this.strategyProperty)
+                && properties.get(this.strategyProperty).equalsIgnoreCase("true"));
     }
 
     @Override
