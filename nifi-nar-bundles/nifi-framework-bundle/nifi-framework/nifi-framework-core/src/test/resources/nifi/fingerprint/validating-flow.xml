@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController encoding-version="1.0">
+  <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+  <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
+  <rootGroup>
+    <id>289ff050-015a-1000-b21b-a39f56e56729</id>
+    <name>NiFi Flow</name>
+    <position x="0.0" y="0.0"/>
+    <comment/>
+    <processor>
+      <id>28a67671-015a-1000-77dd-8130e16012ec</id>
+      <name>PutFile</name>
+      <position x="420.0" y="288.0"/>
+      <styles>
+        <style name="background-color">#3046f0</style>
+      </styles>
+      <comment>write a file</comment>
+      <class>org.apache.nifi.processors.standard.PutFile</class>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>3000 millisecond</penalizationPeriod>
+      <yieldPeriod>1 sec</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Directory</name>
+      </property>
+      <property>
+        <name>Conflict Resolution Strategy</name>
+        <value>fail</value>
+      </property>
+      <property>
+        <name>Create Missing Directories</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Maximum File Count</name>
+      </property>
+      <property>
+        <name>Last Modified Time</name>
+      </property>
+      <property>
+        <name>Permissions</name>
+      </property>
+      <property>
+        <name>Owner</name>
+      </property>
+      <property>
+        <name>Group</name>
+      </property>
+    </processor>
+    <processor>
+      <id>28a6579e-015a-1000-2856-975c9a5af27e</id>
+      <name>GetFile</name>
+      <position x="422.0" y="50.0"/>
+      <styles>
+        <style name="background-color">#eb7575</style>
+      </styles>
+      <comment/>
+      <class>org.apache.nifi.processors.standard.GetFile</class>
+      <maxConcurrentTasks>1</maxConcurrentTasks>
+      <schedulingPeriod>0 sec</schedulingPeriod>
+      <penalizationPeriod>30 sec</penalizationPeriod>
+      <yieldPeriod>1000000000 nanosecond</yieldPeriod>
+      <bulletinLevel>WARN</bulletinLevel>
+      <lossTolerant>false</lossTolerant>
+      <scheduledState>STOPPED</scheduledState>
+      <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+      <executionNode>ALL</executionNode>
+      <runDurationNanos>0</runDurationNanos>
+      <property>
+        <name>Input Directory</name>
+      </property>
+      <property>
+        <name>File Filter</name>
+        <value>[^\.].*</value>
+      </property>
+      <property>
+        <name>Path Filter</name>
+      </property>
+      <property>
+        <name>Batch Size</name>
+        <value>10</value>
+      </property>
+      <property>
+        <name>Keep Source File</name>
+        <value>false</value>
+      </property>
+      <property>
+        <name>Recurse Subdirectories</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Polling Interval</name>
+        <value>0 sec</value>
+      </property>
+      <property>
+        <name>Ignore Hidden Files</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>Minimum File Age</name>
+        <value>0 sec</value>
+      </property>
+      <property>
+        <name>Maximum File Age</name>
+      </property>
+      <property>
+        <name>Minimum File Size</name>
+        <value>0 B</value>
+      </property>
+      <property>
+        <name>Maximum File Size</name>
+      </property>
+    </processor>
+    <connection>
+      <id>28a77d72-015a-1000-32e4-c6fe548f5c9d</id>
+      <name/>
+      <bendPoints>
+        <bendPoint x="815.0" y="231.0"/>
+      </bendPoints>
+      <labelIndex>0</labelIndex>
+      <zIndex>0</zIndex>
+      <sourceId>28a6579e-015a-1000-2856-975c9a5af27e</sourceId>
+      <sourceGroupId>289ff050-015a-1000-b21b-a39f56e56729</sourceGroupId>
+      <sourceType>PROCESSOR</sourceType>
+      <destinationId>28a67671-015a-1000-77dd-8130e16012ec</destinationId>
+      <destinationGroupId>289ff050-015a-1000-b21b-a39f56e56729</destinationGroupId>
+      <destinationType>PROCESSOR</destinationType>
+      <relationship>success</relationship>
+      <maxWorkQueueSize>10000</maxWorkQueueSize>
+      <maxWorkQueueDataSize>1 GB</maxWorkQueueDataSize>
+      <flowFileExpiration>1 hour</flowFileExpiration>
+      <queuePrioritizerClass>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</queuePrioritizerClass>
+    </connection>
+  </rootGroup>
+  <controllerServices/>
+  <reportingTasks/>
+</flowController>
