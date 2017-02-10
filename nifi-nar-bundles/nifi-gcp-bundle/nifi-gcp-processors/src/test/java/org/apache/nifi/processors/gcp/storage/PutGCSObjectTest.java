@@ -175,7 +175,6 @@ public class PutGCSObjectTest extends AbstractGCSTest {
         final BlobInfo blobInfo = blobInfoArgumentCaptor.getValue();
         assertNull(blobInfo.getMd5());
         assertNull(blobInfo.getContentDisposition());
-        assertNull(blobInfo.getContentType());
         assertNull(blobInfo.getCrc32c());
     }
 
