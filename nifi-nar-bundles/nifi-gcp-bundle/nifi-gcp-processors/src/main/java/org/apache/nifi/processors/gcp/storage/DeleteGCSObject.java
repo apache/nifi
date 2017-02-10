@@ -34,6 +34,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.KEY_DESC;
 
 
@@ -44,6 +46,16 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.KEY_DESC;
 @SeeAlso({PutGCSObject.class, FetchGCSObject.class, ListGCSBucket.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 public class DeleteGCSObject extends AbstractGCSProcessor {
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
+            .Builder().name("gcs-bucket")
+            .displayName("Bucket")
+            .description(BUCKET_DESC)
+            .required(true)
+            .defaultValue("${" + BUCKET_ATTR + "}")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor KEY = new PropertyDescriptor
             .Builder().name("gcs-key")
             .displayName("Key")
@@ -67,6 +79,7 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
                 .addAll(super.getSupportedPropertyDescriptors())
+                .add(BUCKET)
                 .add(KEY)
                 .add(GENERATION)
                 .build();

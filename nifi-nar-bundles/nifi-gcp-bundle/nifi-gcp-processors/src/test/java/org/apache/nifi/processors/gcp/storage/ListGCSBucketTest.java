@@ -119,7 +119,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
-        // NOOP
+        runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
     }
 
     @Test

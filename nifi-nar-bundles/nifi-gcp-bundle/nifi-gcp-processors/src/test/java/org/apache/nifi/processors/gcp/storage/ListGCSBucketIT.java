@@ -38,6 +38,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         putTestFile("d/e", CONTENT);
 
         final TestRunner runner = buildNewRunner(new ListGCSBucket());
+        runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
 
         runner.run();
 
@@ -56,6 +57,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         putTestFile("d/e", CONTENT);
 
         final TestRunner runner = buildNewRunner(new ListGCSBucket());
+        runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
 
         runner.setProperty(ListGCSBucket.PREFIX, "b/");
 
@@ -79,6 +81,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         putTestFile("generations/c", CONTENT);
 
         final TestRunner runner = buildNewRunner(new ListGCSBucket());
+        runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
 
         runner.setProperty(ListGCSBucket.PREFIX, "generations/");
         runner.setProperty(ListGCSBucket.USE_GENERATIONS, "true");
@@ -105,6 +108,7 @@ public class ListGCSBucketIT extends AbstractGCSIT {
         putTestFile("checkpoint/b/c", CONTENT);
 
         final TestRunner runner = buildNewRunner(new ListGCSBucket());
+        runner.setProperty(ListGCSBucket.BUCKET, BUCKET);
 
         runner.setProperty(ListGCSBucket.PREFIX, "checkpoint/");
 

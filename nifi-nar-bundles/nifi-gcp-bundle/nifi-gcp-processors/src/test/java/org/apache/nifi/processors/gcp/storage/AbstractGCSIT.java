@@ -104,7 +104,6 @@ public abstract class AbstractGCSIT {
         runner.setProperty(AbstractGCSProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
         runner.setProperty(AbstractGCSProcessor.PROJECT_ID, PROJECT_ID);
         runner.setProperty(AbstractGCSProcessor.RETRY_COUNT, String.valueOf(RETRIES));
-        runner.setProperty(AbstractGCSProcessor.BUCKET, BUCKET);
 
         runner.assertValid(credentialsControllerService);
 

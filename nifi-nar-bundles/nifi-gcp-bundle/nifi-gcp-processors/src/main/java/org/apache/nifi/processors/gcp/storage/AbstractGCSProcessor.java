@@ -43,16 +43,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DE
  * Every GCS processor operation requires a bucket, whether it's reading or writing from said bucket.
  */
 public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage, StorageRpc, StorageOptions> {
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
-            .Builder().name("gcs-bucket")
-            .displayName("Bucket")
-            .description(BUCKET_DESC)
-            .required(true)
-            .defaultValue("${" + BUCKET_ATTR + "}")
-            .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
     public static final Relationship REL_SUCCESS =
             new Relationship.Builder().name("success")
                     .description("FlowFiles are routed to this relationship after a successful Google Cloud Storage operation.")
@@ -74,7 +64,6 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
                 .addAll(super.getSupportedPropertyDescriptors())
-                .add(BUCKET)
                 .build();
     }
 

@@ -181,6 +181,7 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
+        runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.setProperty(FetchGCSObject.KEY, String.valueOf(KEY));
     }
 

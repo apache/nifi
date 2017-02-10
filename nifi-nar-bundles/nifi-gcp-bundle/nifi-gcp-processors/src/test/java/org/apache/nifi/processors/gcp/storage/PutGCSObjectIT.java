@@ -38,6 +38,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testSimplePut() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
         runner.setProperty(PutGCSObject.KEY, KEY);
 
         runner.enqueue(CONTENT);
@@ -58,6 +59,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testEncryptedPut() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
         runner.setProperty(PutGCSObject.KEY, KEY);
         runner.setProperty(PutGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
 
@@ -79,6 +81,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testPutWithAcl() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
         runner.setProperty(PutGCSObject.KEY, KEY);
         runner.setProperty(PutGCSObject.ACL, PutGCSObject.ACL_BUCKET_OWNER_READ);
 
@@ -112,6 +115,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testPutWithOverwrite() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
         runner.setProperty(PutGCSObject.KEY, KEY);
 
         putTestFile(KEY, new byte[]{1, 2});
@@ -129,6 +133,7 @@ public class PutGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testPutWithNoOverwrite() throws Exception {
         final TestRunner runner = buildNewRunner(new PutGCSObject());
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
         runner.setProperty(PutGCSObject.KEY, KEY);
         runner.setProperty(PutGCSObject.OVERWRITE, "false");
 

@@ -144,6 +144,16 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
         @WritesAttribute(attribute = URI_ATTR, description = URI_DESC)
 })
 public class PutGCSObject extends AbstractGCSProcessor {
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
+            .Builder().name("gcs-bucket")
+            .displayName("Bucket")
+            .description(BUCKET_DESC)
+            .required(true)
+            .defaultValue("${" + BUCKET_ATTR + "}")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor KEY = new PropertyDescriptor
             .Builder().name("gcs-key")
             .displayName("Key")
@@ -280,6 +290,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
                 .addAll(super.getSupportedPropertyDescriptors())
+                .add(BUCKET)
                 .add(KEY)
                 .add(CONTENT_TYPE)
                 .add(MD5)

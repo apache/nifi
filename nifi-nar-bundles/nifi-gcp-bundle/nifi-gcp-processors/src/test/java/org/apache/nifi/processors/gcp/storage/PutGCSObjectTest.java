@@ -131,7 +131,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
-        // NOOP
+        runner.setProperty(PutGCSObject.BUCKET, BUCKET);
     }
 
     @Test

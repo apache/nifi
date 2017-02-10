@@ -54,6 +54,7 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
+        runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.setProperty(DeleteGCSObject.GENERATION, String.valueOf(GENERATION));
         runner.setProperty(DeleteGCSObject.KEY, KEY);
     }

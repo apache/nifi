@@ -39,6 +39,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         assertTrue(fileExists(KEY));
 
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
+        runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
 
         runner.enqueue(new byte[0], ImmutableMap.of(
                 "filename", KEY
@@ -66,6 +67,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         assertTrue(fileExists(KEY));
 
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
+        runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.setProperty(FetchGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
 
         runner.enqueue(new byte[0], ImmutableMap.of(
@@ -87,6 +89,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testFetchNonexistantFile() throws Exception {
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
+        runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.enqueue(new byte[0], ImmutableMap.of(
                 "filename", "non-existent"
         ));

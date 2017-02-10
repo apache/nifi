@@ -36,6 +36,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
         assertTrue(fileExists(KEY));
 
         final TestRunner runner = buildNewRunner(new DeleteGCSObject());
+        runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.assertValid();
 
         runner.enqueue("testdata", ImmutableMap.of(
@@ -56,6 +57,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
         assertTrue(fileExists(KEY));
 
         final TestRunner runner = buildNewRunner(new DeleteGCSObject());
+        runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.setProperty(DeleteGCSObject.KEY, KEY);
         runner.assertValid();
 
@@ -74,6 +76,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
     @Test
     public void testDeleteNonExistentFile() throws Exception {
         final TestRunner runner = buildNewRunner(new DeleteGCSObject());
+        runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.assertValid();
 
         runner.enqueue("testdata", ImmutableMap.of(
