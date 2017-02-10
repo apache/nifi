@@ -101,7 +101,6 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
 /**
  * List objects in a google cloud storage bucket by object name pattern.
  */
-@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"google cloud", "google", "storage", "gcs", "list"})
 @CapabilityDescription("Retrieves a listing of objects from an GCS bucket. For each object that is listed, creates a FlowFile that represents "
         + "the object so that it can be fetched in conjunction with FetchGCSObject. This Processor is designed to run on Primary Node only "
@@ -145,7 +144,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .displayName("Prefix")
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .required(false)
-            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -228,11 +226,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
         final long startNanos = System.nanoTime();
 
-        final String bucket = context.getProperty(BUCKET)
-                                     .evaluateAttributeExpressions().getValue();
+        final String bucket = context.getProperty(BUCKET).getValue();
 
-        final String prefix = context.getProperty(PREFIX)
-                                     .evaluateAttributeExpressions().getValue();
+        final String prefix = context.getProperty(PREFIX).getValue();
 
         final boolean useGenerations = context.getProperty(USE_GENERATIONS).asBoolean();
 
