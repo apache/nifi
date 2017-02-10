@@ -315,7 +315,7 @@
 
     <xs:simpleType name="TimePeriod">
         <xs:restriction base="xs:string">
-            <xs:pattern value="\d+\s*(ns|nano|nanos|nanoseconds|ms|milli|millis|milliseconds|s|sec|secs|seconds|m|min|mins|minutes|h|hr|hrs|hours|d|day|days)"></xs:pattern>
+            <xs:pattern value="\d+\s*(ns|nano|nanos|nanosecond|nanoseconds|ms|milli|millis|millisecond|milliseconds|s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)"></xs:pattern>
         </xs:restriction>
     </xs:simpleType>
 	
