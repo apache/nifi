@@ -383,8 +383,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                         }
 
                         try {
-
-                            //TODO: Take advantage of RestorableState to checkpoint large blob uploads
+                            
                             final Blob blob = storage.create(blobInfoBuilder.build(),
                                     in,
                                     blobWriteOptions.toArray(new Storage.BlobWriteOption[blobWriteOptions.size()])

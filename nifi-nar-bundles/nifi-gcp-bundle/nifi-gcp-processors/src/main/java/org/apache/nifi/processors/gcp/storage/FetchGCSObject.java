@@ -211,7 +211,6 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
             final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[blobSourceOptions.size()]));
 
-            //TODO: Implement state checkpoints / ability to restore for long blob reads
             flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
 
             attributes.put(BUCKET_ATTR, blob.getBucket());
@@ -315,8 +314,6 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             if (blob.getUpdateTime() != null) {
                 attributes.put(UPDATE_TIME_ATTR, String.valueOf(blob.getUpdateTime()));
             }
-
-            //TODO: Have some sensible way of including user defined metadata attached to the Blob
 
         } catch (StorageException e) {
             getLogger().error(e.getMessage(), e);
