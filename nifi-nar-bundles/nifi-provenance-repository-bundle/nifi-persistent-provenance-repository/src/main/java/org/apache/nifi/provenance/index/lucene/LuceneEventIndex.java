@@ -324,11 +324,20 @@ public class LuceneEventIndex implements EventIndex {
     private void incrementAndReportStats() {
         final long fiveMinutesAgo = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
         final TimestampedLong nanosLastFive = queuePauseNanos.getAggregateValue(fiveMinutesAgo);
-        final long eventsLast5 = eventsIndexed.getAggregateValue(fiveMinutesAgo).getValue();
+        if (nanosLastFive == null) {
+            return;
+        }
+
+        final TimestampedLong eventsLast5 = eventsIndexed.getAggregateValue(fiveMinutesAgo);
+        if (eventsLast5 == null) {
+            return;
+        }
+
+        final long numEventsLast5 = eventsLast5.getValue();
 
         final long millis = TimeUnit.NANOSECONDS.toMillis(nanosLastFive.getValue());
         logger.debug("In the last 5 minutes, have spent {} CPU-millis waiting to enqueue events for indexing and have indexed {} events ({} since NiFi started)",
-            millis, eventsLast5, eventCount.get());
+            millis, numEventsLast5, eventCount.get());
     }
 
     @Override
