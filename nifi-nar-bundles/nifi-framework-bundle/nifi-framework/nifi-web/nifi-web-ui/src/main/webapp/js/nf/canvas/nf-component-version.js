@@ -20,9 +20,39 @@
 /**
  * Views state for a given component.
  */
-nf.ComponentVersion = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'nf.ErrorHandler',
+                'nf.Common',
+                'nf.Client',
+                'nf.CanvasUtils',
+                'nf.ng.Bridge'],
+            function ($, Slick, errorHandler, common, client, canvasUtils, angularBridge) {
+                return (nf.ComponentState = factory($, errorHandler, common, client, canvasUtils, angularBridge));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.ComponentState =
+            factory(require('jquery'),
+                require('nf.ErrorHandler'),
+                require('nf.Common',
+                require('nf.Client'),
+                require('nf.CanvasUtils'),
+                require('nf.ng.Bridge'))));
+    } else {
+        nf.ComponentVersion = factory(root.$,
+            root.nf.ErrorHandler,
+            root.nf.Common,
+            root.nf.Client,
+            root.nf.CanvasUtils,
+            root.nf.ng.Bridge);
+    }
+}(this, function ($, errorHandler, common, client, canvasUtils, angularBridge) {
+    'use strict';
 
     var versionMap;
+    var nfSettings;
+    var nfProcessGroupConfiguration;
 
     /**
      * Gets the URI for retrieving available types/bundles
@@ -89,7 +119,7 @@ nf.ComponentVersion = (function () {
         var documentedType = versionMap.get(selectedOption.value);
 
         // set any restriction
-        if (nf.Common.isDefinedAndNotNull(documentedType.usageRestriction)) {
+        if (common.isDefinedAndNotNull(documentedType.usageRestriction)) {
             $('#component-version-restriction').text(documentedType.usageRestriction);
         } else {
             $('#component-version-restriction').addClass('unset').text('No restriction');
@@ -101,8 +131,10 @@ nf.ComponentVersion = (function () {
     };
 
     return {
-        init: function () {
+        init: function (settings, processGroupConfiguration) {
             versionMap = d3.map();
+            nfSettings = settings;
+            nfProcessGroupConfiguration = processGroupConfiguration;
 
             // initialize the component version dialog
             $('#component-version-dialog').modal({
@@ -126,7 +158,7 @@ nf.ComponentVersion = (function () {
 
                             // build the request entity
                             var requestEntity = {
-                                'revision': nf.Client.getRevision(componentEntity),
+                                'revision': client.getRevision(componentEntity),
                                 'component': {
                                     'id': componentEntity.id,
                                     'bundle': {
@@ -148,62 +180,62 @@ nf.ComponentVersion = (function () {
                                 // set the response
                                 if (componentEntity.type === 'Processor') {
                                     // update the processor
-                                    nf.Processor.set(response);
+                                    canvasUtils.getComponentByType(componentEntity.type).set(response);
 
                                     // inform Angular app values have changed
-                                    nf.ng.Bridge.digest();
+                                    angularBridge.digest();
                                 } else if (componentEntity.type === 'ControllerService') {
                                     var parentGroupId = componentEntity.component.parentGroupId;
 
                                     $.Deferred(function (deferred) {
-                                        if (nf.Common.isDefinedAndNotNull(parentGroupId)) {
+                                        if (common.isDefinedAndNotNull(parentGroupId)) {
                                             if ($('#process-group-configuration').is(':visible')) {
-                                                nf.ProcessGroupConfiguration.loadConfiguration(parentGroupId).done(function () {
+                                                nfProcessGroupConfiguration.loadConfiguration(parentGroupId).done(function () {
                                                     deferred.resolve();
                                                 });
                                             } else {
-                                                nf.ProcessGroupConfiguration.showConfiguration(parentGroupId).done(function () {
+                                                nfProcessGroupConfiguration.showConfiguration(parentGroupId).done(function () {
                                                     deferred.resolve();
                                                 });
                                             }
                                         } else {
                                             if ($('#settings').is(':visible')) {
                                                 // reload the settings
-                                                nf.Settings.loadSettings().done(function () {
+                                                nfSettings.loadSettings().done(function () {
                                                     deferred.resolve();
                                                 });
                                             } else {
                                                 // reload the settings and show
-                                                nf.Settings.showSettings().done(function () {
+                                                nfSettings.showSettings().done(function () {
                                                     deferred.resolve();
                                                 });
                                             }
                                         }
                                     }).done(function () {
-                                        if (nf.Common.isDefinedAndNotNull(parentGroupId)) {
-                                            nf.ProcessGroupConfiguration.selectControllerService(componentEntity.id);
+                                        if (common.isDefinedAndNotNull(parentGroupId)) {
+                                            nfProcessGroupConfiguration.selectControllerService(componentEntity.id);
                                         } else {
-                                            nf.Settings.selectControllerService(componentEntity.id);
+                                            nfSettings.selectControllerService(componentEntity.id);
                                         }
                                     });
                                 } else if (componentEntity.type === 'ReportingTask') {
                                     $.Deferred(function (deferred) {
                                         if ($('#settings').is(':visible')) {
                                             // reload the settings
-                                            nf.Settings.loadSettings().done(function () {
+                                            nfSettings.loadSettings().done(function () {
                                                 deferred.resolve();
                                             });
                                         } else {
                                             // reload the settings and show
-                                            nf.Settings.showSettings().done(function () {
+                                            nfSettings.showSettings().done(function () {
                                                 deferred.resolve();
                                             });
                                         }
                                     }).done(function () {
-                                        nf.Settings.selectReportingTask(componentEntity.id);
+                                        nfSettings.selectReportingTask(componentEntity.id);
                                     });
                                 }
-                            }).fail(nf.ErrorHandler.handleAjaxError);
+                            }).fail(errorHandler.handleAjaxError);
 
                             // reset and hide the dialog
                             this.modal('hide');
@@ -260,7 +292,7 @@ nf.ComponentVersion = (function () {
                     var option = {
                         text: documentedType.bundle.version,
                         value: documentedType.bundle.version,
-                        description: nf.Common.escapeHtml(documentedType.description),
+                        description: common.escapeHtml(documentedType.description)
                     };
 
                     // record the currently selected option
@@ -274,7 +306,7 @@ nf.ComponentVersion = (function () {
 
                 // populate the name/description
                 $('#component-version-name').text(componentEntity.component.name);
-                $('#component-version-bundle').text(nf.Common.formatBundle(componentEntity.component.bundle));
+                $('#component-version-bundle').text(common.formatBundle(componentEntity.component.bundle));
 
                 // build the combo
                 $('#component-version-selector').combo({
@@ -285,7 +317,7 @@ nf.ComponentVersion = (function () {
 
                 // show the dialog
                 $('#component-version-dialog').data('component', componentEntity).modal('show');
-            }).fail(nf.ErrorHandler.handleAjaxError);
+            }).fail(errorHandler.handleAjaxError);
         }
     };
-}());
+}));

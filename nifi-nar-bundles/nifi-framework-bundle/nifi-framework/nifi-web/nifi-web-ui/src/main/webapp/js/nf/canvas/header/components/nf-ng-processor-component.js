@@ -399,7 +399,6 @@
                                     }
 
                                     // populate the dom
-                                    var bundle = common.formatBundleCoordinates(processorType.bundle);
                                     $('#processor-type-name').text(type).attr('title', type);
                                     $('#processor-type-bundle').text(bundle).attr('title', bundle);
                                     $('#selected-processor-name').text(processorType.label);
