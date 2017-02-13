@@ -427,7 +427,7 @@ public class RepositoryConfiguration {
         config.setMaxAttributeChars(maxAttrChars);
         config.setConcurrentMergeThreads(concurrentMergeThreads);
 
-        if (warmCacheFrequency != null) {
+        if (warmCacheFrequency != null && !warmCacheFrequency.trim().equals("")) {
             config.setWarmCacheFrequencyMinutes((int) FormatUtils.getTimeDuration(warmCacheFrequency, TimeUnit.MINUTES));
         }
         if (shardSize != null) {

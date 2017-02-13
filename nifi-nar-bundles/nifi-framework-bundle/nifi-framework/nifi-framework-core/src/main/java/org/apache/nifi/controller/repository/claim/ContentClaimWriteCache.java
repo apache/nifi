@@ -32,9 +32,15 @@ public class ContentClaimWriteCache {
     private final ContentRepository contentRepo;
     private final Map<ResourceClaim, ByteCountingOutputStream> streamMap = new HashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
+    private final int bufferSize;
 
     public ContentClaimWriteCache(final ContentRepository contentRepo) {
+        this(contentRepo, 8192);
+    }
+
+    public ContentClaimWriteCache(final ContentRepository contentRepo, final int bufferSize) {
         this.contentRepo = contentRepo;
+        this.bufferSize = bufferSize;
     }
 
     public void reset() throws IOException {
@@ -60,7 +66,7 @@ public class ContentClaimWriteCache {
 
     private ByteCountingOutputStream registerStream(final ContentClaim contentClaim) throws IOException {
         final OutputStream out = contentRepo.write(contentClaim);
-        final OutputStream buffered = new BufferedOutputStream(out);
+        final OutputStream buffered = new BufferedOutputStream(out, bufferSize);
         final ByteCountingOutputStream bcos = new ByteCountingOutputStream(buffered);
         streamMap.put(contentClaim.getResourceClaim(), bcos);
         return bcos;
@@ -79,19 +85,24 @@ public class ContentClaimWriteCache {
         }
 
         final StandardContentClaim scc = (StandardContentClaim) claim;
+        final long initialLength = Math.max(0L, scc.getLength());
 
         final OutputStream bcos = out;
         return new OutputStream() {
+            private long bytesWritten = 0L;
+
             @Override
             public void write(final int b) throws IOException {
                 bcos.write(b);
-                scc.setLength(Math.max(0L, scc.getLength()) + 1L);
+                bytesWritten++;
+                scc.setLength(initialLength + bytesWritten);
             }
 
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
                 bcos.write(b, off, len);
-                scc.setLength(Math.max(0L, scc.getLength()) + len);
+                bytesWritten += len;
+                scc.setLength(initialLength + bytesWritten);
             }
 
             @Override
