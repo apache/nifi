@@ -184,7 +184,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 .description("The type/flavor of database, used for generating database-specific code. In many cases the Generic type "
                         + "should suffice, but some databases (such as Oracle) require custom SQL clauses. ")
                 .allowableValues(dbAdapters.keySet())
-                .defaultValue(dbAdapters.values().stream().findFirst().get().getName())
+                .defaultValue("Generic")
                 .required(true)
                 .build();
     }
