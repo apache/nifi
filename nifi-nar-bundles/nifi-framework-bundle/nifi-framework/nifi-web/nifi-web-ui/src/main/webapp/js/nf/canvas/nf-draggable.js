@@ -28,8 +28,8 @@
                 'nf.Dialog',
                 'nf.Client',
                 'nf.ErrorHandler'],
-            function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
-                return (nf.Draggable = factory($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler));
+            function ($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+                return (nf.Draggable = factory($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Draggable =
@@ -53,7 +53,7 @@
             root.nf.Client,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, connection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+}(this, function ($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
     'use strict';
 
     var nfCanvas;
@@ -102,10 +102,10 @@
         // go through each selected component
         selectedComponents.each(function (d) {
             // consider any self looping connections
-            var connections = connection.getComponentConnections(d.id);
+            var connections = nfConnection.getComponentConnections(d.id);
             $.each(connections, function (_, connection) {
                 if (!updates.has(connection.id) && canvasUtils.getConnectionSourceComponentId(connection) === canvasUtils.getConnectionDestinationComponentId(connection)) {
-                    var connectionUpdate = nfDraggable.updateConnectionPosition(connection.get(connection.id), delta);
+                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                     if (connectionUpdate !== null) {
                         updates.set(connection.id, connectionUpdate);
                     }
@@ -335,7 +335,7 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     // update the component
-                    connection.set(response);
+                    nfConnection.set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
@@ -363,32 +363,34 @@
          * @param updates
          */
         refreshConnections: function (updates) {
-            // wait for all updates to complete
-            $.when.apply(window, updates.values()).done(function () {
-                var dragged = $.makeArray(arguments);
-                var connections = d3.set();
+            if (updates.size() > 0) {
+                // wait for all updates to complete
+                $.when.apply(window, updates.values()).done(function () {
+                    var dragged = $.makeArray(arguments);
+                    var connections = d3.set();
 
-                // refresh this component
-                $.each(dragged, function (_, component) {
-                    // check if the component in question is a connection
-                    if (component.type === 'Connection') {
-                        connections.add(component.id);
-                    } else {
-                        // get connections that need to be refreshed because its attached to this component
-                        var componentConnections = connection.getComponentConnections(component.id);
-                        $.each(componentConnections, function (_, connection) {
-                            connections.add(connection.id);
-                        });
-                    }
-                });
+                    // refresh this component
+                    $.each(dragged, function (_, component) {
+                        // check if the component in question is a connection
+                        if (component.type === 'Connection') {
+                            connections.add(component.id);
+                        } else {
+                            // get connections that need to be refreshed because its attached to this component
+                            var componentConnections = nfConnection.getComponentConnections(component.id);
+                            $.each(componentConnections, function (_, connection) {
+                                connections.add(connection.id);
+                            });
+                        }
+                    });
 
-                // refresh the connections
-                connections.forEach(function (connectionId) {
-                    connection.refresh(connectionId);
+                    // refresh the connections
+                    connections.forEach(function (connectionId) {
+                        nfConnection.refresh(connectionId);
+                    });
+                }).always(function () {
+                    birdseye.refresh();
                 });
-            }).always(function () {
-                birdseye.refresh();
-            });
+            }
         },
 
         /**
