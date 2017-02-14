@@ -42,6 +42,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -81,6 +82,7 @@ public class GeoEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
             .name("Geo Database File")
+            .displayName("Geo Database File")
             .description("Path to Maxmind Geo Enrichment Database File")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
@@ -88,9 +90,12 @@ public class GeoEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor IP_ADDRESS_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("IP Address Attribute")
+            .displayName("IP Address Attribute")
             .required(true)
             .description("The name of an attribute whose value is a dotted decimal IP address for which enrichment should occur")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
     public static final Relationship REL_FOUND = new Relationship.Builder()
@@ -105,7 +110,7 @@ public class GeoEnrichIP extends AbstractProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;
-    private final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
+    final AtomicReference<DatabaseReader> databaseReaderRef = new AtomicReference<>(null);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -118,7 +123,7 @@ public class GeoEnrichIP extends AbstractProcessor {
     }
 
     @OnScheduled
-    public final void onScheduled(final ProcessContext context) throws IOException {
+    public void onScheduled(final ProcessContext context) throws IOException {
         final String dbFileString = context.getProperty(GEO_DATABASE_FILE).getValue();
         final File dbFile = new File(dbFileString);
         final StopWatch stopWatch = new StopWatch(true);
@@ -157,7 +162,7 @@ public class GeoEnrichIP extends AbstractProcessor {
         }
 
         final DatabaseReader dbReader = databaseReaderRef.get();
-        final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).getValue();
+        final String ipAttributeName = context.getProperty(IP_ADDRESS_ATTRIBUTE).evaluateAttributeExpressions(flowFile).getValue();
         final String ipAttributeValue = flowFile.getAttribute(ipAttributeName);
         if (StringUtils.isEmpty(ipAttributeName)) { //TODO need to add additional validation - should look like an IPv4 or IPv6 addr for instance
             session.transfer(flowFile, REL_NOT_FOUND);
