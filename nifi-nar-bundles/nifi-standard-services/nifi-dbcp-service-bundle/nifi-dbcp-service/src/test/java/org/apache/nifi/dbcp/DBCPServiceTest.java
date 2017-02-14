@@ -187,7 +187,7 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
 
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost/~/test");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost:" + server.getPort() + "/~/test");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
         runner.enableControllerService(service);
 
@@ -238,7 +238,7 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-dropcreate", service);
 
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost/~/test");
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:h2:tcp://localhost:" + server.getPort() + "/~/test");
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.h2.Driver");
         runner.setProperty(service, DBCPConnectionPool.VALIDATION_QUERY, "SELECT 5");
         runner.enableControllerService(service);
