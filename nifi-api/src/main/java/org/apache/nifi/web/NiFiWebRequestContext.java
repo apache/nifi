@@ -49,8 +49,13 @@ public interface NiFiWebRequestContext {
      * &lt;CN=original-proxied-entity&gt;&lt;CN=first-proxy&gt;&lt;CN=second-proxy&gt;...
      * </code>
      *
+     * Update:
+     * This method has been deprecated since the entire proxy
+     * chain is able to be rebuilt using the current user if necessary.
+     *
      * @return the proxied entities chain or null if no chain
      */
+    @Deprecated
     String getProxiedEntitiesChain();
 
 }

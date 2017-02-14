@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.web.security;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
@@ -39,6 +31,16 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.filter.GenericFilterBean;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
 
 /**
  *
@@ -85,7 +87,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
         try {
             final NiFiAuthorizationRequestToken authenticated = attemptAuthentication(request);
             if (authenticated != null) {
-                dnChain = ProxiedEntitiesUtils.formatProxyDn(StringUtils.join(authenticated.getChain(), "><"));
+                dnChain = formatProxyChain(authenticated.getChain());
 
                 // log the request attempt - response details will be logged later
                 log.info(String.format("Attempting request for (%s) %s %s (source ip: %s)", dnChain, request.getMethod(),
@@ -115,6 +117,10 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
                 unsuccessfulAuthorization(request, response, ae);
             }
         }
+    }
+
+    private String formatProxyChain(final List<String> dnChain) {
+        return "<" + StringUtils.join(dnChain, "><") + ">";
     }
 
     /**
