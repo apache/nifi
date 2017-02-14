@@ -190,41 +190,45 @@ public class TestPersistentProvenanceRepository {
 
     @After
     public void closeRepo() throws IOException {
-        if (repo != null) {
-            try {
-                repo.close();
-            } catch (final IOException ioe) {
-            }
+        if (repo == null) {
+            return;
+        }
+
+        try {
+            repo.close();
+        } catch (final IOException ioe) {
         }
 
         // Delete all of the storage files. We do this in order to clean up the tons of files that
         // we create but also to ensure that we have closed all of the file handles. If we leave any
         // streams open, for instance, this will throw an IOException, causing our unit test to fail.
-        for (final File storageDir : config.getStorageDirectories().values()) {
-            int i;
-            for (i = 0; i < 3; i++) {
-                try {
-                    FileUtils.deleteFile(storageDir, true);
-                    break;
-                } catch (final IOException ioe) {
-                    // if there is a virus scanner, etc. running in the background we may not be able to
-                    // delete the file. Wait a sec and try again.
-                    if (i == 2) {
-                        throw ioe;
-                    } else {
-                        try {
-                            System.out.println("file: " + storageDir.toString() + " exists=" + storageDir.exists());
-                            FileUtils.deleteFile(storageDir, true);
-                            break;
-                        } catch (final IOException ioe2) {
-                            // if there is a virus scanner, etc. running in the background we may not be able to
-                            // delete the file. Wait a sec and try again.
-                            if (i == 2) {
-                                throw ioe2;
-                            } else {
-                                try {
-                                    Thread.sleep(1000L);
-                                } catch (final InterruptedException ie) {
+        if (config != null) {
+            for (final File storageDir : config.getStorageDirectories().values()) {
+                int i;
+                for (i = 0; i < 3; i++) {
+                    try {
+                        FileUtils.deleteFile(storageDir, true);
+                        break;
+                    } catch (final IOException ioe) {
+                        // if there is a virus scanner, etc. running in the background we may not be able to
+                        // delete the file. Wait a sec and try again.
+                        if (i == 2) {
+                            throw ioe;
+                        } else {
+                            try {
+                                System.out.println("file: " + storageDir.toString() + " exists=" + storageDir.exists());
+                                FileUtils.deleteFile(storageDir, true);
+                                break;
+                            } catch (final IOException ioe2) {
+                                // if there is a virus scanner, etc. running in the background we may not be able to
+                                // delete the file. Wait a sec and try again.
+                                if (i == 2) {
+                                    throw ioe2;
+                                } else {
+                                    try {
+                                        Thread.sleep(1000L);
+                                    } catch (final InterruptedException ie) {
+                                    }
                                 }
                             }
                         }
@@ -321,7 +325,7 @@ public class TestPersistentProvenanceRepository {
                 return "2000 millis";
             } else if (key.equals(NiFiProperties.PROVENANCE_REPO_DIRECTORY_PREFIX + ".default")) {
                 createConfiguration();
-                return config.getStorageDirectories().get(0).getAbsolutePath();
+                return config.getStorageDirectories().values().iterator().next().getAbsolutePath();
             } else {
                 return null;
             }
@@ -350,8 +354,8 @@ public class TestPersistentProvenanceRepository {
 
     @Test
     public void constructorConfig() throws IOException {
-        RepositoryConfiguration configuration = createTestableRepositoryConfiguration(properties);
-        TestablePersistentProvenanceRepository tppr = new TestablePersistentProvenanceRepository(configuration, 20000);
+        RepositoryConfiguration configuration = RepositoryConfiguration.create(properties);
+        new TestablePersistentProvenanceRepository(configuration, 20000);
     }
 
     @Test
@@ -1908,7 +1912,7 @@ public class TestPersistentProvenanceRepository {
                         + "that the record wasn't completely written to the file. This journal will be skipped.",
                 reportedEvents.get(reportedEvents.size() - 1).getMessage());
 
-        final File storageDir = config.getStorageDirectories().get(0);
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertTrue(checkJournalRecords(storageDir, false) < 10000);
     }
 
@@ -1962,7 +1966,7 @@ public class TestPersistentProvenanceRepository {
                         + "be skipped.",
                 reportedEvents.get(reportedEvents.size() - 1).getMessage());
 
-        final File storageDir = config.getStorageDirectories().get(0);
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertTrue(checkJournalRecords(storageDir, false) < 10000);
     }
 
@@ -2008,7 +2012,7 @@ public class TestPersistentProvenanceRepository {
 
         assertEquals("mergeJournals() should not error on empty journal", 0, reportedEvents.size());
 
-        final File storageDir = config.getStorageDirectories().get(0);
+        final File storageDir = config.getStorageDirectories().values().iterator().next();
         assertEquals(config.getJournalCount() - 1, checkJournalRecords(storageDir, true));
     }
 
