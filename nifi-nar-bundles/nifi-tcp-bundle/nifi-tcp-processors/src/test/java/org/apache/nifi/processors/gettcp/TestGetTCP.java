@@ -26,6 +26,7 @@ import java.net.Socket;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public final class TestGetTCP {
@@ -71,6 +72,7 @@ public final class TestGetTCP {
         testRunner.assertValid();
     }
 
+    @Ignore("test is brittle as depends on timing - not reliable across systems, in parallel builds, etc..")
     @Test
     public void testSuccessInteraction() throws Exception {
         int port = this.availablePort();
@@ -85,6 +87,7 @@ public final class TestGetTCP {
         server.stop();
     }
 
+    @Ignore("test is brittle as depends on timing - not reliable across systems, in parallel builds, etc..")
     @Test
     public void testPartialInteraction() throws Exception {
         int port = this.availablePort();
