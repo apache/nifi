@@ -26,11 +26,10 @@ import java.util.Map;
 import java.util.Queue;
 
 import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
 
 public class ContentClaimWriteCache {
     private final ContentRepository contentRepo;
-    private final Map<ResourceClaim, ByteCountingOutputStream> streamMap = new HashMap<>();
+    private final Map<ResourceClaim, OutputStream> streamMap = new HashMap<>();
     private final Queue<ContentClaim> queue = new LinkedList<>();
     private final int bufferSize;
 
@@ -64,12 +63,11 @@ public class ContentClaimWriteCache {
         return claim;
     }
 
-    private ByteCountingOutputStream registerStream(final ContentClaim contentClaim) throws IOException {
+    private OutputStream registerStream(final ContentClaim contentClaim) throws IOException {
         final OutputStream out = contentRepo.write(contentClaim);
         final OutputStream buffered = new BufferedOutputStream(out, bufferSize);
-        final ByteCountingOutputStream bcos = new ByteCountingOutputStream(buffered);
-        streamMap.put(contentClaim.getResourceClaim(), bcos);
-        return bcos;
+        streamMap.put(contentClaim.getResourceClaim(), buffered);
+        return buffered;
     }
 
     public OutputStream write(final ContentClaim claim) throws IOException {

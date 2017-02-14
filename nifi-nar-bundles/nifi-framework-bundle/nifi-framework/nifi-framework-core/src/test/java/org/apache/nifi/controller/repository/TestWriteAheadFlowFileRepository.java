@@ -62,6 +62,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -88,6 +89,7 @@ public class TestWriteAheadFlowFileRepository {
 
 
     @Test
+    @Ignore("Intended only for local performance testing before/after making changes")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final FlowFileQueue queue = new FlowFileQueue() {
 
@@ -98,194 +100,152 @@ public class TestWriteAheadFlowFileRepository {
 
             @Override
             public List<FlowFilePrioritizer> getPriorities() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public SwapSummary recoverSwappedFlowFiles() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public void purgeSwapFiles() {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public void setPriorities(List<FlowFilePrioritizer> newPriorities) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public void setBackPressureObjectThreshold(long maxQueueSize) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public long getBackPressureObjectThreshold() {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public void setBackPressureDataSizeThreshold(String maxDataSize) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public String getBackPressureDataSizeThreshold() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public QueueSize size() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public boolean isEmpty() {
-                // TODO Auto-generated method stub
                 return false;
             }
 
             @Override
             public boolean isActiveQueueEmpty() {
-                // TODO Auto-generated method stub
                 return false;
             }
 
             @Override
             public QueueSize getUnacknowledgedQueueSize() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public void acknowledge(FlowFileRecord flowFile) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public void acknowledge(Collection<FlowFileRecord> flowFiles) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public boolean isFull() {
-                // TODO Auto-generated method stub
                 return false;
             }
 
             @Override
             public void put(FlowFileRecord file) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public void putAll(Collection<FlowFileRecord> files) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public long drainQueue(Queue<FlowFileRecord> sourceQueue, List<FlowFileRecord> destination, int maxResults, Set<FlowFileRecord> expiredRecords) {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public String getFlowFileExpiration() {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public int getFlowFileExpiration(TimeUnit timeUnit) {
-                // TODO Auto-generated method stub
                 return 0;
             }
 
             @Override
             public void setFlowFileExpiration(String flowExpirationPeriod) {
-                // TODO Auto-generated method stub
-
             }
 
             @Override
             public DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public ListFlowFileStatus getListFlowFileStatus(String requestIdentifier) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public ListFlowFileStatus cancelListFlowFileRequest(String requestIdentifier) {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public FlowFileRecord getFlowFile(String flowFileUuid) throws IOException {
-                // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
             public void verifyCanList() throws IllegalStateException {
-                // TODO Auto-generated method stub
-
             }
         };
 
