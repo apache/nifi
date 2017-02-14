@@ -5,6 +5,10 @@ This includes derived works from the Apache Software License V2 library Jolt (ht
 Copyright 2013-2014 Bazaarvoice, Inc
 The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java, com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
 
+This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors.
+Copyright 2009-2013 Jordan Sissel, Pete Fritchman, and contributors.
+Copyright 2014 Anthony Corbacho, and contributors.
+The derived work consists in modifications from patterns/grok-patterns and found in the file nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestExtractGrok/patterns
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
