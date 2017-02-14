@@ -299,7 +299,8 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         }
 
         return -37423 + 3 * componentId.hashCode() + (transitUri == null ? 0 : 41 * transitUri.hashCode())
-                + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode;
+            + (relationship == null ? 0 : 47 * relationship.hashCode()) + 44 * eventTypeCode
+            + 47 * getChildUuids().hashCode() + 47 * getParentUuids().hashCode();
     }
 
     @Override
