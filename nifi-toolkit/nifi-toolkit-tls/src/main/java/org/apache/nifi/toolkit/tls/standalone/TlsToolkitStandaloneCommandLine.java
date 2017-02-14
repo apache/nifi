@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +60,18 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String NIFI_DN_PREFIX_ARG = "nifiDnPrefix";
     public static final String NIFI_DN_SUFFIX_ARG = "nifiDnSuffix";
 
-    public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
+    public static final String DEFAULT_OUTPUT_DIRECTORY = calculateDefaultOutputDirectory(Paths.get("."));
+
+    protected static String calculateDefaultOutputDirectory(Path currentPath) {
+        Path currentAbsolutePath = currentPath.toAbsolutePath();
+        Path currentNormalizedPath = currentAbsolutePath.normalize();
+        Path parent = currentAbsolutePath.getParent();
+        if (parent == currentAbsolutePath.getRoot()) {
+            return parent.toString();
+        } else {
+            return "../" + currentNormalizedPath.getFileName().toString();
+        }
+    }
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
 
