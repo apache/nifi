@@ -63,15 +63,16 @@ import org.xml.sax.helpers.XMLReaderFactory;
 @CapabilityDescription("Consumes a Microsoft Excel document and converts each worksheet to csv. Each sheet from the incoming Excel " +
         "document will generate a new Flowfile that will be output from this processor. Each output Flowfile's contents will be formatted as a csv file " +
         "where the each row from the excel sheet is output as a newline in the csv file.")
-@WritesAttributes({@WritesAttribute(attribute="SheetName", description="The name of the Excel sheet that this particular row of data came from in the Excel document"),
-        @WritesAttribute(attribute="NumRows", description="The number of rows in this Excel Sheet"),
-        @WritesAttribute(attribute="SourceFileName", description="The name of the Excel document file that this data originated from")})
-public class ConvertExcelToCSVProcessor extends AbstractProcessor {
+@WritesAttributes({@WritesAttribute(attribute="sheetname", description="The name of the Excel sheet that this particular row of data came from in the Excel document"),
+        @WritesAttribute(attribute="numrows", description="The number of rows in this Excel Sheet"),
+        @WritesAttribute(attribute="sourcefilename", description="The name of the Excel document file that this data originated from")})
+public class ConvertExcelToCSVProcessor
+        extends AbstractProcessor {
 
     private static final String CSV_MIME_TYPE = "text/csv";
-    public static final String SHEET_NAME = "SheetName";
-    public static final String ROW_NUM = "NumRows";
-    public static final String SOURCE_FILE_NAME = "SourceFileName";
+    public static final String SHEET_NAME = "sheetname";
+    public static final String ROW_NUM = "numrows";
+    public static final String SOURCE_FILE_NAME = "sourcefilename";
     private static final String SAX_CELL_REF = "c";
     private static final String SAX_CELL_TYPE = "t";
     private static final String SAX_CELL_STRING = "s";
@@ -80,7 +81,8 @@ public class ConvertExcelToCSVProcessor extends AbstractProcessor {
     private static final String SAX_SHEET_NAME_REF = "sheetPr";
 
     public static final PropertyDescriptor DESIRED_SHEETS = new PropertyDescriptor
-            .Builder().name("Sheets to Extract")
+            .Builder().name("extract-sheets")
+            .displayName("Sheets to Extract")
             .description("Comma separated list of Excel document sheet names that should be extracted from the excel document. If this property" +
                     " is left blank then all of the sheets will be extracted from the Excel document. The list of names is case in-sensitive. Any sheets not " +
                     "specified in this value will be ignored.")
@@ -204,11 +206,11 @@ public class ConvertExcelToCSVProcessor extends AbstractProcessor {
                                 sheet.close();
                             }
                         } catch (InvalidFormatException e) {
-                            e.printStackTrace();
+                            getLogger().error(e.getMessage());
                         } catch (OpenXML4JException e) {
-                            e.printStackTrace();
+                            getLogger().error(e.getMessage());
                         } catch (SAXException e) {
-                            e.printStackTrace();
+                            getLogger().error(e.getMessage());
                         }
                     }
                 }
