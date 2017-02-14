@@ -20,18 +20,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 
 /**
- * An implementation of DatabaseAdapter for Derby (used for testing).
+ * A database adapter that generates MS SQL Compatible SQL.
  */
-public class DerbyDatabaseAdapter implements DatabaseAdapter {
-
+public class MSSQLDatabaseAdapter implements DatabaseAdapter {
     @Override
     public String getName() {
-        return "Derby";
+        return "MS SQL 2012+";
     }
 
     @Override
     public String getDescription() {
-        return "Generates Derby compatible SQL (used for testing)";
+        return "Generates MS SQL Compatible SQL, for version 2012 or greater";
     }
 
     @Override
@@ -40,6 +39,14 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
             throw new IllegalArgumentException("Table name cannot be null or empty");
         }
         final StringBuilder query = new StringBuilder("SELECT ");
+
+        //If this is a limit query and not a paging query then use TOP in MS SQL
+        if (limit != null && offset == null){
+            query.append("TOP ");
+            query.append(limit);
+            query.append(" ");
+        }
+
         if (StringUtils.isEmpty(columnNames) || columnNames.trim().equals("*")) {
             query.append("*");
         } else {
@@ -56,13 +63,15 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
             query.append(" ORDER BY ");
             query.append(orderByClause);
         }
-        if (offset != null && offset > 0) {
+        if (offset != null && limit != null && limit > 0) {
+            if (StringUtils.isEmpty(orderByClause)) {
+                throw new IllegalArgumentException("Order by clause cannot be null or empty when using row paging");
+            }
+
             query.append(" OFFSET ");
             query.append(offset);
             query.append(" ROWS");
-        }
 
-        if (limit != null) {
             query.append(" FETCH NEXT ");
             query.append(limit);
             query.append(" ROWS ONLY");
