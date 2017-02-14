@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -40,8 +41,14 @@ import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
+import org.apache.nifi.util.timebuffer.LongEntityAccess;
+import org.apache.nifi.util.timebuffer.TimedBuffer;
+import org.apache.nifi.util.timebuffer.TimestampedLong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
+    private static final Logger logger = LoggerFactory.getLogger(EventIdFirstSchemaRecordWriter.class);
 
     private static final RecordSchema eventSchema = LookupTableEventSchema.EVENT_SCHEMA;
     private static final RecordSchema contentClaimSchema = new RecordSchema(eventSchema.getField(EventFieldNames.CONTENT_CLAIM).getSubFields());
@@ -60,6 +67,12 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
     private final Map<String, Integer> queueIdMap;
     private static final Map<String, Integer> eventTypeMap;
     private static final List<String> eventTypeNames;
+
+    private static final TimedBuffer<TimestampedLong> serializeTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
+    private static final TimedBuffer<TimestampedLong> lockTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
+    private static final TimedBuffer<TimestampedLong> writeTimes = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
+    private static final TimedBuffer<TimestampedLong> bytesWritten = new TimedBuffer<>(TimeUnit.SECONDS, 60, new LongEntityAccess());
+    private static final AtomicLong totalRecordCount = new AtomicLong(0L);
 
     private long firstEventId;
     private long systemTimeOffset;
@@ -101,6 +114,7 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
             throw new IOException("Cannot update Provenance Repository because this Record Writer has already failed to write to the Repository");
         }
 
+        final long serializeStart = System.nanoTime();
         final byte[] serialized;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
             final DataOutputStream dos = new DataOutputStream(baos)) {
@@ -108,10 +122,13 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
             serialized = baos.toByteArray();
         }
 
+        final long lockStart = System.nanoTime();
+        final long writeStart;
         final long startBytes;
         final long endBytes;
         final long recordIdentifier;
         synchronized (this) {
+            writeStart = System.nanoTime();
             try {
                 recordIdentifier = record.getEventId() == -1L ? getIdGenerator().getAndIncrement() : record.getEventId();
                 startBytes = getBytesWritten();
@@ -129,6 +146,33 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
             } catch (final IOException ioe) {
                 markDirty();
                 throw ioe;
+            }
+        }
+
+        if (logger.isDebugEnabled()) {
+            // Collect stats and periodically dump them if log level is set to at least info.
+            final long writeNanos = System.nanoTime() - writeStart;
+            writeTimes.add(new TimestampedLong(writeNanos));
+
+            final long serializeNanos = lockStart - serializeStart;
+            serializeTimes.add(new TimestampedLong(serializeNanos));
+
+            final long lockNanos = writeStart - lockStart;
+            lockTimes.add(new TimestampedLong(lockNanos));
+            bytesWritten.add(new TimestampedLong(endBytes - startBytes));
+
+            final long recordCount = totalRecordCount.incrementAndGet();
+            if (recordCount % 1_000_000 == 0) {
+                final long sixtySecondsAgo = System.currentTimeMillis() - 60000L;
+                final Long writeNanosLast60 = writeTimes.getAggregateValue(sixtySecondsAgo).getValue();
+                final Long lockNanosLast60 = lockTimes.getAggregateValue(sixtySecondsAgo).getValue();
+                final Long serializeNanosLast60 = serializeTimes.getAggregateValue(sixtySecondsAgo).getValue();
+                final Long bytesWrittenLast60 = bytesWritten.getAggregateValue(sixtySecondsAgo).getValue();
+                logger.debug("In the last 60 seconds, have spent {} millis writing to file ({} MB), {} millis waiting on synchronize block, {} millis serializing events",
+                    TimeUnit.NANOSECONDS.toMillis(writeNanosLast60),
+                    bytesWrittenLast60 / 1024 / 1024,
+                    TimeUnit.NANOSECONDS.toMillis(lockNanosLast60),
+                    TimeUnit.NANOSECONDS.toMillis(serializeNanosLast60));
             }
         }
 
