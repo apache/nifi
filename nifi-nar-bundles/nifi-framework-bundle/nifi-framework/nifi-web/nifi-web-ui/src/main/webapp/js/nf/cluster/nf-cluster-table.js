@@ -505,7 +505,7 @@
             {
                 id: 'uptime',
                 field: 'nodeStartTime',
-                name: 'Uptime',
+                name: 'Started At',
                 formatter: valueFormatter,
                 resizable: true,
                 sortable: true,
