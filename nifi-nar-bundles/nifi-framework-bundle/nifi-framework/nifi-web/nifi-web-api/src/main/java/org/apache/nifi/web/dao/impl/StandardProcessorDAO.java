@@ -357,7 +357,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         final BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
+            // ensure we are only changing to a bundle with the same group and id, but different version
+            processor.verifyCanUpdateBundle(bundleCoordinate);
         }
 
         final ProcessorConfigDTO configDTO = processorDTO.getConfig();
@@ -449,26 +451,12 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     private void updateBundle(ProcessorNode processor, ProcessorDTO processorDTO) {
         BundleDTO bundleDTO = processorDTO.getBundle();
         if (bundleDTO != null) {
-            BundleCoordinate existingCoordinate = processor.getBundleCoordinate();
             BundleCoordinate incomingCoordinate = BundleUtils.getBundle(processor.getCanonicalClassName(), bundleDTO);
-
-            // determine if this update is changing the bundle for the processor
-            if (!existingCoordinate.equals(incomingCoordinate)) {
-                // if it is changing the bundle, only allow it to change to a different version within same group and id
-                if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
-                        || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
-                    throw new IllegalArgumentException(String.format(
-                            "Unable to update processor %s from %s to %s because bundle group and id must be the same.",
-                            processorDTO.getId(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
-                }
-                // if we made it here we can attempt to change the underlying processor using the new bundle, a
-                // ProcessorInstantiationException will be thrown if the request bundle coordinate does not exsit
-                try {
-                    flowController.changeProcessorType(processor, processor.getCanonicalClassName(), incomingCoordinate);
-                } catch (ProcessorInstantiationException e) {
-                    throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
-                            processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
-                }
+            try {
+                flowController.changeProcessorType(processor, processor.getCanonicalClassName(), incomingCoordinate);
+            } catch (ProcessorInstantiationException e) {
+                throw new NiFiCoreException(String.format("Unable to update processor %s from %s to %s due to: %s",
+                        processorDTO.getId(), processor.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
             }
         }
     }

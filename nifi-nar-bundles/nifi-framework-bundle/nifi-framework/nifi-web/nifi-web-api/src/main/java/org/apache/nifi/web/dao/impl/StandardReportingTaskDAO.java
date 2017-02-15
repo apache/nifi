@@ -165,27 +165,14 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
         BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
-            BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
-            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
-
-            // determine if this update is changing the bundle for the reporting task
-            if (!existingCoordinate.equals(incomingCoordinate)) {
-                // if it is changing the bundle, only allow it to change to a different version within same group and id
-                if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
-                        || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
-                    throw new IllegalArgumentException(String.format(
-                            "Unable to update reporting task %s from %s to %s because bundle group and id must be the same.",
-                            reportingTaskDTO.getId(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
-                }
-                // if we made it here we can attempt to change the underlying reporting task using the new bundle, a
-                // ReportingTaskInstantiationException will be thrown if the request bundle coordinate does not exist
-                try {
-                    reportingTaskProvider.changeType(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate);
-                } catch (ReportingTaskInstantiationException e) {
-                    throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
-                            reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
-                }
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            try {
+                reportingTaskProvider.changeReportingTaskType(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate);
+            } catch (ReportingTaskInstantiationException e) {
+                throw new NiFiCoreException(String.format("Unable to update reporting task %s from %s to %s due to: %s",
+                        reportingTaskDTO.getId(), reportingTask.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
             }
+
         }
     }
 
@@ -281,7 +268,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 reportingTaskDTO.getSchedulingStrategy(),
                 reportingTaskDTO.getSchedulingPeriod(),
                 reportingTaskDTO.getAnnotationData(),
-                reportingTaskDTO.getProperties())) {
+                reportingTaskDTO.getProperties(),
+                reportingTaskDTO.getBundle())) {
             modificationRequest = true;
 
             // validate the request
@@ -291,6 +279,14 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             if (!requestValidation.isEmpty()) {
                 throw new ValidationException(requestValidation);
             }
+        }
+
+        final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
+        if (bundleDTO != null) {
+            // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            // ensure we are only changing to a bundle with the same group and id, but different version
+            reportingTask.verifyCanUpdateBundle(bundleCoordinate);
         }
 
         if (modificationRequest) {

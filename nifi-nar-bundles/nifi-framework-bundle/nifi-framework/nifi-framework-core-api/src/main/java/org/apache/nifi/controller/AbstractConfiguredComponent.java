@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -415,4 +416,19 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return this.variableRegistry;
     }
 
+    @Override
+    public void verifyCanUpdateBundle(final BundleCoordinate incomingCoordinate) throws IllegalStateException {
+        final BundleCoordinate existingCoordinate = getBundleCoordinate();
+
+        // determine if this update is changing the bundle for the processor
+        if (!existingCoordinate.equals(incomingCoordinate)) {
+            // if it is changing the bundle, only allow it to change to a different version within same group and id
+            if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
+                    || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
+                throw new IllegalArgumentException(String.format(
+                        "Unable to update component %s from %s to %s because bundle group and id must be the same.",
+                        getIdentifier(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
+            }
+        }
+    }
 }

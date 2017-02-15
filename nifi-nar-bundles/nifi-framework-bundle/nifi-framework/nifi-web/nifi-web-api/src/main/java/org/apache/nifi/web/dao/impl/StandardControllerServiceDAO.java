@@ -168,26 +168,12 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         BundleDTO bundleDTO = controllerServiceDTO.getBundle();
         if (bundleDTO != null) {
-            BundleCoordinate existingCoordinate = controllerService.getBundleCoordinate();
-            BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
-
-            // determine if this update is changing the bundle for the cs
-            if (!existingCoordinate.equals(incomingCoordinate)) {
-                // if it is changing the bundle, only allow it to change to a different version within same group and id
-                if (!existingCoordinate.getGroup().equals(incomingCoordinate.getGroup())
-                        || !existingCoordinate.getId().equals(incomingCoordinate.getId())) {
-                    throw new IllegalArgumentException(String.format(
-                            "Unable to update controller service %s from %s to %s because bundle group and id must be the same.",
-                            controllerServiceDTO.getId(), existingCoordinate.getCoordinate(), incomingCoordinate.getCoordinate()));
-                }
-                // if we made it here we can attempt to change the underlying controller service using the new bundle, a
-                // ControllerServiceInstantiationException will be thrown if the request bundle coordinate does not exsit
-                try {
-                    flowController.changeControllerServiceType(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate);
-                } catch (ControllerServiceInstantiationException e) {
-                    throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
-                            controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
-                }
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+            try {
+                flowController.changeControllerServiceType(controllerService, controllerService.getCanonicalClassName(), incomingCoordinate);
+            } catch (ControllerServiceInstantiationException e) {
+                throw new NiFiCoreException(String.format("Unable to update controller service %s from %s to %s due to: %s",
+                        controllerServiceDTO.getId(), controllerService.getBundleCoordinate().getCoordinate(), incomingCoordinate.getCoordinate(), e.getMessage()), e);
             }
         }
     }
@@ -281,7 +267,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         if (isAnyNotNull(controllerServiceDTO.getName(),
                 controllerServiceDTO.getAnnotationData(),
                 controllerServiceDTO.getComments(),
-                controllerServiceDTO.getProperties())) {
+                controllerServiceDTO.getProperties(),
+                controllerServiceDTO.getBundle())) {
             modificationRequest = true;
 
             // validate the request
@@ -291,6 +278,14 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             if (!requestValidation.isEmpty()) {
                 throw new ValidationException(requestValidation);
             }
+        }
+
+        final BundleDTO bundleDTO = controllerServiceDTO.getBundle();
+        if (bundleDTO != null) {
+            // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(controllerService.getCanonicalClassName(), bundleDTO);
+            // ensure we are only changing to a bundle with the same group and id, but different version
+            controllerService.verifyCanUpdateBundle(bundleCoordinate);
         }
 
         if (modificationRequest) {

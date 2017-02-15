@@ -365,6 +365,41 @@ public class TestStandardProcessorNode {
         }
     }
 
+    @Test
+    public void testVerifyCanUpdateBundle() {
+        final ModifiesClasspathNoAnnotationProcessor processor = new ModifiesClasspathNoAnnotationProcessor();
+        final StandardProcessorNode procNode = createProcessorNode(processor);
+        final BundleCoordinate existingCoordinate = procNode.getBundleCoordinate();
+
+        // should be allowed to update when the bundle is the same
+        procNode.verifyCanUpdateBundle(existingCoordinate);
+
+        // should be allowed to update when the group and id are the same but version is different
+        final BundleCoordinate diffVersion = new BundleCoordinate(existingCoordinate.getGroup(), existingCoordinate.getId(), "v2");
+        assertTrue(!existingCoordinate.getVersion().equals(diffVersion.getVersion()));
+        procNode.verifyCanUpdateBundle(diffVersion);
+
+        // should not be allowed to update when the bundle id is different
+        final BundleCoordinate diffId = new BundleCoordinate(existingCoordinate.getGroup(), "different-id", existingCoordinate.getVersion());
+        assertTrue(!existingCoordinate.getId().equals(diffId.getId()));
+        try {
+            procNode.verifyCanUpdateBundle(diffId);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
+
+        // should not be allowed to update when the bundle group is different
+        final BundleCoordinate diffGroup = new BundleCoordinate("different-group", existingCoordinate.getId(), existingCoordinate.getVersion());
+        assertTrue(!existingCoordinate.getGroup().equals(diffGroup.getGroup()));
+        try {
+            procNode.verifyCanUpdateBundle(diffGroup);
+            Assert.fail("Should have thrown exception");
+        } catch (Exception e) {
+
+        }
+    }
+
     private StandardProcessorNode createProcessorNode(Processor processor) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();

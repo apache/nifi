@@ -58,6 +58,20 @@ public class NarCloseable implements Closeable {
     }
 
     /**
+     * Sets the current thread context class loader to the provided class loader, and returns a NarCloseable that will
+     * return the current thread context class loader to it's previous state.
+     *
+     * @param componentNarLoader the class loader to set as the current thread context class loader
+     *
+     * @return NarCloseable that will return the current thread context class loader to its previous state
+     */
+    public static NarCloseable withComponentNarLoader(final ClassLoader componentNarLoader) {
+        final ClassLoader current = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(componentNarLoader);
+        return new NarCloseable(current);
+    }
+
+    /**
      * Creates a Closeable object that can be used to to switch to current class
      * loader to the framework class loader and will automatically set the
      * ClassLoader back to the previous class loader when closed

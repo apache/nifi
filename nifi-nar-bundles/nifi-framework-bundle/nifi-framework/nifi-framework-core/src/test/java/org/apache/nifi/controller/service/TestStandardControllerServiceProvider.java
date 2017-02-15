@@ -179,7 +179,7 @@ public class TestStandardControllerServiceProvider {
      * {@link PropertyDescriptor}.isDependentServiceEnableable() as well as
      * https://issues.apache.org/jira/browse/NIFI-1143
      */
-    @Test(timeout = 90000)
+    @Test(timeout = 120000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException {
         final ProcessScheduler scheduler = createScheduler();
         for (int i = 0; i < 5000; i++) {

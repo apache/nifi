@@ -67,13 +67,12 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
                                      final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
-            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry, false);
+            reportingTask.getComponent().getClass().getSimpleName(), reportingTask.getComponent().getClass().getCanonicalName(),variableRegistry, false);
     }
 
 
-    public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id,
-                                     final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-                                     final ValidationContextFactory validationContextFactory,
+    public AbstractReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final ControllerServiceProvider controllerServiceProvider,
+                                     final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                      final String componentType, final String componentCanonicalClass, final VariableRegistry variableRegistry,
                                      final boolean isExtensionMissing) {
 

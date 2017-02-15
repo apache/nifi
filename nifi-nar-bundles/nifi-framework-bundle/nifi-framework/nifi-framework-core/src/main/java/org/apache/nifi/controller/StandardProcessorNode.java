@@ -139,7 +139,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                  final VariableRegistry variableRegistry) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider,
-            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName(), nifiProperties, variableRegistry, false);
+            processor.getComponent().getClass().getSimpleName(), processor.getComponent().getClass().getCanonicalName(), nifiProperties, variableRegistry, false);
     }
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,

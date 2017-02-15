@@ -25,6 +25,7 @@ import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -385,6 +386,60 @@ public class TestFlowController {
         controller.getRootGroup().removeProcessGroup(pg);
         pg.getControllerServices(true);
         assertTrue(pg.getControllerServices(true).isEmpty());
+    }
+
+    @Test
+    public void testChangeProcessorType() throws ProcessorInstantiationException {
+        final String id = "1234-ScheduledProcessor" + System.currentTimeMillis();
+        final BundleCoordinate coordinate = systemBundle.getBundleDetails().getCoordinate();
+        final ProcessorNode processorNode = controller.createProcessor(DummyScheduledProcessor.class.getName(), id, coordinate);
+        final String originalName = processorNode.getName();
+
+        assertEquals(id, processorNode.getIdentifier());
+        assertEquals(id, processorNode.getComponent().getIdentifier());
+        assertEquals(coordinate.getCoordinate(), processorNode.getBundleCoordinate().getCoordinate());
+        assertEquals(DummyScheduledProcessor.class.getCanonicalName(), processorNode.getCanonicalClassName());
+        assertEquals(DummyScheduledProcessor.class.getSimpleName(), processorNode.getComponentType());
+
+        assertEquals(5, processorNode.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, processorNode.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?",processorNode.getSchedulingPeriod());
+        assertEquals("1 sec", processorNode.getYieldPeriod());
+        assertEquals("30 sec", processorNode.getPenalizationPeriod());
+        assertEquals(LogLevel.WARN, processorNode.getBulletinLevel());
+
+        // now change the type of the processor from DummyScheduledProcessor to DummySettingsProcessor
+        controller.changeProcessorType(processorNode, DummySettingsProcessor.class.getName(), coordinate);
+
+        // ids and coordinate should stay the same
+        assertEquals(id, processorNode.getIdentifier());
+        assertEquals(id, processorNode.getComponent().getIdentifier());
+        assertEquals(coordinate.getCoordinate(), processorNode.getBundleCoordinate().getCoordinate());
+
+        // in this test we happened to change between two processors that have different canonical class names
+        // but in the running application the DAO layer would call verifyCanUpdateBundle and would prevent this so
+        // for the sake of this test it is ok that the canonical class name hasn't changed
+        assertEquals(originalName, processorNode.getName());
+        assertEquals(DummyScheduledProcessor.class.getCanonicalName(), processorNode.getCanonicalClassName());
+        assertEquals(DummyScheduledProcessor.class.getSimpleName(), processorNode.getComponentType());
+
+        // all these settings should have stayed the same
+        assertEquals(5, processorNode.getMaxConcurrentTasks());
+        assertEquals(SchedulingStrategy.CRON_DRIVEN, processorNode.getSchedulingStrategy());
+        assertEquals("0 0 0 1/1 * ?", processorNode.getSchedulingPeriod());
+        assertEquals("1 sec", processorNode.getYieldPeriod());
+        assertEquals("30 sec", processorNode.getPenalizationPeriod());
+        assertEquals(LogLevel.WARN, processorNode.getBulletinLevel());
+    }
+
+    @Test
+    public void testChangeControllerServiceType() {
+
+    }
+
+    @Test
+    public void testChangeReportingTaskType() {
+
     }
 
 }

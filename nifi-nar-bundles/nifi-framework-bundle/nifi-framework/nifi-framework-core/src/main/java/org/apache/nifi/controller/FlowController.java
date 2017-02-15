@@ -153,6 +153,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.provenance.IdentifierLookup;
@@ -1043,6 +1044,28 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * instantiated for any reason
      */
     public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded) throws ProcessorInstantiationException {
+        return createProcessor(type, id, coordinate, firstTimeAdded, true);
+    }
+
+    /**
+     * <p>
+     * Creates a new ProcessorNode with the given type and identifier and
+     * optionally initializes it.
+     * </p>
+     *
+     * @param type the fully qualified Processor class name
+     * @param id the unique ID of the Processor
+     * @param coordinate the bundle coordinate for this processor
+     * @param firstTimeAdded whether or not this is the first time this
+     * Processor is added to the graph. If {@code true}, will invoke methods
+     * annotated with the {@link OnAdded} annotation.
+     * @return new processor node
+     * @throws NullPointerException if either arg is null
+     * @throws ProcessorInstantiationException if the processor cannot be
+     * instantiated for any reason
+     */
+    public ProcessorNode createProcessor(final String type, String id, final BundleCoordinate coordinate, final boolean firstTimeAdded, final boolean registerLogObserver)
+            throws ProcessorInstantiationException {
         id = id.intern();
 
         boolean creationSuccessful;
@@ -1071,7 +1094,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
-        logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
+        if (registerLogObserver) {
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
+        }
 
         try {
             final Class<?> procClass = procNode.getProcessor().getClass();
@@ -1088,12 +1113,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 } catch(Throwable ex) {
                     LOG.error(String.format("Error while setting penalty duration from DefaultSettings annotation:%s",ex.getMessage()),ex);
                 }
-                try {
-                    procNode.setBulletinLevel(ds.bulletinLevel());
-                } catch (Throwable ex) {
-                    LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s",ex.getMessage()),ex);
-                }
 
+                // calling setBulletinLevel changes the level in the LogRepository so we only want to do this when
+                // the caller said to register the log observer, otherwise we could be changing the level when we didn't mean to
+                if (registerLogObserver) {
+                    try {
+                        procNode.setBulletinLevel(ds.bulletinLevel());
+                    } catch (Throwable ex) {
+                        LOG.error(String.format("Error while setting bulletin level from DefaultSettings annotation:%s", ex.getMessage()), ex);
+                    }
+                }
             }
         } catch (Throwable ex) {
             LOG.error(String.format("Error while setting default settings from DefaultSettings annotation: %s",ex.getMessage()),ex);
@@ -1103,7 +1132,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
-                logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                if (registerLogObserver) {
+                    logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                }
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
@@ -1148,14 +1179,31 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    public void changeProcessorType(final ProcessorNode existingProcessorNode, final String newType, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
-        if (existingProcessorNode == null) {
+    public void changeProcessorType(final ProcessorNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ProcessorInstantiationException {
+        if (existingNode == null) {
             throw new IllegalStateException("Existing ProcessorNode cannot be null");
         }
 
-        final String existingIdentifier = existingProcessorNode.getProcessor().getIdentifier();
-        final LoggableComponent<Processor> newProcessor = instantiateProcessor(newType, existingIdentifier, bundleCoordinate);
-        existingProcessorNode.setProcessor(newProcessor);
+        final String id = existingNode.getProcessor().getIdentifier();
+
+        // createProcessor will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+
+        // create a new node with firstTimeAdded as true so lifecycle methods get fired
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ProcessorNode newNode = createProcessor(newType, id, bundleCoordinate, true, false);
+
+        // call OnRemoved for the existing processor using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            final StandardProcessContext processContext = new StandardProcessContext(
+                    existingNode, controllerServiceProvider, encryptor, getStateManagerProvider().getStateManager(id), variableRegistry);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getProcessor(), processContext);
+        }
+
+        // set the new processor in the existing node
+        final LoggableComponent<Processor> newProcessor = new LoggableComponent<>(newNode.getProcessor(), newNode.getBundleCoordinate(), newNode.getLogger());
+        existingNode.setProcessor(newProcessor);
     }
 
     /**
@@ -2959,14 +3007,29 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public void changeType(final ReportingTaskNode reportingTaskNode, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException {
-        if (reportingTaskNode == null) {
+    public void changeReportingTaskType(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException {
+        if (existingNode == null) {
             throw new IllegalStateException("Existing ReportingTaskNode cannot be null");
         }
 
-        final String existingIdentifier = reportingTaskNode.getReportingTask().getIdentifier();
-        final LoggableComponent<ReportingTask> newReportingTask = instantiateReportingTask(newType, existingIdentifier, bundleCoordinate);
-        reportingTaskNode.setReportingTask(newReportingTask);
+        final String id = existingNode.getReportingTask().getIdentifier();
+
+        // createReportingTask will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing processor
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
+
+        // set firstTimeAdded to true so lifecycle annotations get fired, but don't register this node
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ReportingTaskNode newNode = createReportingTask(newType, id, bundleCoordinate, true, false);
+
+        // call OnRemoved for the existing reporting task using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getReportingTask(), existingNode.getConfigurationContext());
+        }
+
+        // set the new reporting task into the existing node
+        final LoggableComponent<ReportingTask> newReportingTask = new LoggableComponent<>(newNode.getReportingTask(), newNode.getBundleCoordinate(), newNode.getLogger());
+        existingNode.setReportingTask(newReportingTask);
     }
 
     @Override
@@ -3049,24 +3112,34 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return serviceNode;
     }
 
-    public void changeControllerServiceType(final ControllerServiceNode existingControllerService, final String newType, final BundleCoordinate bundleCoordinate)
+    public void changeControllerServiceType(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate)
             throws ControllerServiceInstantiationException {
-        if (existingControllerService == null) {
+        if (existingNode == null) {
             throw new IllegalStateException("Existing ControllerServiceNode cannot be null");
         }
 
-        // create a new controller service node so we can get the underlying service, proxy, and logger
-        final String existingId = existingControllerService.getIdentifier();
-        final ControllerServiceNode controllerServiceNode = controllerServiceProvider.createControllerService(newType, existingId, bundleCoordinate, false);
+        final String id = existingNode.getIdentifier();
 
-        final LoggableComponent<ControllerService> proxied = new LoggableComponent<>(
-                controllerServiceNode.getProxiedControllerService(), bundleCoordinate, controllerServiceNode.getLogger());
+        // createControllerService will create a new instance class loader for the same id so
+        // save the instance class loader to use it for calling OnRemoved on the existing service
+        final ClassLoader existingInstanceClassLoader = ExtensionManager.getInstanceClassLoader(id);
 
-        final LoggableComponent<ControllerService> original = new LoggableComponent<>(
-                controllerServiceNode.getControllerServiceImplementation(), bundleCoordinate, controllerServiceNode.getLogger());
+        // create a new node with firstTimeAdded as true so lifecycle methods get called
+        // attempt the creation to make sure it works before firing the OnRemoved methods below
+        final ControllerServiceNode newNode = controllerServiceProvider.createControllerService(newType, id, bundleCoordinate, true);
+
+        // call OnRemoved for the existing service using the previous instance class loader
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(existingInstanceClassLoader)) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(existingNode, controllerServiceProvider, null, variableRegistry);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, existingNode.getControllerServiceImplementation(), configurationContext);
+        }
+
+        // create LoggableComponents for the proxy and implementation
+        final LoggableComponent<ControllerService> loggableProxy = new LoggableComponent<>(newNode.getProxiedControllerService(), bundleCoordinate, newNode.getLogger());
+        final LoggableComponent<ControllerService> loggableImplementation = new LoggableComponent<>(newNode.getControllerServiceImplementation(), bundleCoordinate, newNode.getLogger());
 
         // set the new proxy and impl into the existing node
-        existingControllerService.setControllerServiceAndProxy(proxied, original);
+        existingNode.setControllerServiceAndProxy(loggableProxy, loggableImplementation);
     }
 
     @Override

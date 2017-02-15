@@ -120,6 +120,6 @@ public interface ReportingTaskProvider {
      * @param bundleCoordinate the bundle coordinate of the new type
      * @throws ReportingTaskInstantiationException if unable to create an instance of the new type
      */
-    void changeType(final ReportingTaskNode reportingTask, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException;
+    void changeReportingTaskType(final ReportingTaskNode reportingTask, final String newType, final BundleCoordinate bundleCoordinate) throws ReportingTaskInstantiationException;
 
 }

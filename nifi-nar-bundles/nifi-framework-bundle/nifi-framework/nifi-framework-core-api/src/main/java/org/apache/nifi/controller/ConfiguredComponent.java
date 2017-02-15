@@ -63,6 +63,8 @@ public interface ConfiguredComponent extends ComponentAuthorizable {
 
     void setExtensionMissing(boolean extensionMissing);
 
+    void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
+
     /**
      * @return the any validation errors for this connectable
      */
