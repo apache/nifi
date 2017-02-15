@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.ccda;
 
 import java.io.IOException;
-import java.io.StringWriter;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,13 +27,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openhealthtools.mdht.uml.cda.consol.ConsolFactory;
-import org.openhealthtools.mdht.uml.cda.consol.ContinuityOfCareDocument;
-import org.openhealthtools.mdht.uml.cda.consol.ProblemConcernAct;
-import org.openhealthtools.mdht.uml.cda.consol.ProblemObservation;
-import org.openhealthtools.mdht.uml.cda.consol.ProblemSection;
-import org.openhealthtools.mdht.uml.cda.consol.ProblemStatus;
-import org.openhealthtools.mdht.uml.cda.util.CDAUtil;
 
 
 public class TestExtractCCDAAttributes {
@@ -51,51 +44,21 @@ public class TestExtractCCDAAttributes {
     }
 
     @Test
-    public void testProcessor() throws Exception {
+    public void testProcessor() throws IOException {
         Map<String, String> expectedAttributes = new HashMap<String, String>();
         expectedAttributes.put("code.code", "34133-9");
         expectedAttributes.put("code.codeSystem", "2.16.840.1.113883.6.1");
-        expectedAttributes.put("code.codeSystemName", "LOINC");
-        expectedAttributes.put("code.displayName", "Summarization of Episode Note");
-        expectedAttributes.put("problemSection.code.code", "11450-4");
-        expectedAttributes.put("problemSection.code.codeSystem", "2.16.840.1.113883.6.1");
-        expectedAttributes.put("problemSection.code.codeSystemName", "LOINC");
-        expectedAttributes.put("problemSection.code.displayName", "Problem List");
-        expectedAttributes.put("problemSection.act.code.code", "CONC");
-        expectedAttributes.put("problemSection.act.code.codeSystem", "2.16.840.1.113883.5.6");
-        expectedAttributes.put("problemSection.act.code.codeSystemName", "HL7ActClass");
-        expectedAttributes.put("problemSection.act.code.displayName", "Concern");
-        expectedAttributes.put("problemSection.act.observation.problemStatus.code.code", "33999-4");
-        expectedAttributes.put("problemSection.act.observation.problemStatus.code.codeSystem", "2.16.840.1.113883.6.1");
-        expectedAttributes.put("problemSection.act.observation.problemStatus.code.codeSystemName", "LOINC");
-        expectedAttributes.put("problemSection.act.observation.problemStatus.code.displayName", "Status");
-        expectedAttributes.put("problemSection.act.observation.problemStatus.statusCode.code", "completed");
-        expectedAttributes.put("problemSection.act.observation.statusCode.code", "completed");
+        expectedAttributes.put("code.displayName", "Summarization of episode note");
+        expectedAttributes.put("effectiveTime", "20130717114446.302-0500");
 
-
-        ContinuityOfCareDocument doc = ConsolFactory.eINSTANCE.createContinuityOfCareDocument().init();
-
-        ProblemConcernAct problemAct = ConsolFactory.eINSTANCE.createProblemConcernAct().init();
-        ProblemObservation problemObservation = ConsolFactory.eINSTANCE.createProblemObservation().init();
-        ProblemStatus problemStatus = ConsolFactory.eINSTANCE.createProblemStatus().init();
-
-        ProblemSection problemSection = ConsolFactory.eINSTANCE.createProblemSection().init();
-        doc.addSection(problemSection);
-        problemSection.addAct(problemAct);
-        problemAct.addObservation(problemObservation);
-        problemObservation.addObservation(problemStatus);
-
-        StringWriter writer = new StringWriter();
-        CDAUtil.save(doc, writer);
-
-        runTests(writer.toString(), expectedAttributes, true, true);
+        runTests("CCDA-Example.xml", expectedAttributes, true, true);
     }
 
-    private void runTests(final String content, Map<String, String> expectedAttributes, final boolean skipValidation, final boolean prettyPrinting) throws IOException{
+    private void runTests(final String fileName, Map<String, String> expectedAttributes, final boolean skipValidation, final boolean prettyPrinting) throws IOException{
         runner.setProperty(ExtractCCDAAttributes.SKIP_VALIDATION, String.valueOf(skipValidation));
         runner.setProperty(ExtractCCDAAttributes.PRETTY_PRINTING, String.valueOf(prettyPrinting));
 
-        runner.enqueue(content);
+        runner.enqueue(Paths.get("src/test/resources/" + fileName));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExtractCCDAAttributes.REL_SUCCESS, 1);
