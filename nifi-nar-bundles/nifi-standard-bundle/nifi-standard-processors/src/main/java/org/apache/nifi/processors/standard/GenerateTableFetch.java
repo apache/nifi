@@ -237,23 +237,12 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
             IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
                 String colName = maxValueColumnNameList.get(index);
+
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
-                final String fullyQualifiedStateKey = getStateKey(tableName, colName);
-                String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
-                if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
-                    // If the table name is static and the fully-qualified key was not found, try just the column name
-                    maxValue = statePropertyMap.get(getStateKey(null, colName));
-                }
+                String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
                 if (!StringUtils.isEmpty(maxValue)) {
-                    Integer type = columnTypeMap.get(fullyQualifiedStateKey);
-                    if (type == null && !isDynamicTableName) {
-                        // If the table name is static and the fully-qualified key was not found, try just the column name
-                        type = columnTypeMap.get(getStateKey(null, colName));
-                    }
-                    if (type == null) {
-                        // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
-                        throw new IllegalArgumentException("No column type found for: " + colName);
-                    }
+                    Integer type = getColumnType(tableName, colName);
+
                     // Add a condition for the WHERE clause
                     maxValueClauses.add(colName + (index == 0 ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                 }
@@ -318,6 +307,23 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     throw new SQLException("No rows returned from metadata query: " + selectQuery);
                 }
 
+                // for each maximum-value column get a right bounding WHERE condition
+                IntStream.range(0, maxValueColumnNameList.size()).forEach((index) -> {
+                    String colName = maxValueColumnNameList.get(index);
+
+                    maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
+                    String maxValue = getColumnStateMaxValue(tableName, statePropertyMap, colName);
+                    if (!StringUtils.isEmpty(maxValue)) {
+                        Integer type = getColumnType(tableName, colName);
+
+                        // Add a condition for the WHERE clause
+                        maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
+                    }
+                });
+
+                //Update WHERE list to include new right hand boundaries
+                whereClause = StringUtils.join(maxValueClauses, " AND ");
+
                 final long numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
                 // Generate SQL statements to read "pages" of data
@@ -376,5 +382,31 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             session.rollback();
             context.yield();
         }
+    }
+
+    private String getColumnStateMaxValue(String tableName, Map<String, String> statePropertyMap, String colName) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+        String maxValue = statePropertyMap.get(fullyQualifiedStateKey);
+        if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
+            // If the table name is static and the fully-qualified key was not found, try just the column name
+            maxValue = statePropertyMap.get(getStateKey(null, colName));
+        }
+
+        return maxValue;
+    }
+
+    private Integer getColumnType(String tableName, String colName) {
+        final String fullyQualifiedStateKey = getStateKey(tableName, colName);
+        Integer type = columnTypeMap.get(fullyQualifiedStateKey);
+        if (type == null && !isDynamicTableName) {
+            // If the table name is static and the fully-qualified key was not found, try just the column name
+            type = columnTypeMap.get(getStateKey(null, colName));
+        }
+        if (type == null) {
+            // This shouldn't happen as we are populating columnTypeMap when the processor is scheduled or when the first maximum is observed
+            throw new IllegalArgumentException("No column type found for: " + colName);
+        }
+
+        return type;
     }
 }
