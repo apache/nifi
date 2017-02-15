@@ -17,7 +17,12 @@
 package org.apache.nifi.security.util;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Set;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.pkcs.Attribute;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -25,6 +30,7 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -37,6 +43,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +131,7 @@ public final class CertificateUtils {
             this.description = description;
         }
 
+        @Override
         public String toString() {
             return "Client Auth: " + this.description + " (" + this.value + ")";
         }
@@ -541,6 +549,24 @@ public final class CertificateUtils {
      */
     public static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, X509Certificate issuer, KeyPair issuerKeyPair, String signingAlgorithm, int days)
             throws CertificateException {
+        return generateIssuedCertificate(dn, publicKey, null, issuer, issuerKeyPair, signingAlgorithm, days);
+    }
+
+    /**
+     * Generates an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
+     *
+     * @param dn the distinguished name to use
+     * @param publicKey the public key to issue the certificate to
+     * @param extensions extensions extracted from the CSR
+     * @param issuer the issuer's certificate
+     * @param issuerKeyPair the issuer's keypair
+     * @param signingAlgorithm the signing algorithm to use
+     * @param days the number of days it should be valid for
+     * @return an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
+     * @throws CertificateException if there is an error issuing the certificate
+     */
+    public static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, Extensions extensions, X509Certificate issuer, KeyPair issuerKeyPair, String signingAlgorithm, int days)
+            throws CertificateException {
         try {
             ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(issuerKeyPair.getPrivate());
             SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
@@ -566,6 +592,11 @@ public final class CertificateUtils {
 
             // (2) extendedKeyUsage extension
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
+
+            // (3) subjectAlternativeName
+            if(extensions != null && extensions.getExtension(Extension.subjectAlternativeName) != null) {
+                certBuilder.addExtension(Extension.subjectAlternativeName, false, extensions.getExtensionParsedValue(Extension.subjectAlternativeName));
+            }
 
             X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
             return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certificateHolder);
@@ -611,6 +642,25 @@ public final class CertificateUtils {
             logger.warn("Cannot compare DNs: {} and {} because one or both is not a valid DN", dn1, dn2);
             return false;
         }
+    }
+
+    /**
+     * Extract extensions from CSR object
+     */
+    public static Extensions getExtensionsFromCSR(JcaPKCS10CertificationRequest csr) {
+        Attribute[] attributess = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        for (Attribute attribute : attributess) {
+            ASN1Set attValue = attribute.getAttrValues();
+            if (attValue != null) {
+                ASN1Encodable extension = attValue.getObjectAt(0);
+                if (extension instanceof Extensions) {
+                    return (Extensions) extension;
+                } else if (extension instanceof DERSequence) {
+                    return Extensions.getInstance(extension);
+                }
+            }
+        }
+        return null;
     }
 
     private CertificateUtils() {

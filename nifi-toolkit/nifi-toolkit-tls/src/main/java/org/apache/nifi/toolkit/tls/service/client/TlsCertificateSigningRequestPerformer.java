@@ -59,23 +59,28 @@ public class TlsCertificateSigningRequestPerformer {
     private final Supplier<HttpClientBuilder> httpClientBuilderSupplier;
     private final String caHostname;
     private final String dn;
+    private final String domainAlternativeName;
     private final String token;
     private final int port;
     private final ObjectMapper objectMapper;
     private final String signingAlgorithm;
 
     public TlsCertificateSigningRequestPerformer(TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
+        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomaineAlternativeName(),
+                tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
     protected TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
+        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getDomaineAlternativeName(),
+                tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
-    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, String signingAlgorithm) {
+    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname,
+            String dn, String domainAlternativeName, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
         this.dn = CertificateUtils.reorderDn(dn);
+        this.domainAlternativeName = domainAlternativeName;
         this.token = token;
         this.port = port;
         this.objectMapper = new ObjectMapper();
@@ -87,7 +92,7 @@ public class TlsCertificateSigningRequestPerformer {
      *
      * @param keyPair the keypair to generate the csr for
      * @throws IOException if there is a problem during the process
-     * @returnd the resulting certificate chain
+     * @return the resulting certificate chain
      */
     public X509Certificate[] perform(KeyPair keyPair) throws IOException {
         try {
@@ -104,7 +109,7 @@ public class TlsCertificateSigningRequestPerformer {
             String jsonResponseString;
             int responseCode;
             try (CloseableHttpClient client = httpClientBuilder.build()) {
-                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, keyPair, signingAlgorithm);
+                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, domainAlternativeName, keyPair, signingAlgorithm);
                 TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(TlsHelper.calculateHMac(token, request.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(request));
 
