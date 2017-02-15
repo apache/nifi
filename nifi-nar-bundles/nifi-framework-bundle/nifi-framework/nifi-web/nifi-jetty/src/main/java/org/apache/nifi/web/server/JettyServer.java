@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.IOUtils;
@@ -575,7 +576,7 @@ public class JettyServer implements NiFiServer {
             final List<Connector> serverConnectors = Lists.newArrayList();
 
             final Map<String, String> httpNetworkInterfaces = props.getHttpNetworkInterfaces();
-            if (httpNetworkInterfaces.isEmpty()) {
+            if (httpNetworkInterfaces.isEmpty() || httpNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
                 // create the connector
                 final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
                 // set host and port
@@ -622,7 +623,7 @@ public class JettyServer implements NiFiServer {
             final List<Connector> serverConnectors = Lists.newArrayList();
 
             final Map<String, String> httpsNetworkInterfaces = props.getHttpsNetworkInterfaces();
-            if (httpsNetworkInterfaces.isEmpty()) {
+            if (httpsNetworkInterfaces.isEmpty() || httpsNetworkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
                 final ServerConnector https = createUnconfiguredSslServerConnector(server, httpConfiguration);
 
                 // set host and port
