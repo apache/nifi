@@ -28,18 +28,13 @@ import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedMap;
-import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -85,22 +80,6 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
             // set the headers
             final Map<String, String> headers = new HashMap<>();
-            if (StringUtils.isNotBlank(request.getProxiedEntitiesChain())) {
-                headers.put("X-ProxiedEntitiesChain", request.getProxiedEntitiesChain());
-            }
-
-            // add the user's authorities (if any) to the headers
-            final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null) {
-                final Object userDetailsObj = authentication.getPrincipal();
-                if (userDetailsObj instanceof NiFiUserDetails) {
-                    // serialize user details object
-                    final String hexEncodedUserDetails = WebUtils.serializeObjectToHex((Serializable) userDetailsObj);
-
-                    // put serialized user details in header
-                    headers.put("X-ProxiedEntityUserDetails", hexEncodedUserDetails);
-                }
-            }
 
             // ensure we were able to detect the cluster node id
             if (request.getClusterNodeId() == null) {

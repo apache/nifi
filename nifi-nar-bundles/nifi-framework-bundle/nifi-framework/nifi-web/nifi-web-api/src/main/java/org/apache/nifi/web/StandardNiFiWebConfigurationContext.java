@@ -44,22 +44,16 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.util.ClientResponseUtils;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-
 import java.io.IOException;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -803,22 +797,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private Map<String, String> getHeaders(final NiFiWebRequestContext config) {
         final Map<String, String> headers = new HashMap<>();
         headers.put("Accept", "application/json,application/xml");
-        if (StringUtils.isNotBlank(config.getProxiedEntitiesChain())) {
-            headers.put("X-ProxiedEntitiesChain", config.getProxiedEntitiesChain());
-        }
-
-        // add the user's authorities (if any) to the headers
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            final Object userDetailsObj = authentication.getPrincipal();
-            if (userDetailsObj instanceof NiFiUserDetails) {
-                // serialize user details object
-                final String hexEncodedUserDetails = WebUtils.serializeObjectToHex((Serializable) userDetailsObj);
-
-                // put serialized user details in header
-                headers.put("X-ProxiedEntityUserDetails", hexEncodedUserDetails);
-            }
-        }
         return headers;
     }
 

@@ -18,16 +18,6 @@ package org.apache.nifi.web;
 
 import com.ibm.icu.text.CharsetDetector;
 import com.ibm.icu.text.CharsetMatch;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -40,6 +30,16 @@ import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 
 /**
  * Controller servlet for viewing content. This is responsible for generating
@@ -299,7 +299,6 @@ public class ContentViewerController extends HttpServlet {
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
         final String clientId = request.getParameter("clientId");
-        final String proxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
 
         final URI refUri = URI.create(ref);
         final String query = refUri.getQuery();
@@ -334,7 +333,7 @@ public class ContentViewerController extends HttpServlet {
 
             @Override
             public String getProxiedEntitiesChain() {
-                return proxiedEntitiesChain;
+                return null;
             }
         };
     }
