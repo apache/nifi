@@ -251,7 +251,10 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                     // Update the state map with the newly-observed maximum values
                     ResultSetMetaData rsmd = resultSet.getMetaData();
                     for (int i = 2; i <= rsmd.getColumnCount(); i++) {
-                        String resultColumnName = rsmd.getColumnName(i).toLowerCase();
+                        //Some JDBC drivers consider the columns name and label to be very different things.
+                        // Since this column has been aliased lets check the label first,
+                        // if there is no label we'll use the column name.
+                        String resultColumnName = (StringUtils.isNotEmpty(rsmd.getColumnLabel(i))?rsmd.getColumnLabel(i):rsmd.getColumnName(i)).toLowerCase();
                         String fullyQualifiedStateKey = getStateKey(tableName, resultColumnName);
                         String resultColumnCurrentMax = statePropertyMap.get(fullyQualifiedStateKey);
                         if (StringUtils.isEmpty(resultColumnCurrentMax) && !isDynamicTableName) {
