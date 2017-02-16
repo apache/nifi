@@ -98,7 +98,8 @@ public class EnforceOrder extends AbstractProcessor {
     private static final Function<String, String> STATE_MAX_ORDER = groupId -> groupId + ".max";
 
     public static final PropertyDescriptor GROUP_IDENTIFIER = new PropertyDescriptor.Builder()
-        .name("Group Identifier")
+        .name("group-id")
+        .displayName("Group Identifier")
         .description("EnforceOrder is capable of multiple ordering groups." +
                 " 'Group Identifier' is used to determine which group a FlowFile belongs to." +
                 " This property will be evaluated with each incoming FlowFile." +
@@ -110,7 +111,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor ORDER_ATTRIBUTE = new PropertyDescriptor.Builder()
-        .name("Order Attribute")
+        .name("order-attribute")
+        .displayName("Order Attribute")
         .description("A name of FlowFile attribute whose value will be used to enforce order of FlowFiles within a group." +
                 " If a FlowFile does not have this attribute, or its value is not an integer, the FlowFile will be routed to failure.")
         .required(true)
@@ -119,7 +121,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor INITIAL_ORDER = new PropertyDescriptor.Builder()
-        .name("Initial Order")
+        .name("initial-order")
+        .displayName("Initial Order")
         .description("When the first FlowFile of a group arrives, initial target order will be computed and stored in the managed state." +
                 " After that, target order will start being tracked by EnforceOrder and stored in the state management store." +
                 " If Expression Language is used but evaluated result was not an integer, then the FlowFile will be routed to failure," +
@@ -131,7 +134,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor MAX_ORDER = new PropertyDescriptor.Builder()
-        .name("Maximum Order")
+        .name("maximum-order")
+        .displayName("Maximum Order")
         .description("If specified, any FlowFiles that has larger order will be routed to failure." +
                 " This property is computed only once for a given group." +
                 " After a maximum order is computed, it will be persisted in the state management store and used for other FlowFiles belonging to the same group." +
@@ -143,7 +147,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor WAIT_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Wait Timeout")
+        .name("wait-timeout")
+        .displayName("Wait Timeout")
         .description("Indicates the duration after which waiting FlowFiles will be routed to the 'overtook' relationship.")
         .required(true)
         .defaultValue("10 min")
@@ -152,7 +157,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor INACTIVE_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Inactive Timeout")
+        .name("inactive-timeout")
+        .displayName("Inactive Timeout")
         .description("Indicates the duration after which state for an inactive group will be cleared from managed state." +
                 " Group is determined as inactive if any new incoming FlowFile has not seen for a group for specified duration." +
                 " Inactive Timeout must be longer than Wait Timeout." +
@@ -167,7 +173,8 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor BATCH_COUNT = new PropertyDescriptor.Builder()
-        .name("Batch Count")
+        .name("batch-count")
+        .displayName("Batch Count")
         .description("The maximum number of FlowFiles that EnforceOrder can process at an execution.")
         .required(true)
         .defaultValue("1000")
