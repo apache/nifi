@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-spring-bundle</artifactId>
-        <version>1.1.1-SNAPSHOT</version>
+        <version>1.1.2</version>
     </parent>
     <artifactId>nifi-spring-nar</artifactId>
     <packaging>nar</packaging>
