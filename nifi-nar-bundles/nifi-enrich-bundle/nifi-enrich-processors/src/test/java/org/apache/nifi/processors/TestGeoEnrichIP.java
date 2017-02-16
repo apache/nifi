@@ -30,9 +30,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,11 +45,14 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mock;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({GeoEnrichIP.class})
 @SuppressWarnings("WeakerAccess")
 public class TestGeoEnrichIP {
     DatabaseReader databaseReader;
@@ -54,6 +61,7 @@ public class TestGeoEnrichIP {
 
     @Before
     public void setUp() throws Exception {
+        mockStatic(InetAddress.class);
         databaseReader = mock(DatabaseReader.class);
         geoEnrichIP = new TestableGeoEnrichIP();
         testRunner = TestRunners.newTestRunner(geoEnrichIP);
@@ -259,6 +267,8 @@ public class TestGeoEnrichIP {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ip", "somenonexistentdomain.comm");
+
+        when(InetAddress.getByName("somenonexistentdomain.comm")).thenThrow(UnknownHostException.class);
 
         testRunner.enqueue(new byte[0], attributes);
 
