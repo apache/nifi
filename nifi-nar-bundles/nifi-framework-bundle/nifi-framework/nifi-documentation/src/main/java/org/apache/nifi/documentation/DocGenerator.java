@@ -16,14 +16,7 @@
  */
 package org.apache.nifi.documentation;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.HashSet;
-import java.util.Set;
+import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
@@ -32,12 +25,22 @@ import org.apache.nifi.documentation.init.ControllerServiceInitializer;
 import org.apache.nifi.documentation.init.ProcessorInitializer;
 import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Uses the ExtensionManager to get a list of Processor, ControllerService, and
@@ -54,27 +57,44 @@ public class DocGenerator {
      * NiFiProperties.
      *
      * @param properties to lookup nifi properties
+     * @param extensionMapping extension mapping
      */
-    public static void generate(final NiFiProperties properties) {
-        @SuppressWarnings("rawtypes")
-        final Set<Class> extensionClasses = new HashSet<>();
-        extensionClasses.addAll(ExtensionManager.getExtensions(Processor.class));
-        extensionClasses.addAll(ExtensionManager.getExtensions(ControllerService.class));
-        extensionClasses.addAll(ExtensionManager.getExtensions(ReportingTask.class));
-
+    public static void generate(final NiFiProperties properties, final ExtensionMapping extensionMapping) {
         final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
-        logger.debug("Generating documentation for: " + extensionClasses.size() + " components in: "
-                + explodedNiFiDocsDir);
+        logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
+
+        documentConfigurableComponent(ExtensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, name -> extensionMapping.getProcessorNames().get(name));
+        documentConfigurableComponent(ExtensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, name -> extensionMapping.getControllerServiceNames().get(name));
+        documentConfigurableComponent(ExtensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir, name -> extensionMapping.getReportingTaskNames().get(name));
+    }
+
+    /**
+     * Documents a type of configurable component.
+     *
+     * @param extensionClasses types of a configurable component
+     * @param explodedNiFiDocsDir base directory of component documentation
+     * @param coordinateAccessor accessor for coordinates of a type of a configurable component
+     */
+    private static void documentConfigurableComponent(
+            final Set<Class> extensionClasses, final File explodedNiFiDocsDir, final Function<String, Set<BundleCoordinate>> coordinateAccessor) {
 
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-                final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
-                try {
-                    logger.debug("Documenting: " + componentClass);
-                    document(explodedNiFiDocsDir, componentClass);
-                } catch (Exception e) {
-                    logger.warn("Unable to document: " + componentClass, e);
+                final String extensionClassName = extensionClass.getCanonicalName();
+
+                for (final BundleCoordinate coordinate : coordinateAccessor.apply(extensionClassName)) {
+                    final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
+                    final File componentDirectory = new File(explodedNiFiDocsDir, path);
+                    componentDirectory.mkdirs();
+
+                    final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
+                    try {
+                        logger.debug("Documenting: " + componentClass);
+                        document(componentDirectory, componentClass);
+                    } catch (Exception e) {
+                        logger.warn("Unable to document: " + componentClass, e);
+                    }
                 }
             }
         }
@@ -85,15 +105,14 @@ public class DocGenerator {
      * check to see if an "additionalDetails.html" file exists and will link
      * that from the generated documentation.
      *
-     * @param docsDir the work\docs\components dir to stick component
-     * documentation in
+     * @param componentDocsDir the component documentation directory
      * @param componentClass the class to document
      * @throws InstantiationException ie
      * @throws IllegalAccessException iae
      * @throws IOException ioe
      * @throws InitializationException ie
      */
-    private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
+    private static void document(final File componentDocsDir, final Class<? extends ConfigurableComponent> componentClass)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
         final ConfigurableComponent component = componentClass.newInstance();
@@ -102,16 +121,13 @@ public class DocGenerator {
 
         final DocumentationWriter writer = getDocumentWriter(componentClass);
 
-        final File directory = new File(docsDir, componentClass.getCanonicalName());
-        directory.mkdirs();
-
-        final File baseDocumentationFile = new File(directory, "index.html");
+        final File baseDocumentationFile = new File(componentDocsDir, "index.html");
         if (baseDocumentationFile.exists()) {
             logger.warn(baseDocumentationFile + " already exists, overwriting!");
         }
 
         try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumentationFile))) {
-            writer.write(component, output, hasAdditionalInfo(directory));
+            writer.write(component, output, hasAdditionalInfo(componentDocsDir));
         }
 
         initializer.teardown(component);

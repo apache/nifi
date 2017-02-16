@@ -30,13 +30,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -92,10 +92,8 @@ public class NarUnpackerTest {
 
         assertEquals(2, extensionMapping.getAllExtensionNames().size());
 
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.two"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.two"));
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
 
@@ -124,8 +122,7 @@ public class NarUnpackerTest {
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
 
         assertEquals(1, extensionMapping.getAllExtensionNames().size());
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
 
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
@@ -147,8 +144,7 @@ public class NarUnpackerTest {
 
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
 
-        assertTrue(extensionMapping.getAllExtensionNames().contains(
-                "org.apache.nifi.processors.dummy.one"));
+        assertTrue(extensionMapping.getAllExtensionNames().keySet().contains("org.apache.nifi.processors.dummy.one"));
 
         assertEquals(1, extensionMapping.getAllExtensionNames().size());
 
@@ -180,8 +176,7 @@ public class NarUnpackerTest {
         try {
             filePath = NarUnpackerTest.class.getResource(propertiesFile).toURI().getPath();
         } catch (URISyntaxException ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex);
+            throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
         }
         return NiFiProperties.createBasicNiFiProperties(filePath, others);
     }

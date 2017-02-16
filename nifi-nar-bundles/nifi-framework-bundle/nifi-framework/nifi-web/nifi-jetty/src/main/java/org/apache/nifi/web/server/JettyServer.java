@@ -479,8 +479,8 @@ public class JettyServer implements NiFiServer {
             final Resource docsResource = Resource.newResource(docsDir);
 
             // load the component documentation working directory
-            final String componentDocsDirPath = props.getProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, "work/docs/components");
-            final File workingDocsDirectory = Paths.get(componentDocsDirPath).toRealPath().getParent().toFile();
+            final File componentDocsDirPath = props.getComponentDocumentationWorkingDirectory();
+            final File workingDocsDirectory = componentDocsDirPath.toPath().toRealPath().getParent().toFile();
             final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
 
             // load the rest documentation

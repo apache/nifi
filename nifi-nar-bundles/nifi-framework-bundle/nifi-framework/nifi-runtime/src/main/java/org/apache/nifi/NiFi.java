@@ -146,7 +146,7 @@ public class NiFi {
         ExtensionManager.discoverExtensions(bundles);
         ExtensionManager.logClassLoaderMapping();
 
-        DocGenerator.generate(properties);
+        DocGenerator.generate(properties, extensionMapping);
 
         // load the server from the framework classloader
         Thread.currentThread().setContextClassLoader(frameworkClassLoader);

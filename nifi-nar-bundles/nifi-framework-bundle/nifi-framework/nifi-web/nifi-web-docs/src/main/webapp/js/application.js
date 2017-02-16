@@ -47,7 +47,7 @@ $(document).ready(function () {
 
     var applyComponentFilter = function (componentContainer) {
         var matchingComponents = 0;
-        var componentLinks = $(componentContainer).find('a.component-link');
+        var componentLinks = $(componentContainer).find('a.component-link, a.document-link');
 
         if (componentLinks.length === 0) {
             return matchingComponents;
@@ -108,21 +108,51 @@ $(document).ready(function () {
         $('#displayed-components').text(matchingGeneral + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingDeveloper);
     };
 
-    var selectComponent = function (componentName) {
+    var selectComponent = function (selectedExtension, selectedBundleGroup, selectedBundleArtifact, selectedArtifactVersion) {
         var componentLinks = $('a.component-link');
 
         // consider each link
         $.each(componentLinks, function () {
             var componentLink = $(this);
-            if (componentName === componentLink.text()) {
+            var item = componentLink.closest('li.component-item');
+            var extension = item.find('span.extension-class').text();
+            var group = item.find('span.bundle-group').text();
+            var artifact = item.find('span.bundle-artifact').text();
+            var version = item.find('span.bundle-version').text();
+
+            if (extension === selectedExtension && group === selectedBundleGroup
+                && artifact === selectedBundleArtifact && version === selectedArtifactVersion) {
+
                 // remove all selected styles
                 $('li.component-item').removeClass('selected');
 
                 // select this links item
-                componentLink.closest('li.component-item').addClass('selected');
+                item.addClass('selected');
 
                 // set the header
                 $('#selected-component').text(componentLink.text());
+
+                // stop iteration
+                return false;
+            }
+        });
+    };
+
+    var selectDocument = function (documentName) {
+        var documentLinks = $('a.document-link');
+
+        // consider each link
+        $.each(documentLinks, function () {
+            var documentLink = $(this);
+            if (documentName === $.trim(documentLink.text())) {
+                // remove all selected styles
+                $('li.component-item').removeClass('selected');
+
+                // select this links item
+                documentLink.closest('li.component-item').addClass('selected');
+
+                // set the header
+                $('#selected-component').text(documentLink.text());
 
                 // stop iteration
                 return false;
@@ -296,7 +326,7 @@ $(document).ready(function () {
             // resize window accordingly.
             $(window).resize();
 
-            var componentName = '';
+            var bundleAndComponent = '';
             var href = $(this).contents().get(0).location.href;
 
             // see if the href ends in index.htm[l]
@@ -313,42 +343,58 @@ $(document).ready(function () {
                 }
             }
 
-            // extract the simple name
+            // remove the beginning bits
             if (href.length > 0) {
-                var indexOfLastDot = href.lastIndexOf('.');
-                if (indexOfLastDot >= 0) {
-                    var indexAfterStrToFind = indexOfLastDot + 1;
-                    if (indexAfterStrToFind < href.length) {
-                        componentName = href.substr(indexAfterStrToFind);
+                var path = 'nifi-docs/components';
+                var indexOfPath = href.indexOf(path);
+                if (indexOfPath >= 0) {
+                    var indexOfBundle = indexOfPath + path.length + 1;
+                    if (indexOfBundle < href.length) {
+                        bundleAndComponent = href.substr(indexOfBundle);
                     }
                 }
             }
 
-            // if we could figure out the name
-            if (componentName !== '') {
-                selectComponent(componentName);
+            // if we could extract the bundle coordinates
+            if (bundleAndComponent !== '') {
+                var bundleTokens = bundleAndComponent.split('/');
+                if (bundleTokens.length === 4) {
+                    selectComponent(bundleTokens[3], bundleTokens[0], bundleTokens[1], bundleTokens[2]);
+                }
             }
         });
         
         // listen for on the rest api and user guide and developer guide and admin guide and overview
-        $('a.rest-api, a.user-guide, a.developer-guide, a.admin-guide, a.overview, a.expression-language-guide, a.getting-started').on('click', function() {
-            selectComponent($(this).text());
+        $('a.document-link').on('click', function() {
+            selectDocument($(this).text());
         });
 
         // get the initial selection
-        var initialComponentLink = $('a.component-link:first');
-        var initialSelection = $('#initial-selection').text();
-        if (initialSelection !== '') {
+        var initialLink = $('a.document-link:first');
+        var initialSelectionType = $.trim($('#initial-selection-type').text());
+
+        if (initialSelectionType !== '') {
+            var initialSelectionBundleGroup = $.trim($('#initial-selection-bundle-group').text());
+            var initialSelectionBundleArtifact = $.trim($('#initial-selection-bundle-artifact').text());
+            var initialSelectionBundleVersion = $.trim($('#initial-selection-bundle-version').text());
+
             $('a.component-link').each(function () {
                 var componentLink = $(this);
-                if (componentLink.text() === initialSelection) {
-                    initialComponentLink = componentLink;
+                var item = componentLink.closest('li.component-item');
+                var extension = item.find('span.extension-class').text();
+                var group = item.find('span.bundle-group').text();
+                var artifact = item.find('span.bundle-artifact').text();
+                var version = item.find('span.bundle-version').text();
+
+                if (extension === initialSelectionType && group === initialSelectionBundleGroup
+                        && artifact === initialSelectionBundleArtifact && version === initialSelectionBundleVersion) {
+                    initialLink = componentLink;
                     return false;
                 }
             });
         }
 
         // click the first link
-        initialComponentLink[0].click();
+        initialLink[0].click();
     });
 });

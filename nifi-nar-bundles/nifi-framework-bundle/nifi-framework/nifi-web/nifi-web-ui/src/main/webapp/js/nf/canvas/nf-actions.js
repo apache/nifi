@@ -855,7 +855,10 @@
             if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
                 nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                        select: nfCommon.substringAfterLast(selectionData.component.type, '.')
+                        select: selectionData.component.type,
+                        group: selectionData.component.bundle.group,
+                        artifact: selectionData.component.bundle.artifact,
+                        version: selectionData.component.bundle.version
                     }));
             }
         },
