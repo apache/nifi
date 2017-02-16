@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 
 @Tags({ "csv", "json", "transform", "registry", "schema" })
@@ -74,6 +75,6 @@ public final class TransformCSVToJson extends AbstractCSVTransformer {
     protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema) {
         GenericRecord avroRecord = CSVUtils.read(in, this.delimiter, schema, this.quoteChar);
         JsonUtils.write(avroRecord, out);
-        return null;
+        return Collections.singletonMap(CoreAttributes.MIME_TYPE.key(), "application/json");
     }
 }

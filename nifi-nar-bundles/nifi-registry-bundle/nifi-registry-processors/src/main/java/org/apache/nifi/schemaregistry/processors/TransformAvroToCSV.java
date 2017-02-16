@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -28,6 +29,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 @Tags({ "registry", "schema", "avro", "csv", "transform" })
 @CapabilityDescription("Transforms AVRO content of the Flow File to CSV using the schema provided by the Schema Registry Service.")
@@ -50,6 +52,6 @@ public final class TransformAvroToCSV extends AbstractCSVTransformer {
         ByteArrayInputStream is = new ByteArrayInputStream(buff);
         GenericRecord avroRecord = AvroUtils.read(is, schema);
         CSVUtils.write(avroRecord, this.delimiter, out);
-        return null;
+        return Collections.singletonMap(CoreAttributes.MIME_TYPE.key(), "text/csv");
     }
 }

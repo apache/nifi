@@ -18,6 +18,7 @@ package org.apache.nifi.schemaregistry.processors;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
 import java.util.Map;
 
 import org.apache.avro.Schema;
@@ -25,6 +26,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 
 @Tags({ "registry", "schema", "avro", "json", "transform" })
@@ -39,6 +41,6 @@ public final class TransformAvroToJson extends AbstractContentTransformer {
     protected Map<String, String> transform(InputStream in, OutputStream out, InvocationContextProperties contextProperties, Schema schema) {
         GenericRecord avroRecord = AvroUtils.read(in, schema);
         JsonUtils.write(avroRecord, out);
-        return null;
+        return Collections.singletonMap(CoreAttributes.MIME_TYPE.key(), "application/json");
     }
 }
