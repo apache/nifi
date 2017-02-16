@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-mqtt-bundle</artifactId>
-        <version>0.7.1</version>
+        <version>0.7.2-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
