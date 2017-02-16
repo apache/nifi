@@ -149,7 +149,7 @@ NiFi provides several different configuration options for security purposes. The
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
 by setting the `nifi.web.https.host` and `nifi.web.https.port` properties. The `nifi.web.https.host` property indicates which hostname the server
 should run on. If it is desired that the HTTPS interface be accessible from all network interfaces, a value of `0.0.0.0` should be used.  To allow
-admins to configure the application to run only on specific network interfaces, `nifi.web.http.network.interface*` or `nifi.web.http.network.interface*`
+admins to configure the application to run only on specific network interfaces, `nifi.web.http.network.interface*` or `nifi.web.https.network.interface*`
 properties can be specified.
 
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
