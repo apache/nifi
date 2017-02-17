@@ -23,6 +23,8 @@ public interface DatabaseAdapter {
 
     String getName();
 
+    String getDescription();
+
     /**
      * Returns a SQL SELECT statement with the given clauses applied.
      *
