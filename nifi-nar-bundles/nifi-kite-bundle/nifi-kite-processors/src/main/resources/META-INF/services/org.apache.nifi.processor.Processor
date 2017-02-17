@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.processors.kite.StoreInKiteDataset
+org.apache.nifi.processors.kite.ConvertAvroToParquet
 org.apache.nifi.processors.kite.ConvertCSVToAvro
 org.apache.nifi.processors.kite.ConvertJSONToAvro
 org.apache.nifi.processors.kite.ConvertAvroSchema
