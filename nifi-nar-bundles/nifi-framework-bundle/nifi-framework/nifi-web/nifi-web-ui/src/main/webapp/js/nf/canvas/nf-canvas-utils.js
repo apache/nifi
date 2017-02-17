@@ -748,7 +748,7 @@
          */
         areRunnable: function (selection) {
             if (selection.empty()) {
-                return false;
+                return true;
             }
 
             var runnable = true;
@@ -798,7 +798,7 @@
          */
         areStoppable: function (selection) {
             if (selection.empty()) {
-                return false;
+                return true;
             }
 
             var stoppable = true;
@@ -1035,7 +1035,11 @@
         isConfigurable: function (selection) {
             // ensure the correct number of components are selected
             if (selection.size() !== 1) {
-                return false;
+                if (selection.empty()) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
 
             if (nfCanvasUtils.isProcessGroup(selection)) {
@@ -1071,6 +1075,26 @@
                 }
             } else {
                 return nfCanvasUtils.isProcessor(selection) || nfCanvasUtils.isConnection(selection) || nfCanvasUtils.isInputPort(selection) || nfCanvasUtils.isOutputPort(selection) || nfCanvasUtils.isRemoteProcessGroup(selection);
+            }
+
+            return false;
+        },
+
+        /**
+         * Determines whether the user can configure or open the policy management page.
+         */
+        canManagePolicies: function () {
+            var selection = nfCanvasUtils.getSelection();
+
+            // ensure 0 or 1 components selected
+            if (selection.size() <= 1) {
+                // if something is selected, ensure it's not a connection
+                if (!selection.empty() && nfCanvasUtils.isConnection(selection)) {
+                    return false;
+                }
+
+                // ensure access to read tenants
+                return common.canAccessTenants();
             }
 
             return false;

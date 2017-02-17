@@ -98,7 +98,7 @@
                     <div class="button-spacer-small" ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()">&nbsp;</div>
                     <div id="operate-policy" class="action-button" title="Access Policies" ng-if="appCtrl.nf.CanvasUtils.isConfigurableAuthorizer()">
                         <button ng-click="appCtrl.nf.Actions['managePolicies'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canManagePolicies())">
+                                ng-disabled="!(appCtrl.nf.CanvasUtils.canManagePolicies())">
                             <div class="graph-control-action-icon fa fa-key"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
@@ -154,7 +154,7 @@
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-group" class="action-button" title="Group">
                         <button ng-click="appCtrl.nf.Actions['group'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.Connection.isDisconnected(appCtrl.nf.CanvasUtils.getSelection()) || !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!(appCtrl.nf.CanvasUtils.getComponentByType('Connection').isDisconnected(appCtrl.nf.CanvasUtils.getSelection()) && appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection()));">
                             <div class="graph-control-action-icon icon icon-group"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
