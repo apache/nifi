@@ -121,6 +121,38 @@ public class TextLineDemarcatorTest {
     }
 
     @Test
+    public void validateNiFi_3495() {
+        String str = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
+        InputStream is = stringToIs(str);
+        TextLineDemarcator demarcator = new TextLineDemarcator(is, 10);
+        OffsetInfo info = demarcator.nextOffsetInfo();
+        assertEquals(0, info.getStartOffset());
+        assertEquals(3, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(3, info.getStartOffset());
+        assertEquals(7, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(10, info.getStartOffset());
+        assertEquals(7, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(17, info.getStartOffset());
+        assertEquals(8, info.getLength());
+        assertEquals(2, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(25, info.getStartOffset());
+        assertEquals(6, info.getLength());
+        assertEquals(0, info.getCrlfLength());
+
+    }
+
+    @Test
     public void mixedCRLF() throws Exception {
         InputStream is = stringToIs("oleg\rjoe\njack\r\nstacymike\r\n");
         TextLineDemarcator demarcator = new TextLineDemarcator(is, 4);
