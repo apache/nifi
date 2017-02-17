@@ -86,6 +86,60 @@
     };
 
     /**
+     * Determines whether user can create a template from the components in the specified selection.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canCreateTemplate = function (selection) {
+        return canvasUtils.canWrite() && (selection.empty() && canvasUtils.canRead(selection));
+    };
+
+    /**
+     * Determines whether user can upload a template.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canUploadTemplate = function (selection) {
+        return canvasUtils.canWrite() && selection.empty();
+    };
+
+    /**
+     * Determines whether components in the specified selection are group-able.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canGroup = function (selection) {
+        return canvasUtils.getComponentByType('Connection').isDisconnected(selection) && canvasUtils.canModify(selection);
+    };
+
+    /**
+     * Determines whether components in the specified selection are enable-able.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canEnable = function (selection) {
+        return canvasUtils.canEnable(selection);
+    };
+
+    /**
+     * Determines whether components in the specified selection are diable-able.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canDisable = function (selection) {
+        return canvasUtils.canDisable(selection);
+    };
+
+    /**
+     * Determines whether user can manage policies of the components in the specified selection.
+     *
+     * @param {selection} selection         The selection of currently selected components
+     */
+    var canManagePolicies = function (selection) {
+        return canvasUtils.isConfigurableAuthorizer() && canvasUtils.canManagePolicies(selection);
+    };
+
+    /**
      * Determines whether the components in the specified selection are runnable.
      *
      * @param {selection} selection         The selection of currently selected components
@@ -453,6 +507,9 @@
         {condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
         {condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
+        {condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
+        {condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
         {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-cloud', text: 'Remote ports', action: 'remotePorts'}},
         {condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
         {condition: canStopTransmission, menuItem: { clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
@@ -475,8 +532,11 @@
         {condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
         {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
         {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}},
+        {condition: canManagePolicies, menuItem: {clazz: 'fa fa-key', text: 'Access policies', action: 'managePolicies'}},
         {condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align vertical', action: 'alignVertical'}},
-        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}}
+        {condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align horizontal', action: 'alignHorizontal'}},
+        {condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
+        {condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}}
     ];
 
     var nfContextMenu = {

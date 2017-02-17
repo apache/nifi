@@ -348,26 +348,6 @@
                 } else if (canvasUtils.hasDetails(selection)) {
                     actions.showDetails(selection);
                 }
-            },
-
-            /**
-             * Determines whether the user can configure or open the policy management page.
-             */
-            canManagePolicies: function () {
-                var selection = canvasUtils.getSelection();
-
-                // ensure 0 or 1 components selected
-                if (selection.size() <= 1) {
-                    // if something is selected, ensure it's not a connection
-                    if (!selection.empty() && canvasUtils.isConnection(selection)) {
-                        return false;
-                    }
-
-                    // ensure access to read tenants
-                    return common.canAccessTenants();
-                }
-
-                return false;
             }
         }
 
