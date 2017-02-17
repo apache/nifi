@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -168,45 +169,54 @@ public class TestListFile {
 
     @Test
     public void testFilterAge() throws Exception {
+
         final File file1 = new File(TESTDIR + "/age1.txt");
         assertTrue(file1.createNewFile());
-        assertTrue(file1.setLastModified(time0millis));
 
         final File file2 = new File(TESTDIR + "/age2.txt");
         assertTrue(file2.createNewFile());
-        assertTrue(file2.setLastModified(time2millis));
 
         final File file3 = new File(TESTDIR + "/age3.txt");
         assertTrue(file3.createNewFile());
-        assertTrue(file3.setLastModified(time4millis));
+
+        final Function<Boolean, Object> runNext = resetAges -> {
+            if (resetAges) {
+                resetAges();
+                assertTrue(file1.setLastModified(time0millis));
+                assertTrue(file2.setLastModified(time2millis));
+                assertTrue(file3.setLastModified(time4millis));
+            }
+            try {
+                runNext();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            return null;
+        };
 
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
-        runNext();
+        runNext.apply(true);
         runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
 
-        runNext();
-        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
-        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
-        assertEquals(0, successFiles1.size());
+        // processor updates internal state, it shouldn't pick the same ones.
+        runNext.apply(false);
+        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
 
         // exclude oldest
         runner.setProperty(ListFile.MIN_AGE, age0);
         runner.setProperty(ListFile.MAX_AGE, age3);
-        runNext();
+        runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles2.size());
         assertEquals(file2.getName(), successFiles2.get(0).getAttribute("filename"));
         assertEquals(file1.getName(), successFiles2.get(1).getAttribute("filename"));
 
-        runNext();
-        runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
-
         // exclude newest
         runner.setProperty(ListFile.MIN_AGE, age1);
         runner.setProperty(ListFile.MAX_AGE, age5);
-        runNext();
+        runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles3.size());
@@ -216,11 +226,12 @@ public class TestListFile {
         // exclude oldest and newest
         runner.setProperty(ListFile.MIN_AGE, age1);
         runner.setProperty(ListFile.MAX_AGE, age3);
-        runNext();
+        runNext.apply(true);
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
         assertEquals(file2.getName(), successFiles4.get(0).getAttribute("filename"));
+
     }
 
     @Test
