@@ -110,7 +110,9 @@ public class TextLineDemarcator {
                 for (i = this.index; i < this.bufferLength; i++) {
                     byteVal = this.buffer[i];
                     lineLength++;
-                    int crlfLength = isEol(byteVal, i);
+                    int[] eol = computeEol(byteVal, i + 1);
+                    int crlfLength = eol[0];
+                    boolean readAheadPerformed = eol[1] == 1;
                     if (crlfLength > 0) {
                         i += crlfLength;
                         if (crlfLength == 2) {
@@ -120,7 +122,9 @@ public class TextLineDemarcator {
                         if (startsWith != null) {
                             token = this.extractDataToken(lineLength);
                         }
-                        this.index = i;
+                        if (!readAheadPerformed) {
+                            this.index = i;
+                        }
                         this.mark = this.index;
                         break lineLoop;
                     }
@@ -150,22 +154,38 @@ public class TextLineDemarcator {
         return offsetInfo;
     }
 
-    private int isEol(byte currentByte, int currentIndex) {
+    /**
+     * Determines if the line terminates. Returns int array with two elements.
+     * The first elements specifies the length of the CRLF (only CR or CR and
+     * LF) and therefore can only have values: 0 - not the end of the line 1 -
+     * the end of the line either via CR or LF 2 - the end of the line with both
+     * CR and LF
+     *
+     * It performs the read ahead on the buffer if need to. If such read ahead
+     * was performed, then second element will carry value of 1 otherwise 0.
+     */
+    private int[] computeEol(byte currentByte, int currentIndex) {
+        boolean readAhead = false;
         int crlfLength = 0;
         if (currentByte == '\n') {
             crlfLength = 1;
         } else if (currentByte == '\r') {
-            if ((currentIndex + 1) >= this.bufferLength) {
-                this.index = currentIndex + 1;
+            if (currentIndex >= this.bufferLength) {
+                this.index = currentIndex;
                 this.fill();
+                currentIndex = this.index;
+                readAhead = true;
             }
             crlfLength = 1;
             if (currentIndex < this.buffer.length - 1) {
-                currentByte = this.buffer[currentIndex + 1];
+                currentByte = this.buffer[currentIndex];
                 crlfLength = currentByte == '\n' ? 2 : 1;
+                if (readAhead) {
+                    this.index += (crlfLength - 1);
+                }
             }
         }
-        return crlfLength;
+        return new int[] { crlfLength, readAhead ? 1 : 0 };
     }
 
     private byte[] extractDataToken(int length) {
@@ -189,7 +209,9 @@ public class TextLineDemarcator {
                 this.buffer = newBuff;
             } else { // shuffle
                 int length = this.index - this.mark;
+
                 System.arraycopy(this.buffer, this.mark, this.buffer, 0, length);
+
                 this.index = length;
                 this.mark = 0;
             }
