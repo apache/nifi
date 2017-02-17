@@ -50,14 +50,10 @@
 			<groupId>org.apache.avro</groupId>
 			<artifactId>avro</artifactId>
 		</dependency>
-		<!-- Used by Apache Avro and needed for handling Json types returned by 
-			various methods -->
-		<!-- https://mvnrepository.com/artifact/org.codehaus.jackson/jackson-mapper-asl -->
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-registry-service</artifactId>
