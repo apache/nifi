@@ -211,7 +211,7 @@ NIFI_HOME=${NIFI_HOME}
 bin_dir=\${NIFI_HOME}/bin
 nifi_executable=\${bin_dir}/nifi.sh
 
-\${nifi_executable} "\$@"
+su nifi -c "\${nifi_executable} \"\$@\""
 SERVICEDESCRIPTOR
 
     if [ ! -f "${SVC_FILE}" ]; then

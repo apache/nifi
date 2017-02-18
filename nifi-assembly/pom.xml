@@ -506,7 +506,7 @@ language governing permissions and limitations under the License. -->
                             </installScriptlet>
                             <preinstallScriptlet>
                                 <script>
-                                    /usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
+                                    /usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /bin/bash -c "NiFi System User" nifi
                                 </script>
                             </preinstallScriptlet>
                         </configuration>
