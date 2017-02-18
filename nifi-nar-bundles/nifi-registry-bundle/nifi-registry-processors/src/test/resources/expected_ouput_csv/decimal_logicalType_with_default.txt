@@ -1,1 +1,1 @@
-"fake_transactionid"|0
+"fake_transactionid"|0.0

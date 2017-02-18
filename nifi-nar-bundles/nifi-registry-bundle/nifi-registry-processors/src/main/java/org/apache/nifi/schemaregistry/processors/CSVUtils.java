@@ -137,28 +137,52 @@ class CSVUtils {
                 if (null == fieldValue) {
                     out.write(new byte[0]);
                 } else {
-                    if (Type.BYTES == field.schema().getType()) {
-                        // need to create it from the ByteBuffer it is serialized as.
-                        // need to ensure the type is one of the logical ones we support and if so convert it.
-                        if(!"decimal".contentEquals(field.getProp("logicalType"))){
-                            throw new IllegalArgumentException("The field '" + field.name() + "' has a logical type of '" +
-                                    field.getProp("logicalType") + "' that is currently not supported.");
-                        }
-
+                    /*
+                    * From the Avro 1.7.7 spec -- http://avro.apache.org/docs/1.7.7/spec.html#Logical+Types
+                    *
+                    * Language implementations must ignore unknown logical types when reading, and should use the
+                    * underlying Avro type. If a logical type is invalid, for example a decimal with scale greater than
+                    * its precision, then implementations should ignore the logical type and use the underlying Avro type.
+                    *
+                    * Only support decimal as per the 1.7.7 spec.
+                    */
+                    final String logicalTypeProperty = field.getProp("logicalType");
+                    if(null != logicalTypeProperty && "decimal".contentEquals(logicalTypeProperty)) {
                         JsonNode rawPrecision = field.getJsonProp("precision");
                         if(null == rawPrecision){
-                            throw new IllegalArgumentException("The field '" + field.name() + "' is missing the required precision property");
-                        }
-                        int precision = rawPrecision.asInt();
-                        JsonNode rawScale = field.getJsonProp("scale");
-                        int scale = null == rawScale ? 0 : rawScale.asInt();
+                            //the logical type is invalid, ignore it and use the underlying Avro type.
+                            out.write(fieldValue.toString().getBytes(StandardCharsets.UTF_8));
+                        }else {
+                            int precision = rawPrecision.asInt();
+                            JsonNode rawScale = field.getJsonProp("scale");
+                            int scale = null == rawScale ? 0 : rawScale.asInt();
 
-                        // write out the decimal with the precision and scale.
-                        NumberFormat numberFormat = DecimalFormat.getInstance();
-                        numberFormat.setGroupingUsed(false);
-                        normalizeNumberFormat(numberFormat, scale, precision);
-                        final String rawValue  = new String(((ByteBuffer)fieldValue).array());
-                        out.write(numberFormat.format(new BigDecimal(rawValue)).getBytes(StandardCharsets.UTF_8));
+                            //check to see if the scale is greater then the precision, which would also make the
+                            //type invalid
+                            if(scale > precision){
+                                if(Type.BYTES == field.schema().getType()){
+                                    final byte[] value = ((ByteBuffer)fieldValue).array();
+                                    if(0 == value.length){
+                                        out.write(retrieveDefaultFieldValue(field).asText().getBytes(StandardCharsets.UTF_8));
+                                    }else {
+                                        out.write(value);
+                                    }
+                                }else {
+                                    out.write(fieldValue.toString().getBytes(StandardCharsets.UTF_8));
+                                }
+                            }else {
+                                // write out the decimal with the precision and scale.
+                                NumberFormat numberFormat = DecimalFormat.getInstance();
+                                numberFormat.setGroupingUsed(false);
+                                normalizeNumberFormat(numberFormat, scale, precision);
+                                String rawValue = new String(((ByteBuffer) fieldValue).array());
+                                if(rawValue.isEmpty()){
+                                    rawValue = retrieveDefaultFieldValue(field).asText();
+                                }
+                                out.write(numberFormat.format(new BigDecimal(rawValue)).getBytes(StandardCharsets.UTF_8));
+                            }
+                        }
+
                     } else {
                         out.write(fieldValue.toString().getBytes(StandardCharsets.UTF_8));
                     }
@@ -187,7 +211,10 @@ class CSVUtils {
     }
 
     /**
-     *
+     * This will convet the {@link InputStream} to a {@link String}
+     * @param record - the data that is containted in the {@link InputStream}
+     * @return a {@link String} that contains the data read from the {@link InputStream}
+     * @throws {@link IllegalStateException} if it fails to read the input stream.
      */
     private static String convertInputStreamToString(InputStream record) {
         StringWriter writer = new StringWriter();
@@ -199,33 +226,12 @@ class CSVUtils {
         return writer.toString();
     }
 
-    /**
-     *
-     */
-    private static ByteBuffer encodeLogicalType(final Field field, final String fieldValue) {
-        String logicalType = field.getProp("logicalType");
-        if (!"decimal".contentEquals(logicalType)) {
-            throw new IllegalArgumentException("The field '" + field.name() + "' has a logical type of '" + logicalType
-                    + "' that is currently not supported.");
-        }
-
-        JsonNode rawPrecision = field.getJsonProp("precision");
-        if (null == rawPrecision) {
-            throw new IllegalArgumentException("The field '" + field.name() + "' is missing the required precision property");
-        }
-        int precision = rawPrecision.asInt();
-        JsonNode rawScale = field.getJsonProp("scale");
-        int scale = null == rawScale ? 0 : rawScale.asInt();
-
-        NumberFormat numberFormat = DecimalFormat.getInstance();
-        numberFormat.setGroupingUsed(false);
-        normalizeNumberFormat(numberFormat, scale, precision);
-        BigDecimal decimal = null == fieldValue ? new BigDecimal(retrieveDefaultFieldValue(field).asText()) : new BigDecimal(fieldValue);
-        return ByteBuffer.wrap(numberFormat.format(decimal).getBytes(StandardCharsets.UTF_8));
-    }
 
     /**
-     *
+     * This will retrive the default value from the field.
+     * @param field - to get the default value from.
+     * @return a JsonNode that contains the default value.
+     * @throws {@link IllegalArgumentException}
      */
     private static JsonNode retrieveDefaultFieldValue(Field field) {
         JsonNode jsonNode = field.defaultValue();
@@ -236,7 +242,12 @@ class CSVUtils {
     }
 
     /**
-     *
+     * This will serialize the respective field into the Record. Currently Array, Enum, Fixed, Map, and Record types
+     * are not supported.
+     * @param field - to be serialized
+     * @param type - the type of the field
+     * @param providedValue - the value of the data from the CSV field
+     * @param avroRecord - the record to serialize the value into to
      */
     private static void updateRecord(Field field, Type type, String providedValue, Record avroRecord) {
         if (Type.NULL != type) {
@@ -267,13 +278,13 @@ class CSVUtils {
                         : providedValue;
                 avroRecord.put(field.name(), value);
             } else if (Type.BYTES == type) {
-                value = encodeLogicalType(field, providedValue);
+                value = null == providedValue ? ByteBuffer.wrap(new byte[0]) : ByteBuffer.wrap(providedValue.getBytes(StandardCharsets.UTF_8));
                 avroRecord.put(field.name(), value);
             } else if (Type.UNION == type) {
                 field.schema().getTypes()
                         .forEach(schema -> updateRecord(field, schema.getType(), providedValue, avroRecord));
             } else if (Type.ARRAY == type || Type.ENUM == type || Type.FIXED == type || Type.MAP == type
-                    || Type.NULL == type || Type.RECORD == type) {
+                    || Type.RECORD == type) {
                 throw new IllegalArgumentException("The field type '" + type + "' is not supported at the moment");
             } else {
                 avroRecord.put(field.name(), providedValue);
