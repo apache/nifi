@@ -19,7 +19,7 @@ package org.apache.nifi.processors.aws.iot.util;
 import java.net.URI;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -34,7 +34,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCallback {
 
     protected volatile LinkedBlockingQueue<IoTMessage> awsQueuedMqttMessages = new LinkedBlockingQueue<IoTMessage>();
-    protected final ProcessorLog logger;
+    protected final ComponentLog logger;
     protected final String serverURI;
 
     protected static String createDummyURI(String original) {
@@ -51,7 +51,7 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
     }
 
     public MqttWebSocketAsyncClient(String serverURI, String clientId,
-                                    ProcessorLog logger) throws MqttException {
+                                    ComponentLog logger) throws MqttException {
         super(createDummyURI(serverURI), clientId, new MemoryPersistence(), new TimerPingSender());
         this.serverURI = serverURI;
         this.logger = logger;
