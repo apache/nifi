@@ -149,22 +149,26 @@ public class SimpleIndexManager implements IndexManager {
     @Override
     public boolean removeIndex(final File indexDirectory) {
         final File absoluteFile = indexDirectory.getAbsoluteFile();
-        logger.debug("Closing index writer for {} because it is being removed", indexDirectory);
+        logger.debug("Attempting to remove index {} from SimpleIndexManager", absoluteFile);
 
         IndexWriterCount writerCount;
         synchronized (writerCounts) {
             writerCount = writerCounts.remove(absoluteFile);
             if (writerCount == null) {
+                logger.debug("Allowing removal of index {} because there is no IndexWriterCount for this directory", absoluteFile);
                 return true; // return true since directory has no writers
             }
 
             if (writerCount.getCount() > 0) {
+                logger.debug("Not allowing removal of index {} because the active writer count for this directory is {}", absoluteFile, writerCount.getCount());
                 writerCounts.put(absoluteFile, writerCount);
                 return false;
             }
         }
 
         try {
+            logger.debug("Removing index {} from SimpleIndexManager and closing the writer", absoluteFile);
+
             close(writerCount);
         } catch (final Exception e) {
             logger.error("Failed to close Index Writer for {} while removing Index from the repository;"

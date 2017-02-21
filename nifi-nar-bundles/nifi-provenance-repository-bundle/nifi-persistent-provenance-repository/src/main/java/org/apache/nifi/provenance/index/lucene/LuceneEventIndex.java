@@ -469,6 +469,7 @@ public class LuceneEventIndex implements EventIndex {
         querySubmissionMap.put(query.getIdentifier(), submission);
 
         final org.apache.lucene.search.Query luceneQuery = LuceneUtil.convertQuery(query);
+        logger.debug("Submitting query {} with identifier {} against index directories {}", luceneQuery, query.getIdentifier(), indexDirectories);
 
         if (indexDirectories.isEmpty()) {
             submission.getResult().update(Collections.emptyList(), 0L);
@@ -682,15 +683,15 @@ public class LuceneEventIndex implements EventIndex {
             }
         }
 
-        try {
-            FileUtils.deleteFile(indexDirectory, true);
-            logger.debug("Successfully deleted directory {}", indexDirectory);
-        } catch (final IOException e) {
-            logger.warn("The Lucene Index located at " + indexDirectory + " has expired and contains no Provenance Events that still exist in the respository. "
-                + "However, the directory could not be deleted.", e);
-        }
-
         if (removed) {
+            try {
+                FileUtils.deleteFile(indexDirectory, true);
+                logger.debug("Successfully deleted directory {}", indexDirectory);
+            } catch (final IOException e) {
+                logger.warn("The Lucene Index located at " + indexDirectory + " has expired and contains no Provenance Events that still exist in the respository. "
+                    + "However, the directory could not be deleted.", e);
+            }
+
             directoryManager.deleteDirectory(indexDirectory);
             logger.info("Successfully removed expired Lucene Index {}", indexDirectory);
         } else {

@@ -199,7 +199,7 @@ public class QueryTask implements Runnable {
         }
 
         final long fetchEventNanos = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - endConvert);
-        logger.debug("Fetching {} events from Event Store took {} ms", eventIds.size(), fetchEventNanos);
+        logger.debug("Fetching {} events from Event Store took {} ms ({} events actually fetched)", eventIds.size(), fetchEventNanos, events.size());
 
         final int totalHits = topDocs.totalHits;
         return new Tuple<>(events, totalHits);

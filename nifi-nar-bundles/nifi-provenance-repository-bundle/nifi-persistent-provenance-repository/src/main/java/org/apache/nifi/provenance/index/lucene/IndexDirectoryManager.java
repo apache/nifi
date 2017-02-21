@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -45,8 +46,9 @@ public class IndexDirectoryManager {
 
     private final RepositoryConfiguration repoConfig;
 
+    // guarded by synchronizing on 'this'
     private final SortedMap<Long, List<IndexLocation>> indexLocationByTimestamp = new TreeMap<>();
-    private final Map<String, IndexLocation> activeIndices = new HashMap<>(); // guarded by synchronizing on 'this'
+    private final Map<String, IndexLocation> activeIndices = new HashMap<>();
 
     public IndexDirectoryManager(final RepositoryConfiguration repoConfig) {
         this.repoConfig = repoConfig;
@@ -108,6 +110,7 @@ public class IndexDirectoryManager {
 
     /**
      * Returns a List of all indexes where the latest event in the index has an event time before the given timestamp
+     *
      * @param timestamp the cutoff
      * @return all Files that belong to an index, where the index has no events later than the given time
      */
@@ -126,6 +129,13 @@ public class IndexDirectoryManager {
         for (final List<IndexLocation> startTimeWithFile : startTimeWithFileByStorageDirectory.values()) {
             for (int i = 0; i < startTimeWithFile.size(); i++) {
                 final IndexLocation indexLoc = startTimeWithFile.get(i);
+
+                final String partition = indexLoc.getPartitionName();
+                final IndexLocation activeLocation = activeIndices.get(partition);
+                if (indexLoc.equals(activeLocation)) {
+                    continue;
+                }
+
                 final Long indexStartTime = indexLoc.getIndexStartTimestamp();
                 if (indexStartTime > timestamp) {
                     // If the first timestamp in the index is later than the desired timestamp,
@@ -138,22 +148,27 @@ public class IndexDirectoryManager {
                     final IndexLocation nextLocation = startTimeWithFile.get(i + 1);
                     final Long indexEndTime = nextLocation.getIndexStartTimestamp();
                     if (indexEndTime <= timestamp) {
+                        logger.debug("Considering Index Location {} older than {} ({}) because its events have an EventTime "
+                            + "ranging from {} ({}) to {} ({}) based on the following IndexLocations: {}", nextLocation, timestamp, new Date(timestamp),
+                            indexStartTime, new Date(indexStartTime), indexEndTime, new Date(indexEndTime), startTimeWithFile);
+
                         selected.add(nextLocation.getIndexDirectory());
                     }
                 }
             }
         }
 
+        logger.debug("Returning the following list of index locations because they were finished being written to before {}: {}", timestamp, selected);
         return selected;
     }
 
     /**
-     * Convert directoriesByTimestamp to a List of Tuples, where key = file start time, value = file
+     * Convert directoriesByTimestamp to a List of IndexLocations.
      * This allows us to easily get the 'next' value when iterating over the elements.
      * This is useful because we know that the 'next' value will have a timestamp that is when that
      * file started being written to - which is the same as when this index stopped being written to.
      *
-     * @return a List of Tuple&lt;Long, File&gt; where the key is the timestamp of the first event in the corresponding File.
+     * @return a List of all IndexLocations known
      */
     private List<IndexLocation> flattenDirectoriesByTimestamp() {
         final List<IndexLocation> startTimeWithFile = new ArrayList<>();
