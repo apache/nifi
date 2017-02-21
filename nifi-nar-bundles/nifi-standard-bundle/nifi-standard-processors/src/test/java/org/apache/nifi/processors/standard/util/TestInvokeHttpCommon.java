@@ -1115,6 +1115,93 @@ public abstract class TestInvokeHttpCommon {
     }
 
     @Test
+    public void testPatch() throws Exception {
+        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PATCH");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/patch");
+
+        createFlowFiles(runner);
+
+        runner.run();
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertPenalizeCount(0);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).get(0);
+        bundle.assertContentEquals("Hello".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("Foo", "Bar");
+
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).get(0);
+        bundle1.assertContentEquals("".getBytes("UTF-8"));
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+        bundle1.assertAttributeNotExists("Content-Type");
+
+        final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
+        final String expected1 = "";
+        Assert.assertEquals(expected1, actual1);
+    }
+
+    @Test
+    public void testPatchWithMimeType() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PATCH");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/patch");
+
+        final Map<String, String> attrs = new HashMap<>();
+
+        attrs.put(CoreAttributes.MIME_TYPE.key(), suppliedMimeType);
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPatchWithEmptyELExpression() throws Exception {
+        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, InvokeHTTP.DEFAULT_CONTENT_TYPE));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PATCH");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/patch");
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
+    public void testPatchWithContentTypeProperty() throws Exception {
+        final String suppliedMimeType = "text/plain";
+        addHandler(new MutativeMethodHandler(MutativeMethod.PATCH, suppliedMimeType));
+
+        runner.setProperty(InvokeHTTP.PROP_METHOD, "PATCH");
+        runner.setProperty(InvokeHTTP.PROP_URL, url + "/patch");
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_TYPE, suppliedMimeType);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+        runner.enqueue("Hello".getBytes(), attrs);
+
+        runner.run(1);
+        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
+    }
+
+    @Test
     public void testDelete() throws Exception {
         addHandler(new DeleteHandler());
 
@@ -1402,7 +1489,7 @@ public abstract class TestInvokeHttpCommon {
         }
     }
 
-    private enum MutativeMethod { POST, PUT }
+    private enum MutativeMethod { POST, PUT, PATCH }
 
 
     public static class MutativeMethodHandler extends AbstractHandler {
