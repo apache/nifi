@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -25,6 +26,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.VariableRegistry;
@@ -320,8 +322,96 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getComponent().getClass(), getComponent().getIdentifier())) {
-            return getComponent().validate(context);
+            final Collection<ValidationResult> validationResults = getComponent().validate(context);
+
+            // validate selected controller services implement the API required by the processor
+
+            final List<PropertyDescriptor> supportedDescriptors = getComponent().getPropertyDescriptors();
+            if (null != supportedDescriptors) {
+                for (final PropertyDescriptor descriptor : supportedDescriptors) {
+                    if (descriptor.getControllerServiceDefinition() == null) {
+                        // skip properties that aren't for a controller service
+                        continue;
+                    }
+
+                    final String controllerServiceId = context.getProperty(descriptor).getValue();
+                    if (controllerServiceId == null) {
+                        // if the property value is null we should already have a validation error
+                        continue;
+                    }
+
+                    final ControllerServiceNode controllerServiceNode = getControllerServiceProvider().getControllerServiceNode(controllerServiceId);
+                    if (controllerServiceNode == null) {
+                        // if the node was null we should already have a validation error
+                        continue;
+                    }
+
+                    final Class<? extends ControllerService> controllerServiceApiClass = descriptor.getControllerServiceDefinition();
+                    final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
+
+                    final Bundle controllerServiceApiBundle = ExtensionManager.getBundle(controllerServiceApiClassLoader);
+                    final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
+
+                    final Bundle controllerServiceBundle = ExtensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+                    final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
+
+                    final boolean matchesApi = matchesApi(controllerServiceBundle, controllerServiceApiCoordinate);
+
+                    if (!matchesApi) {
+                        final String controllerServiceType = controllerServiceNode.getComponentType();
+                        final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+
+                        final String explanation = new StringBuilder()
+                                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                                .toString();
+
+                        validationResults.add(new ValidationResult.Builder()
+                                .input(controllerServiceId)
+                                .subject(descriptor.getDisplayName())
+                                .valid(false)
+                                .explanation(explanation)
+                                .build());
+                    }
+
+                }
+            }
+
+            return validationResults;
         }
+    }
+
+    /**
+     * Determines if the given controller service node has the required API as an ancestor.
+     *
+     * @param controllerServiceImplBundle the bundle of a controller service being referenced by a processor
+     * @param requiredApiCoordinate the controller service API required by the processor
+     * @return true if the controller service node has the require API as an ancestor, false otherwise
+     */
+    private boolean matchesApi(final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
+        // start with the coordinate of the controller service for cases where the API and service are in the same bundle
+        BundleCoordinate controllerServiceDependencyCoordinate = controllerServiceImplBundle.getBundleDetails().getCoordinate();
+
+        boolean foundApiDependency = false;
+        while (controllerServiceDependencyCoordinate != null) {
+            // determine if the dependency coordinate matches the required API
+            if (requiredApiCoordinate.equals(controllerServiceDependencyCoordinate)) {
+                foundApiDependency = true;
+                break;
+            }
+
+            // move to the next dependency in the chain, or stop if null
+            final Bundle controllerServiceDependencyBundle = ExtensionManager.getBundle(controllerServiceDependencyCoordinate);
+            if (controllerServiceDependencyBundle == null) {
+                controllerServiceDependencyCoordinate = null;
+            } else {
+                controllerServiceDependencyCoordinate = controllerServiceDependencyBundle.getBundleDetails().getDependencyCoordinate();
+            }
+        }
+
+        return foundApiDependency;
     }
 
     @Override
@@ -417,7 +507,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     }
 
     @Override
-    public void verifyCanUpdateBundle(final BundleCoordinate incomingCoordinate) throws IllegalStateException {
+    public void verifyCanUpdateBundle(final BundleCoordinate incomingCoordinate) throws IllegalArgumentException {
         final BundleCoordinate existingCoordinate = getBundleCoordinate();
 
         // determine if this update is changing the bundle for the processor

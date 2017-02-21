@@ -400,6 +400,11 @@ public class TestStandardProcessorNode {
         }
     }
 
+    @Test
+    public void testValidateControllerServiceApiRequired() {
+
+    }
+
     private StandardProcessorNode createProcessorNode(Processor processor) {
         final String uuid = UUID.randomUUID().toString();
         final ValidationContextFactory validationContextFactory = createValidationContextFactory();

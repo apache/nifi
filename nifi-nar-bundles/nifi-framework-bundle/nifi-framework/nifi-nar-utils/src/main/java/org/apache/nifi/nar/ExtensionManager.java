@@ -66,6 +66,7 @@ public class ExtensionManager {
 
     private static final Map<String, List<Bundle>> classNameBundleLookup = new HashMap<>();
     private static final Map<BundleCoordinate, Bundle> bundleCoordinateBundleLookup = new HashMap<>();
+    private static final Map<ClassLoader, Bundle> classLoaderBundleLookup = new HashMap<>();
 
     private static final Set<String> requiresInstanceClassLoading = new HashSet<>();
     private static final Map<String, ClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
@@ -150,6 +151,8 @@ public class ExtensionManager {
             for (final Object o : serviceLoader) {
                 registerServiceClass(o.getClass(), classNameBundleLookup, bundle, entry.getValue());
             }
+
+            classLoaderBundleLookup.put(bundle.getClassLoader(), bundle);
         }
     }
 
@@ -219,9 +222,22 @@ public class ExtensionManager {
         // then make a new InstanceClassLoader that is a full copy of the NAR Class Loader, otherwise create an empty
         // InstanceClassLoader that has the NAR ClassLoader as a parent
         ClassLoader instanceClassLoader;
-        if (requiresInstanceClassLoading.contains(classType) && (bundleClassLoader instanceof URLClassLoader)) {
-            final URLClassLoader registeredUrlClassLoader = (URLClassLoader) bundleClassLoader;
-            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, registeredUrlClassLoader.getURLs(), registeredUrlClassLoader.getParent());
+        if (requiresInstanceClassLoading.contains(classType) ) {
+            final Set<URL> classLoaderResources = new HashSet<>();
+
+            // if the bundle class loader is a NAR class loader then walk the chain of class loaders until
+            // finding a non-NAR class loader, and build up a list of all URLs along the way
+            ClassLoader registeredClassLoader = bundleClassLoader;
+            while (registeredClassLoader != null && registeredClassLoader instanceof NarClassLoader) {
+                final NarClassLoader narClassLoader = (NarClassLoader) registeredClassLoader;
+                for (URL classLoaderResource : narClassLoader.getURLs()) {
+                    classLoaderResources.add(classLoaderResource);
+                }
+                registeredClassLoader = narClassLoader.getParent();
+            }
+
+            final URL[] classLoaderUrls = classLoaderResources.toArray(new URL[classLoaderResources.size()]);
+            instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, classLoaderUrls, registeredClassLoader);
         } else {
             instanceClassLoader = new InstanceClassLoader(instanceIdentifier, classType, new URL[0], bundleClassLoader);
         }
@@ -292,6 +308,16 @@ public class ExtensionManager {
      */
     public static Bundle getBundle(final BundleCoordinate bundleCoordinate) {
         return bundleCoordinateBundleLookup.get(bundleCoordinate);
+    }
+
+    /**
+     * Retrieves the bundle for the given class loader.
+     *
+     * @param classLoader the class loader to look up the bundle for
+     * @return the bundle for the given class loader
+     */
+    public static Bundle getBundle(final ClassLoader classLoader) {
+        return classLoaderBundleLookup.get(classLoader);
     }
 
     public static Set<Class> getExtensions(final Class<?> definition) {

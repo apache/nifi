@@ -188,6 +188,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -1691,8 +1692,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate Controller Services
             //
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
-                final BundleCoordinate bundleCoordinate = new BundleCoordinate(
-                        controllerServiceDTO.getBundle().getGroup(), controllerServiceDTO.getBundle().getArtifact(), controllerServiceDTO.getBundle().getVersion());
+                BundleCoordinate bundleCoordinate;
+                try {
+                    bundleCoordinate = BundleUtils.getCompatibleBundle(controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
+                } catch (final IllegalStateException e) {
+                    bundleCoordinate = BundleCoordinate.MISSING_COORDINATE;
+                }
+
                 final ControllerServiceNode serviceNode = createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), bundleCoordinate, true);
 
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
@@ -1780,8 +1786,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // Instantiate the processors
             //
             for (final ProcessorDTO processorDTO : dto.getProcessors()) {
-                // TODO get coordinate from DTO, or do a look up if doesn't exist
-                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), null);
+                BundleCoordinate bundleCoordinate;
+                try {
+                    bundleCoordinate = BundleUtils.getCompatibleBundle(processorDTO.getType(), processorDTO.getBundle());
+                } catch (final IllegalStateException e) {
+                    bundleCoordinate = BundleCoordinate.MISSING_COORDINATE;
+                }
+
+                final ProcessorNode procNode = createProcessor(processorDTO.getType(), processorDTO.getId(), bundleCoordinate);
 
                 procNode.setPosition(toPosition(processorDTO.getPosition()));
                 procNode.setProcessGroup(group);

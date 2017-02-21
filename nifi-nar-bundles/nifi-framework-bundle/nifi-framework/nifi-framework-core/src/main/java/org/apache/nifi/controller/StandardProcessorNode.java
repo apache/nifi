@@ -951,11 +951,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final ValidationContext validationContext = this.getValidationContextFactory()
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
-            final Collection<ValidationResult> validationResults;
-            final Processor processor = processorRef.get().getProcessor();
-            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                validationResults = getProcessor().validate(validationContext);
-            }
+            final Collection<ValidationResult> validationResults = super.validate(validationContext);
 
             for (final ValidationResult result : validationResults) {
                 if (!result.isValid()) {
@@ -1002,11 +998,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 final ValidationContext validationContext = this.getValidationContextFactory()
                         .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
-                final Collection<ValidationResult> validationResults;
-                final Processor processor = processorRef.get().getProcessor();
-                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass(), processor.getIdentifier())) {
-                    validationResults = getProcessor().validate(validationContext);
-                }
+                final Collection<ValidationResult> validationResults = super.validate(validationContext);
 
                 for (final ValidationResult result : validationResults) {
                     if (!result.isValid()) {
