@@ -148,6 +148,9 @@
                                     <directory>${frontend.working.dir}/node_modules</directory>
                                     <filtering>false</filtering>
                                     <includes>
+                                        <!-- D3 -->
+                                        <include>d3/d3.min.js*</include>
+                                        <include>d3/LICENSE</include>
                                         <!-- angular -->
                                         <include>angular/angular.min.js*</include>
                                         <include>angular/LICENSE.md</include>
