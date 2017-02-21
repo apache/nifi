@@ -13,7 +13,8 @@
     "slickgrid": "2.3.3",
     "jsonlint": "1.6.2",
     "JSON2": "0.1.0",
-    "reset.css": "2.0.2"
+    "reset.css": "2.0.2",
+    "d3": "3.5.17"
   },
   "description": "Apache NiFi 3rd party client side resources.",
   "repository": {
