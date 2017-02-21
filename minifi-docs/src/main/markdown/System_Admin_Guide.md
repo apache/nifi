@@ -349,6 +349,7 @@ parses and upconverts to the current version without issue.
 ### Version 2 -> Version 3 changes
 1. Added support for Controller Services.
 2. Added support for Site-To-Site over proxy.
+3. Added support for overriding nifi.properties values
 
 ## Flow Controller
 
@@ -627,6 +628,19 @@ timeout              | How long MiNiFi should wait before timing out the connect
 batch size           | Specifies how many records to send in a single batch, at most. This should be significantly above the expected amount of records generated between scheduling. If it is not, then there is the potential for the Provenance reporting to lag behind event generation and never catch up.
 
 **Note:** In order to send via HTTPS, the "Security Properties" must be fully configured. A StandardSSLContextService will be made automatically with the ID "SSL-Context-Service" and used by the Provenance Reporting.
+
+## NiFi Properties Overrides
+
+This is a yaml map that contains values to be put into nifi.properties.  This will supercede any hardcoded or other schema values that are substituted into nifi.properties file.
+
+### Example NiFi Properties Overrides
+
+```yaml
+NiFi Properties Overrides:
+  nifi.flowfile.repository.directory: ./flowfile_repository_override
+  nifi.content.repository.directory.default: ./content_repository_override
+  nifi.database.directory: ./database_repository_override
+```
 
 # Example Config File
 

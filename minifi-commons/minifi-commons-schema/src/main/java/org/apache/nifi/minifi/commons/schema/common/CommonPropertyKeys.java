@@ -38,6 +38,7 @@ public class CommonPropertyKeys {
     public static final String CONTROLLER_SERVICES_KEY = "Controller Services";
     public static final String FUNNELS_KEY = "Funnels";
     public static final String PROVENANCE_REPO_KEY = "Provenance Repository";
+    public static final String NIFI_PROPERTIES_OVERRIDES_KEY = "NiFi Properties Overrides";
 
 
     public static final String NAME_KEY = "name";

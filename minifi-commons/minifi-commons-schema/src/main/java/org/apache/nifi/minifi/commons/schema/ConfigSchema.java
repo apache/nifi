@@ -25,6 +25,7 @@ import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CO
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CORE_PROPS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOWFILE_REPO_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.FLOW_CONTROLLER_PROPS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPORTING_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROVENANCE_REPO_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
@@ -66,6 +68,8 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
 
     private ProvenanceRepositorySchema provenanceRepositorySchema;
 
+    private Map<String, String> nifiPropertiesOverrides;
+
     public ConfigSchema(Map map) {
         this(map, Collections.emptyList());
     }
@@ -84,6 +88,11 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         processGroupSchema = new ProcessGroupSchema(map, TOP_LEVEL_NAME);
 
         provenanceReportingProperties = getMapAsType(map, PROVENANCE_REPORTING_KEY, ProvenanceReportingSchema.class, TOP_LEVEL_NAME, false, false);
+
+        nifiPropertiesOverrides = (Map<String, String>) map.get(NIFI_PROPERTIES_OVERRIDES_KEY);
+        if (nifiPropertiesOverrides == null) {
+            nifiPropertiesOverrides = new HashMap<>();
+        }
 
         addIssuesIfNotNull(flowControllerProperties);
         addIssuesIfNotNull(coreProperties);
@@ -160,6 +169,7 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
         putIfNotNull(result, SECURITY_PROPS_KEY, securityProperties);
         result.putAll(processGroupSchema.toMap());
         putIfNotNull(result, PROVENANCE_REPORTING_KEY, provenanceReportingProperties);
+        result.put(NIFI_PROPERTIES_OVERRIDES_KEY, nifiPropertiesOverrides);
         return result;
     }
 
@@ -197,6 +207,10 @@ public class ConfigSchema extends BaseSchema implements WritableSchema, Converta
 
     public ProvenanceRepositorySchema getProvenanceRepositorySchema() {
         return provenanceRepositorySchema;
+    }
+
+    public Map<String, String> getNifiPropertiesOverrides() {
+        return nifiPropertiesOverrides;
     }
 
     @Override

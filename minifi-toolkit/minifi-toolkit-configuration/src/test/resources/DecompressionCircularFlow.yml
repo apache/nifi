@@ -334,3 +334,4 @@ Connections:
   flowfile expiration: 0 sec
   queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
 Remote Process Groups: []
+NiFi Properties Overrides: {}

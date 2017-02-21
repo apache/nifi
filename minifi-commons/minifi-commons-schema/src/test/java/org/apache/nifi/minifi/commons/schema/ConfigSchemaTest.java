@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -108,6 +109,35 @@ public class ConfigSchemaTest {
         assertEquals(new ArrayList<>(
                 Arrays.asList(ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_DESTINATION_ID + fakeDestination,
                         ConfigSchema.CONNECTION_WITH_ID + connection.get(ID_KEY) + ConfigSchema.HAS_INVALID_SOURCE_ID + fakeSource)), validationIssues);
+    }
+
+    @Test
+    public void testNullNifiPropertyOverrides() {
+        ConfigSchema configSchema = new ConfigSchema(new HashMap<>());
+        assertEquals(Collections.emptyMap(), configSchema.getNifiPropertiesOverrides());
+        assertEquals(Collections.emptyMap(), configSchema.toMap().get(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY));
+    }
+
+    @Test
+    public void testEmptyNifiPropertyOverrides() {
+        Map<Object, Object> map = new HashMap<>();
+        map.put(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY, new HashMap<>());
+        ConfigSchema configSchema = new ConfigSchema(map);
+        assertEquals(Collections.emptyMap(), configSchema.getNifiPropertiesOverrides());
+        assertEquals(Collections.emptyMap(), configSchema.toMap().get(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY));
+    }
+
+    @Test
+    public void testNifiPropertyOverrides() {
+        Map<Object, Object> map = new HashMap<>();
+        HashMap<Object, Object> overrides = new HashMap<>();
+        overrides.put("nifi.flowfile.repository.directory", "./flowfile_repository_override");
+        overrides.put("nifi.content.repository.directory.default", "./content_repository_override");
+        overrides.put("nifi.database.directory", "./database_repository_override");
+        map.put(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY, new HashMap<>(overrides));
+        ConfigSchema configSchema = new ConfigSchema(map);
+        assertEquals(overrides, configSchema.getNifiPropertiesOverrides());
+        assertEquals(overrides, configSchema.toMap().get(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY));
     }
 
     public static List<Map<String, Object>> getListWithNames(String... names) {

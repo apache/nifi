@@ -300,3 +300,4 @@ Remote Process Groups:
     comment: ''
     max concurrent tasks: 1
     use compression: false
+NiFi Properties Overrides: {}

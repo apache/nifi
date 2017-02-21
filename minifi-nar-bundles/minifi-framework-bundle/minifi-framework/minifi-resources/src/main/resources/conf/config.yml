@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MiNiFi Config Version: 2
+MiNiFi Config Version: 3
 Flow Controller:
   name: MiNiFi Flow
   comment: ''
@@ -60,3 +60,4 @@ Process Groups: []
 Funnels: []
 Connections: []
 Remote Process Groups: []
+NiFi Properties Overrides: {}

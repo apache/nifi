@@ -28,6 +28,7 @@ import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,6 +45,8 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -51,11 +54,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class ConfigTransformerTest {
@@ -132,6 +137,51 @@ public class ConfigTransformerTest {
     @Test
     public void testRpgProxyPassTransform() throws Exception {
         testConfigFileTransform("InvokeHttpMiNiFiProxyPasswordTemplateTest.yml");
+    }
+
+    @Test
+    public void testNifiPropertiesNoOverrides() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        Properties pre216Properties = new Properties();
+        try (InputStream pre216PropertiesStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-216/nifi.properties.before")) {
+            pre216Properties.load(pre216PropertiesStream);
+        }
+        pre216Properties.setProperty(ConfigTransformer.NIFI_VERSION_KEY, ConfigTransformer.NIFI_VERSION);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-216/config.yml")) {
+            ConfigTransformer.writeNiFiProperties(SchemaLoader.loadConfigSchemaFromYaml(configStream), outputStream);
+        }
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+
+        for (String name : pre216Properties.stringPropertyNames()) {
+            assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+        }
+    }
+
+    @Test
+    public void testNifiPropertiesOverrides() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        Properties pre216Properties = new Properties();
+        try (InputStream pre216PropertiesStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-216/nifi.properties.before")) {
+            pre216Properties.load(pre216PropertiesStream);
+        }
+        pre216Properties.setProperty(ConfigTransformer.NIFI_VERSION_KEY, ConfigTransformer.NIFI_VERSION);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-216/configOverrides.yml")) {
+            ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(configStream);
+            assertTrue(configSchema.getNifiPropertiesOverrides().size() > 0);
+            for (Map.Entry<String, String> entry : configSchema.getNifiPropertiesOverrides().entrySet()) {
+                pre216Properties.setProperty(entry.getKey(), entry.getValue());
+            }
+            ConfigTransformer.writeNiFiProperties(configSchema, outputStream);
+        }
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+
+        for (String name : pre216Properties.stringPropertyNames()) {
+            assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+        }
     }
 
     public void testConfigFileTransform(String configFile) throws Exception {

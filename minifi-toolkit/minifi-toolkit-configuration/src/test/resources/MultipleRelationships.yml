@@ -152,3 +152,4 @@ Connections:
   flowfile expiration: 0 sec
   queue prioritizer class: ''
 Remote Process Groups: []
+NiFi Properties Overrides: {}

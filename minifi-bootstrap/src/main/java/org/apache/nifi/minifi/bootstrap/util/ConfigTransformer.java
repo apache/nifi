@@ -38,13 +38,13 @@ import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
+import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
+import org.apache.nifi.minifi.commons.schema.SwapSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
-import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
-import org.apache.nifi.minifi.commons.schema.SwapSchema;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -61,13 +61,10 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -83,6 +80,7 @@ public final class ConfigTransformer {
     public static final String NIFI_VERSION = "1.1.0";
     public static final String ROOT_GROUP = "Root-Group";
     public static final String DEFAULT_PROV_REPORTING_TASK_CLASS = "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask";
+    public static final String NIFI_VERSION_KEY = "nifi.version";
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
@@ -150,11 +148,8 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static void writeNiFiProperties(ConfigSchema configSchema, OutputStream outputStream) throws FileNotFoundException, UnsupportedEncodingException, ConfigurationChangeException {
-        PrintWriter writer = null;
+    protected static void writeNiFiProperties(ConfigSchema configSchema, OutputStream outputStream) throws IOException, ConfigurationChangeException {
         try {
-            writer = new PrintWriter(outputStream, true);
-
             CorePropertiesSchema coreProperties = configSchema.getCoreProperties();
             FlowFileRepositorySchema flowfileRepoSchema = configSchema.getFlowfileRepositoryProperties();
             SwapSchema swapProperties = flowfileRepoSchema.getSwapProperties();
@@ -164,120 +159,112 @@ public final class ConfigTransformer {
             SensitivePropsSchema sensitiveProperties = securityProperties.getSensitiveProps();
             ProvenanceRepositorySchema provenanceRepositorySchema = configSchema.getProvenanceRepositorySchema();
 
-            writer.print(PROPERTIES_FILE_APACHE_2_0_LICENSE);
-            writer.println("# Core Properties #");
-            writer.println();
-            writer.println("nifi.version=" + NIFI_VERSION);
-            writer.println("nifi.flow.configuration.file=./conf/flow.xml.gz");
-            writer.println("nifi.flow.configuration.archive.enabled=false");
-            writer.println("nifi.flow.configuration.archive.dir=./conf/archive/");
-            writer.println("nifi.flowcontroller.autoResumeState=true");
-            writer.println("nifi.flowcontroller.graceful.shutdown.period=" + coreProperties.getFlowControllerGracefulShutdownPeriod());
-            writer.println("nifi.flowservice.writedelay.interval=" + coreProperties.getFlowServiceWriteDelayInterval());
-            writer.println("nifi.administrative.yield.duration=" + coreProperties.getAdministrativeYieldDuration());
-            writer.println("# If a component has no work to do (is \"bored\"), how long should we wait before checking again for work?");
-            writer.println("nifi.bored.yield.duration=" + coreProperties.getBoredYieldDuration());
-            writer.println();
-            writer.println("nifi.authority.provider.configuration.file=./conf/authority-providers.xml");
-            writer.println("nifi.login.identity.provider.configuration.file=./conf/login-identity-providers.xml");
-            writer.println("nifi.templates.directory=./conf/templates");
-            writer.println("nifi.ui.banner.text= ");
-            writer.println("nifi.ui.autorefresh.interval=30 sec");
-            writer.println("nifi.nar.library.directory=./lib");
-            writer.println("nifi.nar.working.directory=./work/nar/");
-            writer.println("nifi.documentation.working.directory=./work/docs/components");
-            writer.println();
-            writer.println("####################");
-            writer.println("# State Management #");
-            writer.println("####################");
-            writer.println("nifi.state.management.configuration.file=./conf/state-management.xml");
-            writer.println("# The ID of the local state provider");
-            writer.println("nifi.state.management.provider.local=local-provider");
-            writer.println();
-            writer.println("# H2 Settings");
-            writer.println("nifi.database.directory=./database_repository");
-            writer.println("nifi.h2.url.append=;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE");
-            writer.println();
-            writer.println("# FlowFile Repository");
-            writer.println("nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.WriteAheadFlowFileRepository");
-            writer.println("nifi.flowfile.repository.directory=./flowfile_repository");
-            writer.println("nifi.flowfile.repository.partitions=" + flowfileRepoSchema.getPartitions());
-            writer.println("nifi.flowfile.repository.checkpoint.interval=" + flowfileRepoSchema.getCheckpointInterval());
-            writer.println("nifi.flowfile.repository.always.sync=" + flowfileRepoSchema.getAlwaysSync());
-            writer.println();
-            writer.println("nifi.swap.manager.implementation=org.apache.nifi.controller.FileSystemSwapManager");
-            writer.println("nifi.queue.swap.threshold=" + swapProperties.getThreshold());
-            writer.println("nifi.swap.in.period=" + swapProperties.getInPeriod());
-            writer.println("nifi.swap.in.threads=" + swapProperties.getInThreads());
-            writer.println("nifi.swap.out.period=" + swapProperties.getOutPeriod());
-            writer.println("nifi.swap.out.threads=" + swapProperties.getOutThreads());
-            writer.println();
-            writer.println("# Content Repository");
-            writer.println("nifi.content.repository.implementation=org.apache.nifi.controller.repository.FileSystemRepository");
-            writer.println("nifi.content.claim.max.appendable.size=" + contentRepoProperties.getContentClaimMaxAppendableSize());
-            writer.println("nifi.content.claim.max.flow.files=" + contentRepoProperties.getContentClaimMaxFlowFiles());
-            writer.println("nifi.content.repository.archive.max.retention.period=");
-            writer.println("nifi.content.repository.archive.max.usage.percentage=");
-            writer.println("nifi.content.repository.archive.enabled=false");
-            writer.println("nifi.content.repository.directory.default=./content_repository");
-            writer.println("nifi.content.repository.always.sync=" + contentRepoProperties.getAlwaysSync());
-            writer.println();
-            writer.println("# Provenance Repository Properties");
-            writer.println("nifi.provenance.repository.implementation=org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository");
-            writer.println("nifi.provenance.repository.rollover.time=" + provenanceRepositorySchema.getProvenanceRepoRolloverTimeKey());
-            writer.println();
-            writer.println("# Volatile Provenance Respository Properties");
-            writer.println("nifi.provenance.repository.buffer.size=10000");
-            writer.println();
-            writer.println("# Component Status Repository");
-            writer.println("nifi.components.status.repository.implementation=org.apache.nifi.controller.status.history.VolatileComponentStatusRepository");
-            writer.println("nifi.components.status.repository.buffer.size=" + componentStatusRepoProperties.getBufferSize());
-            writer.println("nifi.components.status.snapshot.frequency=" + componentStatusRepoProperties.getSnapshotFrequency());
-            writer.println();
-            writer.println("# web properties #");
-            writer.println("nifi.web.war.directory=./lib");
-            writer.println("nifi.web.http.host=");
-            writer.println("nifi.web.http.port=8081");
-            writer.println("nifi.web.https.host=");
-            writer.println("nifi.web.https.port=");
-            writer.println("nifi.web.jetty.working.directory=./work/jetty");
-            writer.println("nifi.web.jetty.threads=200");
-            writer.println();
-            writer.println("# security properties #");
-            writer.println("nifi.sensitive.props.key=" + sensitiveProperties.getKey());
-            writer.println("nifi.sensitive.props.algorithm=" + sensitiveProperties.getAlgorithm());
-            writer.println("nifi.sensitive.props.provider=" + sensitiveProperties.getProvider());
-            writer.println();
-            writer.println("nifi.security.keystore=" + securityProperties.getKeystore());
-            writer.println("nifi.security.keystoreType=" + securityProperties.getKeystoreType());
-            writer.println("nifi.security.keystorePasswd=" + securityProperties.getKeystorePassword());
-            writer.println("nifi.security.keyPasswd=" + securityProperties.getKeyPassword());
-            writer.println("nifi.security.truststore=" + securityProperties.getTruststore());
-            writer.println("nifi.security.truststoreType=" + securityProperties.getTruststoreType());
-            writer.println("nifi.security.truststorePasswd=" + securityProperties.getTruststorePassword());
-            writer.println("nifi.security.needClientAuth=");
-            writer.println("nifi.security.user.credential.cache.duration=24 hours");
-            writer.println("nifi.security.user.authority.provider=file-provider");
-            writer.println("nifi.security.user.login.identity.provider=");
-            writer.println("nifi.security.support.new.account.requests=");
-            writer.println("# Valid Authorities include: ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI");
-            writer.println("nifi.security.anonymous.authorities=");
-            writer.println("nifi.security.ocsp.responder.url=");
-            writer.println("nifi.security.ocsp.responder.certificate=");
-            writer.println();
-            writer.println();
-            writer.println("# cluster node properties (only configure for cluster nodes) #");
-            writer.println("nifi.cluster.is.node=false");
-            writer.println();
-            writer.println("# cluster manager properties (only configure for cluster manager) #");
-            writer.println("nifi.cluster.is.manager=false");
+            OrderedProperties orderedProperties = new OrderedProperties();
+            orderedProperties.setProperty(NIFI_VERSION_KEY, NIFI_VERSION,"# Core Properties #" + System.lineSeparator());
+            orderedProperties.setProperty("nifi.flow.configuration.file", "./conf/flow.xml.gz");
+            orderedProperties.setProperty("nifi.flow.configuration.archive.enabled", "false");
+            orderedProperties.setProperty("nifi.flow.configuration.archive.dir", "./conf/archive/");
+            orderedProperties.setProperty("nifi.flowcontroller.autoResumeState", "true");
+            orderedProperties.setProperty("nifi.flowcontroller.graceful.shutdown.period", coreProperties.getFlowControllerGracefulShutdownPeriod());
+            orderedProperties.setProperty("nifi.flowservice.writedelay.interval", coreProperties.getFlowServiceWriteDelayInterval());
+            orderedProperties.setProperty("nifi.administrative.yield.duration", coreProperties.getAdministrativeYieldDuration());
+
+            orderedProperties.setProperty("nifi.bored.yield.duration", coreProperties.getBoredYieldDuration(),
+                    "# If a component has no work to do (is \"bored\"), how long should we wait before checking again for work?");
+
+            orderedProperties.setProperty("nifi.authority.provider.configuration.file", "./conf/authority-providers.xml", "");
+            orderedProperties.setProperty("nifi.login.identity.provider.configuration.file", "./conf/login-identity-providers.xml");
+            orderedProperties.setProperty("nifi.templates.directory", "./conf/templates");
+            orderedProperties.setProperty("nifi.ui.banner.text", "");
+            orderedProperties.setProperty("nifi.ui.autorefresh.interval", "30 sec");
+            orderedProperties.setProperty("nifi.nar.library.directory", "./lib");
+            orderedProperties.setProperty("nifi.nar.working.directory", "./work/nar/");
+            orderedProperties.setProperty("nifi.documentation.working.directory", "./work/docs/components");
+
+            orderedProperties.setProperty("nifi.state.management.configuration.file", "./conf/state-management.xml", System.lineSeparator() +
+                    "####################" +
+                    "# State Management #" +
+                    "####################");
+
+            orderedProperties.setProperty("nifi.state.management.provider.local", "local-provider", "# The ID of the local state provider");
+
+            orderedProperties.setProperty("nifi.database.directory", "./database_repository", System.lineSeparator() + "# H2 Settings");
+            orderedProperties.setProperty("nifi.h2.url.append", ";LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE");
+            orderedProperties.setProperty("nifi.flowfile.repository.implementation", "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository",
+                    System.lineSeparator() + "# FlowFile Repository");
+            orderedProperties.setProperty("nifi.flowfile.repository.directory", "./flowfile_repository");
+            orderedProperties.setProperty("nifi.flowfile.repository.partitions", String.valueOf(flowfileRepoSchema.getPartitions()));
+            orderedProperties.setProperty("nifi.flowfile.repository.checkpoint.interval", flowfileRepoSchema.getCheckpointInterval());
+            orderedProperties.setProperty("nifi.flowfile.repository.always.sync", Boolean.toString(flowfileRepoSchema.getAlwaysSync()));
+
+            orderedProperties.setProperty("nifi.swap.manager.implementation", "org.apache.nifi.controller.FileSystemSwapManager", "");
+            orderedProperties.setProperty("nifi.queue.swap.threshold", String.valueOf(swapProperties.getThreshold()));
+            orderedProperties.setProperty("nifi.swap.in.period", swapProperties.getInPeriod());
+            orderedProperties.setProperty("nifi.swap.in.threads", String.valueOf(swapProperties.getInThreads()));
+            orderedProperties.setProperty("nifi.swap.out.period", swapProperties.getOutPeriod());
+            orderedProperties.setProperty("nifi.swap.out.threads", String.valueOf(swapProperties.getOutThreads()));
+
+            orderedProperties.setProperty("nifi.content.repository.implementation", "org.apache.nifi.controller.repository.FileSystemRepository", System.lineSeparator() + "# Content Repository");
+            orderedProperties.setProperty("nifi.content.claim.max.appendable.size", contentRepoProperties.getContentClaimMaxAppendableSize());
+            orderedProperties.setProperty("nifi.content.claim.max.flow.files", String.valueOf(contentRepoProperties.getContentClaimMaxFlowFiles()));
+            orderedProperties.setProperty("nifi.content.repository.archive.max.retention.period", "");
+            orderedProperties.setProperty("nifi.content.repository.archive.max.usage.percentage", "");
+            orderedProperties.setProperty("nifi.content.repository.archive.enabled", "false");
+            orderedProperties.setProperty("nifi.content.repository.directory.default", "./content_repository");
+            orderedProperties.setProperty("nifi.content.repository.always.sync", Boolean.toString(contentRepoProperties.getAlwaysSync()));
+
+            orderedProperties.setProperty("nifi.provenance.repository.implementation", "org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository",
+                    System.lineSeparator() + "# Provenance Repository Properties");
+            orderedProperties.setProperty("nifi.provenance.repository.rollover.time", provenanceRepositorySchema.getProvenanceRepoRolloverTimeKey());
+
+            orderedProperties.setProperty("nifi.provenance.repository.buffer.size", "10000", System.lineSeparator() + "# Volatile Provenance Respository Properties");
+
+            orderedProperties.setProperty("nifi.components.status.repository.implementation", "org.apache.nifi.controller.status.history.VolatileComponentStatusRepository",
+                    System.lineSeparator() + "# Component Status Repository");
+            orderedProperties.setProperty("nifi.components.status.repository.buffer.size", String.valueOf(componentStatusRepoProperties.getBufferSize()));
+            orderedProperties.setProperty("nifi.components.status.snapshot.frequency", componentStatusRepoProperties.getSnapshotFrequency());
+
+            orderedProperties.setProperty("nifi.web.war.directory", "./lib", System.lineSeparator() + "# web properties #");
+            orderedProperties.setProperty("nifi.web.http.host", "");
+            orderedProperties.setProperty("nifi.web.http.port", "8081");
+            orderedProperties.setProperty("nifi.web.https.host", "");
+            orderedProperties.setProperty("nifi.web.https.port", "");
+            orderedProperties.setProperty("nifi.web.jetty.working.directory", "./work/jetty");
+            orderedProperties.setProperty("nifi.web.jetty.threads", "200");
+
+            orderedProperties.setProperty("nifi.sensitive.props.key", sensitiveProperties.getKey(), System.lineSeparator() + "# security properties #");
+            orderedProperties.setProperty("nifi.sensitive.props.algorithm", sensitiveProperties.getAlgorithm());
+            orderedProperties.setProperty("nifi.sensitive.props.provider", sensitiveProperties.getProvider());
+
+            orderedProperties.setProperty("nifi.security.keystore", securityProperties.getKeystore(), "");
+            orderedProperties.setProperty("nifi.security.keystoreType", securityProperties.getKeystoreType());
+            orderedProperties.setProperty("nifi.security.keystorePasswd", securityProperties.getKeystorePassword());
+            orderedProperties.setProperty("nifi.security.keyPasswd", securityProperties.getKeyPassword());
+            orderedProperties.setProperty("nifi.security.truststore", securityProperties.getTruststore());
+            orderedProperties.setProperty("nifi.security.truststoreType", securityProperties.getTruststoreType());
+            orderedProperties.setProperty("nifi.security.truststorePasswd", securityProperties.getTruststorePassword());
+            orderedProperties.setProperty("nifi.security.needClientAuth", "");
+            orderedProperties.setProperty("nifi.security.user.credential.cache.duration", "24 hours");
+            orderedProperties.setProperty("nifi.security.user.authority.provider", "file-provider");
+            orderedProperties.setProperty("nifi.security.user.login.identity.provider", "");
+            orderedProperties.setProperty("nifi.security.support.new.account.requests", "");
+
+            orderedProperties.setProperty("nifi.security.anonymous.authorities", "", "# Valid Authorities include: ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI");
+            orderedProperties.setProperty("nifi.security.ocsp.responder.url", "");
+            orderedProperties.setProperty("nifi.security.ocsp.responder.certificate", "");
+
+            orderedProperties.setProperty("nifi.cluster.is.node", "false", System.lineSeparator() + System.lineSeparator() + "# cluster node properties (only configure for cluster nodes) #");
+            orderedProperties.setProperty("nifi.cluster.is.manager", "false", System.lineSeparator() + "# cluster manager properties (only configure for cluster manager) #");
+
+            for (Map.Entry<String, String> entry : configSchema.getNifiPropertiesOverrides().entrySet()) {
+                orderedProperties.setProperty(entry.getKey(), entry.getValue());
+            }
+
+            orderedProperties.store(outputStream, PROPERTIES_FILE_APACHE_2_0_LICENSE);
         } catch (NullPointerException e) {
             throw new ConfigurationChangeException("Failed to parse the config YAML while creating the nifi.properties", e);
         } finally {
-            if (writer != null) {
-                writer.flush();
-                writer.close();
-            }
+            outputStream.close();
         }
     }
 
@@ -704,7 +691,7 @@ public final class ConfigTransformer {
     }
 
     public static final String PROPERTIES_FILE_APACHE_2_0_LICENSE =
-            "# Licensed to the Apache Software Foundation (ASF) under one or more\n" +
+            " Licensed to the Apache Software Foundation (ASF) under one or more\n" +
             "# contributor license agreements.  See the NOTICE file distributed with\n" +
             "# this work for additional information regarding copyright ownership.\n" +
             "# The ASF licenses this file to You under the Apache License, Version 2.0\n" +
