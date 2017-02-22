@@ -1281,6 +1281,24 @@ public class TestStandardProcessSession {
     }
 
     @Test
+    public void testSpuriousRouteNotEmitted() throws IOException {
+        FlowFile newFlowFile = session.create();
+        session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
+        session.commit();
+        newFlowFile = session.get();
+        session.getProvenanceReporter().route(newFlowFile, new Relationship.Builder().name("A").build());
+        session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
+        session.commit();
+
+        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 10000);
+        assertFalse(events.isEmpty());
+        assertEquals(1, events.size());
+
+        final ProvenanceEventRecord event = events.get(0);
+        assertEquals(ProvenanceEventType.CREATE, event.getEventType());
+    }
+
+    @Test
     public void testContentModifiedNotEmittedForCreate() throws IOException {
         FlowFile newFlowFile = session.create();
         newFlowFile = session.write(newFlowFile, new OutputStreamCallback() {
