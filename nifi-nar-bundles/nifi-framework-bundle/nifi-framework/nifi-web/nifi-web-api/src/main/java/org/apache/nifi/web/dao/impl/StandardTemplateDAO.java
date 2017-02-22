@@ -71,7 +71,6 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
 
     @Override
     public void verifyComponentTypes(FlowSnippetDTO snippet) {
-        flowController.verifyComponentTypesInSnippet(snippet);
     }
 
     @Override

@@ -16,7 +16,35 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -208,33 +236,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -1950,57 +1952,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
-        // validate that all Processor Types and Prioritizer Types are valid
-        final Set<String> processorClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
-            processorClasses.add(c.getName());
-        }
-        final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(FlowFilePrioritizer.class)) {
-            prioritizerClasses.add(c.getName());
-        }
-        final Set<String> controllerServiceClasses = new HashSet<>();
-        for (final Class<?> c : ExtensionManager.getExtensions(ControllerService.class)) {
-            controllerServiceClasses.add(c.getName());
-        }
-
-        final Set<ProcessorDTO> allProcs = new HashSet<>();
-        final Set<ConnectionDTO> allConns = new HashSet<>();
-        allProcs.addAll(templateContents.getProcessors());
-        allConns.addAll(templateContents.getConnections());
-        for (final ProcessGroupDTO childGroup : templateContents.getProcessGroups()) {
-            allProcs.addAll(findAllProcessors(childGroup));
-            allConns.addAll(findAllConnections(childGroup));
-        }
-
-        for (final ProcessorDTO proc : allProcs) {
-            if (!processorClasses.contains(proc.getType())) {
-                throw new IllegalStateException("Invalid Processor Type: " + proc.getType());
-            }
-        }
-
-        final Set<ControllerServiceDTO> controllerServices = templateContents.getControllerServices();
-        if (controllerServices != null) {
-            for (final ControllerServiceDTO service : controllerServices) {
-                if (!controllerServiceClasses.contains(service.getType())) {
-                    throw new IllegalStateException("Invalid Controller Service Type: " + service.getType());
-                }
-            }
-        }
-
-        for (final ConnectionDTO conn : allConns) {
-            final List<String> prioritizers = conn.getPrioritizers();
-            if (prioritizers != null) {
-                for (final String prioritizer : prioritizers) {
-                    if (!prioritizerClasses.contains(prioritizer)) {
-                        throw new IllegalStateException("Invalid FlowFile Prioritizer Type: " + prioritizer);
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * <p>
      * Verifies that the given DTO is valid, according to the following:
@@ -2039,45 +1990,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
-
-        verifyComponentTypesInSnippet(templateContents);
     }
 
-    /**
-     * Recursively finds all ProcessorDTO's
-     *
-     * @param group group
-     * @return processor dto set
-     */
-    private Set<ProcessorDTO> findAllProcessors(final ProcessGroupDTO group) {
-        final Set<ProcessorDTO> procs = new HashSet<>();
-        for (final ProcessorDTO dto : group.getContents().getProcessors()) {
-            procs.add(dto);
-        }
-
-        for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
-            procs.addAll(findAllProcessors(childGroup));
-        }
-        return procs;
-    }
-
-    /**
-     * Recursively finds all ConnectionDTO's
-     *
-     * @param group group
-     * @return connection dtos
-     */
-    private Set<ConnectionDTO> findAllConnections(final ProcessGroupDTO group) {
-        final Set<ConnectionDTO> conns = new HashSet<>();
-        for (final ConnectionDTO dto : group.getContents().getConnections()) {
-            conns.add(dto);
-        }
-
-        for (final ProcessGroupDTO childGroup : group.getContents().getProcessGroups()) {
-            conns.addAll(findAllConnections(childGroup));
-        }
-        return conns;
-    }
 
     //
     // Processor access
