@@ -1631,7 +1631,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             context.getContentRepository().incrementClaimaintCount(claim);
         }
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(clone, Collections.<String, String> emptyMap());
+        record.setWorking(clone, clone.getAttributes());
         records.put(clone, record);
 
         if (offset == 0L && size == example.getSize()) {
