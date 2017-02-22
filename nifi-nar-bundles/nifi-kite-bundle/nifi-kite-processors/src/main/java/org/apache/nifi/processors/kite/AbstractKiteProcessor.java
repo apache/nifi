@@ -153,8 +153,6 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
                 Path schemaPath = new Path(uri);
                 FileSystem fs;
                 fs = getFileSystemAsUser(conf, ugi);
-                System.out.println(">>> ALLO >>> " + conf.toString());
-
                 try (InputStream in = fs.open(schemaPath)) {
                     return parseSchema(uri, in);
                 }
