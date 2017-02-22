@@ -60,7 +60,7 @@ We're also often available in IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
 
 ## Requirements
-* JDK 1.7 or higher
+* JDK 1.8 or higher
 
 ## License
 
