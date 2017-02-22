@@ -178,7 +178,6 @@ public class MorphlinesProcessor extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             throw e;
         }
-
     }
 
     private static final class Collector implements Command {
