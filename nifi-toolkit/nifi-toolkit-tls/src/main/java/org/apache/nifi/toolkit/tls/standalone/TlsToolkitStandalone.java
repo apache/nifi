@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -29,6 +30,7 @@ import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigW
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
 import org.slf4j.Logger;
@@ -179,8 +181,10 @@ public class TlsToolkitStandalone {
             tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
+            Extensions sanDnsExtensions = StringUtils.isBlank(tlsClientConfig.getDomainAlternativeNames())
+                    ? null : TlsHelper.createDomainAlternativeNamesExtensions(tlsClientConfig.getDomainAlternativeNames());
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(tlsClientConfig.calcDefaultDn(hostname),
-                    keyPair.getPublic(), null, certificate, caKeyPair, signingAlgorithm, days), certificate);
+                    keyPair.getPublic(), sanDnsExtensions, certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, new File(hostDir, "nifi.properties"),
                     hostname, instanceDefinition.getNumber()));
