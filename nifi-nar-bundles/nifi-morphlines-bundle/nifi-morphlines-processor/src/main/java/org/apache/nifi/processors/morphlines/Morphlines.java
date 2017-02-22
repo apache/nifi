@@ -111,7 +111,6 @@ public class MorphlinesProcessor extends AbstractProcessor {
     private String morphLinesId;
     private String morphlinesOutputField;
     private MorphlineContext morphlineContext;
-    private final BlockingQueue<byte[]> bufferQueue = new LinkedBlockingQueue<>();
 
     @Override
     public Set<Relationship> getRelationships() {
