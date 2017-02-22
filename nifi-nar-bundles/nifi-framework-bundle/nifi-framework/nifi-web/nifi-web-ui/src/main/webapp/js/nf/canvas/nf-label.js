@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils'],
-            function ($, d3, common, client, canvasUtils) {
-                return (nf.Label = factory($, d3, common, client, canvasUtils));
+            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+                return (nf.Label = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Label =
@@ -41,7 +41,7 @@
             root.nf.Client,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, common, client, canvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
     'use strict';
 
     var nfConnectable;
@@ -114,7 +114,7 @@
                 'class': 'label component'
             })
             .classed('selected', selected)
-            .call(canvasUtils.position);
+            .call(nfCanvasUtils.position);
 
         // label border
         label.append('rect')
@@ -187,7 +187,7 @@
                 var color = nfLabel.defaultColor();
 
                 // use the specified color if appropriate
-                if (common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                if (nfCommon.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
                 }
 
@@ -202,7 +202,7 @@
             var label = d3.select(this);
 
             // update the component behavior as appropriate
-            canvasUtils.editable(label, nfConnectable, nfDraggable);
+            nfCanvasUtils.editable(label, nfConnectable, nfDraggable);
 
             // update the label
             var labelText = label.select('text.label-value');
@@ -213,7 +213,7 @@
                     var fontSize = '12px';
 
                     // use the specified color if appropriate
-                    if (common.isDefinedAndNotNull(d.component.style['font-size'])) {
+                    if (nfCommon.isDefinedAndNotNull(d.component.style['font-size'])) {
                         fontSize = d.component.style['font-size'];
                     }
 
@@ -225,7 +225,7 @@
 
                 // parse the lines in this label
                 var lines = [];
-                if (common.isDefinedAndNotNull(d.component.label)) {
+                if (nfCommon.isDefinedAndNotNull(d.component.label)) {
                     lines = d.component.label.split('\n');
                 } else {
                     lines.push('');
@@ -234,7 +234,7 @@
                 var color = nfLabel.defaultColor();
 
                 // use the specified color if appropriate
-                if (common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                if (nfCommon.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
                 }
 
@@ -247,8 +247,8 @@
                             return line;
                         })
                         .style('fill', function (d) {
-                            return common.determineContrastColor(
-                                common.substringAfterLast(
+                            return nfCommon.determineContrastColor(
+                                nfCommon.substringAfterLast(
                                     color, '#'));
                         });
                 });
@@ -308,12 +308,17 @@
 
         /**
          * Initializes of the Processor handler.
+         *
+         * @param nfConnectableRef   The nfConnectable module.
+         * @param nfDraggableRef   The nfDraggable module.
+         * @param nfSelectableRef   The nfSelectable module.
+         * @param nfContextMenuRef   The nfContextMenu module.
          */
-        init: function (connectable, draggable, selectable, contextMenu) {
-            nfConnectable = connectable;
-            nfDraggable = draggable;
-            nfSelectable = selectable;
-            nfContextMenu = contextMenu;
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+            nfConnectable = nfConnectableRef;
+            nfDraggable = nfDraggableRef;
+            nfSelectable = nfSelectableRef;
+            nfContextMenu = nfContextMenuRef;
 
             labelMap = d3.map();
             removedCache = d3.map();
@@ -349,19 +354,19 @@
 
                     // determine if the width has changed
                     var different = false;
-                    if (common.isDefinedAndNotNull(labelData.component.width) || labelData.dimensions.width !== labelData.component.width) {
+                    if (nfCommon.isDefinedAndNotNull(labelData.component.width) || labelData.dimensions.width !== labelData.component.width) {
                         different = true;
                     }
 
                     // determine if the height has changed
-                    if (!different && common.isDefinedAndNotNull(labelData.component.height) || labelData.dimensions.height !== labelData.component.height) {
+                    if (!different && nfCommon.isDefinedAndNotNull(labelData.component.height) || labelData.dimensions.height !== labelData.component.height) {
                         different = true;
                     }
 
                     // only save the updated bends if necessary
                     if (different) {
                         var labelEntity = {
-                            'revision': client.getRevision(labelData),
+                            'revision': nfClient.getRevision(labelData),
                             'component': {
                                 'id': labelData.id,
                                 'width': labelData.dimensions.width,
@@ -381,13 +386,13 @@
                         }).fail(function () {
                             // determine the previous width
                             var width = dimensions.width;
-                            if (common.isDefinedAndNotNull(labelData.component.width)) {
+                            if (nfCommon.isDefinedAndNotNull(labelData.component.width)) {
                                 width = labelData.component.width;
                             }
 
                             // determine the previous height
                             var height = dimensions.height;
-                            if (common.isDefinedAndNotNull(labelData.component.height)) {
+                            if (nfCommon.isDefinedAndNotNull(labelData.component.height)) {
                                 height = labelData.component.height;
                             }
 
@@ -415,8 +420,8 @@
          */
         add: function (labelEntities, options) {
             var selectAll = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // get the current time
@@ -436,7 +441,7 @@
                 $.each(labelEntities, function (_, labelEntity) {
                     add(labelEntity);
                 });
-            } else if (common.isDefinedAndNotNull(labelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(labelEntities)) {
                 add(labelEntities);
             }
 
@@ -455,16 +460,16 @@
         set: function (labelEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             var set = function (proposedLabelEntity) {
                 var currentLabelEntity = labelMap.get(proposedLabelEntity.id);
 
                 // set the processor if appropriate due to revision and wasn't previously removed
-                if (client.isNewerRevision(currentLabelEntity, proposedLabelEntity) && !removedCache.has(proposedLabelEntity.id)) {
+                if (nfClient.isNewerRevision(currentLabelEntity, proposedLabelEntity) && !removedCache.has(proposedLabelEntity.id)) {
                     labelMap.set(proposedLabelEntity.id, $.extend({
                         type: 'Label'
                     }, proposedLabelEntity));
@@ -486,14 +491,14 @@
                 $.each(labelEntities, function (_, labelEntity) {
                     set(labelEntity);
                 });
-            } else if (common.isDefinedAndNotNull(labelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(labelEntities)) {
                 set(labelEntities);
             }
 
             // apply the selection and handle all new labels
             var selection = select();
             selection.enter().call(renderLabels, selectAll);
-            selection.call(updateLabels).call(canvasUtils.position, transition);
+            selection.call(updateLabels).call(nfCanvasUtils.position, transition);
             selection.exit().call(removeLabels);
         },
 
@@ -504,7 +509,7 @@
          * @param {string} id
          */
         get: function (id) {
-            if (common.isUndefined(id)) {
+            if (nfCommon.isUndefined(id)) {
                 return labelMap.values();
             } else {
                 return labelMap.get(id);
@@ -518,7 +523,7 @@
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (common.isDefinedAndNotNull(id)) {
+            if (nfCommon.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updateLabels);
             } else {
                 d3.selectAll('g.label').call(updateLabels);
@@ -550,7 +555,7 @@
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(canvasUtils.position);
+            d3.select('#id-' + id).call(nfCanvasUtils.position);
         },
 
         /**

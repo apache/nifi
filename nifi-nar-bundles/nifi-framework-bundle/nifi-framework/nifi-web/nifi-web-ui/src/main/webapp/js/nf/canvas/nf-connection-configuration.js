@@ -27,8 +27,8 @@
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.Connection'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, connection) {
-                return (nf.ConnectionConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, connection));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
+                return (nf.ConnectionConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionConfiguration =
@@ -50,7 +50,7 @@
             root.nf.CanvasUtils,
             root.nf.Connection);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, connection) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfConnection) {
     'use strict';
 
     var nfBirdseye;
@@ -80,11 +80,11 @@
      */
     var initializeSourceNewConnectionDialog = function (source) {
         // handle the selected source
-        if (canvasUtils.isProcessor(source)) {
+        if (nfCanvasUtils.isProcessor(source)) {
             return $.Deferred(function (deferred) {
                 // initialize the source processor
                 initializeSourceProcessor(source).done(function (processor) {
-                    if (!common.isEmpty(processor.relationships)) {
+                    if (!nfCommon.isEmpty(processor.relationships)) {
                         // populate the available connections
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship.name);
@@ -114,7 +114,7 @@
                                         addConnection(selectedRelationships);
                                     } else {
                                         // inform users that no relationships were selected
-                                        dialog.showOkDialog({
+                                        nfDialog.showOkDialog({
                                             headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
@@ -143,9 +143,9 @@
                         deferred.resolve();
                     } else {
                         // there are no relationships for this processor
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Connection Configuration',
-                            dialogContent: '\'' + common.escapeHtml(processor.name) + '\' does not support any relationships.'
+                            dialogContent: '\'' + nfCommon.escapeHtml(processor.name) + '\' does not support any relationships.'
                         });
 
                         // reset the dialog
@@ -161,11 +161,11 @@
             return $.Deferred(function (deferred) {
                 // determine how to initialize the source
                 var connectionSourceDeferred;
-                if (canvasUtils.isInputPort(source)) {
+                if (nfCanvasUtils.isInputPort(source)) {
                     connectionSourceDeferred = initializeSourceInputPort(source);
-                } else if (canvasUtils.isRemoteProcessGroup(source)) {
+                } else if (nfCanvasUtils.isRemoteProcessGroup(source)) {
                     connectionSourceDeferred = initializeSourceRemoteProcessGroup(source);
-                } else if (canvasUtils.isProcessGroup(source)) {
+                } else if (nfCanvasUtils.isProcessGroup(source)) {
                     connectionSourceDeferred = initializeSourceProcessGroup(source);
                 } else {
                     connectionSourceDeferred = initializeSourceFunnel(source);
@@ -233,8 +233,8 @@
             $('#connection-source-component-id').val(inputPortData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvasUtils.getGroupId());
-            $('#connection-source-group-name').text(canvasUtils.getGroupName());
+            $('#connection-source-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-source-group-name').text(nfCanvasUtils.getGroupName());
 
             // resolve the deferred
             deferred.resolve();
@@ -259,8 +259,8 @@
             $('#connection-source-component-id').val(funnelData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvasUtils.getGroupId());
-            $('#connection-source-group-name').text(canvasUtils.getGroupName());
+            $('#connection-source-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-source-group-name').text(nfCanvasUtils.getGroupName());
 
             // resolve the deferred
             deferred.resolve();
@@ -277,7 +277,7 @@
             // get the processor data
             var processorData = source.datum();
             var processorName = processorData.permissions.canRead ? processorData.component.name : processorData.id;
-            var processorType = processorData.permissions.canRead ? common.substringAfterLast(processorData.component.type, '.') : 'Processor';
+            var processorType = processorData.permissions.canRead ? nfCommon.substringAfterLast(processorData.component.type, '.') : 'Processor';
 
             // populate the source processor information
             $('#processor-source').show();
@@ -289,8 +289,8 @@
             $('#connection-source-component-id').val(processorData.id);
 
             // populate the group details
-            $('#connection-source-group-id').val(canvasUtils.getGroupId());
-            $('#connection-source-group-name').text(canvasUtils.getGroupName());
+            $('#connection-source-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-source-group-name').text(nfCanvasUtils.getGroupName());
 
             // show the available relationships
             $('#relationship-names-container').show();
@@ -327,13 +327,13 @@
                         options.push({
                             text: component.name,
                             value: component.id,
-                            description: common.escapeHtml(component.comments)
+                            description: nfCommon.escapeHtml(component.comments)
                         });
                     }
                 });
 
                 // only proceed if there are output ports
-                if (!common.isEmpty(options)) {
+                if (!nfCommon.isEmpty(options)) {
                     $('#output-port-source').show();
 
                     // sort the options
@@ -359,13 +359,13 @@
 
                     deferred.resolve();
                 } else {
-                    var message = '\'' + common.escapeHtml(processGroupName) + '\' does not have any output ports.';
-                    if (common.isEmpty(processGroupContents.outputPorts) === false) {
-                        message = 'Not authorized for any output ports in \'' + common.escapeHtml(processGroupName) + '\'.';
+                    var message = '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any output ports.';
+                    if (nfCommon.isEmpty(processGroupContents.outputPorts) === false) {
+                        message = 'Not authorized for any output ports in \'' + nfCommon.escapeHtml(processGroupName) + '\'.';
                     }
 
                     // there are no output ports for this process group
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
                         dialogContent: message
                     });
@@ -377,7 +377,7 @@
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -403,7 +403,7 @@
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
                 // only proceed if there are output ports
-                if (!common.isEmpty(remoteProcessGroupContents.outputPorts)) {
+                if (!nfCommon.isEmpty(remoteProcessGroupContents.outputPorts)) {
                     $('#output-port-source').show();
 
                     // show the output port options
@@ -413,7 +413,7 @@
                             text: outputPort.name,
                             value: outputPort.id,
                             disabled: outputPort.exists === false,
-                            description: common.escapeHtml(outputPort.comments)
+                            description: nfCommon.escapeHtml(outputPort.comments)
                         });
                     });
 
@@ -441,9 +441,9 @@
                     deferred.resolve();
                 } else {
                     // there are no relationships for this processor
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: '\'' + common.escapeHtml(remoteProcessGroup.name) + '\' does not have any output ports.'
+                        dialogContent: '\'' + nfCommon.escapeHtml(remoteProcessGroup.name) + '\' does not have any output ports.'
                     });
 
                     // reset the dialog
@@ -453,7 +453,7 @@
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -461,13 +461,13 @@
     };
 
     var initializeDestinationNewConnectionDialog = function (destination) {
-        if (canvasUtils.isOutputPort(destination)) {
+        if (nfCanvasUtils.isOutputPort(destination)) {
             return initializeDestinationOutputPort(destination);
-        } else if (canvasUtils.isProcessor(destination)) {
+        } else if (nfCanvasUtils.isProcessor(destination)) {
             return initializeDestinationProcessor(destination);
-        } else if (canvasUtils.isRemoteProcessGroup(destination)) {
+        } else if (nfCanvasUtils.isRemoteProcessGroup(destination)) {
             return initializeDestinationRemoteProcessGroup(destination);
-        } else if (canvasUtils.isFunnel(destination)) {
+        } else if (nfCanvasUtils.isFunnel(destination)) {
             return initializeDestinationFunnel(destination);
         } else {
             return initializeDestinationProcessGroup(destination);
@@ -487,8 +487,8 @@
             $('#connection-destination-component-id').val(outputPortData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
-            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
+            $('#connection-destination-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(nfCanvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -505,8 +505,8 @@
             $('#connection-destination-component-id').val(funnelData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
-            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
+            $('#connection-destination-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(nfCanvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -516,7 +516,7 @@
         return $.Deferred(function (deferred) {
             var processorData = destination.datum();
             var processorName = processorData.permissions.canRead ? processorData.component.name : processorData.id;
-            var processorType = processorData.permissions.canRead ? common.substringAfterLast(processorData.component.type, '.') : 'Processor';
+            var processorType = processorData.permissions.canRead ? nfCommon.substringAfterLast(processorData.component.type, '.') : 'Processor';
 
             $('#processor-destination').show();
             $('#processor-destination-name').text(processorName).attr('title', processorName);
@@ -527,8 +527,8 @@
             $('#connection-destination-component-id').val(processorData.id);
 
             // populate the group details
-            $('#connection-destination-group-id').val(canvasUtils.getGroupId());
-            $('#connection-destination-group-name').text(canvasUtils.getGroupName());
+            $('#connection-destination-group-id').val(nfCanvasUtils.getGroupId());
+            $('#connection-destination-group-name').text(nfCanvasUtils.getGroupName());
 
             deferred.resolve();
         }).promise();
@@ -558,12 +558,12 @@
                     options.push({
                         text: inputPort.permissions.canRead ? inputPort.component.name : inputPort.id,
                         value: inputPort.id,
-                        description: inputPort.permissions.canRead ? common.escapeHtml(inputPort.component.comments) : null
+                        description: inputPort.permissions.canRead ? nfCommon.escapeHtml(inputPort.component.comments) : null
                     });
                 });
 
                 // only proceed if there are output ports
-                if (!common.isEmpty(options)) {
+                if (!nfCommon.isEmpty(options)) {
                     $('#input-port-destination').show();
 
                     // sort the options
@@ -590,9 +590,9 @@
                     deferred.resolve();
                 } else {
                     // there are no relationships for this processor
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: '\'' + common.escapeHtml(processGroupName) + '\' does not have any input ports.'
+                        dialogContent: '\'' + nfCommon.escapeHtml(processGroupName) + '\' does not have any input ports.'
                     });
 
                     // reset the dialog
@@ -602,7 +602,7 @@
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -628,7 +628,7 @@
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
                 // only proceed if there are output ports
-                if (!common.isEmpty(remoteProcessGroupContents.inputPorts)) {
+                if (!nfCommon.isEmpty(remoteProcessGroupContents.inputPorts)) {
                     $('#input-port-destination').show();
 
                     // show the input port options
@@ -638,7 +638,7 @@
                             text: inputPort.name,
                             value: inputPort.id,
                             disabled: inputPort.exists === false,
-                            description: common.escapeHtml(inputPort.comments)
+                            description: nfCommon.escapeHtml(inputPort.comments)
                         });
                     });
 
@@ -666,9 +666,9 @@
                     deferred.resolve();
                 } else {
                     // there are no relationships for this processor
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: '\'' + common.escapeHtml(remoteProcessGroup.name) + '\' does not have any input ports.'
+                        dialogContent: '\'' + nfCommon.escapeHtml(remoteProcessGroup.name) + '\' does not have any input ports.'
                     });
 
                     // reset the dialog
@@ -678,7 +678,7 @@
                 }
             }).fail(function (xhr, status, error) {
                 // handle the error
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
 
                 deferred.reject();
             });
@@ -716,11 +716,11 @@
      * @argument {selection} source        The source
      */
     var initializeSourceEditConnectionDialog = function (source) {
-        if (canvasUtils.isProcessor(source)) {
+        if (nfCanvasUtils.isProcessor(source)) {
             return initializeSourceProcessor(source);
-        } else if (canvasUtils.isInputPort(source)) {
+        } else if (nfCanvasUtils.isInputPort(source)) {
             return initializeSourceInputPort(source);
-        } else if (canvasUtils.isFunnel(source)) {
+        } else if (nfCanvasUtils.isFunnel(source)) {
             return initializeSourceFunnel(source);
         } else {
             return initializeSourceReadOnlyGroup(source);
@@ -734,13 +734,13 @@
      * @argument {object} connectionDestination The connection destination object
      */
     var initializeDestinationEditConnectionDialog = function (destination, connectionDestination) {
-        if (canvasUtils.isProcessor(destination)) {
+        if (nfCanvasUtils.isProcessor(destination)) {
             return initializeDestinationProcessor(destination);
-        } else if (canvasUtils.isOutputPort(destination)) {
+        } else if (nfCanvasUtils.isOutputPort(destination)) {
             return initializeDestinationOutputPort(destination);
-        } else if (canvasUtils.isRemoteProcessGroup(destination)) {
+        } else if (nfCanvasUtils.isRemoteProcessGroup(destination)) {
             return initializeDestinationRemoteProcessGroup(destination, connectionDestination);
-        } else if (canvasUtils.isFunnel(destination)) {
+        } else if (nfCanvasUtils.isFunnel(destination)) {
             return initializeDestinationFunnel(destination);
         } else {
             return initializeDestinationProcessGroup(destination);
@@ -787,8 +787,8 @@
                 y: sourceData.position.y + (sourceData.dimensions.height / 2)
             };
 
-            var xOffset = connection.config.selfLoopXOffset;
-            var yOffset = connection.config.selfLoopYOffset;
+            var xOffset = nfConnection.config.selfLoopXOffset;
+            var yOffset = nfConnection.config.selfLoopYOffset;
             bends.push({
                 'x': (rightCenter.x + xOffset),
                 'y': (rightCenter.y - yOffset)
@@ -801,11 +801,11 @@
             var existingConnections = [];
 
             // get all connections for the source component
-            var connectionsForSourceComponent = connection.getComponentConnections(sourceComponentId);
+            var connectionsForSourceComponent = nfConnection.getComponentConnections(sourceComponentId);
             $.each(connectionsForSourceComponent, function (_, connectionForSourceComponent) {
                 // get the id for the source/destination component
-                var connectionSourceComponentId = canvasUtils.getConnectionSourceComponentId(connectionForSourceComponent);
-                var connectionDestinationComponentId = canvasUtils.getConnectionDestinationComponentId(connectionForSourceComponent);
+                var connectionSourceComponentId = nfCanvasUtils.getConnectionSourceComponentId(connectionForSourceComponent);
+                var connectionDestinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionForSourceComponent);
 
                 // if the connection is between these same components, consider it for collisions
                 if ((connectionSourceComponentId === sourceComponentId && connectionDestinationComponentId === destinationComponentId) ||
@@ -822,7 +822,7 @@
                 $.each(existingConnections, function (_, existingConnection) {
                     // only consider multiple connections with no bend points a collision, the existance of 
                     // bend points suggests that the user has placed the connection into a desired location
-                    if (common.isEmpty(existingConnection.bends)) {
+                    if (nfCommon.isEmpty(existingConnection.bends)) {
                         avoidCollision = true;
                         return false;
                     }
@@ -842,7 +842,7 @@
                     var collides = function (x, y) {
                         var collides = false;
                         $.each(existingConnections, function (_, existingConnection) {
-                            if (!common.isEmpty(existingConnection.bends)) {
+                            if (!nfCommon.isEmpty(existingConnection.bends)) {
                                 if (isMoreHorizontal) {
                                     // horizontal lines are adjusted in the y space
                                     if (existingConnection.bends[0].y === y) {
@@ -900,8 +900,8 @@
         var destinationGroupId = $('#connection-destination-group-id').val();
 
         // determine the source and destination types
-        var sourceType = canvasUtils.getConnectableTypeForSource(source);
-        var destinationType = canvasUtils.getConnectableTypeForDestination(destination);
+        var sourceType = nfCanvasUtils.getConnectableTypeForSource(source);
+        var destinationType = nfCanvasUtils.getConnectableTypeForDestination(destination);
 
         // get the settings
         var connectionName = $('#connection-name').val();
@@ -912,7 +912,7 @@
 
         if (validateSettings()) {
             var connectionEntity = {
-                'revision': client.getRevision({
+                'revision': nfClient.getRevision({
                     'revision': {
                         'version': 0
                     }
@@ -941,7 +941,7 @@
             // create the new connection
             $.ajax({
                 type: 'POST',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/connections',
+                url: config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/connections',
                 data: JSON.stringify(connectionEntity),
                 dataType: 'json',
                 contentType: 'application/json'
@@ -954,7 +954,7 @@
                 });
 
                 // reload the connections source/destination components
-                canvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
+                nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
 
                 // update component visibility
                 nfGraph.updateVisibility();
@@ -963,7 +963,7 @@
                 nfBirdseye.refresh();
             }).fail(function (xhr, status, error) {
                 // handle the error
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
             });
         }
     };
@@ -984,7 +984,7 @@
         // get the destination details
         var destinationComponentId = $('#connection-destination-component-id').val();
         var destination = d3.select('#id-' + destinationComponentId);
-        var destinationType = canvasUtils.getConnectableTypeForDestination(destination);
+        var destinationType = nfCanvasUtils.getConnectableTypeForDestination(destination);
 
         // get the destination details
         var destinationId = $('#connection-destination-id').val();
@@ -998,9 +998,9 @@
         var prioritizers = $('#prioritizer-selected').sortable('toArray');
 
         if (validateSettings()) {
-            var d = connection.get(connectionId);
+            var d = nfConnection.get(connectionId);
             var connectionEntity = {
-                'revision': client.getRevision(d),
+                'revision': nfClient.getRevision(d),
                 'component': {
                     'id': connectionId,
                     'name': connectionName,
@@ -1026,18 +1026,18 @@
                 contentType: 'application/json'
             }).done(function (response) {
                 // update this connection
-                connection.set(response);
+                nfConnection.set(response);
 
                 // reload the connections source/destination components
-                canvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
+                nfCanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Connection Configuration',
-                        dialogContent: common.escapeHtml(xhr.responseText),
+                        dialogContent: nfCommon.escapeHtml(xhr.responseText),
                     });
                 } else {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                 }
             });
         } else {
@@ -1078,20 +1078,20 @@
         var errors = [];
 
         // validate the settings
-        if (common.isBlank($('#flow-file-expiration').val())) {
+        if (nfCommon.isBlank($('#flow-file-expiration').val())) {
             errors.push('File expiration must be specified');
         }
         if (!$.isNumeric($('#back-pressure-object-threshold').val())) {
             errors.push('Back pressure object threshold must be an integer value');
         }
-        if (common.isBlank($('#back-pressure-data-size-threshold').val())) {
+        if (nfCommon.isBlank($('#back-pressure-data-size-threshold').val())) {
             errors.push('Back pressure data size threshold must be specified');
         }
 
         if (errors.length > 0) {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Connection Configuration',
-                dialogContent: common.formatUnorderedList(errors)
+                dialogContent: nfCommon.formatUnorderedList(errors)
             });
             return false;
         } else {
@@ -1130,7 +1130,7 @@
         $('#relationship-names-container').hide();
 
         // clear the id field
-        common.clearField('connection-id');
+        nfCommon.clearField('connection-id');
 
         // hide all the connection source panels
         $('#processor-source').hide();
@@ -1168,12 +1168,12 @@
         /**
          * Initialize the connection configuration.
          *
-         * @param birdseye    The reference to the birdseye controller.
-         * @param graph    The reference to the graph controller.
+         * @param nfBirdseyeRef   The nfBirdseye module.
+         * @param nfGraphRef   The nfGraph module.
          */
-        init: function (birdseye, graph) {
-            nfBirdseye = birdseye;
-            nfGraph = graph;
+        init: function (nfBirdseyeRef, nfGraphRef) {
+            nfBirdseye = nfBirdseyeRef;
+            nfGraph = nfGraphRef;
 
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
@@ -1188,7 +1188,7 @@
                         resetDialog();
                     },
                     open: function () {
-                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -1226,7 +1226,7 @@
                     opacity: 0.6
                 });
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         },
 
         /**
@@ -1237,17 +1237,17 @@
          */
         addAvailablePrioritizer: function (prioritizerContainer, prioritizerType) {
             var type = prioritizerType.type;
-            var name = common.substringAfterLast(type, '.');
+            var name = nfCommon.substringAfterLast(type, '.');
 
             // add the prioritizers to the available list
             var prioritizerList = $(prioritizerContainer);
             var prioritizer = $('<li></li>').append($('<span style="float: left;"></span>').text(name)).attr('id', type).addClass('ui-state-default').appendTo(prioritizerList);
 
             // add the description if applicable
-            if (common.isDefinedAndNotNull(prioritizerType.description)) {
+            if (nfCommon.isDefinedAndNotNull(prioritizerType.description)) {
                 $('<div class="fa fa-question-circle" style="float: right; margin-right: 5px;""></div>').appendTo(prioritizer).qtip($.extend({
-                    content: common.escapeHtml(prioritizerType.description)
-                }, common.config.tooltipConfig));
+                    content: nfCommon.escapeHtml(prioritizerType.description)
+                }, nfCommon.config.tooltipConfig));
             }
         },
 
@@ -1283,7 +1283,7 @@
                 $('#connection-configuration div.relationship-name').ellipsis();
 
                 // fill in the connection id
-                common.populateField('connection-id', null);
+                nfCommon.populateField('connection-id', null);
 
                 // show the border if necessary
                 var relationshipNames = $('#relationship-names');
@@ -1309,12 +1309,12 @@
                 var connection = connectionEntry.component;
 
                 // identify the source component
-                var sourceComponentId = canvasUtils.getConnectionSourceComponentId(connectionEntry);
+                var sourceComponentId = nfCanvasUtils.getConnectionSourceComponentId(connectionEntry);
                 var source = d3.select('#id-' + sourceComponentId);
 
                 // identify the destination component
-                if (common.isUndefinedOrNull(destination)) {
-                    var destinationComponentId = canvasUtils.getConnectionDestinationComponentId(connectionEntry);
+                if (nfCommon.isUndefinedOrNull(destination)) {
+                    var destinationComponentId = nfCanvasUtils.getConnectionDestinationComponentId(connectionEntry);
                     destination = d3.select('#id-' + destinationComponentId);
                 }
 
@@ -1324,7 +1324,7 @@
                     var selectedRelationships = connection.selectedRelationships;
 
                     // show the available relationship if applicable
-                    if (common.isDefinedAndNotNull(availableRelationships) || common.isDefinedAndNotNull(selectedRelationships)) {
+                    if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {
                         // populate the available connections
                         $.each(availableRelationships, function (i, name) {
                             createRelationshipOption(name);
@@ -1351,14 +1351,14 @@
                     }
 
                     // if the source is a process group or remote process group, select the appropriate port if applicable
-                    if (canvasUtils.isProcessGroup(source) || canvasUtils.isRemoteProcessGroup(source)) {
+                    if (nfCanvasUtils.isProcessGroup(source) || nfCanvasUtils.isRemoteProcessGroup(source)) {
                         // populate the connection source details
                         $('#connection-source-id').val(connection.source.id);
                         $('#read-only-output-port-name').text(connection.source.name).attr('title', connection.source.name);
                     }
 
                     // if the destination is a process gorup or remote process group, select the appropriate port if applicable
-                    if (canvasUtils.isProcessGroup(destination) || canvasUtils.isRemoteProcessGroup(destination)) {
+                    if (nfCanvasUtils.isProcessGroup(destination) || nfCanvasUtils.isRemoteProcessGroup(destination)) {
                         var destinationData = destination.datum();
 
                         // when the group ids differ, its a new destination component so we don't want to preselect any port
@@ -1376,7 +1376,7 @@
                     $('#back-pressure-data-size-threshold').val(connection.backPressureDataSizeThreshold);
 
                     // format the connection id
-                    common.populateField('connection-id', connection.id);
+                    nfCommon.populateField('connection-id', connection.id);
 
                     // handle each prioritizer
                     $.each(connection.prioritizers, function (i, type) {
@@ -1400,7 +1400,7 @@
                                 var selectedRelationships = getSelectedRelationships();
 
                                 // see if we're working with a processor as the source
-                                if (canvasUtils.isProcessor(source)) {
+                                if (nfCanvasUtils.isProcessor(source)) {
                                     if (selectedRelationships.length > 0) {
                                         // if there are relationships selected update
                                         updateConnection(selectedRelationships).done(function () {
@@ -1410,7 +1410,7 @@
                                         });
                                     } else {
                                         // inform users that no relationships were selected and the source is a processor
-                                        dialog.showOkDialog({
+                                        nfDialog.showOkDialog({
                                             headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });

@@ -28,8 +28,8 @@
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
-                return (nf.ng.ProcessorComponent = factory($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
+            function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
+                return (nf.ng.ProcessorComponent = factory($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProcessorComponent =
@@ -53,7 +53,7 @@
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, Slick, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+}(this, function ($, Slick, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -67,7 +67,7 @@
             var processorTypesGrid = $('#processor-types-table').data('gridInstance');
 
             // ensure the grid has been initialized
-            if (common.isDefinedAndNotNull(processorTypesGrid)) {
+            if (nfCommon.isDefinedAndNotNull(processorTypesGrid)) {
                 var processorTypesData = processorTypesGrid.getData();
 
                 // update the search criteria
@@ -187,8 +187,8 @@
         var sort = function (sortDetails, data) {
             // defines a function for sorting
             var comparer = function (a, b) {
-                var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             };
 
@@ -239,7 +239,7 @@
          */
         var createProcessor = function (name, processorType, pt) {
             var processorEntity = {
-                'revision': client.getRevision({
+                'revision': nfClient.getRevision({
                     'revision': {
                         'version': 0
                     }
@@ -257,24 +257,24 @@
             // create a new processor of the defined type
             $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/processors',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/processors',
                 data: JSON.stringify(processorEntity),
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
                 // add the processor to the graph
-                graph.add({
+                nfGraph.add({
                     'processors': [response]
                 }, {
                     'selectAll': true
                 });
 
                 // update component visibility
-                graph.updateVisibility();
+                nfGraph.updateVisibility();
 
                 // update the birdseye
-                birdseye.refresh();
-            }).fail(errorHandler.handleAjaxError);
+                nfBirdseye.refresh();
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -283,7 +283,7 @@
          * @param item process type
          */
         var isSelectable = function (item) {
-            return common.isBlank(item.usageRestriction) || common.canAccessRestrictedComponents();
+            return nfCommon.isBlank(item.usageRestriction) || nfCommon.canAccessRestrictedComponents();
         };
 
         function ProcessorComponent() {
@@ -312,7 +312,7 @@
                                 id: 'type',
                                 name: 'Type',
                                 field: 'label',
-                                formatter: common.typeFormatter,
+                                formatter: nfCommon.typeFormatter,
                                 sortable: true,
                                 resizable: true
                             },
@@ -368,8 +368,8 @@
                                 var processorType = processorTypesGrid.getDataItem(processorTypeIndex);
 
                                 // set the processor type description
-                                if (common.isDefinedAndNotNull(processorType)) {
-                                    if (common.isBlank(processorType.description)) {
+                                if (nfCommon.isDefinedAndNotNull(processorType)) {
+                                    if (nfCommon.isBlank(processorType.description)) {
                                         $('#processor-type-description')
                                             .attr('title', '')
                                             .html('<span class="unset">No description specified</span>');
@@ -391,7 +391,7 @@
                             }
                         });
                         processorTypesGrid.onViewportChanged.subscribe(function (e, args) {
-                            common.cleanUpTooltips($('#processor-types-table'), 'div.view-usage-restriction');
+                            nfCommon.cleanUpTooltips($('#processor-types-table'), 'div.view-usage-restriction');
                         });
 
                         // wire up the dataview to the grid
@@ -418,8 +418,8 @@
                                 var item = processorTypesData.getItemById(rowId);
 
                                 // show the tooltip
-                                if (common.isDefinedAndNotNull(item.usageRestriction)) {
-                                    usageRestriction.qtip($.extend({}, common.config.tooltipConfig, {
+                                if (nfCommon.isDefinedAndNotNull(item.usageRestriction)) {
+                                    usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
                                         content: item.usageRestriction,
                                         position: {
                                             container: $('#summary'),
@@ -454,10 +454,10 @@
                                 // create the row for the processor type
                                 processorTypesData.addItem({
                                     id: i,
-                                    label: common.substringAfterLast(type, '.'),
+                                    label: nfCommon.substringAfterLast(type, '.'),
                                     type: type,
-                                    description: common.escapeHtml(documentedType.description),
-                                    usageRestriction: common.escapeHtml(documentedType.usageRestriction),
+                                    description: nfCommon.escapeHtml(documentedType.description),
+                                    usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                                     tags: documentedType.tags.join(', ')
                                 });
 
@@ -479,7 +479,7 @@
                                 select: applyFilter,
                                 remove: applyFilter
                             });
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
                     }
                 },
 
@@ -600,7 +600,7 @@
 
                     // ensure something was selected
                     if (name === '' || processorType === '') {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Add Processor',
                             dialogContent: 'The type of processor to create must be selected.'
                         });

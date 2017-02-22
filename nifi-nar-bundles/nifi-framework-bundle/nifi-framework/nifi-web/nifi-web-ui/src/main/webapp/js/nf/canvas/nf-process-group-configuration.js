@@ -28,8 +28,8 @@
                 'nf.ProcessGroup',
                 'nf.Shell',
                 'nf.CanvasUtils'],
-            function ($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils) {
-                return (nf.ProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
+                return (nf.ProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessGroupConfiguration =
@@ -53,7 +53,7 @@
             root.nf.Shell,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, processGroup, shell, canvasUtils) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfProcessGroup, nfShell, nfCanvasUtils) {
     'use strict';
 
     var nfControllerServices;
@@ -88,7 +88,7 @@
     var saveConfiguration = function (version, groupId) {
         // build the entity
         var entity = {
-            'revision': client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': version
                 }
@@ -109,12 +109,12 @@
             contentType: 'application/json'
         }).done(function (response) {
             // refresh the process group if necessary
-            if (response.permissions.canRead && response.component.parentGroupId === canvasUtils.getGroupId()) {
-                processGroup.set(response);
+            if (response.permissions.canRead && response.component.parentGroupId === nfCanvasUtils.getGroupId()) {
+                nfProcessGroup.set(response);
             }
 
             // show the result dialog
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Process Group Configuration',
                 dialogContent: 'Process group configuration successfully saved.'
             });
@@ -124,8 +124,8 @@
                 saveConfiguration(response.revision.version, groupId);
             });
 
-            canvasUtils.reload();
-        }).fail(errorHandler.handleAjaxError);
+            nfCanvasUtils.reload();
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -188,15 +188,15 @@
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
-                    if (groupId === canvasUtils.getGroupId()) {
+                    if (groupId === nfCanvasUtils.getGroupId()) {
                         $('#process-group-configuration').data('process-group', {
                             'permissions': {
                                 canRead: false,
-                                canWrite: canvasUtils.canWrite()
+                                canWrite: nfCanvasUtils.canWrite()
                             }
                         });
                     } else {
-                        $('#process-group-configuration').data('process-group', processGroup.get(groupId));
+                        $('#process-group-configuration').data('process-group', nfProcessGroup.get(groupId));
                     }
 
                     setUnauthorizedText();
@@ -218,7 +218,7 @@
 
             // update the current time
             $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -226,7 +226,7 @@
      */
     var showConfiguration = function () {
         // show the configuration dialog
-        shell.showContent('#process-group-configuration').done(function () {
+        nfShell.showContent('#process-group-configuration').done(function () {
             reset();
         });
 
@@ -256,10 +256,10 @@
         /**
          * Initialize the process group configuration.
          *
-         * @param controllerServices    The reference to the controllerServices controller.
+         * @param nfControllerServicesRef   The nfControllerServices module.
          */
-        init: function (controllerServices) {
-            nfControllerServices = controllerServices;
+        init: function (nfControllerServicesRef) {
+            nfControllerServices = nfControllerServicesRef;
 
             // initialize the process group configuration tabs
             $('#process-group-configuration-tabs').tabbs({
@@ -275,7 +275,7 @@
                 }],
                 select: function () {
                     var processGroup = $('#process-group-configuration').data('process-group');
-                    var canWrite = common.isDefinedAndNotNull(processGroup) ? processGroup.permissions.canWrite : false;
+                    var canWrite = nfCommon.isDefinedAndNotNull(processGroup) ? processGroup.permissions.canWrite : false;
 
                     var tab = $(this).text();
                     if (tab === 'General') {

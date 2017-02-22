@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.ErrorHandler'],
-            function ($, d3, common, dialog, errorHandler) {
-                return (nf.ng.ProvenanceLineage = factory($, d3, common, dialog, errorHandler));
+            function ($, d3, nfCommon, nfDialog, nfErrorHandler) {
+                return (nf.ng.ProvenanceLineage = factory($, d3, nfCommon, nfDialog, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProvenanceLineage =
@@ -41,7 +41,7 @@
             root.nf.Dialog,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, common, dialog, errorHandler) {
+}(this, function ($, d3, nfCommon, nfDialog, nfErrorHandler) {
     'use strict';
 
     var mySelf = function () {
@@ -136,7 +136,7 @@
                 data: JSON.stringify(lineageEntity),
                 dataType: 'json',
                 contentType: 'application/json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -147,7 +147,7 @@
          */
         var getLineage = function (lineage) {
             var url = lineage.uri;
-            if (common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
+            if (nfCommon.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
                 url += '?' + $.param({
                         clusterNodeId: lineage.request.clusterNodeId
                     });
@@ -157,7 +157,7 @@
                 type: 'GET',
                 url: url,
                 dataType: 'json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -168,7 +168,7 @@
          */
         var cancelLineage = function (lineage) {
             var url = lineage.uri;
-            if (common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
+            if (nfCommon.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
                 url += '?' + $.param({
                         clusterNodeId: lineage.request.clusterNodeId
                     });
@@ -178,7 +178,7 @@
                 type: 'DELETE',
                 url: url,
                 dataType: 'json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         var DEFAULT_NODE_SPACING = 100;
@@ -216,7 +216,7 @@
                         descendants.add(link.target.id);
                     });
 
-                    if (common.isUndefined(depth)) {
+                    if (nfCommon.isUndefined(depth)) {
                         locateDescendants(children, descendants);
                     } else if (depth > 1) {
                         locateDescendants(children, descendants, depth - 1);
@@ -483,11 +483,11 @@
                     node.incoming = [];
 
                     // ensure this event has an event time
-                    if (common.isUndefined(minMillis) || minMillis > node.millis) {
+                    if (nfCommon.isUndefined(minMillis) || minMillis > node.millis) {
                         minMillis = node.millis;
                         minTimestamp = node.timestamp;
                     }
-                    if (common.isUndefined(maxMillis) || maxMillis < node.millis) {
+                    if (nfCommon.isUndefined(maxMillis) || maxMillis < node.millis) {
                         maxMillis = node.millis;
                     }
                 });
@@ -526,7 +526,7 @@
 
                 // create the proper date by adjusting by the offsets
                 var date = new Date(millis + userTimeOffset + provenanceTableCtrl.serverTimeOffset);
-                return common.formatDateTime(date);
+                return nfCommon.formatDateTime(date);
             };
 
             // handle context menu clicks...
@@ -800,7 +800,7 @@
                         // closes the searching dialog and cancels the query on the server
                         var closeDialog = function () {
                             // cancel the provenance results since we've successfully processed the results
-                            if (common.isDefinedAndNotNull(lineage)) {
+                            if (nfCommon.isDefinedAndNotNull(lineage)) {
                                 cancelLineage(lineage);
                             }
 
@@ -827,11 +827,11 @@
                             }
 
                             // close the dialog if the results contain an error
-                            if (!common.isEmpty(lineage.results.errors)) {
+                            if (!nfCommon.isEmpty(lineage.results.errors)) {
                                 var errors = lineage.results.errors;
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     headerText: 'Process Lineage',
-                                    dialogContent: common.formatUnorderedList(errors)
+                                    dialogContent: nfCommon.formatUnorderedList(errors)
                                 });
 
                                 closeDialog();
@@ -851,7 +851,7 @@
                                     renderEventLineage(results);
                                 } else {
                                     // inform the user that no results were found
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         headerText: 'Lineage Results',
                                         dialogContent: 'The lineage search has completed successfully but there no results were found. The events may have aged off.'
                                     });
@@ -1346,7 +1346,7 @@
                 // closes the searching dialog and cancels the query on the server
                 var closeDialog = function () {
                     // cancel the provenance results since we've successfully processed the results
-                    if (common.isDefinedAndNotNull(lineage)) {
+                    if (nfCommon.isDefinedAndNotNull(lineage)) {
                         cancelLineage(lineage);
                     }
 
@@ -1372,11 +1372,11 @@
                     }
 
                     // close the dialog if the results contain an error
-                    if (!common.isEmpty(lineage.results.errors)) {
+                    if (!nfCommon.isEmpty(lineage.results.errors)) {
                         var errors = lineage.results.errors;
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Process Lineage',
-                            dialogContent: common.formatUnorderedList(errors)
+                            dialogContent: nfCommon.formatUnorderedList(errors)
                         });
 
                         closeDialog();

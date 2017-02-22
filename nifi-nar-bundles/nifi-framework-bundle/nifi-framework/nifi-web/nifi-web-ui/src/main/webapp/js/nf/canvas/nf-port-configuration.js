@@ -28,8 +28,8 @@
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Port'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port) {
-                return (nf.PortConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
+                return (nf.PortConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PortConfiguration =
@@ -53,7 +53,7 @@
             root.nf.ng.Bridge,
             root.nf.Port);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, port) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfPort) {
     'use strict';
 
     /**
@@ -97,7 +97,7 @@
 
                         // build the port entity
                         var portEntity = {
-                            'revision': client.getRevision(portData),
+                            'revision': nfClient.getRevision(portData),
                             'component': port
                         };
 
@@ -110,10 +110,10 @@
                             contentType: 'application/json'
                         }).done(function (response) {
                             // refresh the port component
-                            port.set(response);
+                            nfPort.set(response);
 
                             // inform Angular app values have changed
-                            angularBridge.digest();
+                            nfNgBridge.digest();
 
                             // close the details panel
                             $('#port-configuration').modal('hide');
@@ -128,10 +128,10 @@
                                 if (errors.length === 1) {
                                     content = $('<span></span>').text(errors[0]);
                                 } else {
-                                    content = common.formatUnorderedList(errors);
+                                    content = nfCommon.formatUnorderedList(errors);
                                 }
 
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     dialogContent: content,
                                     headerText: 'Port Configuration'
                                 });
@@ -140,7 +140,7 @@
                                 $('#port-configuration').modal('hide');
 
                                 // handle the error
-                                errorHandler.handleAjaxError(xhr, status, error);
+                                nfErrorHandler.handleAjaxError(xhr, status, error);
                             }
                         });
                     }
@@ -184,7 +184,7 @@
          */
         showConfiguration: function (selection) {
             // if the specified component is a port, load its properties
-            if (canvasUtils.isInputPort(selection) || canvasUtils.isOutputPort(selection)) {
+            if (nfCanvasUtils.isInputPort(selection) || nfCanvasUtils.isOutputPort(selection)) {
                 var selectionData = selection.datum();
 
                 // determine if the enabled checkbox is checked or not
@@ -194,7 +194,7 @@
                 }
 
                 // show concurrent tasks for root groups only
-                if (canvasUtils.getParentGroupId() === null) {
+                if (nfCanvasUtils.getParentGroupId() === null) {
                     $('#port-concurrent-task-container').show();
                 } else {
                     $('#port-concurrent-task-container').hide();

@@ -24,8 +24,8 @@
                 'nf.CanvasUtils',
                 'nf.ClusterSummary',
                 'nf.Actions'],
-            function (angularBridge, canvasUtils, common, clusterSummary, actions) {
-                return (nf.ng.AppCtrl = factory(angularBridge, canvasUtils, common, clusterSummary, actions));
+            function (nfNgBridge, nfCanvasUtils, nfCommon, nfClusterSummary, nfActions) {
+                return (nf.ng.AppCtrl = factory(nfNgBridge, nfCanvasUtils, nfCommon, nfClusterSummary, nfActions));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.AppCtrl =
@@ -41,7 +41,7 @@
             root.nf.ClusterSummary,
             root.nf.Actions);
     }
-}(this, function (angularBridge, canvasUtils, common, clusterSummary, actions) {
+}(this, function (nfNgBridge, nfCanvasUtils, nfCommon, nfClusterSummary, nfActions) {
     'use strict';
 
     return function ($scope, serviceProvider) {
@@ -50,10 +50,10 @@
         function AppCtrl(serviceProvider) {
             //add essential modules to the scope for availability throughout the angular container
             this.nf = {
-                "Common": common,
-                "ClusterSummary": clusterSummary,
-                "Actions": actions,
-                "CanvasUtils": canvasUtils,
+                "Common": nfCommon,
+                "ClusterSummary": nfClusterSummary,
+                "Actions": nfActions,
+                "CanvasUtils": nfCanvasUtils,
             };
 
             //any registered angular service is available through the serviceProvider
@@ -69,6 +69,6 @@
 
         //For production angular applications .scope() is unavailable so we set
         //the root scope of the bootstrapped app on the bridge
-        angularBridge.rootScope = $scope;
+        nfNgBridge.rootScope = $scope;
     }
 }));

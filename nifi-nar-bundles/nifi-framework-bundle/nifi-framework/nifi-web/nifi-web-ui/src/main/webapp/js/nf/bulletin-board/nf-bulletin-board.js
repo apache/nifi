@@ -30,23 +30,23 @@
                 'nf.Storage'],
             function ($,
                       angular,
-                      common,
+                      nfCommon,
                       appConfig,
                       appCtrl,
                       serviceProvider,
-                      angularBridge,
-                      errorHandler,
-                      storage) {
+                      nfNgBridge,
+                      nfErrorHandler,
+                      nfStorage) {
                 return (nf.ng.BulletinBoardCtrl =
                     factory($,
                         angular,
-                        common,
+                        nfCommon,
                         appConfig,
                         appCtrl,
                         serviceProvider,
-                        angularBridge,
-                        errorHandler,
-                        storage));
+                        nfNgBridge,
+                        nfErrorHandler,
+                        nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.BulletinBoardCtrl =
@@ -70,7 +70,7 @@
             root.nf.ErrorHandler,
             root.nf.Storage);
     }
-}(this, function ($, angular, common, appConfig, appCtrl, serviceProvider, angularBridge, errorHandler, storage) {
+}(this, function ($, angular, nfCommon, appConfig, appCtrl, serviceProvider, nfNgBridge, nfErrorHandler, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -95,10 +95,10 @@
         app.service('bulletinBoardCtrl', nfBulletinBoard);
 
         //Manually Boostrap Angular App
-        angularBridge.injector = angular.bootstrap($('body'), ['ngBulletinBoardApp'], {strictDi: true});
+        nfNgBridge.injector = angular.bootstrap($('body'), ['ngBulletinBoardApp'], {strictDi: true});
 
         // initialize the bulletin board
-        angularBridge.injector.get('bulletinBoardCtrl').init();
+        nfNgBridge.injector.get('bulletinBoardCtrl').init();
     });
 
     var nfBulletinBoard = function (serviceProvider) {
@@ -158,7 +158,7 @@
                 // set the document title and the about title
                 document.title = bulletinBoardTitle;
                 $('#bulletin-board-header-text').text(bulletinBoardTitle);
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
 
             // get the banners if we're not in the shell
             var loadBanners = $.Deferred(function (deferred) {
@@ -169,8 +169,8 @@
                         dataType: 'json'
                     }).done(function (response) {
                         // ensure the banners response is specified
-                        if (common.isDefinedAndNotNull(response.banners)) {
-                            if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(response.banners)) {
+                            if (nfCommon.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                                 // update the header text
                                 var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -184,7 +184,7 @@
                                 updateTop('bulletin-board');
                             }
 
-                            if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                            if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                                 // update the footer text and show it
                                 var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -200,7 +200,7 @@
 
                         deferred.resolve();
                     }).fail(function (xhr, status, error) {
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                         deferred.reject();
                     });
                 } else {
@@ -286,7 +286,7 @@
             // only attempt this if we're within a frame
             if (top !== window) {
                 // and our parent has canvas utils and shell defined
-                if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.CanvasUtils) && common.isDefinedAndNotNull(parent.nf.Shell)) {
+                if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && nfCommon.isDefinedAndNotNull(parent.nf.Shell)) {
                     parent.nf.CanvasUtils.showComponent(groupId, sourceId);
                     parent.$('#shell-close-button').click();
                 }
@@ -333,7 +333,7 @@
                     });
                 }
 
-                storage.init();
+                nfStorage.init();
 
                 initializePage().done(function () {
                     start();
@@ -347,7 +347,7 @@
                 var data = {};
 
                 // include the timestamp if appropriate
-                if (common.isDefinedAndNotNull(lastBulletin)) {
+                if (nfCommon.isDefinedAndNotNull(lastBulletin)) {
                     data['after'] = lastBulletin;
                 } else {
                     data['limit'] = 10;
@@ -382,7 +382,7 @@
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the bulletin board was specified
-                    if (common.isDefinedAndNotNull(response.bulletinBoard)) {
+                    if (nfCommon.isDefinedAndNotNull(response.bulletinBoard)) {
                         var bulletinBoard = response.bulletinBoard;
 
                         // update the stats last refreshed timestamp
@@ -407,13 +407,13 @@
 
                                 // format the source id
                                 var source;
-                                if (common.isDefinedAndNotNull(bulletin.sourceId) && common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
+                                if (nfCommon.isDefinedAndNotNull(bulletin.sourceId) && nfCommon.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
                                     source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
                                         goToSource(bulletin.groupId, bulletin.sourceId);
                                     });
                                 } else {
                                     var sourceId = bulletin.sourceId;
-                                    if (common.isUndefined(sourceId) || common.isNull(sourceId)) {
+                                    if (nfCommon.isUndefined(sourceId) || nfCommon.isNull(sourceId)) {
                                         sourceId = '';
                                     }
                                     source = $('<div class="bulletin-source"></div>').text(sourceId);
@@ -430,7 +430,7 @@
                                 $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
 
                                 // format the node address if applicable
-                                if (common.isDefinedAndNotNull(bulletin.nodeAddress)) {
+                                if (nfCommon.isDefinedAndNotNull(bulletin.nodeAddress)) {
                                     $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
                                 }
 
@@ -467,7 +467,7 @@
                         // stop future polling
                         bulletinBoardCtrl.togglePolling();
                     } else {
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             },

@@ -22,8 +22,8 @@
         define(['jquery',
                 'nf.Common',
                 'nf.ErrorHandler'],
-            function ($, common, errorHandler) {
-                return (nf.ConnectionDetails = factory($, common, errorHandler));
+            function ($, nfCommon, nfErrorHandler) {
+                return (nf.ConnectionDetails = factory($, nfCommon, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ConnectionDetails = factory(require('jquery'),
@@ -34,7 +34,7 @@
             root.nf.Common,
             root.nf.ErrorHandler);
     }
-}(this, function ($, common, errorHandler) {
+}(this, function ($, nfCommon, nfErrorHandler) {
     'use strict';
 
     /**
@@ -72,7 +72,7 @@
             }).done(function (response) {
                 var processor = response.component;
                 var processorName = $('<div class="label"></div>').text(processor.name).addClass('ellipsis').attr('title', processor.name);
-                var processorType = $('<div></div>').text(common.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', common.substringAfterLast(processor.type, '.'));
+                var processorType = $('<div></div>').text(nfCommon.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', nfCommon.substringAfterLast(processor.type, '.'));
 
                 // populate source processor details
                 $('#read-only-connection-source-label').text('From processor');
@@ -232,7 +232,7 @@
             }).done(function (response) {
                 var processor = response.component;
                 var processorName = $('<div class="label"></div>').text(processor.name).addClass('ellipsis').attr('title', processor.name);
-                var processorType = $('<div></div>').text(common.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', common.substringAfterLast(processor.type, '.'));
+                var processorType = $('<div></div>').text(nfCommon.substringAfterLast(processor.type, '.')).addClass('ellipsis').attr('title', nfCommon.substringAfterLast(processor.type, '.'));
 
                 // populate destination processor details
                 $('#read-only-connection-target-label').text('To processor');
@@ -410,8 +410,8 @@
                         $('#read-only-relationship-names').empty();
 
                         // clear the connection details
-                        common.clearField('read-only-connection-name');
-                        common.clearField('read-only-connection-id');
+                        nfCommon.clearField('read-only-connection-name');
+                        nfCommon.clearField('read-only-connection-id');
 
                         // clear the connection source details
                         $('#read-only-connection-source-label').text('');
@@ -433,7 +433,7 @@
                         $('#read-only-prioritizers').empty();
                     },
                     open: function () {
-                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -483,7 +483,7 @@
                         var selectedRelationships = connection.selectedRelationships;
 
                         // show the available relationship if applicable
-                        if (common.isDefinedAndNotNull(availableRelationships) || common.isDefinedAndNotNull(selectedRelationships)) {
+                        if (nfCommon.isDefinedAndNotNull(availableRelationships) || nfCommon.isDefinedAndNotNull(selectedRelationships)) {
                             // populate the available connections
                             $.each(availableRelationships, function (i, name) {
                                 createRelationshipOption(name);
@@ -516,17 +516,17 @@
                         }
 
                         // set the connection details
-                        common.populateField('read-only-connection-name', connection.name);
-                        common.populateField('read-only-connection-id', connection.id);
-                        common.populateField('read-only-flow-file-expiration', connection.flowFileExpiration);
-                        common.populateField('read-only-back-pressure-object-threshold', connection.backPressureObjectThreshold);
-                        common.populateField('read-only-back-pressure-data-size-threshold', connection.backPressureDataSizeThreshold);
+                        nfCommon.populateField('read-only-connection-name', connection.name);
+                        nfCommon.populateField('read-only-connection-id', connection.id);
+                        nfCommon.populateField('read-only-flow-file-expiration', connection.flowFileExpiration);
+                        nfCommon.populateField('read-only-back-pressure-object-threshold', connection.backPressureObjectThreshold);
+                        nfCommon.populateField('read-only-back-pressure-data-size-threshold', connection.backPressureDataSizeThreshold);
 
                         // prioritizers
-                        if (common.isDefinedAndNotNull(connection.prioritizers) && connection.prioritizers.length > 0) {
+                        if (nfCommon.isDefinedAndNotNull(connection.prioritizers) && connection.prioritizers.length > 0) {
                             var prioritizerList = $('<ol></ol>').css('list-style', 'decimal inside none');
                             $.each(connection.prioritizers, function (i, type) {
-                                prioritizerList.append($('<li></li>').text(common.substringAfterLast(type, '.')));
+                                prioritizerList.append($('<li></li>').text(nfCommon.substringAfterLast(type, '.')));
                             });
                             $('#read-only-prioritizers').append(prioritizerList);
                         } else {
@@ -545,9 +545,9 @@
                         if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > Math.round(relationshipNames.innerHeight())) {
                             relationshipNames.css('border-width', '1px');
                         }
-                    }).fail(errorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
                 }
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

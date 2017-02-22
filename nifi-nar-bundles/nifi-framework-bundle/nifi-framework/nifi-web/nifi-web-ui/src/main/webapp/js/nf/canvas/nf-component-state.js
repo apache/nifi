@@ -28,8 +28,8 @@
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, Slick, clusterSummary, errorHandler, dialog, common) {
-                return (nf.ComponentState = factory($, Slick, clusterSummary, errorHandler, dialog, common));
+            function ($, Slick, nfClusterSummary, nfErrorHandler, nfDialog, nfCommon) {
+                return (nf.ComponentState = factory($, Slick, nfClusterSummary, nfErrorHandler, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -47,7 +47,7 @@
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, Slick, clusterSummary, errorHandler, dialog, common) {
+}(this, function ($, Slick, nfClusterSummary, nfErrorHandler, nfDialog, nfCommon) {
     'use strict';
 
     /**
@@ -58,7 +58,7 @@
         var componentStateTable = $('#component-state-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(componentStateTable)) {
+        if (nfCommon.isDefinedAndNotNull(componentStateTable)) {
             var componentStateData = componentStateTable.getData();
 
             // update the search criteria
@@ -95,7 +95,7 @@
 
         // conditionally consider the scope
         var matchesScope = false;
-        if (common.isDefinedAndNotNull(item['scope'])) {
+        if (nfCommon.isDefinedAndNotNull(item['scope'])) {
             matchesScope = item['scope'].search(filterExp) >= 0;
         }
 
@@ -111,8 +111,8 @@
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+            var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+            var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
             return aString === bString ? 0 : aString > bString ? 1 : -1;
         };
 
@@ -162,7 +162,7 @@
         componentStateData.beginUpdate();
 
         // local state
-        if (common.isDefinedAndNotNull(localState)) {
+        if (nfCommon.isDefinedAndNotNull(localState)) {
             $.each(localState.state, function (i, stateEntry) {
                 componentStateData.addItem($.extend({
                     id: count++,
@@ -171,12 +171,12 @@
             });
             totalEntries += localState.totalEntryCount;
 
-            if (common.isDefinedAndNotNull(localState.state) && localState.totalEntryCount !== localState.state.length) {
+            if (nfCommon.isDefinedAndNotNull(localState.state) && localState.totalEntryCount !== localState.state.length) {
                 showPartialDetails = true;
             }
         }
 
-        if (common.isDefinedAndNotNull(clusterState)) {
+        if (nfCommon.isDefinedAndNotNull(clusterState)) {
             $.each(clusterState.state, function (i, stateEntry) {
                 componentStateData.addItem($.extend({
                     id: count++,
@@ -185,7 +185,7 @@
             });
             totalEntries += clusterState.totalEntryCount;
 
-            if (common.isDefinedAndNotNull(clusterState.state) && clusterState.totalEntryCount !== clusterState.state.length) {
+            if (nfCommon.isDefinedAndNotNull(clusterState.state) && clusterState.totalEntryCount !== clusterState.state.length) {
                 showPartialDetails = true;
             }
         }
@@ -199,7 +199,7 @@
         }
 
         // update the total number of state entries
-        $('#total-component-state-entries').text(common.formatInteger(totalEntries));
+        $('#total-component-state-entries').text(nfCommon.formatInteger(totalEntries));
     };
 
     /**
@@ -281,9 +281,9 @@
 
                             // reload the table with no state
                             loadComponentState()
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
                     } else {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Component State',
                             dialogContent: 'This component has no state to clear.'
                         });
@@ -310,7 +310,7 @@
             ];
 
             // conditionally show the cluster node identifier
-            if (clusterSummary.isClustered()) {
+            if (nfClusterSummary.isClustered()) {
                 componentStateColumns.push({
                     id: 'scope',
                     field: 'scope',
@@ -418,7 +418,7 @@
                 // reset the grid size
                 var componentStateGrid = componentStateTable.data('gridInstance');
                 componentStateGrid.resizeCanvas();
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

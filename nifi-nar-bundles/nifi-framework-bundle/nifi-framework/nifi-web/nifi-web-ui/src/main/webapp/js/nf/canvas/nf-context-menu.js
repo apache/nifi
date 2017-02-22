@@ -21,30 +21,27 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
-                'nf.ErrorHandler',
                 'nf.Common',
                 'nf.CanvasUtils',
                 'nf.ng.Bridge'],
-            function ($, d3, errorHandler, common, canvasUtils, angularBridge) {
-                return (nf.ContextMenu = factory($, d3, errorHandler, common, canvasUtils, angularBridge));
+            function ($, d3, nfCommon, nfCanvasUtils, nfNgBridge) {
+                return (nf.ContextMenu = factory($, d3, nfCommon, nfCanvasUtils, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ContextMenu =
             factory(require('jquery'),
                 require('d3'),
-                require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.CanvasUtils'),
                 require('nf.ng.Bridge')));
     } else {
         nf.ContextMenu = factory(root.$,
             root.d3,
-            root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.CanvasUtils,
             root.nf.ng.Bridge);
     }
-}(this, function ($, d3, errorHandler, common, canvasUtils, angularBridge) {
+}(this, function ($, d3, nfCommon, nfCanvasUtils, nfNgBridge) {
     'use strict';
 
     var nfActions;
@@ -55,7 +52,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isNotRootGroup = function (selection) {
-        return canvasUtils.getParentGroupId() !== null && selection.empty();
+        return nfCanvasUtils.getParentGroupId() !== null && selection.empty();
     };
 
     /**
@@ -64,7 +61,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isConfigurable = function (selection) {
-        return canvasUtils.isConfigurable(selection);
+        return nfCanvasUtils.isConfigurable(selection);
     };
 
     /**
@@ -73,7 +70,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var hasDetails = function (selection) {
-        return canvasUtils.hasDetails(selection);
+        return nfCanvasUtils.hasDetails(selection);
     };
 
     /**
@@ -82,7 +79,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isDeletable = function (selection) {
-        return canvasUtils.areDeletable(selection);
+        return nfCanvasUtils.areDeletable(selection);
     };
 
     /**
@@ -91,7 +88,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canCreateTemplate = function (selection) {
-        return canvasUtils.canWrite() && (selection.empty() && canvasUtils.canRead(selection));
+        return nfCanvasUtils.canWrite() && (selection.empty() && nfCanvasUtils.canRead(selection));
     };
 
     /**
@@ -100,7 +97,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canUploadTemplate = function (selection) {
-        return canvasUtils.canWrite() && selection.empty();
+        return nfCanvasUtils.canWrite() && selection.empty();
     };
 
     /**
@@ -109,7 +106,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canGroup = function (selection) {
-        return canvasUtils.getComponentByType('Connection').isDisconnected(selection) && canvasUtils.canModify(selection);
+        return nfCanvasUtils.getComponentByType('Connection').isDisconnected(selection) && nfCanvasUtils.canModify(selection);
     };
 
     /**
@@ -118,7 +115,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canEnable = function (selection) {
-        return canvasUtils.canEnable(selection);
+        return nfCanvasUtils.canEnable(selection);
     };
 
     /**
@@ -127,7 +124,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canDisable = function (selection) {
-        return canvasUtils.canDisable(selection);
+        return nfCanvasUtils.canDisable(selection);
     };
 
     /**
@@ -136,7 +133,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var canManagePolicies = function (selection) {
-        return canvasUtils.isConfigurableAuthorizer() && canvasUtils.canManagePolicies(selection);
+        return nfCanvasUtils.isConfigurableAuthorizer() && nfCanvasUtils.canManagePolicies(selection);
     };
 
     /**
@@ -145,7 +142,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isRunnable = function (selection) {
-        return canvasUtils.areRunnable(selection);
+        return nfCanvasUtils.areRunnable(selection);
     };
 
     /**
@@ -154,7 +151,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isStoppable = function (selection) {
-        return canvasUtils.areStoppable(selection);
+        return nfCanvasUtils.areStoppable(selection);
     };
 
     /**
@@ -168,7 +165,7 @@
             return false;
         }
 
-        return canvasUtils.isProcessor(selection) || canvasUtils.isProcessGroup(selection) || canvasUtils.isRemoteProcessGroup(selection) || canvasUtils.isConnection(selection);
+        return nfCanvasUtils.isProcessor(selection) || nfCanvasUtils.isProcessGroup(selection) || nfCanvasUtils.isRemoteProcessGroup(selection) || nfCanvasUtils.isConnection(selection);
     };
 
     /**
@@ -181,11 +178,11 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (canvasUtils.canRead(selection) === false) {
+        if (nfCanvasUtils.canRead(selection) === false) {
             return false;
         }
 
-        return canvasUtils.isProcessor(selection);
+        return nfCanvasUtils.isProcessor(selection);
     };
 
     /**
@@ -194,7 +191,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isNotConnection = function (selection) {
-        return selection.size() === 1 && !canvasUtils.isConnection(selection);
+        return selection.size() === 1 && !nfCanvasUtils.isConnection(selection);
     };
 
     /**
@@ -203,7 +200,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isCopyable = function (selection) {
-        return canvasUtils.isCopyable(selection);
+        return nfCanvasUtils.isCopyable(selection);
     };
 
     /**
@@ -212,7 +209,7 @@
      * @param {selection} selection         The selection of currently selected components
      */
     var isPastable = function (selection) {
-        return canvasUtils.isPastable();
+        return nfCanvasUtils.isPastable();
     };
 
     /**
@@ -234,11 +231,11 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (canvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
-        return canvasUtils.isConnection(selection);
+        return nfCanvasUtils.isConnection(selection);
     };
 
     /**
@@ -247,7 +244,7 @@
      * @param {selection} selection          The selection
      */
     var canAlign = function (selection) {
-        return canvasUtils.canAlign(selection);
+        return nfCanvasUtils.canAlign(selection);
     };
 
     /**
@@ -256,7 +253,7 @@
      * @param {selection} selection          The selection
      */
     var isColorable = function (selection) {
-        return canvasUtils.isColorable(selection);
+        return nfCanvasUtils.isColorable(selection);
     };
 
     /**
@@ -270,7 +267,7 @@
             return false;
         }
 
-        return canvasUtils.isConnection(selection);
+        return nfCanvasUtils.isConnection(selection);
     };
 
     /**
@@ -284,9 +281,9 @@
             return false;
         }
 
-        return canvasUtils.isFunnel(selection) || canvasUtils.isProcessor(selection) || canvasUtils.isProcessGroup(selection) ||
-            canvasUtils.isRemoteProcessGroup(selection) || canvasUtils.isInputPort(selection) ||
-            (canvasUtils.isOutputPort(selection) && canvasUtils.getParentGroupId() !== null);
+        return nfCanvasUtils.isFunnel(selection) || nfCanvasUtils.isProcessor(selection) || nfCanvasUtils.isProcessGroup(selection) ||
+            nfCanvasUtils.isRemoteProcessGroup(selection) || nfCanvasUtils.isInputPort(selection) ||
+            (nfCanvasUtils.isOutputPort(selection) && nfCanvasUtils.getParentGroupId() !== null);
     };
 
     /**
@@ -300,9 +297,9 @@
             return false;
         }
 
-        return canvasUtils.isFunnel(selection) || canvasUtils.isProcessor(selection) || canvasUtils.isProcessGroup(selection) ||
-            canvasUtils.isRemoteProcessGroup(selection) || canvasUtils.isOutputPort(selection) ||
-            (canvasUtils.isInputPort(selection) && canvasUtils.getParentGroupId() !== null);
+        return nfCanvasUtils.isFunnel(selection) || nfCanvasUtils.isProcessor(selection) || nfCanvasUtils.isProcessGroup(selection) ||
+            nfCanvasUtils.isRemoteProcessGroup(selection) || nfCanvasUtils.isOutputPort(selection) ||
+            (nfCanvasUtils.isInputPort(selection) && nfCanvasUtils.getParentGroupId() !== null);
     };
 
     /**
@@ -315,11 +312,11 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (canvasUtils.canRead(selection) === false || canvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canRead(selection) === false || nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
-        if (canvasUtils.isProcessor(selection)) {
+        if (nfCanvasUtils.isProcessor(selection)) {
             var processorData = selection.datum();
             return processorData.component.persistsState === true;
         } else {
@@ -338,7 +335,7 @@
             return false;
         }
 
-        return canvasUtils.isProcessGroup(selection);
+        return nfCanvasUtils.isProcessGroup(selection);
     };
 
     /**
@@ -352,8 +349,8 @@
             return false;
         }
 
-        return !canvasUtils.isLabel(selection) && !canvasUtils.isConnection(selection) && !canvasUtils.isProcessGroup(selection)
-            && !canvasUtils.isRemoteProcessGroup(selection) && common.canAccessProvenance();
+        return !nfCanvasUtils.isLabel(selection) && !nfCanvasUtils.isConnection(selection) && !nfCanvasUtils.isProcessGroup(selection)
+            && !nfCanvasUtils.isRemoteProcessGroup(selection) && nfCommon.canAccessProvenance();
     };
 
     /**
@@ -366,11 +363,11 @@
         if (selection.size() !== 1) {
             return false;
         }
-        if (canvasUtils.canRead(selection) === false) {
+        if (nfCanvasUtils.canRead(selection) === false) {
             return false;
         }
 
-        return canvasUtils.isRemoteProcessGroup(selection);
+        return nfCanvasUtils.isRemoteProcessGroup(selection);
     };
 
     /**
@@ -379,11 +376,11 @@
      * @param {selection} selection
      */
     var canStartTransmission = function (selection) {
-        if (canvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
-        return canvasUtils.canAllStartTransmitting(selection);
+        return nfCanvasUtils.canAllStartTransmitting(selection);
     };
 
     /**
@@ -392,11 +389,11 @@
      * @param {selection} selection
      */
     var canStopTransmission = function (selection) {
-        if (canvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
-        return canvasUtils.canAllStopTransmitting(selection);
+        return nfCanvasUtils.canAllStopTransmitting(selection);
     };
 
     /**
@@ -423,13 +420,13 @@
      * @param {type} selection
      */
     var canMoveToParent = function (selection) {
-        if (canvasUtils.canModify(selection) === false) {
+        if (nfCanvasUtils.canModify(selection) === false) {
             return false;
         }
 
         // TODO - also check can modify in parent
 
-        return !selection.empty() && canvasUtils.getComponentByType('Connection').isDisconnected(selection) && canvasUtils.getParentGroupId() !== null;
+        return !selection.empty() && nfCanvasUtils.getComponentByType('Connection').isDisconnected(selection) && nfCanvasUtils.getParentGroupId() !== null;
     };
 
     /**
@@ -461,7 +458,7 @@
 
             // create the img and conditionally add the style
             var img = $('<div class="context-menu-item-img"></div>').addClass(item['clazz']).appendTo(menuItem);
-            if (common.isDefinedAndNotNull(item['imgStyle'])) {
+            if (nfCommon.isDefinedAndNotNull(item['imgStyle'])) {
                 img.addClass(item['imgStyle']);
             }
 
@@ -544,10 +541,10 @@
         /**
          * Initialize the context menu.
          *
-         * @param actions    The reference to the actions controller.
+         * @param nfActionsRef   The nfActions module.
          */
-        init: function (actions) {
-            nfActions = actions;
+        init: function (nfActionsRef) {
+            nfActions = nfActionsRef;
 
             $('#context-menu').on('contextmenu', function (evt) {
                 // stop propagation and prevent default
@@ -566,12 +563,12 @@
             var breadCrumb = $('#breadcrumbs').get(0);
 
             // get the current selection
-            var selection = canvasUtils.getSelection();
+            var selection = nfCanvasUtils.getSelection();
 
             // consider each component action for the current selection
             $.each(actions, function (_, action) {
                 // determine if this action is application for this selection
-                if (action.condition(selection, canvasUtils.getComponentByType('Connection'))) {
+                if (action.condition(selection, nfCanvasUtils.getComponentByType('Connection'))) {
                     var menuItem = action.menuItem;
 
                     addMenuItem(contextMenu, {
@@ -603,7 +600,7 @@
             });
 
             // inform Angular app incase we've click on the canvas
-            angularBridge.digest();
+            nfNgBridge.digest();
         },
 
         /**

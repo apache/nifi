@@ -27,8 +27,8 @@
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.Label'],
-            function ($, d3, errorHandler, common, client, canvasUtils, angularBridge, label) {
-                return (nf.LabelConfiguration = factory($, d3, errorHandler, common, client, canvasUtils, angularBridge, label));
+            function ($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
+                return (nf.LabelConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.LabelConfiguration =
@@ -50,7 +50,7 @@
             root.nf.ng.Bridge,
             root.nf.Label);
     }
-}(this, function ($, d3, errorHandler, common, client, canvasUtils, angularBridge, label) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfLabel) {
     'use strict';
 
     var labelId = '';
@@ -82,7 +82,7 @@
 
                             // build the label entity
                             var labelEntity = {
-                                'revision': client.getRevision(labelData),
+                                'revision': nfClient.getRevision(labelData),
                                 'component': {
                                     'id': labelId,
                                     'label': labelValue,
@@ -101,11 +101,11 @@
                                 contentType: 'application/json'
                             }).done(function (response) {
                                 // get the label out of the response
-                                label.set(response);
+                                nfLabel.set(response);
 
                                 // inform Angular app values have changed
-                                angularBridge.digest();
-                            }).fail(errorHandler.handleAjaxError);
+                                nfNgBridge.digest();
+                            }).fail(nfErrorHandler.handleAjaxError);
 
                             // reset and hide the dialog
                             this.modal('hide');
@@ -166,18 +166,18 @@
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {
-            if (canvasUtils.isLabel(selection)) {
+            if (nfCanvasUtils.isLabel(selection)) {
                 var selectionData = selection.datum();
 
                 // get the label value
                 var labelValue = '';
-                if (common.isDefinedAndNotNull(selectionData.component.label)) {
+                if (nfCommon.isDefinedAndNotNull(selectionData.component.label)) {
                     labelValue = selectionData.component.label;
                 }
 
                 // get the font size
                 var fontSize = '12px';
-                if (common.isDefinedAndNotNull(selectionData.component.style['font-size'])) {
+                if (nfCommon.isDefinedAndNotNull(selectionData.component.style['font-size'])) {
                     fontSize = selectionData.component.style['font-size'];
                 }
 

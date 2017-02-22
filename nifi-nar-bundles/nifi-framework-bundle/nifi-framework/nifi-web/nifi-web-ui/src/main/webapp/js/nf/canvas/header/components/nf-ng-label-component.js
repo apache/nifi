@@ -26,8 +26,8 @@
                 'nf.CanvasUtils',
                 'nf.ErrorHandler',
                 'nf.Label'],
-            function ($, client, birdseye, graph, canvasUtils, errorHandler, label) {
-                return (nf.ng.LabelComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler, label));
+            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
+                return (nf.ng.LabelComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.LabelComponent =
@@ -47,7 +47,7 @@
             root.nf.ErrorHandler,
             root.nf.Label);
     }
-}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler, label) {
+}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfLabel) {
     'use strict';
 
     return function (serviceProvider) {
@@ -111,14 +111,14 @@
              */
             createLabel: function (pt) {
                 var labelEntity = {
-                    'revision': client.getRevision({
+                    'revision': nfClient.getRevision({
                         'revision': {
                             'version': 0
                         }
                     }),
                     'component': {
-                        'width': label.config.width,
-                        'height': label.config.height,
+                        'width': nfLabel.config.width,
+                        'height': nfLabel.config.height,
                         'position': {
                             'x': pt.x,
                             'y': pt.y
@@ -129,21 +129,21 @@
                 // create a new label
                 $.ajax({
                     type: 'POST',
-                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/labels',
+                    url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/labels',
                     data: JSON.stringify(labelEntity),
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
                     // add the label to the graph
-                    graph.add({
+                    nfGraph.add({
                         'labels': [response]
                     }, {
                         'selectAll': true
                     });
 
                     // update the birdseye
-                    birdseye.refresh();
-                }).fail(errorHandler.handleAjaxError);
+                    nfBirdseye.refresh();
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         }
 

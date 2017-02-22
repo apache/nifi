@@ -53,8 +53,8 @@
                 'nf.RemoteProcessGroupPorts',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, canvasUtils, common, dialog, client, errorHandler, clipboard, nfSnippet, nfGoto, angularBridge, shell, componentState, draggable, birdseye, nfConnection, graph, processGroupConfiguration, processorConfiguration, processorDetails, labelConfiguration, remoteProcessGroupConfiguration, remoteProcessGroupDetails, portConfiguration, portDetails, connectionConfiguration, connectionDetails, policyManagement, remoteProcessGroup, label, processor, remoteProcessGroupPorts, queueListing, statusHistory) {
-                return (nf.Actions = factory($, d3, canvasUtils, common, dialog, client, errorHandler, clipboard, nfSnippet, nfGoto, angularBridge, shell, componentState, draggable, birdseye, nfConnection, graph, processGroupConfiguration, processorConfiguration, processorDetails, labelConfiguration, remoteProcessGroupConfiguration, remoteProcessGroupDetails, portConfiguration, portDetails, connectionConfiguration, connectionDetails, policyManagement, remoteProcessGroup, label, processor, remoteProcessGroupPorts, queueListing, statusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -128,7 +128,7 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, canvasUtils, common, dialog, client, errorHandler, clipboard, nfSnippet, nfGoto, angularBridge, shell, componentState, draggable, birdseye, nfConnection, graph, processGroupConfiguration, processorConfiguration, processorDetails, labelConfiguration, remoteProcessGroupConfiguration, remoteProcessGroupDetails, portConfiguration, portDetails, connectionConfiguration, connectionDetails, policyManagement, remoteProcessGroup, label, processor, remoteProcessGroupPorts, queueListing, statusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfComponentState, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
@@ -169,9 +169,9 @@
             dataType: 'json',
             contentType: 'application/json'
         }).fail(function (xhr, status, error) {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Update Resource',
-                dialogContent: common.escapeHtml(xhr.responseText)
+                dialogContent: nfCommon.escapeHtml(xhr.responseText)
             });
         });
     };
@@ -183,14 +183,14 @@
             url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(response.id),
             dataType: 'json'
         }).done(function (response) {
-            graph.set(response.processGroupFlow.flow);
+            nfGraph.set(response.processGroupFlow.flow);
         });
     };
 
     // determine if the source of this connection is part of the selection
     var isSourceSelected = function (connection, selection) {
         return selection.filter(function (d) {
-                return canvasUtils.getConnectionSourceComponentId(connection) === d.id;
+                return nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id;
             }).size() > 0;
     };
 
@@ -208,9 +208,9 @@
          * @param {selection} selection     The the currently selected component
          */
         enterGroup: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isProcessGroup(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isProcessGroup(selection)) {
                 var selectionData = selection.datum();
-                canvasUtils.getComponentByType('ProcessGroup').enterGroup(selectionData.id);
+                nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(selectionData.id);
             }
         },
 
@@ -218,7 +218,7 @@
          * Exits the current process group but entering the parent group.
          */
         leaveGroup: function () {
-            canvasUtils.getComponentByType('ProcessGroup').enterGroup(canvasUtils.getParentGroupId());
+            nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(nfCanvasUtils.getParentGroupId());
         },
 
         /**
@@ -227,7 +227,7 @@
          * @param {selection} selection
          */
         refreshRemoteFlow: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isRemoteProcessGroup(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isRemoteProcessGroup(selection)) {
                 var d = selection.datum();
                 var refreshTimestamp = d.component.flowRefreshed;
 
@@ -256,7 +256,7 @@
                         if (refreshTimestamp === remoteProcessGroup.flowRefreshed) {
                             schedule(nextDelay);
                         } else {
-                            remoteProcessGroup.set(response);
+                            nfRemoteProcessGroup.set(response);
 
                             // reload the group's connections
                             var connections = nfConnection.getComponentConnections(remoteProcessGroup.id);
@@ -291,14 +291,14 @@
          * @param {selection} selection         The selection
          */
         openUri: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isRemoteProcessGroup(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isRemoteProcessGroup(selection)) {
                 var selectionData = selection.datum();
                 var uri = selectionData.component.targetUri;
 
-                if (!common.isBlank(uri)) {
+                if (!nfCommon.isBlank(uri)) {
                     window.open(encodeURI(uri));
                 } else {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Remote Process Group',
                         dialogContent: 'No target URI defined.'
                     });
@@ -312,11 +312,11 @@
          * @param {selection} selection     The selection
          */
         showSource: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isConnection(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
                 // the source is in the current group
-                if (selectionData.sourceGroupId === canvasUtils.getGroupId()) {
+                if (selectionData.sourceGroupId === nfCanvasUtils.getGroupId()) {
                     var source = d3.select('#id-' + selectionData.sourceId);
                     nfActions.show(source);
                 } else if (selectionData.sourceType === 'REMOTE_OUTPUT_PORT') {
@@ -325,7 +325,7 @@
                     nfActions.show(remoteSource);
                 } else {
                     // if the source is local but in a sub group
-                    canvasUtils.showComponent(selectionData.sourceGroupId, selectionData.sourceId);
+                    nfCanvasUtils.showComponent(selectionData.sourceGroupId, selectionData.sourceId);
                 }
             }
         },
@@ -336,11 +336,11 @@
          * @param {selection} selection     The selection
          */
         showDestination: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isConnection(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
                 // the destination is in the current group or its remote
-                if (selectionData.destinationGroupId === canvasUtils.getGroupId()) {
+                if (selectionData.destinationGroupId === nfCanvasUtils.getGroupId()) {
                     var destination = d3.select('#id-' + selectionData.destinationId);
                     nfActions.show(destination);
                 } else if (selectionData.destinationType === 'REMOTE_INPUT_PORT') {
@@ -349,7 +349,7 @@
                     nfActions.show(remoteDestination);
                 } else {
                     // if the destination is local but in a sub group
-                    canvasUtils.showComponent(selectionData.destinationGroupId, selectionData.destinationId);
+                    nfCanvasUtils.showComponent(selectionData.destinationGroupId, selectionData.destinationId);
                 }
             }
         },
@@ -360,18 +360,18 @@
          * @param {selection} selection     The selection
          */
         showDownstream: function (selection) {
-            if (selection.size() === 1 && !canvasUtils.isConnection(selection)) {
+            if (selection.size() === 1 && !nfCanvasUtils.isConnection(selection)) {
 
                 // open the downstream dialog according to the selection
-                if (canvasUtils.isProcessor(selection)) {
+                if (nfCanvasUtils.isProcessor(selection)) {
                     nfGoto.showDownstreamFromProcessor(selection);
-                } else if (canvasUtils.isFunnel(selection)) {
+                } else if (nfCanvasUtils.isFunnel(selection)) {
                     nfGoto.showDownstreamFromFunnel(selection);
-                } else if (canvasUtils.isInputPort(selection)) {
+                } else if (nfCanvasUtils.isInputPort(selection)) {
                     nfGoto.showDownstreamFromInputPort(selection);
-                } else if (canvasUtils.isOutputPort(selection)) {
+                } else if (nfCanvasUtils.isOutputPort(selection)) {
                     nfGoto.showDownstreamFromOutputPort(selection);
-                } else if (canvasUtils.isProcessGroup(selection) || canvasUtils.isRemoteProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isProcessGroup(selection) || nfCanvasUtils.isRemoteProcessGroup(selection)) {
                     nfGoto.showDownstreamFromGroup(selection);
                 }
             }
@@ -383,18 +383,18 @@
          * @param {selection} selection     The selection
          */
         showUpstream: function (selection) {
-            if (selection.size() === 1 && !canvasUtils.isConnection(selection)) {
+            if (selection.size() === 1 && !nfCanvasUtils.isConnection(selection)) {
 
                 // open the downstream dialog according to the selection
-                if (canvasUtils.isProcessor(selection)) {
+                if (nfCanvasUtils.isProcessor(selection)) {
                     nfGoto.showUpstreamFromProcessor(selection);
-                } else if (canvasUtils.isFunnel(selection)) {
+                } else if (nfCanvasUtils.isFunnel(selection)) {
                     nfGoto.showUpstreamFromFunnel(selection);
-                } else if (canvasUtils.isInputPort(selection)) {
+                } else if (nfCanvasUtils.isInputPort(selection)) {
                     nfGoto.showUpstreamFromInputPort(selection);
-                } else if (canvasUtils.isOutputPort(selection)) {
+                } else if (nfCanvasUtils.isOutputPort(selection)) {
                     nfGoto.showUpstreamFromOutputPort(selection);
-                } else if (canvasUtils.isProcessGroup(selection) || canvasUtils.isRemoteProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isProcessGroup(selection) || nfCanvasUtils.isRemoteProcessGroup(selection)) {
                     nfGoto.showUpstreamFromGroup(selection);
                 }
             }
@@ -408,7 +408,7 @@
         show: function (selection) {
             if (selection.size() === 1) {
                 // deselect the current selection
-                var currentlySelected = canvasUtils.getSelection();
+                var currentlySelected = nfCanvasUtils.getSelection();
                 currentlySelected.classed('selected', false);
 
                 // select only the component/connection in question
@@ -416,7 +416,7 @@
                 nfActions.center(selection);
 
                 // inform Angular app that values have changed
-                angularBridge.digest();
+                nfNgBridge.digest();
             }
         },
 
@@ -444,7 +444,7 @@
         center: function (selection) {
             if (selection.size() === 1) {
                 var box;
-                if (canvasUtils.isConnection(selection)) {
+                if (nfCanvasUtils.isConnection(selection)) {
                     var x, y;
                     var d = selection.datum();
 
@@ -477,10 +477,10 @@
                 }
 
                 // center on the component
-                canvasUtils.centerBoundingBox(box);
+                nfCanvasUtils.centerBoundingBox(box);
 
                 // refresh the canvas
-                canvasUtils.refreshCanvasView({
+                nfCanvasUtils.refreshCanvasView({
                     transition: true
                 });
             }
@@ -492,10 +492,10 @@
          * @argument {selection} selection      The selection
          */
         enable: function (selection) {
-            var componentsToEnable = canvasUtils.filterEnable(selection);
+            var componentsToEnable = nfCanvasUtils.filterEnable(selection);
 
             if (componentsToEnable.empty()) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Enable Components',
                     dialogContent: 'No eligible components are selected. Please select the components to be enabled and ensure they are no longer running.'
                 });
@@ -508,7 +508,7 @@
 
                     // build the entity
                     var entity = {
-                        'revision': client.getRevision(d),
+                        'revision': nfClient.getRevision(d),
                         'component': {
                             'id': d.id,
                             'state': 'STOPPED'
@@ -516,14 +516,14 @@
                     };
 
                     enableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        canvasUtils.getComponentByType(d.type).set(response);
+                        nfCanvasUtils.getComponentByType(d.type).set(response);
                     }));
                 });
 
                 // inform Angular app once the updates have completed
                 if (enableRequests.length > 0) {
                     $.when.apply(window, enableRequests).always(function () {
-                        angularBridge.digest();
+                        nfNgBridge.digest();
                     });
                 }
             }
@@ -535,10 +535,10 @@
          * @argument {selection} selection      The selection
          */
         disable: function (selection) {
-            var componentsToDisable = canvasUtils.filterDisable(selection);
+            var componentsToDisable = nfCanvasUtils.filterDisable(selection);
 
             if (componentsToDisable.empty()) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Disable Components',
                     dialogContent: 'No eligible components are selected. Please select the components to be disabled and ensure they are no longer running.'
                 });
@@ -551,7 +551,7 @@
 
                     // build the entity
                     var entity = {
-                        'revision': client.getRevision(d),
+                        'revision': nfClient.getRevision(d),
                         'component': {
                             'id': d.id,
                             'state': 'DISABLED'
@@ -559,14 +559,14 @@
                     };
 
                     disableRequests.push(updateResource(d.uri, entity).done(function (response) {
-                        canvasUtils.getComponentByType(d.type).set(response);
+                        nfCanvasUtils.getComponentByType(d.type).set(response);
                     }));
                 });
 
                 // inform Angular app once the updates have completed
                 if (disableRequests.length > 0) {
                     $.when.apply(window, disableRequests).always(function () {
-                        angularBridge.digest();
+                        nfNgBridge.digest();
                     });
                 }
             }
@@ -582,7 +582,7 @@
                 var selectionData = selection.datum();
 
                 // open the provenance page with the specified component
-                shell.showPage('provenance?' + $.param({
+                nfShell.showPage('provenance?' + $.param({
                         componentId: selectionData.id
                     }));
             }
@@ -597,19 +597,19 @@
             if (selection.empty()) {
                 // build the entity
                 var entity = {
-                    'id': canvasUtils.getGroupId(),
+                    'id': nfCanvasUtils.getGroupId(),
                     'state': 'RUNNING'
                 };
 
-                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStart = selection.filter(function (d) {
-                    return canvasUtils.isRunnable(d3.select(this));
+                    return nfCanvasUtils.isRunnable(d3.select(this));
                 });
 
                 // ensure there are startable components selected
                 if (componentsToStart.empty()) {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Start Components',
                         dialogContent: 'No eligible components are selected. Please select the components to be started and ensure they are no longer running.'
                     });
@@ -622,7 +622,7 @@
 
                         // prepare the request
                         var uri, entity;
-                        if (canvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
                             uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
                             entity = {
                                 'id': d.id,
@@ -631,7 +631,7 @@
                         } else {
                             uri = d.uri;
                             entity = {
-                                'revision': client.getRevision(d),
+                                'revision': nfClient.getRevision(d),
                                 'component': {
                                     'id': d.id,
                                     'state': 'RUNNING'
@@ -640,10 +640,10 @@
                         }
 
                         startRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (canvasUtils.isProcessGroup(selected)) {
-                                canvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
                             } else {
-                                canvasUtils.getComponentByType(d.type).set(response);
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
                             }
                         }));
                     });
@@ -651,7 +651,7 @@
                     // inform Angular app once the updates have completed
                     if (startRequests.length > 0) {
                         $.when.apply(window, startRequests).always(function () {
-                            angularBridge.digest();
+                            nfNgBridge.digest();
                         });
                     }
                 }
@@ -667,19 +667,19 @@
             if (selection.empty()) {
                 // build the entity
                 var entity = {
-                    'id': canvasUtils.getGroupId(),
+                    'id': nfCanvasUtils.getGroupId(),
                     'state': 'STOPPED'
                 };
 
-                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStop = selection.filter(function (d) {
-                    return canvasUtils.isStoppable(d3.select(this));
+                    return nfCanvasUtils.isStoppable(d3.select(this));
                 });
 
                 // ensure there are some component to stop
                 if (componentsToStop.empty()) {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Stop Components',
                         dialogContent: 'No eligible components are selected. Please select the components to be stopped.'
                     });
@@ -692,7 +692,7 @@
 
                         // prepare the request
                         var uri, entity;
-                        if (canvasUtils.isProcessGroup(selected)) {
+                        if (nfCanvasUtils.isProcessGroup(selected)) {
                             uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
                             entity = {
                                 'id': d.id,
@@ -701,7 +701,7 @@
                         } else {
                             uri = d.uri;
                             entity = {
-                                'revision': client.getRevision(d),
+                                'revision': nfClient.getRevision(d),
                                 'component': {
                                     'id': d.id,
                                     'state': 'STOPPED'
@@ -710,10 +710,10 @@
                         }
 
                         stopRequests.push(updateResource(uri, entity).done(function (response) {
-                            if (canvasUtils.isProcessGroup(selected)) {
-                                canvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                            if (nfCanvasUtils.isProcessGroup(selected)) {
+                                nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
                             } else {
-                                canvasUtils.getComponentByType(d.type).set(response);
+                                nfCanvasUtils.getComponentByType(d.type).set(response);
                             }
                         }));
                     });
@@ -721,7 +721,7 @@
                     // inform Angular app once the updates have completed
                     if (stopRequests.length > 0) {
                         $.when.apply(window, stopRequests).always(function () {
-                            angularBridge.digest();
+                            nfNgBridge.digest();
                         });
                     }
                 }
@@ -735,14 +735,14 @@
          */
         enableTransmission: function (selection) {
             var componentsToEnable = selection.filter(function (d) {
-                return canvasUtils.canStartTransmitting(d3.select(this));
+                return nfCanvasUtils.canStartTransmitting(d3.select(this));
             });
 
             // start each selected component
             componentsToEnable.each(function (d) {
                 // build the entity
                 var entity = {
-                    'revision': client.getRevision(d),
+                    'revision': nfClient.getRevision(d),
                     'component': {
                         'id': d.id,
                         'transmitting': true
@@ -751,7 +751,7 @@
 
                 // start transmitting
                 updateResource(d.uri, entity).done(function (response) {
-                    remoteProcessGroup.set(response);
+                    nfRemoteProcessGroup.set(response);
                 });
             });
         },
@@ -763,14 +763,14 @@
          */
         disableTransmission: function (selection) {
             var componentsToDisable = selection.filter(function (d) {
-                return canvasUtils.canStopTransmitting(d3.select(this));
+                return nfCanvasUtils.canStopTransmitting(d3.select(this));
             });
 
             // stop each selected component
             componentsToDisable.each(function (d) {
                 // build the entity
                 var entity = {
-                    'revision': client.getRevision(d),
+                    'revision': nfClient.getRevision(d),
                     'component': {
                         'id': d.id,
                         'transmitting': false
@@ -778,7 +778,7 @@
                 };
 
                 updateResource(d.uri, entity).done(function (response) {
-                    remoteProcessGroup.set(response);
+                    nfRemoteProcessGroup.set(response);
                 });
             });
         },
@@ -790,21 +790,21 @@
          */
         showConfiguration: function (selection) {
             if (selection.empty()) {
-                processGroupConfiguration.showConfiguration(canvasUtils.getGroupId());
+                nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                if (canvasUtils.isProcessor(selection)) {
-                    processorConfiguration.showConfiguration(selection);
-                } else if (canvasUtils.isLabel(selection)) {
-                    labelConfiguration.showConfiguration(selection);
-                } else if (canvasUtils.isProcessGroup(selection)) {
-                    processGroupConfiguration.showConfiguration(selectionData.id);
-                } else if (canvasUtils.isRemoteProcessGroup(selection)) {
-                    remoteProcessGroupConfiguration.showConfiguration(selection);
-                } else if (canvasUtils.isInputPort(selection) || canvasUtils.isOutputPort(selection)) {
-                    portConfiguration.showConfiguration(selection);
-                } else if (canvasUtils.isConnection(selection)) {
-                    connectionConfiguration.showConfiguration(selection);
+                if (nfCanvasUtils.isProcessor(selection)) {
+                    nfProcessorConfiguration.showConfiguration(selection);
+                } else if (nfCanvasUtils.isLabel(selection)) {
+                    nfLabelConfiguration.showConfiguration(selection);
+                } else if (nfCanvasUtils.isProcessGroup(selection)) {
+                    nfProcessGroupConfiguration.showConfiguration(selectionData.id);
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
+                    nfRemoteProcessGroupConfiguration.showConfiguration(selection);
+                } else if (nfCanvasUtils.isInputPort(selection) || nfCanvasUtils.isOutputPort(selection)) {
+                    nfPortConfiguration.showConfiguration(selection);
+                } else if (nfCanvasUtils.isConnection(selection)) {
+                    nfConnectionConfiguration.showConfiguration(selection);
                 }
             }
         },
@@ -816,26 +816,26 @@
          */
         managePolicies: function(selection) {
             if (selection.size() <= 1) {
-                policyManagement.showComponentPolicy(selection);
+                nfPolicyManagement.showComponentPolicy(selection);
             }
         },
 
         // Defines an action for showing component details (like configuration but read only).
         showDetails: function (selection) {
             if (selection.empty()) {
-                processGroupConfiguration.showConfiguration(canvasUtils.getGroupId());
+                nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                if (canvasUtils.isProcessor(selection)) {
-                    processorDetails.showDetails(canvasUtils.getGroupId(), selectionData.id);
-                } else if (canvasUtils.isProcessGroup(selection)) {
-                    processGroupConfiguration.showConfiguration(selectionData.id);
-                } else if (canvasUtils.isRemoteProcessGroup(selection)) {
-                    remoteProcessGroupDetails.showDetails(selection);
-                } else if (canvasUtils.isInputPort(selection) || canvasUtils.isOutputPort(selection)) {
-                    portDetails.showDetails(selection);
-                } else if (canvasUtils.isConnection(selection)) {
-                    connectionDetails.showDetails(canvasUtils.getGroupId(), selectionData.id);
+                if (nfCanvasUtils.isProcessor(selection)) {
+                    nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
+                } else if (nfCanvasUtils.isProcessGroup(selection)) {
+                    nfProcessGroupConfiguration.showConfiguration(selectionData.id);
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
+                    nfRemoteProcessGroupDetails.showDetails(selection);
+                } else if (nfCanvasUtils.isInputPort(selection) || nfCanvasUtils.isOutputPort(selection)) {
+                    nfPortDetails.showDetails(selection);
+                } else if (nfCanvasUtils.isConnection(selection)) {
+                    nfConnectionDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
                 }
             }
         },
@@ -846,10 +846,10 @@
          * @param {selection} selection     The selection
          */
         showUsage: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isProcessor(selection)) {
+            if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
-                shell.showPage('../nifi-docs/documentation?' + $.param({
-                        select: common.substringAfterLast(selectionData.component.type, '.')
+                nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                        select: nfCommon.substringAfterLast(selectionData.component.type, '.')
                     }));
             }
         },
@@ -862,14 +862,14 @@
         showStats: function (selection) {
             if (selection.size() === 1) {
                 var selectionData = selection.datum();
-                if (canvasUtils.isProcessor(selection)) {
-                    statusHistory.showProcessorChart(canvasUtils.getGroupId(), selectionData.id);
-                } else if (canvasUtils.isProcessGroup(selection)) {
-                    statusHistory.showProcessGroupChart(canvasUtils.getGroupId(), selectionData.id);
-                } else if (canvasUtils.isRemoteProcessGroup(selection)) {
-                    statusHistory.showRemoteProcessGroupChart(canvasUtils.getGroupId(), selectionData.id);
-                } else if (canvasUtils.isConnection(selection)) {
-                    statusHistory.showConnectionChart(canvasUtils.getGroupId(), selectionData.id);
+                if (nfCanvasUtils.isProcessor(selection)) {
+                    nfStatusHistory.showProcessorChart(nfCanvasUtils.getGroupId(), selectionData.id);
+                } else if (nfCanvasUtils.isProcessGroup(selection)) {
+                    nfStatusHistory.showProcessGroupChart(nfCanvasUtils.getGroupId(), selectionData.id);
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
+                    nfStatusHistory.showRemoteProcessGroupChart(nfCanvasUtils.getGroupId(), selectionData.id);
+                } else if (nfCanvasUtils.isConnection(selection)) {
+                    nfStatusHistory.showConnectionChart(nfCanvasUtils.getGroupId(), selectionData.id);
                 }
             }
         },
@@ -880,8 +880,8 @@
          * @param {selection} selection         The selection
          */
         remotePorts: function (selection) {
-            if (selection.size() === 1 && canvasUtils.isRemoteProcessGroup(selection)) {
-                remoteProcessGroupPorts.showPorts(selection);
+            if (selection.size() === 1 && nfCanvasUtils.isRemoteProcessGroup(selection)) {
+                nfRemoteProcessGroupPorts.showPorts(selection);
             }
         },
 
@@ -889,7 +889,7 @@
          * Reloads the status for the entire canvas (components and flow.)
          */
         reload: function () {
-            canvasUtils.reload({
+            nfCanvasUtils.reload({
                 'transition': true
             });
         },
@@ -900,15 +900,15 @@
          * @param {selection} selection     The selection containing the component to be removed
          */
         'delete': function (selection) {
-            if (common.isUndefined(selection) || selection.empty()) {
-                dialog.showOkDialog({
+            if (nfCommon.isUndefined(selection) || selection.empty()) {
+                nfDialog.showOkDialog({
                     headerText: 'Reload',
                     dialogContent: 'No eligible components are selected. Please select the components to be deleted.'
                 });
             } else {
                 if (selection.size() === 1) {
                     var selectionData = selection.datum();
-                    var revision = client.getRevision(selectionData);
+                    var revision = nfClient.getRevision(selectionData);
 
                     $.ajax({
                         type: 'DELETE',
@@ -919,10 +919,10 @@
                         dataType: 'json'
                     }).done(function (response) {
                         // remove the component/connection in question
-                        canvasUtils.getComponentByType(selectionData.type).remove(selectionData.id);
+                        nfCanvasUtils.getComponentByType(selectionData.type).remove(selectionData.id);
 
                         // if the selection is a connection, reload the source and destination accordingly
-                        if (canvasUtils.isConnection(selection) === false) {
+                        if (nfCanvasUtils.isConnection(selection) === false) {
                             var connections = nfConnection.getComponentConnections(selectionData.id);
                             if (connections.length > 0) {
                                 var ids = [];
@@ -936,10 +936,10 @@
                         }
 
                         // refresh the birdseye
-                        birdseye.refresh();
+                        nfBirdseye.refresh();
                         // inform Angular app values have changed
-                        angularBridge.digest();
-                    }).fail(errorHandler.handleAjaxError);
+                        nfNgBridge.digest();
+                    }).fail(nfErrorHandler.handleAjaxError);
                 } else {
                     // create a snippet for the specified component and link to the data flow
                     var snippet = nfSnippet.marshal(selection);
@@ -975,7 +975,7 @@
                             // remove all the non connections in the snippet first
                             components.forEach(function (type, ids) {
                                 if (type !== 'Connection') {
-                                    canvasUtils.getComponentByType(type).remove(ids);
+                                    nfCanvasUtils.getComponentByType(type).remove(ids);
                                 }
                             });
 
@@ -985,12 +985,12 @@
                             }
 
                             // refresh the birdseye
-                            birdseye.refresh();
+                            nfBirdseye.refresh();
 
                             // inform Angular app values have changed
-                            angularBridge.digest();
-                        }).fail(errorHandler.handleAjaxError);
-                    }).fail(errorHandler.handleAjaxError);
+                            nfNgBridge.digest();
+                        }).fail(nfErrorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
                 }
             }
         },
@@ -1001,12 +1001,12 @@
          * @param {type} selection
          */
         emptyQueue: function (selection) {
-            if (selection.size() !== 1 || !canvasUtils.isConnection(selection)) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isConnection(selection)) {
                 return;
             }
 
             // prompt the user before emptying the queue
-            dialog.showYesNoDialog({
+            nfDialog.showYesNoDialog({
                 headerText: 'Empty Queue',
                 dialogContent: 'Are you sure you want to empty this queue? All FlowFiles waiting at the time of the request will be removed.',
                 noText: 'Cancel',
@@ -1029,7 +1029,7 @@
 
                         // update the progress bar
                         var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                        (angularBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'))(angularBridge.rootScope)).appendTo(progressBar);
+                        (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
                         progressBar.append(label);
                     };
 
@@ -1063,7 +1063,7 @@
                         nfConnection.reloadStatus(connection.id);
 
                         // clean up as appropriate
-                        if (common.isDefinedAndNotNull(dropRequest)) {
+                        if (nfCommon.isDefinedAndNotNull(dropRequest)) {
                             $.ajax({
                                 type: 'DELETE',
                                 url: dropRequest.uri,
@@ -1087,12 +1087,12 @@
                                 $('<span></span>').text(' were removed from the queue.').appendTo(results);
 
                                 // if this request failed so the error
-                                if (common.isDefinedAndNotNull(dropRequest.failureReason)) {
+                                if (nfCommon.isDefinedAndNotNull(dropRequest.failureReason)) {
                                     $('<br/><br/><span></span>').text(dropRequest.failureReason).appendTo(results);
                                 }
 
                                 // display the results
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     headerText: 'Empty Queue',
                                     dialogContent: results
                                 });
@@ -1101,7 +1101,7 @@
                             });
                         } else {
                             // nothing was removed
-                            dialog.showOkDialog({
+                            nfDialog.showOkDialog({
                                 headerText: 'Empty Queue',
                                 dialogContent: 'No FlowFiles were removed.'
                             });
@@ -1145,7 +1145,7 @@
                             processDropRequest(nextDelay);
                         }).fail(function (xhr, status, error) {
                             if (xhr.status === 403) {
-                                errorHandler.handleAjaxError(xhr, status, error);
+                                nfErrorHandler.handleAjaxError(xhr, status, error);
                             } else {
                                 completeDropRequest()
                             }
@@ -1170,7 +1170,7 @@
                         processDropRequest(1);
                     }).fail(function (xhr, status, error) {
                         if (xhr.status === 403) {
-                            errorHandler.handleAjaxError(xhr, status, error);
+                            nfErrorHandler.handleAjaxError(xhr, status, error);
                         } else {
                             completeDropRequest()
                         }
@@ -1185,7 +1185,7 @@
          * @param {selection} selection
          */
         listQueue: function (selection) {
-            if (selection.size() !== 1 || !canvasUtils.isConnection(selection)) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isConnection(selection)) {
                 return;
             }
 
@@ -1193,7 +1193,7 @@
             var connection = selection.datum();
 
             // list the flow files in the specified connection
-            queueListing.listQueue(connection);
+            nfQueueListing.listQueue(connection);
         },
 
         /**
@@ -1202,7 +1202,7 @@
          * @param {selection} selection
          */
         viewState: function (selection) {
-            if (selection.size() !== 1 || !canvasUtils.isProcessor(selection)) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isProcessor(selection)) {
                 return;
             }
 
@@ -1210,7 +1210,7 @@
             var processor = selection.datum();
 
             // view the state for the selected processor
-            componentState.showState(processor, canvasUtils.isConfigurable(selection));
+            nfComponentState.showState(processor, nfCanvasUtils.isConfigurable(selection));
         },
 
         /**
@@ -1221,8 +1221,8 @@
         alignVertical: function (selection) {
             var updates = d3.map();
             // ensure every component is writable
-            if (canvasUtils.canModify(selection) === false) {
-                dialog.showOkDialog({
+            if (nfCanvasUtils.canModify(selection) === false) {
+                nfDialog.showOkDialog({
                     headerText: 'Component Position',
                     dialogContent: 'Must be authorized to modify every component selected.'
                 });
@@ -1257,28 +1257,28 @@
                         $.each(connections, function(_, connection) {
                             var connectionSelection = d3.select('#id-' + connection.id);
 
-                            if (!updates.has(connection.id) && canvasUtils.getConnectionSourceComponentId(connection) === canvasUtils.getConnectionDestinationComponentId(connection)) {
+                            if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
                                 // this connection is self looping and hasn't been updated by the delta yet
-                                var connectionUpdate = draggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                                 if (connectionUpdate !== null) {
                                     updates.set(connection.id, connectionUpdate);
                                 }
-                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && canvasUtils.canModify(connectionSelection)) {
+                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
                                 // this is a selected connection that hasn't been updated by the delta yet
-                                if (canvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                                if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
                                     // the connection is either outgoing or incoming when the source of the connection is not part of the selection
-                                    var connectionUpdate = draggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                                     if (connectionUpdate !== null) {
                                         updates.set(connection.id, connectionUpdate);
                                     }
                                 }
                             }
                         });
-                        updates.set(d.id, draggable.updateComponentPosition(d, delta));
+                        updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
                     }
                 }
             });
-            draggable.refreshConnections(updates);
+            nfDraggable.refreshConnections(updates);
         },
 
         /**
@@ -1289,8 +1289,8 @@
         alignHorizontal: function (selection) {
             var updates = d3.map();
             // ensure every component is writable
-            if (canvasUtils.canModify(selection) === false) {
-                dialog.showOkDialog({
+            if (nfCanvasUtils.canModify(selection) === false) {
+                nfDialog.showOkDialog({
                     headerText: 'Component Position',
                     dialogContent: 'Must be authorized to modify every component selected.'
                 });
@@ -1327,29 +1327,29 @@
                         $.each(connections, function(_, connection) {
                             var connectionSelection = d3.select('#id-' + connection.id);
 
-                            if (!updates.has(connection.id) && canvasUtils.getConnectionSourceComponentId(connection) === canvasUtils.getConnectionDestinationComponentId(connection)) {
+                            if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
                                 // this connection is self looping and hasn't been updated by the delta yet
-                                var connectionUpdate = draggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                                 if (connectionUpdate !== null) {
                                     updates.set(connection.id, connectionUpdate);
                                 }
-                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && canvasUtils.canModify(connectionSelection)) {
+                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
                                 // this is a selected connection that hasn't been updated by the delta yet
-                                if (canvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                                if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
                                     // the connection is either outgoing or incoming when the source of the connection is not part of the selection
-                                    var connectionUpdate = draggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                                     if (connectionUpdate !== null) {
                                         updates.set(connection.id, connectionUpdate);
                                     }
                                 }
                             }
                         });
-                        updates.set(d.id, draggable.updateComponentPosition(d, delta));
+                        updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
                     }
                 }
             });
 
-            draggable.refreshConnections(updates);
+            nfDraggable.refreshConnections(updates);
         },
 
         /**
@@ -1358,16 +1358,16 @@
          * @param {type} selection      The selection
          */
         fillColor: function (selection) {
-            if (canvasUtils.isColorable(selection)) {
+            if (nfCanvasUtils.isColorable(selection)) {
                 // we know that the entire selection is processors or labels... this
                 // checks if the first item is a processor... if true, all processors
-                var allProcessors = canvasUtils.isProcessor(selection);
+                var allProcessors = nfCanvasUtils.isProcessor(selection);
 
                 var color;
                 if (allProcessors) {
-                    color = processor.defaultFillColor();
+                    color = nfProcessor.defaultFillColor();
                 } else {
-                    color = label.defaultColor();
+                    color = nfLabel.defaultColor();
                 }
 
                 // if there is only one component selected, get its color otherwise use default
@@ -1375,7 +1375,7 @@
                     var selectionData = selection.datum();
 
                     // use the specified color if appropriate
-                    if (common.isDefinedAndNotNull(selectionData.component.style['background-color'])) {
+                    if (nfCommon.isDefinedAndNotNull(selectionData.component.style['background-color'])) {
                         color = selectionData.component.style['background-color'];
                     }
                 }
@@ -1401,7 +1401,7 @@
          * Groups the currently selected components into a new group.
          */
         group: function () {
-            var selection = canvasUtils.getSelection();
+            var selection = nfCanvasUtils.getSelection();
 
             // ensure that components have been specified
             if (selection.empty()) {
@@ -1409,12 +1409,12 @@
             }
 
             // determine the origin of the bounding box for the selected components
-            var origin = canvasUtils.getOrigin(selection);
+            var origin = nfCanvasUtils.getOrigin(selection);
 
             var pt = {'x': origin.x, 'y': origin.y};
-            $.when(angularBridge.injector.get('groupComponent').promptForGroupName(pt)).done(function (processGroup) {
+            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt)).done(function (processGroup) {
                 var group = d3.select('#id-' + processGroup.id);
-                canvasUtils.moveComponents(selection, group);
+                nfCanvasUtils.moveComponents(selection, group);
             });
         },
 
@@ -1422,7 +1422,7 @@
          * Moves the currently selected component into the current parent group.
          */
         moveIntoParent: function () {
-            var selection = canvasUtils.getSelection();
+            var selection = nfCanvasUtils.getSelection();
 
             // ensure that components have been specified
             if (selection.empty()) {
@@ -1430,7 +1430,7 @@
             }
 
             // move the current selection into the parent group
-            canvasUtils.moveComponentsToParent(selection);
+            nfCanvasUtils.moveComponentsToParent(selection);
         },
 
         /**
@@ -1445,7 +1445,7 @@
          * are selected, a template of the entire canvas is made.
          */
         template: function () {
-            var selection = canvasUtils.getSelection();
+            var selection = nfCanvasUtils.getSelection();
 
             // if no components are selected, use the entire graph
             if (selection.empty()) {
@@ -1454,7 +1454,7 @@
 
             // ensure that components have been specified
             if (selection.empty()) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Create Template',
                     dialogContent: "The current selection is not valid to create a template."
                 });
@@ -1462,11 +1462,11 @@
             }
 
             // remove dangling edges (where only the source or destination is also selected)
-            selection = canvasUtils.trimDanglingEdges(selection);
+            selection = nfCanvasUtils.trimDanglingEdges(selection);
 
             // ensure that components specified are valid
             if (selection.empty()) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Create Template',
                     dialogContent: "The current selection is not valid to create a template."
                 });
@@ -1487,8 +1487,8 @@
                         var templateName = $('#new-template-name').val();
 
                         // ensure the template name is not blank
-                        if (common.isBlank(templateName)) {
-                            dialog.showOkDialog({
+                        if (nfCommon.isBlank(templateName)) {
+                            nfDialog.showOkDialog({
                                 headerText: 'Create Template',
                                 dialogContent: "The template name cannot be blank."
                             });
@@ -1515,22 +1515,22 @@
                             // create the template
                             $.ajax({
                                 type: 'POST',
-                                url: config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/templates',
+                                url: config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates',
                                 data: JSON.stringify(createSnippetEntity),
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function () {
                                 // show the confirmation dialog
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     headerText: 'Create Template',
-                                    dialogContent: "Template '" + common.escapeHtml(templateName) + "' was successfully created."
+                                    dialogContent: "Template '" + nfCommon.escapeHtml(templateName) + "' was successfully created."
                                 });
                             }).always(function () {
                                 // clear the template dialog fields
                                 $('#new-template-name').val('');
                                 $('#new-template-description').val('');
-                            }).fail(errorHandler.handleAjaxError);
-                        }).fail(errorHandler.handleAjaxError);
+                            }).fail(nfErrorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
                     }
                 }
             }, {
@@ -1566,10 +1566,10 @@
             }
 
             // determine the origin of the bounding box of the selection
-            var origin = canvasUtils.getOrigin(selection);
+            var origin = nfCanvasUtils.getOrigin(selection);
 
             // copy the snippet details
-            clipboard.copy({
+            nfClipboard.copy({
                 snippet: nfSnippet.marshal(selection),
                 origin: origin
             });
@@ -1582,13 +1582,13 @@
          * @param {obj} evt                 The mouse event
          */
         paste: function (selection, evt) {
-            if (common.isDefinedAndNotNull(evt)) {
+            if (nfCommon.isDefinedAndNotNull(evt)) {
                 // get the current scale and translation
-                var scale = canvasUtils.scaleCanvasView();
-                var translate = canvasUtils.translateCanvasView();
+                var scale = nfCanvasUtils.scaleCanvasView();
+                var translate = nfCanvasUtils.translateCanvasView();
 
                 var mouseX = evt.pageX;
-                var mouseY = evt.pageY - canvasUtils.getCanvasOffset();
+                var mouseY = evt.pageY - nfCanvasUtils.getCanvasOffset();
 
                 // adjust the x and y coordinates accordingly
                 var x = (mouseX / scale) - (translate[0] / scale);
@@ -1602,7 +1602,7 @@
             }
 
             // perform the paste
-            clipboard.paste().done(function (data) {
+            nfClipboard.paste().done(function (data) {
                 var copySnippet = $.Deferred(function (deferred) {
                     var reject = function (xhr, status, error) {
                         deferred.reject(xhr.responseText);
@@ -1615,7 +1615,7 @@
                         var snippetOrigin = data['origin'];
 
                         // determine the appropriate origin
-                        if (!common.isDefinedAndNotNull(origin)) {
+                        if (!nfCommon.isDefinedAndNotNull(origin)) {
                             snippetOrigin.x += 25;
                             snippetOrigin.y += 25;
                             origin = snippetOrigin;
@@ -1626,24 +1626,24 @@
                             var snippetFlow = copyResponse.flow;
 
                             // update the graph accordingly
-                            graph.add(snippetFlow, {
+                            nfGraph.add(snippetFlow, {
                                 'selectAll': true
                             });
 
                             // update component visibility
-                            graph.updateVisibility();
+                            nfGraph.updateVisibility();
 
                             // refresh the birdseye/toolbar
-                            birdseye.refresh();
+                            nfBirdseye.refresh();
                         }).fail(function () {
                             // an error occured while performing the copy operation, reload the
                             // graph in case it was a partial success
-                            canvasUtils.reload().done(function () {
+                            nfCanvasUtils.reload().done(function () {
                                 // update component visibility
-                                graph.updateVisibility();
+                                nfGraph.updateVisibility();
 
                                 // refresh the birdseye/toolbar
-                                birdseye.refresh();
+                                nfBirdseye.refresh();
                             });
                         }).fail(reject);
                     }).fail(reject);
@@ -1657,9 +1657,9 @@
                         message = responseText;
                     }
 
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Paste Error',
-                        dialogContent: common.escapeHtml(message)
+                        dialogContent: nfCommon.escapeHtml(message)
                     });
                 });
             });
@@ -1671,7 +1671,7 @@
          * @param {selection} selection
          */
         toFront: function (selection) {
-            if (selection.size() !== 1 || !canvasUtils.isConnection(selection)) {
+            if (selection.size() !== 1 || !nfCanvasUtils.isConnection(selection)) {
                 return;
             }
 
@@ -1693,7 +1693,7 @@
 
                 // build the connection entity
                 var connectionEntity = {
-                    'revision': client.getRevision(connection),
+                    'revision': nfClient.getRevision(connection),
                     'component': {
                         'id': connection.id,
                         'zIndex': zIndex

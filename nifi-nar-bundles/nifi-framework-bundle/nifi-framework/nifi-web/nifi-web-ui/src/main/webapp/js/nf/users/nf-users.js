@@ -25,8 +25,8 @@
                 'nf.ErrorHandler',
                 'nf.Storage',
                 'nf.Client'],
-            function ($, common, usersTable, errorHandler, storage, client) {
-                return (nf.Users = factory($, common, usersTable, errorHandler, storage, client));
+            function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
+                return (nf.Users = factory($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Users =
@@ -45,7 +45,7 @@
                 root.nf.Storage,
                 root.nf.Client);
     }
-}(this, function ($, common, usersTable, errorHandler, storage, client) {
+}(this, function ($, nfCommon, nfUsersTable, nfErrorHandler, nfStorage, nfClient) {
     'use strict';
 
     $(document).ready(function () {
@@ -79,14 +79,14 @@
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            common.setCurrentUser(currentUser);
-        }).fail(errorHandler.handleAjaxError);
+            nfCommon.setCurrentUser(currentUser);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var initializeUsersPage = function () {
         // define mouse over event for the refresh button
-        common.addHoverEffect('#user-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            usersTable.loadUsersTable();
+        nfCommon.addHoverEffect('#user-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            nfUsersTable.loadUsersTable();
         });
 
         // get the banners if we're not in the shell
@@ -98,8 +98,8 @@
                     dataType: 'json'
                 }).done(function (bannerResponse) {
                     // ensure the banners response is specified
-                    if (common.isDefinedAndNotNull(bannerResponse.banners)) {
-                        if (common.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(bannerResponse.banners)) {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(bannerResponse.banners.headerText).show();
 
@@ -113,7 +113,7 @@
                             updateTop('users');
                         }
 
-                        if (common.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(bannerResponse.banners.footerText).show();
 
@@ -129,7 +129,7 @@
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -143,25 +143,25 @@
          * Initializes the counters page.
          */
         init: function () {
-            storage.init();
+            nfStorage.init();
 
             // initialize the client
-            client.init();
+            nfClient.init();
 
             // load the users authorities
             ensureAccess().done(function () {
                 // create the counters table
-                usersTable.init();
+                nfUsersTable.init();
 
                 // load the users table
-                usersTable.loadUsersTable().done(function () {
+                nfUsersTable.loadUsersTable().done(function () {
                     // finish initializing users page
                     initializeUsersPage().done(function () {
                         // listen for browser resize events to update the page size
-                        $(window).resize(usersTable.resetTableSize);
+                        $(window).resize(nfUsersTable.resetTableSize);
 
                         // configure the initial grid height
-                        usersTable.resetTableSize();
+                        nfUsersTable.resetTableSize();
 
                         // get the about details
                         $.ajax({
@@ -175,7 +175,7 @@
                             // set the document title and the about title
                             document.title = countersTitle;
                             $('#users-header-text').text(countersTitle);
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
                     });
 
                     $(window).on('resize', function (e) {

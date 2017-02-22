@@ -23,8 +23,8 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.SummaryTable'],
-            function ($, common, dialog, summaryTable) {
-                return (nf.ClusterSearch = factory($, common, dialog, summaryTable));
+            function ($, nfCommon, nfDialog, nfSummaryTable) {
+                return (nf.ClusterSearch = factory($, nfCommon, nfDialog, nfSummaryTable));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ClusterSearch =
@@ -38,7 +38,7 @@
             root.nf.Dialog,
             root.nf.SummaryTable);
     }
-}(this, function ($, common, dialog, summaryTable) {
+}(this, function ($, nfCommon, nfDialog, nfSummaryTable) {
     'use strict';
 
     /**
@@ -85,10 +85,10 @@
                                 // selects the specified node
                                 var selectNode = function (node) {
                                     // update the urls to point to this specific node of the cluster
-                                    summaryTable.setClusterNodeId(node.id);
+                                    nfSummaryTable.setClusterNodeId(node.id);
 
                                     // load the summary for the selected node
-                                    summaryTable.loadSummaryTable();
+                                    nfSummaryTable.loadSummaryTable();
 
                                     // update the header
                                     $('#summary-header-text').text(node.address + ' Summary');
@@ -96,9 +96,9 @@
 
                                 // ensure the search found some results
                                 if (!$.isArray(searchResults) || searchResults.length === 0) {
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         headerText: 'Cluster Search',
-                                        dialogContent: 'No nodes match \'' + common.escapeHtml(clusterSearchTerm) + '\'.'
+                                        dialogContent: 'No nodes match \'' + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
                                     });
                                 } else if (searchResults.length > 1) {
                                     var exactMatch = false;
@@ -117,9 +117,9 @@
                                         // close the dialog
                                         $('#view-single-node-dialog').modal('hide');
                                     } else {
-                                        dialog.showOkDialog({
+                                        nfDialog.showOkDialog({
                                             headerText: 'Cluster Search',
-                                            dialogContent: 'More than one node matches \'' + common.escapeHtml(clusterSearchTerm) + '\'.'
+                                            dialogContent: 'More than one node matches \'' + nfCommon.escapeHtml(clusterSearchTerm) + '\'.'
                                         });
                                     }
                                 } else if (searchResults.length === 1) {
@@ -234,8 +234,8 @@
             // handle the view cluster click event
             $('#view-cluster-link').click(function () {
                 // reset the urls and refresh the table
-                summaryTable.setClusterNodeId(null);
-                summaryTable.loadSummaryTable();
+                nfSummaryTable.setClusterNodeId(null);
+                nfSummaryTable.loadSummaryTable();
 
                 // update the header
                 $('#summary-header-text').text('NiFi Summary');

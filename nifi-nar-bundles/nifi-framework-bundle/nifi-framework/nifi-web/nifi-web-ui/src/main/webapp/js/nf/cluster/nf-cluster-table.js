@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.ErrorHandler'],
-            function ($, Slick, common, dialog, errorHandler) {
-                return (nf.ClusterTable = factory($, Slick, common, dialog, errorHandler));
+            function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
+                return (nf.ClusterTable = factory($, Slick, nfCommon, nfDialog, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ClusterTable =
@@ -41,7 +41,7 @@
             root.nf.Dialog,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, common, dialog, errorHandler) {
+}(this, function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
     'use strict';
 
     /**
@@ -58,11 +58,11 @@
         data: [{
             name: 'cluster',
             update: refreshClusterData,
-            isAuthorized: common.canAccessController
+            isAuthorized: nfCommon.canAccessController
         }, {
             name: 'systemDiagnostics',
             update: refreshSystemDiagnosticsData,
-            isAuthorized: common.canAccessSystem
+            isAuthorized: nfCommon.canAccessSystem
         }
         ]
     };
@@ -452,7 +452,7 @@
 
         // function for formatting the last accessed time
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-            return common.formatValue(value);
+            return nfCommon.formatValue(value);
         };
 
         // define a custom formatter for the status column
@@ -523,7 +523,7 @@
         ];
 
         // only allow the admin to modify the cluster
-        if (common.canModifyController()) {
+        if (nfCommon.canModifyController()) {
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                 var canDisconnect = false;
                 var canConnect = false;
@@ -571,8 +571,8 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if (sortDetails.columnId === 'heartbeat' || sortDetails.columnId === 'uptime') {
-                var aDate = common.parseDateTime(a[sortDetails.columnId]);
-                var bDate = common.parseDateTime(b[sortDetails.columnId]);
+                var aDate = nfCommon.parseDateTime(a[sortDetails.columnId]);
+                var bDate = nfCommon.parseDateTime(b[sortDetails.columnId]);
                 return aDate.getTime() - bDate.getTime();
             } else if (sortDetails.columnId === 'queued') {
                 var aSplit = a[sortDetails.columnId].split(/ \/ /);
@@ -580,13 +580,13 @@
                 var mod = count % 4;
                 if (mod < 2) {
                     $('#cluster-nodes-table span.queued-title').addClass('sorted');
-                    var aCount = common.parseCount(aSplit[0]);
-                    var bCount = common.parseCount(bSplit[0]);
+                    var aCount = nfCommon.parseCount(aSplit[0]);
+                    var bCount = nfCommon.parseCount(bSplit[0]);
                     return aCount - bCount;
                 } else {
                     $('#cluster-nodes-table span.queued-size-title').addClass('sorted');
-                    var aSize = common.parseSize(aSplit[1]);
-                    var bSize = common.parseSize(bSplit[1]);
+                    var aSize = nfCommon.parseSize(aSplit[1]);
+                    var bSize = nfCommon.parseSize(bSplit[1]);
                     return aSize - bSize;
                 }
             } else if (sortDetails.columnId === 'maxHeap' || sortDetails.columnId === 'totalHeap' || sortDetails.columnId === 'usedHeap'
@@ -594,19 +594,19 @@
                 || sortDetails.columnId === 'ffRepoTotal' || sortDetails.columnId === 'ffRepoUsed'
                 || sortDetails.columnId === 'ffRepoFree' || sortDetails.columnId === 'contentRepoTotal'
                 || sortDetails.columnId === 'contentRepoUsed' || sortDetails.columnId === 'contentRepoFree') {
-                var aSize = common.parseSize(a[sortDetails.columnId]);
-                var bSize = common.parseSize(b[sortDetails.columnId]);
+                var aSize = nfCommon.parseSize(a[sortDetails.columnId]);
+                var bSize = nfCommon.parseSize(b[sortDetails.columnId]);
                 return aSize - bSize;
             } else if (sortDetails.columnId === 'totalThreads' || sortDetails.columnId === 'daemonThreads'
                 || sortDetails.columnId === 'processors') {
-                var aCount = common.parseCount(a[sortDetails.columnId]);
-                var bCount = common.parseCount(b[sortDetails.columnId]);
+                var aCount = nfCommon.parseCount(a[sortDetails.columnId]);
+                var bCount = nfCommon.parseCount(b[sortDetails.columnId]);
                 return aCount - bCount;
             } else if (sortDetails.columnId === 'gcOldGen' || sortDetails.columnId === 'gcNewGen') {
                 var aSplit = a[sortDetails.columnId].split(/ /);
                 var bSplit = b[sortDetails.columnId].split(/ /);
-                var aCount = common.parseCount(aSplit[0]);
-                var bCount = common.parseCount(bSplit[0]);
+                var aCount = nfCommon.parseCount(aSplit[0]);
+                var bCount = nfCommon.parseCount(bSplit[0]);
                 return aCount - bCount;
             } else if (sortDetails.columnId === 'status') {
                 var aStatus = formatNodeStatus(a);
@@ -617,8 +617,8 @@
                 var bNode = formatNodeAddress(b);
                 return aNode === bNode ? 0 : aNode > bNode ? 1 : -1;
             } else {
-                var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             }
         };
@@ -648,7 +648,7 @@
      * @returns {string}
      */
     var formatNodeAddress = function (node) {
-        return common.escapeHtml(node.address) + ':' + common.escapeHtml(node.apiPort);
+        return nfCommon.escapeHtml(node.address) + ':' + nfCommon.escapeHtml(node.apiPort);
     };
 
     /**
@@ -675,7 +675,7 @@
      */
     var promptForConnect = function (node) {
         // prompt to connect
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Connect Node',
             dialogContent: 'Connect \'' + formatNodeAddress(node) + '\' to this cluster?',
             yesHandler: function () {
@@ -709,7 +709,7 @@
             var clusterGrid = $('#cluster-nodes-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.updateItem(node.nodeId, node);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -719,7 +719,7 @@
      */
     var promptForDisconnect = function (node) {
         // prompt for disconnect
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Disconnect Node',
             dialogContent: 'Disconnect \'' + formatNodeAddress(node) + '\' from the cluster?',
             yesHandler: function () {
@@ -754,7 +754,7 @@
             var clusterGrid = $('#cluster-nodes-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.updateItem(node.nodeId, node);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -764,7 +764,7 @@
      */
     var promptForRemoval = function (node) {
         // prompt for disconnect
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Remove Node',
             dialogContent: 'Remove \'' + formatNodeAddress(node) + '\' from the cluster?',
             yesHandler: function () {
@@ -788,7 +788,7 @@
             var clusterGrid = $('#cluster-nodes-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.deleteItem(nodeId);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -812,7 +812,7 @@
         var grid = visibleTab.grid;
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(grid)) {
+        if (nfCommon.isDefinedAndNotNull(grid)) {
             var gridData = grid.getData();
 
             // update the search criteria
@@ -912,22 +912,22 @@
                 $.each(node.events, function (i, event) {
                     eventMessages.push(event.timestamp + ": " + event.message);
                 });
-                $('<div></div>').append(common.formatUnorderedList(eventMessages)).appendTo(events);
+                $('<div></div>').append(nfCommon.formatUnorderedList(eventMessages)).appendTo(events);
             } else {
                 events.append('<div><span class="unset">None</span></div>');
             }
 
             // show the dialog
             $('#node-details-dialog').modal('show');
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
      * Applies system diagnostics data to the JVM tab.
      */
     function updateJvmTableData(systemDiagnosticsResponse) {
-        if (common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
-            && common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
 
             var jvmTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
@@ -970,8 +970,8 @@
      * Applies system diagnostics data to the System tab.
      */
     function updateSystemTableData(systemDiagnosticsResponse) {
-        if (common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
-            && common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
 
             var systemTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
@@ -999,8 +999,8 @@
      * Applies system diagnostics data to the FlowFile Storage tab.
      */
     function updateFlowFileTableData(systemDiagnosticsResponse) {
-        if (common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
-            && common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
 
             var flowFileTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
@@ -1028,8 +1028,8 @@
      * Applies system diagnostics data to the Content Storage tab.
      */
     function updateContentTableData(systemDiagnosticsResponse) {
-        if (common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
-            && common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
 
             var contentStorageTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
@@ -1061,8 +1061,8 @@
      * Applies system diagnostics data to the Versions tab.
      */
     function updateVersionTableData(systemDiagnosticsResponse) {
-        if (common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
-            && common.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics)
+            && nfCommon.isDefinedAndNotNull(systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots)) {
 
             var versionTableRows = [];
             systemDiagnosticsResponse.systemDiagnostics.nodeSnapshots.forEach(function (nodeSnapshot) {
@@ -1103,7 +1103,7 @@
             handlers.forEach(function (handler) {
                 handler(systemDiagnosticsResponse);
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
         return loadPromise;
     };
 
@@ -1176,7 +1176,7 @@
         var cluster = clusterResponse.cluster;
 
         // ensure there are groups specified
-        if (common.isDefinedAndNotNull(cluster.nodes)) {
+        if (nfCommon.isDefinedAndNotNull(cluster.nodes)) {
             var clusterGrid = nodesTab.grid;
             var clusterData = clusterGrid.getData();
 
@@ -1206,7 +1206,7 @@
             handlers.forEach(function (handler) {
                 handler(response);
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
         return clusterNodesDataPromise;
     }
 
@@ -1216,7 +1216,7 @@
     function onSelectTab(tab) {
         // Resize table
         var tabGrid = tab.grid;
-        if (common.isDefinedAndNotNull(tabGrid)) {
+        if (nfCommon.isDefinedAndNotNull(tabGrid)) {
             tabGrid.resizeCanvas();
         }
 

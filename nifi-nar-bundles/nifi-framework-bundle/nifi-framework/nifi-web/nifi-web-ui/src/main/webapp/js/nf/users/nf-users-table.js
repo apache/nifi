@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.ErrorHandler'],
-            function ($, Slick, common, client, errorHandler) {
-                return (nf.UsersTable = factory($, Slick, common, client, errorHandler));
+            function ($, Slick, nfCommon, nfClient, nfErrorHandler) {
+                return (nf.UsersTable = factory($, Slick, nfCommon, nfClient, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.UsersTable =
@@ -41,7 +41,7 @@
             root.nf.Client,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, common, client, errorHandler) {
+}(this, function ($, Slick, nfCommon, nfClient, nfErrorHandler) {
     'use strict';
 
     /**
@@ -76,11 +76,11 @@
                         // update the user
                         $.ajax({
                             type: 'DELETE',
-                            url: user.uri + '?' + $.param(client.getRevision(user)),
+                            url: user.uri + '?' + $.param(nfClient.getRevision(user)),
                             dataType: 'json'
                         }).done(function () {
                             nfUsersTable.loadUsersTable();
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
 
                         // hide the dialog
                         $('#user-delete-dialog').modal('hide');
@@ -169,7 +169,7 @@
 
         // build the request entity
         var updatedGroupEntity = {
-            'revision': client.getRevision(groupEntity),
+            'revision': nfClient.getRevision(groupEntity),
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -207,7 +207,7 @@
 
         // build the request entity
         var updatedGroupEntity = {
-            'revision': client.getRevision(groupEntity),
+            'revision': nfClient.getRevision(groupEntity),
             'component': $.extend({}, groupEntity.component, {
                 'users': groupMembers
             })
@@ -258,8 +258,8 @@
                     usersGrid.setSelectedRows([row]);
                     usersGrid.scrollRowIntoView(row);
                 });
-            }).fail(errorHandler.handleAjaxError);
-        }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -276,7 +276,7 @@
         var userEntity = usersData.getItemById(userId);
 
         var updatedUserEntity = {
-            'revision': client.getRevision(userEntity),
+            'revision': nfClient.getRevision(userEntity),
             'component': {
                 'id': userId,
                 'identity': userIdentity
@@ -331,8 +331,8 @@
 
             $.when.apply(window, xhrs).always(function () {
                 nfUsersTable.loadUsersTable();
-            }).fail(errorHandler.handleAjaxError);
-        }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -359,7 +359,7 @@
                 usersGrid.setSelectedRows([row]);
                 usersGrid.scrollRowIntoView(row);
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var updateGroup = function (groupId, groupIdentity, selectedUsers) {
@@ -369,7 +369,7 @@
         var groupEntity = usersData.getItemById(groupId);
 
         var updatedGroupoEntity = {
-            'revision': client.getRevision(groupEntity),
+            'revision': nfClient.getRevision(groupEntity),
             'component': {
                 'id': groupId,
                 'identity': groupIdentity,
@@ -386,7 +386,7 @@
             contentType: 'application/json'
         }).done(function (groupEntity) {
             nfUsersTable.loadUsersTable();
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -410,7 +410,7 @@
                         // see if we should create or update this user
                         if ($.trim(userId) === '') {
                             var tenantEntity = {
-                                'revision': client.getRevision({
+                                'revision': nfClient.getRevision({
                                     'revision': {
                                         'version': 0
                                     }
@@ -524,7 +524,7 @@
      */
     var globalResourceParser = function (dataContext) {
         return 'Global policy to ' +
-            common.getPolicyTypeListing(common.substringAfterFirst(dataContext.component.resource, '/')).text;
+            nfCommon.getPolicyTypeListing(nfCommon.substringAfterFirst(dataContext.component.resource, '/')).text;
     };
 
     /**
@@ -539,13 +539,13 @@
 
         //determine policy type
         if (resource.startsWith('/policies')) {
-            resource = common.substringAfterFirst(resource, '/policies');
+            resource = nfCommon.substringAfterFirst(resource, '/policies');
             policyLabel += 'Admin policy for ';
         } else if (resource.startsWith('/data-transfer')) {
-            resource = common.substringAfterFirst(resource, '/data-transfer');
+            resource = nfCommon.substringAfterFirst(resource, '/data-transfer');
             policyLabel += 'Site to site policy for ';
         } else if (resource.startsWith('/data')) {
-            resource = common.substringAfterFirst(resource, '/data');
+            resource = nfCommon.substringAfterFirst(resource, '/data');
             policyLabel += 'Data policy for ';
         } else {
             policyLabel += 'Component policy for ';
@@ -592,7 +592,7 @@
             // if the user has permission to the policy
             if (dataContext.permissions.canRead === true) {
                 // check if Global policy
-                if (common.isUndefinedOrNull(dataContext.component.componentReference)) {
+                if (nfCommon.isUndefinedOrNull(dataContext.component.componentReference)) {
                     return globalResourceParser(dataContext);
                 }
                 // not a global policy... check if user has access to the component reference
@@ -607,7 +607,7 @@
             var markup = '';
 
             if (dataContext.permissions.canRead === true) {
-                if (common.isDefinedAndNotNull(dataContext.component.componentReference)) {
+                if (nfCommon.isDefinedAndNotNull(dataContext.component.componentReference)) {
                     if (dataContext.component.resource.indexOf('/processors') >= 0) {
                         markup += '<div title="Go To" class="pointer go-to-component fa fa-long-arrow-right" style="float: left;"></div>';
                     } else if (dataContext.component.resource.indexOf('/controller-services') >= 0) {
@@ -797,12 +797,12 @@
             var markup = '';
 
             // ensure user can modify the user
-            if (common.canModifyTenants()) {
+            if (nfCommon.canModifyTenants()) {
                 markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
                 markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
             }
 
-            if (!common.isEmpty(dataContext.component.accessPolicies)) {
+            if (!nfCommon.isEmpty(dataContext.component.accessPolicies)) {
                 markup += '<div title="View User Policies" class="pointer view-user-policies fa fa-key" style="margin-left: 3px;"></div>';
             }
 
@@ -923,8 +923,8 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if (a.permissions.canRead && b.permissions.canRead) {
-                var aString = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                var bString = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead) {
@@ -953,8 +953,8 @@
         var comparer = function (a, b) {
             if (a.permissions.canRead && b.permissions.canRead) {
                 if (sortDetails.columnId === 'action') {
-                    var aString = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                    var bString = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     return aString === bString ? 0 : aString > bString ? 1 : -1;
                 } else if (sortDetails.columnId === 'policy') {
                     var aString = '';
@@ -963,7 +963,7 @@
                     // if the user has permission to the policy
                     if (a.permissions.canRead === true) {
                         // check if Global policy
-                        if (common.isUndefinedOrNull(a.component.componentReference)) {
+                        if (nfCommon.isUndefinedOrNull(a.component.componentReference)) {
                             aString = globalResourceParser(a);
                         } else {
                             // not a global policy... check if user has access to the component reference
@@ -976,7 +976,7 @@
                     // if the user has permission to the policy
                     if (b.permissions.canRead === true) {
                         // check if Global policy
-                        if (common.isUndefinedOrNull(b.component.componentReference)) {
+                        if (nfCommon.isUndefinedOrNull(b.component.componentReference)) {
                             bString = globalResourceParser(b);
                         } else {
                             // not a global policy... check if user has access to the component reference
@@ -1021,7 +1021,7 @@
         var usersGrid = $('#users-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(usersGrid)) {
+        if (nfCommon.isDefinedAndNotNull(usersGrid)) {
             var usersData = usersGrid.getData();
 
             // update the search criteria
@@ -1195,7 +1195,7 @@
         userPoliciesData.beginUpdate();
 
         // set the rows
-        if (common.isDefinedAndNotNull(user.component.accessPolicies)) {
+        if (nfCommon.isDefinedAndNotNull(user.component.accessPolicies)) {
             userPoliciesData.setItems(user.component.accessPolicies);
         }
 
@@ -1222,7 +1222,7 @@
             initUserDeleteDialog();
             initUsersTable();
 
-            if (common.canModifyTenants()) {
+            if (nfCommon.canModifyTenants()) {
                 $('#new-user-button').on('click', function () {
                     buildUsersList();
                     buildGroupsList();
@@ -1247,7 +1247,7 @@
             var usersTable = $('#users-table');
             if (usersTable.is(':visible')) {
                 var grid = usersTable.data('gridInstance');
-                if (common.isDefinedAndNotNull(grid)) {
+                if (nfCommon.isDefinedAndNotNull(grid)) {
                     grid.resizeCanvas();
                 }
             }
@@ -1310,7 +1310,7 @@
                 usersGrid.getSelectionModel().setSelectedRows([]);
 
                 $('#total-users').text(usersData.getLength());
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 

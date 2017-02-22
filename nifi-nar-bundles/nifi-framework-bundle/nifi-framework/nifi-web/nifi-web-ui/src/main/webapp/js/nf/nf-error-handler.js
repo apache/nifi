@@ -22,8 +22,8 @@
         define(['jquery',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, dialog, common) {
-                return (nf.ErrorHandler = factory($, dialog, common));
+            function ($, nfDialog, nfCommon) {
+                return (nf.ErrorHandler = factory($, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ErrorHandler = factory(require('jquery'),
@@ -34,7 +34,7 @@
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, dialog, common) {
+}(this, function ($, nfDialog, nfCommon) {
     'use strict';
 
     return {
@@ -54,7 +54,7 @@
                     // show the error pane
                     $('#message-pane').show();
                 } else {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Session Expired',
                         dialogContent: 'Your session has expired. Please press Ok to log in again.',
                         okHandler: function () {
@@ -88,21 +88,21 @@
                 return;
             }
 
-            // status code 400, 404, and 409 are expected response codes for common errors.
+            // status code 400, 404, and 409 are expected response codes for nfCommon errors.
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Error',
-                    dialogContent: common.escapeHtml(xhr.responseText)
+                    dialogContent: nfCommon.escapeHtml(xhr.responseText)
                 });
             } else if (xhr.status === 403) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Insufficient Permissions',
-                    dialogContent: common.escapeHtml(xhr.responseText)
+                    dialogContent: nfCommon.escapeHtml(xhr.responseText)
                 });
             } else {
                 if (xhr.status < 99 || xhr.status === 12007 || xhr.status === 12029) {
                     var content = 'Please ensure the application is running and check the logs for any errors.';
-                    if (common.isDefinedAndNotNull(status)) {
+                    if (nfCommon.isDefinedAndNotNull(status)) {
                         if (status === 'timeout') {
                             content = 'Request has timed out. Please ensure the application is running and check the logs for any errors.';
                         } else if (status === 'abort') {

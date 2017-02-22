@@ -23,8 +23,8 @@
                 'Slick',
                 'nf.Common',
                 'nf.ErrorHandler'],
-            function ($, Slick, common, errorHandler) {
-                return (nf.HistoryModel = factory($, Slick, common, errorHandler));
+            function ($, Slick, nfCommon, nfErrorHandler) {
+                return (nf.HistoryModel = factory($, Slick, nfCommon, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.HistoryModel =
@@ -38,7 +38,7 @@
             root.nf.Common,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, common, errorHandler) {
+}(this, function ($, Slick, nfCommon, nfErrorHandler) {
     'use strict';
 
     // private
@@ -164,7 +164,7 @@
                 $('#history-last-refreshed').text(history.lastRefreshed);
 
                 // set the timezone for the start and end time
-                $('.timezone').text(common.substringAfterLast(history.lastRefreshed, ' '));
+                $('.timezone').text(nfCommon.substringAfterLast(history.lastRefreshed, ' '));
 
                 // show the filter message if applicable
                 if (query['sourceId'] || query['userIdentity'] || query['startDate'] || query['endDate']) {
@@ -181,7 +181,7 @@
                     from: from,
                     to: to
                 });
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
             xhr.fromPage = fromPage;
             xhr.toPage = toPage;
 

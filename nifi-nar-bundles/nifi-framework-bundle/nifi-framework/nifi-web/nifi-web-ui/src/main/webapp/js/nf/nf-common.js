@@ -23,8 +23,8 @@
         define(['jquery',
                 'd3',
                 'nf.Storage'],
-            function ($, d3, storage) {
-                return (nf.Common = factory($, d3, storage));
+            function ($, d3, nfStorage) {
+                return (nf.Common = factory($, d3, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Common = factory(require('jquery'),
@@ -35,7 +35,7 @@
             root.d3,
             root.nf.Storage);
     }
-}(this, function ($, d3, storage) {
+}(this, function ($, d3, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -73,14 +73,14 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (storage.getItem('jwt') !== null) {
+        if (nfStorage.getItem('jwt') !== null) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
 
         // handle logout
         $('#user-logout').on('click', function () {
-            storage.removeItem('jwt');
+            nfStorage.removeItem('jwt');
             window.location = '/nifi/login';
         });
 
@@ -227,7 +227,7 @@
             var interval = nfCommon.MILLIS_PER_MINUTE;
 
             var checkExpiration = function () {
-                var expiration = storage.getItemExpiration('jwt');
+                var expiration = nfStorage.getItemExpiration('jwt');
 
                 // ensure there is an expiration and token present
                 if (expiration !== null) {
@@ -501,7 +501,7 @@
          * Shows the logout link if appropriate.
          */
         showLogoutLink: function () {
-            if (storage.getItem('jwt') === null) {
+            if (nfStorage.getItem('jwt') === null) {
                 $('#user-logout-container').css('display', 'none');
             } else {
                 $('#user-logout-container').css('display', 'block');
@@ -823,7 +823,7 @@
          */
         getAccessToken: function (accessTokenUrl) {
             return $.Deferred(function (deferred) {
-                if (storage.hasItem('jwt')) {
+                if (nfStorage.hasItem('jwt')) {
                     $.ajax({
                         type: 'POST',
                         url: accessTokenUrl

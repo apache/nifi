@@ -21,8 +21,8 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common'],
-            function ($, common) {
-                return (nf.Client = factory($, common));
+            function ($, nfCommon) {
+                return (nf.Client = factory($, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Client =
@@ -33,7 +33,7 @@
             factory(root.$,
                 root.nf.Common);
     }
-}(this, function ($, common) {
+}(this, function ($, nfCommon) {
     'use strict';
 
     var clientId = null;
@@ -73,7 +73,7 @@
          * @return {boolean} whether proposedData is newer than currentData
          */
         isNewerRevision: function (currentData, proposedData) {
-            if (common.isDefinedAndNotNull(currentData)) {
+            if (nfCommon.isDefinedAndNotNull(currentData)) {
                 var currentRevision = currentData.revision;
                 var proposedRevision = proposedData.revision;
 

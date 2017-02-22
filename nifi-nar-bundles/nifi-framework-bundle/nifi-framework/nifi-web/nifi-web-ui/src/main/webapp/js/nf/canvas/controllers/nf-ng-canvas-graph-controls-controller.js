@@ -24,10 +24,9 @@
                 'nf.Birdseye',
                 'nf.Storage',
                 'nf.CanvasUtils',
-                'nf.Common',
                 'nf.ProcessGroupConfiguration'],
-            function ($, action, birdseye, storage, canvasUtils, common, processGroupConfiguration) {
-                return (nf.ng.Canvas.GraphControlsCtrl = factory($, action, birdseye, storage, canvasUtils, common, processGroupConfiguration));
+            function ($, nfActions, nfBirdseye, nfStorage, nfCanvasUtils, nfProcessGroupConfiguration) {
+                return (nf.ng.Canvas.GraphControlsCtrl = factory($, nfActions, nfBirdseye, nfStorage, nfCanvasUtils, nfProcessGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.GraphControlsCtrl =
@@ -36,7 +35,6 @@
                 require('nf.Birdseye'),
                 require('nf.Storage'),
                 require('nf.CanvasUtils'),
-                require('nf.Common'),
                 require('nf.ProcessGroupConfiguration')));
     } else {
         nf.ng.Canvas.GraphControlsCtrl = factory(root.$,
@@ -44,10 +42,9 @@
             root.nf.Birdseye,
             root.nf.Storage,
             root.nf.CanvasUtils,
-            root.nf.Common,
             root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, actions, birdseye, storage, canvasUtils, common, processGroupConfiguration) {
+}(this, function ($, nfActions, nfBirdseye, nfStorage, nfCanvasUtils, nfProcessGroupConfiguration) {
     'use strict';
 
     return function (serviceProvider, navigateCtrl, operateCtrl) {
@@ -72,11 +69,11 @@
 
             // handle specific actions as necessary
             if (graphControl.attr('id') === 'navigation-control') {
-                birdseye.updateBirdseyeVisibility(true);
+                nfBirdseye.updateBirdseyeVisibility(true);
             }
 
             // get the current visibility
-            var graphControlVisibility = storage.getItem('graph-control-visibility');
+            var graphControlVisibility = nfStorage.getItem('graph-control-visibility');
             if (graphControlVisibility === null) {
                 graphControlVisibility = {};
             }
@@ -84,7 +81,7 @@
             // update the visibility for this graph control
             var graphControlId = graphControl.attr('id');
             graphControlVisibility[graphControlId] = true;
-            storage.setItem('graph-control-visibility', graphControlVisibility);
+            nfStorage.setItem('graph-control-visibility', graphControlVisibility);
         };
 
         /**
@@ -106,11 +103,11 @@
 
             // handle specific actions as necessary
             if (graphControl.attr('id') === 'navigation-control') {
-                birdseye.updateBirdseyeVisibility(false);
+                nfBirdseye.updateBirdseyeVisibility(false);
             }
 
             // get the current visibility
-            var graphControlVisibility = storage.getItem('graph-control-visibility');
+            var graphControlVisibility = nfStorage.getItem('graph-control-visibility');
             if (graphControlVisibility === null) {
                 graphControlVisibility = {};
             }
@@ -118,7 +115,7 @@
             // update the visibility for this graph control
             var graphControlId = graphControl.attr('id');
             graphControlVisibility[graphControlId] = false;
-            storage.setItem('graph-control-visibility', graphControlVisibility);
+            nfStorage.setItem('graph-control-visibility', graphControlVisibility);
         };
 
         function GraphControlsCtrl(navigateCtrl, operateCtrl) {
@@ -144,7 +141,7 @@
             init: function () {
                 this.operateCtrl.init();
                 // initial the graph control visibility
-                var graphControlVisibility = storage.getItem('graph-control-visibility');
+                var graphControlVisibility = nfStorage.getItem('graph-control-visibility');
                 if (graphControlVisibility !== null) {
                     $.each(graphControlVisibility, function (id, isVisible) {
                         var graphControl = $('#' + id);
@@ -187,31 +184,31 @@
              * Gets the icon to show for the selection context.
              */
             getContextIcon: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    if (canvasUtils.getParentGroupId() === null) {
+                    if (nfCanvasUtils.getParentGroupId() === null) {
                         return 'icon-drop';
                     } else {
                         return 'icon-group';
                     }
                 } else {
                     if (selection.size() === 1) {
-                        if (canvasUtils.isProcessor(selection)) {
+                        if (nfCanvasUtils.isProcessor(selection)) {
                             return 'icon-processor';
-                        } else if (canvasUtils.isProcessGroup(selection)) {
+                        } else if (nfCanvasUtils.isProcessGroup(selection)) {
                             return 'icon-group';
-                        } else if (canvasUtils.isInputPort(selection)) {
+                        } else if (nfCanvasUtils.isInputPort(selection)) {
                             return 'icon-port-in';
-                        } else if (canvasUtils.isOutputPort(selection)) {
+                        } else if (nfCanvasUtils.isOutputPort(selection)) {
                             return 'icon-port-out';
-                        } else if (canvasUtils.isRemoteProcessGroup(selection)) {
+                        } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                             return 'icon-group-remote';
-                        } else if (canvasUtils.isFunnel(selection)) {
+                        } else if (nfCanvasUtils.isFunnel(selection)) {
                             return 'icon-funnel';
-                        } else if (canvasUtils.isLabel(selection)) {
+                        } else if (nfCanvasUtils.isLabel(selection)) {
                             return 'icon-label';
-                        } else if (canvasUtils.isConnection(selection)) {
+                        } else if (nfCanvasUtils.isConnection(selection)) {
                             return 'icon-connect';
                         }
                     } else {
@@ -224,7 +221,7 @@
              * Will hide target when appropriate.
              */
             hide: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
                 if (selection.size() > 1) {
                     return 'invisible'
                 } else {
@@ -236,27 +233,27 @@
              * Gets the name to show for the selection context.
              */
             getContextName: function () {
-                var selection = canvasUtils.getSelection();
-                var canRead = canvasUtils.canReadFromGroup();
+                var selection = nfCanvasUtils.getSelection();
+                var canRead = nfCanvasUtils.canReadFromGroup();
 
                 if (selection.empty()) {
                     if (canRead) {
-                        return canvasUtils.getGroupName();
+                        return nfCanvasUtils.getGroupName();
                     } else {
-                        return canvasUtils.getGroupId();
+                        return nfCanvasUtils.getGroupId();
                     }
                 } else {
                     if (selection.size() === 1) {
                         var d = selection.datum();
                         if (d.permissions.canRead) {
-                            if (canvasUtils.isLabel(selection)) {
+                            if (nfCanvasUtils.isLabel(selection)) {
                                 if ($.trim(d.component.label) !== '') {
                                     return d.component.label;
                                 } else {
                                     return '';
                                 }
-                            } else if (canvasUtils.isConnection(selection)) {
-                                return canvasUtils.formatConnectionName(d.component);
+                            } else if (nfCanvasUtils.isConnection(selection)) {
+                                return nfCanvasUtils.formatConnectionName(d.component);
                             } else {
                                 return d.component.name;
                             }
@@ -273,27 +270,27 @@
              * Gets the type to show for the selection context.
              */
             getContextType: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
                     return 'Process Group';
                 } else {
                     if (selection.size() === 1) {
-                        if (canvasUtils.isProcessor(selection)) {
+                        if (nfCanvasUtils.isProcessor(selection)) {
                             return 'Processor';
-                        } else if (canvasUtils.isProcessGroup(selection)) {
+                        } else if (nfCanvasUtils.isProcessGroup(selection)) {
                             return 'Process Group';
-                        } else if (canvasUtils.isInputPort(selection)) {
+                        } else if (nfCanvasUtils.isInputPort(selection)) {
                             return 'Input Port';
-                        } else if (canvasUtils.isOutputPort(selection)) {
+                        } else if (nfCanvasUtils.isOutputPort(selection)) {
                             return 'Output Port';
-                        } else if (canvasUtils.isRemoteProcessGroup(selection)) {
+                        } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                             return 'Remote Process Group';
-                        } else if (canvasUtils.isFunnel(selection)) {
+                        } else if (nfCanvasUtils.isFunnel(selection)) {
                             return 'Funnel';
-                        } else if (canvasUtils.isLabel(selection)) {
+                        } else if (nfCanvasUtils.isLabel(selection)) {
                             return 'Label';
-                        } else if (canvasUtils.isConnection(selection)) {
+                        } else if (nfCanvasUtils.isConnection(selection)) {
                             return 'Connection';
                         }
                     } else {
@@ -306,10 +303,10 @@
              * Gets the id to show for the selection context.
              */
             getContextId: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    return canvasUtils.getGroupId();
+                    return nfCanvasUtils.getGroupId();
                 } else {
                     if (selection.size() === 1) {
                         var d = selection.datum();
@@ -324,29 +321,29 @@
              * Determines whether the user can configure or open the details dialog.
              */
             canConfigureOrOpenDetails: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
                     return true;
                 }
 
-                return canvasUtils.isConfigurable(selection) || canvasUtils.hasDetails(selection);
+                return nfCanvasUtils.isConfigurable(selection) || nfCanvasUtils.hasDetails(selection);
             },
 
             /**
              * Opens either the configuration or details view based on the current state.
              */
             openConfigureOrDetailsView: function () {
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 if (selection.empty()) {
-                    processGroupConfiguration.showConfiguration(canvasUtils.getGroupId());
+                    nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
                 }
 
-                if (canvasUtils.isConfigurable(selection)) {
-                    actions.showConfiguration(selection);
-                } else if (canvasUtils.hasDetails(selection)) {
-                    actions.showDetails(selection);
+                if (nfCanvasUtils.isConfigurable(selection)) {
+                    nfActions.showConfiguration(selection);
+                } else if (nfCanvasUtils.hasDetails(selection)) {
+                    nfActions.showDetails(selection);
                 }
             }
         }
