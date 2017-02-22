@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.CanvasUtils'],
-            function ($, d3, common, client, canvasUtils) {
-                return (nf.Funnel = factory($, d3, common, client, canvasUtils));
+            function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
+                return (nf.Funnel = factory($, d3, nfCommon, nfClient, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Funnel =
@@ -41,7 +41,7 @@
             root.nf.Client,
             root.nf.CanvasUtils);
     }
-}(this, function ($, d3, common, client, canvasUtils) {
+}(this, function ($, d3, nfCommon, nfClient, nfCanvasUtils) {
     'use strict';
 
     var nfConnectable;
@@ -105,7 +105,7 @@
                 'class': 'funnel component'
             })
             .classed('selected', selected)
-            .call(canvasUtils.position);
+            .call(nfCanvasUtils.position);
 
         // funnel border
         funnel.append('rect')
@@ -178,7 +178,7 @@
             var funnel = d3.select(this);
 
             // update the component behavior as appropriate
-            canvasUtils.editable(funnel, nfConnectable, nfDraggable);
+            nfCanvasUtils.editable(funnel, nfConnectable, nfDraggable);
         });
     };
 
@@ -194,12 +194,17 @@
     var nfFunnel = {
         /**
          * Initializes of the Processor handler.
+         *
+         * @param nfConnectableRef   The nfConnectable module.
+         * @param nfDraggableRef   The nfDraggable module.
+         * @param nfSelectableRef   The nfSelectable module.
+         * @param nfContextMenuRef   The nfContextMenu module.
          */
-        init: function (connectable, draggable, selectable, contextMenu) {
-            nfConnectable = connectable;
-            nfDraggable = draggable;
-            nfSelectable = selectable;
-            nfContextMenu = contextMenu;
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+            nfConnectable = nfConnectableRef;
+            nfDraggable = nfDraggableRef;
+            nfSelectable = nfSelectableRef;
+            nfContextMenu = nfContextMenuRef;
 
             funnelMap = d3.map();
             removedCache = d3.map();
@@ -221,8 +226,8 @@
          */
         add: function (funnelEntities, options) {
             var selectAll = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // get the current time
@@ -243,7 +248,7 @@
                 $.each(funnelEntities, function (_, funnelEntity) {
                     add(funnelEntity);
                 });
-            } else if (common.isDefinedAndNotNull(funnelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(funnelEntities)) {
                 add(funnelEntities);
             }
 
@@ -262,16 +267,16 @@
         set: function (funnelEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             var set = function (proposedFunnelEntity) {
                 var currentFunnelEntity = funnelMap.get(proposedFunnelEntity.id);
 
                 // set the funnel if appropriate due to revision and wasn't previously removed
-                if (client.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
+                if (nfClient.isNewerRevision(currentFunnelEntity, proposedFunnelEntity) && !removedCache.has(proposedFunnelEntity.id)) {
                     funnelMap.set(proposedFunnelEntity.id, $.extend({
                         type: 'Funnel',
                         dimensions: dimensions
@@ -294,14 +299,14 @@
                 $.each(funnelEntities, function (_, funnelEntity) {
                     set(funnelEntity);
                 });
-            } else if (common.isDefinedAndNotNull(funnelEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(funnelEntities)) {
                 set(funnelEntities);
             }
 
             // apply the selection and handle all new processors
             var selection = select();
             selection.enter().call(renderFunnels, selectAll);
-            selection.call(updateFunnels).call(canvasUtils.position, transition);
+            selection.call(updateFunnels).call(nfCanvasUtils.position, transition);
             selection.exit().call(removeFunnels);
         },
 
@@ -312,7 +317,7 @@
          * @param {string} id
          */
         get: function (id) {
-            if (common.isUndefined(id)) {
+            if (nfCommon.isUndefined(id)) {
                 return funnelMap.values();
             } else {
                 return funnelMap.get(id);
@@ -326,7 +331,7 @@
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (common.isDefinedAndNotNull(id)) {
+            if (nfCommon.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updateFunnels);
             } else {
                 d3.selectAll('g.funnel').call(updateFunnels);
@@ -358,7 +363,7 @@
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(canvasUtils.position);
+            d3.select('#id-' + id).call(nfCanvasUtils.position);
         },
 
         /**

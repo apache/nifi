@@ -24,8 +24,8 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common'],
-            function ($, common) {
-                return (nf.Clipboard = factory($, common));
+            function ($, nfCommon) {
+                return (nf.Clipboard = factory($, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Clipboard =
@@ -35,7 +35,7 @@
         nf.Clipboard = factory(root.$,
             root.nf.Common);
     }
-}(this, function ($, common) {
+}(this, function ($, nfCommon) {
     'use strict';
 
     var COPY = 'copy';
@@ -60,7 +60,7 @@
          * @argument {object} listener      A clipboard listener
          */
         removeListener: function (listener) {
-            if (common.isDefinedAndNotNull(listeners[listener])) {
+            if (nfCommon.isDefinedAndNotNull(listeners[listener])) {
                 delete listeners[listener];
             }
         },
@@ -83,7 +83,7 @@
          * Checks to see if any data has been copied.
          */
         isCopied: function () {
-            return common.isDefinedAndNotNull(data);
+            return nfCommon.isDefinedAndNotNull(data);
         },
 
         /**
@@ -93,7 +93,7 @@
         paste: function () {
             return $.Deferred(function (deferred) {
                 // ensure there was data
-                if (common.isDefinedAndNotNull(data)) {
+                if (nfCommon.isDefinedAndNotNull(data)) {
                     var clipboardData = data;
 
                     // resolve the deferred

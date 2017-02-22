@@ -21,8 +21,8 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common'],
-            function ($, common) {
-                return (nf.ng.BreadcrumbsCtrl = factory($, common));
+            function ($, nfCommon) {
+                return (nf.ng.BreadcrumbsCtrl = factory($, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.BreadcrumbsCtrl =
@@ -32,7 +32,7 @@
         nf.ng.BreadcrumbsCtrl = factory(root.$,
             root.nf.Common);
     }
-}(this, function ($, common) {
+}(this, function ($, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -69,7 +69,7 @@
                     'label': label
                 }, breadcrumbEntity));
 
-                if (common.isDefinedAndNotNull(breadcrumbEntity.parentBreadcrumb)) {
+                if (nfCommon.isDefinedAndNotNull(breadcrumbEntity.parentBreadcrumb)) {
                     this.generateBreadcrumbs(breadcrumbEntity.parentBreadcrumb);
                 }
             },
@@ -132,7 +132,7 @@
 
                 // still having issues with this in IE :/
                 element.on('DOMMouseScroll mousewheel', function (evt, d) {
-                    if (common.isUndefinedOrNull(evt.originalEvent)) {
+                    if (nfCommon.isUndefinedOrNull(evt.originalEvent)) {
                         return;
                     }
 
@@ -155,9 +155,9 @@
                         //Chrome and Safari both have evt.originalEvent.detail defined but
                         //evt.originalEvent.wheelDelta holds the correct value so we must
                         //check for evt.originalEvent.wheelDelta first!
-                        if (common.isDefinedAndNotNull(evt.originalEvent.wheelDelta)) {
+                        if (nfCommon.isDefinedAndNotNull(evt.originalEvent.wheelDelta)) {
                             delta = evt.originalEvent.wheelDelta;
-                        } else if (common.isDefinedAndNotNull(evt.originalEvent.detail)) {
+                        } else if (nfCommon.isDefinedAndNotNull(evt.originalEvent.detail)) {
                             delta = -evt.originalEvent.detail;
                         }
 

@@ -24,8 +24,8 @@
                 'nf.Dialog',
                 'nf.Clipboard',
                 'nf.Storage'],
-            function (d3, $, common, dialog, clipboard, storage) {
-                return (nf.CanvasUtils = factory(d3, $, common, dialog, clipboard, storage));
+            function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
+                return (nf.CanvasUtils = factory(d3, $, nfCommon, nfDialog, nfClipboard, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CanvasUtils = factory(
@@ -44,7 +44,7 @@
             root.nf.Clipboard,
             root.nf.Storage);
     }
-}(this, function (d3, $, common, dialog, clipboard, storage) {
+}(this, function (d3, $, nfCommon, nfDialog, nfClipboard, nfStorage) {
     'use strict';
 
     var nfCanvas;
@@ -116,10 +116,10 @@
                     nfBirdseye.refresh();
 
                     deferred.resolve();
-                }).fail(common.handleAjaxError).fail(function () {
+                }).fail(nfCommon.handleAjaxError).fail(function () {
                     deferred.reject();
                 });
-            }).fail(common.handleAjaxError).fail(function () {
+            }).fail(nfCommon.handleAjaxError).fail(function () {
                 deferred.reject();
             });
         }).promise();
@@ -130,18 +130,18 @@
         /**
          * Initialize the canvas utils.
          *
-         * @param canvas    The reference to the canvas controller.
-         * @param actions    The reference to the actions controller.
-         * @param snippet    The reference to the snippet controller.
-         * @param birdseye    The reference to the birdseye controller.
-         * @param graph    The reference to the graph controller.
+         * @param nfCanvasRef   The nfCanvas module.
+         * @param nfActionsRef   The nfActions module.
+         * @param nfSnippetRef   The nfSnippet module.
+         * @param nfBirdseyeRef   The nfBirdseye module.
+         * @param nfGraphRef   The nfGraph module.
          */
-        init: function(canvas, actions, snippet, birdseye, graph){
-            nfCanvas = canvas;
-            nfActions = actions;
-            nfSnippet = snippet;
-            nfBirdseye = birdseye;
-            nfGraph = graph;
+        init: function(nfCanvasRef, nfActionsRef, nfSnippetRef, nfBirdseyeRef, nfGraphRef){
+            nfCanvas = nfCanvasRef;
+            nfActions = nfActionsRef;
+            nfSnippet = nfSnippetRef;
+            nfBirdseye = nfBirdseyeRef;
+            nfGraph = nfGraphRef;
         },
 
         config: {
@@ -241,7 +241,7 @@
          */
         showComponent: function (groupId, componentId) {
             // ensure the group id is specified
-            if (common.isDefinedAndNotNull(groupId)) {
+            if (nfCommon.isDefinedAndNotNull(groupId)) {
                 // initiate a graph refresh
                 var refreshGraph = $.Deferred(function (deferred) {
                     // load a different group if necessary
@@ -253,7 +253,7 @@
                         nfCanvas.reload().done(function () {
                             deferred.resolve();
                         }).fail(function () {
-                            dialog.showOkDialog({
+                            nfDialog.showOkDialog({
                                 headerText: 'Process Group',
                                 dialogContent: 'Unable to load the group for the specified component.'
                             });
@@ -271,7 +271,7 @@
                     if (!component.empty()) {
                         nfActions.show(component);
                     } else {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Process Group',
                             dialogContent: 'Unable to find the specified component.'
                         });
@@ -313,21 +313,23 @@
          * Enables/disables the editable behavior for the specified selection based on their access policies.
          *
          * @param selection     selection
+         * @param nfConnectableRef   The nfConnectable module.
+         * @param nfDraggableRef   The nfDraggable module.
          */
-        editable: function (selection, connectable, draggable) {
+        editable: function (selection, nfConnectableRef, nfDraggableRef) {
             if (nfCanvasUtils.canModify(selection)) {
                 if (!selection.classed('connectable')) {
-                    selection.call(connectable.activate);
+                    selection.call(nfConnectableRef.activate);
                 }
                 if (!selection.classed('moveable')) {
-                    selection.call(draggable.activate);
+                    selection.call(nfDraggableRef.activate);
                 }
             } else {
                 if (selection.classed('connectable')) {
-                    selection.call(connectable.deactivate);
+                    selection.call(nfConnectableRef.deactivate);
                 }
                 if (selection.classed('moveable')) {
-                    selection.call(draggable.deactivate);
+                    selection.call(nfDraggableRef.deactivate);
                 }
             }
         },
@@ -425,7 +427,7 @@
 
             // go through each word
             var word = words.pop();
-            while (common.isDefinedAndNotNull(word)) {
+            while (nfCommon.isDefinedAndNotNull(word)) {
                 // add the current word
                 line.push(word);
 
@@ -536,20 +538,20 @@
          * @param {function} offset                         Optional offset
          */
         bulletins: function (selection, d, getTooltipContainer, offset) {
-            offset = common.isDefinedAndNotNull(offset) ? offset : 0;
+            offset = nfCommon.isDefinedAndNotNull(offset) ? offset : 0;
 
             // get the tip
             var tip = d3.select('#bulletin-tip-' + d.id);
 
             var hasBulletins = false;
-            if (!common.isEmpty(d.bulletins)) {
+            if (!nfCommon.isEmpty(d.bulletins)) {
                 // format the bulletins
-                var bulletins = common.getFormattedBulletins(d.bulletins);
+                var bulletins = nfCommon.getFormattedBulletins(d.bulletins);
                 hasBulletins = bulletins.length > 0;
 
                 if (hasBulletins) {
                     // create the unordered list based off the formatted bulletins
-                    var list = common.formatUnorderedList(bulletins);
+                    var list = nfCommon.formatUnorderedList(bulletins);
                 }
             }
 
@@ -1094,7 +1096,7 @@
                 }
 
                 // ensure access to read tenants
-                return common.canAccessTenants();
+                return nfCommon.canAccessTenants();
             }
 
             return false;
@@ -1266,7 +1268,7 @@
          * Determines if something is currently pastable.
          */
         isPastable: function () {
-            return nfCanvas.canWrite() && clipboard.isCopied();
+            return nfCanvas.canWrite() && nfClipboard.isCopied();
         },
 
         /**
@@ -1284,7 +1286,7 @@
             };
 
             // store the item
-            storage.setItem(name, item);
+            nfStorage.setItem(name, item);
         },
 
         /**
@@ -1293,9 +1295,9 @@
          * @param {object} connection
          */
         formatConnectionName: function (connection) {
-            if (!common.isBlank(connection.name)) {
+            if (!nfCommon.isBlank(connection.name)) {
                 return connection.name;
-            } else if (common.isDefinedAndNotNull(connection.selectedRelationships)) {
+            } else if (nfCommon.isDefinedAndNotNull(connection.selectedRelationships)) {
                 return connection.selectedRelationships.join(', ');
             }
             return '';
@@ -1308,13 +1310,13 @@
          * @param {string} destinationComponentId     The connection destination id
          */
         reloadConnectionSourceAndDestination: function (sourceComponentId, destinationComponentId) {
-            if (common.isBlank(sourceComponentId) === false) {
+            if (nfCommon.isBlank(sourceComponentId) === false) {
                 var source = d3.select('#id-' + sourceComponentId);
                 if (source.empty() === false) {
                     nfGraph.reload(source);
                 }
             }
-            if (common.isBlank(destinationComponentId) === false) {
+            if (nfCommon.isBlank(destinationComponentId) === false) {
                 var destination = d3.select('#id-' + destinationComponentId);
                 if (destination.empty() === false) {
                     nfGraph.reload(destination);
@@ -1362,10 +1364,10 @@
             try {
                 // see if we can restore the view position from storage
                 var name = config.storage.namePrefix + nfCanvas.getGroupId();
-                var item = storage.getItem(name);
+                var item = nfStorage.getItem(name);
 
                 // ensure the item is valid
-                if (common.isDefinedAndNotNull(item)) {
+                if (nfCommon.isDefinedAndNotNull(item)) {
                     if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
                         // restore previous view
                         nfCanvas.View.translate([item.translateX, item.translateY]);
@@ -1398,10 +1400,10 @@
             selection.each(function (d) {
                 var selected = d3.select(this);
                 if (!nfCanvasUtils.isConnection(selected)) {
-                    if (common.isUndefined(origin.x) || d.position.x < origin.x) {
+                    if (nfCommon.isUndefined(origin.x) || d.position.x < origin.x) {
                         origin.x = d.position.x;
                     }
-                    if (common.isUndefined(origin.y) || d.position.y < origin.y) {
+                    if (nfCommon.isUndefined(origin.y) || d.position.y < origin.y) {
                         origin.y = d.position.y;
                     }
                 }
@@ -1420,7 +1422,7 @@
 
             // if the group id is null, we're already in the top most group
             if (groupId === null) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Process Group',
                     dialogContent: 'Components are already in the topmost group.'
                 });

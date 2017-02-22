@@ -24,8 +24,8 @@
                 'nf.ClusterTable',
                 'nf.ErrorHandler',
                 'nf.Storage'],
-            function ($, common, clusterTable, errorHandler, storage) {
-                return (nf.Cluster = factory($, common, clusterTable, errorHandler, storage));
+            function ($, nfCommon, nfClusterTable, nfErrorHandler, nfStorage) {
+                return (nf.Cluster = factory($, nfCommon, nfClusterTable, nfErrorHandler, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Cluster =
@@ -41,7 +41,7 @@
             root.nf.ErrorHandler,
             root.nf.Storage);
     }
-}(this, function ($, common, clusterTable, errorHandler, storage) {
+}(this, function ($, nfCommon, nfClusterTable, nfErrorHandler, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -69,8 +69,8 @@
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            common.setCurrentUser(currentUser);
-        }).fail(errorHandler.handleAjaxError);
+            nfCommon.setCurrentUser(currentUser);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -79,7 +79,7 @@
     var initializeClusterPage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            clusterTable.loadClusterTable();
+            nfClusterTable.loadClusterTable();
         });
 
         // return a deferred for page initialization
@@ -92,8 +92,8 @@
                     dataType: 'json'
                 }).done(function (bannerResponse) {
                     // ensure the banners response is specified
-                    if (common.isDefinedAndNotNull(bannerResponse.banners)) {
-                        if (common.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(bannerResponse.banners)) {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.headerText) && bannerResponse.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(bannerResponse.banners.headerText).show();
 
@@ -107,7 +107,7 @@
                             updateTop('counters');
                         }
 
-                        if (common.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(bannerResponse.banners.footerText) && bannerResponse.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(bannerResponse.banners.footerText).show();
 
@@ -123,7 +123,7 @@
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -137,7 +137,7 @@
          * Initializes the counters page.
          */
         init: function () {
-            storage.init();
+            nfStorage.init();
 
             // load the current user
             loadCurrentUser().done(function () {
@@ -159,13 +159,13 @@
                 setBodySize();
 
                 // create the cluster table
-                clusterTable.init();
+                nfClusterTable.init();
 
                 // resize to fit
-                clusterTable.resetTableSize();
+                nfClusterTable.resetTableSize();
 
                 // load the table
-                clusterTable.loadClusterTable().done(function () {
+                nfClusterTable.loadClusterTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeClusterPage().done(function () {
 
@@ -181,7 +181,7 @@
                             // set the document title and the about title
                             document.title = countersTitle;
                             $('#counters-header-text').text(countersTitle);
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
 
                         $(window).on('resize', function (e) {
                             setBodySize();
@@ -214,7 +214,7 @@
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                common.toggleScrollable(tabsContent.get(0));
+                                nfCommon.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });

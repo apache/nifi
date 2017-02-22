@@ -25,8 +25,8 @@
                 'nf.ErrorHandler',
                 'nf.Storage',
                 'nf.ClusterSummary'],
-            function ($, common, historyTable, errorHandler, storage, clusterSummary) {
-                return (nf.History = factory($, common, historyTable, errorHandler, storage, clusterSummary));
+            function ($, nfCommon, nfHistoryTable, nfErrorHandler, nfStorage, nfClusterSummary) {
+                return (nf.History = factory($, nfCommon, nfHistoryTable, nfErrorHandler, nfStorage, nfClusterSummary));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.History =
@@ -44,7 +44,7 @@
             root.nf.Storage,
             root.nf.ClusterSummary);
     }
-}(this, function ($, common, historyTable, errorHandler, storage, clusterSummary) {
+}(this, function ($, nfCommon, nfHistoryTable, nfErrorHandler, nfStorage, nfClusterSummary) {
     'use strict';
 
     $(document).ready(function () {
@@ -72,8 +72,8 @@
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            common.setCurrentUser(currentUser);
-        }).fail(errorHandler.handleAjaxError);
+            nfCommon.setCurrentUser(currentUser);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -82,7 +82,7 @@
     var initializeHistoryPage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            historyTable.loadHistoryTable();
+            nfHistoryTable.loadHistoryTable();
         });
 
         // return a deferred for page initialization
@@ -95,8 +95,8 @@
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the banners response is specified
-                    if (common.isDefinedAndNotNull(response.banners)) {
-                        if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(response.banners)) {
+                        if (nfCommon.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -110,7 +110,7 @@
                             updateTop('history');
                         }
 
-                        if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -126,7 +126,7 @@
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -143,20 +143,20 @@
             // load the current user
             var currentUser = loadCurrentUser()
 
-            storage.init();
+            nfStorage.init();
 
             // ensure the config requests are loaded
             $.when(currentUser).done(function (currentUserResult) {
                 // if clustered, show message to indicate location of actions
-                if (clusterSummary.isClustered() === true) {
+                if (nfClusterSummary.isClustered() === true) {
                     $('#cluster-history-message').show();
                 }
 
                 // create the history table
-                historyTable.init();
+                nfHistoryTable.init();
 
                 // load the history table
-                historyTable.loadHistoryTable();
+                nfHistoryTable.loadHistoryTable();
 
                 // once the table is initialized, finish initializing the page
                 initializeHistoryPage().done(function () {
@@ -173,7 +173,7 @@
                         }
 
                         // configure the initial grid height
-                        historyTable.resetTableSize();
+                        nfHistoryTable.resetTableSize();
                     };
 
                     // get the about details
@@ -191,7 +191,7 @@
 
                         // set the initial size
                         setBodySize();
-                    }).fail(errorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
 
                     $(window).on('resize', function (e) {
                         setBodySize();
@@ -224,7 +224,7 @@
                             }
                         }
                         $.each(tabsContents, function (index, tabsContent) {
-                            common.toggleScrollable(tabsContent.get(0));
+                            nfCommon.toggleScrollable(tabsContent.get(0));
                         });
                     });
                 });

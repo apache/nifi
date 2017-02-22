@@ -21,19 +21,17 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'd3',
-                'nf.ErrorHandler',
                 'nf.Common',
                 'nf.CanvasUtils',
                 'nf.ContextMenu',
                 'nf.Label'],
-            function ($, d3, errorHandler, common, canvasUtils, contextMenu, label) {
-                return (nf.Birdseye = factory($, d3, errorHandler, common, canvasUtils, contextMenu, label));
+            function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel) {
+                return (nf.Birdseye = factory($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Birdseye =
             factory(require('jquery'),
                 require('d3'),
-                require('nf.ErrorHandler'),
                 require('nf.Common'),
                 require('nf.CanvasUtils'),
                 require('nf.ContextMenu'),
@@ -41,13 +39,12 @@
     } else {
         nf.Birdseye = factory(root.$,
             root.d3,
-            root.nf.ErrorHandler,
             root.nf.Common,
             root.nf.CanvasUtils,
             root.nf.ContextMenu,
             root.nf.Label);
     }
-}(this, function ($, d3, errorHandler, common, canvasUtils, contextMenu, label) {
+}(this, function ($, d3, nfCommon, nfCanvasUtils, nfContextMenu, nfLabel) {
     'use strict';
 
     var nfGraph;
@@ -56,8 +53,8 @@
 
     // refreshes the birdseye
     var refresh = function (components) {
-        var translate = canvasUtils.translateCanvasView();
-        var scale = canvasUtils.scaleCanvasView();
+        var translate = nfCanvasUtils.translateCanvasView();
+        var scale = nfCanvasUtils.scaleCanvasView();
 
         // scale the translation
         translate = [translate[0] / scale, translate[1] / scale];
@@ -65,7 +62,7 @@
         // get the bounding box for the graph and convert into canvas space
         var graphBox = d3.select('#canvas').node().getBoundingClientRect();
         var graphLeft = (graphBox.left / scale) - translate[0];
-        var graphTop = ((graphBox.top - canvasUtils.getCanvasOffset()) / scale) - translate[1];
+        var graphTop = ((graphBox.top - nfCanvasUtils.getCanvasOffset()) / scale) - translate[1];
         var graphRight = (graphBox.right / scale) - translate[0];
         var graphBottom = (graphBox.bottom / scale) - translate[1];
 
@@ -181,11 +178,11 @@
 
         // labels
         $.each(components.labels, function (_, d) {
-            var color = label.defaultColor();
+            var color = nfLabel.defaultColor();
 
             if (d.permissions.canRead) {
                 // use the specified color if appropriate
-                if (common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                if (nfCommon.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
                 }
             }
@@ -224,7 +221,7 @@
 
             if (d.permissions.canRead) {
                 // use the specified color if appropriate
-                if (common.isDefinedAndNotNull(d.component.style['background-color'])) {
+                if (nfCommon.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
 
                     //if the background color is #ffffff use the default instead
@@ -245,8 +242,14 @@
     var visible = true;
 
     var nfBirdseye = {
-        init: function (graph) {
-            nfGraph = graph;
+
+        /**
+         * Initializes of the graph controller.
+         *
+         * @param nfGraphRef   The nfConnectable module.
+         */
+        init: function (nfGraphRef) {
+            nfGraph = nfGraphRef;
 
             var birdseye = $('#birdseye');
 
@@ -278,7 +281,7 @@
                 })
                 .on('dragstart', function () {
                     // hide the context menu
-                    contextMenu.hide();
+                    nfContextMenu.hide();
                 })
                 .on('drag', function (d) {
                     d.x += d3.event.dx;
@@ -289,17 +292,17 @@
                         return 'translate(' + d.x + ', ' + d.y + ')';
                     });
                     // get the current transformation
-                    var scale = canvasUtils.scaleCanvasView();
-                    var translate = canvasUtils.translateCanvasView();
+                    var scale = nfCanvasUtils.scaleCanvasView();
+                    var translate = nfCanvasUtils.translateCanvasView();
 
                     // update the translation according to the delta
                     translate = [(-d3.event.dx * scale) + translate[0], (-d3.event.dy * scale) + translate[1]];
 
                     // record the current transforms
-                    canvasUtils.translateCanvasView(translate);
+                    nfCanvasUtils.translateCanvasView(translate);
 
                     // refresh the canvas
-                    canvasUtils.refreshCanvasView({
+                    nfCanvasUtils.refreshCanvasView({
                         persist: false,
                         transition: false,
                         refreshComponents: false,
@@ -311,7 +314,7 @@
                     nfGraph.updateVisibility();
 
                     // persist the users view
-                    canvasUtils.persistUserView();
+                    nfCanvasUtils.persistUserView();
 
                     // refresh the birdseye
                     nfBirdseye.refresh();

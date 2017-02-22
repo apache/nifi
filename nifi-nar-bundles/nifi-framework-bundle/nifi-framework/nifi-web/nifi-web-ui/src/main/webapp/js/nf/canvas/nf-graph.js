@@ -35,8 +35,8 @@
                 'nf.Draggable',
                 'nf.Selectable',
                 'nf.ContextMenu'],
-            function ($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu) {
-                return (nf.Graph = factory($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu));
+            function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
+                return (nf.Graph = factory($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Graph =
@@ -74,15 +74,15 @@
             root.nf.Selectable,
             root.nf.ContextMenu);
     }
-}(this, function ($, d3, common, angularBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, canvasUtils, connectable, draggable, selectable, contextMenu) {
+}(this, function ($, d3, nfCommon, nfNgBridge, nfLabel, nfFunnel, nfPort, nfRemoteProcessGroup, nfProcessGroup, nfProcessor, nfConnection, nfCanvasUtils, nfConnectable, nfDraggable, nfSelectable, nfContextMenu) {
     'use strict';
 
     var combinePorts = function (contents) {
-        if (common.isDefinedAndNotNull(contents.inputPorts) && common.isDefinedAndNotNull(contents.outputPorts)) {
+        if (nfCommon.isDefinedAndNotNull(contents.inputPorts) && nfCommon.isDefinedAndNotNull(contents.outputPorts)) {
             return contents.inputPorts.concat(contents.outputPorts);
-        } else if (common.isDefinedAndNotNull(contents.inputPorts)) {
+        } else if (nfCommon.isDefinedAndNotNull(contents.inputPorts)) {
             return contents.inputPorts;
-        } else if (common.isDefinedAndNotNull(contents.outputPorts)) {
+        } else if (nfCommon.isDefinedAndNotNull(contents.outputPorts)) {
             return contents.outputPorts;
         } else {
             return [];
@@ -90,11 +90,11 @@
     };
 
     var combinePortStatus = function (status) {
-        if (common.isDefinedAndNotNull(status.inputPortStatusSnapshots) && common.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
+        if (nfCommon.isDefinedAndNotNull(status.inputPortStatusSnapshots) && nfCommon.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
             return status.inputPortStatusSnapshots.concat(status.outputPortStatusSnapshots);
-        } else if (common.isDefinedAndNotNull(status.inputPortStatusSnapshots)) {
+        } else if (nfCommon.isDefinedAndNotNull(status.inputPortStatusSnapshots)) {
             return status.inputPortStatusSnapshots;
-        } else if (common.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
+        } else if (nfCommon.isDefinedAndNotNull(status.outputPortStatusSnapshots)) {
             return status.outputPortStatusSnapshots;
         } else {
             return [];
@@ -106,8 +106,8 @@
      */
     var updateComponentVisibility = function () {
         var canvasContainer = $('#canvas-container');
-        var translate = canvasUtils.translateCanvasView();
-        var scale = canvasUtils.scaleCanvasView();
+        var translate = nfCanvasUtils.translateCanvasView();
+        var scale = nfCanvasUtils.scaleCanvasView();
 
         // scale the translation
         translate = [translate[0] / scale, translate[1] / scale];
@@ -124,7 +124,7 @@
 
         // detects whether a component is visible and should be rendered
         var isComponentVisible = function (d) {
-            if (!canvasUtils.shouldRenderPerScale()) {
+            if (!nfCanvasUtils.shouldRenderPerScale()) {
                 return false;
             }
 
@@ -139,7 +139,7 @@
 
         // detects whether a connection is visible and should be rendered
         var isConnectionVisible = function (d) {
-            if (!canvasUtils.shouldRenderPerScale()) {
+            if (!nfCanvasUtils.shouldRenderPerScale()) {
                 return false;
             }
 
@@ -195,16 +195,16 @@
     var nfGraph = {
         init: function () {
             // initialize the object responsible for each type of component
-            nfLabel.init(connectable, draggable, selectable, contextMenu);
-            nfFunnel.init(connectable, draggable, selectable, contextMenu);
-            nfPort.init(connectable, draggable, selectable, contextMenu);
-            nfRemoteProcessGroup.init(connectable, draggable, selectable, contextMenu);
-            nfProcessGroup.init(connectable, draggable, selectable, contextMenu);
-            nfProcessor.init(connectable, draggable, selectable, contextMenu);
-            nfConnection.init(selectable, contextMenu);
+            nfLabel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfFunnel.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfPort.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfRemoteProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfProcessGroup.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfProcessor.init(nfConnectable, nfDraggable, nfSelectable, nfContextMenu);
+            nfConnection.init(nfSelectable, nfContextMenu);
 
             // load the graph
-            return nfProcessGroup.enterGroup(canvasUtils.getGroupId());
+            return nfProcessGroup.enterGroup(nfCanvasUtils.getGroupId());
         },
 
         /**
@@ -215,13 +215,13 @@
          */
         add: function (processGroupContents, options) {
             var selectAll = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // if we are going to select the new components, deselect the previous selection
             if (selectAll) {
-                canvasUtils.getSelection().classed('selected', false);
+                nfCanvasUtils.getSelection().classed('selected', false);
             }
 
             // merge the ports together
@@ -238,7 +238,7 @@
 
             // inform Angular app if the selection is changing
             if (selectAll) {
-                angularBridge.digest();
+                nfNgBridge.digest();
             }
         },
 
@@ -250,13 +250,13 @@
          */
         set: function (processGroupContents, options) {
             var selectAll = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // if we are going to select the new components, deselect the previous selection
             if (selectAll) {
-                canvasUtils.getSelection().classed('selected', false);
+                nfCanvasUtils.getSelection().classed('selected', false);
             }
 
             // merge the ports together
@@ -273,7 +273,7 @@
 
             // inform Angular app if the selection is changing
             if (selectAll) {
-                angularBridge.digest();
+                nfNgBridge.digest();
             }
         },
 
@@ -405,11 +405,11 @@
         reload: function (component) {
             var componentData = component.datum();
             if (componentData.permissions.canRead) {
-                if (canvasUtils.isProcessor(component)) {
+                if (nfCanvasUtils.isProcessor(component)) {
                     nfProcessor.reload(componentData.id);
-                } else if (canvasUtils.isInputPort(component)) {
+                } else if (nfCanvasUtils.isInputPort(component)) {
                     nfPort.reload(componentData.id);
-                } else if (canvasUtils.isRemoteProcessGroup(component)) {
+                } else if (nfCanvasUtils.isRemoteProcessGroup(component)) {
                     nfRemoteProcessGroup.reload(componentData.id);
                 }
             }

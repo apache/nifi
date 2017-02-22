@@ -22,8 +22,8 @@
         define(['jquery',
                 'CodeMirror',
                 'nf'],
-            function ($, common) {
-                factory($, common);
+            function ($, CodeMirror, nf) {
+                factory($, CodeMirror, nf);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         factory(require('jquery'),

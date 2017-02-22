@@ -24,8 +24,8 @@
                 'nf.CountersTable',
                 'nf.ErrorHandler',
                 'nf.Storage'],
-            function ($, common, countersTable, errorHandler, storage) {
-                return (nf.Counters = factory($, common, countersTable, errorHandler, storage));
+            function ($, nfCommon, nfCountersTable, nfErrorHandler, nfStorage) {
+                return (nf.Counters = factory($, nfCommon, nfCountersTable, nfErrorHandler, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Counters =
@@ -41,7 +41,7 @@
             root.nf.ErrorHandler,
             root.nf.Storage);
     }
-}(this, function ($, common, countersTable, errorHandler, storage) {
+}(this, function ($, nfCommon, nfCountersTable, nfErrorHandler, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -69,9 +69,9 @@
             url: config.urls.currentUser,
             dataType: 'json'
         }).done(function (currentUser) {
-            common.setCurrentUser(currentUser);
+            nfCommon.setCurrentUser(currentUser);
 
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -80,7 +80,7 @@
     var initializeCountersPage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            countersTable.loadCountersTable();
+            nfCountersTable.loadCountersTable();
         });
 
         // return a deferred for page initialization
@@ -93,8 +93,8 @@
                     dataType: 'json'
                 }).done(function (response) {
                     // ensure the banners response is specified
-                    if (common.isDefinedAndNotNull(response.banners)) {
-                        if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(response.banners)) {
+                        if (nfCommon.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                             // update the header text
                             var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -108,7 +108,7 @@
                             updateTop('counters');
                         }
 
-                        if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                             // update the footer text and show it
                             var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -124,7 +124,7 @@
 
                     deferred.resolve();
                 }).fail(function (xhr, status, error) {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
             } else {
@@ -138,15 +138,15 @@
          * Initializes the counters page.
          */
         init: function () {
-            storage.init();
+            nfStorage.init();
 
             // load the current user
             loadCurrentUser().done(function () {
                 // create the counters table
-                countersTable.init();
+                nfCountersTable.init();
 
                 // load the table
-                countersTable.loadCountersTable().done(function () {
+                nfCountersTable.loadCountersTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeCountersPage().done(function () {
                         var setBodySize = function () {
@@ -163,7 +163,7 @@
                             }
 
                             // configure the initial grid height
-                            countersTable.resetTableSize();
+                            nfCountersTable.resetTableSize();
                         };
 
                         // get the about details
@@ -181,7 +181,7 @@
 
                             // set the initial size
                             setBodySize();
-                        }).fail(errorHandler.handleAjaxError);
+                        }).fail(nfErrorHandler.handleAjaxError);
 
                         $(window).on('resize', function (e) {
                             setBodySize();
@@ -214,7 +214,7 @@
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                common.toggleScrollable(tabsContent.get(0));
+                                nfCommon.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });

@@ -21,8 +21,8 @@
     if (typeof define === 'function' && define.amd) {
         define(['nf.CanvasUtils',
                 'nf.ContextMenu'],
-            function (canvasUtils, contextMenu) {
-                return (nf.ng.Canvas.ToolboxCtrl = factory(canvasUtils, contextMenu));
+            function (nfCanvasUtils, nfContextMenu) {
+                return (nf.ng.Canvas.ToolboxCtrl = factory(nfCanvasUtils, nfContextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.ToolboxCtrl =
@@ -32,7 +32,7 @@
         nf.ng.Canvas.ToolboxCtrl = factory(root.nf.CanvasUtils,
             root.nf.ContextMenu);
     }
-}(this, function (canvasUtils, contextMenu) {
+}(this, function (nfCanvasUtils, nfContextMenu) {
     'use strict';
 
     return function (processorComponent,
@@ -127,14 +127,14 @@
                     cursor: '-webkit-grabbing',
                     start: function (e, ui) {
                         // hide the context menu if necessary
-                        contextMenu.hide();
+                        nfContextMenu.hide();
                     },
                     stop: function (e, ui) {
-                        var translate = canvasUtils.translateCanvasView();
-                        var scale = canvasUtils.scaleCanvasView();
+                        var translate = nfCanvasUtils.translateCanvasView();
+                        var scale = nfCanvasUtils.scaleCanvasView();
 
                         var mouseX = e.originalEvent.pageX;
-                        var mouseY = e.originalEvent.pageY - canvasUtils.getCanvasOffset();
+                        var mouseY = e.originalEvent.pageY - nfCanvasUtils.getCanvasOffset();
 
                         // invoke the drop handler if we're over the canvas
                         if (mouseX >= 0 && mouseY >= 0) {

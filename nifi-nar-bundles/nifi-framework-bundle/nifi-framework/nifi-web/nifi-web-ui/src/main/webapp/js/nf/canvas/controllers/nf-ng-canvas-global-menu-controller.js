@@ -28,8 +28,8 @@
                 'nf.ErrorHandler',
                 'nf.Settings',
                 'nf.CanvasUtils'],
-            function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
-                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils));
+            function ($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
+                return (nf.ng.Canvas.GlobalMenuCtrl = factory($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.GlobalMenuCtrl =
@@ -53,7 +53,7 @@
             root.nf.Settings,
             root.nf.CanvasUtils);
     }
-}(this, function ($, common, queueListing, shell, policyManagement, clusterSummary, errorHandler, settings, canvasUtils) {
+}(this, function ($, nfCommon, nfQueueListing, nfShell, nfPolicyManagement, nfClusterSummary, nfErrorHandler, nfSettings, nfCanvasUtils) {
     'use strict';
 
     return function (serviceProvider) {
@@ -82,7 +82,7 @@
                      * Launch the summary shell.
                      */
                     launch: function () {
-                        shell.showPage('summary');
+                        nfShell.showPage('summary');
                     }
                 }
             };
@@ -101,8 +101,8 @@
                      * Launch the counters shell.
                      */
                     launch: function () {
-                        if (common.canAccessCounters()) {
-                            shell.showPage('counters');
+                        if (nfCommon.canAccessCounters()) {
+                            nfShell.showPage('counters');
                         }
                     }
                 }
@@ -122,7 +122,7 @@
                      * Launch the bulletin board shell.
                      */
                     launch: function () {
-                        shell.showPage('bulletin-board');
+                        nfShell.showPage('bulletin-board');
                     }
                 }
             };
@@ -141,8 +141,8 @@
                      * Launch the data provenance shell.
                      */
                     launch: function () {
-                        if (common.canAccessProvenance()) {
-                            shell.showPage('provenance');
+                        if (nfCommon.canAccessProvenance()) {
+                            nfShell.showPage('provenance');
                         }
                     }
                 }
@@ -162,7 +162,7 @@
                      * Launch the settings shell.
                      */
                     launch: function () {
-                        settings.showSettings();
+                        nfSettings.showSettings();
                     }
                 }
             };
@@ -178,7 +178,7 @@
                  * @returns {*|boolean}
                  */
                 visible: function () {
-                    return clusterSummary.isConnectedToCluster();
+                    return nfClusterSummary.isConnectedToCluster();
                 },
 
                 /**
@@ -190,8 +190,8 @@
                      * Launch the cluster shell.
                      */
                     launch: function () {
-                        if (common.canAccessController()) {
-                            shell.showPage('cluster');
+                        if (nfCommon.canAccessController()) {
+                            nfShell.showPage('cluster');
                         }
                     }
                 }
@@ -211,7 +211,7 @@
                      * Launch the history shell.
                      */
                     launch: function () {
-                        shell.showPage('history');
+                        nfShell.showPage('history');
                     }
                 }
             };
@@ -230,8 +230,8 @@
                      * Launch the users shell.
                      */
                     launch: function () {
-                        if (common.canAccessTenants()) {
-                            shell.showPage('users');
+                        if (nfCommon.canAccessTenants()) {
+                            nfShell.showPage('users');
                         }
                     }
                 }
@@ -251,8 +251,8 @@
                      * Launch the policies shell.
                      */
                     launch: function () {
-                        if (common.canModifyPolicies() && common.canAccessTenants()) {
-                            policyManagement.showGlobalPolicies();
+                        if (nfCommon.canModifyPolicies() && nfCommon.canAccessTenants()) {
+                            nfPolicyManagement.showGlobalPolicies();
                         }
                     }
                 }
@@ -272,8 +272,8 @@
                      * Launch the templates shell.
                      */
                     launch: function () {
-                        shell.showPage('templates?' + $.param({
-                                groupId: canvasUtils.getGroupId()
+                        nfShell.showPage('templates?' + $.param({
+                                groupId: nfCanvasUtils.getGroupId()
                             }));
                     }
                 }
@@ -293,7 +293,7 @@
                      * Launch the help documentation shell.
                      */
                     launch: function () {
-                        shell.showPage(config.urls.helpDocument);
+                        nfShell.showPage(config.urls.helpDocument);
                     }
                 }
             };
@@ -339,11 +339,11 @@
                         }
 
                         // store the content viewer url if available
-                        if (!common.isBlank(aboutDetails.contentViewerUrl)) {
+                        if (!nfCommon.isBlank(aboutDetails.contentViewerUrl)) {
                             $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
-                            queueListing.initFlowFileDetailsDialog();
+                            nfQueueListing.initFlowFileDetailsDialog();
                         }
-                    }).fail(errorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
 
                     this.modal.init();
                 },

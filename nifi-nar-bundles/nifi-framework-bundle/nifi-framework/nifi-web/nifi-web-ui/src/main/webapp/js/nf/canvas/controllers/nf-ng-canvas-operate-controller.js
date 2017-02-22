@@ -27,8 +27,8 @@
                 'nf.Common',
                 'nf.Client',
                 'nf.Processor'],
-            function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
-                return (nf.ng.Canvas.OperateCtrl = factory($, d3, dialog, birdseye, canvasUtils, common, client, processor));
+            function ($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
+                return (nf.ng.Canvas.OperateCtrl = factory($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.OperateCtrl =
@@ -50,7 +50,7 @@
             root.nf.Client,
             root.nf.Processor);
     }
-}(this, function ($, d3, dialog, birdseye, canvasUtils, common, client, processor) {
+}(this, function ($, d3, nfDialog, nfBirdseye, nfCanvasUtils, nfCommon, nfClient, nfProcessor) {
     'use strict';
 
     return function () {
@@ -154,12 +154,12 @@
                             dataType: 'xml',
                             beforeSubmit: function (formData, $form, options) {
                                 // ensure uploading to the current process group
-                                options.url += (encodeURIComponent(canvasUtils.getGroupId()) + '/templates/upload');
+                                options.url += (encodeURIComponent(nfCanvasUtils.getGroupId()) + '/templates/upload');
                             },
                             success: function (response, statusText, xhr, form) {
                                 // see if the import was successful and inform the user
                                 if (response.documentElement.tagName === 'templateEntity') {
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         headerText: 'Success',
                                         dialogContent: 'Template successfully imported.'
                                     });
@@ -169,23 +169,23 @@
                                     if (response.documentElement.tagName === 'errorResponse') {
                                         // if a more specific error was given, use it
                                         var errorMessage = response.documentElement.getAttribute('statusText');
-                                        if (!common.isBlank(errorMessage)) {
+                                        if (!nfCommon.isBlank(errorMessage)) {
                                             statusText = errorMessage;
                                         }
                                     }
 
                                     // show reason
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         headerText: 'Unable to Upload',
-                                        dialogContent: common.escapeHtml(statusText)
+                                        dialogContent: nfCommon.escapeHtml(statusText)
                                     });
                                 }
                             },
                             error: function (xhr, statusText, error) {
                                 // request failed
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     headerText: 'Unable to Upload',
-                                    dialogContent: common.escapeHtml(xhr.responseText)
+                                    dialogContent: nfCommon.escapeHtml(xhr.responseText)
                                 });
                             }
                         });
@@ -205,7 +205,7 @@
                                         var selectedTemplate = $('#selected-template-name').text();
 
                                         // submit the template if necessary
-                                        if (common.isBlank(selectedTemplate)) {
+                                        if (nfCommon.isBlank(selectedTemplate)) {
                                             $('#upload-template-status').text('No template selected. Please browse to select a template.');
                                         } else {
                                             templateForm.submit();
@@ -248,7 +248,7 @@
                         // add a handler for the change file input chain event
                         $('#template-file-field').on('change', function (e) {
                             var filename = $(this).val();
-                            if (!common.isBlank(filename)) {
+                            if (!nfCommon.isBlank(filename)) {
                                 filename = filename.replace(/^.*[\\\/]/, '');
                             }
 
@@ -320,7 +320,7 @@
                                 },
                                 handler: {
                                     click: function () {
-                                        var selection = canvasUtils.getSelection();
+                                        var selection = nfCanvasUtils.getSelection();
 
                                         // color the selected components
                                         selection.each(function (d) {
@@ -334,7 +334,7 @@
                                             if (color !== selectedData.component.style['background-color']) {
                                                 // build the request entity
                                                 var entity = {
-                                                    'revision': client.getRevision(selectedData),
+                                                    'revision': nfClient.getRevision(selectedData),
                                                     'component': {
                                                         'id': selectedData.id,
                                                         'style': {
@@ -352,16 +352,16 @@
                                                     contentType: 'application/json'
                                                 }).done(function (response) {
                                                     // update the component
-                                                    canvasUtils.getComponentByType(selectedData.type).set(response);
+                                                    nfCanvasUtils.getComponentByType(selectedData.type).set(response);
                                                 }).fail(function (xhr, status, error) {
                                                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                                                        dialog.showOkDialog({
+                                                        nfDialog.showOkDialog({
                                                             headerText: 'Error',
-                                                            dialogContent: common.escapeHtml(xhr.responseText)
+                                                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
                                                         });
                                                     }
                                                 }).always(function () {
-                                                    birdseye.refresh();
+                                                    nfBirdseye.refresh();
                                                 });
                                             }
                                         });
@@ -448,13 +448,13 @@
                                     if (hex.toLowerCase() === '#ffffff') {
                                         //special case #ffffff implies default fill
                                         $('#fill-color-processor-preview-icon').css({
-                                            'color': processor.defaultIconColor(),
+                                            'color': nfProcessor.defaultIconColor(),
                                             'background-color': hex
                                         });
                                     } else {
                                         $('#fill-color-processor-preview-icon').css({
-                                            'color': common.determineContrastColor(
-                                                common.substringAfterLast(
+                                            'color': nfCommon.determineContrastColor(
+                                                nfCommon.substringAfterLast(
                                                     hex, '#')),
                                             'background-color': hex
                                         });
@@ -472,7 +472,7 @@
                                         'background': hex
                                     });
                                     $('#fill-color-label-preview-value').css('color',
-                                        common.determineContrastColor(common.substringAfterLast(hex, '#'))
+                                        nfCommon.determineContrastColor(nfCommon.substringAfterLast(hex, '#'))
                                     );
                                 }
                             });

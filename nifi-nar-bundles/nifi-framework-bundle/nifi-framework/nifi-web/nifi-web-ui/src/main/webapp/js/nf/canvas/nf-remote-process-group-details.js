@@ -22,8 +22,8 @@
         define(['jquery',
                 'nf.Common',
                 'nf.CanvasUtils'],
-            function ($, common, canvasUtils) {
-                return (nf.RemoteProcessGroupDetails = factory($, common, canvasUtils));
+            function ($, nfCommon, nfCanvasUtils) {
+                return (nf.RemoteProcessGroupDetails = factory($, nfCommon, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.RemoteProcessGroupDetails =
@@ -35,7 +35,7 @@
             root.nf.Common,
             root.nf.CanvasUtils);
     }
-}(this, function ($, common, canvasUtils) {
+}(this, function ($, nfCommon, nfCanvasUtils) {
     'use strict';
 
     return {
@@ -59,16 +59,16 @@
                 handler: {
                     close: function () {
                         // clear the remote process group details
-                        common.clearField('read-only-remote-process-group-id');
-                        common.clearField('read-only-remote-process-group-name');
-                        common.clearField('read-only-remote-process-group-urls');
-                        common.clearField('read-only-remote-process-group-timeout');
-                        common.clearField('read-only-remote-process-group-yield-duration');
-                        common.clearField('read-only-remote-process-group-transport-protocol');
-                        common.clearField('read-only-remote-process-group-proxy-host');
-                        common.clearField('read-only-remote-process-group-proxy-port');
-                        common.clearField('read-only-remote-process-group-proxy-user');
-                        common.clearField('read-only-remote-process-group-proxy-password');
+                        nfCommon.clearField('read-only-remote-process-group-id');
+                        nfCommon.clearField('read-only-remote-process-group-name');
+                        nfCommon.clearField('read-only-remote-process-group-urls');
+                        nfCommon.clearField('read-only-remote-process-group-timeout');
+                        nfCommon.clearField('read-only-remote-process-group-yield-duration');
+                        nfCommon.clearField('read-only-remote-process-group-transport-protocol');
+                        nfCommon.clearField('read-only-remote-process-group-proxy-host');
+                        nfCommon.clearField('read-only-remote-process-group-proxy-port');
+                        nfCommon.clearField('read-only-remote-process-group-proxy-user');
+                        nfCommon.clearField('read-only-remote-process-group-proxy-password');
                     }
                 }
             });
@@ -81,20 +81,20 @@
          */
         showDetails: function (selection) {
             // if the specified component is a remote process group, load its properties
-            if (canvasUtils.isRemoteProcessGroup(selection)) {
+            if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                common.populateField('read-only-remote-process-group-id', selectionData.id);
-                common.populateField('read-only-remote-process-group-name', selectionData.component.name);
-                common.populateField('read-only-remote-process-group-urls', selectionData.component.targetUris);
-                common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
-                common.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
-                common.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);
-                common.populateField('read-only-remote-process-group-proxy-host', selectionData.component.proxyHost);
-                common.populateField('read-only-remote-process-group-proxy-port', selectionData.component.proxyPort);
-                common.populateField('read-only-remote-process-group-proxy-user', selectionData.component.proxyUser);
-                common.populateField('read-only-remote-process-group-proxy-password', selectionData.component.proxyPassword);
+                nfCommon.populateField('read-only-remote-process-group-id', selectionData.id);
+                nfCommon.populateField('read-only-remote-process-group-name', selectionData.component.name);
+                nfCommon.populateField('read-only-remote-process-group-urls', selectionData.component.targetUris);
+                nfCommon.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
+                nfCommon.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
+                nfCommon.populateField('read-only-remote-process-group-transport-protocol', selectionData.component.transportProtocol);
+                nfCommon.populateField('read-only-remote-process-group-proxy-host', selectionData.component.proxyHost);
+                nfCommon.populateField('read-only-remote-process-group-proxy-port', selectionData.component.proxyPort);
+                nfCommon.populateField('read-only-remote-process-group-proxy-user', selectionData.component.proxyUser);
+                nfCommon.populateField('read-only-remote-process-group-proxy-password', selectionData.component.proxyPassword);
 
                 // show the details
                 $('#remote-process-group-details').modal('show');

@@ -34,8 +34,8 @@
                 'nf.PolicyManagement',
                 'nf.ComponentState',
                 'nf.ng.Bridge'],
-            function ($, d3, Slick, client, shell, processGroupConfiguration, canvasUtils, errorHandler, dialog, common, controllerService, processGroup, policyManagement, componentState, angularBridge) {
-                return (nf.ControllerServices = factory($, d3, Slick, client, shell, processGroupConfiguration, canvasUtils, errorHandler, dialog, common, controllerService, processGroup, policyManagement, componentState, angularBridge));
+            function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfNgBridge) {
+                return (nf.ControllerServices = factory($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ControllerServices =
@@ -71,7 +71,7 @@
             root.nf.ComponentState,
             root.nf.ng.Bridge);
     }
-}(this, function ($, d3, Slick, client, shell, processGroupConfiguration, canvasUtils, errorHandler, dialog, common, controllerService, processGroup, policyManagement, componentState, angularBridge) {
+}(this, function ($, d3, Slick, nfClient, nfShell, nfProcessGroupConfiguration, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon, nfControllerService, nfProcessGroup, nfPolicyManagement, nfComponentState, nfNgBridge) {
     'use strict';
 
     var dblClick = null;
@@ -100,7 +100,7 @@
      * @param item controller service type
      */
     var isSelectable = function (item) {
-        return common.isBlank(item.usageRestriction) || common.canAccessRestrictedComponents();
+        return nfCommon.isBlank(item.usageRestriction) || nfCommon.canAccessRestrictedComponents();
     };
 
     /**
@@ -120,7 +120,7 @@
         var controllerServiceTypesGrid = $('#controller-service-types-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(controllerServiceTypesGrid)) {
+        if (nfCommon.isDefinedAndNotNull(controllerServiceTypesGrid)) {
             var controllerServiceTypesData = controllerServiceTypesGrid.getData();
 
             // update the search criteria
@@ -257,7 +257,7 @@
 
         // ensure something was selected
         if (selectedServiceType === '') {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Controller Service',
                 dialogContent: 'The type of controller service to create must be selected.'
             });
@@ -276,7 +276,7 @@
     var addControllerService = function (controllerServicesUri, serviceTable, controllerServiceType) {
         // build the controller service entity
         var controllerServiceEntity = {
-            'revision': client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': 0
                 }
@@ -307,7 +307,7 @@
             var row = controllerServicesData.getRowById(controllerServiceEntity.id);
             controllerServicesGrid.setSelectedRows([row]);
             controllerServicesGrid.scrollRowIntoView(row);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-controller-service-dialog').modal('hide');
@@ -325,7 +325,7 @@
                 id: 'type',
                 name: 'Type',
                 field: 'label',
-                formatter: common.typeFormatter,
+                formatter: nfCommon.typeFormatter,
                 sortable: false,
                 resizable: true
             },
@@ -359,11 +359,11 @@
                 var controllerServiceType = controllerServiceTypesGrid.getDataItem(controllerServiceTypeIndex);
 
                 // set the controller service type description
-                if (common.isDefinedAndNotNull(controllerServiceType)) {
+                if (nfCommon.isDefinedAndNotNull(controllerServiceType)) {
                     // show the selected controller service
                     $('#controller-service-description-container').show();
 
-                    if (common.isBlank(controllerServiceType.description)) {
+                    if (nfCommon.isBlank(controllerServiceType.description)) {
                         $('#controller-service-type-description')
                             .attr('title', '')
                             .html('<span class="unset">No description specified</span>');
@@ -385,7 +385,7 @@
             }
         });
         controllerServiceTypesGrid.onViewportChanged.subscribe(function (e, args) {
-            common.cleanUpTooltips($('#controller-service-types-table'), 'div.view-usage-restriction');
+            nfCommon.cleanUpTooltips($('#controller-service-types-table'), 'div.view-usage-restriction');
         });
 
         // wire up the dataview to the grid
@@ -412,8 +412,8 @@
                 var item = controllerServiceTypesData.getItemById(rowId);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(item.usageRestriction)) {
-                    usageRestriction.qtip($.extend({}, common.config.tooltipConfig, {
+                if (nfCommon.isDefinedAndNotNull(item.usageRestriction)) {
+                    usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
                         content: item.usageRestriction,
                         position: {
                             container: $('#summary'),
@@ -446,10 +446,10 @@
                 // add the documented type
                 controllerServiceTypesData.addItem({
                     id: id++,
-                    label: common.substringAfterLast(documentedType.type, '.'),
+                    label: nfCommon.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
-                    description: common.escapeHtml(documentedType.description),
-                    usageRestriction: common.escapeHtml(documentedType.usageRestriction),
+                    description: nfCommon.escapeHtml(documentedType.description),
+                    usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     tags: documentedType.tags.join(', ')
                 });
 
@@ -471,7 +471,7 @@
                 select: applyControllerServiceTypeFilter,
                 remove: applyControllerServiceTypeFilter
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
 
         // initialize the controller service dialog
         $('#new-controller-service-dialog').modal({
@@ -539,7 +539,7 @@
             return '';
         }
         
-        return common.substringAfterLast(dataContext.component.type, '.');
+        return nfCommon.substringAfterLast(dataContext.component.type, '.');
     };
 
     /**
@@ -557,7 +557,7 @@
             return '';
         }
 
-        if (common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+        if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
             return dataContext.component.parentGroupId;
         } else {
             return 'Controller';
@@ -574,7 +574,7 @@
         // we know the process group for this controller service is part
         // of the current breadcrumb trail
         var canWriteProcessGroupParent = function (processGroupId) {
-            var breadcrumbs = angularBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
 
             var isAuthorized = false;
             $.each(breadcrumbs, function (_, breadcrumbEntity) {
@@ -587,10 +587,10 @@
             return isAuthorized;
         };
 
-        if (common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+        if (nfCommon.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
             return canWriteProcessGroupParent(dataContext.component.parentGroupId);
         } else {
-            return common.canModifyController();
+            return nfCommon.canModifyController();
         }
     };
 
@@ -606,31 +606,31 @@
             if(a.permissions.canRead && b.permissions.canRead) {
                 if (sortDetails.columnId === 'moreDetails') {
                     var aBulletins = 0;
-                    if (!common.isEmpty(a.bulletins)) {
+                    if (!nfCommon.isEmpty(a.bulletins)) {
                         aBulletins = a.bulletins.length;
                     }
                     var bBulletins = 0;
-                    if (!common.isEmpty(b.bulletins)) {
+                    if (!nfCommon.isEmpty(b.bulletins)) {
                         bBulletins = b.bulletins.length;
                     }
                     return aBulletins - bBulletins;
                 } else if (sortDetails.columnId === 'type') {
-                    var aType = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
-                    var bType = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    var aType = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nfCommon.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nfCommon.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
                     return aType === bType ? 0 : aType > bType ? 1 : -1;
                 } else if (sortDetails.columnId === 'state') {
                     var aState = 'Invalid';
-                    if (common.isEmpty(a.component.validationErrors)) {
-                        aState = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    if (nfCommon.isEmpty(a.component.validationErrors)) {
+                        aState = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                     }
                     var bState = 'Invalid';
-                    if (common.isEmpty(b.component.validationErrors)) {
-                        bState = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    if (nfCommon.isEmpty(b.component.validationErrors)) {
+                        bState = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     }
                     return aState === bState ? 0 : aState > bState ? 1 : -1;
                 } else {
-                    var aString = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                    var bString = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
             } else {
@@ -667,8 +667,8 @@
             // always include a button to view the usage
             markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
-            var hasErrors = !common.isEmpty(dataContext.component.validationErrors);
-            var hasBulletins = !common.isEmpty(dataContext.bulletins);
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
                 markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px; float: left;" ></div>';
@@ -679,7 +679,7 @@
             }
 
             if (hasErrors || hasBulletins) {
-                markup += '<span class="hidden row-id">' + common.escapeHtml(dataContext.id) + '</span>';
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
             }
 
             return markup;
@@ -692,7 +692,7 @@
             
             // determine the appropriate label
             var icon = '', label = '';
-            if (!common.isEmpty(dataContext.component.validationErrors)) {
+            if (!nfCommon.isEmpty(dataContext.component.validationErrors)) {
                 icon = 'invalid fa fa-warning';
                 label = 'Invalid';
             } else {
@@ -726,7 +726,7 @@
                     markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                     // if there are no validation errors allow enabling
-                    if (common.isEmpty(dataContext.component.validationErrors)) {
+                    if (nfCommon.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
                 }
@@ -741,7 +741,7 @@
             }
 
             // allow policy configuration conditionally
-            if (canvasUtils.isConfigurableAuthorizer() && common.canAccessTenants()) {
+            if (nfCanvasUtils.isConfigurableAuthorizer() && nfCommon.canAccessTenants()) {
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
             }
 
@@ -827,44 +827,44 @@
             // determine the desired action
             if (controllerServicesGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-controller-service')) {
-                    controllerService.showConfiguration(serviceTable, controllerServiceEntity);
+                    nfControllerService.showConfiguration(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('enable-controller-service')) {
-                    controllerService.enable(serviceTable, controllerServiceEntity);
+                    nfControllerService.enable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('disable-controller-service')) {
-                    controllerService.disable(serviceTable, controllerServiceEntity);
+                    nfControllerService.disable(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('delete-controller-service')) {
-                    controllerService.promptToDeleteController(serviceTable, controllerServiceEntity);
+                    nfControllerService.promptToDeleteController(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
-                    componentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
+                    nfComponentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
-                    policyManagement.showControllerServicePolicy(controllerServiceEntity);
+                    nfPolicyManagement.showControllerServicePolicy(controllerServiceEntity);
 
                     // close the settings dialog
                     $('#shell-close-button').click();
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
-                    controllerService.showDetails(serviceTable, controllerServiceEntity);
+                    nfControllerService.showDetails(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('controller-service-usage')) {
                      // close the settings dialog
                      $('#shell-close-button').click();
 
                      // open the documentation for this controller service
-                     shell.showPage('../nifi-docs/documentation?' + $.param({
-                         select: common.substringAfterLast(controllerServiceEntity.component.type, '.')
+                     nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                         select: nfCommon.substringAfterLast(controllerServiceEntity.component.type, '.')
                      })).done(function() {
-                         if (common.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
+                         if (nfCommon.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
                              var groupId;
-                             var processGroup = processGroup.get(controllerServiceEntity.component.parentGroupId);
-                             if (common.isDefinedAndNotNull(processGroup)) {
+                             var processGroup = nfProcessGroup.get(controllerServiceEntity.component.parentGroupId);
+                             if (nfCommon.isDefinedAndNotNull(processGroup)) {
                                  groupId = processGroup.id;
                              } else {
-                                 groupId = canvasUtils.getGroupId();
+                                 groupId = nfCanvasUtils.getGroupId();
                              }
 
                              // reload the corresponding group
-                             processGroupConfiguration.showConfiguration(groupId);
+                             nfProcessGroupConfiguration.showConfiguration(groupId);
                          } else {
                              showSettings();
                          }
@@ -894,12 +894,12 @@
                 var controllerServiceEntity = controllerServicesData.getItemById(serviceId);
 
                 // format the errors
-                var tooltip = common.formatUnorderedList(controllerServiceEntity.component.validationErrors);
+                var tooltip = nfCommon.formatUnorderedList(controllerServiceEntity.component.validationErrors);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     errorIcon.qtip($.extend({},
-                        common.config.tooltipConfig,
+                        nfCommon.config.tooltipConfig,
                         {
                             content: tooltip,
                             position: {
@@ -923,13 +923,13 @@
                 var controllerServiceEntity = controllerServicesData.getItemById(taskId);
 
                 // format the tooltip
-                var bulletins = common.getFormattedBulletins(controllerServiceEntity.bulletins);
-                var tooltip = common.formatUnorderedList(bulletins);
+                var bulletins = nfCommon.getFormattedBulletins(controllerServiceEntity.bulletins);
+                var tooltip = nfCommon.formatUnorderedList(bulletins);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     bulletinIcon.qtip($.extend({},
-                        common.config.tooltipConfig,
+                        nfCommon.config.tooltipConfig,
                         {
                             content: tooltip,
                             position: {
@@ -966,8 +966,8 @@
                 }, service));
             });
 
-            common.cleanUpTooltips(serviceTable, 'div.has-errors');
-            common.cleanUpTooltips(serviceTable, 'div.has-bulletins');
+            nfCommon.cleanUpTooltips(serviceTable, 'div.has-errors');
+            nfCommon.cleanUpTooltips(serviceTable, 'div.has-bulletins');
 
             var controllerServicesGrid = serviceTable.data('gridInstance');
             var controllerServicesData = controllerServicesGrid.getData();
@@ -1084,7 +1084,7 @@
             controllerServiceTypesGrid.onDblClick.subscribe(dblClick);
 
             // reset the canvas size after the dialog is shown
-            if (common.isDefinedAndNotNull(controllerServiceTypesGrid)) {
+            if (nfCommon.isDefinedAndNotNull(controllerServiceTypesGrid)) {
                 controllerServiceTypesGrid.setSelectedRows([0]);
                 controllerServiceTypesGrid.resizeCanvas();
             }
@@ -1100,7 +1100,7 @@
          */
         resetTableSize: function (serviceTable) {
             var controllerServicesGrid = serviceTable.data('gridInstance');
-            if (common.isDefinedAndNotNull(controllerServicesGrid)) {
+            if (nfCommon.isDefinedAndNotNull(controllerServicesGrid)) {
                 controllerServicesGrid.resizeCanvas();
             }
         },
@@ -1128,14 +1128,14 @@
             controllerServicesData.beginUpdate();
 
             // if there are some bulletins process them
-            if (!common.isEmpty(controllerServiceBulletins)) {
+            if (!nfCommon.isEmpty(controllerServiceBulletins)) {
                 var controllerServiceBulletinsBySource = d3.nest()
                     .key(function(d) { return d.sourceId; })
                     .map(controllerServiceBulletins, d3.map);
 
                 controllerServiceBulletinsBySource.forEach(function(sourceId, sourceBulletins) {
                     var controllerService = controllerServicesData.getItemById(sourceId);
-                    if (common.isDefinedAndNotNull(controllerService)) {
+                    if (nfCommon.isDefinedAndNotNull(controllerService)) {
                         controllerServicesData.updateItem(sourceId, $.extend(controllerService, {
                             bulletins: sourceBulletins
                         }));

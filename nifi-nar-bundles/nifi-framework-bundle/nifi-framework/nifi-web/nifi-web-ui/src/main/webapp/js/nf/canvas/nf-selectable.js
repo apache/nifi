@@ -22,8 +22,8 @@
         define(['d3',
                 'nf.ng.Bridge',
                 'nf.ContextMenu'],
-            function (d3, angularBridge, contextMenu) {
-                return (nf.Selectable = factory(d3, angularBridge, contextMenu));
+            function (d3, nfNgBridge, nfContextMenu) {
+                return (nf.Selectable = factory(d3, nfNgBridge, nfContextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Selectable =
@@ -35,14 +35,14 @@
             root.nf.ng.Bridge,
             root.nf.ContextMenu);
     }
-}(this, function (d3, angularBridge, contextMenu) {
+}(this, function (d3, nfNgBridge, nfContextMenu) {
     'use strict';
 
     var nfSelectable = {
 
         select: function (g) {
             // hide any context menus as necessary
-            contextMenu.hide();
+            nfContextMenu.hide();
 
             // only need to update selection if necessary
             if (!g.classed('selected')) {
@@ -62,7 +62,7 @@
 
             // inform Angular app that values have changed since the
             // enabled operate palette buttons are based off of the selection
-            angularBridge.digest();
+            nfNgBridge.digest();
 
             // stop propagation
             d3.event.stopPropagation();

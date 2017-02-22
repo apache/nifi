@@ -28,8 +28,8 @@
                 'nf.Dialog',
                 'nf.Client',
                 'nf.ErrorHandler'],
-            function ($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
-                return (nf.Draggable = factory($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler));
+            function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
+                return (nf.Draggable = factory($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Draggable =
@@ -53,7 +53,7 @@
             root.nf.Client,
             root.nf.ErrorHandler);
     }
-}(this, function ($, d3, nfConnection, birdseye, canvasUtils, common, dialog, client, errorHandler) {
+}(this, function ($, d3, nfConnection, nfBirdseye, nfCanvasUtils, nfCommon, nfDialog, nfClient, nfErrorHandler) {
     'use strict';
 
     var nfCanvas;
@@ -83,8 +83,8 @@
         var selectedComponents = d3.selectAll('g.component.selected');
 
         // ensure every component is writable
-        if (canvasUtils.canModify(selectedConnections) === false || canvasUtils.canModify(selectedComponents) === false) {
-            dialog.showOkDialog({
+        if (nfCanvasUtils.canModify(selectedConnections) === false || nfCanvasUtils.canModify(selectedComponents) === false) {
+            nfDialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Must be authorized to modify every component selected.'
             });
@@ -104,7 +104,7 @@
             // consider any self looping connections
             var connections = nfConnection.getComponentConnections(d.id);
             $.each(connections, function (_, connection) {
-                if (!updates.has(connection.id) && canvasUtils.getConnectionSourceComponentId(connection) === canvasUtils.getConnectionDestinationComponentId(connection)) {
+                if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
                     var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
                     if (connectionUpdate !== null) {
                         updates.set(connection.id, connectionUpdate);
@@ -126,15 +126,15 @@
         var selection = d3.selectAll('g.component.selected, g.connection.selected');
         var group = d3.select('g.drop');
 
-        if (canvasUtils.canModify(selection) === false) {
-            dialog.showOkDialog({
+        if (nfCanvasUtils.canModify(selection) === false) {
+            nfDialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Must be authorized to modify every component selected.'
             });
             return;
         }
-        if (canvasUtils.canModify(group) === false) {
-            dialog.showOkDialog({
+        if (nfCanvasUtils.canModify(group) === false) {
+            nfDialog.showOkDialog({
                 headerText: 'Component Position',
                 dialogContent: 'Not authorized to modify the destination group.'
             });
@@ -142,7 +142,7 @@
         }
 
         // move the seleciton into the group
-        canvasUtils.moveComponents(selection, group);
+        nfCanvasUtils.moveComponents(selection, group);
     };
 
     var nfDraggable = {
@@ -193,10 +193,10 @@
                             .attr('width', maxX - minX)
                             .attr('height', maxY - minY)
                             .attr('stroke-width', function () {
-                                return 1 / canvasUtils.scaleCanvasView();
+                                return 1 / nfCanvasUtils.scaleCanvasView();
                             })
                             .attr('stroke-dasharray', function () {
-                                return 4 / canvasUtils.scaleCanvasView();
+                                return 4 / nfCanvasUtils.scaleCanvasView();
                             })
                             .datum({
                                 original: {
@@ -257,7 +257,7 @@
 
             // build the entity
             var entity = {
-                'revision': client.getRevision(d),
+                'revision': nfClient.getRevision(d),
                 'component': {
                     'id': d.id,
                     'position': newPosition
@@ -274,7 +274,7 @@
                     contentType: 'application/json'
                 }).done(function (response) {
                     // update the component
-                    canvasUtils.getComponentByType(d.type).set(response);
+                    nfCanvasUtils.getComponentByType(d.type).set(response);
 
                     // resolve with an object so we can refresh when finished
                     deferred.resolve({
@@ -283,12 +283,12 @@
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Component Position',
-                            dialogContent: common.escapeHtml(xhr.responseText)
+                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
                         });
                     } else {
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
 
                     deferred.reject();
@@ -318,7 +318,7 @@
             });
 
             var entity = {
-                'revision': client.getRevision(d),
+                'revision': nfClient.getRevision(d),
                 'component': {
                     id: d.id,
                     bends: newBends
@@ -344,12 +344,12 @@
                     });
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Component Position',
-                            dialogContent: common.escapeHtml(xhr.responseText)
+                            dialogContent: nfCommon.escapeHtml(xhr.responseText)
                         });
                     } else {
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
 
                     deferred.reject();
@@ -388,7 +388,7 @@
                         nfConnection.refresh(connectionId);
                     });
                 }).always(function () {
-                    birdseye.refresh();
+                    nfBirdseye.refresh();
                 });
             }
         },

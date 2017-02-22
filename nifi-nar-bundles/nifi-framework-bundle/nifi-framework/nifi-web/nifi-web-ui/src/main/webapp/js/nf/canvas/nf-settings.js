@@ -32,8 +32,8 @@
                 'nf.Shell',
                 'nf.ComponentState',
                 'nf.PolicyManagement'],
-            function ($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement) {
-                return (nf.Settings = factory($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement));
+            function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement) {
+                return (nf.Settings = factory($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Settings =
@@ -65,7 +65,7 @@
             root.nf.ComponentState,
             root.nf.PolicyManagement);
     }
-}(this, function ($, Slick, d3, client, dialog, common, canvasUtils, controllerServices, errorHandler, reportingTask, shell, componentState, policyManagement) {
+}(this, function ($, Slick, d3, nfClient, nfDialog, nfCommon, nfCanvasUtils, nfControllerServices, nfErrorHandler, nfReportingTask, nfShell, nfComponentState, nfPolicyManagement) {
     'use strict';
 
 
@@ -107,7 +107,7 @@
         // marshal the configuration details
         var configuration = marshalConfiguration();
         var entity = {
-            'revision': client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': version
                 }
@@ -124,7 +124,7 @@
             contentType: 'application/json'
         }).done(function (response) {
             // close the settings dialog
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Settings',
                 dialogContent: 'Settings successfully applied.'
             });
@@ -133,7 +133,7 @@
             $('#settings-save').off('click').on('click', function () {
                 saveSettings(response.revision.version);
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     }
 
     /**
@@ -211,7 +211,7 @@
      * @param item reporting task type
      */
     var isSelectable = function (item) {
-        return common.isBlank(item.usageRestriction) || common.canAccessRestrictedComponents();
+        return nfCommon.isBlank(item.usageRestriction) || nfCommon.canAccessRestrictedComponents();
     };
 
     /**
@@ -247,7 +247,7 @@
             return '';
         }
 
-        return common.substringAfterLast(dataContext.component.type, '.');
+        return nfCommon.substringAfterLast(dataContext.component.type, '.');
     };
 
     /**
@@ -262,31 +262,31 @@
             if (a.permissions.canRead && b.permissions.canRead) {
                 if (sortDetails.columnId === 'moreDetails') {
                     var aBulletins = 0;
-                    if (!common.isEmpty(a.bulletins)) {
+                    if (!nfCommon.isEmpty(a.bulletins)) {
                         aBulletins = a.bulletins.length;
                     }
                     var bBulletins = 0;
-                    if (!common.isEmpty(b.bulletins)) {
+                    if (!nfCommon.isEmpty(b.bulletins)) {
                         bBulletins = b.bulletins.length;
                     }
                     return aBulletins - bBulletins;
                 } else if (sortDetails.columnId === 'type') {
-                    var aType = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
-                    var bType = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    var aType = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nfCommon.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nfCommon.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
                     return aType === bType ? 0 : aType > bType ? 1 : -1;
                 } else if (sortDetails.columnId === 'state') {
                     var aState = 'Invalid';
-                    if (common.isEmpty(a.component.validationErrors)) {
-                        aState = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    if (nfCommon.isEmpty(a.component.validationErrors)) {
+                        aState = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                     }
                     var bState = 'Invalid';
-                    if (common.isEmpty(b.component.validationErrors)) {
-                        bState = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    if (nfCommon.isEmpty(b.component.validationErrors)) {
+                        bState = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     }
                     return aState === bState ? 0 : aState > bState ? 1 : -1;
                 } else {
-                    var aString = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                    var bString = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
             } else {
@@ -322,7 +322,7 @@
         var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(reportingTaskTypesGrid)) {
+        if (nfCommon.isDefinedAndNotNull(reportingTaskTypesGrid)) {
             var reportingTaskTypesData = reportingTaskTypesGrid.getData();
 
             // update the search criteria
@@ -404,7 +404,7 @@
 
         // ensure something was selected
         if (selectedTaskType === '') {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Settings',
                 dialogContent: 'The type of reporting task to create must be selected.'
             });
@@ -421,7 +421,7 @@
     var addReportingTask = function (reportingTaskType) {
         // build the reporting task entity
         var reportingTaskEntity = {
-            'revision': client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': 0
                 }
@@ -452,7 +452,7 @@
             var row = reportingTaskData.getRowById(reportingTaskEntity.id);
             reportingTaskGrid.setSelectedRows([row]);
             reportingTaskGrid.scrollRowIntoView(row);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
 
         // hide the dialog
         $('#new-reporting-task-dialog').modal('hide');
@@ -490,7 +490,7 @@
                 id: 'type',
                 name: 'Type',
                 field: 'label',
-                formatter: common.typeFormatter,
+                formatter: nfCommon.typeFormatter,
                 sortable: false,
                 resizable: true
             },
@@ -524,11 +524,11 @@
                 var reportingTaskType = reportingTaskTypesGrid.getDataItem(reportingTaskTypeIndex);
 
                 // set the reporting task type description
-                if (common.isDefinedAndNotNull(reportingTaskType)) {
+                if (nfCommon.isDefinedAndNotNull(reportingTaskType)) {
                     // show the selected reporting task
                     $('#reporting-task-description-container').show();
 
-                    if (common.isBlank(reportingTaskType.description)) {
+                    if (nfCommon.isBlank(reportingTaskType.description)) {
                         $('#reporting-task-type-description')
                             .attr('title', '')
                             .html('<span class="unset">No description specified</span>');
@@ -557,7 +557,7 @@
             }
         });
         reportingTaskTypesGrid.onViewportChanged.subscribe(function (e, args) {
-            common.cleanUpTooltips($('#reporting-task-types-table'), 'div.view-usage-restriction');
+            nfCommon.cleanUpTooltips($('#reporting-task-types-table'), 'div.view-usage-restriction');
         });
 
         // wire up the dataview to the grid
@@ -584,8 +584,8 @@
                 var item = reportingTaskTypesData.getItemById(rowId);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(item.usageRestriction)) {
-                    usageRestriction.qtip($.extend({}, common.config.tooltipConfig, {
+                if (nfCommon.isDefinedAndNotNull(item.usageRestriction)) {
+                    usageRestriction.qtip($.extend({}, nfCommon.config.tooltipConfig, {
                         content: item.usageRestriction,
                         position: {
                             container: $('#summary'),
@@ -618,10 +618,10 @@
                 // add the documented type
                 reportingTaskTypesData.addItem({
                     id: id++,
-                    label: common.substringAfterLast(documentedType.type, '.'),
+                    label: nfCommon.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
-                    description: common.escapeHtml(documentedType.description),
-                    usageRestriction: common.escapeHtml(documentedType.usageRestriction),
+                    description: nfCommon.escapeHtml(documentedType.description),
+                    usageRestriction: nfCommon.escapeHtml(documentedType.usageRestriction),
                     tags: documentedType.tags.join(', ')
                 });
 
@@ -643,7 +643,7 @@
                 select: applyReportingTaskTypeFilter,
                 remove: applyReportingTaskTypeFilter
             });
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
@@ -732,8 +732,8 @@
             // always include a button to view the usage
             markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book"></div>';
 
-            var hasErrors = !common.isEmpty(dataContext.component.validationErrors);
-            var hasBulletins = !common.isEmpty(dataContext.bulletins);
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+            var hasBulletins = !nfCommon.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
                 markup += '<div class="pointer has-errors fa fa-warning" ></div>';
@@ -744,7 +744,7 @@
             }
 
             if (hasErrors || hasBulletins) {
-                markup += '<span class="hidden row-id">' + common.escapeHtml(dataContext.component.id) + '</span>';
+                markup += '<span class="hidden row-id">' + nfCommon.escapeHtml(dataContext.component.id) + '</span>';
             }
 
             return markup;
@@ -757,7 +757,7 @@
 
             // determine the appropriate label
             var icon = '', label = '';
-            if (!common.isEmpty(dataContext.component.validationErrors)) {
+            if (!nfCommon.isEmpty(dataContext.component.validationErrors)) {
                 label = 'Invalid';
                 icon = 'invalid fa fa-warning';
             } else {
@@ -775,13 +775,13 @@
 
             // include the active thread count if appropriate
             var activeThreadCount = '';
-            if (common.isDefinedAndNotNull(dataContext.component.activeThreadCount) && dataContext.component.activeThreadCount > 0) {
+            if (nfCommon.isDefinedAndNotNull(dataContext.component.activeThreadCount) && dataContext.component.activeThreadCount > 0) {
                 activeThreadCount = '(' + dataContext.component.activeThreadCount + ')';
             }
 
             // format the markup
             var formattedValue = '<div layout="row"><div class="' + icon + '" style="margin-top: 3px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + common.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + common.escapeHtml(activeThreadCount) + '</div></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nfCommon.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + nfCommon.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -794,7 +794,7 @@
                     markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                     // support starting when stopped and no validation errors
-                    if (dataContext.component.state === 'STOPPED' && common.isEmpty(dataContext.component.validationErrors)) {
+                    if (dataContext.component.state === 'STOPPED' && nfCommon.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
                 }
@@ -804,12 +804,12 @@
                 }
             }
 
-            if (dataContext.permissions.canWrite && common.canModifyController()) {
+            if (dataContext.permissions.canWrite && nfCommon.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
             }
 
             // allow policy configuration conditionally
-            if (canvasUtils.isConfigurableAuthorizer() && common.canAccessTenants()) {
+            if (nfCanvasUtils.isConfigurableAuthorizer() && nfCommon.canAccessTenants()) {
                 markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
             }
 
@@ -884,33 +884,33 @@
             // determine the desired action
             if (reportingTasksGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('edit-reporting-task')) {
-                    reportingTask.showConfiguration(reportingTaskEntity);
+                    nfReportingTask.showConfiguration(reportingTaskEntity);
                 } else if (target.hasClass('start-reporting-task')) {
-                    reportingTask.start(reportingTaskEntity);
+                    nfReportingTask.start(reportingTaskEntity);
                 } else if (target.hasClass('stop-reporting-task')) {
-                    reportingTask.stop(reportingTaskEntity);
+                    nfReportingTask.stop(reportingTaskEntity);
                 } else if (target.hasClass('delete-reporting-task')) {
-                    reportingTask.promptToDeleteReportingTask(reportingTaskEntity);
+                    nfReportingTask.promptToDeleteReportingTask(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
-                    componentState.showState(reportingTaskEntity, canClear);
+                    nfComponentState.showState(reportingTaskEntity, canClear);
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
-                    policyManagement.showReportingTaskPolicy(reportingTaskEntity);
+                    nfPolicyManagement.showReportingTaskPolicy(reportingTaskEntity);
 
                     // close the settings dialog
                     $('#shell-close-button').click();
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
-                    reportingTask.showDetails(reportingTaskEntity);
+                    nfReportingTask.showDetails(reportingTaskEntity);
                 } else if (target.hasClass('reporting-task-usage')) {
                     // close the settings dialog
                     $('#shell-close-button').click();
 
                     // open the documentation for this reporting task
-                    shell.showPage('../nifi-docs/documentation?' + $.param({
-                            select: common.substringAfterLast(reportingTaskEntity.component.type, '.')
+                    nfShell.showPage('../nifi-docs/documentation?' + $.param({
+                            select: nfCommon.substringAfterLast(reportingTaskEntity.component.type, '.')
                         })).done(function () {
                         nfSettings.showSettings();
                     });
@@ -939,12 +939,12 @@
                 var reportingTaskEntity = reportingTasksData.getItemById(taskId);
 
                 // format the errors
-                var tooltip = common.formatUnorderedList(reportingTaskEntity.component.validationErrors);
+                var tooltip = nfCommon.formatUnorderedList(reportingTaskEntity.component.validationErrors);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     errorIcon.qtip($.extend({},
-                        common.config.tooltipConfig,
+                        nfCommon.config.tooltipConfig,
                         {
                             content: tooltip,
                             position: {
@@ -968,13 +968,13 @@
                 var reportingTaskEntity = reportingTasksData.getItemById(taskId);
 
                 // format the tooltip
-                var bulletins = common.getFormattedBulletins(reportingTaskEntity.bulletins);
-                var tooltip = common.formatUnorderedList(bulletins);
+                var bulletins = nfCommon.getFormattedBulletins(reportingTaskEntity.bulletins);
+                var tooltip = nfCommon.formatUnorderedList(bulletins);
 
                 // show the tooltip
-                if (common.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     bulletinIcon.qtip($.extend({},
-                        common.config.tooltipConfig,
+                        nfCommon.config.tooltipConfig,
                         {
                             content: tooltip,
                             position: {
@@ -1055,7 +1055,7 @@
 
         // load the controller services
         var controllerServicesUri = config.urls.api + '/flow/controller/controller-services';
-        var controllerServicesXhr = controllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
+        var controllerServicesXhr = nfControllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
 
         // load the reporting tasks
         var reportingTasks = loadReportingTasks();
@@ -1066,7 +1066,7 @@
 
             // update the current time
             $('#settings-last-refreshed').text(controllerServicesResponse.currentTime);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -1086,8 +1086,8 @@
             });
 
             var reportingTasksElement = $('#reporting-tasks-table');
-            common.cleanUpTooltips(reportingTasksElement, 'div.has-errors');
-            common.cleanUpTooltips(reportingTasksElement, 'div.has-bulletins');
+            nfCommon.cleanUpTooltips(reportingTasksElement, 'div.has-errors');
+            nfCommon.cleanUpTooltips(reportingTasksElement, 'div.has-bulletins');
 
             var reportingTasksGrid = reportingTasksElement.data('gridInstance');
             var reportingTasksData = reportingTasksGrid.getData();
@@ -1104,7 +1104,7 @@
      */
     var showSettings = function () {
         // show the settings dialog
-        shell.showContent('#settings').done(function () {
+        nfShell.showContent('#settings').done(function () {
             reset();
         });
 
@@ -1150,9 +1150,9 @@
                         $('#settings-save').show();
                     } else {
                         var canModifyController = false;
-                        if (common.isDefinedAndNotNull(common.currentUser)) {
+                        if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
                             // only consider write permissions for creating new controller services/reporting tasks
-                            canModifyController = common.currentUser.controllerPermissions.canWrite === true;
+                            canModifyController = nfCommon.currentUser.controllerPermissions.canWrite === true;
                         }
 
                         if (canModifyController) {
@@ -1190,13 +1190,13 @@
                 var selectedTab = $('#settings-tabs li.selected-tab').text();
                 if (selectedTab === 'Controller Services') {
                     var controllerServicesUri = config.urls.api + '/controller/controller-services';
-                    controllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
+                    nfControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
                 } else if (selectedTab === 'Reporting Tasks') {
                     $('#new-reporting-task-dialog').modal('show');
 
                     // reset the canvas size after the dialog is shown
                     var reportingTaskTypesGrid = $('#reporting-task-types-table').data('gridInstance');
-                    if (common.isDefinedAndNotNull(reportingTaskTypesGrid)) {
+                    if (nfCommon.isDefinedAndNotNull(reportingTaskTypesGrid)) {
                         reportingTaskTypesGrid.setSelectedRows([0]);
                         reportingTaskTypesGrid.resizeCanvas();
                     }
@@ -1208,7 +1208,7 @@
 
             // initialize each tab
             initGeneral();
-            controllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
+            nfControllerServices.init(getControllerServicesTable(), nfSettings.showSettings);
             initReportingTasks();
         },
 
@@ -1216,10 +1216,10 @@
          * Update the size of the grid based on its container's current size.
          */
         resetTableSize: function () {
-            controllerServices.resetTableSize(getControllerServicesTable());
+            nfControllerServices.resetTableSize(getControllerServicesTable());
 
             var reportingTasksGrid = $('#reporting-tasks-table').data('gridInstance');
-            if (common.isDefinedAndNotNull(reportingTasksGrid)) {
+            if (nfCommon.isDefinedAndNotNull(reportingTasksGrid)) {
                 reportingTasksGrid.resizeCanvas();
             }
         },
@@ -1264,7 +1264,7 @@
          */
         setBulletins: function (controllerServiceBulletins, reportingTaskBulletins) {
             if ($('#controller-services-table').data('gridInstance')) {
-                controllerServices.setBulletins(getControllerServicesTable(), controllerServiceBulletins);
+                nfControllerServices.setBulletins(getControllerServicesTable(), controllerServiceBulletins);
             }
 
             // reporting tasks
@@ -1273,7 +1273,7 @@
             reportingTasksData.beginUpdate();
 
             // if there are some bulletins process them
-            if (!common.isEmpty(reportingTaskBulletins)) {
+            if (!nfCommon.isEmpty(reportingTaskBulletins)) {
                 var reportingTaskBulletinsBySource = d3.nest()
                     .key(function (d) {
                         return d.sourceId;
@@ -1282,7 +1282,7 @@
 
                 reportingTaskBulletinsBySource.forEach(function (sourceId, sourceBulletins) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);
-                    if (common.isDefinedAndNotNull(reportingTask)) {
+                    if (nfCommon.isDefinedAndNotNull(reportingTask)) {
                         reportingTasksData.updateItem(sourceId, $.extend(reportingTask, {
                             bulletins: sourceBulletins
                         }));

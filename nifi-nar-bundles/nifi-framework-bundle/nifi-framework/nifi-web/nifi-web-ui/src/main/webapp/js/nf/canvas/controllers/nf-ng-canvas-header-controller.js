@@ -24,8 +24,8 @@
                 'nf.Storage',
                 'nf.Shell',
                 'nf.ErrorHandler'],
-            function ($, common, storage, shell, errorHandler) {
-                return (nf.ng.Canvas.HeaderCtrl = factory($, common, storage, shell, errorHandler));
+            function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
+                return (nf.ng.Canvas.HeaderCtrl = factory($, nfCommon, nfStorage, nfShell, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.HeaderCtrl =
@@ -41,7 +41,7 @@
             root.nf.Shell,
             root.nf.ErrorHandler);
     }
-}(this, function ($, common, storage, shell, errorHandler) {
+}(this, function ($, nfCommon, nfStorage, nfShell, nfErrorHandler) {
     'use strict';
 
     return function (serviceProvider, toolboxCtrl, globalMenuCtrl, flowStatusCtrl) {
@@ -72,7 +72,7 @@
                     var loginCtrl = this;
 
                     // if the user is not anonymous or accessing via http
-                    if ($('#current-user').text() !== common.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
+                    if ($('#current-user').text() !== nfCommon.ANONYMOUS_USER_TEXT || location.protocol === 'http:') {
                         $('#login-link-container').css('display', 'none');
                     }
 
@@ -90,7 +90,7 @@
 
                     $.when(loginXhr).done(function (loginResult) {
                         loginCtrl.supportsLogin = loginResult.config.supportsLogin;
-                    }).fail(errorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
                 },
 
                 /**
@@ -107,7 +107,7 @@
                      * Launch the login shell.
                      */
                     launch: function () {
-                        shell.showPage('login', false);
+                        nfShell.showPage('login', false);
                     }
                 }
             };
@@ -117,7 +117,7 @@
              */
             this.logoutCtrl = {
                 logout: function () {
-                    storage.removeItem("jwt");
+                    nfStorage.removeItem("jwt");
                     window.location = '/nifi';
                 }
             };

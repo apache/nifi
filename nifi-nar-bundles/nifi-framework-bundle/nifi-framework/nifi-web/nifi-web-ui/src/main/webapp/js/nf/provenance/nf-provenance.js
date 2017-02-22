@@ -31,25 +31,25 @@
                 'nf.Storage'],
             function ($,
                       angular,
-                      common,
+                      nfCommon,
                       appConfig,
                       appCtrl,
                       provenanceLineage,
                       provenanceTable,
-                      angularBridge,
-                      errorHandler,
-                      storage) {
+                      nfNgBridge,
+                      nfErrorHandler,
+                      nfStorage) {
                 return (nf.ng.Provenance =
                     factory($,
                         angular,
-                        common,
+                        nfCommon,
                         appConfig,
                         appCtrl,
                         provenanceLineage,
                         provenanceTable,
-                        angularBridge,
-                        errorHandler,
-                        storage));
+                        nfNgBridge,
+                        nfErrorHandler,
+                        nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Provenance =
@@ -75,7 +75,7 @@
             root.nf.ErrorHandler,
             root.nf.Storage);
     }
-}(this, function ($, angular, common, appConfig, appCtrl, provenanceLineage, provenanceTable, angularBridge, errorHandler, storage) {
+}(this, function ($, angular, nfCommon, appConfig, appCtrl, provenanceLineage, provenanceTable, nfNgBridge, nfErrorHandler, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -101,10 +101,10 @@
         app.service('provenanceTableCtrl', provenanceTable);
 
         //Manually Boostrap Angular App
-        angularBridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], {strictDi: true});
+        nfNgBridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], {strictDi: true});
 
         // initialize the status page
-        angularBridge.injector.get('provenanceCtrl').init();
+        nfNgBridge.injector.get('provenanceCtrl').init();
     });
 
     var nfProvenance = function (provenanceTableCtrl) {
@@ -135,7 +135,7 @@
                 url: config.urls.clusterSummary
             }).done(function (response) {
                 isClustered = response.clusterSummary.connectedToCluster;
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -158,14 +158,14 @@
                 $('.timezone').text(aboutDetails.timezone);
 
                 // store the content viewer url if available
-                if (!common.isBlank(aboutDetails.contentViewerUrl)) {
+                if (!nfCommon.isBlank(aboutDetails.contentViewerUrl)) {
                     $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
                 }
 
                 // set the document title and the about title
                 document.title = provenanceTitle;
                 $('#provenance-header-text').text(provenanceTitle);
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -177,8 +177,8 @@
                 url: config.urls.currentUser,
                 dataType: 'json'
             }).done(function (currentUser) {
-                common.setCurrentUser(currentUser);
-            }).fail(errorHandler.handleAjaxError);
+                nfCommon.setCurrentUser(currentUser);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -200,8 +200,8 @@
                         dataType: 'json'
                     }).done(function (response) {
                         // ensure the banners response is specified
-                        if (common.isDefinedAndNotNull(response.banners)) {
-                            if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                        if (nfCommon.isDefinedAndNotNull(response.banners)) {
+                            if (nfCommon.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                                 // update the header text
                                 var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
@@ -215,7 +215,7 @@
                                 updateTop('provenance');
                             }
 
-                            if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                            if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                                 // update the footer text and show it
                                 var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -231,7 +231,7 @@
 
                         deferred.resolve();
                     }).fail(function (xhr, status, error) {
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                         deferred.reject();
                     });
                 } else {
@@ -250,7 +250,7 @@
              * Initializes the status page.
              */
             init: function () {
-                storage.init();
+                nfStorage.init();
 
                 // load the user and detect if the NiFi is clustered
                 $.when(loadAbout(), loadCurrentUser(), detectedCluster()).done(function () {
@@ -346,7 +346,7 @@
                                 }
                             }
                             $.each(tabsContents, function (index, tabsContent) {
-                                common.toggleScrollable(tabsContent.get(0));
+                                nfCommon.toggleScrollable(tabsContent.get(0));
                             });
                         });
                     });

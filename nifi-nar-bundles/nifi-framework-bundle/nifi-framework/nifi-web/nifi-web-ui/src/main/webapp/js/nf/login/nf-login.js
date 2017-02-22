@@ -23,8 +23,8 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.Storage'],
-            function ($, common, dialog, storage) {
-                return (nf.Login = factory($, common, dialog, storage));
+            function ($, nfCommon, nfDialog, nfStorage) {
+                return (nf.Login = factory($, nfCommon, nfDialog, nfStorage));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Login =
@@ -38,7 +38,7 @@
             root.nf.Dialog,
             root.nf.Storage);
     }
-}(this, function ($, common, dialog, storage) {
+}(this, function ($, nfCommon, nfDialog, nfStorage) {
     'use strict';
 
     $(document).ready(function () {
@@ -100,9 +100,9 @@
             }
         }).done(function (jwt) {
             // get the payload and store the token with the appropirate expiration
-            var token = common.getJwtPayload(jwt);
-            var expiration = parseInt(token['exp'], 10) * common.MILLIS_PER_SECOND;
-            storage.setItem('jwt', jwt, expiration);
+            var token = nfCommon.getJwtPayload(jwt);
+            var expiration = parseInt(token['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
+            nfStorage.setItem('jwt', jwt, expiration);
 
             // check to see if they actually have access now
             $.ajax({
@@ -144,9 +144,9 @@
                 $('#login-message-container').show();
             });
         }).fail(function (xhr, status, error) {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Login',
-                dialogContent: common.escapeHtml(xhr.responseText)
+                dialogContent: nfCommon.escapeHtml(xhr.responseText)
             });
 
             // update the form visibility
@@ -156,7 +156,7 @@
     };
 
     var showLogoutLink = function () {
-        common.showLogoutLink();
+        nfCommon.showLogoutLink();
     };
 
     var nfLogin = {
@@ -164,9 +164,9 @@
          * Initializes the login page.
          */
         init: function () {
-            storage.init();
+            nfStorage.init();
 
-            if (storage.getItem('jwt') !== null) {
+            if (nfStorage.getItem('jwt') !== null) {
                 showLogoutLink();
             }
 

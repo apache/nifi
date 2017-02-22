@@ -26,8 +26,8 @@
                 'nf.ErrorHandler',
                 'nf.Storage',
                 'nf.ng.Bridge'],
-            function ($, Slick, common, dialog, errorHandler, storage, angularBridge) {
-                return (nf.ng.ProvenanceTable = factory($, Slick, common, dialog, errorHandler, storage, angularBridge));
+            function ($, Slick, nfCommon, nfDialog, nfErrorHandler, nfStorage, nfNgBridge) {
+                return (nf.ng.ProvenanceTable = factory($, Slick, nfCommon, nfDialog, nfErrorHandler, nfStorage, nfNgBridge));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.ProvenanceTable =
@@ -47,7 +47,7 @@
             root.nf.Storage,
             root.nf.ng.Bridge);
     }
-}(this, function ($, Slick, common, dialog, errorHandler, storage, angularBridge) {
+}(this, function ($, Slick, nfCommon, nfDialog, nfErrorHandler, nfStorage, nfNgBridge) {
     'use strict';
 
     var nfProvenanceTable = function (provenanceLineageCtrl) {
@@ -93,17 +93,17 @@
             var dataUri = config.urls.provenanceEvents + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
             // perform the request once we've received a token
-            common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+            nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
                 var parameters = {};
 
                 // conditionally include the ui extension token
-                if (!common.isBlank(downloadToken)) {
+                if (!nfCommon.isBlank(downloadToken)) {
                     parameters['access_token'] = downloadToken;
                 }
 
                 // conditionally include the cluster node id
                 var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!common.isBlank(clusterNodeId)) {
+                if (!nfCommon.isBlank(clusterNodeId)) {
                     parameters['clusterNodeId'] = clusterNodeId;
                 }
 
@@ -114,7 +114,7 @@
                     window.open(dataUri + '?' + $.param(parameters));
                 }
             }).fail(function () {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Provenance',
                     dialogContent: 'Unable to generate access token for downloading content.'
                 });
@@ -135,7 +135,7 @@
 
             // generate tokens as necessary
             var getAccessTokens = $.Deferred(function (deferred) {
-                if (storage.hasItem('jwt')) {
+                if (nfStorage.hasItem('jwt')) {
                     // generate a token for the ui extension and another for the callback
                     var uiExtensionToken = $.ajax({
                         type: 'POST',
@@ -152,7 +152,7 @@
                         var downloadToken = downloadTokenResult[0];
                         deferred.resolve(uiExtensionToken, downloadToken);
                     }).fail(function () {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Provenance',
                             dialogContent: 'Unable to generate access token for viewing content.'
                         });
@@ -169,12 +169,12 @@
 
                 // conditionally include the cluster node id
                 var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!common.isBlank(clusterNodeId)) {
+                if (!nfCommon.isBlank(clusterNodeId)) {
                     dataUriParameters['clusterNodeId'] = clusterNodeId;
                 }
 
                 // include the download token if applicable
-                if (!common.isBlank(downloadToken)) {
+                if (!nfCommon.isBlank(downloadToken)) {
                     dataUriParameters['access_token'] = downloadToken;
                 }
 
@@ -200,7 +200,7 @@
                 };
 
                 // include the download token if applicable
-                if (!common.isBlank(uiExtensionToken)) {
+                if (!nfCommon.isBlank(uiExtensionToken)) {
                     contentViewerParameters['access_token'] = uiExtensionToken;
                 }
 
@@ -257,7 +257,7 @@
                         $('#modified-attribute-toggle').removeClass('checkbox-checked').addClass('checkbox-unchecked');
                     },
                     open: function () {
-                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -283,7 +283,7 @@
             });
 
             // if a content viewer url is specified, use it
-            if (common.isContentViewConfigured()) {
+            if (nfCommon.isContentViewConfigured()) {
                 // input view
                 $('#input-content-view').on('click', function () {
                     viewContent('input');
@@ -303,7 +303,7 @@
 
                 // conditionally include the cluster node id
                 var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!common.isBlank(clusterNodeId)) {
+                if (!nfCommon.isBlank(clusterNodeId)) {
                     replayEntity['clusterNodeId'] = clusterNodeId;
                 }
 
@@ -314,11 +314,11 @@
                     dataType: 'json',
                     contentType: 'application/json'
                 }).done(function (response) {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Provenance',
                         dialogContent: 'Successfully submitted replay request.'
                     });
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
 
                 $('#event-details-dialog').modal('hide');
             });
@@ -388,7 +388,7 @@
                     $('#provenance-search-location').combo({
                         options: searchableOptions
                     });
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
 
                 // show the node search combo
                 $('#provenance-search-location-container').show();
@@ -534,7 +534,7 @@
                 var searchValue = $.trim(searchableField.find('input.searchable-field-input').val());
 
                 // if the field isn't blank include it in the search
-                if (!common.isBlank(searchValue)) {
+                if (!nfCommon.isBlank(searchValue)) {
                     searchCriteria[fieldId] = searchValue;
                 }
             });
@@ -623,7 +623,7 @@
 
             // define how general values are formatted
             var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-                return common.formatValue(value);
+                return nfCommon.formatValue(value);
             };
 
             // determine if the this page is in the shell
@@ -634,13 +634,13 @@
                 var markup = '';
 
                 // conditionally include the cluster node id
-                if (common.SUPPORTS_SVG) {
+                if (nfCommon.SUPPORTS_SVG) {
                     markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
                 }
 
                 // conditionally support going to the component
                 var isRemotePort = dataContext.componentType === 'Remote Input Port' || dataContext.componentType === 'Remote Output Port';
-                if (isInShell && common.isDefinedAndNotNull(dataContext.groupId) && isRemotePort === false) {
+                if (isInShell && nfCommon.isDefinedAndNotNull(dataContext.groupId) && isRemotePort === false) {
                     markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To"></div>';
                 }
 
@@ -717,7 +717,7 @@
             }
 
             // conditionally show the action column
-            if (common.SUPPORTS_SVG || isInShell) {
+            if (nfCommon.SUPPORTS_SVG || isInShell) {
                 provenanceColumns.push({
                     id: 'actions',
                     name: '&nbsp;',
@@ -797,7 +797,7 @@
                 provenanceGrid.render();
 
                 // update the total number of displayed events if necessary
-                $('#displayed-events').text(common.formatInteger(args.current));
+                $('#displayed-events').text(nfCommon.formatInteger(args.current));
             });
             provenanceData.onRowsChanged.subscribe(function (e, args) {
                 provenanceGrid.invalidateRows(args.rows);
@@ -820,7 +820,7 @@
             var provenanceGrid = $('#provenance-table').data('gridInstance');
 
             // ensure the grid has been initialized
-            if (common.isDefinedAndNotNull(provenanceGrid)) {
+            if (nfCommon.isDefinedAndNotNull(provenanceGrid)) {
                 var provenanceData = provenanceGrid.getData();
 
                 // update the search criteria
@@ -874,24 +874,24 @@
             // defines a function for sorting
             var comparer = function (a, b) {
                 if (sortDetails.columnId === 'eventTime') {
-                    var aTime = common.parseDateTime(a[sortDetails.columnId]).getTime();
-                    var bTime = common.parseDateTime(b[sortDetails.columnId]).getTime();
+                    var aTime = nfCommon.parseDateTime(a[sortDetails.columnId]).getTime();
+                    var bTime = nfCommon.parseDateTime(b[sortDetails.columnId]).getTime();
                     if (aTime === bTime) {
                         return a['id'] - b['id'];
                     } else {
                         return aTime - bTime;
                     }
                 } else if (sortDetails.columnId === 'fileSize') {
-                    var aSize = common.parseSize(a[sortDetails.columnId]);
-                    var bSize = common.parseSize(b[sortDetails.columnId]);
+                    var aSize = nfCommon.parseSize(a[sortDetails.columnId]);
+                    var bSize = nfCommon.parseSize(b[sortDetails.columnId]);
                     if (aSize === bSize) {
                         return a['id'] - b['id'];
                     } else {
                         return aSize - bSize;
                     }
                 } else {
-                    var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                    var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                    var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
                     if (aString === bString) {
                         return a['id'] - b['id'];
                     } else {
@@ -928,7 +928,7 @@
                 data: JSON.stringify(provenanceEntity),
                 dataType: 'json',
                 contentType: 'application/json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -939,7 +939,7 @@
          */
         var getProvenance = function (provenance) {
             var url = provenance.uri;
-            if (common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
+            if (nfCommon.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
                 url += '?' + $.param({
                         clusterNodeId: provenance.request.clusterNodeId,
                         summarize: true,
@@ -956,7 +956,7 @@
                 type: 'GET',
                 url: url,
                 dataType: 'json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -967,7 +967,7 @@
          */
         var cancelProvenance = function (provenance) {
             var url = provenance.uri;
-            if (common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
+            if (nfCommon.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
                 url += '?' + $.param({
                         clusterNodeId: provenance.request.clusterNodeId
                     });
@@ -977,7 +977,7 @@
                 type: 'DELETE',
                 url: url,
                 dataType: 'json'
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         /**
@@ -990,7 +990,7 @@
             var provenanceResults = provenance.results;
 
             // ensure there are groups specified
-            if (common.isDefinedAndNotNull(provenanceResults.provenanceEvents)) {
+            if (nfCommon.isDefinedAndNotNull(provenanceResults.provenanceEvents)) {
                 var provenanceTable = $('#provenance-table').data('gridInstance');
                 var provenanceData = provenanceTable.getData();
 
@@ -1003,21 +1003,21 @@
                 $('#provenance-last-refreshed').text(provenanceResults.generated);
 
                 // update the oldest event available
-                $('#oldest-event').html(common.formatValue(provenanceResults.oldestEvent));
+                $('#oldest-event').html(nfCommon.formatValue(provenanceResults.oldestEvent));
 
                 // record the server offset
                 provenanceTableCtrl.serverTimeOffset = provenanceResults.timeOffset;
 
                 // determines if the specified query is blank (no search terms, start or end date)
                 var isBlankQuery = function (query) {
-                    return common.isUndefinedOrNull(query.startDate) && common.isUndefinedOrNull(query.endDate) && $.isEmptyObject(query.searchTerms);
+                    return nfCommon.isUndefinedOrNull(query.startDate) && nfCommon.isUndefinedOrNull(query.endDate) && $.isEmptyObject(query.searchTerms);
                 };
 
                 // update the filter message based on the request
                 if (isBlankQuery(provenanceRequest)) {
                     var message = 'Showing the most recent ';
                     if (provenanceResults.totalCount >= config.maxResults) {
-                        message += (common.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events, please refine the search.');
+                        message += (nfCommon.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events, please refine the search.');
                     } else {
                         message += ('events.');
                     }
@@ -1026,7 +1026,7 @@
                 } else {
                     var message = 'Showing ';
                     if (provenanceResults.totalCount >= config.maxResults) {
-                        message += (common.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events that match the specified query, please refine the search.');
+                        message += (nfCommon.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events that match the specified query, please refine the search.');
                     } else {
                         message += ('the events that match the specified query.');
                     }
@@ -1035,7 +1035,7 @@
                 }
 
                 // update the total number of events
-                $('#total-events').text(common.formatInteger(provenanceResults.provenanceEvents.length));
+                $('#total-events').text(nfCommon.formatInteger(provenanceResults.provenanceEvents.length));
             } else {
                 $('#total-events').text('0');
             }
@@ -1048,11 +1048,11 @@
          */
         var goTo = function (item) {
             // ensure the component is still present in the flow
-            if (common.isDefinedAndNotNull(item.groupId)) {
+            if (nfCommon.isDefinedAndNotNull(item.groupId)) {
                 // only attempt this if we're within a frame
                 if (top !== window) {
                     // and our parent has canvas utils and shell defined
-                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.CanvasUtils) && common.isDefinedAndNotNull(parent.nf.Shell)) {
+                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && nfCommon.isDefinedAndNotNull(parent.nf.Shell)) {
                         parent.nf.CanvasUtils.showComponent(item.groupId, item.componentId);
                         parent.$('#shell-close-button').click();
                     }
@@ -1083,7 +1083,7 @@
                     // handles init failure
                     var failure = function (xhr, status, error) {
                         deferred.reject();
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     };
 
                     // initialize the lineage view
@@ -1104,7 +1104,7 @@
              */
             resetTableSize: function () {
                 var provenanceGrid = $('#provenance-table').data('gridInstance');
-                if (common.isDefinedAndNotNull(provenanceGrid)) {
+                if (nfCommon.isDefinedAndNotNull(provenanceGrid)) {
                     provenanceGrid.resizeCanvas();
                 }
             },
@@ -1123,7 +1123,7 @@
 
                 // update the progress bar
                 var label = $('<div class="progress-label"></div>').text(value + '%');
-                (angularBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(angularBridge.rootScope)).appendTo(progressBar);
+                (nfNgBridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(nfNgBridge.rootScope)).appendTo(progressBar);
                 progressBar.append(label);
             },
 
@@ -1180,7 +1180,7 @@
                 // -----------------------------
 
                 // handle the specified query appropriately
-                if (common.isDefinedAndNotNull(query)) {
+                if (nfCommon.isDefinedAndNotNull(query)) {
                     // store the last query performed
                     cachedQuery = query;
                 } else if (!$.isEmptyObject(cachedQuery)) {
@@ -1194,7 +1194,7 @@
                 // closes the searching dialog and cancels the query on the server
                 var closeDialog = function () {
                     // cancel the provenance results since we've successfully processed the results
-                    if (common.isDefinedAndNotNull(provenance)) {
+                    if (nfCommon.isDefinedAndNotNull(provenance)) {
                         cancelProvenance(provenance);
                     }
 
@@ -1227,11 +1227,11 @@
                     // process the results if they are finished
                     if (provenance.finished === true) {
                         // show any errors when the query finishes
-                        if (!common.isEmpty(provenance.results.errors)) {
+                        if (!nfCommon.isEmpty(provenance.results.errors)) {
                             var errors = provenance.results.errors;
-                            dialog.showOkDialog({
+                            nfDialog.showOkDialog({
                                 headerText: 'Provenance',
-                                dialogContent: common.formatUnorderedList(errors),
+                                dialogContent: nfCommon.formatUnorderedList(errors),
                             });
                         }
 
@@ -1270,7 +1270,7 @@
              */
             getEventDetails: function (eventId, clusterNodeId) {
                 var url;
-                if (common.isDefinedAndNotNull(clusterNodeId)) {
+                if (nfCommon.isDefinedAndNotNull(clusterNodeId)) {
                     url = config.urls.provenanceEvents + encodeURIComponent(eventId) + '?' + $.param({
                             clusterNodeId: clusterNodeId
                         });
@@ -1282,7 +1282,7 @@
                     type: 'GET',
                     url: url,
                     dataType: 'json'
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
             },
 
             /**
@@ -1297,25 +1297,25 @@
 
                     // update the event details
                     $('#provenance-event-id').text(event.eventId);
-                    $('#provenance-event-time').html(common.formatValue(event.eventTime)).ellipsis();
-                    $('#provenance-event-type').html(common.formatValue(event.eventType)).ellipsis();
-                    $('#provenance-event-flowfile-uuid').html(common.formatValue(event.flowFileUuid)).ellipsis();
-                    $('#provenance-event-component-id').html(common.formatValue(event.componentId)).ellipsis();
-                    $('#provenance-event-component-name').html(common.formatValue(event.componentName)).ellipsis();
-                    $('#provenance-event-component-type').html(common.formatValue(event.componentType)).ellipsis();
-                    $('#provenance-event-details').html(common.formatValue(event.details)).ellipsis();
+                    $('#provenance-event-time').html(nfCommon.formatValue(event.eventTime)).ellipsis();
+                    $('#provenance-event-type').html(nfCommon.formatValue(event.eventType)).ellipsis();
+                    $('#provenance-event-flowfile-uuid').html(nfCommon.formatValue(event.flowFileUuid)).ellipsis();
+                    $('#provenance-event-component-id').html(nfCommon.formatValue(event.componentId)).ellipsis();
+                    $('#provenance-event-component-name').html(nfCommon.formatValue(event.componentName)).ellipsis();
+                    $('#provenance-event-component-type').html(nfCommon.formatValue(event.componentType)).ellipsis();
+                    $('#provenance-event-details').html(nfCommon.formatValue(event.details)).ellipsis();
 
                     // over the default tooltip with the actual byte count
-                    var fileSize = $('#provenance-event-file-size').html(common.formatValue(event.fileSize)).ellipsis();
-                    fileSize.attr('title', common.formatInteger(event.fileSizeBytes) + ' bytes');
+                    var fileSize = $('#provenance-event-file-size').html(nfCommon.formatValue(event.fileSize)).ellipsis();
+                    fileSize.attr('title', nfCommon.formatInteger(event.fileSizeBytes) + ' bytes');
 
                     // sets an duration
                     var setDuration = function (field, value) {
-                        if (common.isDefinedAndNotNull(value)) {
+                        if (nfCommon.isDefinedAndNotNull(value)) {
                             if (value === 0) {
                                 field.text('< 1ms');
                             } else {
-                                field.text(common.formatDuration(value));
+                                field.text(nfCommon.formatDuration(value));
                             }
                         } else {
                             field.html('<span class="unset">No value set</span>');
@@ -1330,7 +1330,7 @@
                     var formatEventDetail = function (label, value) {
                         $('<div class="event-detail"></div>').append(
                             $('<div class="detail-name"></div>').text(label)).append(
-                            $('<div class="detail-value">' + common.formatValue(value) + '</div>').ellipsis()).append(
+                            $('<div class="detail-value">' + nfCommon.formatValue(value) + '</div>').ellipsis()).append(
                             $('<div class="clear"></div>')).appendTo('#additional-provenance-details');
                     };
 
@@ -1361,7 +1361,7 @@
                     }
 
                     // conditionally show the cluster node identifier
-                    if (common.isDefinedAndNotNull(event.clusterNodeId)) {
+                    if (nfCommon.isDefinedAndNotNull(event.clusterNodeId)) {
                         // save the cluster node id
                         $('#provenance-event-cluster-node-id').text(event.clusterNodeId);
 
@@ -1374,7 +1374,7 @@
                     var childUuids = $('#child-flowfiles-container');
 
                     // handle parent flowfiles
-                    if (common.isEmpty(event.parentUuids)) {
+                    if (nfCommon.isEmpty(event.parentUuids)) {
                         $('#parent-flowfile-count').text(0);
                         parentUuids.append('<span class="unset">No parents</span>');
                     } else {
@@ -1385,7 +1385,7 @@
                     }
 
                     // handle child flowfiles
-                    if (common.isEmpty(event.childUuids)) {
+                    if (nfCommon.isEmpty(event.childUuids)) {
                         $('#child-flowfile-count').text(0);
                         childUuids.append('<span class="unset">No children</span>');
                     } else {
@@ -1402,23 +1402,23 @@
                     $.each(event.attributes, function (_, attribute) {
                         // create the attribute record
                         var attributeRecord = $('<div class="attribute-detail"></div>')
-                            .append($('<div class="attribute-name">' + common.formatValue(attribute.name) + '</div>').ellipsis())
+                            .append($('<div class="attribute-name">' + nfCommon.formatValue(attribute.name) + '</div>').ellipsis())
                             .appendTo(attributesContainer);
 
                         // add the current value
                         attributeRecord
-                            .append($('<div class="attribute-value">' + common.formatValue(attribute.value) + '</div>').ellipsis())
+                            .append($('<div class="attribute-value">' + nfCommon.formatValue(attribute.value) + '</div>').ellipsis())
                             .append('<div class="clear"></div>');
 
                         // show the previous value if the property has changed
                         if (attribute.value !== attribute.previousValue) {
-                            if (common.isDefinedAndNotNull(attribute.previousValue)) {
+                            if (nfCommon.isDefinedAndNotNull(attribute.previousValue)) {
                                 attributeRecord
-                                    .append($('<div class="modified-attribute-value">' + common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
+                                    .append($('<div class="modified-attribute-value">' + nfCommon.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
                                     .append('<div class="clear"></div>');
                             } else {
                                 attributeRecord
-                                    .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                                    .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nfCommon.formatValue(attribute.previousValue) + '</div>').ellipsis())
                                     .append('<div class="clear"></div>');
                             }
                         } else {
@@ -1428,7 +1428,7 @@
                     });
 
                     var formatContentValue = function (element, value) {
-                        if (common.isDefinedAndNotNull(value)) {
+                        if (nfCommon.isDefinedAndNotNull(value)) {
                             element.removeClass('unset').text(value);
                         } else {
                             element.addClass('unset').text('No value previously set');
@@ -1446,9 +1446,9 @@
                     // input content file size
                     var inputContentSize = $('#input-content-size');
                     formatContentValue(inputContentSize, event.inputContentClaimFileSize);
-                    if (common.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
+                    if (nfCommon.isDefinedAndNotNull(event.inputContentClaimFileSize)) {
                         // over the default tooltip with the actual byte count
-                        inputContentSize.attr('title', common.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
+                        inputContentSize.attr('title', nfCommon.formatInteger(event.inputContentClaimFileSizeBytes) + ' bytes');
                     }
 
                     formatContentValue($('#output-content-container'), event.outputContentClaimContainer);
@@ -1460,15 +1460,15 @@
                     // output content file size
                     var outputContentSize = $('#output-content-size');
                     formatContentValue(outputContentSize, event.outputContentClaimFileSize);
-                    if (common.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
+                    if (nfCommon.isDefinedAndNotNull(event.outputContentClaimFileSize)) {
                         // over the default tooltip with the actual byte count
-                        outputContentSize.attr('title', common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
+                        outputContentSize.attr('title', nfCommon.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
                     }
 
                     if (event.inputContentAvailable === true) {
                         $('#input-content-download').show();
 
-                        if (common.isContentViewConfigured()) {
+                        if (nfCommon.isContentViewConfigured()) {
                             $('#input-content-view').show();
                         } else {
                             $('#input-content-view').hide();
@@ -1481,7 +1481,7 @@
                     if (event.outputContentAvailable === true) {
                         $('#output-content-download').show();
 
-                        if (common.isContentViewConfigured()) {
+                        if (nfCommon.isContentViewConfigured()) {
                             $('#output-content-view').show();
                         } else {
                             $('#output-content-view').hide();

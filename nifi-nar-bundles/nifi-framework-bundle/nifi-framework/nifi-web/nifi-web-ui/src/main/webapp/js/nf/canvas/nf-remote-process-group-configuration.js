@@ -28,8 +28,8 @@
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.RemoteProcessGroup'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
-                return (nf.RemoteProcessGroupConfiguration = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
+                return (nf.RemoteProcessGroupConfiguration = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.RemoteProcessGroupConfiguration =
@@ -53,7 +53,7 @@
             root.nf.ng.Bridge,
             root.nf.RemoteProcessGroup);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
     'use strict';
 
     return {
@@ -75,7 +75,7 @@
 
                             // create the remote process group details
                             var remoteProcessGroupEntity = {
-                                'revision': client.getRevision(remoteProcessGroupData),
+                                'revision': nfClient.getRevision(remoteProcessGroupData),
                                 'component': {
                                     id: remoteProcessGroupId,
                                     communicationsTimeout: $('#remote-process-group-timeout').val(),
@@ -100,7 +100,7 @@
                                 nfRemoteProcessGroup.set(response);
 
                                 // inform Angular app values have changed
-                                angularBridge.digest();
+                                nfNgBridge.digest();
 
                                 // close the details panel
                                 $('#remote-process-group-configuration').modal('hide');
@@ -112,15 +112,15 @@
                                     if (errors.length === 1) {
                                         content = $('<span></span>').text(errors[0]);
                                     } else {
-                                        content = common.formatUnorderedList(errors);
+                                        content = nfCommon.formatUnorderedList(errors);
                                     }
 
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         dialogContent: content,
                                         headerText: 'Remote Process Group Configuration'
                                     });
                                 } else {
-                                    errorHandler.handleAjaxError(xhr, status, error);
+                                    nfErrorHandler.handleAjaxError(xhr, status, error);
                                 }
                             });
                         }
@@ -176,7 +176,7 @@
          */
         showConfiguration: function (selection) {
             // if the specified component is a remote process group, load its properties
-            if (canvasUtils.isRemoteProcessGroup(selection)) {
+            if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                 var selectionData = selection.datum();
 
                 // populate the port settings

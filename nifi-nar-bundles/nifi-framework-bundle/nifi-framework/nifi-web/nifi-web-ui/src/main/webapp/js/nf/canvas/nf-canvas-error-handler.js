@@ -23,8 +23,8 @@
                 'nf.Common',
                 'nf.Canvas',
                 'nf.ContextMenu'],
-            function (ajaxErrorHandler, common, canvas, contextMenu) {
-                return (nf.ErrorHandler = factory(ajaxErrorHandler, common, canvas, contextMenu));
+            function (ajaxErrorHandler, nfCommon, nfCanvas, nfContextMenu) {
+                return (nf.ErrorHandler = factory(ajaxErrorHandler, nfCommon, nfCanvas, nfContextMenu));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ErrorHandler =
@@ -38,7 +38,7 @@
             root.nf.Canvas,
             root.nf.ContextMenu);
     }
-}(this, function (ajaxErrorHandler, common, canvas, contextMenu) {
+}(this, function (ajaxErrorHandler, nfCommon, nfCanvas, nfContextMenu) {
     'use strict';
 
     return {
@@ -52,21 +52,21 @@
          */
         handleAjaxError: function (xhr, status, error) {
             ajaxErrorHandler.handleAjaxError(xhr, status, error);
-            common.showLogoutLink();
+            nfCommon.showLogoutLink();
 
             // hide the splash screen if required
             if ($('#splash').is(':visible')) {
-                canvas.hideSplash();
+                nfCanvas.hideSplash();
             }
 
             // hide the context menu
-            contextMenu.hide();
+            nfContextMenu.hide();
 
             // shut off the auto refresh
-            canvas.stopPolling();
+            nfCanvas.stopPolling();
 
             // allow page refresh with ctrl-r
-            canvas.disableRefreshHotKey();
+            nfCanvas.disableRefreshHotKey();
         }
     };
 }));

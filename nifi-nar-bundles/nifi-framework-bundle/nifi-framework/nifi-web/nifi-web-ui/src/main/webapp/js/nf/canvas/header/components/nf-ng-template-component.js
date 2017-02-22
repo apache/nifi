@@ -27,8 +27,8 @@
                 'nf.ErrorHandler',
                 'nf.Dialog',
                 'nf.Common'],
-            function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
-                return (nf.ng.TemplateComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common));
+            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
+                return (nf.ng.TemplateComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.TemplateComponent =
@@ -50,7 +50,7 @@
             root.nf.Dialog,
             root.nf.Common);
     }
-}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler, dialog, common) {
+}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler, nfDialog, nfCommon) {
     'use strict';
 
     return function (serviceProvider) {
@@ -72,22 +72,22 @@
             // create a new instance of the new template
             $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/template-instance',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/template-instance',
                 data: JSON.stringify(instantiateTemplateInstance),
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
                 // populate the graph accordingly
-                graph.add(response.flow, {
+                nfGraph.add(response.flow, {
                     'selectAll': true
                 });
 
                 // update component visibility
-                graph.updateVisibility();
+                nfGraph.updateVisibility();
 
                 // update the birdseye
-                birdseye.refresh();
-            }).fail(errorHandler.handleAjaxError);
+                nfBirdseye.refresh();
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         function TemplateComponent() {
@@ -205,11 +205,11 @@
                     dataType: 'json'
                 }).done(function (response) {
                     var templates = response.templates;
-                    if (common.isDefinedAndNotNull(templates) && templates.length > 0) {
+                    if (nfCommon.isDefinedAndNotNull(templates) && templates.length > 0) {
                         // sort the templates
                         templates = templates.sort(function (one, two) {
-                            var oneDate = common.parseDateTime(one.template.timestamp);
-                            var twoDate = common.parseDateTime(two.template.timestamp);
+                            var oneDate = nfCommon.parseDateTime(one.template.timestamp);
+                            var twoDate = nfCommon.parseDateTime(two.template.timestamp);
 
                             // newest templates first
                             return twoDate.getTime() - oneDate.getTime();
@@ -221,7 +221,7 @@
                                 options.push({
                                     text: templateEntity.template.name,
                                     value: templateEntity.id,
-                                    description: common.escapeHtml(templateEntity.template.description)
+                                    description: nfCommon.escapeHtml(templateEntity.template.description)
                                 });
                             }
                         });
@@ -271,13 +271,13 @@
                         // show the dialog
                         templateComponent.modal.show();
                     } else {
-                        dialog.showOkDialog({
+                        nfDialog.showOkDialog({
                             headerText: 'Instantiate Template',
                             dialogContent: 'No templates have been loaded into this NiFi.'
                         });
                     }
 
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         }
 

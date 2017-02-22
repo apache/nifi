@@ -28,8 +28,8 @@
                 'nf.ng.Bridge',
                 'nf.Dialog',
                 'nf.Shell'],
-            function ($, Slick, errorHandler, common, client, canvasUtils, angularBridge, dialog, shell) {
-                return (nf.PolicyManagement = factory($, Slick, errorHandler, common, client, canvasUtils, angularBridge, dialog, shell));
+            function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
+                return (nf.PolicyManagement = factory($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.PolicyManagement =
@@ -53,7 +53,7 @@
             root.nf.Dialog,
             root.nf.Shell);
     }
-}(this, function ($, Slick, errorHandler, common, client, canvasUtils, angularBridge, dialog, shell) {
+}(this, function ($, Slick, nfErrorHandler, nfCommon, nfClient, nfCanvasUtils, nfNgBridge, nfDialog, nfShell) {
     'use strict';
     
     var config = {
@@ -277,7 +277,7 @@
         // also consider groups already selected in the search users dialog
         container.children('li').each(function (_, allowedTenant) {
             var tenant = $(allowedTenant).data('tenant');
-            if (common.isDefinedAndNotNull(tenant)) {
+            if (nfCommon.isDefinedAndNotNull(tenant)) {
                 tenants.push(tenant);
             }
         });
@@ -381,16 +381,16 @@
         // policy type listing
         $('#policy-type-list').combo({
             options: [
-                common.getPolicyTypeListing('flow'),
-                common.getPolicyTypeListing('controller'),
-                common.getPolicyTypeListing('provenance'),
-                common.getPolicyTypeListing('restricted-components'),
-                common.getPolicyTypeListing('policies'),
-                common.getPolicyTypeListing('tenants'),
-                common.getPolicyTypeListing('site-to-site'),
-                common.getPolicyTypeListing('system'),
-                common.getPolicyTypeListing('proxy'),
-                common.getPolicyTypeListing('counters')],
+                nfCommon.getPolicyTypeListing('flow'),
+                nfCommon.getPolicyTypeListing('controller'),
+                nfCommon.getPolicyTypeListing('provenance'),
+                nfCommon.getPolicyTypeListing('restricted-components'),
+                nfCommon.getPolicyTypeListing('policies'),
+                nfCommon.getPolicyTypeListing('tenants'),
+                nfCommon.getPolicyTypeListing('site-to-site'),
+                nfCommon.getPolicyTypeListing('system'),
+                nfCommon.getPolicyTypeListing('proxy'),
+                nfCommon.getPolicyTypeListing('counters')],
             select: function (option) {
                 if (initialized) {
                     // record the policy type
@@ -636,8 +636,8 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if(a.permissions.canRead && b.permissions.canRead) {
-                var aString = common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                var bString = common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             } else {
                 if (!a.permissions.canRead && !b.permissions.canRead){
@@ -661,9 +661,9 @@
      * @param item
      */
     var promptToRemoveUserFromPolicy = function (item) {
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Update Policy',
-            dialogContent: 'Remove \'' + common.escapeHtml(item.component.identity) + '\' from this policy?',
+            dialogContent: 'Remove \'' + nfCommon.escapeHtml(item.component.identity) + '\' from this policy?',
             yesHandler: function () {
                 removeUserFromPolicy(item);
             }
@@ -696,7 +696,7 @@
      * Prompts for the deletion of the selected policy.
      */
     var promptToDeletePolicy = function () {
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Delete Policy',
             dialogContent: 'By deleting this policy, the permissions for this component will revert to the inherited policy if applicable.',
             yesText: 'Delete',
@@ -713,20 +713,20 @@
     var deletePolicy = function () {
         var currentEntity = $('#policy-table').data('policy');
         
-        if (common.isDefinedAndNotNull(currentEntity)) {
+        if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
-                url: currentEntity.uri + '?' + $.param(client.getRevision(currentEntity)),
+                url: currentEntity.uri + '?' + $.param(nfClient.getRevision(currentEntity)),
                 dataType: 'json'
             }).done(function () {
                 loadPolicy();
             }).fail(function (xhr, status, error) {
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             });
         } else {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Delete Policy',
                 dialogContent: 'No policy selected'
             });
@@ -802,11 +802,11 @@
             return $('<span>Showing effective policy inherited from the controller.</span>');
         } else {
             // extract the group id
-            var processGroupId = common.substringAfterLast(resource, '/');
+            var processGroupId = nfCommon.substringAfterLast(resource, '/');
             var processGroupName = processGroupId;
 
             // attempt to resolve the group name
-            var breadcrumbs = angularBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
+            var breadcrumbs = nfNgBridge.injector.get('breadcrumbsCtrl').getBreadcrumbs();
             $.each(breadcrumbs, function (_, breadcrumbEntity) {
                 if (breadcrumbEntity.id === processGroupId) {
                     processGroupName = breadcrumbEntity.label;
@@ -824,11 +824,11 @@
                         $('#shell-close-button').click();
 
                         // load the correct group and unselect everything if necessary
-                        canvasUtils.getComponentByType('ProcessGroup').enterGroup(processGroupId).done(function () {
-                            canvasUtils.getSelection().classed('selected', false);
+                        nfCanvasUtils.getComponentByType('ProcessGroup').enterGroup(processGroupId).done(function () {
+                            nfCanvasUtils.getSelection().classed('selected', false);
 
                             // inform Angular app that values have changed
-                            angularBridge.digest();
+                            nfNgBridge.digest();
                         });
                     })
             ).append('<span>.</span>');
@@ -948,7 +948,7 @@
                         resetPolicy();
 
                         deferred.reject();
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -1006,7 +1006,7 @@
                         resetPolicy();
 
                         deferred.reject();
-                        errorHandler.handleAjaxError(xhr, status, error);
+                        nfErrorHandler.handleAjaxError(xhr, status, error);
                     }
                 });
             }).promise();
@@ -1045,7 +1045,7 @@
         }
 
         var entity = {
-            'revision': client.getRevision({
+            'revision': nfClient.getRevision({
                 'revision': {
                     'version': 0
                 }
@@ -1074,7 +1074,7 @@
                 resetPolicy();
                 loadPolicy();
             }
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -1102,9 +1102,9 @@
         });
 
         var currentEntity = $('#policy-table').data('policy');
-        if (common.isDefinedAndNotNull(currentEntity)) {
+        if (nfCommon.isDefinedAndNotNull(currentEntity)) {
             var entity = {
-                'revision': client.getRevision(currentEntity),
+                'revision': nfClient.getRevision(currentEntity),
                 'component': {
                     'id': currentEntity.id,
                     'users': users,
@@ -1129,16 +1129,16 @@
                     loadPolicy();
                 }
             }).fail(function (xhr, status, error) {
-                errorHandler.handleAjaxError(xhr, status, error);
+                nfErrorHandler.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
             }).always(function () {
-                canvasUtils.reload({
+                nfCanvasUtils.reload({
                     'transition': true
                 });
             });
         } else {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Update Policy',
                 dialogContent: 'No policy selected'
             });
@@ -1150,7 +1150,7 @@
      */
     var showPolicy = function () {
         // show the configuration dialog
-        shell.showContent('#policy-management').always(function () {
+        nfShell.showContent('#policy-management').always(function () {
             reset();
         });
 
@@ -1227,7 +1227,7 @@
             var policyTable = $('#policy-table');
             if (policyTable.is(':visible')) {
                 var policyGrid = policyTable.data('gridInstance');
-                if (common.isDefinedAndNotNull(policyGrid)) {
+                if (nfCommon.isDefinedAndNotNull(policyGrid)) {
                     policyGrid.resizeCanvas();
                 }
             }
@@ -1381,7 +1381,7 @@
             
             var resource;
             if (selection.empty()) {
-                $('#selected-policy-component-id').text(canvasUtils.getGroupId());
+                $('#selected-policy-component-id').text(nfCanvasUtils.getGroupId());
                 resource = 'process-groups';
 
                 // disable site to site option
@@ -1402,19 +1402,19 @@
                 var d = selection.datum();
                 $('#selected-policy-component-id').text(d.id);
 
-                if (canvasUtils.isProcessor(selection)) {
+                if (nfCanvasUtils.isProcessor(selection)) {
                     resource = 'processors';
-                } else if (canvasUtils.isProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isProcessGroup(selection)) {
                     resource = 'process-groups';
-                } else if (canvasUtils.isInputPort(selection)) {
+                } else if (nfCanvasUtils.isInputPort(selection)) {
                     resource = 'input-ports';
-                } else if (canvasUtils.isOutputPort(selection)) {
+                } else if (nfCanvasUtils.isOutputPort(selection)) {
                     resource = 'output-ports';
-                } else if (canvasUtils.isRemoteProcessGroup(selection)) {
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                     resource = 'remote-process-groups';
-                } else if (canvasUtils.isLabel(selection)) {
+                } else if (nfCanvasUtils.isLabel(selection)) {
                     resource = 'labels';
-                } else if (canvasUtils.isFunnel(selection)) {
+                } else if (nfCanvasUtils.isFunnel(selection)) {
                     resource = 'funnels';
                 }
 
@@ -1422,16 +1422,16 @@
                 $('#component-policy-target')
                     .combo('setOptionEnabled', {
                         value: 'write-receive-data'
-                    }, canvasUtils.isInputPort(selection) && canvasUtils.getParentGroupId() === null)
+                    }, nfCanvasUtils.isInputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, canvasUtils.isOutputPort(selection) && canvasUtils.getParentGroupId() === null)
+                    }, nfCanvasUtils.isOutputPort(selection) && nfCanvasUtils.getParentGroupId() === null)
                     .combo('setOptionEnabled', {
                         value: 'read-data'
-                    }, !canvasUtils.isLabel(selection))
+                    }, !nfCanvasUtils.isLabel(selection))
                     .combo('setOptionEnabled', {
                         value: 'write-data'
-                    }, !canvasUtils.isLabel(selection));
+                    }, !nfCanvasUtils.isLabel(selection));
             }
 
             // populate the initial resource

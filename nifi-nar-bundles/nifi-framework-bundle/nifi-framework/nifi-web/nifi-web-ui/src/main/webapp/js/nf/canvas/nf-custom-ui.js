@@ -23,8 +23,8 @@
             'nf.Common',
             'nf.Shell',
             'nf.Dialog',
-            'nf.Client'], function ($, common, shell, dialog, client) {
-            return (nf.CustomUi = factory($, common, shell, dialog, client));
+            'nf.Client'], function ($, nfCommon, nfShell, nfDialog, nfClient) {
+            return (nf.CustomUi = factory($, nfCommon, nfShell, nfDialog, nfClient));
         });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CustomUi = factory(require('jquery'),
@@ -39,7 +39,7 @@
             root.nf.Dialog,
             root.nf.Client);
     }
-}(this, function ($, common, shell, dialog, client) {
+}(this, function ($, nfCommon, nfShell, nfDialog, nfClient) {
     'use strict';
 
     return {
@@ -52,11 +52,11 @@
          */
         showCustomUi: function (entity, uri, editable) {
             return $.Deferred(function (deferred) {
-                common.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
+                nfCommon.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
                     // record the processor id
                     $('#shell-close-button');
 
-                    var revision = client.getRevision(entity);
+                    var revision = nfClient.getRevision(entity);
 
                     // build the customer ui params
                     var customUiParams = {
@@ -67,16 +67,16 @@
                     };
 
                     // conditionally include the ui extension token
-                    if (!common.isBlank(uiExtensionToken)) {
+                    if (!nfCommon.isBlank(uiExtensionToken)) {
                         customUiParams['access_token'] = uiExtensionToken;
                     }
 
                     // show the shell
-                    shell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
+                    nfShell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
                         deferred.resolve();
                     });
                 }).fail(function () {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Advanced Configuration',
                         dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
                     });

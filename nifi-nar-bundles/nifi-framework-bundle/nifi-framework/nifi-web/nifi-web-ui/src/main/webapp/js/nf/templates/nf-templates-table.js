@@ -24,8 +24,8 @@
                 'nf.Common',
                 'nf.Dialog',
                 'nf.ErrorHandler'],
-            function ($, Slick, common, dialog, errorHandler) {
-                return (nf.TemplatesTable = factory($, Slick, common, dialog, errorHandler));
+            function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
+                return (nf.TemplatesTable = factory($, Slick, nfCommon, nfDialog, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.TemplatesTable =
@@ -41,7 +41,7 @@
             root.nf.Dialog,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, common, dialog, errorHandler) {
+}(this, function ($, Slick, nfCommon, nfDialog, nfErrorHandler) {
     'use strict';
 
     /**
@@ -65,12 +65,12 @@
         var comparer = function (a, b) {
             if (a.permissions.canRead && b.permissions.canRead) {
                 if (sortDetails.columnId === 'timestamp') {
-                    var aDate = common.parseDateTime(a.template[sortDetails.columnId]);
-                    var bDate = common.parseDateTime(b.template[sortDetails.columnId]);
+                    var aDate = nfCommon.parseDateTime(a.template[sortDetails.columnId]);
+                    var bDate = nfCommon.parseDateTime(b.template[sortDetails.columnId]);
                     return aDate.getTime() - bDate.getTime();
                 } else {
-                    var aString = common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
-                    var bString = common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
+                    var aString = nfCommon.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
+                    var bString = nfCommon.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
                     return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
             } else {
@@ -96,9 +96,9 @@
      */
     var promptToDeleteTemplate = function (templateEntity) {
         // prompt for deletion
-        dialog.showYesNoDialog({
+        nfDialog.showYesNoDialog({
             headerText: 'Delete Template',
-            dialogContent: 'Delete template \'' + common.escapeHtml(templateEntity.template.name) + '\'?',
+            dialogContent: 'Delete template \'' + nfCommon.escapeHtml(templateEntity.template.name) + '\'?',
             yesHandler: function () {
                 deleteTemplate(templateEntity);
             }
@@ -114,7 +114,7 @@
         // only attempt this if we're within a frame
         if (top !== window) {
             // and our parent has canvas utils and shell defined
-            if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.PolicyManagement) && common.isDefinedAndNotNull(parent.nf.Shell)) {
+            if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.PolicyManagement) && nfCommon.isDefinedAndNotNull(parent.nf.Shell)) {
                 parent.nf.PolicyManagement.showTemplatePolicy(templateEntity);
                 parent.$('#shell-close-button').click();
             }
@@ -138,7 +138,7 @@
 
             // update the total number of templates
             $('#total-templates').text(templatesData.getItems().length);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -158,7 +158,7 @@
         var templatesGrid = $('#templates-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(templatesGrid)) {
+        if (nfCommon.isDefinedAndNotNull(templatesGrid)) {
             var templatesData = templatesGrid.getData();
 
             // update the search criteria
@@ -200,11 +200,11 @@
      * @param {object} templateEntity     The template
      */
     var downloadTemplate = function (templateEntity) {
-        common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+        nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
             var parameters = {};
 
             // conditionally include the download token
-            if (!common.isBlank(downloadToken)) {
+            if (!nfCommon.isBlank(downloadToken)) {
                 parameters['access_token'] = downloadToken;
             }
 
@@ -215,7 +215,7 @@
                 window.open(templateEntity.template.uri + '/download' + '?' + $.param(parameters));
             }
         }).fail(function () {
-            dialog.showOkDialog({
+            nfDialog.showOkDialog({
                 headerText: 'Download Template',
                 dialogContent: 'Unable to generate access token for downloading content.'
             });
@@ -267,7 +267,7 @@
                     return '';
                 }
 
-                return common.formatValue(dataContext.template.description);
+                return nfCommon.formatValue(dataContext.template.description);
             };
 
             var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -292,8 +292,8 @@
                 }
 
                 // allow policy configuration conditionally if embedded in
-                if (top !== window && common.canAccessTenants()) {
-                    if (common.isDefinedAndNotNull(parent.nf) && common.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isConfigurableAuthorizer()) {
+                if (top !== window && nfCommon.canAccessTenants()) {
+                    if (nfCommon.isDefinedAndNotNull(parent.nf) && nfCommon.isDefinedAndNotNull(parent.nf.CanvasUtils) && parent.nf.CanvasUtils.isConfigurableAuthorizer()) {
                         markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
                     }
                 }
@@ -427,7 +427,7 @@
          */
         resetTableSize: function () {
             var templateGrid = $('#templates-table').data('gridInstance');
-            if (common.isDefinedAndNotNull(templateGrid)) {
+            if (nfCommon.isDefinedAndNotNull(templateGrid)) {
                 templateGrid.resizeCanvas();
             }
         },
@@ -442,7 +442,7 @@
                 dataType: 'json'
             }).done(function (response) {
                 // ensure there are groups specified
-                if (common.isDefinedAndNotNull(response.templates)) {
+                if (nfCommon.isDefinedAndNotNull(response.templates)) {
                     var templatesGrid = $('#templates-table').data('gridInstance');
                     var templatesData = templatesGrid.getData();
 
@@ -459,7 +459,7 @@
                 } else {
                     $('#total-templates').text('0');
                 }
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

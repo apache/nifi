@@ -23,8 +23,8 @@
                 'nf.Connection',
                 'nf.ConnectionConfiguration',
                 'nf.CanvasUtils'],
-            function (d3, connection, connectionConfiguration, canvasUtils) {
-                return (nf.Connectable = factory(d3, connection, connectionConfiguration, canvasUtils));
+            function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils) {
+                return (nf.Connectable = factory(d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Connectable =
@@ -38,7 +38,7 @@
             root.nf.ConnectionConfiguration,
             root.nf.CanvasUtils);
     }
-}(this, function (d3, connection, connectionConfiguration, canvasUtils) {
+}(this, function (d3, nfConnection, nfConnectionConfiguration, nfCanvasUtils) {
     'use strict';
 
     var connect;
@@ -78,7 +78,7 @@
                     d3.event.sourceEvent.stopPropagation();
 
                     // unselect the previous components
-                    canvasUtils.getSelection().classed('selected', false);
+                    nfCanvasUtils.getSelection().classed('selected', false);
 
                     // mark the source component has selected
                     var source = d3.select(this.parentNode).classed('selected', true);
@@ -128,7 +128,7 @@
                         // component to itself. requiring the mouse to have actually moved before
                         // checking the eligiblity of the destination addresses the issue
                         return (Math.abs(origin[0] - d3.event.x) > 10 || Math.abs(origin[1] - d3.event.y) > 10) &&
-                            canvasUtils.isValidConnectionDestination(d3.select(this));
+                            nfCanvasUtils.isValidConnectionDestination(d3.select(this));
                     });
 
                     // update the drag line
@@ -148,12 +148,12 @@
                                 var x = pathDatum.x;
                                 var y = pathDatum.y;
                                 var componentOffset = pathDatum.sourceWidth / 2;
-                                var xOffset = connection.config.selfLoopXOffset;
-                                var yOffset = connection.config.selfLoopYOffset;
+                                var xOffset = nfConnection.config.selfLoopXOffset;
+                                var yOffset = nfConnection.config.selfLoopYOffset;
                                 return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
                             } else {
                                 // get the position on the destination perimeter
-                                var end = canvasUtils.getPerimeterPoint(pathDatum, {
+                                var end = nfCanvasUtils.getPerimeterPoint(pathDatum, {
                                     'x': destinationData.position.x,
                                     'y': destinationData.position.y,
                                     'width': destinationData.dimensions.width,
@@ -212,7 +212,7 @@
 
                         // create the connection
                         var destinationData = destination.datum();
-                        connectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
+                        nfConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.id);
                     }
                 });
         },
@@ -230,7 +230,7 @@
                         var selection = d3.select(this);
 
                         // ensure the current component supports connection source
-                        if (canvasUtils.isValidConnectionSource(selection)) {
+                        if (nfCanvasUtils.isValidConnectionSource(selection)) {
                             // see if theres already a connector rendered
                             var addConnect = d3.select('text.add-connect');
                             if (addConnect.empty()) {

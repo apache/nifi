@@ -23,8 +23,8 @@
                 'Slick',
                 'nf.Common',
                 'nf.ErrorHandler'],
-            function ($, Slick, common, errorHandler) {
-                return (nf.CountersTable = factory($, Slick, common, errorHandler));
+            function ($, Slick, nfCommon, nfErrorHandler) {
+                return (nf.CountersTable = factory($, Slick, nfCommon, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.CountersTable =
@@ -38,7 +38,7 @@
             root.nf.Common,
             root.nf.ErrorHandler);
     }
-}(this, function ($, Slick, common, errorHandler) {
+}(this, function ($, Slick, nfCommon, nfErrorHandler) {
     'use strict';
 
     /**
@@ -60,12 +60,12 @@
         // defines a function for sorting
         var comparer = function (a, b) {
             if (sortDetails.columnId === 'value') {
-                var aCount = common.parseCount(a[sortDetails.columnId]);
-                var bCount = common.parseCount(b[sortDetails.columnId]);
+                var aCount = nfCommon.parseCount(a[sortDetails.columnId]);
+                var bCount = nfCommon.parseCount(b[sortDetails.columnId]);
                 return aCount - bCount;
             } else {
-                var aString = common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                var aString = nfCommon.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+                var bString = nfCommon.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             }
         };
@@ -91,7 +91,7 @@
         var countersGrid = $('#counters-table').data('gridInstance');
 
         // ensure the grid has been initialized
-        if (common.isDefinedAndNotNull(countersGrid)) {
+        if (nfCommon.isDefinedAndNotNull(countersGrid)) {
             var countersData = countersGrid.getData();
 
             // update the search criteria
@@ -144,7 +144,7 @@
             var countersGrid = $('#counters-table').data('gridInstance');
             var countersData = countersGrid.getData();
             countersData.updateItem(counter.id, counter);
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     return {
@@ -198,7 +198,7 @@
             ];
 
             // only allow dfm's to reset counters
-            if (common.canModifyCounters()) {
+            if (nfCommon.canModifyCounters()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                     return '<div title="Reset Counter" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';
@@ -294,7 +294,7 @@
          */
         resetTableSize: function () {
             var countersGrid = $('#counters-table').data('gridInstance');
-            if (common.isDefinedAndNotNull(countersGrid)) {
+            if (nfCommon.isDefinedAndNotNull(countersGrid)) {
                 countersGrid.resizeCanvas();
             }
         },
@@ -312,7 +312,7 @@
                 var aggregateSnapshot = report.aggregateSnapshot;
 
                 // ensure there are groups specified
-                if (common.isDefinedAndNotNull(aggregateSnapshot.counters)) {
+                if (nfCommon.isDefinedAndNotNull(aggregateSnapshot.counters)) {
                     var countersGrid = $('#counters-table').data('gridInstance');
                     var countersData = countersGrid.getData();
 
@@ -329,7 +329,7 @@
                 } else {
                     $('#total-counters').text('0');
                 }
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         }
     };
 }));

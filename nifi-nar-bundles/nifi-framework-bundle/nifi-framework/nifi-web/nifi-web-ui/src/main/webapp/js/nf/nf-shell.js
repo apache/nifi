@@ -21,8 +21,8 @@
     if (typeof define === 'function' && define.amd) {
         define(['jquery',
                 'nf.Common'],
-            function ($, common) {
-                return (nf.Shell = factory($, common));
+            function ($, nfCommon) {
+                return (nf.Shell = factory($, nfCommon));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Shell = factory(require('jquery'),
@@ -31,7 +31,7 @@
         nf.Shell = factory(root.$,
             root.nf.Common);
     }
-}(this, function ($, common) {
+}(this, function ($, nfCommon) {
     'use strict';
 
     $(document).ready(function () {
@@ -55,7 +55,7 @@
         // register a listener when the frame is undocked
         $('#shell-undock-button').click(function () {
             var uri = $('#shell-iframe').attr('src');
-            if (!common.isBlank(uri)) {
+            if (!nfCommon.isBlank(uri)) {
                 // open the page and close the shell
                 window.open(uri);
 
@@ -74,10 +74,10 @@
         /**
          * Initialize the shell.
          *
-         * @param contextMenu    The reference to the contextMenu controller.
+         * @param nfContextMenuRef    The nfContextMenu module.
          */
-        init: function (contextMenu) {
-            nfContextMenu = contextMenu;
+        init: function (nfContextMenuRef) {
+            nfContextMenu = nfContextMenuRef;
         },
 
         resizeContent: function (shell) {
@@ -107,7 +107,7 @@
          */
         showPage: function (uri, canUndock) {
             // if the context menu is on this page, attempt to close
-            if (common.isDefinedAndNotNull(nfContextMenu)) {
+            if (nfCommon.isDefinedAndNotNull(nfContextMenu)) {
                 nfContextMenu.hide();
             }
 
@@ -115,7 +115,7 @@
                 var shell = $('#shell');
 
                 // default undockable to true
-                if (common.isNull(canUndock) || common.isUndefined(canUndock)) {
+                if (nfCommon.isNull(canUndock) || nfCommon.isUndefined(canUndock)) {
                     canUndock = true;
                 }
 
@@ -128,7 +128,7 @@
 
                 // register a new open handler
                 $('#shell-dialog').modal('setOpenHandler', function () {
-                    common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                    nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 });
 
                 // show the custom processor ui
@@ -161,7 +161,7 @@
          */
         showContent: function (domId) {
             // if the context menu is on this page, attempt to close
-            if (common.isDefinedAndNotNull(nfContextMenu)) {
+            if (nfCommon.isDefinedAndNotNull(nfContextMenu)) {
                 nfContextMenu.hide();
             }
 

@@ -26,8 +26,8 @@
                 'nf.Client',
                 'nf.CanvasUtils',
                 'nf.Dialog'],
-            function ($, d3, connection, common, client, canvasUtils, dialog) {
-                return (nf.ProcessGroup = factory($, d3, connection, common, client, canvasUtils, dialog));
+            function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, nfDialog) {
+                return (nf.ProcessGroup = factory($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, nfDialog));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessGroup =
@@ -47,7 +47,7 @@
             root.nf.CanvasUtils,
             root.nf.Dialog);
     }
-}(this, function ($, d3, connection, common, client, canvasUtils, dialog) {
+}(this, function ($, d3, nfConnection, nfCommon, nfClient, nfCanvasUtils, nfDialog) {
     'use strict';
 
     var nfConnectable;
@@ -91,7 +91,7 @@
      * @param {object} d
      */
     var getProcessGroupComments = function (d) {
-        if (common.isBlank(d.component.comments)) {
+        if (nfCommon.isBlank(d.component.comments)) {
             return 'No comments specified';
         } else {
             return d.component.comments;
@@ -126,7 +126,7 @@
                 'class': 'process-group component'
             })
             .classed('selected', selected)
-            .call(canvasUtils.position);
+            .call(nfCanvasUtils.position);
 
         // ----
         // body
@@ -203,7 +203,7 @@
                     var drag = d3.select('rect.drag-selection');
                     if (!drag.empty()) {
                         // filter the current selection by this group
-                        var selection = canvasUtils.getSelection().filter(function (d) {
+                        var selection = nfCanvasUtils.getSelection().filter(function (d) {
                             return targetData.id === d.id;
                         });
 
@@ -212,7 +212,7 @@
                             // mark that we are hovering over a drop area if appropriate
                             target.classed('drop', function () {
                                 // get the current selection and ensure its disconnected
-                                return connection.isDisconnected(canvasUtils.getSelection());
+                                return nfConnection.isDisconnected(nfCanvasUtils.getSelection());
                             });
                         }
                     }
@@ -257,7 +257,7 @@
             var details = processGroup.select('g.process-group-details');
 
             // update the component behavior as appropriate
-            canvasUtils.editable(processGroup, nfConnectable, nfDraggable);
+            nfCanvasUtils.editable(processGroup, nfConnectable, nfDraggable);
 
             // if this processor is visible, render everything
             if (processGroup.classed('visible')) {
@@ -848,9 +848,9 @@
                             processGroupComments.text(null).selectAll('tspan, title').remove();
 
                             // apply ellipsis to the port name as necessary
-                            canvasUtils.ellipsis(processGroupComments, getProcessGroupComments(d));
+                            nfCanvasUtils.ellipsis(processGroupComments, getProcessGroupComments(d));
                         }).classed('unset', function (d) {
-                        return common.isBlank(d.component.comments);
+                        return nfCommon.isBlank(d.component.comments);
                     }).append('title').text(function (d) {
                         return getProcessGroupComments(d);
                     });
@@ -864,7 +864,7 @@
                             processGroupName.text(null).selectAll('title').remove();
 
                             // apply ellipsis to the process group name as necessary
-                            canvasUtils.ellipsis(processGroupName, d.component.name);
+                            nfCanvasUtils.ellipsis(processGroupName, d.component.name);
                         }).append('title').text(function (d) {
                         return d.component.name;
                     });
@@ -919,25 +919,25 @@
         // queued count value
         updated.select('text.process-group-queued tspan.count')
             .text(function (d) {
-                return common.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
+                return nfCommon.substringBeforeFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
         // queued size value
         updated.select('text.process-group-queued tspan.size')
             .text(function (d) {
-                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
+                return ' ' + nfCommon.substringAfterFirst(d.status.aggregateSnapshot.queued, ' ');
             });
 
         // in count value
         updated.select('text.process-group-in tspan.count')
             .text(function (d) {
-                return common.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
+                return nfCommon.substringBeforeFirst(d.status.aggregateSnapshot.input, ' ');
             });
 
         // in size value
         updated.select('text.process-group-in tspan.size')
             .text(function (d) {
-                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
+                return ' ' + nfCommon.substringAfterFirst(d.status.aggregateSnapshot.input, ' ');
             });
 
         // in ports value
@@ -961,13 +961,13 @@
         // out count value
         updated.select('text.process-group-out tspan.count')
             .text(function (d) {
-                return common.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
+                return nfCommon.substringBeforeFirst(d.status.aggregateSnapshot.output, ' ');
             });
 
         // out size value
         updated.select('text.process-group-out tspan.size')
             .text(function (d) {
-                return ' ' + common.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
+                return ' ' + nfCommon.substringAfterFirst(d.status.aggregateSnapshot.output, ' ');
             });
 
         updated.each(function (d) {
@@ -978,7 +978,7 @@
             // active thread count
             // -------------------
 
-            canvasUtils.activeThreadCount(processGroup, d, function (off) {
+            nfCanvasUtils.activeThreadCount(processGroup, d, function (off) {
                 offset = off;
             });
 
@@ -987,10 +987,10 @@
             // ---------
 
             processGroup.select('rect.bulletin-background').classed('has-bulletins', function () {
-                return !common.isEmpty(d.status.aggregateSnapshot.bulletins);
+                return !nfCommon.isEmpty(d.status.aggregateSnapshot.bulletins);
             });
 
-            canvasUtils.bulletins(processGroup, d, function () {
+            nfCanvasUtils.bulletins(processGroup, d, function () {
                 return d3.select('#process-group-tooltips');
             }, offset);
         });
@@ -1024,12 +1024,17 @@
     var nfProcessGroup = {
         /**
          * Initializes of the Process Group handler.
+         *
+         * @param nfConnectableRef   The nfConnectable module.
+         * @param nfDraggableRef   The nfDraggable module.
+         * @param nfSelectableRef   The nfSelectable module.
+         * @param nfContextMenuRef   The nfContextMenu module.
          */
-        init: function (connectable, draggable, selectable, contextMenu) {
-            nfConnectable = connectable;
-            nfDraggable = draggable;
-            nfSelectable = selectable;
-            nfContextMenu = contextMenu;
+        init: function (nfConnectableRef, nfDraggableRef, nfSelectableRef, nfContextMenuRef) {
+            nfConnectable = nfConnectableRef;
+            nfDraggable = nfDraggableRef;
+            nfSelectable = nfSelectableRef;
+            nfContextMenu = nfContextMenuRef;
 
             processGroupMap = d3.map();
             removedCache = d3.map();
@@ -1051,8 +1056,8 @@
          */
         add: function (processGroupEntities, options) {
             var selectAll = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
 
             // get the current time
@@ -1073,7 +1078,7 @@
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     add(processGroupEntity);
                 });
-            } else if (common.isDefinedAndNotNull(processGroupEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(processGroupEntities)) {
                 add(processGroupEntities);
             }
 
@@ -1092,16 +1097,16 @@
         set: function (processGroupEntities, options) {
             var selectAll = false;
             var transition = false;
-            if (common.isDefinedAndNotNull(options)) {
-                selectAll = common.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
-                transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+            if (nfCommon.isDefinedAndNotNull(options)) {
+                selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
+                transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
             }
 
             var set = function (proposedProcessGroupEntity) {
                 var currentProcessGroupEntity = processGroupMap.get(proposedProcessGroupEntity.id);
 
                 // set the process group if appropriate due to revision and wasn't previously removed
-                if (client.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
+                if (nfClient.isNewerRevision(currentProcessGroupEntity, proposedProcessGroupEntity) && !removedCache.has(proposedProcessGroupEntity.id)) {
                     processGroupMap.set(proposedProcessGroupEntity.id, $.extend({
                         type: 'ProcessGroup',
                         dimensions: dimensions
@@ -1125,14 +1130,14 @@
                 $.each(processGroupEntities, function (_, processGroupEntity) {
                     set(processGroupEntity);
                 });
-            } else if (common.isDefinedAndNotNull(processGroupEntities)) {
+            } else if (nfCommon.isDefinedAndNotNull(processGroupEntities)) {
                 set(processGroupEntities);
             }
 
             // apply the selection and handle all new process group
             var selection = select();
             selection.enter().call(renderProcessGroups, selectAll);
-            selection.call(updateProcessGroups).call(canvasUtils.position, transition);
+            selection.call(updateProcessGroups).call(nfCanvasUtils.position, transition);
             selection.exit().call(removeProcessGroups);
         },
 
@@ -1143,7 +1148,7 @@
          * @param {string} id
          */
         get: function (id) {
-            if (common.isUndefined(id)) {
+            if (nfCommon.isUndefined(id)) {
                 return processGroupMap.values();
             } else {
                 return processGroupMap.get(id);
@@ -1157,7 +1162,7 @@
          * @param {string} id      Optional
          */
         refresh: function (id) {
-            if (common.isDefinedAndNotNull(id)) {
+            if (nfCommon.isDefinedAndNotNull(id)) {
                 d3.select('#id-' + id).call(updateProcessGroups);
             } else {
                 d3.selectAll('g.process-group').call(updateProcessGroups);
@@ -1196,7 +1201,7 @@
          * @param {string} id   The id
          */
         position: function (id) {
-            d3.select('#id-' + id).call(canvasUtils.position);
+            d3.select('#id-' + id).call(nfCanvasUtils.position);
         },
 
         /**
@@ -1257,25 +1262,25 @@
             nfContextMenu.hide();  
 
             // set the new group id
-            canvasUtils.setGroupId(groupId);  
+            nfCanvasUtils.setGroupId(groupId);  
 
             // reload the graph
-            return canvasUtils.reload().done(function () { 
+            return nfCanvasUtils.reload().done(function () { 
 
                 // attempt to restore the view
-                var viewRestored = canvasUtils.restoreUserView();  
+                var viewRestored = nfCanvasUtils.restoreUserView();  
 
                 // if the view was not restore attempt to fit
                 if (viewRestored === false) {
-                    canvasUtils.fitCanvasView();  
+                    nfCanvasUtils.fitCanvasView();  
 
                     // refresh the canvas
-                    canvasUtils.refreshCanvasView({
+                    nfCanvasUtils.refreshCanvasView({
                         transition: true
                     });
                 }
             }).fail(function () {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Process Group',
                     dialogContent: 'Unable to enter the selected group.'
                 });

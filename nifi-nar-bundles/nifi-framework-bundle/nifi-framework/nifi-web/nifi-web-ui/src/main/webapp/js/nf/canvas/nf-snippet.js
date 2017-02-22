@@ -23,8 +23,8 @@
                 'd3',
                 'nf.CanvasUtils',
                 'nf.Client'],
-            function ($, d3, canvasUtils, client) {
-                return (nf.Snippet = factory($, d3, canvasUtils, client));
+            function ($, d3, nfCanvasUtils, nfClient) {
+                return (nf.Snippet = factory($, d3, nfCanvasUtils, nfClient));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Snippet =
@@ -38,7 +38,7 @@
             root.nf.CanvasUtils,
             root.nf.Client);
     }
-}(this, function ($, d3, canvasUtils, client) {
+}(this, function ($, d3, nfCanvasUtils, nfClient) {
     'use strict';
 
     var config = {
@@ -57,7 +57,7 @@
          */
         marshal: function (selection) {
             var snippet = {
-                parentGroupId: canvasUtils.getGroupId(),
+                parentGroupId: nfCanvasUtils.getGroupId(),
                 processors: {},
                 funnels: {},
                 inputPorts: {},
@@ -72,22 +72,22 @@
             selection.each(function (d) {
                 var selected = d3.select(this);
 
-                if (canvasUtils.isProcessor(selected)) {
-                    snippet.processors[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isFunnel(selected)) {
-                    snippet.funnels[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isLabel(selected)) {
-                    snippet.labels[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isInputPort(selected)) {
-                    snippet.inputPorts[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isOutputPort(selected)) {
-                    snippet.outputPorts[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isProcessGroup(selected)) {
-                    snippet.processGroups[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isRemoteProcessGroup(selected)) {
-                    snippet.remoteProcessGroups[d.id] = client.getRevision(selected.datum());
-                } else if (canvasUtils.isConnection(selected)) {
-                    snippet.connections[d.id] = client.getRevision(selected.datum());
+                if (nfCanvasUtils.isProcessor(selected)) {
+                    snippet.processors[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isFunnel(selected)) {
+                    snippet.funnels[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isLabel(selected)) {
+                    snippet.labels[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isInputPort(selected)) {
+                    snippet.inputPorts[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isOutputPort(selected)) {
+                    snippet.outputPorts[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isProcessGroup(selected)) {
+                    snippet.processGroups[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selected)) {
+                    snippet.remoteProcessGroups[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isConnection(selected)) {
+                    snippet.connections[d.id] = nfClient.getRevision(selected.datum());
                 }
             });
 
@@ -128,7 +128,7 @@
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(canvasUtils.getGroupId()) + '/snippet-instance',
+                url: config.urls.processGroups + '/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/snippet-instance',
                 data: JSON.stringify(copySnippetRequestEntity),
                 dataType: 'json',
                 contentType: 'application/json'

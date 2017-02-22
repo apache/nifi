@@ -32,22 +32,22 @@
                 'nf.Settings'],
             function ($,
                       Slick,
-                      common,
-                      universalCapture,
-                      dialog,
-                      client,
-                      errorHandler,
-                      processGroupConfiguration,
-                      settings) {
+                      nfCommon,
+                      nfUniversalCapture,
+                      nfDialog,
+                      nfClient,
+                      nfErrorHandler,
+                      nfProcessGroupConfiguration,
+                      nfSettings) {
                 factory($,
                     Slick,
-                    common,
-                    universalCapture,
-                    dialog,
-                    client,
-                    errorHandler,
-                    processGroupConfiguration,
-                    settings);
+                    nfCommon,
+                    nfUniversalCapture,
+                    nfDialog,
+                    nfClient,
+                    nfErrorHandler,
+                    nfProcessGroupConfiguration,
+                    nfSettings);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         factory(require('jquery'),
@@ -72,13 +72,13 @@
     }
 }(this, function ($,
                   Slick,
-                  common,
-                  universalCapture,
-                  dialog,
-                  client,
-                  errorHandler,
-                  processGroupConfiguration,
-                  settings) {
+                  nfCommon,
+                  nfUniversalCapture,
+                  nfDialog,
+                  nfClient,
+                  nfErrorHandler,
+                  nfProcessGroupConfiguration,
+                  nfSettings) {
 
     var languageId = 'nfel';
     var editorClass = languageId + '-editor';
@@ -124,7 +124,8 @@
                 'width': args.position.width + 'px',
                 'min-width': '212px',
                 'margin-bottom': '5px',
-                'margin-top': '10px'
+                'margin-top': '10px',
+                'white-space': 'pre'
             }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
 
             wrapper.draggable({
@@ -219,12 +220,12 @@
         this.loadValue = function (item) {
             // determine if this is a sensitive property
             var isEmptyChecked = false;
-            var sensitive = common.isSensitiveProperty(propertyDescriptor);
+            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
 
             // determine the value to use when populating the text field
-            if (common.isDefinedAndNotNull(item[args.column.field])) {
+            if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
                 if (sensitive) {
-                    initialValue = common.config.sensitiveText;
+                    initialValue = nfCommon.config.sensitiveText;
                 } else {
                     initialValue = item[args.column.field];
                     isEmptyChecked = initialValue === '';
@@ -241,7 +242,7 @@
                     var sensitiveInput = $(this);
                     if (sensitiveInput.hasClass('sensitive')) {
                         sensitiveInput.removeClass('sensitive');
-                        if (sensitiveInput.val() === common.config.sensitiveText) {
+                        if (sensitiveInput.val() === nfCommon.config.sensitiveText) {
                             sensitiveInput.val('');
                         }
                     }
@@ -260,8 +261,8 @@
                     return '';
                 } else {
                     // otherwise if the property is required
-                    if (common.isRequiredProperty(propertyDescriptor)) {
-                        if (common.isBlank(propertyDescriptor.defaultValue)) {
+                    if (nfCommon.isRequiredProperty(propertyDescriptor)) {
+                        if (nfCommon.isBlank(propertyDescriptor.defaultValue)) {
                             return previousValue;
                         } else {
                             return propertyDescriptor.defaultValue;
@@ -322,7 +323,7 @@
             propertyDescriptor = descriptors[args.item.property];
 
             // determine if this is a sensitive property
-            var sensitive = common.isSensitiveProperty(propertyDescriptor);
+            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
 
             // record the previous value
             previousValue = args.item[args.column.field];
@@ -439,12 +440,12 @@
         this.loadValue = function (item) {
             // determine if this is a sensitive property
             var isEmptyChecked = false;
-            var sensitive = common.isSensitiveProperty(propertyDescriptor);
+            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
 
             // determine the value to use when populating the text field
-            if (common.isDefinedAndNotNull(item[args.column.field])) {
+            if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
                 if (sensitive) {
-                    initialValue = common.config.sensitiveText;
+                    initialValue = nfCommon.config.sensitiveText;
                 } else {
                     initialValue = item[args.column.field];
                     isEmptyChecked = initialValue === '';
@@ -468,8 +469,8 @@
                     return '';
                 } else {
                     // otherwise if the property is required
-                    if (common.isRequiredProperty(propertyDescriptor)) {
-                        if (common.isBlank(propertyDescriptor.defaultValue)) {
+                    if (nfCommon.isRequiredProperty(propertyDescriptor)) {
+                        if (nfCommon.isBlank(propertyDescriptor.defaultValue)) {
                             return previousValue;
                         } else {
                             return propertyDescriptor.defaultValue;
@@ -553,7 +554,7 @@
             }).appendTo(container);
 
             // check for allowable values which will drive which editor to use
-            var allowableValues = common.getAllowableValues(propertyDescriptor);
+            var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
 
             // show the output port options
             var options = [];
@@ -571,7 +572,7 @@
                         text: allowableValue.displayName,
                         value: allowableValue.value,
                         disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
-                        description: common.escapeHtml(allowableValue.description)
+                        description: nfCommon.escapeHtml(allowableValue.description)
                     });
                 });
             }
@@ -587,7 +588,7 @@
             }
 
             // if this descriptor identifies a controller service, provide a way to create one
-            if (common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+            if (nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                 options.push({
                     text: 'Create new service...',
                     value: undefined,
@@ -685,13 +686,13 @@
 
         this.loadValue = function (item) {
             // select as appropriate
-            if (!common.isUndefined(item.value)) {
+            if (!nfCommon.isUndefined(item.value)) {
                 initialValue = item.value;
 
                 combo.combo('setSelectedOption', {
                     value: item.value
                 });
-            } else if (common.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
+            } else if (nfCommon.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
                 initialValue = propertyDescriptor.defaultValue;
 
                 combo.combo('setSelectedOption', {
@@ -735,20 +736,20 @@
      */
     var showPropertyValue = function (propertyGrid, descriptors, row, cell) {
         // remove any currently open detail dialogs
-        universalCapture.removeAllPropertyDetailDialogs();
+        nfUniversalCapture.removeAllPropertyDetailDialogs();
 
         // get the property in question
         var propertyData = propertyGrid.getData();
         var property = propertyData.getItem(row);
 
         // ensure there is a value
-        if (common.isDefinedAndNotNull(property.value)) {
+        if (nfCommon.isDefinedAndNotNull(property.value)) {
 
             // get the descriptor to insert the description tooltip
             var propertyDescriptor = descriptors[property.property];
 
             // ensure we're not dealing with a sensitive property
-            if (!common.isSensitiveProperty(propertyDescriptor)) {
+            if (!nfCommon.isSensitiveProperty(propertyDescriptor)) {
 
                 // get details about the location of the cell
                 var cellNode = $(propertyGrid.getCellNode(row, cell));
@@ -769,7 +770,7 @@
                     'left': offset.left - 20
                 }).appendTo('body');
 
-                var allowableValues = common.getAllowableValues(propertyDescriptor);
+                var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
                 if ($.isArray(allowableValues)) {
                     // prevent dragging over the combo
                     wrapper.draggable({
@@ -784,7 +785,7 @@
                         options.push({
                             text: allowableValue.displayName,
                             value: allowableValue.value,
-                            description: common.escapeHtml(allowableValue.description),
+                            description: nfCommon.escapeHtml(allowableValue.description),
                             disabled: true
                         });
                     });
@@ -833,7 +834,7 @@
                     var editor = null;
 
                     // so the nfel editor is appropriate
-                    if (common.supportsEl(propertyDescriptor)) {
+                    if (nfCommon.supportsEl(propertyDescriptor)) {
                         var languageId = 'nfel';
                         var editorClass = languageId + '-editor';
 
@@ -957,15 +958,15 @@
             var options = [];
             $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
                 options.push({
-                    text: common.substringAfterLast(controllerServiceType.type, '.'),
+                    text: nfCommon.substringAfterLast(controllerServiceType.type, '.'),
                     value: controllerServiceType.type,
-                    description: common.escapeHtml(controllerServiceType.description)
+                    description: nfCommon.escapeHtml(controllerServiceType.description)
                 });
             });
 
             // ensure there are some applicable controller services
             if (options.length === 0) {
-                dialog.showOkDialog({
+                nfDialog.showOkDialog({
                     headerText: 'Controller Service',
                     dialogContent: 'No controller service types found that are applicable for this property.'
                 });
@@ -1053,7 +1054,7 @@
 
                     // build the controller service entity
                     var controllerServiceEntity = {
-                        'revision': client.getRevision({
+                        'revision': nfClient.getRevision({
                             'revision': {
                                 'version': 0,
                             }
@@ -1065,7 +1066,7 @@
 
                     // determine the appropriate uri for creating the controller service
                     var uri = '../nifi-api/controller/controller-services';
-                    if (common.isDefinedAndNotNull(groupId)) {
+                    if (nfCommon.isDefinedAndNotNull(groupId)) {
                         uri = '../nifi-api/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
                     }
 
@@ -1083,7 +1084,7 @@
 
                             // store the descriptor for use later
                             var descriptors = gridContainer.data('descriptors');
-                            if (!common.isUndefined(descriptors)) {
+                            if (!nfCommon.isUndefined(descriptors)) {
                                 descriptors[descriptor.name] = descriptor;
                             }
 
@@ -1101,7 +1102,7 @@
                         if (typeof configurationOptions.controllerServiceCreatedDeferred === 'function') {
                             configurationOptions.controllerServiceCreatedDeferred(response);
                         }
-                    }).fail(errorHandler.handleAjaxError);
+                    }).fail(nfErrorHandler.handleAjaxError);
                 };
 
                 var cancel = function () {
@@ -1110,7 +1111,7 @@
 
                 newControllerServiceDialog.modal('show');
             }
-        }).fail(errorHandler.handleAjaxError);
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     var initPropertiesTable = function (table, options) {
@@ -1130,8 +1131,8 @@
             var propertyDescriptor = descriptors[dataContext.property];
 
             // show the property description if applicable
-            if (common.isDefinedAndNotNull(propertyDescriptor)) {
-                if (!common.isBlank(propertyDescriptor.description) || !common.isBlank(propertyDescriptor.defaultValue) || !common.isBlank(propertyDescriptor.supportsEl)) {
+            if (nfCommon.isDefinedAndNotNull(propertyDescriptor)) {
+                if (!nfCommon.isBlank(propertyDescriptor.description) || !nfCommon.isBlank(propertyDescriptor.defaultValue) || !nfCommon.isBlank(propertyDescriptor.supportsEl)) {
                     $('<div class="fa fa-question-circle" alt="Info" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
                     $('<span class="hidden property-descriptor-name"></span>').text(dataContext.property).appendTo(cellContent);
                     nameWidthOffset = 46; // 10 + icon width (10) + icon margin (6) + padding (20)
@@ -1148,17 +1149,17 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
-            if (common.isDefinedAndNotNull(value)) {
+            if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
                 var propertyDescriptor = descriptors[dataContext.property];
 
                 // determine if the property is sensitive
-                if (common.isSensitiveProperty(propertyDescriptor)) {
+                if (nfCommon.isSensitiveProperty(propertyDescriptor)) {
                     valueMarkup = '<span class="table-cell sensitive">Sensitive value set</span>';
                 } else {
                     // if there are allowable values, attempt to swap out for the display name
-                    var allowableValues = common.getAllowableValues(propertyDescriptor);
+                    var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
                     if ($.isArray(allowableValues)) {
                         $.each(allowableValues, function (_, allowableValueEntity) {
                             var allowableValue = allowableValueEntity.allowableValue;
@@ -1172,7 +1173,7 @@
                     if (value === '') {
                         valueMarkup = '<span class="table-cell blank">Empty string set</span>';
                     } else {
-                        valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + common.escapeHtml(value) + '</pre></div>';
+                        valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
                     }
                 }
             } else {
@@ -1220,8 +1221,8 @@
             var descriptors = table.data('descriptors');
             var propertyDescriptor = descriptors[dataContext.property];
 
-            var identifiesControllerService = common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService);
-            var isConfigured = common.isDefinedAndNotNull(dataContext.value);
+            var identifiesControllerService = nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService);
+            var isConfigured = nfCommon.isDefinedAndNotNull(dataContext.value);
 
             // check to see if we should provide a button for going to a controller service
             if (identifiesControllerService && isConfigured && (options.supportsGoTo === true)) {
@@ -1273,7 +1274,7 @@
             var propertyDescriptor = descriptors[item.property];
 
             // support el if specified or unsure yet (likely a dynamic property)
-            if (common.isUndefinedOrNull(propertyDescriptor) || common.supportsEl(propertyDescriptor)) {
+            if (nfCommon.isUndefinedOrNull(propertyDescriptor) || nfCommon.supportsEl(propertyDescriptor)) {
                 return {
                     columns: {
                         value: {
@@ -1283,7 +1284,7 @@
                 };
             } else {
                 // check for allowable values which will drive which editor to use
-                var allowableValues = common.getAllowableValues(propertyDescriptor);
+                var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
                 if ($.isArray(allowableValues)) {
                     return {
                         columns: {
@@ -1320,37 +1321,37 @@
 
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
-                    if (common.isDefinedAndNotNull(controllerService.parentGroupId)) {
+                    if (nfCommon.isDefinedAndNotNull(controllerService.parentGroupId)) {
                         if ($('#process-group-configuration').is(':visible')) {
-                            processGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
+                            nfProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
                                 deferred.resolve();
                             });
                         } else {
-                            processGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
+                            nfProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
                                 deferred.resolve();
                             });
                         }
                     } else {
                         if ($('#settings').is(':visible')) {
                             // reload the settings
-                            settings.loadSettings().done(function () {
+                            nfSettings.loadSettings().done(function () {
                                 deferred.resolve();
                             });
                         } else {
                             // reload the settings and show
-                            settings.showSettings().done(function () {
+                            nfSettings.showSettings().done(function () {
                                 deferred.resolve();
                             });
                         }
                     }
                 }).done(function () {
-                    if (common.isDefinedAndNotNull(controllerService.parentGroupId)) {
-                        processGroupConfiguration.selectControllerService(property.value);
+                    if (nfCommon.isDefinedAndNotNull(controllerService.parentGroupId)) {
+                        nfProcessGroupConfiguration.selectControllerService(property.value);
                     } else {
-                        settings.selectControllerService(property.value);
+                        nfSettings.selectControllerService(property.value);
                     }
                 });
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         // initialize the grid
@@ -1433,11 +1434,11 @@
                 var propertyHistory = history[property];
 
                 // format the tooltip
-                var tooltip = common.formatPropertyTooltip(propertyDescriptor, propertyHistory);
+                var tooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
 
-                if (common.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(tooltip)) {
                     infoIcon.qtip($.extend({},
-                        common.config.tooltipConfig,
+                        nfCommon.config.tooltipConfig,
                         {
                             content: tooltip
                         }));
@@ -1449,7 +1450,7 @@
     var saveRow = function (table) {
         // get the property grid to commit the current edit
         var propertyGrid = table.data('gridInstance');
-        if (common.isDefinedAndNotNull(propertyGrid)) {
+        if (nfCommon.isDefinedAndNotNull(propertyGrid)) {
             var editController = propertyGrid.getEditController();
             editController.commitCurrentEdit();
         }
@@ -1486,7 +1487,7 @@
         var propertyData = propertyGrid.getData();
 
         // generate the properties
-        if (common.isDefinedAndNotNull(properties)) {
+        if (nfCommon.isDefinedAndNotNull(properties)) {
             propertyData.beginUpdate();
 
             var i = 0;
@@ -1497,10 +1498,10 @@
                 // determine the property type
                 var type = 'userDefined';
                 var displayName = name;
-                if (common.isDefinedAndNotNull(descriptor)) {
-                    if (common.isRequiredProperty(descriptor)) {
+                if (nfCommon.isDefinedAndNotNull(descriptor)) {
+                    if (nfCommon.isRequiredProperty(descriptor)) {
                         type = 'required';
-                    } else if (common.isDynamicProperty(descriptor)) {
+                    } else if (nfCommon.isDynamicProperty(descriptor)) {
                         type = 'userDefined';
                     } else {
                         type = 'optional';
@@ -1510,7 +1511,7 @@
                     displayName = descriptor.displayName;
 
                     // determine the value
-                    if (common.isNull(value) && common.isDefinedAndNotNull(descriptor.defaultValue)) {
+                    if (nfCommon.isNull(value) && nfCommon.isDefinedAndNotNull(descriptor.defaultValue)) {
                         value = descriptor.defaultValue;
                     }
                 }
@@ -1539,10 +1540,10 @@
     var clear = function (propertyTableContainer) {
         var options = propertyTableContainer.data('options');
         if (options.readOnly === true) {
-            universalCapture.removeAllPropertyDetailDialogs();
+            nfUniversalCapture.removeAllPropertyDetailDialogs();
         } else {
             // clear any existing new property dialogs
-            if (common.isDefinedAndNotNull(options.dialogContainer)) {
+            if (nfCommon.isDefinedAndNotNull(options.dialogContainer)) {
                 $('#new-property-dialog').modal("hide");
             }
         }
@@ -1552,7 +1553,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        common.cleanUpTooltips(table, 'div.fa-question-circle');
+        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
@@ -1586,7 +1587,7 @@
         init: function (options) {
             return this.each(function () {
                 // ensure the options have been properly specified
-                if (common.isDefinedAndNotNull(options)) {
+                if (nfCommon.isDefinedAndNotNull(options)) {
                     // get the tag cloud
                     var propertyTableContainer = $(this);
 
@@ -1601,7 +1602,7 @@
                     var table = $('<div class="property-table"></div>').appendTo(propertyTableContainer);
 
                     // optionally add a add new property button
-                    if (options.readOnly !== true && common.isDefinedAndNotNull(options.dialogContainer)) {
+                    if (options.readOnly !== true && nfCommon.isDefinedAndNotNull(options.dialogContainer)) {
                         // build the new property dialog
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
@@ -1673,7 +1674,7 @@
 
                                         // store the descriptor for use later
                                         var descriptors = table.data('descriptors');
-                                        if (!common.isUndefined(descriptors)) {
+                                        if (!nfCommon.isUndefined(descriptors)) {
                                             descriptors[descriptor.name] = descriptor;
                                         }
 
@@ -1708,7 +1709,7 @@
                                         propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
                                         propertyGrid.editActiveCell();
                                     } else {
-                                        dialog.showOkDialog({
+                                        nfDialog.showOkDialog({
                                             headerText: 'Property Exists',
                                             dialogContent: 'A property with this name already exists.'
                                         });
@@ -1720,7 +1721,7 @@
                                     }
                                 }
                             } else {
-                                dialog.showOkDialog({
+                                nfDialog.showOkDialog({
                                     headerText: 'Property Name',
                                     dialogContent: 'Property name must be specified.'
                                 });
@@ -1803,7 +1804,7 @@
             return this.each(function () {
                 var table = $(this).find('div.property-table');
                 var propertyGrid = table.data('gridInstance');
-                if (common.isDefinedAndNotNull(propertyGrid)) {
+                if (nfCommon.isDefinedAndNotNull(propertyGrid)) {
                     propertyGrid.resizeCanvas();
                 }
             });
@@ -1816,7 +1817,7 @@
             return this.each(function () {
                 var table = $(this).find('div.property-table');
                 var propertyGrid = table.data('gridInstance');
-                if (common.isDefinedAndNotNull(propertyGrid)) {
+                if (nfCommon.isDefinedAndNotNull(propertyGrid)) {
                     var editController = propertyGrid.getEditController();
                     editController.cancelCurrentEdit();
                 }
@@ -1831,12 +1832,12 @@
                 var propertyTableContainer = $(this);
                 var options = propertyTableContainer.data('options');
 
-                if (common.isDefinedAndNotNull(options)) {
+                if (nfCommon.isDefinedAndNotNull(options)) {
                     // clear the property table container
                     clear(propertyTableContainer);
 
                     // clear any existing new property dialogs
-                    if (common.isDefinedAndNotNull(options.dialogContainer)) {
+                    if (nfCommon.isDefinedAndNotNull(options.dialogContainer)) {
                         $('#new-property-dialog').modal("hide");
                         $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
                     }

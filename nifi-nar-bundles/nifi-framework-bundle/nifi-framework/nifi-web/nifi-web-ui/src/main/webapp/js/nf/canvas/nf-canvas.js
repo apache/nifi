@@ -33,8 +33,8 @@
                 'nf.ContextMenu',
                 'nf.Actions',
                 'nf.ProcessGroup'],
-            function ($, d3, common, nfGraph, nfShell, angularBridge, nfClusterSummary, errorHandler, storage, canvasUtils, birdseye, contextMenu, actions, processGroup) {
-                return (nf.Canvas = factory($, d3, common, nfGraph, nfShell, angularBridge, nfClusterSummary, errorHandler, storage, canvasUtils, birdseye, contextMenu, actions, processGroup));
+            function ($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
+                return (nf.Canvas = factory($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Canvas =
@@ -68,7 +68,7 @@
             root.nf.Actions,
             root.nf.ProcessGroup);
     }
-}(this, function ($, d3, common, nfGraph, nfShell, angularBridge, nfClusterSummary, errorHandler, storage, canvasUtils, birdseye, contextMenu, actions, processGroup) {
+}(this, function ($, d3, nfCommon, nfGraph, nfShell, nfNgBridge, nfClusterSummary, nfErrorHandler, nfStorage, nfCanvasUtils, nfBirdseye, nfContextMenu, nfActions, nfProcessGroup) {
     'use strict';
 
     var SCALE = 1;
@@ -155,17 +155,17 @@
             permissions = flowResponse.permissions;
 
             // update the breadcrumbs
-            angularBridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
+            nfNgBridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
             // inform Angular app values have changed
-            angularBridge.digest();
-            angularBridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
-            angularBridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
+            nfNgBridge.digest();
+            nfNgBridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
+            nfNgBridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
 
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
 
             // set the parent id if applicable
-            if (common.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
+            if (nfCommon.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
                 nfCanvas.setParentGroupId(processGroupFlow.parentGroupId);
             } else {
                 nfCanvas.setParentGroupId(null);
@@ -181,8 +181,8 @@
             nfCanvas.View.updateVisibility();
 
             // update the birdseye
-            birdseye.refresh();
-        }).fail(errorHandler.handleAjaxError);
+            nfBirdseye.refresh();
+        }).fail(nfErrorHandler.handleAjaxError);
     };
 
     /**
@@ -198,7 +198,7 @@
             dataType: 'json'
         }).done(function (currentUser) {
             // set the current user
-            common.setCurrentUser(currentUser);
+            nfCommon.setCurrentUser(currentUser);
         });
     };
 
@@ -240,26 +240,26 @@
             return $.Deferred(function (deferred) {
                 // issue the requests
                 var processGroupXhr = reloadProcessGroup(nfCanvas.getGroupId(), options);
-                var statusXhr = angularBridge.injector.get('flowStatusCtrl').reloadFlowStatus();
+                var statusXhr = nfNgBridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
                 var controllerBulletins = $.ajax({
                     type: 'GET',
                     url: config.urls.controllerBulletins,
                     dataType: 'json'
                 }).done(function (response) {
-                    angularBridge.injector.get('flowStatusCtrl').updateBulletins(response);
+                    nfNgBridge.injector.get('flowStatusCtrl').updateBulletins(response);
                 });
                 var clusterSummary = nfClusterSummary.loadClusterSummary().done(function (response) {
                     var clusterSummary = response.clusterSummary;
 
                     // update the cluster summary
-                    angularBridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
+                    nfNgBridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
                 });
 
                 // wait for all requests to complete
                 $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
                     // inform Angular app values have changed
-                    angularBridge.digest();
+                    nfNgBridge.digest();
 
                     // resolve the deferred
                     deferred.resolve(processGroupResult);
@@ -282,10 +282,10 @@
                     canvasClicked = false;
 
                     // since the context menu event propagated back to the canvas, clear the selection
-                    canvasUtils.getSelection().classed('selected', false);
+                    nfCanvasUtils.getSelection().classed('selected', false);
 
                     // show the context menu on the canvas
-                    contextMenu.show();
+                    nfContextMenu.show();
 
                     // prevent default browser behavior
                     d3.event.preventDefault();
@@ -555,11 +555,11 @@
                         selectionBox.remove();
                     } else if (panning === false) {
                         // deselect as necessary if we are not panning
-                        canvasUtils.getSelection().classed('selected', false);
+                        nfCanvasUtils.getSelection().classed('selected', false);
                     }
 
                     // inform Angular app values have changed
-                    angularBridge.digest();
+                    nfNgBridge.digest();
                 });
 
             // define a function for update the graph dimensions
@@ -587,7 +587,7 @@
                 });
 
                 //breadcrumbs
-                angularBridge.injector.get('breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
+                nfNgBridge.injector.get('breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
 
                 // body
                 $('#canvas-body').css({
@@ -606,16 +606,16 @@
 
             // listen for events to go to components
             $('body').on('GoTo:Component', function (e, item) {
-                canvasUtils.showComponent(item.parentGroupId, item.id);
+                nfCanvasUtils.showComponent(item.parentGroupId, item.id);
             });
 
             // listen for events to go to process groups
             $('body').on('GoTo:ProcessGroup', function (e, item) {
-                processGroup.enterGroup(item.id).done(function () {
-                    canvasUtils.getSelection().classed('selected', false);
+                nfProcessGroup.enterGroup(item.id).done(function () {
+                    nfCanvasUtils.getSelection().classed('selected', false);
 
                     // inform Angular app that values have changed
-                    angularBridge.digest();
+                    nfNgBridge.digest();
                 });
             });
 
@@ -670,7 +670,7 @@
                         }
                     }
                     $.each(tabsContents, function (index, tabsContent) {
-                        common.toggleScrollable(tabsContent.get(0));
+                        nfCommon.toggleScrollable(tabsContent.get(0));
                     });
                 }
             }).on('keydown', function (evt) {
@@ -680,7 +680,7 @@
                 }
 
                 // get the current selection
-                var selection = canvasUtils.getSelection();
+                var selection = nfCanvasUtils.getSelection();
 
                 // handle shortcuts
                 var isCtrl = evt.ctrlKey || evt.metaKey;
@@ -691,25 +691,25 @@
                             return;
                         }
                         // ctrl-r
-                        actions.reload();
+                        nfActions.reload();
 
                         // default prevented in nf-universal-capture.js
                     } else if (evt.keyCode === 65) {
                         // ctrl-a
-                        actions.selectAll();
-                        angularBridge.digest();
+                        nfActions.selectAll();
+                        nfNgBridge.digest();
 
                         // only want to prevent default if the action was performed, otherwise default select all would be overridden
                         evt.preventDefault();
                     } else if (evt.keyCode === 67) {
                         // ctrl-c
-                        if (nfCanvas.canWrite() && canvasUtils.isCopyable(selection)) {
-                            actions.copy(selection);
+                        if (nfCanvas.canWrite() && nfCanvasUtils.isCopyable(selection)) {
+                            nfActions.copy(selection);
                         }
                     } else if (evt.keyCode === 86) {
                         // ctrl-v
-                        if (nfCanvas.canWrite() && canvasUtils.isPastable()) {
-                            actions.paste(selection);
+                        if (nfCanvas.canWrite() && nfCanvasUtils.isPastable()) {
+                            nfActions.paste(selection);
 
                             // only want to prevent default if the action was performed, otherwise default paste would be overridden
                             evt.preventDefault();
@@ -718,8 +718,8 @@
                 } else {
                     if (evt.keyCode === 8 || evt.keyCode === 46) {
                         // backspace or delete
-                        if (nfCanvas.canWrite() && canvasUtils.areDeletable(selection)) {
-                            actions['delete'](selection);
+                        if (nfCanvas.canWrite() && nfCanvasUtils.areDeletable(selection)) {
+                            nfActions['delete'](selection);
                         }
 
                         // default prevented in nf-universal-capture.js
@@ -734,14 +734,14 @@
                 dataType: 'json'
             }).done(function (response) {
                 // ensure the banners response is specified
-                if (common.isDefinedAndNotNull(response.banners)) {
-                    if (common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
+                if (nfCommon.isDefinedAndNotNull(response.banners)) {
+                    if (nfCommon.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                         // update the header text and show it
                         $('#banner-header').addClass('banner-header-background').text(response.banners.headerText).show();
                         $('#canvas-container').css('top', '98px');
                     }
 
-                    if (common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
+                    if (nfCommon.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                         // update the footer text and show it
                         var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
@@ -757,7 +757,7 @@
 
                 // update the graph dimensions
                 updateGraphSize();
-            }).fail(errorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
         },
 
         /**
@@ -766,7 +766,7 @@
         init: function () {
             // attempt kerberos authentication
             var ticketExchange = $.Deferred(function (deferred) {
-                if (storage.hasItem('jwt')) {
+                if (nfStorage.hasItem('jwt')) {
                     deferred.resolve();
                 } else {
                     $.ajax({
@@ -775,9 +775,9 @@
                         dataType: 'text'
                     }).done(function (jwt) {
                         // get the payload and store the token with the appropriate expiration
-                        var token = common.getJwtPayload(jwt);
-                        var expiration = parseInt(token['exp'], 10) * common.MILLIS_PER_SECOND;
-                        storage.setItem('jwt', jwt, expiration);
+                        var token = nfCommon.getJwtPayload(jwt);
+                        var expiration = parseInt(token['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
+                        nfStorage.setItem('jwt', jwt, expiration);
                         deferred.resolve();
                     }).fail(function () {
                         deferred.reject();
@@ -795,12 +795,12 @@
                             $('#current-user').text(currentUser.identity).show();
 
                             // render the logout button if there is a token locally
-                            if (storage.getItem('jwt') !== null) {
+                            if (nfStorage.getItem('jwt') !== null) {
                                 $('#logout-link-container').show();
                             }
                         } else {
                             // set the anonymous user label
-                            common.setAnonymousUserLabel();
+                            nfCommon.setAnonymousUserLabel();
                         }
                         deferred.resolve();
                     }).fail(function (xhr, status, error) {
@@ -1024,7 +1024,7 @@
                         .scale(SCALE)
                         .on('zoomstart', function () {
                             // hide the context menu
-                            contextMenu.hide();
+                            nfContextMenu.hide();
                         })
                         .on('zoom', function () {
                             // if we have zoomed, indicate that we are panning
@@ -1050,16 +1050,16 @@
                         })
                         .on('zoomend', function () {
                             // ensure the canvas was actually refreshed
-                            if (common.isDefinedAndNotNull(refreshed)) {
+                            if (nfCommon.isDefinedAndNotNull(refreshed)) {
                                 nfCanvas.View.updateVisibility();
 
                                 // refresh the birdseye
                                 refreshed.done(function () {
-                                    birdseye.refresh();
+                                    nfBirdseye.refresh();
                                 });
 
                                 // persist the users view
-                                canvasUtils.persistUserView();
+                                nfCanvasUtils.persistUserView();
 
                                 // reset the refreshed deferred
                                 refreshed = null;
@@ -1096,7 +1096,7 @@
                  * @param {array} translate     [x, y]
                  */
                 translate: function (translate) {
-                    if (common.isUndefined(translate)) {
+                    if (nfCommon.isUndefined(translate)) {
                         return behavior.translate();
                     } else {
                         behavior.translate(translate);
@@ -1109,7 +1109,7 @@
                  * @param {number} scale        The new scale
                  */
                 scale: function (scale) {
-                    if (common.isUndefined(scale)) {
+                    if (nfCommon.isUndefined(scale)) {
                         return behavior.scale();
                     } else {
                         behavior.scale(scale);
@@ -1133,7 +1133,7 @@
                     nfCanvas.View.scale(newScale);
 
                     // center around the center of the screen accounting for the translation accordingly
-                    canvasUtils.centerBoundingBox({
+                    nfCanvasUtils.centerBoundingBox({
                         x: (screenWidth / 2) - (translate[0] / scale),
                         y: (screenHeight / 2) - (translate[1] / scale),
                         width: 1,
@@ -1158,7 +1158,7 @@
                     nfCanvas.View.scale(newScale);
 
                     // center around the center of the screen accounting for the translation accordingly
-                    canvasUtils.centerBoundingBox({
+                    nfCanvasUtils.centerBoundingBox({
                         x: (screenWidth / 2) - (translate[0] / scale),
                         y: (screenHeight / 2) - (translate[1] / scale),
                         width: 1,
@@ -1205,7 +1205,7 @@
                     nfCanvas.View.scale(newScale);
 
                     // center as appropriate
-                    canvasUtils.centerBoundingBox({
+                    nfCanvasUtils.centerBoundingBox({
                         x: graphLeft - (translate[0] / scale),
                         y: graphTop - (translate[1] / scale),
                         width: canvasWidth / newScale,
@@ -1221,7 +1221,7 @@
                     var scale = nfCanvas.View.scale();
 
                     // get the first selected component
-                    var selection = canvasUtils.getSelection();
+                    var selection = nfCanvasUtils.getSelection();
 
                     // set the updated scale
                     nfCanvas.View.scale(1);
@@ -1259,7 +1259,7 @@
                     }
 
                     // center as appropriate
-                    canvasUtils.centerBoundingBox(box);
+                    nfCanvasUtils.centerBoundingBox(box);
                 },
 
                 /**
@@ -1276,11 +1276,11 @@
                         var refreshBirdseye = true;
 
                         // extract the options if specified
-                        if (common.isDefinedAndNotNull(options)) {
-                            persist = common.isDefinedAndNotNull(options.persist) ? options.persist : persist;
-                            transition = common.isDefinedAndNotNull(options.transition) ? options.transition : transition;
-                            refreshComponents = common.isDefinedAndNotNull(options.refreshComponents) ? options.refreshComponents : refreshComponents;
-                            refreshBirdseye = common.isDefinedAndNotNull(options.refreshBirdseye) ? options.refreshBirdseye : refreshBirdseye;
+                        if (nfCommon.isDefinedAndNotNull(options)) {
+                            persist = nfCommon.isDefinedAndNotNull(options.persist) ? options.persist : persist;
+                            transition = nfCommon.isDefinedAndNotNull(options.transition) ? options.transition : transition;
+                            refreshComponents = nfCommon.isDefinedAndNotNull(options.refreshComponents) ? options.refreshComponents : refreshComponents;
+                            refreshBirdseye = nfCommon.isDefinedAndNotNull(options.refreshBirdseye) ? options.refreshBirdseye : refreshBirdseye;
                         }
 
                         // update component visibility
@@ -1290,7 +1290,7 @@
 
                         // persist if appropriate
                         if (persist === true) {
-                            canvasUtils.persistUserView();
+                            nfCanvasUtils.persistUserView();
                         }
 
                         // update the canvas
@@ -1303,7 +1303,7 @@
                                 .each('end', function () {
                                     // refresh birdseye if appropriate
                                     if (refreshBirdseye === true) {
-                                        birdseye.refresh();
+                                        nfBirdseye.refresh();
                                     }
 
                                     deferred.resolve();
@@ -1315,7 +1315,7 @@
 
                             // refresh birdseye if appropriate
                             if (refreshBirdseye === true) {
-                                birdseye.refresh();
+                                nfBirdseye.refresh();
                             }
 
                             deferred.resolve();

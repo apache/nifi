@@ -79,8 +79,8 @@
                 'nf.ng.Canvas.OperateCtrl',
                 'nf.ng.BreadcrumbsDirective',
                 'nf.ng.DraggableDirective'],
-            function ($, angular, common, canvasUtils, errorHandler, client, clusterSummary, dialog, storage, canvas, graph, contextMenu, shell, settings, actions, snippet, queueListing, componentState, draggable, connectable, statusHistory, birdseye, connectionConfiguration, controllerService, reportingTask, policyManagement, processorConfiguration, processGroupConfiguration, controllerServices, remoteProcessGroupConfiguration, remoteProcessGroupPorts, portConfiguration, labelConfiguration, processorDetails, portDetails, connectionDetails, remoteProcessGroupDetails, nfGoto, angularBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective) {
-                return factory($, angular, common, canvasUtils, errorHandler, client, clusterSummary, dialog, storage, canvas, graph, contextMenu, shell, settings, actions, snippet, queueListing, componentState, draggable, connectable, statusHistory, birdseye, connectionConfiguration, controllerService, reportingTask, policyManagement, processorConfiguration, processGroupConfiguration, controllerServices, remoteProcessGroupConfiguration, remoteProcessGroupPorts, portConfiguration, labelConfiguration, processorDetails, portDetails, connectionDetails, remoteProcessGroupDetails, nfGoto, angularBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective);
+            function ($, angular, nfCommon, nfCanvasUtils, nfErrorHandler, nfClient, nfClusterSummary, nfDialog, nfStorage, nfCanvas, nfGraph, nfContextMenu, nfShell, nfSettings, nfActions, nfSnippet, nfQueueListing, nfComponentState, nfDraggable, nfConnectable, nfStatusHistory, nfBirdseye, nfConnectionConfiguration, nfControllerService, nfReportingTask, nfPolicyManagement, nfProcessorConfiguration, nfProcessGroupConfiguration, nfControllerServices, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupPorts, nfPortConfiguration, nfLabelConfiguration, nfProcessorDetails, nfPortDetails, nfConnectionDetails, nfRemoteProcessGroupDetails, nfGoto, nfNgBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective) {
+                return factory($, angular, nfCommon, nfCanvasUtils, nfErrorHandler, nfClient, nfClusterSummary, nfDialog, nfStorage, nfCanvas, nfGraph, nfContextMenu, nfShell, nfSettings, nfActions, nfSnippet, nfQueueListing, nfComponentState, nfDraggable, nfConnectable, nfStatusHistory, nfBirdseye, nfConnectionConfiguration, nfControllerService, nfReportingTask, nfPolicyManagement, nfProcessorConfiguration, nfProcessGroupConfiguration, nfControllerServices, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupPorts, nfPortConfiguration, nfLabelConfiguration, nfProcessorDetails, nfPortDetails, nfConnectionDetails, nfRemoteProcessGroupDetails, nfGoto, nfNgBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = factory(require('jquery'),
@@ -205,7 +205,7 @@
             root.nf.ng.BreadcrumbsDirective,
             root.nf.ng.DraggableDirective);
     }
-}(this, function ($, angular, common, canvasUtils, errorHandler, client, clusterSummary, dialog, storage, canvas, graph, contextMenu, shell, settings, actions, snippet, queueListing, componentState, draggable, connectable, statusHistory, birdseye, connectionConfiguration, controllerService, reportingTask, policyManagement, processorConfiguration, processGroupConfiguration, controllerServices, remoteProcessGroupConfiguration, remoteProcessGroupPorts, portConfiguration, labelConfiguration, processorDetails, portDetails, connectionDetails, remoteProcessGroupDetails, nfGoto, angularBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective) {
+}(this, function ($, angular, nfCommon, nfCanvasUtils, nfErrorHandler, nfClient, nfClusterSummary, nfDialog, nfStorage, nfCanvas, nfGraph, nfContextMenu, nfShell, nfSettings, nfActions, nfSnippet, nfQueueListing, nfComponentState, nfDraggable, nfConnectable, nfStatusHistory, nfBirdseye, nfConnectionConfiguration, nfControllerService, nfReportingTask, nfPolicyManagement, nfProcessorConfiguration, nfProcessGroupConfiguration, nfControllerServices, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupPorts, nfPortConfiguration, nfLabelConfiguration, nfProcessorDetails, nfPortDetails, nfConnectionDetails, nfRemoteProcessGroupDetails, nfGoto, nfNgBridge, appCtrl, appConfig, serviceProvider, breadcrumbsCtrl, headerCtrl, flowStatusCtrl, globalMenuCtrl, toolboxCtrl, processorComponent, inputPortComponent, outputPortComponent, processGroupComponent, remoteProcessGroupComponent, funnelComponent, templateComponent, labelComponent, graphControlsCtrl, navigateCtrl, operateCtrl, breadcrumbsDirective, draggableDirective) {
 
     var config = {
         urls: {
@@ -217,7 +217,7 @@
      * Bootstrap the canvas application.
      */
     $(document).ready(function () {
-        if (canvas.SUPPORTS_SVG) {
+        if (nfCanvas.SUPPORTS_SVG) {
 
             //Create Angular App
             var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
@@ -283,17 +283,17 @@
 
             // initialize the canvas utils and invert control of the canvas,
             // actions, snippet, birdseye, and graph
-            canvasUtils.init(canvas, actions, snippet, birdseye, graph);
+            nfCanvasUtils.init(nfCanvas, nfActions, nfSnippet, nfBirdseye, nfGraph);
 
             //Manually Boostrap Angular App
-            angularBridge.injector = angular.bootstrap($('body'), ['ngCanvasApp'], {strictDi: true});
+            nfNgBridge.injector = angular.bootstrap($('body'), ['ngCanvasApp'], {strictDi: true});
 
             // initialize the NiFi
-            var userXhr = canvas.init();
+            var userXhr = nfCanvas.init();
 
             userXhr.done(function () {
                 // load the client id
-                var clientXhr = client.init();
+                var clientXhr = nfClient.init();
 
                 // get the controller config to register the status poller
                 var configXhr = $.ajax({
@@ -303,89 +303,89 @@
                 });
 
                 // ensure the config requests are loaded
-                $.when(configXhr, clusterSummary.loadClusterSummary(), userXhr, clientXhr).done(function (configResult) {
+                $.when(configXhr, nfClusterSummary.loadClusterSummary(), userXhr, clientXhr).done(function (configResult) {
                     var configResponse = configResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
-                    canvas.CANVAS_OFFSET = canvasContainer.offset().top;
+                    nfCanvas.CANVAS_OFFSET = canvasContainer.offset().top;
 
                     // get the config details
                     var configDetails = configResponse.flowConfiguration;
 
                     // show disconnected message on load if necessary
-                    if (clusterSummary.isClustered() && !clusterSummary.isConnectedToCluster()) {
-                        dialog.showDisconnectedFromClusterMessage();
+                    if (nfClusterSummary.isClustered() && !nfClusterSummary.isConnectedToCluster()) {
+                        nfDialog.showDisconnectedFromClusterMessage();
                     }
 
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
                     // record whether we can configure the authorizer
-                    canvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
+                    nfCanvas.setConfigurableAuthorizer(configDetails.supportsConfigurableAuthorizer);
 
-                    // init storage
-                    storage.init();
+                    // init nfStorage
+                    nfStorage.init();
 
                     // initialize the application
-                    canvas.initCanvas();
-                    canvas.View.init();
+                    nfCanvas.initCanvas();
+                    nfCanvas.View.init();
                     // initialize the context menu and invert control of the actions
-                    contextMenu.init(actions);
+                    nfContextMenu.init(nfActions);
                     // initialize the shell and invert control of the context menu
-                    shell.init(contextMenu);
-                    angularBridge.injector.get('headerCtrl').init();
-                    settings.init();
-                    actions.init();
-                    queueListing.init();
-                    componentState.init();
+                    nfShell.init(nfContextMenu);
+                    nfNgBridge.injector.get('headerCtrl').init();
+                    nfSettings.init();
+                    nfActions.init();
+                    nfQueueListing.init();
+                    nfComponentState.init();
 
                     // initialize the component behaviors
-                    draggable.init();
-                    connectable.init();
+                    nfDraggable.init();
+                    nfConnectable.init();
 
                     // initialize the chart
-                    statusHistory.init(configDetails.timeOffset);
+                    nfStatusHistory.init(configDetails.timeOffset);
 
                     // initialize the birdseye
-                    birdseye.init(graph);
+                    nfBirdseye.init(nfGraph);
 
                     // initialize the connection config and invert control of the birdseye and graph
-                    connectionConfiguration.init(birdseye, graph);
-                    controllerService.init();
-                    reportingTask.init(settings);
-                    policyManagement.init();
-                    processorConfiguration.init();
+                    nfConnectionConfiguration.init(nfBirdseye, nfGraph);
+                    nfControllerService.init();
+                    nfReportingTask.init(nfSettings);
+                    nfPolicyManagement.init();
+                    nfProcessorConfiguration.init();
                     // initialize the PG config and invert control of the controllerServices
-                    processGroupConfiguration.init(controllerServices);
-                    remoteProcessGroupConfiguration.init();
-                    remoteProcessGroupPorts.init();
-                    portConfiguration.init();
-                    labelConfiguration.init();
-                    processorDetails.init(true);
-                    portDetails.init();
-                    connectionDetails.init();
-                    remoteProcessGroupDetails.init();
+                    nfProcessGroupConfiguration.init(nfControllerServices);
+                    nfRemoteProcessGroupConfiguration.init();
+                    nfRemoteProcessGroupPorts.init();
+                    nfPortConfiguration.init();
+                    nfLabelConfiguration.init();
+                    nfProcessorDetails.init(true);
+                    nfPortDetails.init();
+                    nfConnectionDetails.init();
+                    nfRemoteProcessGroupDetails.init();
                     nfGoto.init();
-                    graph.init().done(function () {
-                        angularBridge.injector.get('graphControlsCtrl').init();
+                    nfGraph.init().done(function () {
+                        nfNgBridge.injector.get('graphControlsCtrl').init();
 
                         // determine the split between the polling
                         var pollingSplit = autoRefreshIntervalSeconds / 2;
 
                         // register the polling
                         setTimeout(function () {
-                            canvas.startPolling(autoRefreshIntervalSeconds);
+                            nfCanvas.startPolling(autoRefreshIntervalSeconds);
                         }, pollingSplit * 1000);
 
                         // hide the splash screen
-                        canvas.hideSplash();
-                    }).fail(errorHandler.handleAjaxError);
-                }).fail(errorHandler.handleAjaxError);
-            }).fail(errorHandler.handleAjaxError);
+                        nfCanvas.hideSplash();
+                    }).fail(nfErrorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleAjaxError);
 
             //initialize toolbox components tooltips
-            $('.component-button').qtip($.extend({}, common.config.tooltipConfig));
+            $('.component-button').qtip($.extend({}, nfCommon.config.tooltipConfig));
         } else {
             $('#message-title').text('Unsupported Browser');
             $('#message-content').text('Flow graphs are shown using SVG. Please use a browser that supports rendering SVG.');
@@ -394,7 +394,7 @@
             $('#message-pane').show();
 
             // hide the splash screen
-            canvas.hideSplash();
+            nfCanvas.hideSplash();
         }
     });
 }));

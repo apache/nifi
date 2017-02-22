@@ -27,8 +27,8 @@
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
                 'nf.Settings'],
-            function ($, common, dialog, canvasUtils, contextMenu, clusterSummary, errorHandler, settings) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, common, dialog, canvasUtils, contextMenu, clusterSummary, errorHandler, settings));
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -50,7 +50,7 @@
             root.nf.ErrorHandler,
             root.nf.Settings);
     }
-}(this, function ($, common, dialog, canvasUtils, contextMenu, clusterSummary, errorHandler, settings) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings) {
     'use strict';
 
     return function (serviceProvider) {
@@ -134,7 +134,7 @@
                             var searchResults = items[0];
 
                             // show all processors
-                            if (!common.isEmpty(searchResults.processorResults)) {
+                            if (!nfCommon.isEmpty(searchResults.processorResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
                                 $.each(searchResults.processorResults, function (i, processorMatch) {
                                     nfSearchAutocomplete._renderItem(ul, processorMatch);
@@ -142,7 +142,7 @@
                             }
 
                             // show all process groups
-                            if (!common.isEmpty(searchResults.processGroupResults)) {
+                            if (!nfCommon.isEmpty(searchResults.processGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
                                 $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
                                     nfSearchAutocomplete._renderItem(ul, processGroupMatch);
@@ -150,7 +150,7 @@
                             }
 
                             // show all remote process groups
-                            if (!common.isEmpty(searchResults.remoteProcessGroupResults)) {
+                            if (!nfCommon.isEmpty(searchResults.remoteProcessGroupResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
                                 $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
                                     nfSearchAutocomplete._renderItem(ul, remoteProcessGroupMatch);
@@ -158,7 +158,7 @@
                             }
 
                             // show all connections
-                            if (!common.isEmpty(searchResults.connectionResults)) {
+                            if (!nfCommon.isEmpty(searchResults.connectionResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
                                 $.each(searchResults.connectionResults, function (i, connectionMatch) {
                                     nfSearchAutocomplete._renderItem(ul, connectionMatch);
@@ -166,7 +166,7 @@
                             }
 
                             // show all input ports
-                            if (!common.isEmpty(searchResults.inputPortResults)) {
+                            if (!nfCommon.isEmpty(searchResults.inputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
                                 $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
                                     nfSearchAutocomplete._renderItem(ul, inputPortMatch);
@@ -174,7 +174,7 @@
                             }
 
                             // show all output ports
-                            if (!common.isEmpty(searchResults.outputPortResults)) {
+                            if (!nfCommon.isEmpty(searchResults.outputPortResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
                                 $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
                                     nfSearchAutocomplete._renderItem(ul, outputPortMatch);
@@ -182,7 +182,7 @@
                             }
 
                             // show all funnels
-                            if (!common.isEmpty(searchResults.funnelResults)) {
+                            if (!nfCommon.isEmpty(searchResults.funnelResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
                                 $.each(searchResults.funnelResults, function (i, funnelMatch) {
                                     nfSearchAutocomplete._renderItem(ul, funnelMatch);
@@ -228,7 +228,7 @@
                             var item = ui.item;
 
                             // show the selected component
-                            canvasUtils.showComponent(item.groupId, item.id);
+                            nfCanvasUtils.showComponent(item.groupId, item.id);
 
                             searchCtrl.getInputElement().val('').blur();
 
@@ -262,7 +262,7 @@
                     var searchCtrl = this;
 
                     // hide the context menu if necessary
-                    contextMenu.hide();
+                    nfContextMenu.hide();
 
                     var isVisible = searchCtrl.getInputElement().is(':visible');
                     var display = 'none';
@@ -306,11 +306,11 @@
                     var currentBulletins = bulletinIcon.data('bulletins');
 
                     // update the bulletins if necessary
-                    if (common.doBulletinsDiffer(currentBulletins, response.bulletins)) {
+                    if (nfCommon.doBulletinsDiffer(currentBulletins, response.bulletins)) {
                         bulletinIcon.data('bulletins', response.bulletins);
 
                         // get the formatted the bulletins
-                        var bulletins = common.getFormattedBulletins(response.bulletins);
+                        var bulletins = nfCommon.getFormattedBulletins(response.bulletins);
 
                         // bulletins for this processor are now gone
                         if (bulletins.length === 0) {
@@ -318,7 +318,7 @@
                                 bulletinIcon.removeClass('has-bulletins').qtip('api').destroy(true);
                             }
                         } else {
-                            var newBulletins = common.formatUnorderedList(bulletins);
+                            var newBulletins = nfCommon.formatUnorderedList(bulletins);
 
                             // different bulletins, refresh
                             if (bulletinIcon.data('qtip')) {
@@ -326,7 +326,7 @@
                             } else {
                                 // no bulletins before, show icon and tips
                                 bulletinIcon.addClass('has-bulletins').qtip($.extend({},
-                                    canvasUtils.config.systemTooltipConfig,
+                                    nfCanvasUtils.config.systemTooltipConfig,
                                     {
                                         content: newBulletins,
                                         position: {
@@ -343,7 +343,7 @@
                     }
 
                     // update controller service and reporting task bulletins
-                    settings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins);
+                    nfSettings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins);
                 }
 
             }
@@ -371,10 +371,10 @@
                     dataType: 'json'
                 }).done(function (response) {
                     // report the updated status
-                    if (common.isDefinedAndNotNull(response.controllerStatus)) {
+                    if (nfCommon.isDefinedAndNotNull(response.controllerStatus)) {
                         flowStatusCtrl.update(response.controllerStatus);
                     }
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
             },
 
             /**
@@ -384,11 +384,11 @@
              */
             updateClusterSummary: function (summary) {
                 // see if this node has been (dis)connected
-                if (clusterSummary.isConnectedToCluster() !== summary.connectedToCluster) {
+                if (nfClusterSummary.isConnectedToCluster() !== summary.connectedToCluster) {
                     if (summary.connectedToCluster) {
-                        dialog.showConnectedToClusterMessage();
+                        nfDialog.showConnectedToClusterMessage();
                     } else {
-                        dialog.showDisconnectedFromClusterMessage();
+                        nfDialog.showDisconnectedFromClusterMessage();
                     }
                 }
 
@@ -396,7 +396,7 @@
 
                 // update the connection state
                 if (summary.connectedToCluster) {
-                    if (common.isDefinedAndNotNull(summary.connectedNodes)) {
+                    if (nfCommon.isDefinedAndNotNull(summary.connectedNodes)) {
                         var connectedNodes = summary.connectedNodes.split(' / ');
                         if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
                             this.clusterConnectionWarning = true;
@@ -404,7 +404,7 @@
                         }
                     }
                     this.connectedNodesCount =
-                        common.isDefinedAndNotNull(summary.connectedNodes) ? summary.connectedNodes : '-';
+                        nfCommon.isDefinedAndNotNull(summary.connectedNodes) ? summary.connectedNodes : '-';
                 } else {
                     this.connectedNodesCount = 'Disconnected';
                     color = '#BA554A';
@@ -420,7 +420,7 @@
              * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
              */
             update: function (status) {
-                var controllerInvalidCount = (common.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
+                var controllerInvalidCount = (nfCommon.isDefinedAndNotNull(status.invalidCount)) ? status.invalidCount : 0;
 
                 if (this.controllerInvalidCount > 0) {
                     $('#controller-invalid-count').parent().removeClass('zero').addClass('invalid');
@@ -447,7 +447,7 @@
 
                 // update the component counts
                 this.controllerTransmittingCount =
-                    common.isDefinedAndNotNull(status.activeRemotePortCount) ?
+                    nfCommon.isDefinedAndNotNull(status.activeRemotePortCount) ?
                         status.activeRemotePortCount : '-';
 
                 if (this.controllerTransmittingCount > 0) {
@@ -457,7 +457,7 @@
                 }
 
                 this.controllerNotTransmittingCount =
-                    common.isDefinedAndNotNull(status.inactiveRemotePortCount) ?
+                    nfCommon.isDefinedAndNotNull(status.inactiveRemotePortCount) ?
                         status.inactiveRemotePortCount : '-';
 
                 if (this.controllerNotTransmittingCount > 0) {
@@ -467,7 +467,7 @@
                 }
 
                 this.controllerRunningCount =
-                    common.isDefinedAndNotNull(status.runningCount) ? status.runningCount : '-';
+                    nfCommon.isDefinedAndNotNull(status.runningCount) ? status.runningCount : '-';
 
                 if (this.controllerRunningCount > 0) {
                     $('#flow-status-container').find('.fa-play').removeClass('zero').addClass('running');
@@ -476,7 +476,7 @@
                 }
 
                 this.controllerStoppedCount =
-                    common.isDefinedAndNotNull(status.stoppedCount) ? status.stoppedCount : '-';
+                    nfCommon.isDefinedAndNotNull(status.stoppedCount) ? status.stoppedCount : '-';
 
                 if (this.controllerStoppedCount > 0) {
                     $('#flow-status-container').find('.fa-stop').removeClass('zero').addClass('stopped');
@@ -485,7 +485,7 @@
                 }
 
                 this.controllerInvalidCount =
-                    common.isDefinedAndNotNull(status.invalidCount) ? status.invalidCount : '-';
+                    nfCommon.isDefinedAndNotNull(status.invalidCount) ? status.invalidCount : '-';
 
                 if (this.controllerInvalidCount > 0) {
                     $('#flow-status-container').find('.fa-warning').removeClass('zero').addClass('invalid');
@@ -494,7 +494,7 @@
                 }
 
                 this.controllerDisabledCount =
-                    common.isDefinedAndNotNull(status.disabledCount) ? status.disabledCount : '-';
+                    nfCommon.isDefinedAndNotNull(status.disabledCount) ? status.disabledCount : '-';
 
                 if (this.controllerDisabledCount > 0) {
                     $('#flow-status-container').find('.icon-enable-false').removeClass('zero').addClass('disabled');

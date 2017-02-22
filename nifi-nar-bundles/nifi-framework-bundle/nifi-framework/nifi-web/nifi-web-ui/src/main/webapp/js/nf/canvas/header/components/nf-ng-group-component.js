@@ -25,8 +25,8 @@
                 'nf.Graph',
                 'nf.CanvasUtils',
                 'nf.ErrorHandler'],
-            function ($, client, birdseye, graph, canvasUtils, errorHandler) {
-                return (nf.ng.GroupComponent = factory($, client, birdseye, graph, canvasUtils, errorHandler));
+            function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
+                return (nf.ng.GroupComponent = factory($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.GroupComponent =
@@ -44,7 +44,7 @@
             root.nf.CanvasUtils,
             root.nf.ErrorHandler);
     }
-}(this, function ($, client, birdseye, graph, canvasUtils, errorHandler) {
+}(this, function ($, nfClient, nfBirdseye, nfGraph, nfCanvasUtils, nfErrorHandler) {
     'use strict';
 
     return function (serviceProvider) {
@@ -58,7 +58,7 @@
          */
         var createGroup = function (groupName, pt) {
             var processGroupEntity = {
-                'revision': client.getRevision({
+                'revision': nfClient.getRevision({
                     'revision': {
                         'version': 0
                     }
@@ -75,24 +75,24 @@
             // create a new processor of the defined type
             return $.ajax({
                 type: 'POST',
-                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(canvasUtils.getGroupId()) + '/process-groups',
+                url: serviceProvider.headerCtrl.toolboxCtrl.config.urls.api + '/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/process-groups',
                 data: JSON.stringify(processGroupEntity),
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
                 // add the process group to the graph
-                graph.add({
+                nfGraph.add({
                     'processGroups': [response]
                 }, {
                     'selectAll': true
                 });
 
                 // update component visibility
-                graph.updateVisibility();
+                nfGraph.updateVisibility();
 
                 // update the birdseye
-                birdseye.refresh();
-            }).fail(errorHandler.handleAjaxError);
+                nfBirdseye.refresh();
+            }).fail(nfErrorHandler.handleAjaxError);
         };
 
         function GroupComponent() {

@@ -28,8 +28,8 @@
                 'nf.CanvasUtils',
                 'nf.ng.Bridge',
                 'nf.RemoteProcessGroup'],
-            function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
-                return (nf.RemoteProcessGroupPorts = factory($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup));
+            function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
+                return (nf.RemoteProcessGroupPorts = factory($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.RemoteProcessGroupPorts =
@@ -53,7 +53,7 @@
             root.nf.ng.Bridge,
             root.nf.RemoteProcessGroup);
     }
-}(this, function ($, d3, errorHandler, common, dialog, client, canvasUtils, angularBridge, nfRemoteProcessGroup) {
+}(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfClient, nfCanvasUtils, nfNgBridge, nfRemoteProcessGroup) {
     'use strict';
 
     /**
@@ -82,7 +82,7 @@
 
                             // create the remote process group details
                             var remoteProcessGroupPortEntity = {
-                                'revision': client.getRevision(remoteProcessGroupData),
+                                'revision': nfClient.getRevision(remoteProcessGroupData),
                                 'remoteProcessGroupPort': {
                                     id: remotePortId,
                                     groupId: remoteProcessGroupId,
@@ -129,22 +129,22 @@
                                     if (errors.length === 1) {
                                         content = $('<span></span>').text(errors[0]);
                                     } else {
-                                        content = common.formatUnorderedList(errors);
+                                        content = nfCommon.formatUnorderedList(errors);
                                     }
 
-                                    dialog.showOkDialog({
+                                    nfDialog.showOkDialog({
                                         dialogContent: content,
                                         headerText: 'Remote Process Group Ports'
                                     });
                                 } else {
-                                    errorHandler.handleAjaxError(xhr, status, error);
+                                    nfErrorHandler.handleAjaxError(xhr, status, error);
                                 }
                             }).always(function () {
                                 // close the dialog
                                 $('#remote-port-configuration').modal('hide');
                             });
                         } else {
-                            dialog.showOkDialog({
+                            nfDialog.showOkDialog({
                                 headerText: 'Remote Process Group Ports',
                                 dialogContent: 'Concurrent tasks must be an integer value.'
                             });
@@ -202,7 +202,7 @@
                         var remoteProcessGroupData = remoteProcessGroup.datum();
 
                         // if can modify, the over status of this node may have changed
-                        if (canvasUtils.canModify(remoteProcessGroup)) {
+                        if (nfCanvasUtils.canModify(remoteProcessGroup)) {
                             // reload the remote process group
                             nfRemoteProcessGroup.reload(remoteProcessGroupData.id);
                         }
@@ -221,8 +221,8 @@
 
                     // clear any tooltips
                     var dialog = $('#remote-process-group-ports');
-                    common.cleanUpTooltips(dialog, 'div.remote-port-removed');
-                    common.cleanUpTooltips(dialog, 'div.concurrent-tasks-info');
+                    nfCommon.cleanUpTooltips(dialog, 'div.remote-port-removed');
+                    nfCommon.cleanUpTooltips(dialog, 'div.concurrent-tasks-info');
 
                     // clear the input and output ports
                     $('#remote-process-group-input-ports-container').empty();
@@ -240,7 +240,7 @@
      * @argument {string} portType          The type of port
      */
     var createPortOption = function (container, port, portType) {
-        var portId = common.escapeHtml(port.id);
+        var portId = nfCommon.escapeHtml(port.id);
         var portContainer = $('<div class="remote-port-container"></div>').appendTo(container);
         var portContainerEditContainer = $('<div class="remote-port-edit-container"></div>').appendTo(portContainer);
         var portContainerDetailsContainer = $('<div class="remote-port-details-container"></div>').appendTo(portContainer);
@@ -250,25 +250,25 @@
         var remoteProcessGroup = d3.select('#id-' + remoteProcessGroupId);
 
         // if can modify, support updating the remote group port
-        if (canvasUtils.canModify(remoteProcessGroup)) {
+        if (nfCanvasUtils.canModify(remoteProcessGroup)) {
             // show the enabled transmission switch
             var transmissionSwitch;
             if (port.connected === true) {
                 if (port.transmitting === true) {
-                    transmissionSwitch = (angularBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                    transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
                     transmissionSwitch.click();
                 } else {
                     if (port.exists === true) {
-                        transmissionSwitch = (angularBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                        transmissionSwitch = (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
                     } else {
-                        (angularBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                        (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
                     }
                 }
             } else {
                 if (port.transmitting === true) {
-                    (angularBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                    (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
                 } else {
-                    (angularBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                    (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
                 }
             }
 
@@ -292,14 +292,14 @@
                 }
             } else if (port.exists === false) {
                 $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
-                    common.config.tooltipConfig,
+                    nfCommon.config.tooltipConfig,
                     {
                         content: 'This port has been removed.'
                     }));
             }
 
             // only allow modifications to transmission when the swtich is defined
-            if (common.isDefinedAndNotNull(transmissionSwitch)) {
+            if (nfCommon.isDefinedAndNotNull(transmissionSwitch)) {
                 // create toggle for changing transmission state
                 transmissionSwitch.click(function () {
                     // get the component being edited
@@ -314,7 +314,7 @@
 
                     // create the remote process group details
                     var remoteProcessGroupPortEntity = {
-                        'revision': client.getRevision(remoteProcessGroupData),
+                        'revision': nfClient.getRevision(remoteProcessGroupData),
                         'remoteProcessGroupPort': {
                             id: port.id,
                             groupId: remoteProcessGroupId,
@@ -349,7 +349,7 @@
                             transmissionSwitch.removeClass('enabled-active-transmission enabled-inactive-transmission').addClass('disabled-inactive-transmission').off('click');
 
                             // hide the edit button
-                            if (common.isDefinedAndNotNull(editRemotePort)) {
+                            if (nfCommon.isDefinedAndNotNull(editRemotePort)) {
                                 editRemotePort.hide();
                             }
                         } else {
@@ -359,7 +359,7 @@
                                 transmissionSwitch.removeClass('enabled-active-transmission enabled-inactive-transmission').addClass('enabled-active-transmission');
 
                                 // hide the edit button
-                                if (common.isDefinedAndNotNull(editRemotePort)) {
+                                if (nfCommon.isDefinedAndNotNull(editRemotePort)) {
                                     editRemotePort.hide();
                                 }
                             } else {
@@ -367,7 +367,7 @@
                                 transmissionSwitch.removeClass('enabled-active-transmission enabled-inactive-transmission').addClass('enabled-inactive-transmission');
 
                                 // show the edit button
-                                if (common.isDefinedAndNotNull(editRemotePort)) {
+                                if (nfCommon.isDefinedAndNotNull(editRemotePort)) {
                                     editRemotePort.show();
                                 }
                             }
@@ -380,15 +380,15 @@
                             if (errors.length === 1) {
                                 content = $('<span></span>').text(errors[0]);
                             } else {
-                                content = common.formatUnorderedList(errors);
+                                content = nfCommon.formatUnorderedList(errors);
                             }
 
-                            dialog.showOkDialog({
+                            nfDialog.showOkDialog({
                                 headerText: 'Remote Process Group Ports',
                                 dialogContent: content
                             });
                         } else {
-                            errorHandler.handleAjaxError(xhr, status, error);
+                            nfErrorHandler.handleAjaxError(xhr, status, error);
                         }
                     });
                 });
@@ -396,9 +396,9 @@
         } else {
             // show the disabled transmission switch
             if (port.transmitting === true) {
-                (angularBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
             } else {
-                (angularBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(angularBridge.rootScope)).appendTo(portContainerEditContainer);
+                (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
             }
         }
 
@@ -410,7 +410,7 @@
         $('<div class="clear"></div>').appendTo(portContainerDetailsContainer);
 
         // add the comments for this port
-        if (common.isBlank(port.comments)) {
+        if (nfCommon.isBlank(port.comments)) {
             $('<div class="remote-port-description unset">No description specified.</div>').appendTo(portContainerDetailsContainer);
         } else {
             $('<div class="remote-port-description"></div>').text(port.comments).appendTo(portContainerDetailsContainer);
@@ -431,7 +431,7 @@
             '<div class="processor-setting concurrent-tasks-info fa fa-question-circle"></div>' +
             '</div>' +
             '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({},
-            common.config.tooltipConfig,
+            nfCommon.config.tooltipConfig,
             {
                 content: 'The number of tasks that should be concurrently scheduled for this port.'
             }));
@@ -461,7 +461,7 @@
         portContainer.find('.ellipsis').ellipsis();
 
         // inform Angular app values have changed
-        angularBridge.digest();
+        nfNgBridge.digest();
     };
 
     /**
@@ -506,7 +506,7 @@
          */
         showPorts: function (selection) {
             // if the specified component is a remote process group, load its properties
-            if (canvasUtils.isRemoteProcessGroup(selection)) {
+            if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
                 var selectionData = selection.datum();
 
                 // load the properties for the specified component
@@ -527,7 +527,7 @@
 
                     // get the contents
                     var remoteProcessGroupContents = remoteProcessGroup.contents;
-                    if (common.isDefinedAndNotNull(remoteProcessGroupContents)) {
+                    if (nfCommon.isDefinedAndNotNull(remoteProcessGroupContents)) {
                         var connectedInputPorts = [];
                         var disconnectedInputPorts = [];
 
@@ -551,7 +551,7 @@
                             createPortOption(inputPortContainer, inputPort, 'input');
                         });
 
-                        if (common.isEmpty(connectedInputPorts) && common.isEmpty(disconnectedInputPorts)) {
+                        if (nfCommon.isEmpty(connectedInputPorts) && nfCommon.isEmpty(disconnectedInputPorts)) {
                             $('<div class="unset"></div>').text("No ports to display").appendTo(inputPortContainer);
                         }
 
@@ -578,14 +578,14 @@
                             createPortOption(outputPortContainer, outputPort, 'output');
                         });
 
-                        if (common.isEmpty(connectedOutputPorts) && common.isEmpty(disconnectedOutputPorts)) {
+                        if (nfCommon.isEmpty(connectedOutputPorts) && nfCommon.isEmpty(disconnectedOutputPorts)) {
                             $('<div class="unset"></div>').text("No ports to display").appendTo(outputPortContainer);
                         }
                     }
 
                     // show the details
                     $('#remote-process-group-ports').modal('show');
-                }).fail(errorHandler.handleAjaxError);
+                }).fail(nfErrorHandler.handleAjaxError);
             }
         }
     };

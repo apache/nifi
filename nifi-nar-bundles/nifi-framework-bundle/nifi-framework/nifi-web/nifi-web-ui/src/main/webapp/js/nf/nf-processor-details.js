@@ -26,8 +26,8 @@
                 'nf.ErrorHandler',
                 'nf.CustomUi',
                 'nf.ClusterSummary'],
-            function ($, common, universalCapture, dialog, errorHandler, customUi, clusterSummary) {
-                return (nf.ProcessorDetails = factory($, common, universalCapture, dialog, errorHandler, customUi, clusterSummary));
+            function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
+                return (nf.ProcessorDetails = factory($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ProcessorDetails =
@@ -47,7 +47,7 @@
             root.nf.CustomUi,
             root.nf.ClusterSummary);
     }
-}(this, function ($, common, universalCapture, dialog, errorHandler, customUi, clusterSummary) {
+}(this, function ($, nfCommon, nfUniversalCapture, nfDialog, nfErrorHandler, nfCustomUi, nfClusterSummary) {
     'use strict';
 
     /**
@@ -65,7 +65,7 @@
 
         // build the relationship container element
         var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipLabel).appendTo('#read-only-auto-terminate-relationship-names');
-        if (!common.isBlank(relationship.description)) {
+        if (!nfCommon.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
         }
@@ -99,7 +99,7 @@
                 }],
                 select: function () {
                     // remove all property detail dialogs
-                    universalCapture.removeAllPropertyDetailDialogs();
+                    nfUniversalCapture.removeAllPropertyDetailDialogs();
 
                     // resize the property grid in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
@@ -127,25 +127,25 @@
                         $('#read-only-processor-properties').propertytable('clear');
 
                         // clear the processor details
-                        common.clearField('read-only-processor-id');
-                        common.clearField('read-only-processor-type');
-                        common.clearField('read-only-processor-name');
-                        common.clearField('read-only-concurrently-schedulable-tasks');
-                        common.clearField('read-only-scheduling-period');
-                        common.clearField('read-only-penalty-duration');
-                        common.clearField('read-only-yield-duration');
-                        common.clearField('read-only-run-duration');
-                        common.clearField('read-only-bulletin-level');
-                        common.clearField('read-only-execution-node');
-                        common.clearField('read-only-execution-status');
-                        common.clearField('read-only-processor-comments');
+                        nfCommon.clearField('read-only-processor-id');
+                        nfCommon.clearField('read-only-processor-type');
+                        nfCommon.clearField('read-only-processor-name');
+                        nfCommon.clearField('read-only-concurrently-schedulable-tasks');
+                        nfCommon.clearField('read-only-scheduling-period');
+                        nfCommon.clearField('read-only-penalty-duration');
+                        nfCommon.clearField('read-only-yield-duration');
+                        nfCommon.clearField('read-only-run-duration');
+                        nfCommon.clearField('read-only-bulletin-level');
+                        nfCommon.clearField('read-only-execution-node');
+                        nfCommon.clearField('read-only-execution-status');
+                        nfCommon.clearField('read-only-processor-comments');
 
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
                     },
                     open: function () {
-                        common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                        nfCommon.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -170,7 +170,7 @@
                 url: '../nifi-api/processors/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
-                if (common.isDefinedAndNotNull(response.component)) {
+                if (nfCommon.isDefinedAndNotNull(response.component)) {
                     // get the processor details
                     var details = response.component;
 
@@ -178,16 +178,16 @@
                     $('#processor-details').data('processorDetails', details);
 
                     // populate the processor settings
-                    common.populateField('read-only-processor-id', details['id']);
-                    common.populateField('read-only-processor-type', common.substringAfterLast(details['type'], '.'));
-                    common.populateField('read-only-processor-name', details['name']);
-                    common.populateField('read-only-concurrently-schedulable-tasks', details.config['concurrentlySchedulableTaskCount']);
-                    common.populateField('read-only-scheduling-period', details.config['schedulingPeriod']);
-                    common.populateField('read-only-penalty-duration', details.config['penaltyDuration']);
-                    common.populateField('read-only-yield-duration', details.config['yieldDuration']);
-                    common.populateField('read-only-run-duration', common.formatDuration(details.config['runDurationMillis']));
-                    common.populateField('read-only-bulletin-level', details.config['bulletinLevel']);
-                    common.populateField('read-only-processor-comments', details.config['comments']);
+                    nfCommon.populateField('read-only-processor-id', details['id']);
+                    nfCommon.populateField('read-only-processor-type', nfCommon.substringAfterLast(details['type'], '.'));
+                    nfCommon.populateField('read-only-processor-name', details['name']);
+                    nfCommon.populateField('read-only-concurrently-schedulable-tasks', details.config['concurrentlySchedulableTaskCount']);
+                    nfCommon.populateField('read-only-scheduling-period', details.config['schedulingPeriod']);
+                    nfCommon.populateField('read-only-penalty-duration', details.config['penaltyDuration']);
+                    nfCommon.populateField('read-only-yield-duration', details.config['yieldDuration']);
+                    nfCommon.populateField('read-only-run-duration', nfCommon.formatDuration(details.config['runDurationMillis']));
+                    nfCommon.populateField('read-only-bulletin-level', details.config['bulletinLevel']);
+                    nfCommon.populateField('read-only-processor-comments', details.config['comments']);
 
                     var showRunSchedule = true;
 
@@ -204,7 +204,7 @@
                     } else {
                         schedulingStrategy = "On primary node";
                     }
-                    common.populateField('read-only-scheduling-strategy', schedulingStrategy);
+                    nfCommon.populateField('read-only-scheduling-strategy', schedulingStrategy);
 
                     // only show the run schedule when applicable
                     if (showRunSchedule === true) {
@@ -216,13 +216,13 @@
                     var executionNode = details.config['executionNode'];
 
                     // only show the execution-node when applicable
-                    if (clusterSummary.isClustered() || executionNode === 'PRIMARY') {
+                    if (nfClusterSummary.isClustered() || executionNode === 'PRIMARY') {
                         if (executionNode === 'ALL') {
                             executionNode = "All nodes";
                         } else if (executionNode === 'PRIMARY') {
                             executionNode = "Primary node only";
                         }
-                        common.populateField('read-only-execution-node', executionNode);
+                        nfCommon.populateField('read-only-execution-node', executionNode);
 
                         $('#read-only-execution-node-options').show();
                     } else {
@@ -230,7 +230,7 @@
                     }
 
                     // load the relationship list
-                    if (!common.isEmpty(details.relationships)) {
+                    if (!nfCommon.isEmpty(details.relationships)) {
                         $.each(details.relationships, function (i, relationship) {
                             createRelationshipOption(relationship);
                         });
@@ -278,7 +278,7 @@
                 }];
 
                 // determine if we should show the advanced button
-                if (top === window && common.isDefinedAndNotNull(customUi) && common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
+                if (top === window && nfCommon.isDefinedAndNotNull(nfCustomUi) && nfCommon.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
                         clazz: 'fa fa-cog button-icon',
@@ -293,7 +293,7 @@
                                 $('#processor-details').modal('hide');
 
                                 // show the custom ui
-                                customUi.showCustomUi(processorResponse, processor.config.customUiUrl, false);
+                                nfCustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, false);
                             }
                         }
                     });
@@ -312,12 +312,12 @@
                 }
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                    dialog.showOkDialog({
+                    nfDialog.showOkDialog({
                         headerText: 'Error',
-                        dialogContent: common.escapeHtml(xhr.responseText)
+                        dialogContent: nfCommon.escapeHtml(xhr.responseText)
                     });
                 } else {
-                    errorHandler.handleAjaxError(xhr, status, error);
+                    nfErrorHandler.handleAjaxError(xhr, status, error);
                 }
             });
         }
