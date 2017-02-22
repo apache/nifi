@@ -34,13 +34,16 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.ExtensionsGenerator;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.asn1.x509.GeneralNames;
@@ -198,15 +201,7 @@ public class TlsHelper {
         // add Subject Alternative Name(s)
         if(StringUtils.isNotBlank(domainAlternativeNames)) {
             try {
-                List<GeneralName> namesList = new ArrayList<>();
-                for(String alternativeName : domainAlternativeNames.split(",")) {
-                    namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
-                }
-
-                GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName [] {}));
-                ExtensionsGenerator extGen = new ExtensionsGenerator();
-                extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
-                jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
+                jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, createDomainAlternativeNamesExtensions(domainAlternativeNames));
             } catch (IOException e) {
                 throw new OperatorCreationException("Error while adding " + domainAlternativeNames + " as Subject Alternative Name.", e);
             }
@@ -215,4 +210,17 @@ public class TlsHelper {
         JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
         return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
+
+    public static Extensions createDomainAlternativeNamesExtensions(String domainAlternativeNames) throws IOException {
+        List<GeneralName> namesList = new ArrayList<>();
+        for(String alternativeName : domainAlternativeNames.split(",")) {
+            namesList.add(new GeneralName(GeneralName.dNSName, alternativeName));
+        }
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray(new GeneralName [] {}));
+        ExtensionsGenerator extGen = new ExtensionsGenerator();
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
+        return extGen.generate();
+    }
+
 }
