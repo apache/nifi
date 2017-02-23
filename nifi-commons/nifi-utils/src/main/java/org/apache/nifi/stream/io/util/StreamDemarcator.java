@@ -86,14 +86,14 @@ public class StreamDemarcator extends AbstractDemarcator {
         byte[] token = null;
         int j = 0;
         nextTokenLoop:
-        while (token == null && this.bufferLength != -1) {
-            if (this.index >= this.bufferLength) {
+        while (token == null && this.availableBytesLength != -1) {
+            if (this.index >= this.availableBytesLength) {
                 this.fill();
             }
-            if (this.bufferLength != -1) {
+            if (this.availableBytesLength != -1) {
                 byte byteVal;
                 int i;
-                for (i = this.index; i < this.bufferLength; i++) {
+                for (i = this.index; i < this.availableBytesLength; i++) {
                     byteVal = this.buffer[i];
 
                     boolean delimiterFound = false;
@@ -101,6 +101,8 @@ public class StreamDemarcator extends AbstractDemarcator {
                         if (++j == this.delimiterBytes.length) {
                             delimiterFound = true;
                         }
+                    } else {
+                        j = 0;
                     }
 
                     if (delimiterFound) {

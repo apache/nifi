@@ -33,6 +33,10 @@ import java.io.InputStream;
  */
 public class TextLineDemarcator extends AbstractDemarcator {
 
+    private static int CR = 13; // \r
+
+    private static int LF = 10; // \n
+
     /**
      * Constructs an instance of demarcator with provided {@link InputStream}
      * and default buffer size.
@@ -66,8 +70,14 @@ public class TextLineDemarcator extends AbstractDemarcator {
      * by either '\r', '\n' or '\r\n'). <br>
      * The <i>offset info</i> computed and returned as {@link OffsetInfo} where
      * {@link OffsetInfo#isStartsWithMatch()} will return true if
-     * <code>startsWith</code> was successfully matched with the stsarting bytes
+     * <code>startsWith</code> was successfully matched with the starting bytes
      * of the text line.
+     *
+     * NOTE: The reason for 2 'nextOffsetInfo(..)' operations is that the
+     * 'startsWith' argument will force the actual token to be extracted and
+     * then matched introducing the overhead for System.arrayCopy and matching
+     * logic which is an optional scenario and is avoided all together if
+     * 'startsWith' is not provided (i.e., null).
      *
      * @return offset info
      */
@@ -75,21 +85,21 @@ public class TextLineDemarcator extends AbstractDemarcator {
         OffsetInfo offsetInfo = null;
         byte previousByteVal = 0;
         byte[] data = null;
-        nextTokenLoop: 
-        while (data == null && this.bufferLength != -1) {
-            if (this.index >= this.bufferLength) {
+        nextTokenLoop:
+        while (data == null && this.availableBytesLength != -1) {
+            if (this.index >= this.availableBytesLength) {
                 this.fill();
             }
             int delimiterSize = 0;
-            if (this.bufferLength != -1) {
+            if (this.availableBytesLength != -1) {
                 byte byteVal;
                 int i;
-                for (i = this.index; i < this.bufferLength; i++) {
+                for (i = this.index; i < this.availableBytesLength; i++) {
                     byteVal = this.buffer[i];
 
-                    if (byteVal == 10) {
-                        delimiterSize = previousByteVal == 13 ? 2 : 1;
-                    } else if (previousByteVal == 13) {
+                    if (byteVal == LF) {
+                        delimiterSize = previousByteVal == CR ? 2 : 1;
+                    } else if (previousByteVal == CR) {
                         delimiterSize = 1;
                         i--;
                     }
@@ -108,7 +118,7 @@ public class TextLineDemarcator extends AbstractDemarcator {
                 }
                 this.index = i;
             } else {
-                delimiterSize = previousByteVal == 13 || previousByteVal == 10 ? 1 : 0;
+                delimiterSize = previousByteVal == CR || previousByteVal == LF ? 1 : 0;
                 if (offsetInfo == null) {
                     int size = this.index - this.mark;
                     if (size > 0) {
@@ -125,8 +135,8 @@ public class TextLineDemarcator extends AbstractDemarcator {
         if (startsWith != null && data != null) {
             for (int i = 0; i < startsWith.length; i++) {
                 byte sB = startsWith[i];
-                if (data != null && sB != data[i]) {
-                    offsetInfo.setStartsWithMatch(0);
+                if (sB != data[i]) {
+                    offsetInfo.setStartsWithMatch(false);
                     break;
                 }
             }
@@ -177,8 +187,8 @@ public class TextLineDemarcator extends AbstractDemarcator {
             return this.startsWithMatch;
         }
 
-        void setStartsWithMatch(int startsWithMatch) {
-            this.startsWithMatch = startsWithMatch == 1 ? true : false;
+        void setStartsWithMatch(boolean startsWithMatch) {
+            this.startsWithMatch = startsWithMatch;
         }
 
         @Override

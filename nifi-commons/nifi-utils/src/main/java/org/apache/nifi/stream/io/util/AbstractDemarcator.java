@@ -19,6 +19,7 @@ package org.apache.nifi.stream.io.util;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.BufferOverflowException;
 
 import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 
@@ -34,19 +35,52 @@ abstract class AbstractDemarcator implements Closeable {
 
     private final InputStream is;
 
+    /*
+     * The size of the initial buffer. Its value is also used when bufer needs
+     * to be expanded.
+     */
     private final int initialBufferSize;
 
+    /*
+     * The maximum allowed size of the token. In the event such size is exceeded
+     * TokenTooLargeException is thrown.
+     */
     private final int maxDataSize;
 
+    /*
+     * Buffer into which the bytes are read from the provided stream. The size
+     * of the buffer is defined by the 'initialBufferSize' provided in the
+     * constructor or defaults to the value of INIT_BUFFER_SIZE constant.
+     */
     byte[] buffer;
 
+    /*
+     * Starting offset of the demarcated token within the current 'buffer'.
+     */
     int index;
 
+    /*
+     * Starting offset of the demarcated token within the current 'buffer'. Keep
+     * in mind that while most of the time it is the same as the 'index' it may
+     * also have a value of 0 at which point it serves as a signal to the fill()
+     * operation that buffer needs to be expended if end of token is not reached
+     * (see fill() operation for more details).
+     */
     int mark;
 
+    /*
+     * Starting offset (from the beginning of the stream) of the demarcated
+     * token.
+     */
     long offset;
 
-    int bufferLength;
+    /*
+     * The length of the bytes valid for reading. It is different from the
+     * buffer length, since this number may be smaller (e.g., at he end of the
+     * stream) then actual buffer length. It is set by the fill() operation
+     * every time more bytes read into buffer.
+     */
+    int availableBytesLength;
 
     /**
      * Constructs an instance of demarcator with provided {@link InputStream}
@@ -72,7 +106,7 @@ abstract class AbstractDemarcator implements Closeable {
 
     @Override
     public void close() throws IOException {
-        // noop
+        this.is.close();
     }
 
     /**
@@ -86,7 +120,11 @@ abstract class AbstractDemarcator implements Closeable {
     void fill() throws IOException {
         if (this.index >= this.buffer.length) {
             if (this.mark == 0) { // expand
-                byte[] newBuff = new byte[this.buffer.length + this.initialBufferSize];
+                long expandedSize = this.buffer.length + this.initialBufferSize;
+                if (expandedSize > Integer.MAX_VALUE) {
+                    throw new BufferOverflowException(); // will probably OOM before this will ever happen, but just in case.
+                }
+                byte[] newBuff = new byte[(int) expandedSize];
                 System.arraycopy(this.buffer, 0, newBuff, 0, this.buffer.length);
                 this.buffer = newBuff;
             } else { // shuffle
@@ -98,22 +136,26 @@ abstract class AbstractDemarcator implements Closeable {
         }
 
         int bytesRead;
+        /*
+         * The do/while pattern is used here similar to the way it is used in
+         * BufferedReader essentially protecting from assuming the EOS until it
+         * actually is since not every implementation of InputStream guarantees
+         * that bytes are always available while the stream is open.
+         */
         do {
             bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
         } while (bytesRead == 0);
-        this.bufferLength = bytesRead != -1 ? this.index + bytesRead : -1;
-        if (this.bufferLength > this.maxDataSize) {
+        this.availableBytesLength = bytesRead != -1 ? this.index + bytesRead : -1;
+        if (this.availableBytesLength > this.maxDataSize) {
             throw new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of "
                     + this.maxDataSize + " bytes.");
         }
     }
 
     /**
-     * Will extract data token of the provided length from the current buffer.
-     * The length of the data token is between the current 'mark' and 'index'.
-     * If the above subtraction results in length 0, null is returned.
+     * Will extract data token of the provided length from the current buffer
+     * starting at the 'mark'.
      */
-
     byte[] extractDataToken(int length) {
         byte[] data = null;
         if (length > 0) {

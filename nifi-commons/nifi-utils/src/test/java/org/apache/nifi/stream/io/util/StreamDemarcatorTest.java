@@ -66,6 +66,21 @@ public class StreamDemarcatorTest {
     }
 
     @Test
+    public void vaidateOnPartialMatchThenSubsequentPartialMatch() throws IOException {
+        final byte[] inputData = "A Great Big Boy".getBytes(StandardCharsets.UTF_8);
+        final byte[] delimBytes = "AB".getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream is = new ByteArrayInputStream(inputData);
+                final StreamDemarcator demarcator = new StreamDemarcator(is, delimBytes, 4096)) {
+
+            final byte[] bytes = demarcator.nextToken();
+            assertArrayEquals(inputData, bytes);
+
+            assertNull(demarcator.nextToken());
+        }
+    }
+
+    @Test
     public void validateNoDelimiter() throws IOException {
         String data = "Learn from yesterday, live for today, hope for tomorrow. The important thing is not to stop questioning.";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
