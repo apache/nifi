@@ -29,7 +29,7 @@ import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
@@ -125,7 +125,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
                 .collect(Collectors.toList()));
 
         Set<String> connectableNames = new HashSet<>(processorNames);
-        connectableNames.addAll(remoteProcessingGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemoteInputPortSchema::getId).collect(Collectors.toList()));
+        connectableNames.addAll(remoteProcessingGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toList()));
         connections.forEach(c -> {
             String destinationName = c.getDestinationName();
             if (!StringUtil.isNullOrEmpty(destinationName) && !connectableNames.contains(destinationName)) {
@@ -167,7 +167,7 @@ public class ConfigSchemaV1 extends BaseSchema implements ConvertableSchema<Conf
         Set<String> remoteInputPortIds = new HashSet<>();
         if (remoteProcessingGroups != null) {
             remoteInputPortIds.addAll(remoteProcessingGroups.stream().filter(r -> r.getInputPorts() != null)
-                    .flatMap(r -> r.getInputPorts().stream()).map(RemoteInputPortSchema::getId).collect(Collectors.toSet()));
+                    .flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).collect(Collectors.toSet()));
         }
 
         Set<String> problematicDuplicateNames = new HashSet<>();

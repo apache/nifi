@@ -53,6 +53,37 @@ public class ParentGroupIdResolverTest {
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
         assertEquals("rpgOneId", parentGroupIdResolver.getRemoteInputPortParentId("one"));
         assertEquals("rpgTwoId", parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getInputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getOutputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getProcessorParentId("one"));
+        assertNull(parentGroupIdResolver.getProcessorParentId("two"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("one"));
+        assertNull(parentGroupIdResolver.getFunnelParentId("two"));
+    }
+    @Test
+    public void testRemoteOutputPortParentId() throws IOException, SchemaLoaderException {
+        List<String> configLines = new ArrayList<>();
+        configLines.add("MiNiFi Config Version: 2");
+        configLines.add("Remote Process Groups:");
+        configLines.add("- name: rpgOne");
+        configLines.add("  id: rpgOneId");
+        configLines.add("  Output Ports:");
+        configLines.add("  - id: one");
+        configLines.add("Process Groups:");
+        configLines.add("- Remote Process Groups:");
+        configLines.add("  - name: rpgTwo");
+        configLines.add("    id: rpgTwoId");
+        configLines.add("    Output Ports:");
+        configLines.add("    - id: two");
+        ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
+        assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertEquals("rpgOneId", parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertEquals("rpgTwoId", parentGroupIdResolver.getRemoteOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
@@ -76,6 +107,8 @@ public class ParentGroupIdResolverTest {
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("two"));
         assertEquals(ConfigTransformer.ROOT_GROUP, parentGroupIdResolver.getInputPortParentId("one"));
         assertEquals("pgTwo", parentGroupIdResolver.getInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
@@ -99,6 +132,8 @@ public class ParentGroupIdResolverTest {
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getInputPortParentId("two"));
         assertEquals(ConfigTransformer.ROOT_GROUP, parentGroupIdResolver.getOutputPortParentId("one"));
@@ -122,6 +157,8 @@ public class ParentGroupIdResolverTest {
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getOutputPortParentId("one"));
@@ -134,7 +171,6 @@ public class ParentGroupIdResolverTest {
 
     @Test
     public void testFunnelParentId() throws IOException, SchemaLoaderException {
-        StringBuilder sb = new StringBuilder();
         List<String> configLines = new ArrayList<>();
         configLines.add("MiNiFi Config Version: 2");
         configLines.add("Funnels:");
@@ -146,6 +182,8 @@ public class ParentGroupIdResolverTest {
         ParentGroupIdResolver parentGroupIdResolver = createParentGroupIdResolver(configLines);
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getRemoteInputPortParentId("two"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("one"));
+        assertNull(parentGroupIdResolver.getRemoteOutputPortParentId("two"));
         assertNull(parentGroupIdResolver.getInputPortParentId("one"));
         assertNull(parentGroupIdResolver.getInputPortParentId("two"));
         assertNull(parentGroupIdResolver.getOutputPortParentId("one"));

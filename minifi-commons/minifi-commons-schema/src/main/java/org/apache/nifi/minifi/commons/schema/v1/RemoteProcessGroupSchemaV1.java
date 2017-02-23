@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.commons.schema.v1;
 
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
@@ -42,7 +42,7 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
 
     private String name;
     private String url;
-    private List<RemoteInputPortSchema> inputPorts;
+    private List<RemotePortSchema> inputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;
@@ -52,9 +52,9 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESS_GROUPS_KEY);
         String wrapperName = new StringBuilder("RemoteProcessingGroup(name: ").append(StringUtil.isNullOrEmpty(name) ? "unknown" : name).append(")").toString();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
-        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
+        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         if (inputPorts != null) {
-            for (RemoteInputPortSchema remoteInputPortSchema : inputPorts) {
+            for (RemotePortSchema remoteInputPortSchema : inputPorts) {
                 addIssuesIfNotNull(remoteInputPortSchema);
             }
         }
@@ -96,7 +96,7 @@ public class RemoteProcessGroupSchemaV1 extends BaseSchema implements Convertabl
         return yieldPeriod;
     }
 
-    public List<RemoteInputPortSchema> getInputPorts() {
+    public List<RemotePortSchema> getInputPorts() {
         return inputPorts;
     }
 

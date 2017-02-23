@@ -15,7 +15,7 @@
 
 MiNiFi Config Version: 3
 Flow Controller:
-  name: Simple TailFile To RPG
+  name: SimpleRPGToTailFile
   comment: ''
 Core Properties:
   flow controller graceful shutdown period: 10 sec
@@ -56,65 +56,55 @@ Security Properties:
     algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
     provider: BC
 Processors:
-- id: b0c04f28-0158-1000-0000-000000000000
-  name: TailFile
-  class: org.apache.nifi.processors.standard.TailFile
+- id: 6b97126a-015a-1000-0000-000000000000
+  name: LogAttribute
+  class: org.apache.nifi.processors.standard.LogAttribute
   max concurrent tasks: 1
   scheduling strategy: TIMER_DRIVEN
-  scheduling period: 1 sec
+  scheduling period: 0 sec
   penalization period: 30 sec
   yield period: 1 sec
   run duration nanos: 0
-  auto-terminated relationships list: []
+  auto-terminated relationships list:
+  - success
   Properties:
-    File Location: Local
-    File to Tail: ./logs/minifi-app.log
-    Initial Start Position: Beginning of File
-    Rolling Filename Pattern:
-    tail-base-directory:
-    tail-mode: Single file
-    tailfile-lookup-frequency: 10 minutes
-    tailfile-maximum-age: 24 hours
-    tailfile-recursive-lookup: 'false'
-    tailfile-rolling-strategy: Fixed name
+    Attributes to Ignore:
+    Attributes to Log:
+    Log Level: info
+    Log Payload: 'false'
+    Log prefix:
 Controller Services: []
 Process Groups: []
 Input Ports: []
 Output Ports: []
 Funnels: []
 Connections:
-- id: b0c0c3cc-0158-1000-0000-000000000000
-  name: TailFile/success/ac0e798c-0158-1000-0588-cda9b944e011
-  source id: b0c04f28-0158-1000-0000-000000000000
-  source relationship names:
-  - success
-  destination id: ac0e798c-0158-1000-0588-cda9b944e011
+- id: 6b97306b-015a-1000-0000-000000000000
+  name: 6b965db7-015a-1000-4c43-9d20931a1b9c//LogAttribute
+  source id: 6b965db7-015a-1000-4c43-9d20931a1b9c
+  source relationship names: []
+  destination id: 6b97126a-015a-1000-0000-000000000000
   max work queue size: 10000
   max work queue data size: 1 GB
   flowfile expiration: 0 sec
   queue prioritizer class: ''
 Remote Process Groups:
-- id: b0c09ff0-0158-1000-0000-000000000000
+- id: 6b95d112-015a-1000-0000-000000000000
   name: ''
   url: http://localhost:8080/nifi
   comment: ''
   timeout: 30 sec
   yield period: 10 sec
-  transport protocol: RAW
+  transport protocol: HTTP
   proxy host: ''
   proxy port: ''
   proxy user: ''
   proxy password: ''
-  Input Ports:
-  - id: aca664f8-0158-1000-a139-92485891d349
-    name: test2
+  Input Ports: []
+  Output Ports:
+  - id: 6b965db7-015a-1000-4c43-9d20931a1b9c
+    name: Output
     comment: ''
     max concurrent tasks: 1
     use compression: false
-  - id: ac0e798c-0158-1000-0588-cda9b944e011
-    name: test
-    comment: ''
-    max concurrent tasks: 1
-    use compression: false
-  Output Ports: []
 NiFi Properties Overrides: {}

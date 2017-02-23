@@ -139,6 +139,8 @@ public class ProcessGroupSchema extends BaseSchemaWithIdAndName implements Writa
         Set<String> result = new HashSet<>();
         inputPortSchemas.stream().map(PortSchema::getId).forEachOrdered(result::add);
         outputPortSchemas.stream().map(PortSchema::getId).forEachOrdered(result::add);
+        remoteProcessGroups.stream().flatMap(r -> r.getInputPorts().stream()).map(RemotePortSchema::getId).forEachOrdered(result::add);
+        remoteProcessGroups.stream().flatMap(r -> r.getOutputPorts().stream()).map(RemotePortSchema::getId).forEachOrdered(result::add);
         processGroupSchemas.stream().flatMap(p -> p.getPortIds().stream()).forEachOrdered(result::add);
         return result;
     }

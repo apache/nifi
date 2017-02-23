@@ -36,7 +36,7 @@ import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
@@ -566,9 +566,14 @@ public final class ConfigTransformer {
                 addTextElement(element, "proxyPassword", remoteProcessGroupProperties.getProxyPassword());
             }
 
-            List<RemoteInputPortSchema> remoteInputPorts = remoteProcessGroupProperties.getInputPorts();
-            for (RemoteInputPortSchema remoteInputPortSchema : remoteInputPorts) {
-                addRemoteGroupPort(element, remoteInputPortSchema);
+            List<RemotePortSchema> remoteInputPorts = remoteProcessGroupProperties.getInputPorts();
+            for (RemotePortSchema remoteInputPortSchema : remoteInputPorts) {
+                addRemoteGroupPort(element, remoteInputPortSchema, "inputPort");
+            }
+
+            List<RemotePortSchema> remoteOutputPorts = remoteProcessGroupProperties.getOutputPorts();
+            for (RemotePortSchema remoteOutputPortSchema : remoteOutputPorts) {
+                addRemoteGroupPort(element, remoteOutputPortSchema, "outputPort");
             }
 
             parentElement.appendChild(element);
@@ -577,10 +582,10 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static void addRemoteGroupPort(final Element parentElement, RemoteInputPortSchema inputPort) throws ConfigurationChangeException {
+    protected static void addRemoteGroupPort(final Element parentElement, RemotePortSchema inputPort, String tagName) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
-            final Element element = doc.createElement("inputPort");
+            final Element element = doc.createElement(tagName);
             parentElement.appendChild(element);
             addTextElement(element, "id", inputPort.getId());
             addTextElement(element, "name", inputPort.getName());
@@ -640,29 +645,22 @@ public final class ConfigTransformer {
         String groupIdTag = sourceOrDestination + "GroupId";
         String typeTag = sourceOrDestination + "Type";
 
-        String parentId = parentGroupIdResolver.getRemoteInputPortParentId(id);
+        String parentId;
         String type;
 
-        if (parentId != null) {
+        if ((parentId = parentGroupIdResolver.getRemoteInputPortParentId(id)) != null) {
             type = "REMOTE_INPUT_PORT";
+        } else if ((parentId = parentGroupIdResolver.getRemoteOutputPortParentId(id)) != null) {
+            type = "REMOTE_OUTPUT_PORT";
+        } else if ((parentId = parentGroupIdResolver.getInputPortParentId(id)) != null) {
+            type = "INPUT_PORT";
+        } else if ((parentId = parentGroupIdResolver.getOutputPortParentId(id)) != null) {
+            type = "OUTPUT_PORT";
+        } else if ((parentId = parentGroupIdResolver.getFunnelParentId(id)) != null) {
+            type = "FUNNEL";
         } else {
-            parentId = parentGroupIdResolver.getInputPortParentId(id);
-            if (parentId != null) {
-                type = "INPUT_PORT";
-            } else {
-                parentId = parentGroupIdResolver.getOutputPortParentId(id);
-                if (parentId != null) {
-                    type = "OUTPUT_PORT";
-                } else {
-                    parentId = parentGroupIdResolver.getFunnelParentId(id);
-                    if (parentId != null) {
-                        type = "FUNNEL";
-                    } else {
-                        parentId = parentGroupIdResolver.getProcessorParentId(id);
-                        type = "PROCESSOR";
-                    }
-                }
-            }
+            parentId = parentGroupIdResolver.getProcessorParentId(id);
+            type = "PROCESSOR";
         }
 
         addTextElement(element, idTag, id);

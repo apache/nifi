@@ -229,7 +229,8 @@ Option | Description
 ------ | -----------
 health | The connections's queued bytes and queued FlowFile count.
 bulletins | A list of all the current bulletins (if there are any).
-inputPorts | A list of every input port for this RPG and their status. Their status includes it's name, whether the target exit and whether it's currently running.
+inputPorts | A list of every input port for this RPG and their status. Their status includes its name, whether the target exists and whether it's currently running.
+outputPorts | A list of every output port for this RPG and their status. Their status includes its name, whether the target exists and whether it's currently running.
 stats | The current stats of the RPG. This includes the active threads, sent content size and count.
 
 An example query to get the health, bulletins, input ports and stats of all the RPGS is below.
@@ -350,6 +351,7 @@ parses and upconverts to the current version without issue.
 1. Added support for Controller Services.
 2. Added support for Site-To-Site over proxy.
 3. Added support for overriding nifi.properties values
+4. Added support for Output Ports to Remote Process Groups
 
 ## Flow Controller
 
@@ -597,17 +599,19 @@ proxy host         | The hostname of the proxy server
 proxy port         | The port to connect to on the proxy server
 proxy user         | The user name on the proxy server
 proxy password     | The password for the proxy server
+Input Ports        | The Input Ports for this Remote Process Group (See below)
+Output Ports       | The Output Ports for this Remote Process Group (See below)
 
 
-#### Input Ports Subsection
+#### Input/Output Ports Subsection
 
-When connecting via Site to Site, MiNiFi needs to know which input port to communicate to of the core NiFi instance. These properties designate and configure communication with that port.
+When connecting via Site to Site, MiNiFi needs to know which input or output port to communicate to of the core NiFi instance. These properties designate and configure communication with that port.
 
 *Property*           | *Description*
 -------------------- | -------------
-id                   | The id of the input port as it exists on the core NiFi instance. To get this information access the UI of the core instance, right the input port that is desired to be connect to and select "configure". The id of the port should under the "Id" section.
-name                 | The name of the input port as it exists on the core NiFi instance. To get this information access the UI of the core instance, right the input port that is desired to be connect to and select "configure". The id of the port should under the "Port name" section.
-comments:            | A comment about the Input Port. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
+id                   | The id of the port as it exists on the core NiFi instance. To get this information access the UI of the core instance, right click the port that is desired to be connect to and select "configure". The id of the port should under the "Id" section.
+name                 | The name of the port as it exists on the core NiFi instance. To get this information access the UI of the core instance, right click the port that is desired to be connect to and select "configure". The name of the port should under the "Port name" section.
+comments:            | A comment about the Port. This is not used for any underlying implementation but solely for the users of this configuration and MiNiFi agent.
 max concurrent tasks | The number of tasks that this port should be scheduled for at maximum.
 use compression      | Whether or not compression should be used when communicating with the port. This is a boolean value of either "true" or "false"
 

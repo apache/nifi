@@ -20,11 +20,13 @@ package org.apache.nifi.minifi.commons.schema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithIdAndName;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.INPUT_PORTS_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.OUTPUT_PORTS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
 
 public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
@@ -60,7 +62,8 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_PROXY_PASSWORD = "";
 
     private String url;
-    private List<RemoteInputPortSchema> inputPorts;
+    private List<RemotePortSchema> inputPorts;
+    private List<RemotePortSchema> outputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;
@@ -75,11 +78,15 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         super(map, "RemoteProcessGroup(id: {id}, name: {name})");
         String wrapperName = getWrapperName();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
-        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
-        if (inputPorts != null) {
-            for (RemoteInputPortSchema remoteInputPortSchema: inputPorts) {
-                addIssuesIfNotNull(remoteInputPortSchema);
-            }
+
+        inputPorts = convertListToType(getOptionalKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName, new ArrayList<>()), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
+        addIssuesIfNotNull(inputPorts);
+
+        outputPorts = convertListToType(getOptionalKeyAsType(map, OUTPUT_PORTS_KEY, List.class, wrapperName, new ArrayList<>()), "output port", RemotePortSchema.class, OUTPUT_PORTS_KEY);
+        addIssuesIfNotNull(outputPorts);
+
+        if (inputPorts.size() == 0 && outputPorts.size() == 0) {
+            addValidationIssue("Expected either '" + INPUT_PORTS_KEY + "', '" + OUTPUT_PORTS_KEY + "' in section '" + wrapperName + "' to have value(s)");
         }
 
         comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, wrapperName, DEFAULT_COMMENT);
@@ -129,6 +136,7 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         result.put(PROXY_USER_KEY, proxyUser);
         result.put(PROXY_PASSWORD_KEY, proxyPassword);
         putListIfNotNull(result, INPUT_PORTS_KEY, inputPorts);
+        putListIfNotNull(result, OUTPUT_PORTS_KEY, outputPorts);
         return result;
     }
 
@@ -148,8 +156,12 @@ public class RemoteProcessGroupSchema extends BaseSchemaWithIdAndName {
         return yieldPeriod;
     }
 
-    public List<RemoteInputPortSchema> getInputPorts() {
+    public List<RemotePortSchema> getInputPorts() {
         return inputPorts;
+    }
+
+    public List<RemotePortSchema> getOutputPorts() {
+        return outputPorts;
     }
 
     public String getTransportProtocol() {

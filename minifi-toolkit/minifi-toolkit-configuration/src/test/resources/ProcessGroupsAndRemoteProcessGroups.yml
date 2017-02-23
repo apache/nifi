@@ -194,6 +194,7 @@ Process Groups:
         comment: ''
         max concurrent tasks: 1
         use compression: false
+      Output Ports: []
   Input Ports:
   - id: 2078c936-0158-1000-0000-000000000000
     name: input
@@ -258,6 +259,7 @@ Process Groups:
       comment: ''
       max concurrent tasks: 1
       use compression: false
+    Output Ports: []
 Input Ports: []
 Output Ports: []
 Funnels: []

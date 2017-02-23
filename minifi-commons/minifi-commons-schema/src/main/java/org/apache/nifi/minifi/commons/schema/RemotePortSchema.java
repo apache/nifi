@@ -25,7 +25,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CO
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
 
-public class RemoteInputPortSchema extends BaseSchemaWithIdAndName {
+public class RemotePortSchema extends BaseSchemaWithIdAndName {
     public static final String DEFAULT_COMMENT = "";
     public static final int DEFAULT_MAX_CONCURRENT_TASKS = 1;
     public static final boolean DEFAULT_USE_COMPRESSION = true;
@@ -34,7 +34,7 @@ public class RemoteInputPortSchema extends BaseSchemaWithIdAndName {
     private Number maxConcurrentTasks = DEFAULT_MAX_CONCURRENT_TASKS;
     private Boolean useCompression = DEFAULT_USE_COMPRESSION;
 
-    public RemoteInputPortSchema(Map map) {
+    public RemotePortSchema(Map map) {
         super(map, "RemoteInputPort(id: {id}, name: {name})");
         String wrapperName = getWrapperName();
 

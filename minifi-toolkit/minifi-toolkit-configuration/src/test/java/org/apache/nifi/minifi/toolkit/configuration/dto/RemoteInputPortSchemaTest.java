@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.junit.Before;
@@ -29,7 +29,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemoteInputPortSchema, RemoteProcessGroupPortDTO> {
+public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemotePortSchema, RemoteProcessGroupPortDTO> {
 
     private String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
     private String testName = "testName";
@@ -38,7 +38,7 @@ public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemoteInputPortS
     private boolean testUseCompression = false;
 
     public RemoteInputPortSchemaTest() {
-        super(new RemoteInputPortSchemaFunction(), RemoteInputPortSchema::new);
+        super(new RemotePortSchemaFunction(), RemotePortSchema::new);
     }
 
     @Before
@@ -94,7 +94,7 @@ public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemoteInputPortS
     }
 
     @Override
-    public void assertSchemaEquals(RemoteInputPortSchema one, RemoteInputPortSchema two) {
+    public void assertSchemaEquals(RemotePortSchema one, RemotePortSchema two) {
         assertEquals(one.getId(), two.getId());
         assertEquals(one.getName(), two.getName());
         assertEquals(one.getComment(), two.getComment());

@@ -22,7 +22,7 @@ import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
@@ -208,6 +208,11 @@ public class ConfigMainTest {
     }
 
     @Test
+    public void testTransformRoundTripSimpleRPGToLogAttributes() throws IOException, JAXBException, SchemaLoaderException {
+        transformRoundTrip("SimpleRPGToLogAttributes");
+    }
+
+    @Test
     public void testTransformRoundTripNestedControllerServices() throws IOException, JAXBException, SchemaLoaderException {
         transformRoundTrip("NestedControllerServices");
     }
@@ -348,7 +353,7 @@ public class ConfigMainTest {
                 v1RPG.setId(currentRPG.getId());
             }
 
-            configSchemaUpgradedFromV1.getProcessGroupSchema().getRemoteProcessGroups().stream().flatMap(g -> g.getInputPorts().stream()).map(RemoteInputPortSchema::getId).sequential()
+            configSchemaUpgradedFromV1.getProcessGroupSchema().getRemoteProcessGroups().stream().flatMap(g -> g.getInputPorts().stream()).map(RemotePortSchema::getId).sequential()
                     .forEach(id -> v1IdToCurrentIdMap.put(id, id));
 
             List<ConnectionSchema> currentConnections = configSchemaFromCurrent.getProcessGroupSchema().getConnections();

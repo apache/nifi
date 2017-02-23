@@ -17,12 +17,12 @@
 
 package org.apache.nifi.minifi.commons.status.rpg;
 
-public class InputPortStatus implements java.io.Serializable {
+public class PortStatus implements java.io.Serializable {
     private String name;
     private boolean targetExists;
     private boolean targetRunning;
 
-    public InputPortStatus() {
+    public PortStatus() {
     }
 
     public String getName() {
@@ -54,7 +54,7 @@ public class InputPortStatus implements java.io.Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        InputPortStatus inputPortStatus = (InputPortStatus) o;
+        PortStatus inputPortStatus = (PortStatus) o;
 
         if (isTargetExists() != inputPortStatus.isTargetExists()) return false;
         if (isTargetRunning() != inputPortStatus.isTargetRunning()) return false;

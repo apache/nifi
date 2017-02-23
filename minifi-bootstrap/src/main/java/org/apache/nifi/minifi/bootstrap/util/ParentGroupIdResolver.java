@@ -20,12 +20,13 @@
 package org.apache.nifi.minifi.bootstrap.util;
 
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchemaWithId;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -35,13 +36,15 @@ public class ParentGroupIdResolver {
     private final Map<String, String> outputPortIdToParentIdMap;
     private final Map<String, String> funnelIdToParentIdMap;
     private final Map<String, String> remoteInputPortIdToParentIdMap;
+    private final Map<String, String> remoteOutputPortIdToParentIdMap;
 
     public ParentGroupIdResolver(ProcessGroupSchema processGroupSchema) {
         this.processorIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getProcessors);
         this.inputPortIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getInputPortSchemas);
         this.outputPortIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getOutputPortSchemas);
         this.funnelIdToParentIdMap = getParentIdMap(processGroupSchema, ProcessGroupSchema::getFunnels);
-        this.remoteInputPortIdToParentIdMap = getRemoteInputPortParentIdMap(processGroupSchema);
+        this.remoteInputPortIdToParentIdMap = getRemotePortParentIdMap(processGroupSchema, RemoteProcessGroupSchema::getInputPorts);
+        this.remoteOutputPortIdToParentIdMap = getRemotePortParentIdMap(processGroupSchema, RemoteProcessGroupSchema::getOutputPorts);
     }
 
     protected static Map<String, String> getParentIdMap(ProcessGroupSchema processGroupSchema, Function<ProcessGroupSchema, Collection<? extends BaseSchemaWithId>> schemaAccessor) {
@@ -56,23 +59,28 @@ public class ParentGroupIdResolver {
         processGroupSchema.getProcessGroupSchemas().forEach(p -> getParentIdMap(p, output, schemaAccessor));
     }
 
-    protected static Map<String, String> getRemoteInputPortParentIdMap(ProcessGroupSchema processGroupSchema) {
+    protected static Map<String, String> getRemotePortParentIdMap(ProcessGroupSchema processGroupSchema, Function<RemoteProcessGroupSchema, List<RemotePortSchema>> getPortsFunction) {
         Map<String, String> result = new HashMap<>();
-        getRemoteInputPortParentIdMap(processGroupSchema, result);
+        getRemotePortParentIdMap(processGroupSchema, result, getPortsFunction);
         return result;
     }
 
-    protected static void getRemoteInputPortParentIdMap(ProcessGroupSchema processGroupSchema, Map<String, String> output) {
+    protected static void getRemotePortParentIdMap(ProcessGroupSchema processGroupSchema, Map<String, String> output, Function<RemoteProcessGroupSchema,
+            List<RemotePortSchema>> getPortsFunction) {
         for (RemoteProcessGroupSchema remoteProcessGroupSchema : processGroupSchema.getRemoteProcessGroups()) {
-            for (RemoteInputPortSchema remoteInputPortSchema : remoteProcessGroupSchema.getInputPorts()) {
-                output.put(remoteInputPortSchema.getId(), remoteProcessGroupSchema.getId());
+            for (RemotePortSchema remotePortSchema : getPortsFunction.apply(remoteProcessGroupSchema)) {
+                output.put(remotePortSchema.getId(), remoteProcessGroupSchema.getId());
             }
         }
-        processGroupSchema.getProcessGroupSchemas().forEach(p -> getRemoteInputPortParentIdMap(p, output));
+        processGroupSchema.getProcessGroupSchemas().forEach(p -> getRemotePortParentIdMap(p, output, getPortsFunction));
     }
 
     public String getRemoteInputPortParentId(String id) {
         return remoteInputPortIdToParentIdMap.get(id);
+    }
+
+    public String getRemoteOutputPortParentId(String id) {
+        return remoteOutputPortIdToParentIdMap.get(id);
     }
 
     public String getInputPortParentId(String id) {

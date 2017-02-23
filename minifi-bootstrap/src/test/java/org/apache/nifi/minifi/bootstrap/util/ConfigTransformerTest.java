@@ -25,7 +25,7 @@ import org.apache.nifi.minifi.commons.schema.FunnelSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
@@ -137,6 +137,11 @@ public class ConfigTransformerTest {
     @Test
     public void testRpgProxyPassTransform() throws Exception {
         testConfigFileTransform("InvokeHttpMiNiFiProxyPasswordTemplateTest.yml");
+    }
+
+    @Test
+    public void testRpgOutputPort() throws Exception {
+        testConfigFileTransform("SimpleRPGToLogAttributes.yml");
     }
 
     @Test
@@ -290,11 +295,17 @@ public class ConfigTransformerTest {
         NodeList inputPortElements = (NodeList) xPathFactory.newXPath().evaluate("inputPort", element, XPathConstants.NODESET);
         assertEquals(remoteProcessingGroupSchema.getInputPorts().size(), inputPortElements.getLength());
         for (int i = 0; i < inputPortElements.getLength(); i++) {
-            testRemoteInputPort((Element) inputPortElements.item(i), remoteProcessingGroupSchema.getInputPorts().get(i));
+            testRemotePort((Element) inputPortElements.item(i), remoteProcessingGroupSchema.getInputPorts().get(i));
+        }
+
+        NodeList outputPortElements = (NodeList) xPathFactory.newXPath().evaluate("outputPort", element, XPathConstants.NODESET);
+        assertEquals(remoteProcessingGroupSchema.getOutputPorts().size(), outputPortElements.getLength());
+        for (int i = 0; i < outputPortElements.getLength(); i++) {
+            testRemotePort((Element) outputPortElements.item(i), remoteProcessingGroupSchema.getOutputPorts().get(i));
         }
     }
 
-    private void testRemoteInputPort(Element element, RemoteInputPortSchema remoteInputPortSchema) throws XPathExpressionException {
+    private void testRemotePort(Element element, RemotePortSchema remoteInputPortSchema) throws XPathExpressionException {
         assertEquals(remoteInputPortSchema.getId(), getText(element, "id"));
         assertEquals(remoteInputPortSchema.getName(), getText(element, "name"));
         assertEquals(remoteInputPortSchema.getComment(), getText(element, "comment"));

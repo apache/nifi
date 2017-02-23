@@ -26,7 +26,8 @@ public class RemoteProcessGroupStatusBean implements Serializable {
     private String name;
     private RemoteProcessGroupHealth remoteProcessGroupHealth;
     private List<BulletinStatus> bulletinList;
-    private List<InputPortStatus> inputPortStatusList;
+    private List<PortStatus> inputPortStatusList;
+    private List<PortStatus> outputPortStatusList;
     private RemoteProcessGroupStats remoteProcessGroupStats;
 
     public RemoteProcessGroupStatusBean() {
@@ -56,12 +57,20 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         this.bulletinList = bulletinList;
     }
 
-    public List<InputPortStatus> getInputPortStatusList() {
+    public List<PortStatus> getInputPortStatusList() {
         return inputPortStatusList;
     }
 
-    public void setInputPortStatusList(List<InputPortStatus> inputPortStatusList) {
+    public void setInputPortStatusList(List<PortStatus> inputPortStatusList) {
         this.inputPortStatusList = inputPortStatusList;
+    }
+
+    public List<PortStatus> getOutputPortStatusList() {
+        return outputPortStatusList;
+    }
+
+    public void setOutputPortStatusList(List<PortStatus> outputPortStatusList) {
+        this.outputPortStatusList = outputPortStatusList;
     }
 
     public RemoteProcessGroupStats getRemoteProcessGroupStats() {
@@ -83,6 +92,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         if (getRemoteProcessGroupHealth() != null ? !getRemoteProcessGroupHealth().equals(that.getRemoteProcessGroupHealth()) : that.getRemoteProcessGroupHealth() != null) return false;
         if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) return false;
         if (getInputPortStatusList() != null ? !getInputPortStatusList().equals(that.getInputPortStatusList()) : that.getInputPortStatusList() != null) return false;
+        if (getOutputPortStatusList() != null ? !getOutputPortStatusList().equals(that.getOutputPortStatusList()) : that.getOutputPortStatusList() != null) return false;
         return getRemoteProcessGroupStats() != null ? getRemoteProcessGroupStats().equals(that.getRemoteProcessGroupStats()) : that.getRemoteProcessGroupStats() == null;
 
     }
@@ -93,6 +103,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
         result = 31 * result + (getRemoteProcessGroupHealth() != null ? getRemoteProcessGroupHealth().hashCode() : 0);
         result = 31 * result + (getBulletinList() != null ? getBulletinList().hashCode() : 0);
         result = 31 * result + (getInputPortStatusList() != null ? getInputPortStatusList().hashCode() : 0);
+        result = 31 * result + (getOutputPortStatusList() != null ? getOutputPortStatusList().hashCode() : 0);
         result = 31 * result + (getRemoteProcessGroupStats() != null ? getRemoteProcessGroupStats().hashCode() : 0);
         return result;
     }
@@ -104,6 +115,7 @@ public class RemoteProcessGroupStatusBean implements Serializable {
                 ", remoteProcessGroupHealth=" + remoteProcessGroupHealth +
                 ", bulletinList=" + bulletinList +
                 ", inputPortStatusList=" + inputPortStatusList +
+                ", inputPortStatusList=" + outputPortStatusList +
                 ", remoteProcessGroupStats=" + remoteProcessGroupStats +
                 '}';
     }

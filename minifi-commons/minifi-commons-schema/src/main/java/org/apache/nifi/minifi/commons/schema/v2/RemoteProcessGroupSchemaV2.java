@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.commons.schema.v2;
 
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TransportProtocolOptions;
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
@@ -42,7 +42,7 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YI
 public class RemoteProcessGroupSchemaV2 extends BaseSchema implements ConvertableSchema<RemoteProcessGroupSchema> {
     private BaseSchemaWithIdAndName idAndName;
     private String url;
-    private List<RemoteInputPortSchema> inputPorts;
+    private List<RemotePortSchema> inputPorts;
 
     private String comment = DEFAULT_COMMENT;
     private String timeout = DEFAULT_TIMEOUT;
@@ -54,9 +54,9 @@ public class RemoteProcessGroupSchemaV2 extends BaseSchema implements Convertabl
 
         String wrapperName = idAndName.getWrapperName();
         url = getRequiredKeyAsType(map, URL_KEY, String.class, wrapperName);
-        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemoteInputPortSchema.class, INPUT_PORTS_KEY);
+        inputPorts = convertListToType(getRequiredKeyAsType(map, INPUT_PORTS_KEY, List.class, wrapperName), "input port", RemotePortSchema.class, INPUT_PORTS_KEY);
         if (inputPorts != null) {
-            for (RemoteInputPortSchema remoteInputPortSchema: inputPorts) {
+            for (RemotePortSchema remoteInputPortSchema: inputPorts) {
                 addIssuesIfNotNull(remoteInputPortSchema);
             }
         }

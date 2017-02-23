@@ -55,7 +55,7 @@ public class ConfigSchemaFunction implements Function<TemplateDTO, ConfigSchema>
 
     public ConfigSchemaFunction() {
         this(new FlowControllerSchemaFunction(), new ProcessorSchemaFunction(), new ConnectionSchemaFunction(), new FunnelSchemaFunction(), new RemoteProcessGroupSchemaFunction(
-                new RemoteInputPortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY), new ControllerServiceSchemaFunction());
+                new RemotePortSchemaFunction()), new PortSchemaFunction(INPUT_PORTS_KEY), new PortSchemaFunction(OUTPUT_PORTS_KEY), new ControllerServiceSchemaFunction());
     }
 
     public ConfigSchemaFunction(FlowControllerSchemaFunction flowControllerSchemaFunction, ProcessorSchemaFunction processorSchemaFunction, ConnectionSchemaFunction connectionSchemaFunction,

@@ -47,7 +47,7 @@ public class TestStatusReport {
         addReportingTaskStatus(original, true, true, true, true);
         addConnectionStatus(original, true, true);
         addProcessorStatus(original, true, true, true, true, true);
-        addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true);
+        addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true, true);
 
         byte[] byteArrayCopy = serialize(original);
         FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);
@@ -63,7 +63,7 @@ public class TestStatusReport {
         addInstanceStatus(original, true, true, true, true);
         addSystemDiagnosticStatus(original, true, true, true, true, true);
         addProcessorStatus(original, true, true, true, true, true);
-        addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true);
+        addExpectedRemoteProcessGroupStatus(original, true, true, true, true, true, true);
 
         byte[] byteArrayCopy = serialize(original);
         FlowStatusReport copy = unSerialize(byteArrayCopy, FlowStatusReport.class);

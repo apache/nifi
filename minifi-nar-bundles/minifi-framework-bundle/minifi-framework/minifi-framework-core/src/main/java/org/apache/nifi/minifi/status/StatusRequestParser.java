@@ -44,7 +44,7 @@ import org.apache.nifi.minifi.commons.status.processor.ProcessorStats;
 import org.apache.nifi.minifi.commons.status.processor.ProcessorStatusBean;
 import org.apache.nifi.minifi.commons.status.reportingTask.ReportingTaskHealth;
 import org.apache.nifi.minifi.commons.status.reportingTask.ReportingTaskStatus;
-import org.apache.nifi.minifi.commons.status.rpg.InputPortStatus;
+import org.apache.nifi.minifi.commons.status.rpg.PortStatus;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupHealth;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupStats;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupStatusBean;
@@ -64,6 +64,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class StatusRequestParser {
     private StatusRequestParser() {
@@ -139,20 +141,10 @@ public final class StatusRequestParser {
                     remoteProcessGroupStatusBean.setBulletinList(transformBulletins(bulletinList));
                     break;
                 case "inputports":
-                    List<InputPortStatus> inputPortStatusList = new LinkedList<>();
-                    RemoteProcessGroup remoteProcessGroup = flowController.getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId());
-                    Set<RemoteGroupPort> inputPorts = remoteProcessGroup.getInputPorts();
-
-                    for (RemoteGroupPort inputPort : inputPorts) {
-                        InputPortStatus inputPortStatus = new InputPortStatus();
-
-                        inputPortStatus.setName(inputPort.getName());
-                        inputPortStatus.setTargetExists(inputPort.getTargetExists());
-                        inputPortStatus.setTargetRunning(inputPort.isTargetRunning());
-
-                        inputPortStatusList.add(inputPortStatus);
-                    }
-                    remoteProcessGroupStatusBean.setInputPortStatusList(inputPortStatusList);
+                    remoteProcessGroupStatusBean.setInputPortStatusList(getPortStatusList(inputRemoteProcessGroupStatus, flowController, rootGroupId, RemoteProcessGroup::getInputPorts));
+                    break;
+                case "outputports":
+                    remoteProcessGroupStatusBean.setOutputPortStatusList(getPortStatusList(inputRemoteProcessGroupStatus, flowController, rootGroupId, RemoteProcessGroup::getOutputPorts));
                     break;
                 case "stats":
                     RemoteProcessGroupStats remoteProcessGroupStats = new RemoteProcessGroupStats();
@@ -166,6 +158,19 @@ public final class StatusRequestParser {
             }
         }
         return remoteProcessGroupStatusBean;
+    }
+
+    private static List<PortStatus> getPortStatusList(RemoteProcessGroupStatus inputRemoteProcessGroupStatus, FlowController flowController, String rootGroupId,
+                                                      Function<RemoteProcessGroup, Set<RemoteGroupPort>> portFunction) {
+        return portFunction.apply(flowController.getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
+            PortStatus portStatus = new PortStatus();
+
+            portStatus.setName(r.getName());
+            portStatus.setTargetExists(r.getTargetExists());
+            portStatus.setTargetRunning(r.isTargetRunning());
+
+            return portStatus;
+        }).collect(Collectors.toList());
     }
 
     static ConnectionStatusBean parseConnectionStatusRequest(ConnectionStatus inputConnectionStatus, String statusTypes, Logger logger) {

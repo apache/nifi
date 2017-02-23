@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
-import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 
@@ -28,9 +28,9 @@ import java.util.function.Function;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
 
-public class RemoteInputPortSchemaFunction implements Function<RemoteProcessGroupPortDTO, RemoteInputPortSchema> {
+public class RemotePortSchemaFunction implements Function<RemoteProcessGroupPortDTO, RemotePortSchema> {
     @Override
-    public RemoteInputPortSchema apply(RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
+    public RemotePortSchema apply(RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         Map<String, Object> map = new HashMap<>();
         map.put(ID_KEY, remoteProcessGroupPortDTO.getId());
         map.put(NAME_KEY, remoteProcessGroupPortDTO.getName());
@@ -38,6 +38,6 @@ public class RemoteInputPortSchemaFunction implements Function<RemoteProcessGrou
         map.put(CommonPropertyKeys.COMMENT_KEY, remoteProcessGroupPortDTO.getComments());
         map.put(CommonPropertyKeys.MAX_CONCURRENT_TASKS_KEY, remoteProcessGroupPortDTO.getConcurrentlySchedulableTaskCount());
         map.put(CommonPropertyKeys.USE_COMPRESSION_KEY, remoteProcessGroupPortDTO.getUseCompression());
-        return new RemoteInputPortSchema(map);
+        return new RemotePortSchema(map);
     }
 }

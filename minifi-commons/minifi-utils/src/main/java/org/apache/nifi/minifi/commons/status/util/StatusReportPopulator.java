@@ -33,7 +33,7 @@ import org.apache.nifi.minifi.commons.status.processor.ProcessorStats;
 import org.apache.nifi.minifi.commons.status.processor.ProcessorStatusBean;
 import org.apache.nifi.minifi.commons.status.reportingTask.ReportingTaskHealth;
 import org.apache.nifi.minifi.commons.status.reportingTask.ReportingTaskStatus;
-import org.apache.nifi.minifi.commons.status.rpg.InputPortStatus;
+import org.apache.nifi.minifi.commons.status.rpg.PortStatus;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupHealth;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupStats;
 import org.apache.nifi.minifi.commons.status.rpg.RemoteProcessGroupStatusBean;
@@ -134,7 +134,7 @@ public class StatusReportPopulator {
         flowStatusReport.setConnectionStatusList(Collections.singletonList(expectedConnectionStatus));
     }
 
-    public static void addExpectedRemoteProcessGroupStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addInputPort,
+    public static void addExpectedRemoteProcessGroupStatus(FlowStatusReport flowStatusReport, boolean addHealth, boolean addInputPort, boolean addOutputPort,
                                                            boolean addStats, boolean addBulletins, boolean populateBulletins) {
         RemoteProcessGroupStatusBean expectedRemoteProcessGroupStatus = new RemoteProcessGroupStatusBean();
         expectedRemoteProcessGroupStatus.setName("rpg1");
@@ -160,11 +160,19 @@ public class StatusReportPopulator {
         }
 
         if (addInputPort) {
-            InputPortStatus expectedInputPortStatus = new InputPortStatus();
+            PortStatus expectedInputPortStatus = new PortStatus();
             expectedInputPortStatus.setName("inputPort");
             expectedInputPortStatus.setTargetExists(true);
             expectedInputPortStatus.setTargetRunning(false);
             expectedRemoteProcessGroupStatus.setInputPortStatusList(Collections.singletonList(expectedInputPortStatus));
+        }
+
+        if (addOutputPort) {
+            PortStatus expectedOutputPortStatus = new PortStatus();
+            expectedOutputPortStatus.setName("outputPort");
+            expectedOutputPortStatus.setTargetExists(true);
+            expectedOutputPortStatus.setTargetRunning(false);
+            expectedRemoteProcessGroupStatus.setOutputPortStatusList(Collections.singletonList(expectedOutputPortStatus));
         }
 
         if (addStats) {
