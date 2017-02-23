@@ -146,17 +146,16 @@ abstract class AbstractDemarcator implements Closeable {
             bytesRead = this.is.read(this.buffer, this.index, this.buffer.length - this.index);
         } while (bytesRead == 0);
         this.availableBytesLength = bytesRead != -1 ? this.index + bytesRead : -1;
-        if (this.availableBytesLength > this.maxDataSize) {
-            throw new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of "
-                    + this.maxDataSize + " bytes.");
-        }
     }
 
     /**
      * Will extract data token of the provided length from the current buffer
      * starting at the 'mark'.
      */
-    byte[] extractDataToken(int length) {
+    byte[] extractDataToken(int length) throws IOException {
+        if (length > this.maxDataSize) {
+            throw new TokenTooLargeException("A message in the stream exceeds the maximum allowed message size of " + this.maxDataSize + " bytes.");
+        }
         byte[] data = null;
         if (length > 0) {
             data = new byte[length];
