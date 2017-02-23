@@ -130,11 +130,6 @@ public class MorphlinesProcessor extends AbstractProcessor {
         morphlineContext = new MorphlineContext.Builder().build();
     }
 
-    @OnStopped
-    public void onStopped() {
-        bufferQueue.clear();
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();

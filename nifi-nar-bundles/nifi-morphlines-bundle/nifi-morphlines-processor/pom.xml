@@ -126,6 +126,5 @@
             <artifactId>kite-morphlines-useragent</artifactId>
             <version>${kite.version}</version>
         </dependency>
-    </dependencies>
-  
+    </dependencies>  
 </project>

@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.github.minyk</groupId>
+        <groupId>org.apache.com</groupId>
         <artifactId>nifi-morphlines-bundle</artifactId>
         <version>0.1</version>
     </parent>
@@ -38,5 +38,4 @@
         </dependency>
     </dependencies>
 
-  
 </project>
