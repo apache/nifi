@@ -25,6 +25,13 @@ import java.util.Set;
  */
 public interface SnippetAuthorizable {
     /**
+     * The authorizable for the parent process group of this snippet.
+     *
+     * @return authorizable for parent process group of this snippet
+     */
+    Authorizable getParentProcessGroup();
+
+    /**
      * The authorizables for selected processors. Non null
      *
      * @return processors

@@ -347,7 +347,7 @@ public class FileAuthorizerTest {
         assertEquals(2, user5Policies.size());
 
         assertTrue(user5Policies.containsKey(ResourceType.Proxy.getValue()));
-        assertEquals(2, user5Policies.get(ResourceType.Proxy.getValue()).size());
+        assertEquals(1, user5Policies.get(ResourceType.Proxy.getValue()).size());
         assertTrue(user5Policies.get(ResourceType.Proxy.getValue()).contains(RequestAction.WRITE));
 
         // verify user6's policies
@@ -358,7 +358,8 @@ public class FileAuthorizerTest {
         assertEquals(2, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
         assertTrue(user6Policies.get(ResourceType.SiteToSite.getValue()).contains(RequestAction.WRITE));
 
-        final Resource inputPortResource = ResourceFactory.getDataTransferResource(true, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input");
+        final Resource inputPortResource = ResourceFactory.getDataTransferResource(
+                ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
         final AccessPolicy inputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
         assertNotNull(inputPortPolicy);
         assertEquals(1, inputPortPolicy.getUsers().size());
@@ -366,7 +367,8 @@ public class FileAuthorizerTest {
         assertEquals(1, inputPortPolicy.getGroups().size());
         assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
 
-        final Resource outputPortResource = ResourceFactory.getDataTransferResource(false, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output");
+        final Resource outputPortResource = ResourceFactory.getDataTransferResource(
+                ResourceFactory.getComponentResource(ResourceType.OutputPort, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output"));
         final AccessPolicy outputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
         assertNotNull(outputPortPolicy);
         assertEquals(1, outputPortPolicy.getUsers().size());
@@ -432,7 +434,8 @@ public class FileAuthorizerTest {
         final Group group1 = groups.iterator().next();
         assertEquals("group1", group1.getName());
 
-        final Resource inputPortResource = ResourceFactory.getDataTransferResource(true, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input");
+        final Resource inputPortResource = ResourceFactory.getDataTransferResource(
+                ResourceFactory.getComponentResource(ResourceType.InputPort, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input"));
         final AccessPolicy inputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
         assertNotNull(inputPortPolicy);
         assertEquals(1, inputPortPolicy.getUsers().size());
@@ -440,7 +443,8 @@ public class FileAuthorizerTest {
         assertEquals(1, inputPortPolicy.getGroups().size());
         assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
 
-        final Resource outputPortResource = ResourceFactory.getDataTransferResource(false, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output");
+        final Resource outputPortResource = ResourceFactory.getDataTransferResource(
+                ResourceFactory.getComponentResource(ResourceType.OutputPort, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output"));
         final AccessPolicy outputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
         assertNotNull(outputPortPolicy);
         assertEquals(1, outputPortPolicy.getUsers().size());
@@ -648,12 +652,7 @@ public class FileAuthorizerTest {
         User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
         assertNotNull(nodeUser2);
 
-        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
         AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
-
-        assertNotNull(proxyReadPolicy);
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
@@ -691,12 +690,7 @@ public class FileAuthorizerTest {
         User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
         assertNotNull(nodeUser2);
 
-        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
         AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
-
-        assertNotNull(proxyReadPolicy);
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
-        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
 
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));

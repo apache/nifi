@@ -49,6 +49,7 @@ import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.event.NodeEvent;
+import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -963,6 +964,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     public String getName() {
                         return resourceIdentifier;
                     }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "User " + userId;
+                    }
                 },
                 () -> userDAO.deleteUser(userId),
                 false, // no user specific policies to remove
@@ -993,6 +999,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     public String getName() {
                         return resourceIdentifier;
                     }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "User Group " + userGroupId;
+                    }
                 },
                 () -> userGroupDAO.deleteUserGroup(userGroupId),
                 false, // no user group specific policies to remove
@@ -1019,6 +1030,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     @Override
                     public String getName() {
                         return accessPolicy.getResource();
+                    }
+
+                    @Override
+                    public String getSafeDescription() {
+                        return "Policy " + accessPolicyId;
                     }
                 },
                 () -> accessPolicyDAO.deleteAccessPolicy(accessPolicyId),
@@ -2133,8 +2149,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProvenanceDTO getProvenance(final String queryId) {
-        return controllerFacade.getProvenanceQuery(queryId);
+    public ProvenanceDTO getProvenance(final String queryId, final Boolean summarize, final Boolean incrementalResults) {
+        return controllerFacade.getProvenanceQuery(queryId, summarize, incrementalResults);
     }
 
     @Override
@@ -2514,6 +2530,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .accessAttempt(false)
                 .action(RequestAction.WRITE)
                 .userContext(userContext)
+                .explanationSupplier(() -> "Unable to retrieve port details.")
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -2679,6 +2696,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         @Override
                         public String getName() {
                             return resource;
+                        }
+
+                        @Override
+                        public String getSafeDescription() {
+                            return "Policy " + resource;
                         }
                     };
                 }
@@ -3100,7 +3122,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createStatusHistoryEntity(dto, permissions);
     }
 
-    private boolean authorizeAction(final Action action) {
+    private AuthorizationResult authorizeAction(final Action action) {
         final String sourceId = action.getSourceId();
         final Component type = action.getSourceType();
 
@@ -3149,12 +3171,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
         } catch (final ResourceNotFoundException e) {
             // if the underlying component is gone, disallow
-            return false;
+            return AuthorizationResult.denied("The component of this action is no longer in the data flow.");
         }
 
         // perform the authorization
-        final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-        return Result.Approved.equals(result.getResult());
+        return authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
     }
 
     @Override
@@ -3178,7 +3199,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (history.getActions() != null) {
             final List<ActionEntity> actionEntities = new ArrayList<>();
             for (final Action action : history.getActions()) {
-                actionEntities.add(entityFactory.createActionEntity(dtoFactory.createActionDto(action), authorizeAction(action)));
+                final AuthorizationResult result = authorizeAction(action);
+                actionEntities.add(entityFactory.createActionEntity(dtoFactory.createActionDto(action), Result.Approved.equals(result.getResult())));
             }
             historyDto.setActions(actionEntities);
         }
@@ -3197,9 +3219,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException(String.format("Unable to find action with id '%s'.", actionId));
         }
 
-        final boolean authorized = authorizeAction(action);
+        final AuthorizationResult result = authorizeAction(action);
+        final boolean authorized = Result.Approved.equals(result.getResult());
         if (!authorized) {
-            throw new AccessDeniedException("Access is denied.");
+            throw new AccessDeniedException(result.getExplanation());
         }
 
         // return the action
@@ -3311,6 +3334,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NodeIdentifier nodeIdentifier = clusterCoordinator.getNodeIdentifier(nodeId);
         if (nodeIdentifier == null) {
             throw new UnknownNodeException("Cannot remove Node with ID " + nodeId + " because it is not part of the cluster");
+        }
+
+        final NodeConnectionStatus nodeConnectionStatus = clusterCoordinator.getConnectionStatus(nodeIdentifier);
+        if (!nodeConnectionStatus.getState().equals(NodeConnectionState.DISCONNECTED)) {
+            throw new IllegalNodeDeletionException("Cannot remove Node with ID " + nodeId + " because it is not disconnected, current state = " + nodeConnectionStatus.getState());
         }
 
         clusterCoordinator.removeNode(nodeIdentifier, userDn);

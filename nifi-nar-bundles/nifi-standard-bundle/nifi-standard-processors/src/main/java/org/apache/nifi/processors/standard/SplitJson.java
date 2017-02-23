@@ -56,6 +56,12 @@ import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_INDEX;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORIGINAL_FILENAME;
+import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -166,7 +172,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
     @Override
     public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) {
-        final FlowFile original = processSession.get();
+        FlowFile original = processSession.get();
         if (original == null) {
             return;
         }
@@ -202,8 +208,9 @@ public class SplitJson extends AbstractJsonPathProcessor {
         List resultList = (List) jsonPathResult;
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("fragment.identifier", UUID.randomUUID().toString());
-        attributes.put("fragment.count", Integer.toString(resultList.size()));
+        final String fragmentId = UUID.randomUUID().toString();
+        attributes.put(FRAGMENT_ID.key(), fragmentId);
+        attributes.put(FRAGMENT_COUNT.key(), Integer.toString(resultList.size()));
 
         for (int i = 0; i < resultList.size(); i++) {
             Object resultSegment = resultList.get(i);
@@ -213,11 +220,12 @@ public class SplitJson extends AbstractJsonPathProcessor {
                         out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                     }
             );
-            attributes.put("segment.original.filename", split.getAttribute(CoreAttributes.FILENAME.key()));
-            attributes.put("fragment.index", Integer.toString(i));
+            attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
+            attributes.put(FRAGMENT_INDEX.key(), Integer.toString(i));
             processSession.transfer(processSession.putAllAttributes(split, attributes), REL_SPLIT);
         }
 
+        original = copyAttributesToOriginal(processSession, original, fragmentId, resultList.size());
         processSession.transfer(original, REL_ORIGINAL);
         logger.info("Split {} into {} FlowFiles", new Object[]{original, resultList.size()});
     }

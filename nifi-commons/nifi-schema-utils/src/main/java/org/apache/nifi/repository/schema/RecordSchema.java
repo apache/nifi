@@ -120,8 +120,8 @@ public class RecordSchema {
 
     @SuppressWarnings("unchecked")
     private static RecordField readField(final DataInputStream dis) throws IOException {
-        final Map<String, Object> schemaFieldMap = new HashMap<>();
         final int numElementsToRead = dis.readInt();
+        final Map<String, Object> schemaFieldMap = new HashMap<>(numElementsToRead);
         for (int i = 0; i < numElementsToRead; i++) {
             final String fieldName = dis.readUTF();
             final String typeName = dis.readUTF();

@@ -17,6 +17,18 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -29,18 +41,6 @@ import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Command line parser for a StandaloneConfig object and a main entry point to invoke the parser and run the standalone generator
@@ -59,7 +59,18 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String NIFI_DN_PREFIX_ARG = "nifiDnPrefix";
     public static final String NIFI_DN_SUFFIX_ARG = "nifiDnSuffix";
 
-    public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
+    public static final String DEFAULT_OUTPUT_DIRECTORY = calculateDefaultOutputDirectory(Paths.get("."));
+
+    protected static String calculateDefaultOutputDirectory(Path currentPath) {
+        Path currentAbsolutePath = currentPath.toAbsolutePath();
+        Path parent = currentAbsolutePath.getParent();
+        if (parent == currentAbsolutePath.getRoot()) {
+            return parent.toString();
+        } else {
+            Path currentNormalizedPath = currentAbsolutePath.normalize();
+            return "../" + currentNormalizedPath.getFileName().toString();
+        }
+    }
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
 
@@ -131,10 +142,10 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         if (commandLine.hasOption(HOSTNAMES_ARG)) {
             instanceDefinitions = Collections.unmodifiableList(
                     InstanceDefinition.createDefinitions(globalOrderExpressions,
-                    Arrays.stream(commandLine.getOptionValues(HOSTNAMES_ARG)).flatMap(s -> Arrays.stream(s.split(",")).map(String::trim)),
-                    parsePasswordSupplier(commandLine, KEY_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier()),
-                    parsePasswordSupplier(commandLine, KEY_PASSWORD_ARG, commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG) ? passwordUtil.passwordSupplier() : null),
-                    parsePasswordSupplier(commandLine, TRUST_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier())));
+                            Arrays.stream(commandLine.getOptionValues(HOSTNAMES_ARG)).flatMap(s -> Arrays.stream(s.split(",")).map(String::trim)),
+                            parsePasswordSupplier(commandLine, KEY_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier()),
+                            parsePasswordSupplier(commandLine, KEY_PASSWORD_ARG, commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG) ? passwordUtil.passwordSupplier() : null),
+                            parsePasswordSupplier(commandLine, TRUST_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier())));
         } else {
             instanceDefinitions = Collections.emptyList();
         }

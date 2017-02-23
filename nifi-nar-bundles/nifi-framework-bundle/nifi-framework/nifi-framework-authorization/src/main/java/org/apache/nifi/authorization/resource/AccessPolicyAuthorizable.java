@@ -89,7 +89,7 @@ public class AccessPolicyAuthorizable implements Authorizable, EnforcePolicyPerm
     @Override
     public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         if (user == null) {
-            throw new AccessDeniedException("Unknown user");
+            throw new AccessDeniedException("Unknown user.");
         }
 
         final AuthorizationResult resourceResult = Authorizable.super.checkAuthorization(authorizer, action, user, resourceContext);
@@ -105,7 +105,7 @@ public class AccessPolicyAuthorizable implements Authorizable, EnforcePolicyPerm
     @Override
     public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
         if (user == null) {
-            throw new AccessDeniedException("Unknown user");
+            throw new AccessDeniedException("Unknown user.");
         }
 
         try {

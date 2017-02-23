@@ -244,7 +244,8 @@ public class LabelResource extends ApplicationResource {
             value = "Deletes a label",
             response = LabelEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /labels/{uuid}", type = "")
+                    @Authorization(value = "Write - /labels/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -289,7 +290,12 @@ public class LabelResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final Authorizable label = lookup.getLabel(id);
+
+                    // ensure write permission to the label
                     label.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    label.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 (revision, labelEntity) -> {

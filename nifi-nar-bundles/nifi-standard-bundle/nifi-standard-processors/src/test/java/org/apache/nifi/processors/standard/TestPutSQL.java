@@ -268,12 +268,13 @@ public class TestPutSQL {
         }
     }
 
+    // Not specifying a format for the date fields here to continue to test backwards compatibility
     @Test
     public void testUsingTimestampValuesEpochAndString() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE TIMESTAMPTESTS (id integer primary key, ts1 timestamp, ts2 timestamp)");
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST1 (id integer primary key, ts1 timestamp, ts2 timestamp)");
             }
         }
 
@@ -292,14 +293,14 @@ public class TestPutSQL {
         attributes.put("sql.args.2.type", String.valueOf(Types.TIMESTAMP));
         attributes.put("sql.args.2.value", art3TS);
 
-        runner.enqueue("INSERT INTO TIMESTAMPTESTS (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.enqueue("INSERT INTO TIMESTAMPTEST1 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTESTS");
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST1");
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
                 assertEquals(arg2TS, rs.getString(2));
@@ -307,6 +308,164 @@ public class TestPutSQL {
                 assertFalse(rs.next());
             }
         }
+    }
+
+    @Test
+    public void testUsingTimestampValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST2 (id integer primary key, ts1 timestamp, ts2 timestamp)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String dateStr = "2002-02-02T12:02:02+00:00";
+        final long dateInt = 1012651322000L;
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.TIMESTAMP));
+        attributes.put("sql.args.1.value", dateStr);
+        attributes.put("sql.args.1.format", "ISO_OFFSET_DATE_TIME");
+        attributes.put("sql.args.2.type", String.valueOf(Types.TIMESTAMP));
+        attributes.put("sql.args.2.value", dateStr);
+        attributes.put("sql.args.2.format", "yyyy-MM-dd'T'HH:mm:ssXXX");
+
+        runner.enqueue("INSERT INTO TIMESTAMPTEST2 (ID, ts1, ts2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM TIMESTAMPTEST2");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertEquals(dateInt, rs.getTimestamp(2).getTime());
+                assertEquals(dateInt, rs.getTimestamp(3).getTime());
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testBitType() throws SQLException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE BITTESTS (id integer primary key, bt1 BOOLEAN)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final byte[] insertStatement = "INSERT INTO BITTESTS (ID, bt1) VALUES (?, ?)".getBytes();
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "1");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "1");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "2");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "0");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "3");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "-5");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "4");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "t");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "5");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "f");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "6");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "T");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "7");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "true");
+        runner.enqueue(insertStatement, attributes);
+
+        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("sql.args.1.value", "8");
+        attributes.put("sql.args.2.type", String.valueOf(Types.BIT));
+        attributes.put("sql.args.2.value", "false");
+        runner.enqueue(insertStatement, attributes);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 8);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM BITTESTS");
+
+                //First test (true)
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Second test (false)
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Third test (false)
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Fourth test (true)
+                assertTrue(rs.next());
+                assertEquals(4, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Fifth test (false)
+                assertTrue(rs.next());
+                assertEquals(5, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                //Sixth test (true)
+                assertTrue(rs.next());
+                assertEquals(6, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Seventh test (true)
+                assertTrue(rs.next());
+                assertEquals(7, rs.getInt(1));
+                assertTrue(rs.getBoolean(2));
+
+                //Eighth test (false)
+                assertTrue(rs.next());
+                assertEquals(8, rs.getInt(1));
+                assertFalse(rs.getBoolean(2));
+
+                assertFalse(rs.next());
+            }
+        }
+
     }
 
     @Test

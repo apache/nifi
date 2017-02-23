@@ -51,12 +51,33 @@ public class TextLineDemarcatorTest {
         assertNull(demarcator.nextOffsetInfo());
     }
 
+
     @Test
     public void emptyStreamAndStartWithFilter() {
         String data = "";
         InputStream is = stringToIs(data);
         TextLineDemarcator demarcator = new TextLineDemarcator(is);
         assertNull(demarcator.nextOffsetInfo("hello".getBytes()));
+    }
+
+    // this test has no assertions. It's success criteria is validated by lack
+    // of failure (see NIFI-3278)
+    @Test
+    public void endsWithCRWithBufferLengthEqualStringLengthA() {
+        String str = "\r";
+        InputStream is = stringToIs(str);
+        TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
+        while (demarcator.nextOffsetInfo() != null) {
+        }
+    }
+
+    @Test
+    public void endsWithCRWithBufferLengthEqualStringLengthB() {
+        String str = "abc\r";
+        InputStream is = stringToIs(str);
+        TextLineDemarcator demarcator = new TextLineDemarcator(is, str.length());
+        while (demarcator.nextOffsetInfo() != null) {
+        }
     }
 
     @Test
@@ -97,6 +118,38 @@ public class TextLineDemarcatorTest {
         assertEquals(3, offsetInfo.getLength());
         assertEquals(0, offsetInfo.getCrlfLength());
         assertTrue(offsetInfo.isStartsWithMatch());
+    }
+
+    @Test
+    public void validateNiFi_3495() {
+        String str = "he\ra-to-a\rb-to-b\rc-to-c\r\nd-to-d";
+        InputStream is = stringToIs(str);
+        TextLineDemarcator demarcator = new TextLineDemarcator(is, 10);
+        OffsetInfo info = demarcator.nextOffsetInfo();
+        assertEquals(0, info.getStartOffset());
+        assertEquals(3, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(3, info.getStartOffset());
+        assertEquals(7, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(10, info.getStartOffset());
+        assertEquals(7, info.getLength());
+        assertEquals(1, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(17, info.getStartOffset());
+        assertEquals(8, info.getLength());
+        assertEquals(2, info.getCrlfLength());
+
+        info = demarcator.nextOffsetInfo();
+        assertEquals(25, info.getStartOffset());
+        assertEquals(6, info.getLength());
+        assertEquals(0, info.getCrlfLength());
+
     }
 
     @Test

@@ -21,5 +21,5 @@ package org.apache.nifi.controller.repository;
  */
 public enum RepositoryRecordType {
 
-    UPDATE, CREATE, DELETE, CONTENTMISSING, SWAP_IN, SWAP_OUT;
+    UPDATE, CREATE, DELETE, CONTENTMISSING, SWAP_IN, SWAP_OUT, CLEANUP_TRANSIENT_CLAIMS;
 }

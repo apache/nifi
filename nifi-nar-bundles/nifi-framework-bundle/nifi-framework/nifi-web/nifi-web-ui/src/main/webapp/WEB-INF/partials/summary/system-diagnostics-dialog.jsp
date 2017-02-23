@@ -127,6 +127,24 @@
                         </table>
                     </div>
                 </div>
+                <div class="setting">
+                    <div class="setting-header">Runtime</div>
+                    <div id="jvm-runtime-container" class="setting-field">
+                        <table id="jvm-runtime-table">
+                            <tbody>
+                                <tr>
+                                    <td class="setting-name">Uptime:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="uptime"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div id="system-tab-content"class="configuration-tab">
             <div class="settings-left">

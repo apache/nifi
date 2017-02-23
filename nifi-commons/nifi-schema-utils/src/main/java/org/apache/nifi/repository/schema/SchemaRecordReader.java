@@ -109,7 +109,15 @@ public class SchemaRecordReader {
             }
         }
 
-        return readFieldValue(in, field.getFieldType(), field.getFieldName(), field.getSubFields());
+        try {
+            return readFieldValue(in, field.getFieldType(), field.getFieldName(), field.getSubFields());
+        } catch (final EOFException eof) {
+            final EOFException exception = new EOFException("Failed to read field '" + field.getFieldName() + "'");
+            exception.addSuppressed(eof);
+            throw exception;
+        } catch (final IOException ioe) {
+            throw new IOException("Failed to read field '" + field.getFieldName() + "'", ioe);
+        }
     }
 
 

@@ -211,7 +211,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void verifyCanDelete() {
         if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(implementation.getIdentifier() + " cannot be deleted because it is not disabled");
+            throw new IllegalStateException("Controller Service " + implementation.getIdentifier() + " cannot be deleted because it is not disabled");
         }
     }
 

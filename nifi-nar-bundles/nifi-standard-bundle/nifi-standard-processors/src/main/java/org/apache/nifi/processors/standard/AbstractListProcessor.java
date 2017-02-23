@@ -336,6 +336,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         final List<T> entityList;
+        final long currentListingTimestamp = System.nanoTime();
         try {
             // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestamp);
@@ -385,7 +386,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     context.yield();
                     return;
                 }
-            } else {
+
+            } else if (latestListingTimestamp >= currentListingTimestamp - LISTING_LAG_NANOS) {
                 // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
                 orderedEntries.remove(latestListingTimestamp);
             }

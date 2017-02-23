@@ -22,7 +22,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -299,7 +298,6 @@ public class ContentViewerController extends HttpServlet {
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         final String ref = request.getParameter("ref");
         final String clientId = request.getParameter("clientId");
-        final String proxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
 
         final URI refUri = URI.create(ref);
         final String query = refUri.getQuery();
@@ -334,7 +332,7 @@ public class ContentViewerController extends HttpServlet {
 
             @Override
             public String getProxiedEntitiesChain() {
-                return proxiedEntitiesChain;
+                return null;
             }
         };
     }

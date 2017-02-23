@@ -31,7 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -120,6 +123,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     @Override
     public boolean isTriggerWhenEmpty() {
         return getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT;
+    }
+
+    @Override
+    public Resource getResource() {
+        final ResourceType resourceType = ConnectableType.REMOTE_INPUT_PORT.equals(getConnectableType()) ? ResourceType.InputPort : ResourceType.OutputPort;
+        return ResourceFactory.getComponentResource(resourceType, getIdentifier(), getName());
     }
 
     @Override

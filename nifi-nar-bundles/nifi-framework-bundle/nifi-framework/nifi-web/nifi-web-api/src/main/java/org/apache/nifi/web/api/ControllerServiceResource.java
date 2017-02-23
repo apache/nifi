@@ -661,6 +661,8 @@ public class ControllerServiceResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group if scoped by Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Controller if scoped by Controller - /controller", type = ""),
                     @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
@@ -706,7 +708,12 @@ public class ControllerServiceResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final ConfigurableComponentAuthorizable controllerService = lookup.getControllerService(id);
+
+                    // ensure write permission to the controller service
                     controllerService.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    controllerService.getAuthorizable().getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(controllerService, authorizer, lookup, false);

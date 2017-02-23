@@ -1,5 +1,5 @@
 nifi-scripting-nar
-Copyright 2015-2016 The Apache Software Foundation
+Copyright 2015-2017 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -33,6 +33,20 @@ The following binary components are provided under the Apache Software License v
         This product includes software from the Spring Framework,
         under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
+  (ASLv2) Yammer Metrics
+      The following NOTICE information applies:
+        Metrics
+        Copyright 2010-2012 Coda Hale and Yammer, Inc.
+
+        This product includes software developed by Coda Hale and Yammer, Inc.
+
+        This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
+        with the following comments:
+
+            Written by Doug Lea with assistance from members of JCP JSR-166
+            Expert Group and released to the public domain, as explained at
+            http://creativecommons.org/publicdomain/zero/1.0/
+
 ******************
 Eclipse Public License v1.0
 ******************
@@ -45,3 +59,5 @@ The following binary components are provided under a EPL v1.0 license
 
     The following NOTICE information applies:
         Copyright (c) 2007-2015 The JRuby project
+
+   (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)

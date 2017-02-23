@@ -15,9 +15,31 @@
  * limitations under the License.
  */
 
-/* global nf, d3 */
+/* global define, module, require, exports */
 
-nf.Snippet = (function () {
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+                'd3',
+                'nf.CanvasUtils',
+                'nf.Client'],
+            function ($, d3, nfCanvasUtils, nfClient) {
+                return (nf.Snippet = factory($, d3, nfCanvasUtils, nfClient));
+            });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.Snippet =
+            factory(require('jquery'),
+                require('d3'),
+                require('nf.CanvasUtils'),
+                require('nf.Client')));
+    } else {
+        nf.Snippet = factory(root.$,
+            root.d3,
+            root.nf.CanvasUtils,
+            root.nf.Client);
+    }
+}(this, function ($, d3, nfCanvasUtils, nfClient) {
+    'use strict';
 
     var config = {
         urls: {
@@ -27,14 +49,15 @@ nf.Snippet = (function () {
     };
 
     return {
+
         /**
          * Marshals snippet from the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection to marshal
          */
         marshal: function (selection) {
             var snippet = {
-                parentGroupId: nf.Canvas.getGroupId(),
+                parentGroupId: nfCanvasUtils.getGroupId(),
                 processors: {},
                 funnels: {},
                 inputPorts: {},
@@ -49,31 +72,31 @@ nf.Snippet = (function () {
             selection.each(function (d) {
                 var selected = d3.select(this);
 
-                if (nf.CanvasUtils.isProcessor(selected)) {
-                    snippet.processors[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isFunnel(selected)) {
-                    snippet.funnels[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isLabel(selected)) {
-                    snippet.labels[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isInputPort(selected)) {
-                    snippet.inputPorts[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isOutputPort(selected)) {
-                    snippet.outputPorts[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isProcessGroup(selected)) {
-                    snippet.processGroups[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isRemoteProcessGroup(selected)) {
-                    snippet.remoteProcessGroups[d.id] = nf.Client.getRevision(selected.datum());
-                } else if (nf.CanvasUtils.isConnection(selected)) {
-                    snippet.connections[d.id] = nf.Client.getRevision(selected.datum());
+                if (nfCanvasUtils.isProcessor(selected)) {
+                    snippet.processors[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isFunnel(selected)) {
+                    snippet.funnels[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isLabel(selected)) {
+                    snippet.labels[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isInputPort(selected)) {
+                    snippet.inputPorts[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isOutputPort(selected)) {
+                    snippet.outputPorts[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isProcessGroup(selected)) {
+                    snippet.processGroups[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isRemoteProcessGroup(selected)) {
+                    snippet.remoteProcessGroups[d.id] = nfClient.getRevision(selected.datum());
+                } else if (nfCanvasUtils.isConnection(selected)) {
+                    snippet.connections[d.id] = nfClient.getRevision(selected.datum());
                 }
             });
 
             return snippet;
         },
-        
+
         /**
          * Creates a snippet.
-         * 
+         *
          * @argument {object} snippet       The snippet
          */
         create: function (snippet) {
@@ -89,10 +112,10 @@ nf.Snippet = (function () {
                 contentType: 'application/json'
             });
         },
-        
+
         /**
          * Copies the snippet to the specified group and origin.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          * @argument {object} origin            The origin
          */
@@ -105,16 +128,16 @@ nf.Snippet = (function () {
 
             return $.ajax({
                 type: 'POST',
-                url: config.urls.processGroups + '/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/snippet-instance',
+                url: config.urls.processGroups + '/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/snippet-instance',
                 data: JSON.stringify(copySnippetRequestEntity),
                 dataType: 'json',
                 contentType: 'application/json'
             });
         },
-        
+
         /**
          * Removes the specified snippet.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          */
         remove: function (snippetId) {
@@ -123,10 +146,10 @@ nf.Snippet = (function () {
                 url: config.urls.snippets + '/' + encodeURIComponent(snippetId)
             });
         },
-        
+
         /**
          * Moves the snippet into the specified group.
-         * 
+         *
          * @argument {string} snippetId         The snippet id
          * @argument {string} newGroupId        The new group id
          */
@@ -147,4 +170,4 @@ nf.Snippet = (function () {
             });
         }
     };
-}());
+}));

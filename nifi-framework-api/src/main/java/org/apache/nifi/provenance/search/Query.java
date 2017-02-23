@@ -93,4 +93,8 @@ public class Query {
     public String toString() {
         return "Query[ " + searchTerms + " ]";
     }
+
+    public boolean isEmpty() {
+        return searchTerms.isEmpty() && maxFileSize == null && minFileSize == null && startDate == null && endDate == null;
+    }
 }

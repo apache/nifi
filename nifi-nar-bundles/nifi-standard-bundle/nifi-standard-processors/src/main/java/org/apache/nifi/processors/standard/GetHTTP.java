@@ -62,6 +62,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -72,8 +74,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
@@ -102,6 +106,11 @@ import org.apache.nifi.util.Tuple;
     + "once the content has been fetched from the given URL, it will not be fetched again until the content on the remote server changes. Note that due to limitations on state "
     + "management, stored \"last modified\" and etag fields never expire. If the URL in GetHttp uses Expression Language that is unbounded, there "
     + "is the potential for Out of Memory Errors to occur.")
+@DynamicProperties({
+    @DynamicProperty(name = "Header Name", value = "The Expression Language to be used to populate the header value", description = "The additional headers to be sent by the processor " +
+            "whenever making a new HTTP request. \n " +
+            "Setting a dynamic property name to XYZ and value to ${attribute} will result in the header 'XYZ: attribute_value' being sent to the HTTP endpoint"),
+})
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
@@ -235,6 +244,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
+    private volatile List<PropertyDescriptor> customHeaders = new ArrayList<>();
 
     private final AtomicBoolean clearState = new AtomicBoolean(false);
 
@@ -281,6 +291,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         if (clearState.getAndSet(false)) {
             context.getStateManager().clear(Scope.LOCAL);
         }
+        if (customHeaders.size() == 0) {
+            for (Map.Entry<PropertyDescriptor, String> property : context.getProperties().entrySet()) {
+                // only add the custom defined Headers (i.e. dynamic properties)
+                if (!getSupportedPropertyDescriptors().contains(property.getKey())) {
+                    customHeaders.add(property.getKey());
+                }
+            }
+        }
     }
 
     @Override
@@ -304,6 +322,17 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         }
 
         return results;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .expressionLanguageSupported(true)
+                .addValidator(Validator.VALID)
+                .required(false)
+                .dynamic(true)
+                .build();
     }
 
     private SSLContext createSSLContext(final SSLContextService service)
@@ -467,6 +496,18 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             if (accept != null) {
                 get.addHeader(HEADER_ACCEPT, accept);
             }
+
+            // Add dynamic headers
+
+            PropertyValue customHeaderValue;
+            for (PropertyDescriptor customProperty : customHeaders) {
+                customHeaderValue = context.getProperty(customProperty).evaluateAttributeExpressions();
+                if (StringUtils.isNotBlank(customHeaderValue.getValue())) {
+                    get.addHeader(customProperty.getName(), customHeaderValue.getValue());
+                }
+            }
+
+
             // create the http client
             try ( final CloseableHttpClient client = clientBuilder.build() ) {
                 // NOTE: including this inner try in order to swallow exceptions on close

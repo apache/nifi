@@ -1,0 +1,11 @@
+{
+    "type":"record",
+    "name":"basic_primitive_type_check",
+    "fields":[
+      {"name":"string","type":"string","default":1234},
+      {"name":"integer","type":"int","default":"mismatch_int"},
+      {"name":"long","type":"long","default":"mismatch_long"},
+      {"name":"double","type":"double","default":"mismatch_double"},
+      {"name":"boolean","type":"boolean","default":"mismatch_boolean"}
+    ]
+  }

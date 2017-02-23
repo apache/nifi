@@ -295,6 +295,7 @@ public class ConnectionResource extends ApplicationResource {
             response = ConnectionEntity.class,
             authorizations = {
                     @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
                     @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = "")
             }
     )
@@ -344,7 +345,12 @@ public class ConnectionResource extends ApplicationResource {
                 lookup -> {
                     // verifies write access to the source and destination
                     final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
+
+                    // ensure write permission to the connection
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    authorizable.getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteConnection(id),
                 (revision, connectionEntity) -> {

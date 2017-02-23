@@ -122,7 +122,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
         requestedDn = new TlsConfig().calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
         certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
-        jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, null, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         testPemEncodedCsr = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);
         tlsCertificateAuthorityServiceHandler = new TlsCertificateAuthorityServiceHandler(TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS, testToken, caCert, keyPair, objectMapper);
         testHmac = TlsHelper.calculateHMac(testToken, jcaPKCS10CertificationRequest.getPublicKey());

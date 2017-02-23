@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -70,7 +72,14 @@ import java.util.concurrent.locks.ReentrantLock;
         + "format, as it typically does not make sense to split binary data on arbitrary time-based intervals.")
 @DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @Restricted("Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+@WritesAttributes({
+    @WritesAttribute(attribute = "command", description = "Executed command"),
+    @WritesAttribute(attribute = "command.arguments", description = "Arguments of the command")
+})
 public class ExecuteProcess extends AbstractProcessor {
+
+    final static String ATTRIBUTE_COMMAND = "command";
+    final static String ATTRIBUTE_COMMAND_ARGS = "command.arguments";
 
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
     .name("Command")
@@ -203,7 +212,12 @@ public class ExecuteProcess extends AbstractProcessor {
 
         final Long batchNanos = context.getProperty(BATCH_DURATION).asTimePeriod(TimeUnit.NANOSECONDS);
 
-        final List<String> commandStrings = createCommandStrings(context);
+        final String command = context.getProperty(COMMAND).getValue();
+        final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
+          ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
+          : null;
+
+        final List<String> commandStrings = createCommandStrings(context, command, arguments);
         final String commandString = StringUtils.join(commandStrings, " ");
 
         if (longRunningProcess == null || longRunningProcess.isDone()) {
@@ -266,6 +280,12 @@ public class ExecuteProcess extends AbstractProcessor {
             session.remove(flowFile);
             getLogger().error("Failed to read data from Process, so will not generate FlowFile");
         } else {
+            // add command and arguments as attribute
+            flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND, command);
+            if(arguments != null) {
+                flowFile = session.putAttribute(flowFile, ATTRIBUTE_COMMAND_ARGS, arguments);
+            }
+
             // All was good. Generate event and transfer FlowFile.
             session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString);
             getLogger().info("Created {} and routed to success", new Object[] { flowFile });
@@ -276,13 +296,8 @@ public class ExecuteProcess extends AbstractProcessor {
         session.commit();
     }
 
-    protected List<String> createCommandStrings(final ProcessContext context) {
-        final String command = context.getProperty(COMMAND).getValue();
-        final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
-          ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
-          : null;
+    protected List<String> createCommandStrings(final ProcessContext context, final String command, final String arguments) {
         final List<String> args = ArgumentUtils.splitArgs(arguments, context.getProperty(ARG_DELIMITER).getValue().charAt(0));
-
         final List<String> commandStrings = new ArrayList<>(args.size() + 1);
         commandStrings.add(command);
         commandStrings.addAll(args);

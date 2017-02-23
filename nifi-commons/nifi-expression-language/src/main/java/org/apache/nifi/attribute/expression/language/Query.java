@@ -1225,8 +1225,10 @@ public class Query {
             case TO_DATE: {
                 if (argEvaluators.isEmpty()) {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
-                } else if (subjectEvaluator.getResultType() == ResultType.STRING) {
-                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "toDate");
+                } else if (subjectEvaluator.getResultType() == ResultType.STRING && argEvaluators.size() == 1) {
+                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), null), "toDate");
+                } else if (subjectEvaluator.getResultType() == ResultType.STRING && argEvaluators.size() == 2) {
+                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "toDate");
                 } else {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
                 }
@@ -1310,7 +1312,13 @@ public class Query {
                     toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf")), "lastIndexOf");
             }
             case FORMAT: {
-                return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format")), "format");
+                if(argEvaluators.size() == 1) {
+                    return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format"), null), "format");
+                } else if (argEvaluators.size() == 2) {
+                    return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "format");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("format() function takes 1 or 2 arguments");
+                }
             }
             case OR: {
                 return addToken(new OrEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0))), "or");

@@ -18,6 +18,7 @@ package org.apache.nifi.controller.repository;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
@@ -33,12 +34,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -47,15 +53,22 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.wali.MinimalLockingWriteAheadLog;
+import org.wali.WriteAheadRepository;
 
 public class TestWriteAheadFlowFileRepository {
 
@@ -73,6 +86,254 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(testRepo, true);
         }
     }
+
+
+    @Test
+    @Ignore("Intended only for local performance testing before/after making changes")
+    public void testUpdatePerformance() throws IOException, InterruptedException {
+        final FlowFileQueue queue = new FlowFileQueue() {
+
+            @Override
+            public String getIdentifier() {
+                return "4444";
+            }
+
+            @Override
+            public List<FlowFilePrioritizer> getPriorities() {
+                return null;
+            }
+
+            @Override
+            public SwapSummary recoverSwappedFlowFiles() {
+                return null;
+            }
+
+            @Override
+            public void purgeSwapFiles() {
+            }
+
+            @Override
+            public void setPriorities(List<FlowFilePrioritizer> newPriorities) {
+            }
+
+            @Override
+            public void setBackPressureObjectThreshold(long maxQueueSize) {
+            }
+
+            @Override
+            public long getBackPressureObjectThreshold() {
+                return 0;
+            }
+
+            @Override
+            public void setBackPressureDataSizeThreshold(String maxDataSize) {
+            }
+
+            @Override
+            public String getBackPressureDataSizeThreshold() {
+                return null;
+            }
+
+            @Override
+            public QueueSize size() {
+                return null;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return false;
+            }
+
+            @Override
+            public boolean isActiveQueueEmpty() {
+                return false;
+            }
+
+            @Override
+            public QueueSize getUnacknowledgedQueueSize() {
+                return null;
+            }
+
+            @Override
+            public void acknowledge(FlowFileRecord flowFile) {
+            }
+
+            @Override
+            public void acknowledge(Collection<FlowFileRecord> flowFiles) {
+            }
+
+            @Override
+            public boolean isFull() {
+                return false;
+            }
+
+            @Override
+            public void put(FlowFileRecord file) {
+            }
+
+            @Override
+            public void putAll(Collection<FlowFileRecord> files) {
+            }
+
+            @Override
+            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public long drainQueue(Queue<FlowFileRecord> sourceQueue, List<FlowFileRecord> destination, int maxResults, Set<FlowFileRecord> expiredRecords) {
+                return 0;
+            }
+
+            @Override
+            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public String getFlowFileExpiration() {
+                return null;
+            }
+
+            @Override
+            public int getFlowFileExpiration(TimeUnit timeUnit) {
+                return 0;
+            }
+
+            @Override
+            public void setFlowFileExpiration(String flowExpirationPeriod) {
+            }
+
+            @Override
+            public DropFlowFileStatus dropFlowFiles(String requestIdentifier, String requestor) {
+                return null;
+            }
+
+            @Override
+            public DropFlowFileStatus getDropFlowFileStatus(String requestIdentifier) {
+                return null;
+            }
+
+            @Override
+            public DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier) {
+                return null;
+            }
+
+            @Override
+            public ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults) {
+                return null;
+            }
+
+            @Override
+            public ListFlowFileStatus getListFlowFileStatus(String requestIdentifier) {
+                return null;
+            }
+
+            @Override
+            public ListFlowFileStatus cancelListFlowFileRequest(String requestIdentifier) {
+                return null;
+            }
+
+            @Override
+            public FlowFileRecord getFlowFile(String flowFileUuid) throws IOException {
+                return null;
+            }
+
+            @Override
+            public void verifyCanList() throws IllegalStateException {
+            }
+        };
+
+
+        final int numPartitions = 16;
+        final int numThreads = 8;
+        final int totalUpdates = 160_000_000;
+        final int batchSize = 10;
+
+        final Path path = Paths.get("target/minimal-locking-repo");
+        deleteRecursively(path.toFile());
+        assertTrue(path.toFile().mkdirs());
+
+        final ResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final RepositoryRecordSerdeFactory serdeFactory = new RepositoryRecordSerdeFactory(claimManager);
+        final WriteAheadRepository<RepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
+        final Collection<RepositoryRecord> initialRecs = repo.recoverRecords();
+        assertTrue(initialRecs.isEmpty());
+
+        final int updateCountPerThread = totalUpdates / numThreads;
+
+        final Thread[] threads = new Thread[numThreads];
+        for (int j = 0; j < 2; j++) {
+            for (int i = 0; i < numThreads; i++) {
+                final Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        final List<RepositoryRecord> records = new ArrayList<>();
+                        final int numBatches = updateCountPerThread / batchSize;
+                        final MockFlowFile baseFlowFile = new MockFlowFile(0L);
+
+                        for (int i = 0; i < numBatches; i++) {
+                            records.clear();
+                            for (int k = 0; k < batchSize; k++) {
+                                final FlowFileRecord flowFile = new MockFlowFile(i % 100_000, baseFlowFile);
+                                final String uuid = flowFile.getAttribute("uuid");
+
+                                final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);
+                                record.setDestination(queue);
+                                final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
+                                record.setWorking(flowFile, updatedAttrs);
+
+                                records.add(record);
+                            }
+
+                            try {
+                                repo.update(records, false);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                Assert.fail(e.toString());
+                            }
+                        }
+                    }
+                });
+
+                t.setDaemon(true);
+                threads[i] = t;
+            }
+
+            final long start = System.nanoTime();
+            for (final Thread t : threads) {
+                t.start();
+            }
+            for (final Thread t : threads) {
+                t.join();
+            }
+
+            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            if (j == 0) {
+                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads, *as a warmup!*");
+            } else {
+                System.out.println(millis + " ms to insert " + updateCountPerThread * numThreads + " updates using " + numPartitions + " partitions and " + numThreads + " threads");
+            }
+        }
+    }
+
+    private void deleteRecursively(final File file) {
+        final File[] children = file.listFiles();
+        if (children != null) {
+            for (final File child : children) {
+                deleteRecursively(child);
+            }
+        }
+
+        file.delete();
+    }
+
+
 
     @Test
     public void testResourceClaimsIncremented() throws IOException {

@@ -23,30 +23,55 @@ import java.util.Objects;
  */
 public class StandardNiFiUser implements NiFiUser {
 
-    public static final StandardNiFiUser ANONYMOUS = new StandardNiFiUser("anonymous");
+    public static final String ANONYMOUS_IDENTITY = "anonymous";
+    public static final StandardNiFiUser ANONYMOUS = new StandardNiFiUser(ANONYMOUS_IDENTITY, null, null, true);
 
     private final String identity;
     private final NiFiUser chain;
     private final String clientAddress;
+    private final boolean isAnonymous;
 
     public StandardNiFiUser(String identity) {
-        this(identity, null, null);
+        this(identity, null, null, false);
     }
 
     public StandardNiFiUser(String identity, String clientAddress) {
-        this(identity, null, clientAddress);
+        this(identity, null, clientAddress, false);
     }
 
     public StandardNiFiUser(String identity, NiFiUser chain) {
-        this(identity, chain, null);
+        this(identity, chain, null, false);
     }
 
     public StandardNiFiUser(String identity, NiFiUser chain, String clientAddress) {
+        this(identity, chain, clientAddress, false);
+    }
+
+    /**
+     * This constructor is private as the only instance of this class which should have {@code isAnonymous} set to true is the singleton ANONYMOUS.
+     *
+     * @param identity      the identity string for the user (i.e. "Andy" or "CN=alopresto, OU=Apache NiFi")
+     * @param chain         the proxy chain that leads to this users
+     * @param clientAddress the source address of the request
+     * @param isAnonymous   true to represent the canonical "anonymous" user
+     */
+    private StandardNiFiUser(String identity, NiFiUser chain, String clientAddress, boolean isAnonymous) {
         this.identity = identity;
         this.chain = chain;
         this.clientAddress = clientAddress;
+        this.isAnonymous = isAnonymous;
     }
 
+    /**
+     * This static builder allows the chain and clientAddress to be populated without allowing calling code to provide a non-anonymous identity of the anonymous user.
+     *
+     * @param chain the proxied entities in {@see NiFiUser} form
+     * @param clientAddress the address the request originated from
+     * @return an anonymous user instance with the identity "anonymous"
+     */
+    public static StandardNiFiUser populateAnonymousUser(NiFiUser chain, String clientAddress) {
+        return new StandardNiFiUser(ANONYMOUS_IDENTITY, chain, clientAddress, true);
+    }
 
     @Override
     public String getIdentity() {
@@ -60,7 +85,7 @@ public class StandardNiFiUser implements NiFiUser {
 
     @Override
     public boolean isAnonymous() {
-        return this == ANONYMOUS;
+        return isAnonymous;
     }
 
     @Override

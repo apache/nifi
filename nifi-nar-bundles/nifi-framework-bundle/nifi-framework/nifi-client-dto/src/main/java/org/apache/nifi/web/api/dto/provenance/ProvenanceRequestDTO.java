@@ -38,6 +38,9 @@ public class ProvenanceRequestDTO {
     private String maximumFileSize;
     private Integer maxResults;
 
+    private Boolean summarize;
+    private Boolean incrementalResults;
+
     /**
      * @return the search terms to use for this search
      */
@@ -138,5 +141,35 @@ public class ProvenanceRequestDTO {
 
     public void setClusterNodeId(String clusterNodeId) {
         this.clusterNodeId = clusterNodeId;
+    }
+
+    /**
+     * @return whether or not incremental results are returned. If false, provenance events
+     * are only returned once the query completes. This property is true by default.
+     */
+    @ApiModelProperty(
+            value = "Whether or not incremental results are returned. If false, provenance events"
+                    + " are only returned once the query completes. This property is true by default."
+    )
+    public Boolean getIncrementalResults() {
+        return incrementalResults;
+    }
+
+    public void setIncrementalResults(Boolean incrementalResults) {
+        this.incrementalResults = incrementalResults;
+    }
+
+    /**
+     * @return whether or not to summarize provenance events returned. This property is false by default.
+     */
+    @ApiModelProperty(
+            value = "Whether or not to summarize provenance events returned. This property is false by default."
+    )
+    public Boolean getSummarize() {
+        return summarize;
+    }
+
+    public void setSummarize(Boolean summarize) {
+        this.summarize = summarize;
     }
 }

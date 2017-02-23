@@ -179,13 +179,13 @@ public class RangerNiFiAuthorizer implements Authorizer {
             final boolean doesPolicyExist = nifiPlugin.doesPolicyExist(request.getResource().getIdentifier());
 
             if (doesPolicyExist) {
-                // a policy does exist for the resource so we were really denied access here
                 final String reason = result == null ? null : result.getReason();
-                if (reason == null) {
-                    return AuthorizationResult.denied();
-                } else {
-                    return AuthorizationResult.denied(result.getReason());
+                if (reason != null) {
+                    logger.debug(String.format("Unable to authorize %s due to %s", identity, reason));
                 }
+
+                // a policy does exist for the resource so we were really denied access here
+                return AuthorizationResult.denied(request.getExplanationSupplier().get());
             } else {
                 // a policy doesn't exist so return resource not found so NiFi can work back up the resource hierarchy
                 return AuthorizationResult.resourceNotFound();

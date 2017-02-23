@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -143,6 +144,7 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
         return propertyDescriptors;
     }
 
+    @Override
     @OnScheduled
     public void setup(ProcessContext context) {
         super.setup(context);
@@ -165,6 +167,8 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
         try {
 
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});
+            final long startNanos = System.nanoTime();
+
             GetRequestBuilder getRequestBuilder = esClient.get().prepareGet(index, docType, docId);
             if (authToken != null) {
                 getRequestBuilder.putHeader("Authorization", authToken);
@@ -189,6 +193,10 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
                     }
                 });
                 logger.debug("Elasticsearch document " + docId + " fetched, routing to success");
+
+                final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                final String uri = context.getProperty(HOSTS).evaluateAttributeExpressions().getValue() + "/" + index + "/" + docType + "/" + docId;
+                session.getProvenanceReporter().fetch(flowFile, uri, millis);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (NoNodeAvailableException
@@ -211,6 +219,7 @@ public class FetchElasticsearch extends AbstractElasticsearchTransportClientProc
     /**
      * Dispose of ElasticSearch client
      */
+    @Override
     @OnStopped
     public void closeClient() {
         super.closeClient();

@@ -32,7 +32,7 @@ public class TocUtil {
      */
     public static File getTocFile(final File journalFile) {
         final File tocDir = new File(journalFile.getParentFile(), "toc");
-        final String basename = LuceneUtil.substringBefore(journalFile.getName(), ".");
+        final String basename = LuceneUtil.substringBefore(journalFile.getName(), ".prov");
         final File tocFile = new File(tocDir, basename + ".toc");
         return tocFile;
     }

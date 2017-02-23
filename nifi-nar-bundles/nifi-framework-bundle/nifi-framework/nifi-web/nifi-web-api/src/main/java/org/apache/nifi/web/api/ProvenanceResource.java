@@ -46,6 +46,7 @@ import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -108,12 +109,12 @@ public class ProvenanceResource extends ApplicationResource {
                 .accessAttempt(true)
                 .action(RequestAction.READ)
                 .userContext(userContext)
+                .explanationSupplier(() -> "Unable to query provenance.")
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
-            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-            throw new AccessDeniedException(message);
+            throw new AccessDeniedException(result.getExplanation());
         }
     }
 
@@ -295,6 +296,17 @@ public class ProvenanceResource extends ApplicationResource {
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
+                    value = "Whether or not incremental results are returned. If false, provenance events"
+                            + " are only returned once the query completes. This property is true by default.",
+                    required = false
+            )
+            @QueryParam("summarize") @DefaultValue(value = "false") final Boolean summarize,
+            @ApiParam(
+                    value = "Whether or not to summarize provenance events returned. This property is false by default.",
+                    required = false
+            )
+            @QueryParam("incrementalResults") @DefaultValue(value = "true") final Boolean incrementalResults,
+            @ApiParam(
                     value = "The id of the provenance query.",
                     required = true
             )
@@ -314,7 +326,7 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // get the provenance
-        final ProvenanceDTO dto = serviceFacade.getProvenance(id);
+        final ProvenanceDTO dto = serviceFacade.getProvenance(id, summarize, incrementalResults);
         dto.getRequest().setClusterNodeId(clusterNodeId);
         populateRemainingProvenanceContent(dto);
 

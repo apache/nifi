@@ -29,6 +29,11 @@ public class FieldMapRecord implements Record {
         this.values = convertFieldToName(values);
     }
 
+    public FieldMapRecord(final RecordSchema schema, final Map<String, Object> values) {
+        this.schema = schema;
+        this.values = new HashMap<>(values);
+    }
+
     private static Map<String, Object> convertFieldToName(final Map<RecordField, Object> map) {
         final Map<String, Object> nameMap = new HashMap<>(map.size());
         for (final Map.Entry<RecordField, Object> entry : map.entrySet()) {

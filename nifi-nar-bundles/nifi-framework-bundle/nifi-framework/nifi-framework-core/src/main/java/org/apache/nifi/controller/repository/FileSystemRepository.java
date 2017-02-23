@@ -498,10 +498,10 @@ public class FileSystemRepository implements ContentRepository {
         // If the data does not exist, create a Path that points to where the data would exist in the archive directory.
         if (!Files.exists(resolvedPath)) {
             resolvedPath = getArchivePath(claim.getResourceClaim());
-        }
 
-        if (verifyExists && !Files.exists(resolvedPath)) {
-            throw new ContentNotFoundException(claim);
+            if (verifyExists && !Files.exists(resolvedPath)) {
+                throw new ContentNotFoundException(claim);
+            }
         }
         return resolvedPath;
     }
@@ -911,6 +911,7 @@ public class FileSystemRepository implements ContentRepository {
                 }
 
                 bytesWritten += len;
+
                 scc.setLength(bytesWritten + initialLength);
             }
 

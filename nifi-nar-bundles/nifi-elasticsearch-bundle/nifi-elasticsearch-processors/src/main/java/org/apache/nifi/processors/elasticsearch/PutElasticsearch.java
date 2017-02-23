@@ -96,7 +96,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of this document (used by Elasticsearch for indexing and searching)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
@@ -104,7 +104,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             .description("The type of the operation used to index (index, update, upsert)")
             .required(true)
             .expressionLanguageSupported(true)
-            .addValidator(NON_EMPTY_EL_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .defaultValue("index")
             .build();
 
@@ -230,6 +230,7 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
                             session.transfer(flowFile, REL_FAILURE);
 
                         } else {
+                            session.getProvenanceReporter().send(flowFile, context.getProperty(HOSTS).evaluateAttributeExpressions().getValue() + "/" + responses[i].getIndex());
                             session.transfer(flowFile, REL_SUCCESS);
                         }
                         flowFilesToTransfer.remove(flowFile);
@@ -238,7 +239,12 @@ public class PutElasticsearch extends AbstractElasticsearchTransportClientProces
             }
 
             // Transfer any remaining flowfiles to success
-            session.transfer(flowFilesToTransfer, REL_SUCCESS);
+            flowFilesToTransfer.forEach(file -> {
+                session.transfer(file, REL_SUCCESS);
+                // Record provenance event
+                session.getProvenanceReporter().send(file, context.getProperty(HOSTS).evaluateAttributeExpressions().getValue() + "/" +
+                                context.getProperty(INDEX).evaluateAttributeExpressions(file).getValue());
+            });
 
         } catch (NoNodeAvailableException
                 | ElasticsearchTimeoutException

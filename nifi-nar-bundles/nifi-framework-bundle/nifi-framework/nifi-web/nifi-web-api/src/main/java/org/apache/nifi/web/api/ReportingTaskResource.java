@@ -465,6 +465,7 @@ public class ReportingTaskResource extends ApplicationResource {
             response = ReportingTaskEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /reporting-tasks/{uuid}", type = ""),
+                    @Authorization(value = "Write - /controller", type = ""),
                     @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
@@ -510,7 +511,12 @@ public class ReportingTaskResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final ConfigurableComponentAuthorizable reportingTask = lookup.getReportingTask(id);
+
+                    // ensure write permission to the reporting task
                     reportingTask.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    reportingTask.getAuthorizable().getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(reportingTask, authorizer, lookup, false);

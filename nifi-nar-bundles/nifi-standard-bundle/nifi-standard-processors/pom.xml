@@ -232,12 +232,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>jolt-core</artifactId>
-            <version>0.0.21</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>json-utils</artifactId>
-            <version>0.0.21</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -257,6 +257,17 @@ language governing permissions and limitations under the License. -->
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.thekraken</groupId>
+            <artifactId>grok</artifactId>
+            <version>0.1.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.code</groupId>
+                    <artifactId>gson</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -349,6 +360,14 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrELOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefaultOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierDefineOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/modifierOverwriteOutput.json</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>
@@ -382,6 +401,9 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestEncryptContent/salted_128_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_raw.enc</exclude>
                         <exclude>src/test/resources/TestEncryptContent/unsalted_128_raw.enc</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
+                        <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
                         <!-- This file is copied from https://github.com/jeremyh/jBCrypt because the binary is compiled for Java 8 and we must support Java 7 -->
                         <exclude>src/main/java/org/apache/nifi/processors/standard/util/crypto/bcrypt/BCrypt.java</exclude>
                     </excludes>

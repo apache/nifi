@@ -496,6 +496,7 @@ public class ProcessorResource extends ApplicationResource {
             response = ProcessorEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /processors/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
                     @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
@@ -540,7 +541,12 @@ public class ProcessorResource extends ApplicationResource {
                 requestRevision,
                 lookup -> {
                     final ConfigurableComponentAuthorizable processor = lookup.getProcessor(id);
+
+                    // ensure write permission to the processor
                     processor.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // ensure write permission to the parent process group
+                    processor.getAuthorizable().getParentAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                     // verify any referenced services
                     AuthorizeControllerServiceReference.authorizeControllerServiceReferences(processor, authorizer, lookup, false);

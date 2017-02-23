@@ -58,13 +58,16 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
             identity = user.getIdentity();
         }
 
-        logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", identity, status));
+        logger.info(String.format("%s does not have permission to access the requested resource. %s Returning %s response.", identity, exception.getMessage(), status));
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }
 
-        return Response.status(status).entity("Unable to perform the desired action due to insufficient permissions. Contact the system administrator.").type("text/plain").build();
+        return Response.status(status)
+                .entity(String.format("%s Contact the system administrator.", exception.getMessage()))
+                .type("text/plain")
+                .build();
     }
 
 }

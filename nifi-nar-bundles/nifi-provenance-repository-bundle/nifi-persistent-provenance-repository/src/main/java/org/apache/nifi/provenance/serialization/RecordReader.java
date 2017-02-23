@@ -18,7 +18,9 @@ package org.apache.nifi.provenance.serialization;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Optional;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
 
@@ -50,12 +52,24 @@ public interface RecordReader extends Closeable {
     /**
      * Skips to the specified compression block
      *
-     * @param blockIndex the byte index to skip to
+     * @param blockIndex the block index to skip to
      * @throws IOException if the underlying stream throws IOException, or if the reader has already
      * read passed the specified compression block index
      * @throws IllegalStateException if the RecordReader does not have a TableOfContents associated with it
      */
     void skipToBlock(int blockIndex) throws IOException;
+
+    /**
+     * Skips to the first event in the stream with an Event ID >= the given ID. If no event is found with an
+     * ID >= the given ID an empty Optional is returned. Otherwise, an Optional containing the first event in the stream with an
+     * ID >= the given ID is returned. Unlike {@link #nextRecord()}, this method does not consume the returned event from the stream.
+     * I.e., if a record is returned, that same record will be returned again the next time that {@link #nextRecord()} is called.
+     *
+     * @param eventId the ID of the event to retrieve
+     * @return the first event in the stream with an Event ID >= the given ID or an empty Optional if no such event can be found
+     * @throws IOException if the underlying stream throws IOException
+     */
+    Optional<ProvenanceEventRecord> skipToEvent(long eventId) throws IOException;
 
     /**
      * Returns the block index that the Reader is currently reading from.
@@ -100,4 +114,11 @@ public interface RecordReader extends Closeable {
      * @throws IOException if unable to get id of the last event
      */
     long getMaxEventId() throws IOException;
+
+    /**
+     * Returns <code>true</code> if there is more data for hte Record Reader to read, <code>false</code> otherwise.
+     *
+     * @return <code>true</code> if there is more data for hte Record Reader to read, <code>false</code> otherwise.
+     */
+    boolean isData();
 }

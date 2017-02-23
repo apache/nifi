@@ -21,6 +21,11 @@
     </parent>
     <artifactId>nifi-schema-utils</artifactId>
     <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
 

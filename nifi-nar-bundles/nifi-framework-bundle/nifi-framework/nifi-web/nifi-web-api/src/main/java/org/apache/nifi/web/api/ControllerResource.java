@@ -112,12 +112,23 @@ public class ControllerResource extends ApplicationResource {
                 .accessAttempt(true)
                 .action(action)
                 .userContext(userContext)
+                .explanationSupplier(() -> {
+                    final StringBuilder explanation = new StringBuilder("Unable to ");
+
+                    if (RequestAction.READ.equals(action)) {
+                        explanation.append("view ");
+                    } else {
+                        explanation.append("modify ");
+                    }
+                    explanation.append("the controller.");
+
+                    return explanation.toString();
+                })
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
-            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
-            throw new AccessDeniedException(message);
+            throw new AccessDeniedException(result.getExplanation());
         }
     }
 
@@ -499,6 +510,10 @@ public class ControllerResource extends ApplicationResource {
         // ensure connected to the cluster
         if (!isConnectedToCluster()) {
             throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET, getClusterCoordinatorNode());
         }
 
         // get the specified relationship

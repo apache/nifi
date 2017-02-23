@@ -30,7 +30,7 @@ public enum DisconnectionCode {
     /**
      * The node has not yet connected to the cluster
      */
-    NOT_YET_CONNECTED("Not Has Not Yet Connected to Cluster"),
+    NOT_YET_CONNECTED("Has Not Yet Connected to Cluster"),
 
     /**
      * A user explicitly disconnected the node from the cluster

@@ -45,6 +45,7 @@ public class FlowFileSchema {
     public static final String ATTRIBUTE_VALUE = "Attribute Value";
 
     public static final RecordSchema FLOWFILE_SCHEMA_V1;
+    public static final RecordSchema FLOWFILE_SCHEMA_V2;
 
     static {
         final List<RecordField> flowFileFields = new ArrayList<>();
@@ -63,5 +64,24 @@ public class FlowFileSchema {
         flowFileFields.add(new MapRecordField(ATTRIBUTES, attributeNameField, attributeValueField, Repetition.ZERO_OR_ONE));
 
         FLOWFILE_SCHEMA_V1 = new RecordSchema(flowFileFields);
+    }
+
+    static {
+        final List<RecordField> flowFileFields = new ArrayList<>();
+
+        final RecordField attributeNameField = new SimpleRecordField(ATTRIBUTE_NAME, FieldType.LONG_STRING, Repetition.EXACTLY_ONE);
+        final RecordField attributeValueField = new SimpleRecordField(ATTRIBUTE_VALUE, FieldType.LONG_STRING, Repetition.EXACTLY_ONE);
+
+        flowFileFields.add(new SimpleRecordField(RECORD_ID, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(ENTRY_DATE, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(LINEAGE_START_DATE, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(LINEAGE_START_INDEX, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(QUEUE_DATE, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(QUEUE_DATE_INDEX, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new SimpleRecordField(FLOWFILE_SIZE, FieldType.LONG, Repetition.EXACTLY_ONE));
+        flowFileFields.add(new ComplexRecordField(CONTENT_CLAIM, Repetition.ZERO_OR_ONE, ContentClaimSchema.CONTENT_CLAIM_SCHEMA_V1.getFields()));
+        flowFileFields.add(new MapRecordField(ATTRIBUTES, attributeNameField, attributeValueField, Repetition.ZERO_OR_ONE));
+
+        FLOWFILE_SCHEMA_V2 = new RecordSchema(flowFileFields);
     }
 }

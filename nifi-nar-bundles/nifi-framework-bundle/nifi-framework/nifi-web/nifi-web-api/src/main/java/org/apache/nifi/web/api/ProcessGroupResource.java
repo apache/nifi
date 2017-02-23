@@ -339,6 +339,8 @@ public class ProcessGroupResource extends ApplicationResource {
             response = ProcessGroupEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - Parent Process Group - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services by any encapsulated components - /controller-services/{uuid}", type = ""),
                     @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components", type = "")
             }
     )
@@ -384,12 +386,18 @@ public class ProcessGroupResource extends ApplicationResource {
                 requestProcessGroupEntity,
                 requestRevision,
                 lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
                     final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
 
                     // ensure write to this process group and all encapsulated components including templates and controller services. additionally, ensure
                     // read to any referenced services by encapsulated components
                     authorizeProcessGroup(processGroupAuthorizable, authorizer, lookup, RequestAction.WRITE, true, true, true, false);
+
+                    // ensure write permission to the parent process group, if applicable... if this is the root group the
+                    // request will fail later but still need to handle authorization here
+                    final Authorizable parentAuthorizable = processGroupAuthorizable.getAuthorizable().getParentAuthorizable();
+                    if (parentAuthorizable != null) {
+                        parentAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
                 },
                 () -> serviceFacade.verifyDeleteProcessGroup(id),
                 (revision, processGroupEntity) -> {

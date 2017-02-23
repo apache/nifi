@@ -102,6 +102,23 @@ public class TestListHDFS {
     }
 
     @Test
+    public void testListingWithFilter() throws InterruptedException {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
+        runner.setProperty(ListHDFS.FILE_FILTER, "[^test].*");
+
+        // first iteration will not pick up files because it has to instead check timestamps.
+        // We must then wait long enough to ensure that the listing can be performed safely and
+        // run the Processor again.
+        runner.run();
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+    }
+
+    @Test
     public void testListingWithInvalidELFunction() throws InterruptedException {
         runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):foo()}");
         runner.assertNotValid();

@@ -35,15 +35,19 @@
             <artifactId>nifi-processor-utils</artifactId>
         </dependency>
         <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
-            <version>1.4</version>            
+            <version>1.4</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.sun.mail</groupId>
                     <artifactId>javax.mail</artifactId>
-                </exclusion>   
-            </exclusions>          
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
@@ -62,13 +66,18 @@
                 <exclusion>
                     <groupId>javax.mail</groupId>
                     <artifactId>mail</artifactId>
-                </exclusion> 
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.stephenc.findbugs</groupId>
             <artifactId>findbugs-annotations</artifactId>
             <version>1.3.9-1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.ews-java-api</groupId>
+            <artifactId>ews-java-api</artifactId>
+            <version>2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

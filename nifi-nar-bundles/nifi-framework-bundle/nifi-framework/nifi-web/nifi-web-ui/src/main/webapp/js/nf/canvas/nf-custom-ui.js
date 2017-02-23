@@ -15,48 +15,74 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global define, module, require, exports */
 
-nf.CustomUi = {
-    /**
-     * Shows the custom ui.
-     * 
-     * @argument {object} entity            The component id
-     * @arugment {string} uri               The custom ui uri
-     * @argument {boolean} editable         Whether the custom ui should support editing
-     */
-    showCustomUi: function (entity, uri, editable) {
-        return $.Deferred(function (deferred) {
-            nf.Common.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
-                // record the processor id
-                $('#shell-close-button');
+(function (root, factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery',
+            'nf.Common',
+            'nf.Shell',
+            'nf.Dialog',
+            'nf.Client'], function ($, nfCommon, nfShell, nfDialog, nfClient) {
+            return (nf.CustomUi = factory($, nfCommon, nfShell, nfDialog, nfClient));
+        });
+    } else if (typeof exports === 'object' && typeof module === 'object') {
+        module.exports = (nf.CustomUi = factory(require('jquery'),
+            require('nf.Common'),
+            require('nf.Shell'),
+            require('nf.Dialog'),
+            require('nf.Client')));
+    } else {
+        nf.CustomUi = factory(root.$,
+            root.nf.Common,
+            root.nf.Shell,
+            root.nf.Dialog,
+            root.nf.Client);
+    }
+}(this, function ($, nfCommon, nfShell, nfDialog, nfClient) {
+    'use strict';
 
-                var revision = nf.Client.getRevision(entity);
+    return {
+        /**
+         * Shows the custom ui.
+         *
+         * @argument {object} entity            The component id
+         * @arugment {string} uri               The custom ui uri
+         * @argument {boolean} editable         Whether the custom ui should support editing
+         */
+        showCustomUi: function (entity, uri, editable) {
+            return $.Deferred(function (deferred) {
+                nfCommon.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
+                    // record the processor id
+                    $('#shell-close-button');
 
-                // build the customer ui params
-                var customUiParams = {
-                    'id': entity.id,
-                    'revision': revision.version,
-                    'clientId': revision.clientId,
-                    'editable': editable
-                };
+                    var revision = nfClient.getRevision(entity);
 
-                // conditionally include the ui extension token
-                if (!nf.Common.isBlank(uiExtensionToken)) {
-                    customUiParams['access_token'] = uiExtensionToken;
-                }
+                    // build the customer ui params
+                    var customUiParams = {
+                        'id': entity.id,
+                        'revision': revision.version,
+                        'clientId': revision.clientId,
+                        'editable': editable
+                    };
 
-                // show the shell
-                nf.Shell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
+                    // conditionally include the ui extension token
+                    if (!nfCommon.isBlank(uiExtensionToken)) {
+                        customUiParams['access_token'] = uiExtensionToken;
+                    }
+
+                    // show the shell
+                    nfShell.showPage('..' + uri + '?' + $.param(customUiParams), false).done(function () {
+                        deferred.resolve();
+                    });
+                }).fail(function () {
+                    nfDialog.showOkDialog({
+                        headerText: 'Advanced Configuration',
+                        dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
+                    });
                     deferred.resolve();
                 });
-            }).fail(function () {
-                nf.Dialog.showOkDialog({
-                    headerText: 'Advanced Configuration',
-                    dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
-                });
-                deferred.resolve();
-            });
-        }).promise();
+            }).promise();
+        }
     }
-};
+}));

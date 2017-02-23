@@ -28,7 +28,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>jolt-core</artifactId>
-            <version>0.0.21</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
@@ -59,7 +59,10 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/shiftrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/removrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJFactory/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierDefaultSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierDefineSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/modifierOverwriteSpec.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

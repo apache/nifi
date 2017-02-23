@@ -467,6 +467,11 @@ public class TestRangerNiFiAuthorizer {
                         public String getName() {
                             return "/system";
                         }
+
+                        @Override
+                        public String getSafeDescription() {
+                            return "system";
+                        }
                     })
                     .action(RequestAction.WRITE)
                     .identity("admin")
@@ -524,6 +529,11 @@ public class TestRangerNiFiAuthorizer {
 
         @Override
         public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getSafeDescription() {
             return name;
         }
     }

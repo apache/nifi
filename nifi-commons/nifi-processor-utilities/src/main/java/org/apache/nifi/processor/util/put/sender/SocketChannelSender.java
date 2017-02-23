@@ -51,7 +51,7 @@ public class SocketChannelSender extends ChannelSender {
                 if (actualSendBufSize < maxSendBufferSize) {
                     logger.warn("Attempted to set Socket Send Buffer Size to " + maxSendBufferSize
                             + " bytes but could only set to " + actualSendBufSize + "bytes. You may want to "
-                            + "consider changing the Operating System's maximum receive buffer");
+                            + "consider changing the Operating System's maximum send buffer");
                 }
             }
         }

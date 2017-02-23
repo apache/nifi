@@ -156,3 +156,7 @@ div.history-details-name {
     right: 0px;
     min-height: 150px;
 }
+
+#history-table div.slick-viewport {
+    overflow-x: hidden !important;
+}

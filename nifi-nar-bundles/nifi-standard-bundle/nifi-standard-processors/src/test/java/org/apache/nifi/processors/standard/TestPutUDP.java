@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNull;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.concurrent.ArrayBlockingQueue;
+
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -33,6 +34,8 @@ import org.junit.Test;
 public class TestPutUDP {
 
     private final static String UDP_SERVER_ADDRESS = "127.0.0.1";
+    private final static String SERVER_VARIABLE = "ALKJAFLKJDFLSKJSDFLKJSDF";
+    private final static String UDP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
     private final static String UNKNOWN_HOST = "fgdsfgsdffd";
     private final static String INVALID_IP_ADDRESS = "300.300.300.300";
     private final static int BUFFER_SIZE = 1024;
@@ -60,6 +63,7 @@ public class TestPutUDP {
     public void setup() throws Exception {
         createTestServer(UDP_SERVER_ADDRESS, 0, BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutUDP.class);
+        runner.setVariable(SERVER_VARIABLE, UDP_SERVER_ADDRESS);
     }
 
     private void createTestServer(final String address, final int port, final int recvQueueSize) throws Exception {
@@ -94,6 +98,14 @@ public class TestPutUDP {
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testValidFiles() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
+        sendTestData(VALID_FILES);
+        checkReceivedAllData(VALID_FILES);
+        checkInputQueueIsEmpty();
+    }
+
+    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    public void testValidFilesEL() throws Exception {
+        configureProperties(UDP_SERVER_ADDRESS_EL, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(VALID_FILES);
         checkInputQueueIsEmpty();
